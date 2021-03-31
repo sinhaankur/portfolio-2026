@@ -2,7 +2,7 @@ $(function() {
 	var now = new Date();
 	$('.screen-content')
 	.fbMessenger({
-			botName: 'Rachit',
+			botName: 'Ankur',
 			botLogoUrl: 'img/logo-circ.svg',
 			loop:false
 		})
@@ -11,7 +11,7 @@ $(function() {
 	// .fbMessenger('message', 'bot', 'When I was 6, my sister was half my age. Now, I\'m 26. How old is she?', { timestamp: now, delay: 800 })
 	// .fbMessenger('message', 'user', '🤔 🤔', { timestamp: now, delay: 4000 })
 	// .fbMessenger('typingIndicator', { delay: 2000 })
-	.fbMessenger('message', 'bot', 'Hello! I\'m <b>Rachit</b>. UX Designer at Google', { timestamp: now, delay: 1500 })
+	.fbMessenger('message', 'bot', 'Hello! I\'m <b>Ankur</b>. UX Designer at Google', { timestamp: now, delay: 1500 })
 	//.fbMessenger('message', 'bot', 'Rolling beans at <b>Walmart Labs</b> 😆', { timestamp: now, delay: 1200 })
 
 	// .fbMessenger('showGenericTemplate', [
@@ -41,8 +41,8 @@ $(function() {
 	.fbMessenger('message', '', '', {delay: 0 })
 	.fbMessenger('showQuickReplies', [
 		'<a href="#scroll-to-work" id="work-link">Recent work</a>',
-		'<a href="https://medium.com/@rachitgupta" target="_blank">Ignored blog</a>',
-		'<a href="https://www.linkedin.com/in/rachit91/" target="_blank">LinkedIn</a>'
+		'<a href="https://medium.com/@Ankurgupta" target="_blank">Ignored blog</a>',
+		'<a href="https://www.linkedin.com/in/Ankur91/" target="_blank">LinkedIn</a>'
 		
 	], { timestamp: now, delay: 1500 })
 	// .fbMessenger('scrollQuickReplies', 3, { delay: 2000 })
