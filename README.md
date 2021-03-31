@@ -1,2 +1,2 @@
-# rachit91.github.io
+# sinhaankur.github.io
 UX Design portfolio of Ankur Sinha
