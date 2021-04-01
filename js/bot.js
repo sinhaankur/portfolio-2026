@@ -41,7 +41,7 @@ $(function() {
 	.fbMessenger('message', '', '', {delay: 0 })
 	.fbMessenger('showQuickReplies', [
 		'<a href="#scroll-to-work" id="work-link">Recent work</a>',
-		'<a href="https://medium.com/@Ankurgupta" target="_blank">Ignored blog</a>',
+		'<a href="https://medium.com/@sinhaankur827" target="_blank">Ignored blog</a>',
 		'<a href="https://www.linkedin.com/in/sinhaankur27/" target="_blank">LinkedIn</a>'
 		
 	], { timestamp: now, delay: 1500 })
