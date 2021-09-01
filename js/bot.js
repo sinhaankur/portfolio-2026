@@ -37,7 +37,7 @@ $(function() {
 	}
 	], { delay: 2000 })
 	.fbMessenger('typingIndicator', { delay: 2000 })
-	.fbMessenger('message', 'bot', 'Scroll down for my work (last update 2018) or here are some links for you!', {delay: 1500 })
+	.fbMessenger('message', 'bot', 'Scroll down for my work (last update 2020) or here are some links for you!', {delay: 1500 })
 	.fbMessenger('message', '', '', {delay: 0 })
 	.fbMessenger('showQuickReplies', [
 		'<a href="#scroll-to-work" id="work-link">Recent work</a>',
