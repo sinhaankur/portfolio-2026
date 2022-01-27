@@ -23,11 +23,11 @@ $(function() {
 	// }
 	// ], { delay: 1500 })
 
-	// .fbMessenger('message', 'user', '🤙', { timestamp: now, delay: 3000 })
-	// .fbMessenger('typingIndicator', { delay: 2500 })
-	// .fbMessenger('message', 'bot', 'haha', { timestamp: now, delay: 1500 })
+	.fbMessenger('message', 'user', '🤙', { timestamp: now, delay: 3000 })
+	.fbMessenger('typingIndicator', { delay: 2500 })
+	.fbMessenger('message', 'bot', 'haha', { timestamp: now, delay: 1500 })
 	.fbMessenger('typingIndicator', { delay: 1000 })
-	.fbMessenger('message', 'bot', 'working on cloud solution, designing a shared UX vision for an intergrated cloud platform </b>.', {delay: 1500 })
+	.fbMessenger('message', 'bot', 'working on cloud solution, designing a shared UX vision for an intergrated cloud platform. </b>', {delay: 1500 })
 	.fbMessenger('showGenericTemplate', [
 	{
 	imageUrl: 'img/camera.gif',
