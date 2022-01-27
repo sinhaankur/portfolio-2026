@@ -23,9 +23,9 @@ $(function() {
 	// }
 	// ], { delay: 1500 })
 
-	.fbMessenger('message', 'user', '🤙', { timestamp: now, delay: 3000 })
-	.fbMessenger('typingIndicator', { delay: 2500 })
-	.fbMessenger('message', 'bot', 'haha', { timestamp: now, delay: 1500 })
+	//.fbMessenger('message', 'user', '🤙', { timestamp: now, delay: 3000 })
+	//.fbMessenger('typingIndicator', { delay: 2500 })
+	//.fbMessenger('message', 'bot', 'haha', { timestamp: now, delay: 1500 })
 	.fbMessenger('typingIndicator', { delay: 1000 })
 	.fbMessenger('message', 'bot', 'working on cloud solution, designing a shared UX vision for an intergrated cloud platform. </b>', {delay: 1500 })
 	.fbMessenger('showGenericTemplate', [
@@ -40,8 +40,8 @@ $(function() {
 	.fbMessenger('message', 'bot', 'Scroll down for my work (last update 2020) or here are some links for you!', {delay: 1500 })
 	.fbMessenger('message', '', '', {delay: 0 })
 	.fbMessenger('showQuickReplies', [
-		'<a href="#scroll-to-work" id="work-link">Recent work</a>',
-		'<a href="https://medium.com/@sinhaankur827" target="_blank">Ignored blog</a>',
+		'<a href="#scroll-to-work" id="work-link">Work</a>',
+		'<a href="https://medium.com/@sinhaankur827" target="_blank">Blog</a>',
 		'<a href="https://www.linkedin.com/in/sinhaankur27/" target="_blank">LinkedIn</a>'
 		
 	], { timestamp: now, delay: 1500 })
