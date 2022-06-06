@@ -9,7 +9,7 @@ $(function() {
 	.fbMessenger('start', { delay: 0 })
 	.fbMessenger('typingIndicator', { delay: 1200 })
 	.fbMessenger('message', 'bot', 'Hello! I am <b>Ankur</b>. Senior UX Designer at Oracle (DBTool Team)', { timestamp: now, delay: 1500 })
-	.fbMessenger('message', 'bot', 'Rolling beans at <b>Oracle Canada</b> 😆', { timestamp: now, delay: 1200 })
+	.fbMessenger('message', 'bot', 'Rolling beans at <b>Oracle Canada</b> ', { timestamp: now, delay: 1200 })
 	// .fbMessenger('showGenericTemplate', [
 	// {
 	// imageUrl: 'img/hey.gif',
@@ -35,11 +35,12 @@ $(function() {
 	.fbMessenger('typingIndicator', { delay: 2000 })
 	.fbMessenger('message', 'bot', 'Scroll down for my work (last update 2021) or here are some links for you!', {delay: 1500 })
 	.fbMessenger('message', '', '', {delay: 0 })
-	.fbMessenger('showQuickReplies', [
-		'<a href="#scroll-to-work" id="work-link">Learning</a>',
+	.fbMessenger('showQuickReplies', 
+     	[
+	 	'<a href="#scroll-to-work" id="work-link">Learning</a>',
 		'<a href="https://medium.com/@sinhaankur827" target="_blank">Medium Article</a>',
-		'<a href="https://www.linkedin.com/in/sinhaankur27/" target="_blank">LinkedIn</a>'
-	], { timestamp: now, delay: 1500 })
+	 	'<a href="https://www.linkedin.com/in/sinhaankur27/" target="_blank">LinkedIn</a>'
+	    ], { timestamp: now, delay: 1500 })
 	// .fbMessenger('scrollQuickReplies', 3, { delay: 2000 })
 	// .fbMessenger('scrollQuickReplies', 0, { delay: 1000 })
 	// .fbMessenger('scrollQuickReplies', 4, { delay: 1000 })
