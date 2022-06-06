@@ -9,7 +9,7 @@ $(function() {
 	.fbMessenger('start', { delay: 0 })
 	.fbMessenger('typingIndicator', { delay: 1200 })
 	.fbMessenger('message', 'bot', 'Hello! I am <b>Ankur</b>. Senior UX Designer at Oracle (DBTool Team)', { timestamp: now, delay: 1500 })
-	.fbMessenger('message', 'bot', 'Rolling beans at <b>Oracle Canada</b> ', { timestamp: now, delay: 1200 })
+	//.fbMessenger('message', 'bot', 'Rollin<b>Oracle Canada</b> ', { timestamp: now, delay: 1200 })
 	// .fbMessenger('showGenericTemplate', [
 	// {
 	// imageUrl: 'img/hey.gif',
