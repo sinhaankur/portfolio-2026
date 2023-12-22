@@ -2,7 +2,7 @@ $(function() {
 	var now = new Date();
 	$('.screen-content')
 	.fbMessenger({
-			botName: 'Ankur',
+			botName: 'Ankur AI',
 			botLogoUrl: 'img/logo-circ.svg',
 			loop:false
 		})
