@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2021", // Target modern JavaScript
+    "module": "ESNext", // Use ES modules
+    "jsx": "react", // Enable JSX syntax for React-style components
+    "strict": true, // Enable all strict type-checking options
+    "esModuleInterop": true, // Allow default imports for CommonJS modules
+    "skipLibCheck": true, // Skip checking library declaration files
+    "moduleResolution": "Node", // Use Node-style module resolution
+    "resolveJsonModule": true, // Support importing JSON files
+    "lib": ["DOM", "ES2021"], // Include DOM and modern JavaScript libraries
+    "types": ["@figma/plugin-typings"], // Include Figma typings
+    "outDir": "./dist" // Output compiled files to a dist folder
+  },
+  "include": [
+    "./**/*.ts",
+    "./**/*.tsx" // Include TypeScript and TSX files
+  ],
+  "exclude": [
+    "node_modules", // Exclude dependencies
+    "dist" // Exclude build folder
+  ]
+}

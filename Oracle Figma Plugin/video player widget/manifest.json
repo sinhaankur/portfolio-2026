@@ -1,0 +1,21 @@
+{
+  "name": "Video Player Widget", // User-friendly name for your widget
+  "id": "video-player-widget-unique-id", // A unique identifier for your widget
+  "api": "1.0.0",
+  "main": "dist/code.js", // Path to the main JavaScript file
+  "capabilities": [],
+  "enableProposedApi": false,
+  "documentAccess": "none", // No need for document access unless required
+  "editorType": [
+    "figma",
+    "figjam"
+  ],
+  "containsWidget": true,
+  "widgetApi": "1.0.0",
+  "ui": null, // Widgets do not require external UI files like "ui.html"
+  "networkAccess": {
+    "allowedDomains": [
+      "*" // Allow external domains for video streaming (YouTube, Vimeo, etc.)
+    ]
+  }
+}
