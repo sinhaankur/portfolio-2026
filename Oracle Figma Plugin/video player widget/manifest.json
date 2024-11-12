@@ -12,7 +12,7 @@
   ],
   "containsWidget": true,
   "widgetApi": "1.0.0",
-  "ui": null,
+  "ui": "",  // Empty string instead of null
   "networkAccess": {
     "allowedDomains": [
       "*"
