@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Emoji Tetris Game</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Google Fonts for a modern look (Montserrat and Inter) -->
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Inter:wght@400;700&display=swap" rel="stylesheet">
+  <!-- Tone.js library for audio -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+  <style>
+  html, body {
+    height: 100%;
+    margin: 0;
+    font-family: 'Inter', sans-serif; /* Primary font */
+    background: #E0E0E0; /* Light grey background from the image */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #333333; /* Dark text for contrast on light background */
+    overflow: hidden;
+    transition: background 0.5s ease;
+  }
+
+  /* Game container to center the canvas and controls */
+  .game-container {
+      background-color: #F0F0F0; /* Slightly lighter grey for container */
+      border-radius: 25px;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1), 0 0 5px rgba(0, 0, 0, 0.05); /* Softer shadows */
+      padding: 30px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      max-width: 90%;
+      width: 450px;
+      box-sizing: border-box;
+      border: 1px solid #CCCCCC; /* Lighter grey border */
+      animation: slideInUp 0.8s ease-out forwards;
+  }
+
+  h1 {
+      font-family: 'Montserrat', sans-serif;
+      color: #333333; /* Dark text for title */
+      margin-top: 0;
+      margin-bottom: 15px;
+      font-size: 2.2em;
+      text-align: center;
+      text-shadow: none; /* Remove previous text shadow for cleaner look */
+      letter-spacing: 1px;
+  }
+
+  .score-display {
+      font-size: 1.4em;
+      font-weight: 700;
+      color: #666666; /* Medium grey for score */
+      margin-bottom: 15px;
+      text-shadow: none; /* Remove previous text shadow */
+  }
+
+  canvas {
+    border: 4px solid #BBBBBB; /* Light grey border */
+    border-radius: 15px;
+    background-color: #FFFFFF; /* White background for game area */
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1); /* Subtle inner shadow */
+    touch-action: none;
+  }
+
+  button {
+      background: linear-gradient(145deg, #B2EBF2, #80DEEA); /* Pastel blue gradient for CTA */
+      color: #333333; /* Dark text for contrast */
+      border: none;
+      padding: 14px 30px;
+      font-size: 1.2em;
+      font-weight: bold;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.3s ease-in-out;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2); /* Softer button shadow */
+      outline: none;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+  }
+
+  button:hover {
+      background: linear-gradient(145deg, #80DEEA, #B2EBF2); /* Invert gradient on hover */
+      transform: translateY(-2px) scale(1.01); /* Subtle lift and scale */
+      box-shadow: 0 7px 20px rgba(0, 0, 0, 0.3);
+  }
+
+  button:active {
+      transform: translateY(0);
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Message box styling */
+  .message-box {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: rgba(255, 255, 255, 0.95); /* Semi-transparent white background */
+      padding: 40px;
+      border-radius: 20px;
+      text-align: center;
+      color: #333333; /* Dark text */
+      font-size: 1.6em;
+      font-weight: bold;
+      z-index: 100;
+      display: none;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); /* Softer shadow */
+      animation: fadeInScale 0.4s ease-out forwards;
+      border: 1px solid #CCCCCC; /* Light accent border */
+  }
+
+  .message-box p {
+      margin: 0 0 25px 0;
+      line-height: 1.4;
+      font-family: 'Montserrat', sans-serif;
+      color: #333333; /* Dark text */
+  }
+
+  .message-box button {
+      background: linear-gradient(145deg, #FFECB3, #FFD54F); /* Pastel yellow/orange gradient for action */
+      color: #333333; /* Dark text for contrast */
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  }
+
+  .message-box button:hover {
+      background: linear-gradient(145deg, #FFD54F, #FFECB3);
+      box-shadow: 0 7px 20px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Keyframe animations */
+  @keyframes fadeInScale {
+      from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+      to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  }
+
+  @keyframes slideInUp {
+      from { opacity: 0; transform: translateY(50px); }
+      to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Media queries for smaller screens */
+  @media (max-width: 600px) {
+      .game-container {
+          padding: 20px;
+          width: 95%;
+          border-radius: 20px;
+      }
+
+      h1 {
+          font-size: 1.8em;
+          margin-bottom: 10px;
+      }
+
+      .score-display {
+          font-size: 1.2em;
+      }
+
+      button {
+          padding: 12px 25px;
+          font-size: 1em;
+          border-radius: 8px;
+      }
+
+      .message-box {
+          padding: 25px;
+          font-size: 1.3em;
+          border-radius: 15px;
+      }
+  }
+  </style>
+</head>
+<body>
+<div class="game-container">
+    <h1>Emoji Tetris!</h1>
+    <div class="score-display">Score: <span id="score">0</span></div>
+    <canvas width="320" height="640" id="game"></canvas>
+    <button id="startButton">Start Game</button>
+</div>
+
+<!-- Message box for game over/start -->
+<div id="messageBox" class="message-box">
+    <p id="messageText"></p>
+    <button id="restartButton">Restart Game</button>
+</div>
+
+<script>
+// This game is designed with mobile web app compatibility in mind.
+// It includes viewport meta tag, touch event listeners, and responsive CSS.
+
+// get a random integer between the range of [min,max]
+// @see https://stackoverflow.com/a/1527820/2124254
+function getRandomInt(min, max) {
+  min = Math.ceil(min);
+  max = Math.floor(max);
+
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+// generate a new tetromino sequence
+// @see https://tetris.fandom.com/wiki/Random_Generator
+function generateSequence() {
+  const sequence = ['I', 'J', 'L', 'O', 'S', 'T', 'Z'];
+
+  while (sequence.length) {
+    const rand = getRandomInt(0, sequence.length - 1);
+    const name = sequence.splice(rand, 1)[0];
+    tetrominoSequence.push(name);
+  }
+}
+
+// get the next tetromino in the sequence
+function getNextTetromino() {
+  if (tetrominoSequence.length === 0) {
+    generateSequence();
+  }
+
+  const name = tetrominoSequence.pop();
+  // Get matrix, color, and emoji from the tetrominos object
+  const { matrix, color, emoji } = tetrominos[name];
+
+  // I and O start centered, all others start in left-middle
+  const col = playfield[0].length / 2 - Math.ceil(matrix[0].length / 2);
+
+  // I starts on row 21 (-1), all others start on row 22 (-2)
+  const row = name === 'I' ? -1 : -2;
+
+  return {
+    name: name,      // name of the piece (L, O, etc.)
+    matrix: matrix,  // the current rotation matrix
+    row: row,        // current row (starts offscreen)
+    col: col,        // current col
+    color: color,    // color of the piece
+    emoji: emoji     // emoji for the piece
+  };
+}
+
+// rotate an NxN matrix 90deg
+// @see https://codereview.stackexchange.com/a/186834
+function rotate(matrix) {
+  const N = matrix.length - 1;
+  const result = matrix.map((row, i) =>
+    row.map((val, j) => matrix[N - j][i])
+  );
+
+  return result;
+}
+
+// check to see if the new matrix/row/col is valid
+function isValidMove(matrix, cellRow, cellCol) {
+  for (let row = 0; row < matrix.length; row++) {
+    for (let col = 0; col < matrix[row].length; col++) {
+      if (matrix[row][col] && (
+          // outside the game bounds
+          cellCol + col < 0 ||
+          cellCol + col >= playfield[0].length ||
+          cellRow + row >= playfield.length ||
+          // collides with another piece (check if not null)
+          (playfield[cellRow + row] && playfield[cellRow + row][cellCol + col] !== null))
+        ) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
+// place the tetromino on the playfield
+function placeTetromino() {
+  for (let row = 0; row < tetromino.matrix.length; row++) {
+    for (let col = 0; col < tetromino.matrix[row].length; col++) {
+      if (tetromino.matrix[row][col]) {
+
+        // game over if piece has any part offscreen
+        if (tetromino.row + row < 0) {
+          return showGameOver();
+        }
+
+        // Store an object with color and emoji
+        playfield[tetromino.row + row][tetromino.col + col] = {
+            color: tetromino.color,
+            emoji: tetromino.emoji
+        };
+      }
+    }
+  }
+
+  // check for line clears starting from the bottom and working our way up
+  let linesCleared = 0;
+  for (let row = playfield.length - 1; row >= 0; ) {
+    // A row is full if every cell is not null
+    if (playfield[row].every(cell => cell !== null)) {
+      linesCleared++;
+      // drop every row above this one
+      for (let r = row; r >= 0; r--) {
+        for (let c = 0; c < playfield[r].length; c++) {
+          playfield[r][c] = playfield[r-1][c];
+        }
+      }
+    }
+    else {
+      row--;
+    }
+  }
+
+  if (linesCleared > 0) {
+      if (audioContextStarted && lineClearSynth) {
+          // Play a short, happy note
+          lineClearSynth.triggerAttackRelease("C6", "8n", Tone.now());
+      }
+      // Update score (simple scoring for now)
+      score += linesCleared * 100; // 100 points per line
+      scoreDisplay.textContent = score;
+  }
+
+  tetromino = getNextTetromino();
+}
+
+// show the game over screen
+function showGameOver() {
+  cancelAnimationFrame(rAF);
+  gameOver = true;
+  gameRunning = false; // Set gameRunning to false on game over
+
+  // Display message box
+  messageText.innerHTML = `Game Over!<br>Your score: <span style="color: #666666;">${score}</span>`; /* Changed score color for contrast */
+  messageBox.style.display = 'block';
+
+  // Show the start button again for a new game
+  startButton.style.display = 'block';
+  startButton.textContent = 'Play Again'; // Change button text
+  restartButton.style.display = 'block'; // Ensure restart button is visible
+}
+
+const canvas = document.getElementById('game');
+const context = canvas.getContext('2d');
+const grid = 32; // Size of each block in pixels
+const tetrominoSequence = [];
+
+// UI elements
+const scoreDisplay = document.getElementById('score');
+const startButton = document.getElementById('startButton');
+const messageBox = document.getElementById('messageBox');
+const messageText = document.getElementById('messageText');
+const restartButton = document.getElementById('restartButton');
+let score = 0; // Initialize score
+
+// Tone.js setup for line clear sound
+let lineClearSynth;
+let audioContextStarted = false;
+
+// Declare gameRunning in the global scope
+let gameRunning = false;
+
+
+// keep track of what is in every cell of the game using a 2d array
+// tetris playfield is 10x20, with a few rows offscreen
+const playfield = [];
+
+// populate the empty state
+for (let row = -2; row < 20; row++) {
+  playfield[row] = [];
+
+  for (let col = 0; col < 10; col++) {
+    playfield[row][col] = null; // Use null for empty cells
+  }
+}
+
+// how to draw each tetromino
+// @see https://tetris.fandom.com/wiki/SRS
+// Now includes color and emoji for each tetromino type
+const tetrominos = {
+  'I': {
+    matrix: [
+      [0,0,0,0],
+      [1,1,1,1],
+      [0,0,0,0],
+      [0,0,0,0]
+    ],
+    color: '#C8E6C9', // Pastel Green (from image)
+    emoji: '😊'
+  },
+  'J': {
+    matrix: [
+      [1,0,0],
+      [1,1,1],
+      [0,0,0],
+    ],
+    color: '#E1BEE7', // Pastel Purple (from image)
+    emoji: '😇'
+  },
+  'L': {
+    matrix: [
+      [0,0,1],
+      [1,1,1],
+      [0,0,0],
+    ],
+    color: '#FFECB3', // Pastel Yellow/Orange (from image)
+    emoji: '🤩'
+  },
+  'O': {
+    matrix: [
+      [1,1],
+      [1,1],
+    ],
+    color: '#B2EBF2', // Pastel Blue (from image)
+    emoji: '😎'
+  },
+  'S': {
+    matrix: [
+      [0,1,1],
+      [1,1,0],
+      [0,0,0],
+    ],
+    color: '#F8BBD0', // Pastel Pink (from image)
+    emoji: '😂'
+  },
+  'Z': {
+    matrix: [
+      [1,1,0],
+      [0,1,1],
+      [0,0,0],
+    ],
+    color: '#B3E0C8', // Another Pastel Green/Mint (from image)
+    emoji: '😜'
+  },
+  'T': {
+    matrix: [
+      [0,1,0],
+      [1,1,1],
+      [0,0,0],
+    ],
+    color: '#D1C4E9', // Another Pastel Purple/Lavender (from image)
+    emoji: '🤔'
+  }
+};
+
+
+let count = 0;
+let tetromino = getNextTetromino();
+let rAF = null;  // keep track of the animation frame so we can cancel it
+let gameOver = false;
+
+let gameStartTime = 0; // To track when the game started
+let lastSpeedIncreaseTime = 0; // To track when speed was last increased
+const speedIncreaseInterval = 1000; // Increase speed every 1000ms (1 second)
+const speedDecreaseAmount = 10; // Decrease dropInterval by 10ms
+const minDropInterval = 200; // Minimum drop interval to prevent it from becoming too fast
+let dropInterval = 1000; // Initial drop interval
+
+// game loop
+function loop(currentTime) {
+  rAF = requestAnimationFrame(loop);
+  context.clearRect(0,0,canvas.width,canvas.height);
+
+  // Increase speed over time
+  if (gameRunning && currentTime - lastSpeedIncreaseTime > speedIncreaseInterval) {
+      dropInterval = Math.max(minDropInterval, dropInterval - speedDecreaseAmount);
+      lastSpeedIncreaseTime = currentTime;
+  }
+
+  // draw the playfield
+  for (let row = 0; row < 20; row++) {
+    for (let col = 0; col < 10; col++) {
+      if (playfield[row][col]) {
+        const blockData = playfield[row][col]; // This will be { color, emoji }
+        context.fillStyle = blockData.color;
+
+        // drawing 1 px smaller than the grid creates a grid effect
+        context.fillRect(col * grid, row * grid, grid-1, grid-1);
+
+        // Draw emoji
+        context.font = `${grid * 0.7}px Arial`; // Adjust font size based on grid
+        context.textAlign = 'center';
+        context.textBaseline = 'middle';
+        context.fillStyle = '#333'; // Dark color for the emoji itself for contrast
+        context.fillText(blockData.emoji, (col * grid) + grid / 2, (row * grid) + grid / 2);
+      }
+    }
+  }
+
+  // draw the active tetromino
+  if (tetromino) {
+
+    // tetromino falls based on dropInterval
+    if (currentTime - lastDropTime > dropInterval) {
+      tetromino.row++;
+      lastDropTime = currentTime; // Reset lastDropTime
+
+      // place piece if it runs into anything
+      if (!isValidMove(tetromino.matrix, tetromino.row, tetromino.col)) {
+        tetromino.row--;
+        placeTetromino();
+      }
+    }
+
+    context.fillStyle = tetromino.color; // Use the tetromino's color
+
+    for (let row = 0; row < tetromino.matrix.length; row++) {
+      for (let col = 0; col < tetromino.matrix[row].length; col++) {
+        if (tetromino.matrix[row][col]) {
+
+          // drawing 1 px smaller than the grid creates a grid effect
+          context.fillRect((tetromino.col + col) * grid, (tetromino.row + row) * grid, grid-1, grid-1);
+
+          // Draw emoji
+          context.font = `${grid * 0.7}px Arial`;
+          context.textAlign = 'center';
+          context.textBaseline = 'middle';
+          context.fillStyle = '#333';
+          context.fillText(tetromino.emoji, (tetromino.col + col) * grid + grid / 2, (tetromino.row + row) * grid + grid / 2);
+        }
+      }
+    }
+  }
+}
+
+// listen to keyboard events to move the active tetromino
+document.addEventListener('keydown', function(e) {
+  if (gameOver) return;
+
+  // left and right arrow keys (move)
+  if (e.which === 37 || e.which === 39) {
+    const col = e.which === 37
+      ? tetromino.col - 1
+      : tetromino.col + 1;
+
+    if (isValidMove(tetromino.matrix, tetromino.row, col)) {
+      tetromino.col = col;
+    }
+  }
+
+  // up arrow key (rotate)
+  if (e.which === 38) {
+    const matrix = rotate(tetromino.matrix);
+    // Check if the rotated matrix is valid at the current position
+    if (isValidMove(matrix, tetromino.row, tetromino.col)) {
+      tetromino.matrix = matrix;
+    } else {
+      // Simple wall kick attempt if rotation is blocked
+      // Try moving right
+      let newCol = tetromino.col + 1;
+      if (isValidMove(matrix, tetromino.row, newCol)) {
+        tetromino.matrix = matrix;
+        tetromino.col = newCol;
+      } else {
+        // Try moving left
+        newCol = tetromino.col - 1;
+        if (isValidMove(matrix, tetromino.row, newCol)) {
+          tetromino.matrix = matrix;
+          tetromino.col = newCol;
+        }
+      }
+    }
+  }
+
+  // down arrow key (drop)
+  if(e.which === 40) {
+    const row = tetromino.row + 1;
+
+    if (!isValidMove(tetromino.matrix, row, tetromino.col)) {
+      tetromino.row = row - 1;
+
+      placeTetromino();
+      return;
+    }
+
+    tetromino.row = row;
+  }
+
+  // Spacebar for hard drop
+  if (e.which === 32) {
+    while (isValidMove(tetromino.matrix, tetromino.row + 1, tetromino.col)) {
+      tetromino.row++;
+    }
+    placeTetromino();
+  }
+});
+
+// Touch controls (simplified for Tetris: tap left/right for movement, tap top for rotate, tap bottom for hard drop)
+let initialTouchX = null;
+let initialTouchY = null;
+const SWIPE_THRESHOLD = 30; // Minimum distance for a swipe
+
+canvas.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    if (gameOver) return;
+    initialTouchX = e.touches[0].clientX;
+    initialTouchY = e.touches[0].clientY;
+}, { passive: false });
+
+canvas.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    if (gameOver || initialTouchX === null || initialTouchY === null) return;
+
+    const finalTouchX = e.changedTouches[0].clientX;
+    const finalTouchY = e.changedTouches[0].clientY;
+
+    const deltaX = finalTouchX - initialTouchX;
+    const deltaY = finalTouchY - initialTouchY;
+
+    initialTouchX = null; // Reset
+    initialTouchY = null;
+
+    // Determine if it's a horizontal swipe (move left/right)
+    if (Math.abs(deltaX) > SWIPE_THRESHOLD && Math.abs(deltaY) < SWIPE_THRESHOLD) {
+        if (deltaX > 0) {
+            const col = tetromino.col + 1;
+            if (isValidMove(tetromino.matrix, tetromino.row, col)) {
+                tetromino.col = col;
+            }
+        } else {
+            const col = tetromino.col - 1;
+            if (isValidMove(tetromino.matrix, tetromino.row, col)) {
+                tetromino.col = col;
+            }
+        }
+    }
+    // Determine if it's a vertical swipe (soft/hard drop) or a tap (rotate/hard drop)
+    else if (Math.abs(deltaY) > SWIPE_THRESHOLD && Math.abs(deltaX) < SWIPE_THRESHOLD) {
+        if (deltaY > 0) { // Downward swipe for hard drop
+            while (isValidMove(tetromino.matrix, tetromino.row + 1, tetromino.col)) {
+                tetromino.row++;
+            }
+            placeTetromino();
+        }
+    } else {
+        // It's a tap, check tap location for rotate or hard drop
+        const canvasRect = canvas.getBoundingClientRect();
+        const touchYRelativeToCanvas = finalTouchY - canvasRect.top;
+
+        if (touchYRelativeToCanvas < canvas.height * 0.5) {
+            // Tap on upper half for rotation
+            const matrix = rotate(tetromino.matrix);
+            if (isValidMove(matrix, tetromino.row, tetromino.col)) {
+                tetromino.matrix = matrix;
+            } else {
+                // Simple wall kick attempt if rotation is blocked
+                let newCol = tetromino.col + 1;
+                if (isValidMove(matrix, tetromino.row, newCol)) {
+                    tetromino.matrix = matrix;
+                    tetromino.col = newCol;
+                } else {
+                    newCol = tetromino.col - 1;
+                    if (isValidMove(matrix, tetromino.row, newCol)) {
+                        tetromino.matrix = matrix;
+                        tetromino.col = newCol;
+                    }
+                }
+            }
+        } else {
+            // Tap on lower half for hard drop
+            while (isValidMove(tetromino.matrix, tetromino.row + 1, tetromino.col)) {
+                tetromino.row++;
+            }
+            placeTetromino();
+        }
+    }
+});
+
+
+// Start button click handler
+startButton.addEventListener('click', startGame);
+// Restart button click handler
+restartButton.addEventListener('click', startGame);
+
+
+// Function to start or restart the game
+function startGame() {
+    // Start Tone.js audio context on first user interaction
+    if (!audioContextStarted) {
+        Tone.start();
+        // Changed to Tone.Synth for a melodic sound
+        lineClearSynth = new Tone.Synth({
+            oscillator: {
+                type: "sine" // A clean sine wave for a pleasant tone
+            },
+            envelope: {
+                attack: 0.01,
+                decay: 0.1,
+                sustain: 0,
+                release: 0.1
+            }
+        }).toDestination();
+        audioContextStarted = true;
+    }
+
+    // Reset game state
+    for (let row = -2; row < 20; row++) {
+        for (let col = 0; col < 10; col++) {
+            playfield[row][col] = null; // Clear the playfield
+        }
+    }
+    score = 0;
+    scoreDisplay.textContent = score;
+    gameOver = false;
+    gameRunning = true; // Set gameRunning to true when game starts
+    count = 0; // Reset frame counter
+    tetrominoSequence.length = 0; // Clear sequence
+    tetromino = getNextTetromino(); // Get first tetromino
+
+    // Reset time-based speed variables
+    dropInterval = 1000; // Reset to initial speed
+    lastDropTime = performance.now(); // Initialize lastDropTime for the loop
+    gameStartTime = performance.now(); // Record game start time
+    lastSpeedIncreaseTime = gameStartTime; // Initialize last speed increase time
+
+    // Hide message box and show start button (if hidden)
+    messageBox.style.display = 'none';
+    startButton.style.display = 'none'; // Hide start button once game starts
+    restartButton.style.display = 'none'; // Hide restart button initially
+
+    // Cancel any existing animation frame to prevent multiple loops
+    if (rAF) {
+        cancelAnimationFrame(rAF);
+    }
+
+    // Start the game loop
+    rAF = requestAnimationFrame(loop);
+}
+
+
+// Initial setup when the window loads
+window.onload = function() {
+    // Initial display of the message box to prompt user to start
+    messageText.innerHTML = 'Welcome to Emoji Tetris!<br>Use <b>Arrow Keys</b> to move and rotate.<br><b>Spacebar</b> for hard drop.<br>On mobile, <b>Swipe Left/Right</b> to move, <b>Tap Top Half</b> to rotate, <b>Tap Bottom Half</b> for hard drop.<br><br>Press "Start Game" to begin!';
+    messageBox.style.display = 'block';
+    restartButton.style.display = 'none'; // Hide restart button initially
+    startButton.textContent = 'Start Game'; // Ensure button text is "Start Game" initially
+
+    // Draw the empty board initially
+    context.clearRect(0,0,canvas.width,canvas.height);
+    for (let row = 0; row < 20; row++) {
+        for (let col = 0; col < 10; col++) {
+            // Draw empty cells for visual grid
+            context.fillStyle = '#FFFFFF'; // White background of canvas
+            context.fillRect(col * grid, row * grid, grid-1, grid-1);
+        }
+    }
+};
+
+</script>
+</body>
+</html>
