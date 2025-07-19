@@ -47,7 +47,6 @@
     />
     <link rel="stylesheet" href="css/jquery.fbmessenger.css" />
 
-    <script src="js/drift.js"></script>
     <script src="js/analytics.js"></script>
     <script>
       (function (w, d, s, l, i) {
@@ -57,7 +56,8 @@
           j = d.createElement(s),
           dl = l != "dataLayer" ? "&l=" + l : "";
         j.async = true;
-        j.src = "https://www.googletagmanager.com/gtag/js?id=G-BHWHS9S8Q8" + i + dl;
+        j.src =
+          "https://www.googletagmanager.com/gtag/js?id=G-BHWHS9S8Q8" + i + dl;
         f.parentNode.insertBefore(j, f);
       })(window, document, "script", "dataLayer", "GTM-N6T2NFT3");
     </script>
@@ -67,7 +67,7 @@
         position: fixed;
         top: 20px;
         right: 20px;
-        z-index: 1000; /* Ensure it's on top of other content */
+        z-index: 1000;
         background-color: #202124;
         color: #fff;
         border-radius: 50%;
@@ -93,7 +93,11 @@
     </style>
   </head>
   <body>
-    <a href="/Portfolio/webgames/emojittetris.html" class="floating-game-icon" title="Play a game">
+    <a
+      href="/Portfolio/webgames/emojittetris.html"
+      class="floating-game-icon"
+      title="Play a game"
+    >
       <i class="fa fa-gamepad"></i>
     </a>
 
@@ -103,7 +107,7 @@
         <option value="hi">हिन्दी</option>
         <option value="'fr">french</option>
         <option value="ru">Русский</option>
-        </select>
+      </select>
     </div>
     <script src="script.js"></script>
 
@@ -355,7 +359,7 @@
           alt="404"
           class="col s12 l5 responsive-img about-img-shadow"
         />
-        </div>
+      </div>
       <div class="spacer"></div>
       <div class="small-spacer"></div>
       <blockquote>
@@ -367,7 +371,7 @@
           with a goal of documenting exploratory projects and inspiring young
           designer thinkers.
           <br /><br />
-          </p>
+        </p>
       </blockquote>
       <div class="x-small-spacer"></div>
       <blockquote>
@@ -436,6 +440,7 @@
             target="_blank"
             class="social-icon"
             style="color: #212121"
+            aria-label="LinkedIn"
           >
             <i class="fa fa-linkedin"></i
           ></a>
@@ -446,6 +451,7 @@
             target="_top"
             class="social-icon"
             style="color: #212121"
+            aria-label="Email"
           >
             <i class="fa fa-envelope-o"></i
           ></a>
@@ -456,12 +462,18 @@
             target="_blank"
             class="social-icon"
             style="color: #212121"
+            aria-label="Instagram"
           >
             <i class="fa fa-instagram"></i
           ></a>
         </li>
         <li>
-          <a href="resume.pdf" target="_blank" class="social-icon">
+          <a
+            href="resume.pdf"
+            target="_blank"
+            class="social-icon"
+            aria-label="Resume"
+          >
             <i
               class="fa fa-file-pdf-o"
               aria-hidden="true"
@@ -473,7 +485,7 @@
       </ul>
 
       <div class="spacer"></div>
-      </div>
+    </div>
     <iframe
       width="100%"
       height="200"
@@ -517,18 +529,5 @@
     <script src="js/materialize.js"></script>
     <script src="js/bot.js"></script>
     <script src="js/init.js"></script>
-    <script>
-      (function (w, d, s, l, i) {
-        w[l] = w[l] || [];
-        w[l].push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
-        var f = d.getElementsByTagName(s)[0],
-          j = d.createElement(s),
-          dl = l != "dataLayer" ? "&l=" + l : "";
-        j.async = true;
-        j.src =
-          "https://www.googletagmanager.com/gtag/js?id=G-BHWHS9S8Q8" + i + dl;
-        f.parentNode.insertBefore(j, f);
-      })(window, document, "script", "dataLayer", "GTM-N6T2NFT3");
-    </script>
-    </body>
+  </body>
 </html>
