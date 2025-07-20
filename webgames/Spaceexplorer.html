@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Explorer</title>
+    <!-- Tailwind CSS CDN for easy styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js CDN for 3D rendering -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        /* Custom styles not easily covered by Tailwind */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #000; /* Deep space background */
+            overflow: hidden; /* Prevent scrollbars */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            cursor: default; /* Default cursor for game area */
+        }
+        canvas {
+            display: block;
+            background-color: #000; /* Fallback for canvas background */
+            border-radius: 12px; /* Rounded corners for the game area */
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5), 0 0 40px rgba(0, 255, 255, 0.3); /* Glow effect */
+            max-width: 90vw; /* Limit canvas width to prevent overflow on small screens */
+            max-height: 90vh; /* Limit canvas height */
+            width: auto; /* Allow width to adjust based on aspect ratio */
+            height: auto; /* Allow height to adjust based on aspect ratio */
+        }
+        .game-ui {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none; /* Allow clicks to pass through to canvas if needed, but UI elements will handle their own events */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding: 2rem;
+            box-sizing: border-box;
+            z-index: 10; /* Ensure UI is above canvas */
+        }
+        .game-overlay {
+            pointer-events: all; /* Re-enable pointer events for overlay content */
+            background-color: rgba(0, 0, 0, 0.9); /* Slightly darker for better contrast */
+            padding: 2.5rem 3rem; /* Increased padding */
+            border-radius: 16px; /* More rounded corners */
+            text-align: center;
+            box-shadow: 0 0 25px rgba(0, 255, 255, 0.8), 0 0 50px rgba(0, 255, 255, 0.5); /* Stronger glow */
+            border: 3px solid #0ff; /* Thicker border */
+            max-width: 90%; /* Ensure overlay fits on small screens */
+            margin: auto; /* Center overlay */
+            display: flex; /* Use flex for internal alignment */
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .score-display {
+            pointer-events: all;
+            background-color: rgba(0, 0, 0, 0.8); /* Darker for better contrast */
+            padding: 0.85rem 1.75rem; /* Slightly larger padding */
+            border-radius: 9999px; /* Pill shape */
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.6); /* Stronger glow */
+            border: 2px solid #0ff; /* Thicker border */
+            font-size: 1.5rem; /* Larger font size */
+        }
+        .btn-game {
+            transition: all 0.3s ease;
+            box-shadow: 0 6px 20px rgba(0, 255, 255, 0.5); /* Enhanced shadow */
+            background: linear-gradient(45deg, #0ff, #00bfff);
+            border: none;
+            color: white;
+            padding: 1rem 2.5rem; /* Larger buttons */
+            border-radius: 9999px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1.5px; /* More letter spacing */
+            cursor: pointer;
+            outline: none; /* Remove outline on focus */
+        }
+        .btn-game:hover {
+            transform: translateY(-5px); /* More pronounced lift */
+            box-shadow: 0 8px 25px rgba(0, 255, 255, 0.8); /* Even stronger glow on hover */
+            background: linear-gradient(45deg, #00bfff, #0ff);
+        }
+        .btn-game:active {
+            transform: translateY(0);
+            box-shadow: 0 4px 15px rgba(0, 255, 255, 0.4);
+        }
+
+        /* Responsive adjustments for smaller screens */
+        @media (max-width: 768px) {
+            .game-overlay {
+                padding: 1.5rem 2rem;
+            }
+            .game-overlay h2 {
+                font-size: 2.5rem;
+            }
+            .game-overlay p {
+                font-size: 1rem;
+            }
+            .btn-game {
+                padding: 0.75rem 2rem;
+                font-size: 1.1rem;
+            }
+            .score-display {
+                font-size: 1.2rem;
+                padding: 0.6rem 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body class="bg-black text-white flex flex-col items-center justify-center min-h-screen">
+
+    <div id="gameContainer" class="relative w-full h-screen max-w-screen-xl max-h-screen-xl flex justify-center items-center">
+        <canvas id="gameCanvas" class="w-full h-full"></canvas>
+
+        <!-- Game UI Overlay -->
+        <div class="game-ui">
+            <!-- Top UI: Score -->
+            <div class="w-full flex justify-center pt-4">
+                <div class="score-display text-cyan-300 font-bold">
+                    Score: <span id="score">0</span>
+                </div>
+            </div>
+
+            <!-- Center UI: Start/Instructions Overlay -->
+            <div id="startOverlay" class="game-overlay hidden">
+                <h2 class="text-3xl md:text-5xl font-extrabold mb-4 text-cyan-300">Space Explorer</h2>
+                <p class="text-base md:text-lg mb-6 text-gray-300">Blast off into space, collect stars, and explore distant planets!</p>
+                <div class="mb-6 text-gray-400 text-sm md:text-base">
+                    <p class="font-semibold">Controls:</p>
+                    <p>Keyboard: <span class="text-cyan-200">Arrow Keys</span> to move</p>
+                    <p>Touch: <span class="text-cyan-200">Drag finger</span> on screen to move</p>
+                </div>
+                <button id="startButton" class="btn-game text-xl md:text-2xl">Start Mission</button>
+            </div>
+
+            <!-- Bottom UI: Message Box (for future use, e.g., game over) -->
+            <div id="messageBox" class="game-overlay hidden">
+                <h3 id="messageTitle" class="text-2xl md:text-4xl font-bold mb-4 text-red-400"></h3>
+                <p id="messageContent" class="text-base md:text-lg mb-6 text-gray-300"></p>
+                <button id="restartButton" class="btn-game text-xl md:text-2xl">Restart</button>
+            </div>
+
+            <!-- Loading Indicator -->
+            <div id="loadingIndicator" class="game-overlay flex flex-col items-center justify-center hidden">
+                <p class="text-xl text-cyan-300">Loading Space...</p>
+                <div class="w-16 h-16 border-4 border-t-4 border-cyan-500 border-solid rounded-full animate-spin mt-4"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Ensure the script runs after the DOM is fully loaded
+        window.onload = function() {
+            // Get references to DOM elements
+            const canvas = document.getElementById('gameCanvas');
+            const scoreDisplay = document.getElementById('score');
+            const startOverlay = document.getElementById('startOverlay');
+            const startButton = document.getElementById('startButton');
+            const messageBox = document.getElementById('messageBox');
+            const messageTitle = document.getElementById('messageTitle');
+            const messageContent = document.getElementById('messageContent');
+            const restartButton = document.getElementById('restartButton');
+            const loadingIndicator = document.getElementById('loadingIndicator');
+
+            // --- Three.js Setup ---
+            let scene, camera, renderer;
+            let player;
+            const stars = [];
+            const planets = [];
+            let score = 0;
+            let isPlaying = false;
+
+            // Movement variables
+            const moveSpeed = 0.1;
+            const playerSpeed = 0.05;
+            const keys = {
+                ArrowUp: false,
+                ArrowDown: false,
+                ArrowLeft: false,
+                ArrowRight: false
+            };
+
+            // Touch control variables
+            let touchStartX = 0;
+            let touchStartY = 0;
+            let isTouching = false;
+            const touchSensitivity = 0.005; // Adjust as needed for touch movement
+
+            // Constants for game elements
+            const STAR_COUNT = 200;
+            const PLANET_COUNT = 5;
+            const STAR_SPEED = 0.05;
+            const PLANET_SPEED = 0.01;
+            const STAR_RESET_Z = -200; // Z-position where stars reset
+            const PLANET_RESET_Z = -500; // Z-position where planets reset
+            const PLAYER_Z = 0; // Player's fixed Z-position
+
+            // Function to show a message box
+            function showMessageBox(title, content) {
+                messageTitle.textContent = title;
+                messageContent.textContent = content;
+                messageBox.classList.remove('hidden');
+                messageBox.classList.add('flex');
+                startOverlay.classList.add('hidden'); // Hide start overlay if visible
+            }
+
+            // Function to hide the message box
+            function hideMessageBox() {
+                messageBox.classList.add('hidden');
+                messageBox.classList.remove('flex');
+            }
+
+            // --- Game Initialization ---
+            function init() {
+                // Show loading indicator
+                loadingIndicator.classList.remove('hidden');
+                loadingIndicator.classList.add('flex');
+
+                // Scene
+                scene = new THREE.Scene();
+                scene.background = new THREE.Color(0x000000); // Black space background
+
+                // Camera
+                // PerspectiveCamera( fov, aspect, near, far )
+                camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                camera.position.z = 5; // Position camera slightly back
+
+                // Renderer
+                renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.setPixelRatio(window.devicePixelRatio);
+
+                // Lighting
+                const ambientLight = new THREE.AmbientLight(0x404040); // Soft white light
+                scene.add(ambientLight);
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                directionalLight.position.set(0, 1, 1).normalize();
+                scene.add(directionalLight);
+
+                // Player (Spaceship)
+                const playerGeometry = new THREE.ConeGeometry(0.5, 1.5, 32); // Simple cone for a spaceship
+                const playerMaterial = new THREE.MeshPhongMaterial({ color: 0x00ffff }); // Cyan color
+                player = new THREE.Mesh(playerGeometry, playerMaterial);
+                player.position.set(0, -2, PLAYER_Z); // Start player at bottom-center
+                player.rotation.x = Math.PI / 2; // Point cone upwards
+                scene.add(player);
+
+                // Stars
+                const starGeometry = new THREE.SphereGeometry(0.1, 8, 8); // Small spheres
+                const starMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff }); // White stars
+                for (let i = 0; i < STAR_COUNT; i++) {
+                    const star = new THREE.Mesh(starGeometry, starMaterial);
+                    star.position.set(
+                        (Math.random() - 0.5) * 200, // X range
+                        (Math.random() - 0.5) * 200, // Y range
+                        Math.random() * -200 // Z range (behind camera)
+                    );
+                    stars.push(star);
+                    scene.add(star);
+                }
+
+                // Planets
+                const planetMaterials = [
+                    new THREE.MeshPhongMaterial({ color: 0xffa500 }), // Orange
+                    new THREE.MeshPhongMaterial({ color: 0x800080 }), // Purple
+                    new THREE.MeshPhongMaterial({ color: 0x00ff00 }), // Green
+                    new THREE.MeshPhongMaterial({ color: 0x0000ff }), // Blue
+                    new THREE.MeshPhongMaterial({ color: 0xff0000 })  // Red
+                ];
+                for (let i = 0; i < PLANET_COUNT; i++) {
+                    const planetGeometry = new THREE.SphereGeometry(Math.random() * 5 + 2, 32, 32); // Larger spheres
+                    const planet = new THREE.Mesh(planetGeometry, planetMaterials[i % planetMaterials.length]);
+                    planet.position.set(
+                        (Math.random() - 0.5) * 300,
+                        (Math.random() - 0.5) * 300,
+                        Math.random() * -500 - 100 // Further behind
+                    );
+                    planets.push(planet);
+                    scene.add(planet);
+                }
+
+                // Handle window resizing
+                window.addEventListener('resize', onWindowResize, false);
+                onWindowResize(); // Initial call to set correct size
+
+                // Hide loading indicator and show start overlay
+                loadingIndicator.classList.add('hidden');
+                loadingIndicator.classList.remove('flex');
+                startOverlay.classList.remove('hidden');
+                startOverlay.classList.add('flex');
+            }
+
+            // --- Game Loop ---
+            function animate() {
+                requestAnimationFrame(animate);
+
+                if (isPlaying) {
+                    // Update player position based on keys pressed
+                    if (keys.ArrowUp) player.position.y += playerSpeed;
+                    if (keys.ArrowDown) player.position.y -= playerSpeed;
+                    if (keys.ArrowLeft) player.position.x -= playerSpeed;
+                    if (keys.ArrowRight) player.position.x += playerSpeed;
+
+                    // Clamp player position to screen boundaries
+                    // Calculate the frustum dimensions at the player's Z-plane
+                    const distanceToPlayerPlane = Math.abs(camera.position.z - player.position.z);
+                    const vFOV = camera.fov * Math.PI / 180; // convert vertical fov to radians
+                    const visibleHeight = 2 * Math.tan(vFOV / 2) * distanceToPlayerPlane;
+                    const visibleWidth = visibleHeight * camera.aspect;
+
+                    const paddingX = player.geometry.parameters.radius * 2 || 0.5; // Estimate player width
+                    const paddingY = player.geometry.parameters.height * 2 || 0.5; // Estimate player height
+
+                    player.position.x = Math.max(-visibleWidth / 2 + paddingX, Math.min(visibleWidth / 2 - paddingX, player.position.x));
+                    player.position.y = Math.max(-visibleHeight / 2 + paddingY, Math.min(visibleHeight / 2 - paddingY, player.position.y));
+
+
+                    // Move stars
+                    stars.forEach(star => {
+                        star.position.z += STAR_SPEED * 5; // Move towards camera
+                        if (star.position.z > camera.position.z) {
+                            // Reset star position if it passes the camera
+                            star.position.set(
+                                (Math.random() - 0.5) * 200,
+                                (Math.random() - 0.5) * 200,
+                                STAR_RESET_Z // Reset far behind
+                            );
+                        }
+
+                        // Collision detection with player (simple distance check)
+                        const distance = player.position.distanceTo(star.position);
+                        if (distance < (player.geometry.parameters.radius || 0.5) + star.geometry.parameters.radius) {
+                            score++;
+                            scoreDisplay.textContent = score;
+                            // Reset collected star
+                            star.position.set(
+                                (Math.random() - 0.5) * 200,
+                                (Math.random() - 0.5) * 200,
+                                STAR_RESET_Z
+                            );
+                        }
+                    });
+
+                    // Move planets
+                    planets.forEach(planet => {
+                        planet.position.z += PLANET_SPEED * 5; // Move towards camera, slower than stars
+                        if (planet.position.z > camera.position.z + planet.geometry.parameters.radius) {
+                            // Reset planet position
+                            planet.position.set(
+                                (Math.random() - 0.5) * 300,
+                                (Math.random() - 0.5) * 300,
+                                PLANET_RESET_Z
+                            );
+                            // Randomize planet size slightly for variety
+                            planet.scale.setScalar(Math.random() * 0.5 + 0.75);
+                        }
+                        // Rotate planets
+                        planet.rotation.y += 0.001;
+                        planet.rotation.x += 0.0005;
+                    });
+                }
+
+                renderer.render(scene, camera);
+            }
+
+            // --- Event Handlers ---
+            function onWindowResize() {
+                // Adjust canvas size to fit container while maintaining aspect ratio
+                const container = document.getElementById('gameContainer');
+                const containerWidth = container.clientWidth;
+                const containerHeight = container.clientHeight;
+
+                let newWidth, newHeight;
+                const aspectRatio = camera.aspect; // This is (window.innerWidth / window.innerHeight)
+
+                if (containerWidth / containerHeight > aspectRatio) {
+                    newHeight = containerHeight;
+                    newWidth = containerHeight * aspectRatio;
+                } else {
+                    newWidth = containerWidth;
+                    newHeight = containerWidth / aspectRatio;
+                }
+
+                renderer.setSize(newWidth, newHeight);
+                camera.aspect = newWidth / newHeight; // Update camera aspect based on new canvas size
+                camera.updateProjectionMatrix();
+            }
+
+            // Keyboard Controls
+            document.addEventListener('keydown', (event) => {
+                if (keys.hasOwnProperty(event.key)) {
+                    keys[event.key] = true;
+                }
+            });
+
+            document.addEventListener('keyup', (event) => {
+                if (keys.hasOwnProperty(event.key)) {
+                    keys[event.key] = false;
+                }
+            });
+
+            // Touch Controls
+            canvas.addEventListener('touchstart', (event) => {
+                event.preventDefault(); // Prevent scrolling
+                isTouching = true;
+                touchStartX = event.touches[0].clientX;
+                touchStartY = event.touches[0].clientY;
+            });
+
+            canvas.addEventListener('touchmove', (event) => {
+                event.preventDefault(); // Prevent scrolling
+                if (isTouching) {
+                    const touchCurrentX = event.touches[0].clientX;
+                    const touchCurrentY = event.touches[0].clientY;
+
+                    // Calculate delta movement
+                    const deltaX = touchCurrentX - touchStartX;
+                    const deltaY = touchCurrentY - touchStartY;
+
+                    // Apply movement to player, scaling by sensitivity
+                    player.position.x += deltaX * touchSensitivity;
+                    player.position.y -= deltaY * touchSensitivity; // Y-axis is inverted in screen coords vs Three.js
+
+                    // Update touch start for next delta calculation
+                    touchStartX = touchCurrentX;
+                    touchStartY = touchCurrentY;
+
+                    // Clamping is handled in the animate loop to ensure it's always within bounds
+                }
+            });
+
+            canvas.addEventListener('touchend', () => {
+                isTouching = false;
+            });
+
+            // Start Game Button
+            startButton.addEventListener('click', () => {
+                startOverlay.classList.add('hidden');
+                startOverlay.classList.remove('flex');
+                isPlaying = true;
+                score = 0;
+                scoreDisplay.textContent = score;
+                // Reset game elements if restarting
+                stars.forEach(star => star.position.set((Math.random() - 0.5) * 200, (Math.random() - 0.5) * 200, Math.random() * -200));
+                planets.forEach(planet => planet.position.set((Math.random() - 0.5) * 300, (Math.random() - 0.5) * 300, Math.random() * -500 - 100));
+                player.position.set(0, -2, PLAYER_Z); // Reset player position
+            });
+
+            // Restart Game Button (if a game over condition is added later)
+            restartButton.addEventListener('click', () => {
+                hideMessageBox();
+                isPlaying = true;
+                score = 0;
+                scoreDisplay.textContent = score;
+                // Reset game elements
+                stars.forEach(star => star.position.set((Math.random() - 0.5) * 200, (Math.random() - 0.5) * 200, Math.random() * -200));
+                planets.forEach(planet => planet.position.set((Math.random() - 0.5) * 300, (Math.random() - 0.5) * 300, Math.random() * -500 - 100));
+                player.position.set(0, -2, PLAYER_Z); // Reset player position
+            });
+
+            // Initialize the game and start the animation loop
+            init();
+            animate();
+        };
+    </script>
+</body>
+</html>
