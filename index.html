@@ -91,7 +91,7 @@
         background-color: #5f6368;
       }
       
-      /* NEW CSS for the floating Slack icon */
+      /* Existing CSS for the floating Slack icon */
       .floating-slack-icon {
         position: fixed;
         top: 80px; /* Positioned below the game icon */
@@ -120,9 +120,40 @@
         transform: scale(1.1);
         background-color: #7f5c80;
       }
+
+      /* NEW CSS for the floating Server Management icon */
+      .floating-server-icon {
+        position: fixed;
+        top: 140px; /* Positioned below the Slack icon */
+        right: 20px;
+        z-index: 1000;
+        /* Using a professional server-like color */
+        background-color: #007bff; 
+        color: #fff;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        transition: transform 0.3s ease, background-color 0.3s ease;
+        text-align: center;
+      }
+
+      .floating-server-icon i {
+        font-size: 24px;
+        line-height: 1;
+      }
+
+      .floating-server-icon:hover {
+        transform: scale(1.1);
+        background-color: #0056b3;
+      }
     </style>
   </head>
   <body>
+    <!-- Existing Gamepad Icon -->
     <a
       href="webgames/Gamelist.html"
       class="floating-game-icon"
@@ -131,6 +162,7 @@
       <i class="fa fa-gamepad"></i>
     </a>
 
+    <!-- Existing Slack Icon -->
     <a
       href="https://join.slack.com/t/sa-ozf6033/shared_invite/zt-3fom6wj4x-fWXzfShDvYxRZlujM02gkw"
       target="_blank"
@@ -140,6 +172,17 @@
       <i class="fa fa-slack"></i>
     </a>
 
+    <!-- NEW SERVER MANAGEMENT (Cockpit) ICON -->
+    <a
+      href="https://manage.sinhaankur.com:9090"
+      target="_blank"
+      class="floating-server-icon"
+      title="Server Management (Cockpit)"
+    >
+      <!-- Using a database/server icon from Font Awesome -->
+      <i class="fa fa-server"></i>
+    </a>
+    
     <div class="language-selector">
       <select id="language-dropdown">
         <option value="en">English</option>
@@ -419,6 +462,7 @@
           <a href="" class="link-color drift-open-chat"> together.</a>
         </p>
       </blockquote>
+      <!-- The following script block caused errors and has been removed:
       <script>
         "use strict";
 
@@ -470,6 +514,7 @@
         drift.SNIPPET_VERSION = "0.3.1";
         drift.load("bka7er4xpyty");
       </script>
+      -->
       <div class="x-small-spacer"></div>
 
       <ul class="social-icons">
