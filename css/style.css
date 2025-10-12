@@ -66,24 +66,24 @@ a {
 
 
 #logo-container {
-	top:18%;
+  top:18%;
 }
 
 .icon-block {
   padding: 0 15px;
 }
 .icon-block .material-icons {
-	font-size: inherit;
+  font-size: inherit;
 }
 
 nav {
-	background-color: #ffffff;
-	color: #000000;
-	box-shadow: 0 1px 1.5px 0 rgba(0,0,0,.12), 0 1px 1px 0 rgba(0,0,0,.24);
+  background-color: #ffffff;
+  color: #000000;
+  box-shadow: 0 1px 1.5px 0 rgba(0,0,0,.12), 0 1px 1px 0 rgba(0,0,0,.24);
 }
 
 nav ul li a {
-	color: #000;
+  color: #000;
 }
 
 .spacer {
@@ -311,7 +311,7 @@ h5  {
 
 div.screen-content {
   position: absolute;
-/*  width: 285px;
+/* width: 285px;
   height: 508px;
   top: 12.3%;
   left: 9%;*/
@@ -473,3 +473,32 @@ input[type=password].invalid, input[type=password]:focus.invalid {
   box-shadow: 0 1px 0 0 #f44336 !important;
 }
 
+/* NEW CSS for the floating Booking Management icon */
+.floating-booking-icon {
+  position: fixed;
+  top: 200px; /* Positioned below the Server icon (140px + 60px) */
+  right: 20px;
+  z-index: 1000;
+  /* Using a recognizable booking/calendar color */
+  background-color: #f7931e; 
+  color: #fff;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  transition: transform 0.3s ease, background-color 0.3s ease;
+  text-align: center;
+}
+
+.floating-booking-icon i {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.floating-booking-icon:hover {
+  transform: scale(1.1);
+  background-color: #d87d19;
+}
