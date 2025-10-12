@@ -150,10 +150,39 @@
         transform: scale(1.1);
         background-color: #0056b3;
       }
+
+      /* NEW CSS for the floating Booking Management icon */
+      .floating-booking-icon {
+        position: fixed;
+        top: 200px; /* Positioned below the Server icon (140px + 60px) */
+        right: 20px;
+        z-index: 1000;
+        /* Using a recognizable booking/calendar color (you can change this) */
+        background-color: #f7931e; 
+        color: #fff;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        transition: transform 0.3s ease, background-color 0.3s ease;
+        text-align: center;
+      }
+
+      .floating-booking-icon i {
+        font-size: 24px;
+        line-height: 1;
+      }
+
+      .floating-booking-icon:hover {
+        transform: scale(1.1);
+        background-color: #d87d19;
+      }
     </style>
   </head>
   <body>
-    <!-- Existing Gamepad Icon -->
     <a
       href="webgames/Gamelist.html"
       class="floating-game-icon"
@@ -162,7 +191,6 @@
       <i class="fa fa-gamepad"></i>
     </a>
 
-    <!-- Existing Slack Icon -->
     <a
       href="https://join.slack.com/t/sa-ozf6033/shared_invite/zt-3fom6wj4x-fWXzfShDvYxRZlujM02gkw"
       target="_blank"
@@ -172,15 +200,22 @@
       <i class="fa fa-slack"></i>
     </a>
 
-    <!-- NEW SERVER MANAGEMENT (Cockpit) ICON -->
     <a
       href="https://manage.sinhaankur.com:9090"
       target="_blank"
       class="floating-server-icon"
       title="Server Management (Cockpit)"
     >
-      <!-- Using a database/server icon from Font Awesome -->
       <i class="fa fa-server"></i>
+    </a>
+
+    <a
+      href="YOUR_BOOKING_APPLICATION_URL" 
+      target="_blank"
+      class="floating-booking-icon"
+      title="Book an Appointment"
+    >
+      <i class="fa fa-calendar-check-o"></i>
     </a>
     
     <div class="language-selector">
@@ -462,59 +497,6 @@
           <a href="" class="link-color drift-open-chat"> together.</a>
         </p>
       </blockquote>
-      <!-- The following script block caused errors and has been removed:
-      <script>
-        "use strict";
-
-        !(function () {
-          var t = (window.driftt = window.drift = window.driftt || []);
-          if (!t.init) {
-            if (t.invoked)
-              return void (
-                window.console &&
-                console.error &&
-                console.error("Drift snippet included twice.")
-              );
-            t.invoked = !0,
-              (t.methods = [
-                "identify",
-                "config",
-                "track",
-                "reset",
-                "debug",
-                "show",
-                "ping",
-                "page",
-                "hide",
-                "off",
-                "on",
-              ]),
-              (t.factory = function (e) {
-                return function () {
-                  var n = Array.prototype.slice.call(arguments);
-                  return n.unshift(e), t.push(n), t;
-                };
-              }),
-              t.methods.forEach(function (e) {
-                t[e] = t.factory(e);
-              }),
-              (t.load = function (t) {
-                var e = 3e5,
-                  n = Math.ceil(new Date() / e) * e,
-                  o = document.createElement("script");
-                (o.type = "text/javascript"),
-                  (o.async = !0),
-                  (o.crossorigin = "anonymous"),
-                  (o.src = "https://js.driftt.com/include/" + n + "/" + t + ".js");
-                var i = document.getElementsByTagName("script")[0];
-                i.parentNode.insertBefore(o, i);
-              });
-          }
-        })();
-        drift.SNIPPET_VERSION = "0.3.1";
-        drift.load("bka7er4xpyty");
-      </script>
-      -->
       <div class="x-small-spacer"></div>
 
       <ul class="social-icons">
