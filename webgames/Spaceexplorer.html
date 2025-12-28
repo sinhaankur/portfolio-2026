@@ -3,566 +3,289 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Space Explorer</title>
-    <!-- Tailwind CSS CDN for easy styling -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Three.js CDN for 3D rendering -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <title>Space Shooter</title>
     <style>
-        /* Custom styles not easily covered by Tailwind */
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: #000; /* Deep space background */
-            overflow: hidden; /* Prevent scrollbars */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
             margin: 0;
-            cursor: default; /* Default cursor for game area */
+            padding: 0;
+            background: #000;
+            font-family: Arial, sans-serif;
+            color: #fff;
+            overflow: hidden;
+        }
+        .dialogue {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 10;
+        }
+        .dialogue__content {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 2rem;
+            border-radius: 10px;
+            border: 2px solid #0ff;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+        }
+        .dialogue h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: #0ff;
+        }
+        .dialogue ul {
+            list-style: none;
+            padding: 0;
+            margin-bottom: 2rem;
+        }
+        .dialogue li {
+            margin: 0.5rem 0;
+            font-size: 1.2rem;
+        }
+        .key {
+            display: inline-block;
+            background: #333;
+            border: 1px solid #666;
+            border-radius: 3px;
+            padding: 0.2rem 0.5rem;
+            font-family: monospace;
+            color: #0ff;
+        }
+        .key--arrow {
+            font-size: 1.5rem;
+        }
+        .dialogue button {
+            background: #0ff;
+            color: #000;
+            border: none;
+            padding: 1rem 2rem;
+            font-size: 1.2rem;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .dialogue button:hover {
+            background: #00cccc;
+        }
+        .hud {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            z-index: 5;
+        }
+        .hud--hidden {
+            display: none;
+        }
+        .hud li {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            border: 1px solid #0ff;
+            margin-bottom: 0.5rem;
         }
         canvas {
             display: block;
-            background-color: #000; /* Fallback for canvas background */
-            border-radius: 12px; /* Rounded corners for the game area */
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5), 0 0 40px rgba(0, 255, 255, 0.3); /* Glow effect */
-            max-width: 90vw; /* Limit canvas width to prevent overflow on small screens */
-            max-height: 90vh; /* Limit canvas height */
-            width: auto; /* Allow width to adjust based on aspect ratio */
-            height: auto; /* Allow height to adjust based on aspect ratio */
-        }
-        .game-ui {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none; /* Allow clicks to pass through to canvas if needed, but UI elements will handle their own events */
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            align-items: center;
-            padding: 2rem;
-            box-sizing: border-box;
-            z-index: 10; /* Ensure UI is above canvas */
-        }
-        .game-overlay {
-            pointer-events: all; /* Re-enable pointer events for overlay content */
-            background-color: rgba(0, 0, 0, 0.9); /* Slightly darker for better contrast */
-            padding: 2.5rem 3rem; /* Increased padding */
-            border-radius: 16px; /* More rounded corners */
-            text-align: center;
-            box-shadow: 0 0 25px rgba(0, 255, 255, 0.8), 0 0 50px rgba(0, 255, 255, 0.5); /* Stronger glow */
-            border: 3px solid #0ff; /* Thicker border */
-            max-width: 90%; /* Ensure overlay fits on small screens */
-            margin: auto; /* Center overlay */
-            display: flex; /* Use flex for internal alignment */
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-        }
-        .score-display {
-            pointer-events: all;
-            background-color: rgba(0, 0, 0, 0.8); /* Darker for better contrast */
-            padding: 0.85rem 1.75rem; /* Slightly larger padding */
-            border-radius: 9999px; /* Pill shape */
-            box-shadow: 0 0 15px rgba(0, 255, 255, 0.6); /* Stronger glow */
-            border: 2px solid #0ff; /* Thicker border */
-            font-size: 1.5rem; /* Larger font size */
-        }
-        .btn-game {
-            transition: all 0.3s ease;
-            box-shadow: 0 6px 20px rgba(0, 255, 255, 0.5); /* Enhanced shadow */
-            background: linear-gradient(45deg, #0ff, #00bfff);
-            border: none;
-            color: white;
-            padding: 1rem 2.5rem; /* Larger buttons */
-            border-radius: 9999px;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 1.5px; /* More letter spacing */
-            cursor: pointer;
-            outline: none; /* Remove outline on focus */
-        }
-        .btn-game:hover {
-            transform: translateY(-5px); /* More pronounced lift */
-            box-shadow: 0 8px 25px rgba(0, 255, 255, 0.8); /* Even stronger glow on hover */
-            background: linear-gradient(45deg, #00bfff, #0ff);
-        }
-        .btn-game:active {
-            transform: translateY(0);
-            box-shadow: 0 4px 15px rgba(0, 255, 255, 0.4);
-        }
-
-        /* Responsive adjustments for smaller screens */
-        @media (max-width: 768px) {
-            .game-overlay {
-                padding: 1.5rem 2rem;
-            }
-            .game-overlay h2 {
-                font-size: 2.5rem;
-            }
-            .game-overlay p {
-                font-size: 1rem;
-            }
-            .btn-game {
-                padding: 0.75rem 2rem;
-                font-size: 1.1rem;
-            }
-            .score-display {
-                font-size: 1.2rem;
-                padding: 0.6rem 1.2rem;
-            }
+            background: #000;
         }
     </style>
 </head>
-<body class="bg-black text-white flex flex-col items-center justify-center min-h-screen">
-
-    <div id="gameContainer" class="relative w-full h-screen max-w-screen-xl max-h-screen-xl flex justify-center items-center">
-        <canvas id="gameCanvas" class="w-full h-full"></canvas>
-
-        <!-- Game UI Overlay -->
-        <div class="game-ui">
-            <!-- Top UI: Score -->
-            <div class="w-full flex justify-center pt-4">
-                <div class="score-display text-cyan-300 font-bold">
-                    Score: <span id="score">0</span>
-                </div>
-            </div>
-
-            <!-- Center UI: Start/Instructions Overlay -->
-            <div id="startOverlay" class="game-overlay hidden">
-                <h2 class="text-3xl md:text-5xl font-extrabold mb-4 text-cyan-300">Space Explorer</h2>
-                <p class="text-base md:text-lg mb-6 text-gray-300">Blast off into space, collect stars, and explore distant planets!</p>
-                <div class="mb-6 text-gray-400 text-sm md:text-base">
-                    <p class="font-semibold">Controls:</p>
-                    <p>Keyboard: <span class="text-cyan-200">Arrow Keys</span> to move</p>
-                    <p>Touch: <span class="text-cyan-200">Drag finger</span> on screen to move</p>
-                </div>
-                <button id="startButton" class="btn-game text-xl md:text-2xl">Start Mission</button>
-            </div>
-
-            <!-- Bottom UI: Message Box (for future use, e.g., game over) -->
-            <div id="messageBox" class="game-overlay hidden">
-                <h3 id="messageTitle" class="text-2xl md:text-4xl font-bold mb-4 text-red-400"></h3>
-                <p id="messageContent" class="text-base md:text-lg mb-6 text-gray-300"></p>
-                <button id="restartButton" class="btn-game text-xl md:text-2xl">Restart</button>
-            </div>
-
-            <!-- Loading Indicator -->
-            <div id="loadingIndicator" class="game-overlay flex flex-col items-center justify-center hidden">
-                <p class="text-xl text-cyan-300">Loading Space...</p>
-                <div class="w-16 h-16 border-4 border-t-4 border-cyan-500 border-solid rounded-full animate-spin mt-4"></div>
-            </div>
+<body>
+    <div class="dialogue">
+        <div class="dialogue__content">
+            <h1>Space Shooter</h1>
+            <ul>
+                <li>Use the <span class="key key--arrow">&larr;</span> and <span class="key key--arrow">&rarr;</span> keys to move.</li>
+                <li>Use <span class="key">spacebar</span> to fire lasers.</li>
+            </ul>
+            <button id="startButton">Start</button>
         </div>
     </div>
 
-    <!-- Audio element for background music -->
-    <audio id="backgroundMusic" loop>
-        <source src="https://soundimage.org/wp-content/uploads/2014/10/Light-Years_v001.mp3" type="audio/mpeg">
-        Your browser does not support the audio element.
-    </audio>
+    <ul class="hud hud--hidden" id="hud">
+        <li class="hud__score">Score: <span id="score">0</span></li>
+    </ul>
+
+    <canvas id="gameCanvas"></canvas>
 
     <script>
-        // Ensure the script runs after the DOM is fully loaded
-        window.onload = function() {
-            // Get references to DOM elements
-            const canvas = document.getElementById('gameCanvas');
-            const scoreDisplay = document.getElementById('score');
-            const startOverlay = document.getElementById('startOverlay');
-            const startButton = document.getElementById('startButton');
-            const messageBox = document.getElementById('messageBox');
-            const messageTitle = document.getElementById('messageTitle');
-            const messageContent = document.getElementById('messageContent');
-            const restartButton = document.getElementById('restartButton');
-            const loadingIndicator = document.getElementById('loadingIndicator');
-            const backgroundMusic = document.getElementById('backgroundMusic'); // Reference to audio element
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const startButton = document.getElementById('startButton');
+        const dialogue = document.querySelector('.dialogue');
+        const hud = document.getElementById('hud');
+        const scoreSpan = document.getElementById('score');
 
-            // --- Three.js Setup ---
-            let scene, camera, renderer;
-            let player; // This will now be a THREE.Group
-            const stars = [];
-            const planets = [];
-            const asteroids = []; // Array to hold asteroid objects
-            let score = 0;
-            let isPlaying = false;
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
 
-            // Movement variables
-            const moveSpeed = 0.1;
-            const playerSpeed = 0.05;
-            const keys = {
-                ArrowUp: false,
-                ArrowDown: false,
-                ArrowLeft: false,
-                ArrowRight: false
-            };
+        let gameRunning = false;
+        let score = 0;
 
-            // Touch control variables
-            let touchStartX = 0;
-            let touchStartY = 0;
-            let isTouching = false;
-            const touchSensitivity = 0.005; // Adjust as needed for touch movement
-
-            // Constants for game elements
-            const STAR_COUNT = 200;
-            const PLANET_COUNT = 5;
-            const ASTEROID_COUNT = 10; // Number of asteroids
-            const STAR_SPEED = 0.05;
-            const PLANET_SPEED = 0.01;
-            const ASTEROID_SPEED = 0.03; // Speed of asteroids
-            const STAR_RESET_Z = -200; // Z-position where stars reset
-            const PLANET_RESET_Z = -500; // Z-position where planets reset
-            const ASTEROID_RESET_Z = -300; // Z-position where asteroids reset
-            const PLAYER_Z = 0; // Player's fixed Z-position
-
-            // Function to show a message box
-            function showMessageBox(title, content) {
-                messageTitle.textContent = title;
-                messageContent.textContent = content;
-                messageBox.classList.remove('hidden');
-                messageBox.classList.add('flex');
-                startOverlay.classList.add('hidden'); // Hide start overlay if visible
-                isPlaying = false; // Pause game when message box is shown
-                backgroundMusic.pause(); // Pause music on game over
-            }
-
-            // Function to hide the message box
-            function hideMessageBox() {
-                messageBox.classList.add('hidden');
-                messageBox.classList.remove('flex');
-            }
-
-            // --- Game Initialization ---
-            function init() {
-                // Show loading indicator
-                loadingIndicator.classList.remove('hidden');
-                loadingIndicator.classList.add('flex');
-
-                // Scene
-                scene = new THREE.Scene();
-                scene.background = new THREE.Color(0x000000); // Black space background
-
-                // Camera
-                // PerspectiveCamera( fov, aspect, near, far )
-                camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-                camera.position.z = 5; // Position camera slightly back
-
-                // Renderer
-                renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
-                renderer.setSize(window.innerWidth, window.innerHeight);
-                renderer.setPixelRatio(window.devicePixelRatio);
-
-                // Lighting
-                const ambientLight = new THREE.AmbientLight(0x404040); // Soft white light
-                scene.add(ambientLight);
-                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-                directionalLight.position.set(0, 1, 1).normalize();
-                scene.add(directionalLight);
-
-                // Player (Spaceship) - Now a group of meshes
-                player = new THREE.Group(); // Create a group to hold spaceship parts
-                const spaceshipMaterial = new THREE.MeshPhongMaterial({ color: 0x00ffff }); // Cyan color for the ship
-
-                // Main body (cylinder)
-                const bodyGeometry = new THREE.CylinderGeometry(0.4, 0.4, 2, 32);
-                const body = new THREE.Mesh(bodyGeometry, spaceshipMaterial);
-                body.rotation.x = Math.PI / 2; // Rotate to be horizontal
-                player.add(body);
-
-                // Cockpit (sphere)
-                const cockpitGeometry = new THREE.SphereGeometry(0.5, 32, 32);
-                const cockpitMaterial = new THREE.MeshPhongMaterial({ color: 0x66ccff }); // Lighter blue for cockpit
-                const cockpit = new THREE.Mesh(cockpitGeometry, cockpitMaterial);
-                cockpit.position.z = 1.0; // Position in front of the body
-                cockpit.rotation.x = Math.PI / 2; // Keep it upright
-                player.add(cockpit);
-
-                // Wings (boxes)
-                const wingGeometry = new THREE.BoxGeometry(0.2, 1.5, 0.5); // Thin, long boxes
-                const wingMaterial = new THREE.MeshPhongMaterial({ color: 0x009999 }); // Darker cyan for wings
-
-                const leftWing = new THREE.Mesh(wingGeometry, wingMaterial);
-                leftWing.position.x = -0.6;
-                leftWing.position.y = 0;
-                leftWing.rotation.z = Math.PI / 2; // Rotate to be horizontal
-                player.add(leftWing);
-
-                const rightWing = new THREE.Mesh(wingGeometry, wingMaterial);
-                rightWing.position.x = 0.6;
-                rightWing.position.y = 0;
-                rightWing.rotation.z = Math.PI / 2; // Rotate to be horizontal
-                player.add(rightWing);
-
-                player.position.set(0, -2, PLAYER_Z); // Start player at bottom-center
-                player.rotation.x = Math.PI / 2; // Rotate the entire group to face upwards initially
-                scene.add(player);
-
-                // Stars
-                const starGeometry = new THREE.SphereGeometry(0.1, 8, 8); // Small spheres
-                const starMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff }); // White stars
-                for (let i = 0; i < STAR_COUNT; i++) {
-                    const star = new THREE.Mesh(starGeometry, starMaterial);
-                    star.position.set(
-                        (Math.random() - 0.5) * 200, // X range
-                        (Math.random() - 0.5) * 200, // Y range
-                        Math.random() * -200 // Z range (behind camera)
-                    );
-                    stars.push(star);
-                    scene.add(star);
-                }
-
-                // Planets
-                const planetMaterials = [
-                    new THREE.MeshPhongMaterial({ color: 0xffa500 }), // Orange
-                    new THREE.MeshPhongMaterial({ color: 0x800080 }), // Purple
-                    new THREE.MeshPhongMaterial({ color: 0x00ff00 }), // Green
-                    new THREE.MeshPhongMaterial({ color: 0x0000ff }), // Blue
-                    new THREE.MeshPhongMaterial({ color: 0xff0000 })  // Red
-                ];
-                for (let i = 0; i < PLANET_COUNT; i++) {
-                    const planetGeometry = new THREE.SphereGeometry(Math.random() * 5 + 2, 32, 32); // Larger spheres
-                    const planet = new THREE.Mesh(planetGeometry, planetMaterials[i % planetMaterials.length]);
-                    planet.position.set(
-                        (Math.random() - 0.5) * 300,
-                        (Math.random() - 0.5) * 300,
-                        Math.random() * -500 - 100 // Further behind
-                    );
-                    planets.push(planet);
-                    scene.add(planet);
-                }
-
-                // Asteroids (Hurdles)
-                const asteroidGeometry = new THREE.DodecahedronGeometry(1.5, 0); // Irregular shape for asteroid
-                const asteroidMaterial = new THREE.MeshPhongMaterial({ color: 0x888888, flatShading: true }); // Grey, flat shaded
-                for (let i = 0; i < ASTEROID_COUNT; i++) {
-                    const asteroid = new THREE.Mesh(asteroidGeometry, asteroidMaterial);
-                    asteroid.position.set(
-                        (Math.random() - 0.5) * 50, // X range
-                        (Math.random() - 0.5) * 50, // Y range
-                        Math.random() * -300 - 50 // Z range (closer than planets, further than stars)
-                    );
-                    asteroids.push(asteroid);
-                    scene.add(asteroid);
-                }
-
-
-                // Handle window resizing
-                window.addEventListener('resize', onWindowResize, false);
-                onWindowResize(); // Initial call to set correct size
-
-                // Hide loading indicator and show start overlay
-                loadingIndicator.classList.add('hidden');
-                loadingIndicator.classList.remove('flex');
-                startOverlay.classList.remove('hidden');
-                startOverlay.classList.add('flex');
-            }
-
-            // --- Game Loop ---
-            function animate() {
-                requestAnimationFrame(animate);
-
-                if (isPlaying) {
-                    // Update player position based on keys pressed
-                    if (keys.ArrowUp) player.position.y += playerSpeed;
-                    if (keys.ArrowDown) player.position.y -= playerSpeed;
-                    if (keys.ArrowLeft) player.position.x -= playerSpeed;
-                    if (keys.ArrowRight) player.position.x += playerSpeed;
-
-                    // Clamp player position to screen boundaries
-                    // Calculate the frustum dimensions at the player's Z-plane
-                    const distanceToPlayerPlane = Math.abs(camera.position.z - player.position.z);
-                    const vFOV = camera.fov * Math.PI / 180; // convert vertical fov to radians
-                    const visibleHeight = 2 * Math.tan(vFOV / 2) * distanceToPlayerPlane;
-                    const visibleWidth = visibleHeight * camera.aspect;
-
-                    // Approximate player's bounding box for clamping
-                    const playerWidth = 1.5; // Estimated max width of the spaceship
-                    const playerHeight = 1.5; // Estimated max height of the spaceship
-
-                    player.position.x = Math.max(-visibleWidth / 2 + playerWidth / 2, Math.min(visibleWidth / 2 - playerWidth / 2, player.position.x));
-                    player.position.y = Math.max(-visibleHeight / 2 + playerHeight / 2, Math.min(visibleHeight / 2 - playerHeight / 2, player.position.y));
-
-
-                    // Move stars
-                    stars.forEach(star => {
-                        star.position.z += STAR_SPEED * 5; // Move towards camera
-                        if (star.position.z > camera.position.z) {
-                            // Reset star position if it passes the camera
-                            star.position.set(
-                                (Math.random() - 0.5) * 200, // X range
-                                (Math.random() - 0.5) * 200, // Y range
-                                Math.random() * -200 // Z range (behind camera)
-                            );
-                        }
-
-                        // Collision detection with player (simple distance check)
-                        const distance = player.position.distanceTo(star.position);
-                        // Using a fixed radius for player collision for simplicity with the new model
-                        const playerCollisionRadius = 1.0; // Adjusted for the new spaceship size
-                        if (distance < playerCollisionRadius + star.geometry.parameters.radius) {
-                            score++;
-                            scoreDisplay.textContent = score;
-                            // Reset collected star
-                            star.position.set(
-                                (Math.random() - 0.5) * 200,
-                                (Math.random() - 0.5) * 200,
-                                STAR_RESET_Z
-                            );
-                        }
-                    });
-
-                    // Move planets
-                    planets.forEach(planet => {
-                        planet.position.z += PLANET_SPEED * 5; // Move towards camera, slower than stars
-                        if (planet.position.z > camera.position.z + planet.geometry.parameters.radius) {
-                            // Reset planet position
-                            planet.position.set(
-                                (Math.random() - 0.5) * 300,
-                                (Math.random() - 0.5) * 300,
-                                PLANET_RESET_Z
-                            );
-                            // Randomize planet size slightly for variety
-                            planet.scale.setScalar(Math.random() * 0.5 + 0.75);
-                        }
-                        // Rotate planets
-                        planet.rotation.y += 0.001;
-                        planet.rotation.x += 0.0005;
-                    });
-
-                    // Move asteroids and check for collision
-                    asteroids.forEach(asteroid => {
-                        asteroid.position.z += ASTEROID_SPEED * 5; // Move towards camera
-                        if (asteroid.position.z > camera.position.z) {
-                            // Reset asteroid position
-                            asteroid.position.set(
-                                (Math.random() - 0.5) * 50,
-                                (Math.random() - 0.5) * 50,
-                                ASTEROID_RESET_Z
-                            );
-                        }
-
-                        // Collision detection with player (simple distance check)
-                        const distance = player.position.distanceTo(asteroid.position);
-                        // Approximate collision radius for player and asteroid
-                        const playerCollisionRadius = 1.0; // Adjusted for the new spaceship size
-                        const asteroidCollisionRadius = asteroid.geometry.parameters.radius || 1.5;
-
-                        if (distance < playerCollisionRadius + asteroidCollisionRadius) {
-                            // Collision detected! Game Over
-                            showMessageBox("Game Over!", `You hit an asteroid! Your score: ${score}`);
-                            isPlaying = false; // Stop the game loop
-                        }
-                    });
-                }
-
-                renderer.render(scene, camera);
-            }
-
-            // --- Event Handlers ---
-            function onWindowResize() {
-                // Adjust canvas size to fit container while maintaining aspect ratio
-                const container = document.getElementById('gameContainer');
-                const containerWidth = container.clientWidth;
-                const containerHeight = container.clientHeight;
-
-                let newWidth, newHeight;
-                const aspectRatio = camera.aspect; // This is (window.innerWidth / window.innerHeight)
-
-                if (containerWidth / containerHeight > aspectRatio) {
-                    newHeight = containerHeight;
-                    newWidth = containerHeight * aspectRatio;
-                } else {
-                    newWidth = containerWidth;
-                    newHeight = containerWidth / aspectRatio;
-                }
-
-                renderer.setSize(newWidth, newHeight);
-                camera.aspect = newWidth / newHeight; // Update camera aspect based on new canvas size
-                camera.updateProjectionMatrix();
-            }
-
-            // Keyboard Controls
-            document.addEventListener('keydown', (event) => {
-                if (keys.hasOwnProperty(event.key)) {
-                    keys[event.key] = true;
-                }
-            });
-
-            document.addEventListener('keyup', (event) => {
-                if (keys.hasOwnProperty(event.key)) {
-                    keys[event.key] = false;
-                }
-            });
-
-            // Touch Controls
-            canvas.addEventListener('touchstart', (event) => {
-                event.preventDefault(); // Prevent scrolling
-                if (!isPlaying) return; // Don't allow touch movement if game is paused/over
-                isTouching = true;
-                touchStartX = event.touches[0].clientX;
-                touchStartY = event.touches[0].clientY;
-            });
-
-            canvas.addEventListener('touchmove', (event) => {
-                event.preventDefault(); // Prevent scrolling
-                if (isTouching && isPlaying) { // Only move if touching and game is playing
-                    const touchCurrentX = event.touches[0].clientX;
-                    const touchCurrentY = event.touches[0].clientY;
-
-                    // Calculate delta movement
-                    const deltaX = touchCurrentX - touchStartX;
-                    const deltaY = touchCurrentY - touchStartY;
-
-                    // Apply movement to player, scaling by sensitivity
-                    player.position.x += deltaX * touchSensitivity;
-                    player.position.y -= deltaY * touchSensitivity; // Y-axis is inverted in screen coords vs Three.js
-
-                    // Update touch start for next delta calculation
-                    touchStartX = touchCurrentX;
-                    touchStartY = touchCurrentY;
-
-                    // Clamping is handled in the animate loop to ensure it's always within bounds
-                }
-            });
-
-            canvas.addEventListener('touchend', () => {
-                isTouching = false;
-            });
-
-            // Start Game Button
-            startButton.addEventListener('click', () => {
-                hideMessageBox(); // Ensure message box is hidden
-                startOverlay.classList.add('hidden');
-                startOverlay.classList.remove('flex');
-                isPlaying = true;
-                score = 0;
-                scoreDisplay.textContent = score;
-                // Reset game elements for a new game
-                stars.forEach(star => star.position.set((Math.random() - 0.5) * 200, (Math.random() - 0.5) * 200, Math.random() * -200));
-                planets.forEach(planet => planet.position.set((Math.random() - 0.5) * 300, (Math.random() - 0.5) * 300, Math.random() * -500 - 100));
-                asteroids.forEach(asteroid => asteroid.position.set((Math.random() - 0.5) * 50, (Math.random() - 0.5) * 50, Math.random() * -300 - 50));
-                player.position.set(0, -2, PLAYER_Z); // Reset player position
-                backgroundMusic.play().catch(e => console.error("Error playing music:", e)); // Play music
-            });
-
-            // Restart Game Button
-            restartButton.addEventListener('click', () => {
-                hideMessageBox();
-                isPlaying = true;
-                score = 0;
-                scoreDisplay.textContent = score;
-                // Reset game elements for a new game
-                stars.forEach(star => star.position.set((Math.random() - 0.5) * 200, (Math.random() - 0.5) * 200, Math.random() * -200));
-                planets.forEach(planet => planet.position.set((Math.random() - 0.5) * 300, (Math.random() - 0.5) * 300, Math.random() * -500 - 100));
-                asteroids.forEach(asteroid => asteroid.position.set((Math.random() - 0.5) * 50, (Math.random() - 0.5) * 50, Math.random() * -300 - 50));
-                player.position.set(0, -2, PLAYER_Z); // Reset player position
-                backgroundMusic.play().catch(e => console.error("Error playing music:", e)); // Play music
-            });
-
-            // Initialize the game and start the animation loop
-            init();
-            animate();
+        // Player
+        const player = {
+            x: canvas.width / 2 - 25,
+            y: canvas.height - 60,
+            width: 50,
+            height: 50,
+            speed: 5
         };
+
+        // Lasers
+        const lasers = [];
+        const laserSpeed = 7;
+
+        // Enemies
+        const enemies = [];
+        const enemySpeed = 2;
+        let enemySpawnRate = 0.02;
+
+        // Keys
+        const keys = {};
+
+        // Event listeners
+        document.addEventListener('keydown', (e) => {
+            keys[e.code] = true;
+            if (e.code === 'Space') {
+                e.preventDefault();
+                if (gameRunning) shootLaser();
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            keys[e.code] = false;
+        });
+
+        startButton.addEventListener('click', startGame);
+
+        function startGame() {
+            dialogue.style.display = 'none';
+            hud.classList.remove('hud--hidden');
+            gameRunning = true;
+            score = 0;
+            scoreSpan.textContent = score;
+            lasers.length = 0;
+            enemies.length = 0;
+            player.x = canvas.width / 2 - 25;
+            gameLoop();
+        }
+
+        function shootLaser() {
+            lasers.push({
+                x: player.x + player.width / 2 - 2,
+                y: player.y,
+                width: 4,
+                height: 10
+            });
+        }
+
+        function spawnEnemy() {
+            if (Math.random() < enemySpawnRate) {
+                enemies.push({
+                    x: Math.random() * (canvas.width - 40),
+                    y: -40,
+                    width: 40,
+                    height: 40
+                });
+            }
+        }
+
+        function update() {
+            // Player movement
+            if (keys['ArrowLeft'] && player.x > 0) {
+                player.x -= player.speed;
+            }
+            if (keys['ArrowRight'] && player.x < canvas.width - player.width) {
+                player.x += player.speed;
+            }
+
+            // Update lasers
+            lasers.forEach((laser, index) => {
+                laser.y -= laserSpeed;
+                if (laser.y < -laser.height) {
+                    lasers.splice(index, 1);
+                }
+            });
+
+            // Spawn and update enemies
+            spawnEnemy();
+            enemies.forEach((enemy, index) => {
+                enemy.y += enemySpeed;
+                if (enemy.y > canvas.height) {
+                    enemies.splice(index, 1);
+                }
+            });
+
+            // Collision detection
+            lasers.forEach((laser, laserIndex) => {
+                enemies.forEach((enemy, enemyIndex) => {
+                    if (laser.x < enemy.x + enemy.width &&
+                        laser.x + laser.width > enemy.x &&
+                        laser.y < enemy.y + enemy.height &&
+                        laser.y + laser.height > enemy.y) {
+                        // Hit
+                        lasers.splice(laserIndex, 1);
+                        enemies.splice(enemyIndex, 1);
+                        score += 10;
+                        scoreSpan.textContent = score;
+                    }
+                });
+            });
+
+            // Check player collision with enemies
+            enemies.forEach((enemy) => {
+                if (player.x < enemy.x + enemy.width &&
+                    player.x + player.width > enemy.x &&
+                    player.y < enemy.y + enemy.height &&
+                    player.y + player.height > enemy.y) {
+                    // Game over
+                    gameRunning = false;
+                    dialogue.style.display = 'block';
+                    hud.classList.add('hud--hidden');
+                    startButton.textContent = 'Restart';
+                }
+            });
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw player
+            ctx.fillStyle = '#0ff';
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+
+            // Draw lasers
+            ctx.fillStyle = '#ff0';
+            lasers.forEach(laser => {
+                ctx.fillRect(laser.x, laser.y, laser.width, laser.height);
+            });
+
+            // Draw enemies
+            ctx.fillStyle = '#f00';
+            enemies.forEach(enemy => {
+                ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+            });
+        }
+
+        function gameLoop() {
+            if (gameRunning) {
+                update();
+                draw();
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+        // Resize canvas
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            if (!gameRunning) {
+                player.x = canvas.width / 2 - 25;
+                player.y = canvas.height - 60;
+            }
+        });
     </script>
 </body>
 </html>
