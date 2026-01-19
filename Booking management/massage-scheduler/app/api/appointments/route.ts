@@ -9,11 +9,7 @@ export async function POST(request: NextRequest) {
 
     // Mock service data (replace with database query)
     const mockServices = {
-      1: { name: "Swedish Massage", duration_minutes: 60, price: 80 },
-      2: { name: "Deep Tissue Massage", duration_minutes: 90, price: 120 },
-      3: { name: "Hot Stone Massage", duration_minutes: 75, price: 100 },
-      4: { name: "Aromatherapy Massage", duration_minutes: 60, price: 90 },
-      5: { name: "Sports Massage", duration_minutes: 60, price: 95 },
+      1: { name: "UX Mentoring & Brainstorming", duration_minutes: 60, price: 0 },
     }
 
     const selectedService = mockServices[service_id as keyof typeof mockServices] || mockServices[1]
