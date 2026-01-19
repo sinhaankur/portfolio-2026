@@ -14,19 +14,10 @@ import { useRouter } from "next/navigation"
 const massageServices = [
   {
     id: 1,
-    name: "Swedish Massage",
+    name: "UX Mentoring & Brainstorming",
     duration: 60,
-    price: 80,
-    description: "Relaxing full-body massage",
+    description: "Personalized UX mentoring and creative brainstorming session",
   },
-  {
-    id: 2,
-    name: "Deep Tissue Massage",
-    duration: 90,
-    price: 120,
-    description: "Therapeutic muscle tension relief",
-  },
-  { id: 3, name: "Hot Stone Massage", duration: 75, price: 100, description: "Soothing massage with heated stones" },
 ]
 
 const timeSlots = ["09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00"]
@@ -117,16 +108,16 @@ export default function BookingPage() {
           </Link>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center elevation-1">
-              <span className="text-primary-foreground font-bold text-lg">ST</span>
+              <span className="text-primary-foreground font-bold text-lg">AS</span>
             </div>
-            <h1 className="text-lg font-semibold text-foreground">Serenity Touch</h1>
+            <h1 className="text-lg font-semibold text-foreground">Ankur Sinha Consulting</h1>
           </div>
         </div>
       </header>
 
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto">
-          <h1 className="text-3xl font-bold text-foreground mb-8 text-center">Book Your Appointment</h1>
+          <h1 className="text-3xl font-bold text-foreground mb-8 text-center">Book Your UX Mentoring Session</h1>
 
           <div className="flex items-center justify-center mb-12">
             {[1, 2, 3].map((stepNum) => (
@@ -168,12 +159,11 @@ export default function BookingPage() {
                       <div className="flex-1">
                         <h3 className="font-semibold text-foreground">{service.name}</h3>
                         <p className="text-muted-foreground mt-2 leading-relaxed">{service.description}</p>
-                        <div className="flex items-center justify-between mt-3 text-sm">
+                        <div className="flex items-center mt-3 text-sm">
                           <span className="flex items-center gap-2 text-muted-foreground">
                             <Clock className="w-4 h-4" />
                             {service.duration} min
                           </span>
-                          <span className="font-semibold text-primary text-lg">${service.price}</span>
                         </div>
                       </div>
                     </div>
