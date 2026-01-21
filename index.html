@@ -90,40 +90,10 @@
         background-color: #5f6368;
       }
       
-      /* Existing CSS for the floating Slack icon */
-      .floating-slack-icon {
-        position: fixed;
-        top: 80px; /* Positioned below the game icon */
-        right: 20px;
-        z-index: 1000;
-        /* Using a recognizable Slack color */
-        background-color: #4A154B; 
-        color: #fff;
-        border-radius: 50%;
-        width: 50px;
-        height: 50px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        transition: transform 0.3s ease, background-color 0.3s ease;
-        text-align: center;
-      }
-
-      .floating-slack-icon i {
-        font-size: 24px;
-        line-height: 1;
-      }
-
-      .floating-slack-icon:hover {
-        transform: scale(1.1);
-        background-color: #7f5c80;
-      }
-
-      /* NEW CSS for the floating Server Management icon */
+      /* CSS for the floating Server Management icon */
       .floating-server-icon {
         position: fixed;
-        top: 140px; /* Positioned below the Slack icon */
+        top: 80px; /* Positioned below the game icon */
         right: 20px;
         z-index: 1000;
         /* Using a professional server-like color */
@@ -150,10 +120,10 @@
         background-color: #0056b3;
       }
 
-      /* NEW CSS for the floating Booking Management icon */
+      /* CSS for the floating Booking Management icon */
       .floating-booking-icon {
         position: fixed;
-        top: 200px; /* Positioned below the Server icon (140px + 60px) */
+        top: 140px; /* Positioned below the Server icon */
         right: 20px;
         z-index: 1000;
         /* Using a recognizable booking/calendar color (you can change this) */
@@ -188,15 +158,6 @@
       title="Play a game"
     >
       <i class="fa fa-gamepad"></i>
-    </a>
-
-    <a
-      href="https://join.slack.com/t/sa-ozf6033/shared_invite/zt-3fom6wj4x-fWXzfShDvYxRZlujM02gkw"
-      target="_blank"
-      class="floating-slack-icon"
-      title="Join my Slack Workspace"
-    >
-      <i class="fa fa-slack"></i>
     </a>
 
     <a
