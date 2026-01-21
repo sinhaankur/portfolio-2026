@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book a Session - Ankur Sinha</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="css/materialize.min.css">
+    <style>
+        :root {
+            /* Material Design 3 Colors */
+            --md-sys-color-primary: #6750a4;
+            --md-sys-color-primary-container: #eaddff;
+            --md-sys-color-secondary: #625b71;
+            --md-sys-color-secondary-container: #e8def8;
+            --md-sys-color-tertiary: #7d5260;
+            --md-sys-color-tertiary-container: #ffd8e4;
+            --md-sys-color-error: #b3261e;
+            --md-sys-color-error-container: #f9dedc;
+            --md-sys-color-outline: #79747e;
+            --md-sys-color-background: #fffbfe;
+            --md-sys-color-surface: #fffbfe;
+            --md-sys-color-surface-variant: #e7e0ec;
+            
+            /* Dark theme */
+            --md-sys-color-primary-dark: #d0bcff;
+            --md-sys-color-primary-container-dark: #4f378b;
+            --md-sys-color-secondary-dark: #ccc7d8;
+            --md-sys-color-background-dark: #1a1a1a;
+            --md-sys-color-surface-dark: #2d2d2d;
+            --md-sys-color-surface-variant-dark: #49454e;
+            
+            /* Elevation shadows */
+            --md-elevation-1: 0px 1px 3px rgba(0, 0, 0, 0.12), 0px 1px 2px rgba(0, 0, 0, 0.24);
+            --md-elevation-2: 0px 3px 6px rgba(0, 0, 0, 0.15), 0px 2px 4px rgba(0, 0, 0, 0.12);
+            --md-elevation-3: 0px 10px 20px rgba(0, 0, 0, 0.15), 0px 3px 6px rgba(0, 0, 0, 0.10);
+        }
+
+        [data-theme="dark"] {
+            --md-sys-color-primary: var(--md-sys-color-primary-dark);
+            --md-sys-color-primary-container: var(--md-sys-color-primary-container-dark);
+            --md-sys-color-secondary: var(--md-sys-color-secondary-dark);
+            --md-sys-color-secondary-container: var(--md-sys-color-secondary-dark);
+            --md-sys-color-background: var(--md-sys-color-background-dark);
+            --md-sys-color-surface: var(--md-sys-color-surface-dark);
+            --md-sys-color-surface-variant: var(--md-sys-color-surface-variant-dark);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--md-sys-color-background);
+            color: #1a1a1a;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        [data-theme="dark"] html,
+        [data-theme="dark"] body {
+            background-color: var(--md-sys-color-background);
+            color: #e0e0e0;
+        }
+
+        .navbar {
+            background-color: var(--md-sys-color-primary);
+            padding: 1rem 2rem;
+            box-shadow: var(--md-elevation-1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .navbar-brand {
+            font-size: 1.5rem;
+            font-weight: 500;
+            color: white;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .navbar-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .theme-toggle {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 50%;
+            transition: background-color 0.3s ease;
+        }
+
+        .theme-toggle:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .back-btn {
+            color: white;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+            transition: background-color 0.3s ease;
+        }
+
+        .back-btn:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .container-main {
+            max-width: 700px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .header-section {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .header-section h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--md-sys-color-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .header-section p {
+            font-size: 1rem;
+            color: var(--md-sys-color-outline);
+            line-height: 1.5;
+        }
+
+        .form-card {
+            background-color: var(--md-sys-color-surface);
+            border-radius: 0.75rem;
+            padding: 2rem;
+            box-shadow: var(--md-elevation-2);
+            transition: box-shadow 0.3s ease;
+        }
+
+        [data-theme="dark"] .form-card {
+            background-color: var(--md-sys-color-surface);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group:last-child {
+            margin-bottom: 0;
+        }
+
+        label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: var(--md-sys-color-primary);
+            font-size: 0.875rem;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--md-sys-color-outline);
+            border-radius: 0.25rem;
+            font-family: 'Roboto', sans-serif;
+            font-size: 1rem;
+            background-color: var(--md-sys-color-surface);
+            color: #1a1a1a;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        [data-theme="dark"] input,
+        [data-theme="dark"] select,
+        [data-theme="dark"] textarea {
+            background-color: var(--md-sys-color-surface);
+            color: #e0e0e0;
+            border-color: var(--md-sys-color-surface-variant);
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--md-sys-color-primary);
+            box-shadow: 0 0 0 3px rgba(103, 80, 164, 0.1);
+        }
+
+        [data-theme="dark"] input:focus,
+        [data-theme="dark"] select:focus,
+        [data-theme="dark"] textarea:focus {
+            box-shadow: 0 0 0 3px rgba(208, 188, 255, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        @media (max-width: 600px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 0.875rem;
+            background-color: var(--md-sys-color-primary);
+            color: white;
+            border: none;
+            border-radius: 0.25rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .submit-btn:hover {
+            background-color: #5a4491;
+            box-shadow: var(--md-elevation-2);
+        }
+
+        .submit-btn:active {
+            transform: scale(0.98);
+        }
+
+        .submit-btn.loading {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        .success-message {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            border-radius: 0.25rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .error-message {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            border-radius: 0.25rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        [data-theme="dark"] .success-message {
+            background-color: #1b5e20;
+            color: #a5d6a7;
+            border-color: #388e3c;
+        }
+
+        [data-theme="dark"] .error-message {
+            background-color: #b71c1c;
+            color: #ef9a9a;
+            border-color: #e53935;
+        }
+
+        .session-type-info {
+            font-size: 0.875rem;
+            color: var(--md-sys-color-outline);
+            margin-top: 0.25rem;
+        }
+
+        @media (max-width: 768px) {
+            .container-main {
+                margin: 1rem auto;
+            }
+
+            .form-card {
+                padding: 1.5rem;
+            }
+
+            .header-section h1 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <a href="index.html" class="back-btn">
+            <span class="material-icons">arrow_back</span>
+            Back to Portfolio
+        </a>
+        <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+            <span class="material-icons">dark_mode</span>
+        </button>
+    </div>
+
+    <div class="container-main">
+        <div class="header-section">
+            <h1>Book a Session</h1>
+            <p>Connect with me for mentoring, brainstorming, or professional guidance. I'll respond with available times and add the event to both our calendars.</p>
+        </div>
+
+        <div class="form-card">
+            <div class="success-message" id="successMessage">
+                <strong>Success!</strong> Your booking request has been sent. You'll receive a confirmation email shortly.
+            </div>
+            <div class="error-message" id="errorMessage"></div>
+
+            <form id="bookingForm">
+                <!-- Name Field -->
+                <div class="form-group">
+                    <label for="name">Your Name *</label>
+                    <input type="text" id="name" name="name" placeholder="John Doe" required>
+                </div>
+
+                <!-- Email Field -->
+                <div class="form-group">
+                    <label for="email">Email Address *</label>
+                    <input type="email" id="email" name="email" placeholder="john@example.com" required>
+                </div>
+
+                <!-- Phone Field -->
+                <div class="form-group">
+                    <label for="phone">Phone Number (Optional)</label>
+                    <input type="tel" id="phone" name="phone" placeholder="+1 (555) 000-0000">
+                </div>
+
+                <!-- Company/Title Field -->
+                <div class="form-group">
+                    <label for="company">Company / Title (Optional)</label>
+                    <input type="text" id="company" name="company" placeholder="e.g., Product Manager at TechCorp">
+                </div>
+
+                <!-- Session Type -->
+                <div class="form-group">
+                    <label for="sessionType">Session Type *</label>
+                    <select id="sessionType" name="sessionType" required>
+                        <option value="">-- Select a session type --</option>
+                        <option value="mentoring">Mentoring</option>
+                        <option value="brainstorming">Brainstorming</option>
+                    </select>
+                    <p class="session-type-info" id="sessionInfo"></p>
+                </div>
+
+                <!-- Preferred Date -->
+                <div class="form-group">
+                    <label for="preferredDate">Preferred Date *</label>
+                    <input type="date" id="preferredDate" name="preferredDate" required>
+                </div>
+
+                <!-- Preferred Time -->
+                <div class="form-group">
+                    <label for="preferredTime">Preferred Time (IST) *</label>
+                    <input type="time" id="preferredTime" name="preferredTime" required>
+                </div>
+
+                <!-- Duration -->
+                <div class="form-group">
+                    <label for="duration">Session Duration *</label>
+                    <select id="duration" name="duration" required>
+                        <option value="">-- Select duration --</option>
+                        <option value="30">30 minutes</option>
+                        <option value="45">45 minutes</option>
+                        <option value="60">1 hour</option>
+                        <option value="90">1.5 hours</option>
+                    </select>
+                </div>
+
+                <!-- Topic / Description -->
+                <div class="form-group">
+                    <label for="topic">Topic / Description *</label>
+                    <textarea id="topic" name="topic" placeholder="Please describe what you'd like to discuss or what you need help with..." required></textarea>
+                </div>
+
+                <!-- Additional Notes -->
+                <div class="form-group">
+                    <label for="notes">Additional Notes (Optional)</label>
+                    <textarea id="notes" name="notes" placeholder="Any other details we should know..." style="min-height: 80px;"></textarea>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" class="submit-btn" id="submitBtn">
+                    <span class="material-icons">send</span>
+                    Send Booking Request
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- EmailJS SDK -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/index.min.js"></script>
+    
+    <script>
+        // Initialize EmailJS (Replace with your EmailJS credentials)
+        const EMAILJS_SERVICE_ID = 'service_dimyux6';
+        const EMAILJS_TEMPLATE_ID = 'template_wlojvia';
+        const EMAILJS_PUBLIC_KEY = 'rBWTRCahNRhuNW_GE'; // This is safe to expose
+
+        // Initialize theme
+        function initTheme() {
+            const theme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+            updateThemeIcon();
+        }
+
+        function updateThemeIcon() {
+            const theme = document.documentElement.getAttribute('data-theme');
+            const icon = document.querySelector('#themeToggle .material-icons');
+            icon.textContent = theme === 'dark' ? 'light_mode' : 'dark_mode';
+        }
+
+        // Theme Toggle
+        document.getElementById('themeToggle').addEventListener('click', () => {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon();
+        });
+
+        // Set minimum date to today
+        document.getElementById('preferredDate').min = new Date().toISOString().split('T')[0];
+
+        // Session type information
+        document.getElementById('sessionType').addEventListener('change', function() {
+            const info = document.getElementById('sessionInfo');
+            if (this.value === 'mentoring') {
+                info.textContent = 'One-on-one guidance on career growth, technical skills, or professional development.';
+            } else if (this.value === 'brainstorming') {
+                info.textContent = 'Collaborative discussion to ideate solutions, explore new concepts, or work through challenges.';
+            } else {
+                info.textContent = '';
+            }
+        });
+
+        // Form submission
+        document.getElementById('bookingForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const submitBtn = document.getElementById('submitBtn');
+            const successMsg = document.getElementById('successMessage');
+            const errorMsg = document.getElementById('errorMessage');
+
+            // Reset messages
+            successMsg.style.display = 'none';
+            errorMsg.style.display = 'none';
+
+            // Disable button and show loading state
+            submitBtn.classList.add('loading');
+            submitBtn.innerHTML = '<span class="material-icons">hourglass_empty</span>Sending...';
+
+            try {
+                // Initialize EmailJS if not already done
+                emailjs.init(EMAILJS_PUBLIC_KEY);
+
+                // Prepare email data
+                const formData = {
+                    to_email: 'sinhaankur827@gmail.com', // Replace with your email
+                    from_name: document.getElementById('name').value,
+                    from_email: document.getElementById('email').value,
+                    phone: document.getElementById('phone').value || 'Not provided',
+                    company: document.getElementById('company').value || 'Not provided',
+                    session_type: document.getElementById('sessionType').value,
+                    preferred_date: document.getElementById('preferredDate').value,
+                    preferred_time: document.getElementById('preferredTime').value,
+                    duration: document.getElementById('duration').value,
+                    topic: document.getElementById('topic').value,
+                    notes: document.getElementById('notes').value || 'None',
+                    reply_to: document.getElementById('email').value
+                };
+
+                // Send email via EmailJS
+                const response = await emailjs.send(
+                    EMAILJS_SERVICE_ID,
+                    EMAILJS_TEMPLATE_ID,
+                    formData
+                );
+
+                // Show success message
+                successMsg.style.display = 'block';
+                this.reset();
+                document.getElementById('sessionInfo').textContent = '';
+
+                // Reset button
+                setTimeout(() => {
+                    submitBtn.classList.remove('loading');
+                    submitBtn.innerHTML = '<span class="material-icons">send</span>Send Booking Request';
+                }, 2000);
+
+            } catch (error) {
+                console.error('Error sending email:', error);
+                errorMsg.textContent = `Error: ${error.text || 'Failed to send booking request. Please try again or email us directly.'}`;
+                errorMsg.style.display = 'block';
+
+                // Reset button
+                submitBtn.classList.remove('loading');
+                submitBtn.innerHTML = '<span class="material-icons">send</span>Send Booking Request';
+            }
+        });
+
+        // Initialize theme on load
+        initTheme();
+    </script>
+</body>
+</html>
