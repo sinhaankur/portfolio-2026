@@ -959,12 +959,6 @@ function startGame() {
 
 // Initial setup when the window loads
 window.onload = function() {
-    // Initial display of the message box to prompt user to start
-    messageText.innerHTML = 'Welcome to Emoji Tetris!<br>Use <b>Arrow Keys</b> to move and rotate.<br><b>Spacebar</b> for hard drop.<br>On mobile, <b>Swipe Left/Right</b> to move, <b>Tap Top Half</b> to rotate, <b>Tap Bottom Half</b> for hard drop.<br><br>Press "Start Game" to begin!';
-    messageBox.style.display = 'block';
-    restartButton.style.display = 'none'; // Hide restart button initially
-    startButton.textContent = 'Start Game'; // Ensure button text is "Start Game" initially
-
     // Draw the empty board initially
     context.clearRect(0,0,canvas.width,canvas.height);
     for (let row = 0; row < 20; row++) {
@@ -974,6 +968,11 @@ window.onload = function() {
             context.fillRect(col * grid, row * grid, grid-1, grid-1);
         }
     }
+    
+    // Keep message box and buttons hidden initially - player clicks Start Game to begin
+    messageBox.style.display = 'none';
+    restartButton.style.display = 'none';
+    startButton.textContent = 'Start Game';
 };
 
 </script>
