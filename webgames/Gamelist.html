@@ -61,6 +61,25 @@
             letter-spacing: 0.3px;
         }
 
+        /* Logo styling */
+        .games-logo {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 1rem;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .header-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
         /* Game Card - Material Design */
         .game-card {
             background: var(--md-surface);
@@ -183,9 +202,12 @@
 <body class="antialiased">
     <!-- App Bar / Header -->
     <header class="shadow-md">
-        <div class="container py-8 text-center">
-            <h1 class="mb-2">🎮 Simple Games</h1>
-            <p class="font-light opacity-90">Built by Ankur Sinha</p>
+        <div class="container py-8">
+            <div class="header-content">
+                <img src="games-logo.svg" alt="Games Logo" class="games-logo">
+                <h1 class="mb-2">🎮 Simple Games</h1>
+                <p class="font-light opacity-90">Built by Ankur Sinha</p>
+            </div>
         </div>
     </header>
 
