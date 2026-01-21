@@ -11,9 +11,6 @@
   <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.3/css/font-awesome.css">
   <link href="../css/materialize.css" type="text/css" rel="stylesheet" media="screen,projection"/>
   <link href="../css/style.css" type="text/css" rel="stylesheet" media="screen,projection"/>
-
-  <script src="../js/drift.js"></script>
-  <script src="../js/analytics.js"></script>
 </head>
 <body>
     <div class="navbar-fixed">
@@ -256,44 +253,6 @@
       </div>
     </div>
   </footer> -->
-
-  <script>
-      (function() {
-       var DRIFT_CHAT_SELECTOR = '.drift-open-chat'
-
-       function ready(fn) {
-       if (document.readyState != 'loading') {
-       fn();
-       } else if (document.addEventListener) {
-       document.addEventListener('DOMContentLoaded', fn);
-       } else {
-       document.attachEvent('onreadystatechange', function() {
-       if (document.readyState != 'loading')
-       fn();
-       });
-       }
-       }
-
-       function forEachElement(selector, fn) {
-       var elements = document.querySelectorAll(selector);
-       for (var i = 0; i < elements.length; i++)
-       fn(elements[i], i);
-       }
-       function openSidebar(driftApi, event) {
-       event.preventDefault();
-       driftApi.sidebar.open();
-       return false;
-       }
-       ready(function() {
-       drift.on('ready', function(api) {
-       var handleClick = openSidebar.bind(this, api)
-       forEachElement(DRIFT_CHAT_SELECTOR, function(el) {
-       el.addEventListener('click', handleClick);
-       });
-       });
-       });
-      })();
-    </script>
 
 
   <script src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
