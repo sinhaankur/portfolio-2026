@@ -9,7 +9,24 @@
     <!-- Roboto Font (Material Design) -->
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script>
+            tailwind.config = {
+                darkMode: 'class',
+                theme: {
+                    extend: {
+                        colors: {
+                            primary: '#6200ea',
+                            secondary: '#03dac6',
+                            surface: '#18181b',
+                            background: '#111113',
+                            card: '#23232a',
+                            accent: '#f093fb',
+                        },
+                    },
+                },
+            }
+        </script>
     <style>
         /* Material Design System */
         :root {
@@ -200,58 +217,77 @@
     </style>
 </head>
 <body class="antialiased">
-    <!-- App Bar / Header -->
-    <header class="shadow-md">
-        <div class="container py-8">
-            <div class="header-content">
+        <!-- App Bar / Header -->
+        <header class="shadow-md bg-primary dark:bg-surface text-white dark:text-white">
+            <div class="container py-8 flex flex-col items-center">
+                <div class="flex justify-between w-full items-center mb-4">
+                    <div></div>
+                    <button id="themeToggle" class="rounded-full p-2 bg-white/10 hover:bg-white/20 transition-colors" aria-label="Toggle dark mode">
+                        <span id="themeIcon" class="material-icons">dark_mode</span>
+                    </button>
+                </div>
                 <img src="games-logo.svg" alt="Games Logo" class="games-logo">
-                <h1 class="mb-2">🎮 Simple Games</h1>
+                <h1 class="mb-2 text-3xl font-bold tracking-tight">🎮 Simple Games</h1>
                 <p class="font-light opacity-90">Built by Ankur Sinha</p>
             </div>
-        </div>
-    </header>
+        </header>
 
     <!-- Main Content -->
     <main class="py-12">
-        <div class="container grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-
-            <!-- Game Card: Emoji Tetris -->
-            <div class="game-card elevation-2">
-                <div class="game-image">
-                    <img src="https://placehold.co/400x200/667eea/ffffff?text=🎮+TETRIS" alt="Emoji Tetris Game">
+                <div class="container grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <!-- Game Card: Emoji Tetris -->
+                    <div class="rounded-xl shadow-lg bg-white dark:bg-card transition-colors border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden hover:scale-[1.02] hover:shadow-2xl duration-200">
+                        <div class="h-48 flex items-center justify-center bg-gradient-to-br from-primary to-accent dark:from-primary dark:to-accent">
+                            <img src="https://placehold.co/400x200/667eea/ffffff?text=🎮+TETRIS" alt="Emoji Tetris Game" class="object-cover w-full h-full rounded-t-xl" />
+                        </div>
+                        <div class="p-6 flex-1 flex flex-col">
+                            <h2 class="text-xl font-semibold mb-2 text-gray-900 dark:text-white">Emoji Tetris</h2>
+                            <p class="text-gray-700 dark:text-gray-300 mb-4 flex-1">Play the classic block-stacking game with a fun emoji twist! Stack, rotate, and clear lines to achieve high scores.</p>
+                            <a href="emojittetris.html" class="inline-block px-5 py-2 rounded bg-primary text-white font-bold shadow hover:bg-secondary transition-colors">Play Now</a>
+                        </div>
+                    </div>
+                    <!-- Additional Game Card Slot -->
+                    <div class="rounded-xl shadow-lg bg-white dark:bg-card transition-colors border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden opacity-80">
+                        <div class="h-48 flex items-center justify-center bg-gradient-to-br from-accent to-primary dark:from-accent dark:to-primary">
+                            <img src="https://placehold.co/400x200/f5576c/ffffff?text=🎯+GAME" alt="Game Placeholder" class="object-cover w-full h-full rounded-t-xl" />
+                        </div>
+                        <div class="p-6 flex-1 flex flex-col">
+                            <h2 class="text-xl font-semibold mb-2 text-gray-900 dark:text-white">Coming Soon</h2>
+                            <p class="text-gray-700 dark:text-gray-300 mb-4 flex-1">More exciting games are on the way! Check back soon for new and fun gaming experiences.</p>
+                            <button class="inline-block px-5 py-2 rounded bg-gray-400 text-white font-bold shadow cursor-not-allowed" disabled>Coming Soon</button>
+                        </div>
+                    </div>
                 </div>
-                <div class="game-content">
-                    <h2 class="game-title">Emoji Tetris</h2>
-                    <p class="game-description">
-                        Play the classic block-stacking game with a fun emoji twist! Stack, rotate, and clear lines to achieve high scores.
-                    </p>
-                    <a href="emojittetris.html" class="btn-contained">Play Now</a>
-                </div>
-            </div>
-
-            <!-- Additional Game Card Slot -->
-            <div class="game-card elevation-2">
-                <div class="game-image" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
-                    <img src="https://placehold.co/400x200/f5576c/ffffff?text=🎯+GAME" alt="Game Placeholder">
-                </div>
-                <div class="game-content">
-                    <h2 class="game-title">Coming Soon</h2>
-                    <p class="game-description">
-                        More exciting games are on the way! Check back soon for new and fun gaming experiences.
-                    </p>
-                    <button class="btn-contained opacity-50 cursor-not-allowed" disabled>Coming Soon</button>
-                </div>
-            </div>
-
-        </div>
     </main>
 
     <!-- Footer -->
     <footer class="py-6">
-        <div class="container text-center">
-            <p>&copy; 2025 Simple Games. All rights reserved.</p>
-            <p class="text-sm mt-2 opacity-75">Designed with ❤️ by Ankur Sinha</p>
-        </div>
+                <div class="container text-center">
+                    <p class="text-gray-700 dark:text-gray-300">&copy; 2025 Simple Games. All rights reserved.</p>
+                    <p class="text-sm mt-2 opacity-75 text-gray-500 dark:text-gray-400">Designed with ❤️ by Ankur Sinha</p>
+                </div>
+    </body>
+    <script>
+        // Dark mode toggle logic
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = document.getElementById('themeIcon');
+        function setDarkMode(dark) {
+            if (dark) {
+                document.documentElement.classList.add('dark');
+                themeIcon.textContent = 'light_mode';
+                localStorage.setItem('theme', 'dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+                themeIcon.textContent = 'dark_mode';
+                localStorage.setItem('theme', 'light');
+            }
+        }
+        // On load, set theme from localStorage
+        setDarkMode(localStorage.getItem('theme') === 'dark');
+        themeToggle.addEventListener('click', () => {
+            setDarkMode(!document.documentElement.classList.contains('dark'));
+        });
+    </script>
     </footer>
 </body>
 </html>
