@@ -328,14 +328,15 @@ for (let row = -2; row < 20; row++) {
   }
 }
 
+// Saturated neobrutal palette — classic Tetris hue mapping, all bordered with black on render
 const tetrominos = {
-  'I': { matrix: [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]], color: '#C8E6C9', emoji: '😊' },
-  'J': { matrix: [[1,0,0],[1,1,1],[0,0,0]], color: '#E1BEE7', emoji: '😇' },
-  'L': { matrix: [[0,0,1],[1,1,1],[0,0,0]], color: '#FFECB3', emoji: '🤩' },
-  'O': { matrix: [[1,1],[1,1]], color: '#B2EBF2', emoji: '😎' },
-  'S': { matrix: [[0,1,1],[1,1,0],[0,0,0]], color: '#F8BBD0', emoji: '😂' },
-  'Z': { matrix: [[1,1,0],[0,1,1],[0,0,0]], color: '#B3E0C8', emoji: '😜' },
-  'T': { matrix: [[0,1,0],[1,1,1],[0,0,0]], color: '#D1C4E9', emoji: '🤔' }
+  'I': { matrix: [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]], color: '#00B8D4', emoji: '😊' }, // cyan
+  'J': { matrix: [[1,0,0],[1,1,1],[0,0,0]],                color: '#1052D6', emoji: '😇' }, // accent blue
+  'L': { matrix: [[0,0,1],[1,1,1],[0,0,0]],                color: '#FF6B1A', emoji: '🤩' }, // orange
+  'O': { matrix: [[1,1],[1,1]],                             color: '#FFD61A', emoji: '😎' }, // secondary yellow
+  'S': { matrix: [[0,1,1],[1,1,0],[0,0,0]],                color: '#1FAB45', emoji: '😂' }, // green
+  'Z': { matrix: [[1,1,0],[0,1,1],[0,0,0]],                color: '#D40D0D', emoji: '😜' }, // primary red
+  'T': { matrix: [[0,1,0],[1,1,1],[0,0,0]],                color: '#A020F0', emoji: '🤔' }  // purple
 };
 
 let count = 0;
@@ -350,6 +351,21 @@ const speedDecreaseAmount = 10;
 const minDropInterval = 200;
 let dropInterval = 1000;
 
+// Render a single block in neobrutal style: saturated fill + 2px black outline + emoji on top
+function drawBlock(c, r, color, emoji) {
+  const x = c * grid;
+  const y = r * grid;
+  context.fillStyle = color;
+  context.fillRect(x, y, grid, grid);
+  context.lineWidth = 2;
+  context.strokeStyle = '#000';
+  context.strokeRect(x + 1, y + 1, grid - 2, grid - 2);
+  context.font = `${grid * 0.65}px Arial`;
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+  context.fillText(emoji, x + grid / 2, y + grid / 2);
+}
+
 function loop(currentTime) {
   rAF = requestAnimationFrame(loop);
   context.clearRect(0,0,canvas.width,canvas.height);
@@ -363,13 +379,7 @@ function loop(currentTime) {
     for (let col = 0; col < 10; col++) {
       if (playfield[row][col]) {
         const blockData = playfield[row][col];
-        context.fillStyle = blockData.color;
-        context.fillRect(col * grid, row * grid, grid-1, grid-1);
-        context.font = `${grid * 0.7}px Arial`;
-        context.textAlign = 'center';
-        context.textBaseline = 'middle';
-        context.fillStyle = '#333';
-        context.fillText(blockData.emoji, (col * grid) + grid / 2, (row * grid) + grid / 2);
+        drawBlock(col, row, blockData.color, blockData.emoji);
       }
     }
   }
@@ -384,17 +394,10 @@ function loop(currentTime) {
       }
     }
 
-    context.fillStyle = tetromino.color;
-
     for (let row = 0; row < tetromino.matrix.length; row++) {
       for (let col = 0; col < tetromino.matrix[row].length; col++) {
         if (tetromino.matrix[row][col]) {
-          context.fillRect((tetromino.col + col) * grid, (tetromino.row + row) * grid, grid-1, grid-1);
-          context.font = `${grid * 0.7}px Arial`;
-          context.textAlign = 'center';
-          context.textBaseline = 'middle';
-          context.fillStyle = '#333';
-          context.fillText(tetromino.emoji, (tetromino.col + col) * grid + grid / 2, (tetromino.row + row) * grid + grid / 2);
+          drawBlock(tetromino.col + col, tetromino.row + row, tetromino.color, tetromino.emoji);
         }
       }
     }
@@ -558,13 +561,8 @@ function startGame() {
 }
 
 window.onload = function() {
-    context.clearRect(0,0,canvas.width,canvas.height);
-    for (let row = 0; row < 20; row++) {
-        for (let col = 0; col < 10; col++) {
-            context.fillStyle = '#FFFFFF';
-            context.fillRect(col * grid, row * grid, grid-1, grid-1);
-        }
-    }
+    // Leave the canvas transparent so its CSS background (light/dark via [data-theme]) shows through
+    context.clearRect(0, 0, canvas.width, canvas.height);
     messageBox.style.display = 'none';
     restartButton.style.display = 'none';
     startButton.textContent = 'Start Game';
