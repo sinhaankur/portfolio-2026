@@ -422,6 +422,29 @@
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/index.min.js"></script>
     
     <script>
+        // Pre-fill form fields from URL parameters (for bot integration)
+        function prefillBookingFormFromURL() {
+            const params = new URLSearchParams(window.location.search);
+            if (params.has('name')) document.getElementById('name').value = params.get('name');
+            if (params.has('email')) document.getElementById('email').value = params.get('email');
+            if (params.has('date')) document.getElementById('preferredDate').value = params.get('date');
+            if (params.has('time')) document.getElementById('preferredTime').value = params.get('time');
+            if (params.has('topic')) document.getElementById('topic').value = params.get('topic');
+            if (params.has('sessionType')) document.getElementById('sessionType').value = params.get('sessionType');
+            // Auto-submit if all required fields are present
+            const required = [
+                document.getElementById('name').value,
+                document.getElementById('email').value,
+                document.getElementById('sessionType').value,
+                document.getElementById('preferredDate').value,
+                document.getElementById('preferredTime').value,
+                document.getElementById('duration').value,
+                document.getElementById('topic').value
+            ];
+            if (required.every(Boolean)) {
+                document.getElementById('bookingForm').submit();
+            }
+        }
         // Initialize EmailJS (Replace with your EmailJS credentials)
         const EMAILJS_SERVICE_ID = 'service_dimyux6';
         const EMAILJS_TEMPLATE_ID = 'template_wlojvia';
@@ -529,8 +552,9 @@
             }
         });
 
-        // Initialize theme on load
+        // Initialize theme and prefill on load
         initTheme();
+        prefillBookingFormFromURL();
     </script>
 </body>
 </html>

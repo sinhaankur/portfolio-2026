@@ -56,11 +56,19 @@ const BOT_CONFIG = {
     {
       type: 'quickReplies',
       replies: [
+        { text: 'Book a Meeting', url: '', target: '' },
+        { text: 'Connect for Mentorship', url: '', target: '' },
         { text: 'Learning', url: '#scroll-to-work', target: '' },
         { text: 'Medium Article', url: 'https://medium.com/@sinhaankur827', target: '_blank' },
         { text: 'LinkedIn', url: 'https://www.linkedin.com/in/sinhaankur27/', target: '_blank' }
       ],
       delay: 1500
+    },
+    // Bot handles booking/mentorship quick replies
+    {
+      type: 'customMessage',
+      handler: 'handleBookingMentorship',
+      delay: 1000
     }
   ]
 };
