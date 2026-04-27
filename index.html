@@ -60,6 +60,22 @@
         f.parentNode.insertBefore(j, f);
       })(window, document, "script", "dataLayer", "GTM-N6T2NFT3");
     </script>
+    <script>
+      // Pre-hide animation targets while JS loads. If Motion never initializes
+      // within 2.5s (e.g. CDN blocked), reveal everything as a fallback.
+      document.documentElement.classList.add("js-animate");
+      setTimeout(function () {
+        if (!document.documentElement.classList.contains("motion-ready")) {
+          document.documentElement.classList.remove("js-animate");
+        }
+      }, 2500);
+    </script>
+    <style>
+      .js-animate .intro .chip,
+      .js-animate .section,
+      .js-animate blockquote,
+      .js-animate .work-header { opacity: 0; }
+    </style>
     <style>
       /* Existing CSS for the floating game icon */
       .floating-game-icon {
@@ -177,16 +193,6 @@
       <i class="fa fa-calendar-check-o"></i>
     </a>
     
-    <div class="language-selector">
-      <select id="language-dropdown">
-        <option value="en">English</option>
-        <option value="hi">हिन्दी</option>
-        <option value="fr">french</option>
-        <option value="ru">Русский</option>
-      </select>
-    </div>
-    <script src="script.js"></script>
-
     <div class="bg">
       <div class="container">
         <div class="hero-home">
@@ -575,5 +581,6 @@
     <script src="js/bot-config.js"></script>
     <script src="js/bot.js"></script>
     <script src="js/init.js"></script>
+    <script type="module" src="js/animations.js"></script>
   </body>
 </html>
