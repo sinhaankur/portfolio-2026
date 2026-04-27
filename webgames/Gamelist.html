@@ -1,293 +1,97 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fun Games for Kids!</title>
-    <!-- Google Material Icons -->
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <!-- Roboto Font (Material Design) -->
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <!-- Tailwind CSS CDN -->
-        <script src="https://cdn.tailwindcss.com"></script>
-        <script>
-            tailwind.config = {
-                darkMode: 'class',
-                theme: {
-                    extend: {
-                        colors: {
-                            primary: '#6200ea',
-                            secondary: '#03dac6',
-                            surface: '#18181b',
-                            background: '#111113',
-                            card: '#23232a',
-                            accent: '#f093fb',
-                        },
-                    },
-                },
-            }
-        </script>
-    <style>
-        /* Material Design System */
-        :root {
-            --md-primary: #6200ea;
-            --md-primary-variant: #3700b3;
-            --md-secondary: #03dac6;
-            --md-secondary-variant: #018786;
-            --md-background: #ffffff;
-            --md-surface: #ffffff;
-            --md-error: #b00020;
-            --md-on-primary: #ffffff;
-            --md-on-secondary: #000000;
-            --md-on-background: #212121;
-            --md-on-surface: #212121;
-        }
-
-        * {
-            font-family: 'Roboto', sans-serif;
-        }
-
-        body {
-            background-color: #fafafa;
-            color: var(--md-on-background);
-        }
-
-        /* Material Elevation Shadows */
-        .elevation-0 { box-shadow: none; }
-        .elevation-1 { box-shadow: 0px 2px 1px -1px rgba(0,0,0,.2), 0px 1px 1px 0px rgba(0,0,0,.14), 0px 1px 3px 0px rgba(0,0,0,.12); }
-        .elevation-2 { box-shadow: 0px 3px 1px -2px rgba(0,0,0,.2), 0px 2px 2px 0px rgba(0,0,0,.14), 0px 1px 5px 0px rgba(0,0,0,.12); }
-        .elevation-4 { box-shadow: 0px 2px 4px -1px rgba(0,0,0,.2), 0px 4px 5px 0px rgba(0,0,0,.14), 0px 1px 10px 0px rgba(0,0,0,.12); }
-        .elevation-6 { box-shadow: 0px 3px 5px -1px rgba(0,0,0,.2), 0px 6px 10px 0px rgba(0,0,0,.14), 0px 1px 18px 0px rgba(0,0,0,.12); }
-        .elevation-8 { box-shadow: 0px 5px 5px -3px rgba(0,0,0,.2), 0px 8px 10px 1px rgba(0,0,0,.14), 0px 3px 14px 2px rgba(0,0,0,.12); }
-
-        /* Header Material Design */
-        header {
-            background: linear-gradient(135deg, var(--md-primary) 0%, var(--md-primary-variant) 100%);
-            color: var(--md-on-primary);
-        }
-
-        header h1 {
-            font-weight: 700;
-            font-size: 2rem;
-            letter-spacing: 0.5px;
-        }
-
-        header p {
-            font-weight: 300;
-            font-size: 1rem;
-            letter-spacing: 0.3px;
-        }
-
-        /* Logo styling */
-        .games-logo {
-            width: 60px;
-            height: 60px;
-            margin: 0 auto 1rem;
-            animation: float 3s ease-in-out infinite;
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-8px); }
-        }
-
-        .header-content {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        /* Game Card - Material Design */
-        .game-card {
-            background: var(--md-surface);
-            border-radius: 8px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .game-card {
-            elevation-2
-        }
-
-        .game-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0px 12px 16px -4px rgba(0,0,0,.25), 0px 3px 10px -3px rgba(0,0,0,.3), 0px 4px 6px -2px rgba(0,0,0,.2);
-        }
-
-        .game-image {
-            width: 100%;
-            height: 200px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 8px 8px 0 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 3rem;
-            overflow: hidden;
-        }
-
-        .game-image img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .game-content {
-            padding: 1.5rem;
-        }
-
-        .game-title {
-            font-size: 1.25rem;
-            font-weight: 500;
-            letter-spacing: 0.1px;
-            margin-bottom: 0.5rem;
-            color: var(--md-on-surface);
-        }
-
-        .game-description {
-            font-size: 0.875rem;
-            font-weight: 400;
-            line-height: 1.5;
-            letter-spacing: 0.3px;
-            color: rgba(0, 0, 0, 0.87);
-            margin-bottom: 1rem;
-        }
-
-        /* Material Button */
-        .btn-contained {
-            background-color: var(--md-primary);
-            color: var(--md-on-primary);
-            padding: 10px 24px;
-            border-radius: 4px;
-            font-weight: 500;
-            font-size: 0.875rem;
-            letter-spacing: 0.5px;
-            text-decoration: none;
-            text-transform: uppercase;
-            cursor: pointer;
-            border: none;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0px 3px 1px -2px rgba(0,0,0,.2), 0px 2px 2px 0px rgba(0,0,0,.14), 0px 1px 5px 0px rgba(0,0,0,.12);
-            display: inline-block;
-        }
-
-        .btn-contained:hover {
-            background-color: var(--md-primary-variant);
-            box-shadow: 0px 2px 4px -1px rgba(0,0,0,.2), 0px 4px 5px 0px rgba(0,0,0,.14), 0px 1px 10px 0px rgba(0,0,0,.12);
-            transform: translateY(-1px);
-        }
-
-        .btn-contained:active {
-            box-shadow: 0px 5px 5px -3px rgba(0,0,0,.2), 0px 8px 10px 1px rgba(0,0,0,.14), 0px 3px 14px 2px rgba(0,0,0,.12);
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 1.5rem;
-        }
-
-        /* Footer Material Design */
-        footer {
-            background-color: var(--md-surface);
-            border-top: 1px solid #e0e0e0;
-            margin-top: 3rem;
-        }
-
-        footer p {
-            font-size: 0.875rem;
-            font-weight: 400;
-            letter-spacing: 0.3px;
-            color: rgba(0, 0, 0, 0.87);
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            header h1 {
-                font-size: 1.5rem;
-            }
-
-            .game-image {
-                height: 160px;
-            }
-
-            .container {
-                padding: 1rem;
-            }
-        }
-    </style>
+    <title>Simple Games — Ankur Sinha</title>
+    <link rel="icon" href="../img/logo.png">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link href="css/retro.css" rel="stylesheet">
 </head>
-<body class="antialiased">
-        <!-- App Bar / Header -->
-        <header class="shadow-md bg-primary dark:bg-surface text-white dark:text-white">
-            <div class="container py-8 flex flex-col items-center">
-                <div class="flex justify-between w-full items-center mb-4">
-                    <div></div>
-                    <button id="themeToggle" class="rounded-full p-2 bg-white/10 hover:bg-white/20 transition-colors" aria-label="Toggle dark mode">
-                        <span id="themeIcon" class="material-icons">dark_mode</span>
-                    </button>
-                </div>
-                <img src="games-logo.svg" alt="Games Logo" class="games-logo">
-                <h1 class="mb-2 text-3xl font-bold tracking-tight">🎮 Simple Games</h1>
-                <p class="font-light opacity-90">Built by Ankur Sinha</p>
+<body>
+    <div class="retro-shell">
+        <header class="retro-topbar">
+            <div class="retro-container retro-topbar-inner">
+                <a href="../index.html" class="retro-brand">
+                    <img src="games-logo.svg" alt="">
+                    <span>Simple Games</span>
+                </a>
+                <button id="themeToggle" class="retro-icon-btn" aria-label="Toggle dark mode" title="Toggle dark mode">
+                    <span id="themeIcon" aria-hidden="true">☾</span>
+                </button>
             </div>
         </header>
 
-    <!-- Main Content -->
-    <main class="py-12">
-                <div class="container grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    <!-- Game Card: Emoji Tetris -->
-                    <div class="rounded-xl shadow-lg bg-white dark:bg-card transition-colors border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden hover:scale-[1.02] hover:shadow-2xl duration-200">
-                        <div class="h-48 flex items-center justify-center bg-gradient-to-br from-primary to-accent dark:from-primary dark:to-accent">
-                            <img src="https://placehold.co/400x200/667eea/ffffff?text=🎮+TETRIS" alt="Emoji Tetris Game" class="object-cover w-full h-full rounded-t-xl" />
-                        </div>
-                        <div class="p-6 flex-1 flex flex-col">
-                            <h2 class="text-xl font-semibold mb-2 text-gray-900 dark:text-white">Emoji Tetris</h2>
-                            <p class="text-gray-700 dark:text-gray-300 mb-4 flex-1">Play the classic block-stacking game with a fun emoji twist! Stack, rotate, and clear lines to achieve high scores.</p>
-                            <a href="emojittetris.html" class="inline-block px-5 py-2 rounded bg-primary text-white font-bold shadow hover:bg-secondary transition-colors">Play Now</a>
-                        </div>
-                    </div>
-                    <!-- Additional Game Card Slot -->
-                    <div class="rounded-xl shadow-lg bg-white dark:bg-card transition-colors border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden opacity-80">
-                        <div class="h-48 flex items-center justify-center bg-gradient-to-br from-accent to-primary dark:from-accent dark:to-primary">
-                            <img src="https://placehold.co/400x200/f5576c/ffffff?text=🎯+GAME" alt="Game Placeholder" class="object-cover w-full h-full rounded-t-xl" />
-                        </div>
-                        <div class="p-6 flex-1 flex flex-col">
-                            <h2 class="text-xl font-semibold mb-2 text-gray-900 dark:text-white">Coming Soon</h2>
-                            <p class="text-gray-700 dark:text-gray-300 mb-4 flex-1">More exciting games are on the way! Check back soon for new and fun gaming experiences.</p>
-                            <button class="inline-block px-5 py-2 rounded bg-gray-400 text-white font-bold shadow cursor-not-allowed" disabled>Coming Soon</button>
-                        </div>
-                    </div>
-                </div>
-    </main>
+        <section class="retro-hero">
+            <div class="retro-container">
+                <span class="retro-eyebrow">Arcade · Built by Ankur</span>
+                <h1 style="margin-top: 1rem;">Tiny games,<br>big chunky shadows.</h1>
+                <p>A small collection of browser games stitched together for fun. Pick one, play it, refresh for another go. New entries land here as I build them.</p>
+            </div>
+        </section>
 
-    <!-- Footer -->
-    <footer class="py-6">
-                <div class="container text-center">
-                    <p class="text-gray-700 dark:text-gray-300">&copy; 2025 Simple Games. All rights reserved.</p>
-                    <p class="text-sm mt-2 opacity-75 text-gray-500 dark:text-gray-400">Designed with ❤️ by Ankur Sinha</p>
-                </div>
-    </body>
+        <main class="retro-container">
+            <div class="retro-grid">
+                <article class="retro-card">
+                    <div class="retro-card-media retro-card-media--primary" aria-hidden="true">🟦🟨🟥</div>
+                    <div class="retro-card-body">
+                        <div class="retro-card-meta">
+                            <span class="retro-tag">Puzzle</span>
+                            <span class="retro-tag">Keyboard</span>
+                        </div>
+                        <h2 class="retro-card-title">Emoji Tetris</h2>
+                        <p class="retro-card-desc">The block-stacking classic, reskinned with emoji blocks. Stack, rotate, clear lines, chase a high score.</p>
+                        <div>
+                            <a href="emojittetris.html" class="retro-btn retro-btn--primary">Play now →</a>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="retro-card retro-card--disabled" aria-label="Coming soon game slot">
+                    <div class="retro-card-media retro-card-media--accent" aria-hidden="true">🎯</div>
+                    <div class="retro-card-body">
+                        <div class="retro-card-meta">
+                            <span class="retro-tag">Coming soon</span>
+                        </div>
+                        <h2 class="retro-card-title">In the workshop</h2>
+                        <p class="retro-card-desc">More titles are being prototyped. Drop back any time — the lineup grows.</p>
+                        <div>
+                            <button class="retro-btn" disabled aria-disabled="true">Soon</button>
+                        </div>
+                    </div>
+                </article>
+            </div>
+        </main>
+
+        <footer class="retro-footer">
+            <div class="retro-container">
+                <span class="retro-mono">© 2025 SIMPLE GAMES · ANKUR SINHA</span>
+            </div>
+        </footer>
+    </div>
+
     <script>
-        // Dark mode toggle logic
-        const themeToggle = document.getElementById('themeToggle');
-        const themeIcon = document.getElementById('themeIcon');
-        function setDarkMode(dark) {
-            if (dark) {
-                document.documentElement.classList.add('dark');
-                themeIcon.textContent = 'light_mode';
-                localStorage.setItem('theme', 'dark');
-            } else {
-                document.documentElement.classList.remove('dark');
-                themeIcon.textContent = 'dark_mode';
-                localStorage.setItem('theme', 'light');
+        (function () {
+            var root = document.documentElement;
+            var toggle = document.getElementById('themeToggle');
+            var icon = document.getElementById('themeIcon');
+
+            function apply(theme) {
+                root.setAttribute('data-theme', theme);
+                if (icon) icon.textContent = theme === 'dark' ? '☀' : '☾';
+                try { localStorage.setItem('games-theme', theme); } catch (e) {}
             }
-        }
-        // On load, set theme from localStorage
-        setDarkMode(localStorage.getItem('theme') === 'dark');
-        themeToggle.addEventListener('click', () => {
-            setDarkMode(!document.documentElement.classList.contains('dark'));
-        });
+
+            var saved;
+            try { saved = localStorage.getItem('games-theme'); } catch (e) {}
+            apply(saved === 'dark' ? 'dark' : 'light');
+
+            if (toggle) {
+                toggle.addEventListener('click', function () {
+                    apply(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+                });
+            }
+        })();
     </script>
-    </footer>
 </body>
 </html>
