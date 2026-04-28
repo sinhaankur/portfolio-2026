@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /_archive/
+Disallow: /_resources/
+Disallow: /Mocks/
+Disallow: /Booking%20management/
+Disallow: /Oracle%20Figma%20Plugin/
+Disallow: /projects/Testing%20Code.html
+
+Sitemap: https://sinhaankur-portfolio.netlify.app/sitemap.xml
