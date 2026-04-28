@@ -7,6 +7,24 @@
     <link rel="icon" href="../img/logo.png">
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
     <link href="css/retro.css" rel="stylesheet">
+    <script>
+      (function () {
+        var r = document.documentElement;
+        if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          r.classList.add("js-animate");
+          setTimeout(function () { r.classList.remove("js-animate"); }, 2500);
+        }
+      })();
+    </script>
+    <style>
+      html.js-animate .retro-hero .retro-eyebrow,
+      html.js-animate .retro-hero h1,
+      html.js-animate .retro-hero p,
+      html.js-animate .retro-grid .retro-card,
+      html.js-animate #themeToggle {
+        opacity: 0;
+      }
+    </style>
 </head>
 <body>
     <div class="retro-shell">
@@ -93,5 +111,6 @@
             }
         })();
     </script>
+    <script type="module" src="js/animations.js"></script>
 </body>
 </html>

@@ -8,6 +8,24 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
   <link href="css/retro.css" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+  <script>
+    (function () {
+      var r = document.documentElement;
+      if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        r.classList.add("js-animate");
+        setTimeout(function () { r.classList.remove("js-animate"); }, 2500);
+      }
+    })();
+  </script>
+  <style>
+    html.js-animate .game-container > h1,
+    html.js-animate .game-container .score-panel,
+    html.js-animate .game-container #game,
+    html.js-animate .game-container #startButton,
+    html.js-animate #themeToggle {
+      opacity: 0;
+    }
+  </style>
   <style>
     html, body {
       height: 100%;
@@ -569,5 +587,6 @@ window.onload = function() {
     initTheme();
 };
 </script>
+<script type="module" src="js/animations.js"></script>
 </body>
 </html>
