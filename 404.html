@@ -3,8 +3,9 @@
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0"/>
+  <meta name="robots" content="noindex, follow"/>
   <link rel="icon" href="img/logo.png">
-  <title>Page Not Found</title>
+  <title>Page Not Found — Ankur Sinha · Principal UX Designer</title>
 
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.3/css/font-awesome.min.css">
@@ -14,6 +15,7 @@
   <style>
     body {
       background-color: #f5f5f5;
+      font-family: "Roboto", system-ui, -apple-system, sans-serif;
     }
     .main-container {
       display: flex;
@@ -22,20 +24,22 @@
       align-items: center;
       min-height: 100vh;
       text-align: center;
-      padding: 2rem;
+      padding: 2rem 1rem;
+      max-width: 760px;
+      margin: 0 auto;
     }
     .four-o-four {
       display: flex;
       align-items: center;
       justify-content: center;
-      margin-bottom: 2rem;
+      margin-bottom: 1.5rem;
     }
     .four-o-four h1 {
-      font-family: "Roboto", sans-serif;
       font-size: clamp(80px, 20vw, 200px);
       font-weight: 600;
       color: #4A4A4A;
-      margin: 0 15px;
+      margin: 0 12px;
+      line-height: 1;
     }
     .emoji {
       position: relative;
@@ -43,77 +47,137 @@
       height: clamp(100px, 15vw, 200px);
       background-color: #FFDC61;
       border-radius: 50%;
+      flex-shrink: 0;
     }
     .emoji:after, .emoji:before {
       position: absolute;
       display: block;
       content: "";
-      height: 45px;
-      width: 30px;
+      height: 22%;
+      width: 15%;
       background-color: #272232;
       border-radius: 50%;
-      top: 50px;
+      top: 25%;
       animation: emoji-face-move 3s ease-in-out infinite alternate, emoji-eyes-blink 1s ease-in-out infinite alternate;
     }
-    .emoji:after {
-      left: 45px;
-    }
-    .emoji:before {
-      left: 125px;
-    }
+    .emoji:after { left: 22.5%; }
+    .emoji:before { left: 62.5%; }
     .emoji .mouth {
       position: absolute;
-      height: 70px;
-      width: 50px;
+      height: 35%;
+      width: 25%;
       background-color: #272232;
       border-radius: 50%;
-      top: 115px;
-      left: 75px;
+      top: 57%;
+      left: 37.5%;
       animation: emoji-face-move 3s ease-in-out infinite alternate;
     }
     .info-section {
-      max-width: 600px;
-      margin-bottom: 2rem;
+      margin-bottom: 2.5rem;
+    }
+    .info-section h2 {
+      font-size: clamp(1.6rem, 3vw, 2.2rem);
+      font-weight: 600;
+      color: #2c2c2c;
+      margin: 0 0 0.75rem;
+      letter-spacing: -0.01em;
     }
     .info-section p {
-      font-size: 1.2rem;
-      color: #666;
+      font-size: 1.05rem;
+      line-height: 1.55;
+      color: #555;
+      margin: 0 auto;
+      max-width: 56ch;
     }
-
-    /* --- Game Section --- */
-    .game-container {
-      margin-top: 2rem;
-      border: 1px solid #ddd;
-      padding: 1rem;
+    .failed-url {
+      display: inline-block;
+      margin-top: 1.25rem;
+      padding: 0.5rem 0.85rem;
+      background: #fff;
+      border: 1px solid #e3e3e3;
+      border-radius: 4px;
+      font-family: "Space Mono", "SFMono-Regular", monospace;
+      font-size: 0.9rem;
+      color: #444;
+      word-break: break-all;
+    }
+    .quick-links-label {
+      margin: 0 0 1rem;
+      font-size: 0.78rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #777;
+      font-weight: 600;
+    }
+    .quick-links {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 0.75rem;
+      width: 100%;
+      max-width: 640px;
+      margin-bottom: 2.5rem;
+    }
+    .quick-link {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.25rem;
+      padding: 1rem 1.1rem;
+      background: #fff;
+      border: 1px solid #e3e3e3;
       border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      text-decoration: none;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+      text-align: left;
     }
-    .game-container h5 {
-      margin-bottom: 1rem;
-      font-weight: 500;
-      color: #333;
+    .quick-link:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+      border-color: #c9c9c9;
     }
-    #gameCanvas {
-      background: #f0f0f0;
-      border: 1px solid #ccc;
-      cursor: pointer;
+    .quick-link .label {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #1a1a1a;
     }
+    .quick-link .hint {
+      font-size: 0.82rem;
+      color: #777;
+    }
+    .contact-fallback {
+      font-size: 0.95rem;
+      color: #555;
+    }
+    .contact-fallback a {
+      color: #4A4A4A;
+      font-weight: 600;
+      border-bottom: 1px solid currentColor;
+      text-decoration: none;
+    }
+    .contact-fallback a:hover { color: #000; }
+
     @keyframes emoji-eyes-blink {
-      0%, 97% { height: 45px; }
+      0%, 97% { height: 22%; }
       100% { height: 0; }
     }
     @keyframes emoji-face-move {
       0%, 30% { transform: translateX(0); }
-      35%, 65% { transform: translateX(-20px); }
-      70%, 85% { transform: translateX(20px); }
+      35%, 65% { transform: translateX(-12%); }
+      70%, 85% { transform: translateX(12%); }
       90%, 100% { transform: translateX(0); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .emoji:after, .emoji:before, .emoji .mouth { animation: none; }
+      .quick-link { transition: none; }
+      .quick-link:hover { transform: none; }
     }
   </style>
 </head>
 <body>
 
-  <div class="main-container">
-    <div class="four-o-four">
+  <main class="main-container">
+    <div class="four-o-four" aria-hidden="true">
       <h1>4</h1>
       <div class="emoji">
         <div class="mouth"></div>
@@ -122,66 +186,57 @@
     </div>
 
     <div class="info-section">
-      <p class="flow-text">It looks like the page you were looking for was moved or doesn't exist.</p>
-      <a class="waves-effect waves-light btn-large theme-color" href="index.html">Back to home</a>
+      <h2>That page slipped through the cracks.</h2>
+      <p>
+        This portfolio is hand-built, and I'm still filling parts of it in — a few images and pages haven't landed yet. Here's where you probably meant to go.
+      </p>
+      <div class="failed-url" id="failedUrl" hidden></div>
     </div>
 
-    <div class="game-container center-align">
-      <h5>A little game to pass the time!</h5>
-      <canvas id="gameCanvas" width="300" height="200"></canvas>
-      <p>Click the circle to score points!</p>
-    </div>
+    <p class="quick-links-label">Try one of these</p>
+    <nav class="quick-links" aria-label="Site sections">
+      <a class="quick-link" href="index.html">
+        <span class="label">Home</span>
+        <span class="hint">Intro, work timeline, contact</span>
+      </a>
+      <a class="quick-link" href="index.html#scroll-to-work">
+        <span class="label">Case studies</span>
+        <span class="hint">Oracle, Deloitte, Snowtint, Rage</span>
+      </a>
+      <a class="quick-link" href="booking.html">
+        <span class="label">Book a session</span>
+        <span class="hint">UX consult or mentorship</span>
+      </a>
+      <a class="quick-link" href="technical-insights.html">
+        <span class="label">Technical Insights</span>
+        <span class="hint">Notes on enterprise UX</span>
+      </a>
+      <a class="quick-link" href="tools-experiments.html">
+        <span class="label">Tools &amp; Experiments</span>
+        <span class="hint">Prototypes and side projects</span>
+      </a>
+      <a class="quick-link" href="webgames/Gamelist.html">
+        <span class="label">Simple Games</span>
+        <span class="hint">Tiny browser games</span>
+      </a>
+    </nav>
 
-  </div>
+    <p class="contact-fallback">
+      Think this <em>should</em> be a real page?
+      <a href="mailto:sinhaankur827@gmail.com?subject=Broken%20link%20on%20portfolio">Email me</a>
+      and I'll fix it.
+    </p>
+  </main>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
   <script>
-    // Simple clicker game
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    
-    let score = 0;
-    let circle = {
-      x: 150,
-      y: 100,
-      radius: 20
-    };
-    
-    function drawCircle() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.beginPath();
-      ctx.arc(circle.x, circle.y, circle.radius, 0, Math.PI * 2);
-      ctx.fillStyle = '#ff5722';
-      ctx.fill();
-      
-      // Draw score
-      ctx.fillStyle = '#333';
-      ctx.font = '20px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText(`Score: ${score}`, canvas.width / 2, 30);
-    }
-    
-    function newCirclePosition() {
-      circle.x = Math.random() * (canvas.width - circle.radius * 2) + circle.radius;
-      circle.y = Math.random() * (canvas.height - circle.radius * 2) + circle.radius;
-    }
-    
-    canvas.addEventListener('click', function(event) {
-      const rect = canvas.getBoundingClientRect();
-      const clickX = event.clientX - rect.left;
-      const clickY = event.clientY - rect.top;
-      
-      const distance = Math.sqrt(Math.pow(clickX - circle.x, 2) + Math.pow(clickY - circle.y, 2));
-      
-      if (distance < circle.radius) {
-        score++;
-        newCirclePosition();
-        drawCircle();
-      }
-    });
-    
-    drawCircle();
+    (function () {
+      var path = window.location.pathname;
+      if (!path || path === '/' || path.toLowerCase().endsWith('/404.html') || path === '/404') return;
+      var el = document.getElementById('failedUrl');
+      if (!el) return;
+      el.textContent = 'You tried: ' + decodeURIComponent(path);
+      el.hidden = false;
+    })();
   </script>
 </body>
 </html>
