@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Let's Build Together - Ankur Sinha</title>
+  <meta name="description" content="A collaboration page with an interactive exploded blueprint view and ways to start building together with Ankur Sinha." />
+  <meta name="author" content="Ankur Sinha" />
+  <link rel="canonical" href="https://sinhaankur-portfolio.netlify.app/lets-build-together.html" />
+  <link rel="icon" href="img/logo.png" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Let's Build Together - Ankur Sinha" />
+  <meta property="og:description" content="Open a project conversation with an interactive exploded blueprint style page." />
+  <meta property="og:url" content="https://sinhaankur-portfolio.netlify.app/lets-build-together.html" />
+  <meta property="og:image" content="https://sinhaankur-portfolio.netlify.app/img/camera-header.png" />
+
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
+  <link href="css/materialize.css" type="text/css" rel="stylesheet" media="screen,projection"/>
+  <link href="css/style.css" type="text/css" rel="stylesheet" media="screen,projection"/>
+
+  <style>
+    :root {
+      --bg: #eceef2;
+      --panel: #f7f8fc;
+      --ink: #16213a;
+      --muted: #516180;
+      --blue: #3f67ff;
+      --blue-soft: rgba(63, 103, 255, 0.16);
+      --line: rgba(63, 103, 255, 0.32);
+      --shadow: 0 18px 45px rgba(22, 33, 58, 0.12);
+    }
+
+    [data-theme="dark"] {
+      --bg: #0e1220;
+      --panel: #151d30;
+      --ink: #e7ecff;
+      --muted: #a9b8e4;
+      --blue: #7ea0ff;
+      --blue-soft: rgba(126, 160, 255, 0.16);
+      --line: rgba(126, 160, 255, 0.32);
+      --shadow: 0 18px 45px rgba(0, 0, 0, 0.45);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: 'DM Sans', sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 20% 10%, rgba(63, 103, 255, 0.08), transparent 45%),
+        radial-gradient(circle at 85% 20%, rgba(63, 103, 255, 0.07), transparent 42%),
+        var(--bg);
+      min-height: 100%;
+    }
+
+    .page {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1rem;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.8rem;
+      margin-bottom: 0.9rem;
+    }
+
+    .topbar a,
+    .theme-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.5rem 0.85rem;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--panel);
+      color: var(--ink);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .theme-toggle {
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 0.9rem;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .hero {
+      padding: 1rem 1.1rem;
+    }
+
+    .kicker {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    h1 {
+      margin: 0.35rem 0 0.35rem;
+      font-size: clamp(1.8rem, 4vw, 2.9rem);
+      line-height: 1.05;
+    }
+
+    .hero p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.65;
+      max-width: 65ch;
+    }
+
+    .controls {
+      margin-top: 0.8rem;
+      border: 1px dashed var(--line);
+      border-radius: 12px;
+      padding: 0.7rem;
+      background: color-mix(in srgb, var(--panel) 88%, white 12%);
+    }
+
+    .controls label {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.78rem;
+      color: var(--muted);
+      display: block;
+      margin-bottom: 0.3rem;
+    }
+
+    .controls input[type="range"] {
+      width: 100%;
+    }
+
+    .controls p {
+      margin: 0.35rem 0 0;
+      font-size: 0.86rem;
+      color: var(--muted);
+    }
+
+    .exploded-wrap {
+      position: relative;
+      min-height: 760px;
+      background-image:
+        radial-gradient(var(--line) 1px, transparent 1px);
+      background-size: 8px 8px;
+      background-color: color-mix(in srgb, var(--panel) 95%, white 5%);
+      padding: 0.8rem;
+    }
+
+    .blueprint-title {
+      position: absolute;
+      top: 0.7rem;
+      right: 0.9rem;
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      font-family: 'Space Mono', monospace;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+
+    .layer {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 2px solid var(--blue);
+      color: var(--blue);
+      background: rgba(126, 160, 255, 0.08);
+      transition: transform 0.35s ease;
+    }
+
+    .layer::after {
+      content: attr(data-label);
+      position: absolute;
+      right: -210px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-family: 'Space Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--blue);
+      white-space: nowrap;
+      letter-spacing: 0.03em;
+    }
+
+    .layer::before {
+      content: '';
+      position: absolute;
+      width: 180px;
+      height: 1px;
+      right: -188px;
+      top: 50%;
+      border-top: 1px dashed var(--blue);
+    }
+
+    .shell-top {
+      width: 330px;
+      height: 180px;
+      top: 80px;
+      border-radius: 20px;
+      transform-style: preserve-3d;
+      clip-path: polygon(6% 0, 92% 0, 100% 14%, 100% 86%, 90% 100%, 8% 100%, 0 86%, 0 14%);
+    }
+
+    .dust-1,
+    .dust-2 {
+      width: 280px;
+      height: 120px;
+      border-radius: 50%;
+      border-style: dashed;
+      background: transparent;
+    }
+
+    .disk {
+      width: 310px;
+      height: 185px;
+      border-radius: 46%;
+      background: rgba(63, 103, 255, 0.24);
+    }
+
+    .disk::before {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      border: 2px solid var(--blue);
+      background: rgba(255, 255, 255, 0.55);
+    }
+
+    .shell-bottom {
+      width: 360px;
+      height: 210px;
+      border-radius: 18px;
+      clip-path: polygon(8% 0, 92% 0, 100% 15%, 100% 86%, 91% 100%, 9% 100%, 0 86%, 0 15%);
+    }
+
+    .slot {
+      width: 150px;
+      height: 42px;
+      border-radius: 6px;
+      background: transparent;
+      position: absolute;
+      left: 80px;
+      top: 90px;
+      border: 2px solid var(--blue);
+    }
+
+    .legend {
+      display: flex;
+      gap: 0.9rem;
+      flex-wrap: wrap;
+      margin-top: 0.8rem;
+      padding-top: 0.8rem;
+      border-top: 1px solid var(--line);
+    }
+
+    .legend span {
+      font-size: 0.82rem;
+      color: var(--muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .legend i {
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+      border: 1px solid var(--blue);
+      background: rgba(126, 160, 255, 0.2);
+    }
+
+    .right {
+      padding: 1rem;
+      display: grid;
+      gap: 0.8rem;
+      align-content: start;
+    }
+
+    .right h2 {
+      margin: 0;
+      font-size: 1.4rem;
+    }
+
+    .right p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .cta-row {
+      display: grid;
+      gap: 0.6rem;
+      margin-top: 0.4rem;
+    }
+
+    .cta {
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0.4rem;
+      border-radius: 12px;
+      padding: 0.72rem 0.9rem;
+      text-decoration: none;
+      font-weight: 700;
+      border: 1px solid var(--line);
+    }
+
+    .cta.primary {
+      background: var(--blue);
+      color: white;
+      border-color: var(--blue);
+    }
+
+    .cta.primary.is-disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    .cta.ghost {
+      background: transparent;
+      color: var(--ink);
+    }
+
+    .public-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      margin-top: -0.1rem;
+    }
+
+    .public-chip {
+      display: inline-flex;
+      align-items: center;
+      border: 1px dashed var(--line);
+      border-radius: 999px;
+      padding: 0.24rem 0.55rem;
+      font-size: 0.78rem;
+      color: var(--muted);
+      font-family: 'Space Mono', monospace;
+      background: color-mix(in srgb, var(--panel) 90%, white 10%);
+    }
+
+    @media (max-width: 980px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .exploded-wrap {
+        min-height: 680px;
+      }
+
+      .layer::before,
+      .layer::after {
+        display: none;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .exploded-wrap {
+        min-height: 600px;
+      }
+
+      .shell-top { width: 280px; height: 150px; }
+      .dust-1, .dust-2 { width: 230px; height: 95px; }
+      .disk { width: 260px; height: 155px; }
+      .shell-bottom { width: 300px; height: 185px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="topbar">
+      <a href="index.html"><span class="material-icons" aria-hidden="true">arrow_back</span>Back to Portfolio</a>
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+        <span class="material-icons" aria-hidden="true">dark_mode</span>
+        Theme
+      </button>
+    </div>
+
+    <section class="layout">
+      <article class="card">
+        <div class="hero">
+          <div class="kicker">Collaboration Blueprint</div>
+          <h1>Let's Build Something Clear, Useful, and Memorable</h1>
+          <p>
+            I design complex products so teams ship confidently and users feel in control.
+            This interactive exploded diagram represents how I collaborate: strategy, structure,
+            interaction, validation, and delivery all layered with intent.
+          </p>
+          <div class="controls">
+            <label for="explodeRange">Exploded View Intensity: <span id="explodeValue">72</span>%</label>
+            <input id="explodeRange" type="range" min="20" max="100" value="72" />
+            <p>Drag to control separation between layers.</p>
+          </div>
+          <div class="legend">
+            <span><i></i>System shell</span>
+            <span><i></i>Research and signals</span>
+            <span><i></i>Core interaction model</span>
+            <span><i></i>Production structure</span>
+          </div>
+        </div>
+
+        <div class="exploded-wrap">
+          <div class="blueprint-title">[ PROJECT STACK ]</div>
+          <div class="layer shell-top" data-label="TOP SHELL · PRODUCT VISION" data-base="80"></div>
+          <div class="layer dust-1" data-label="DISCOVERY LAYER · USER SIGNALS" data-base="220"></div>
+          <div class="layer disk" data-label="INTERACTION CORE · EXPERIENCE MODEL" data-base="325"></div>
+          <div class="layer dust-2" data-label="VALIDATION LAYER · TESTING" data-base="455"></div>
+          <div class="layer shell-bottom" data-label="BOTTOM SHELL · DELIVERY" data-base="560">
+            <div class="slot" aria-hidden="true"></div>
+          </div>
+        </div>
+      </article>
+
+      <aside class="card right">
+        <div>
+          <div class="kicker">How We Can Work</div>
+          <h2>From first sketch to production handoff</h2>
+        </div>
+        <p>
+          Bring me early if your challenge has complexity, cross-team coordination,
+          enterprise constraints, or unclear UX direction. I can support audits,
+          roadmap shaping, UX strategy, and execution-level design.
+        </p>
+        <p>
+          You can start with either a quick discovery call or a focused working session.
+        </p>
+        <p>
+          Public product names can be referenced. Detailed implementation artifacts remain restricted.
+        </p>
+        <div class="public-list" aria-label="Public Oracle product names">
+          <span class="public-chip">GoldenGate</span>
+          <span class="public-chip">OCI Database Tools</span>
+          <span class="public-chip">Oracle Cloud Infrastructure</span>
+        </div>
+        <div class="cta-row">
+          <span class="cta primary is-disabled" aria-disabled="true">Public Product Names Visible, Details Restricted</span>
+          <a class="cta ghost" href="mailto:sinhaankur827@gmail.com?subject=Oracle%20UX%20discussion%20%28high-level%29">Discuss Oracle Impact (High-Level)</a>
+          <a class="cta ghost" href="skills-breakdown.html">See Skills Breakdown</a>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <script>
+    function initTheme() {
+      const theme = localStorage.getItem('theme') || 'light';
+      document.documentElement.setAttribute('data-theme', theme);
+      updateThemeIcon();
+    }
+
+    function updateThemeIcon() {
+      const theme = document.documentElement.getAttribute('data-theme');
+      const icon = document.querySelector('#themeToggle .material-icons');
+      icon.textContent = theme === 'dark' ? 'light_mode' : 'dark_mode';
+    }
+
+    function applyExplode(value) {
+      const amount = Number(value) / 100;
+      const layers = Array.from(document.querySelectorAll('.layer'));
+      layers.forEach((layer, index) => {
+        const base = Number(layer.dataset.base || 0);
+        const offset = index * 34 * amount;
+        layer.style.top = `${base + offset}px`;
+      });
+      document.getElementById('explodeValue').textContent = String(value);
+    }
+
+    document.getElementById('explodeRange').addEventListener('input', (event) => {
+      applyExplode(event.target.value);
+    });
+
+    document.getElementById('themeToggle').addEventListener('click', () => {
+      const current = document.documentElement.getAttribute('data-theme') || 'light';
+      const next = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('theme', next);
+      updateThemeIcon();
+    });
+
+    initTheme();
+    applyExplode(document.getElementById('explodeRange').value);
+  </script>
+</body>
+</html>

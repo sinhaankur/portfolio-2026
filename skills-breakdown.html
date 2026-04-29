@@ -1,0 +1,1340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skills Breakdown - Ankur Sinha</title>
+    <meta name="description" content="Interactive skills breakdown based on Ankur Sinha's work across Oracle, Deloitte, Snowtint, and product design projects." />
+    <meta name="author" content="Ankur Sinha" />
+    <link rel="canonical" href="https://sinhaankur-portfolio.netlify.app/skills-breakdown.html" />
+    <link rel="icon" href="img/logo.png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Ankur Sinha - Principal UX Designer" />
+    <meta property="og:title" content="Interactive Skills Breakdown - Ankur Sinha" />
+    <meta property="og:description" content="Explore an interactive map of Ankur Sinha's UX, product, and prototyping skills tied to real project outcomes." />
+    <meta property="og:url" content="https://sinhaankur-portfolio.netlify.app/skills-breakdown.html" />
+    <meta property="og:image" content="https://sinhaankur-portfolio.netlify.app/img/camera-header.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Interactive Skills Breakdown - Ankur Sinha" />
+    <meta name="twitter:description" content="Explore an interactive skills map tied to real project work and outcomes." />
+    <meta name="twitter:image" content="https://sinhaankur-portfolio.netlify.app/img/camera-header.png" />
+
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.3/css/font-awesome.css">
+    <link href="css/materialize.css" type="text/css" rel="stylesheet" media="screen,projection"/>
+    <link href="css/style.css" type="text/css" rel="stylesheet" media="screen,projection"/>
+
+    <style>
+        :root {
+            --bg: #f2ede4;
+            --paper: #f8f3ec;
+            --ink: #1f1b1a;
+            --muted: #6e625d;
+            --line: rgba(156, 20, 37, 0.32);
+            --accent: #9c1425;
+            --accent-soft: rgba(156, 20, 37, 0.12);
+            --card-shadow: 0 10px 24px rgba(31, 27, 26, 0.08);
+        }
+
+        [data-theme="dark"] {
+            --bg: #161312;
+            --paper: #201b19;
+            --ink: #f3ece6;
+            --muted: #bfaea4;
+            --line: rgba(255, 132, 148, 0.3);
+            --accent: #ff8494;
+            --accent-soft: rgba(255, 132, 148, 0.16);
+            --card-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            background: radial-gradient(circle at 20% 5%, #fdf9f2 0%, var(--bg) 50%);
+            color: var(--ink);
+            font-family: 'Manrope', sans-serif;
+        }
+
+        [data-theme="dark"] html,
+        [data-theme="dark"] body {
+            background: radial-gradient(circle at 20% 5%, #2d2320 0%, var(--bg) 50%);
+        }
+
+        .navbar {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.9rem 1.2rem;
+            background: color-mix(in srgb, var(--bg) 82%, white 18%);
+            border-bottom: 1px solid color-mix(in srgb, var(--line) 40%, transparent);
+            backdrop-filter: blur(6px);
+        }
+
+        .back-btn,
+        .theme-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            color: var(--ink);
+            border: 1px solid color-mix(in srgb, var(--line) 65%, transparent);
+            background: var(--paper);
+            padding: 0.5rem 0.85rem;
+            border-radius: 999px;
+            font-weight: 600;
+        }
+
+        .theme-toggle {
+            cursor: pointer;
+            font: inherit;
+        }
+
+        .container-main {
+            max-width: 1180px;
+            margin: 1.5rem auto 2.5rem;
+            padding: 0 1rem;
+        }
+
+        .hero {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .hero-card,
+        .panel,
+        .metric-card,
+        .skill-item {
+            background: var(--paper);
+            border: 1px solid color-mix(in srgb, var(--line) 55%, transparent);
+            box-shadow: var(--card-shadow);
+            border-radius: 16px;
+        }
+
+        .hero-card {
+            padding: 1.25rem 1.25rem 1.1rem;
+        }
+
+        h1, h2, h3 {
+            margin: 0;
+            font-family: 'Cormorant Garamond', serif;
+            line-height: 1.1;
+            letter-spacing: 0.01em;
+        }
+
+        .hero h1 {
+            font-size: clamp(2.1rem, 5vw, 3.5rem);
+            margin-bottom: 0.25rem;
+            color: var(--accent);
+        }
+
+        .hero p {
+            margin: 0.35rem 0;
+            color: var(--muted);
+            line-height: 1.65;
+        }
+
+        .work-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.8rem;
+        }
+
+        .work-tag {
+            border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+            background: white;
+            color: var(--accent);
+            border-radius: 999px;
+            font-size: 0.75rem;
+            padding: 0.3rem 0.65rem;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+        }
+
+        [data-theme="dark"] .work-tag {
+            background: #2a201d;
+        }
+
+        .legend {
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.7rem;
+        }
+
+        .legend h3 {
+            font-size: 1.5rem;
+            color: var(--accent);
+        }
+
+        .legend-row {
+            display: flex;
+            gap: 0.7rem;
+            align-items: center;
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+
+        .legend-line,
+        .legend-dot,
+        .legend-curve {
+            flex-shrink: 0;
+            border-color: var(--accent);
+        }
+
+        .legend-line {
+            width: 36px;
+            height: 1px;
+            border-top: 2px solid;
+        }
+
+        .legend-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--accent);
+        }
+
+        .legend-curve {
+            width: 30px;
+            height: 18px;
+            border-top: 3px solid;
+            border-right: 3px solid transparent;
+            border-left: 3px solid transparent;
+            border-radius: 50%;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 0.75rem;
+            margin: 1rem 0;
+        }
+
+        .control {
+            background: var(--paper);
+            border: 1px solid color-mix(in srgb, var(--line) 55%, transparent);
+            border-radius: 12px;
+            padding: 0.65rem;
+        }
+
+        .control label {
+            display: block;
+            color: var(--muted);
+            margin-bottom: 0.35rem;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            font-weight: 700;
+        }
+
+        .control select,
+        .control input[type="range"] {
+            width: 100%;
+            border: 1px solid color-mix(in srgb, var(--line) 65%, transparent);
+            border-radius: 8px;
+            padding: 0.45rem;
+            color: var(--ink);
+            background: color-mix(in srgb, var(--paper) 90%, white 10%);
+            font: inherit;
+        }
+
+        .view-switch {
+            display: flex;
+            gap: 0.45rem;
+            flex-wrap: wrap;
+        }
+
+        .view-btn {
+            border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+            background: transparent;
+            color: var(--ink);
+            border-radius: 999px;
+            padding: 0.35rem 0.8rem;
+            font: inherit;
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+
+        .view-btn.is-active {
+            background: var(--accent);
+            color: white;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .metric-card {
+            padding: 0.95rem 1rem;
+        }
+
+        .metric-label {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--muted);
+            font-weight: 700;
+        }
+
+        .metric-value {
+            font-size: 1.65rem;
+            color: var(--accent);
+            font-weight: 700;
+            line-height: 1.1;
+            margin-top: 0.25rem;
+        }
+
+        .canvas-wrap,
+        .timeline-wrap {
+            padding: 1rem;
+        }
+
+        .panel-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.4rem;
+        }
+
+        .panel-title h2 {
+            font-size: 1.8rem;
+            color: var(--accent);
+        }
+
+        .panel-sub {
+            color: var(--muted);
+            font-size: 0.88rem;
+        }
+
+        .viz-grid {
+            display: grid;
+            grid-template-columns: 1.1fr 1fr;
+            gap: 0.95rem;
+            margin-bottom: 1rem;
+        }
+
+        canvas {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            border-radius: 14px;
+            background: color-mix(in srgb, var(--paper) 88%, white 12%);
+            border: 1px dashed color-mix(in srgb, var(--line) 55%, transparent);
+        }
+
+        .timeline-wrap {
+            display: none;
+            max-height: 530px;
+            overflow: auto;
+        }
+
+        .timeline-wrap.is-active {
+            display: block;
+        }
+
+        .timeline-row {
+            margin-bottom: 0.85rem;
+        }
+
+        .timeline-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 0.75rem;
+            font-size: 0.86rem;
+            margin-bottom: 0.35rem;
+        }
+
+        .timeline-track {
+            height: 12px;
+            border-radius: 999px;
+            background: color-mix(in srgb, var(--line) 35%, white 65%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .timeline-fill {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            border-radius: inherit;
+            background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 70%, black 30%), var(--accent));
+        }
+
+        .skills-list {
+            padding: 1rem;
+            max-height: 530px;
+            overflow: auto;
+        }
+
+        .oracle-competency {
+            margin-top: 1rem;
+        }
+
+        .oracle-grid {
+            display: grid;
+            grid-template-columns: 1.1fr 1fr;
+            gap: 0.95rem;
+        }
+
+        .oracle-controls {
+            padding: 1rem;
+            max-height: 560px;
+            overflow: auto;
+        }
+
+        .oracle-item {
+            padding: 0.6rem;
+            margin-bottom: 0.55rem;
+            border-radius: 10px;
+            border: 1px solid color-mix(in srgb, var(--line) 48%, transparent);
+            background: color-mix(in srgb, var(--paper) 93%, white 7%);
+        }
+
+        .oracle-item-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 0.5rem;
+            align-items: baseline;
+            margin-bottom: 0.35rem;
+        }
+
+        .oracle-item-name {
+            font-size: 0.86rem;
+            font-weight: 700;
+            line-height: 1.3;
+        }
+
+        .oracle-item-score {
+            font-size: 0.8rem;
+            color: var(--muted);
+            font-weight: 700;
+        }
+
+        .oracle-range-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+        }
+
+        .oracle-item label {
+            display: block;
+            font-size: 0.72rem;
+            color: var(--muted);
+            margin-bottom: 0.2rem;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+            font-weight: 700;
+        }
+
+        .oracle-item input[type="range"] {
+            width: 100%;
+        }
+
+        .oracle-legend {
+            display: flex;
+            gap: 1rem;
+            margin-top: 0.6rem;
+            color: var(--muted);
+            font-size: 0.84rem;
+            flex-wrap: wrap;
+        }
+
+        .oracle-legend span {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .oracle-legend i {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+            display: inline-block;
+        }
+
+        .skill-item {
+            padding: 0.75rem;
+            margin-bottom: 0.6rem;
+            border-radius: 12px;
+        }
+
+        .skill-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 0.5rem;
+            align-items: center;
+            margin-bottom: 0.35rem;
+        }
+
+        .skill-name {
+            font-weight: 700;
+            color: var(--ink);
+        }
+
+        .skill-meta {
+            font-size: 0.76rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            font-weight: 700;
+        }
+
+        .bar {
+            height: 8px;
+            border-radius: 999px;
+            background: color-mix(in srgb, var(--line) 30%, white 70%);
+            overflow: hidden;
+            margin-bottom: 0.4rem;
+        }
+
+        .bar > span {
+            display: block;
+            height: 100%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 65%, black 35%), var(--accent));
+        }
+
+        .evidence {
+            font-size: 0.82rem;
+            color: var(--muted);
+            line-height: 1.45;
+        }
+
+        @media (max-width: 1000px) {
+            .hero,
+            .viz-grid,
+            .oracle-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .controls,
+            .metrics {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 640px) {
+            .controls,
+            .metrics {
+                grid-template-columns: 1fr;
+            }
+
+            .navbar {
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+
+            .metric-value {
+                font-size: 1.4rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <a href="index.html" class="back-btn">
+            <span class="material-icons" aria-hidden="true">arrow_back</span>
+            Back to Portfolio
+        </a>
+        <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+            <span class="material-icons" aria-hidden="true">dark_mode</span>
+            Theme
+        </button>
+    </div>
+
+    <main class="container-main">
+        <section class="hero">
+            <article class="hero-card">
+                <h1>Interactive Skills Breakdown</h1>
+                <p>
+                    This page maps skills to actual outcomes from my work at Oracle, Deloitte, Snowtint,
+                    Rage, and independent product experiments. Filter by category, project, and depth to see
+                    how the profile changes.
+                </p>
+                <div class="work-tags" id="projectTags"></div>
+            </article>
+            <aside class="legend hero-card">
+                <h3>How to read this</h3>
+                <div class="legend-row">
+                    <span class="legend-line" aria-hidden="true"></span>
+                    <span>one ray = one core skill</span>
+                </div>
+                <div class="legend-row">
+                    <span class="legend-dot" aria-hidden="true"></span>
+                    <span>radius = proficiency depth</span>
+                </div>
+                <div class="legend-row">
+                    <span class="legend-curve" aria-hidden="true"></span>
+                    <span>distance rings = growth over years</span>
+                </div>
+            </aside>
+        </section>
+
+        <section class="controls" aria-label="Skill filters">
+            <div class="control">
+                <label for="categoryFilter">Category</label>
+                <select id="categoryFilter"></select>
+            </div>
+            <div class="control">
+                <label for="projectFilter">Project</label>
+                <select id="projectFilter"></select>
+            </div>
+            <div class="control">
+                <label for="sortBy">Sort Skills</label>
+                <select id="sortBy">
+                    <option value="impact">Impact</option>
+                    <option value="proficiency">Proficiency</option>
+                    <option value="years">Years</option>
+                </select>
+            </div>
+            <div class="control">
+                <label for="minLevel">Min Proficiency: <span id="levelValue">2</span>/5</label>
+                <input id="minLevel" type="range" min="1" max="5" step="1" value="2" />
+                <div class="view-switch" style="margin-top: 0.55rem;">
+                    <button class="view-btn is-active" data-view="radar" type="button">Radar</button>
+                    <button class="view-btn" data-view="timeline" type="button">Timeline</button>
+                </div>
+            </div>
+        </section>
+
+        <section class="metrics" aria-live="polite">
+            <article class="metric-card">
+                <div class="metric-label">Visible Skills</div>
+                <div class="metric-value" id="metricCount">0</div>
+            </article>
+            <article class="metric-card">
+                <div class="metric-label">Avg Proficiency</div>
+                <div class="metric-value" id="metricAvg">0</div>
+            </article>
+            <article class="metric-card">
+                <div class="metric-label">Total Experience</div>
+                <div class="metric-value" id="metricYears">0y</div>
+            </article>
+            <article class="metric-card">
+                <div class="metric-label">Top Strength</div>
+                <div class="metric-value" id="metricTop">-</div>
+            </article>
+        </section>
+
+        <section class="viz-grid">
+            <article class="panel canvas-wrap">
+                <div class="panel-title">
+                    <h2 id="vizTitle">Skill Radar</h2>
+                    <span class="panel-sub">Real projects, not generic claims</span>
+                </div>
+                <canvas id="radarCanvas" width="700" height="700" role="img" aria-label="Skill radar"></canvas>
+                <div class="timeline-wrap" id="timelineWrap"></div>
+            </article>
+
+            <article class="panel skills-list" id="skillsList" aria-label="Skill details"></article>
+        </section>
+
+        <section class="oracle-competency panel">
+            <div class="canvas-wrap">
+                <div class="panel-title">
+                    <h2>Oracle IC3 Role Competencies</h2>
+                    <span class="panel-sub">Role baseline vs current self-assessment</span>
+                </div>
+                <p class="panel-sub">Role Competencies: 99030.User Experience Developer 3-ProdDev.PRODEV.SWENG.IC3</p>
+                <div class="oracle-legend">
+                    <span><i style="background:#f4b400;"></i>This Role</span>
+                    <span><i style="background:#039be5;"></i>Sinha, Ankur</span>
+                </div>
+            </div>
+            <div class="oracle-grid">
+                <article class="canvas-wrap">
+                    <canvas id="oracleRadarCanvas" width="700" height="700" role="img" aria-label="Oracle role competencies radar"></canvas>
+                </article>
+                <article class="oracle-controls" id="oracleControls" aria-label="Oracle competency controls"></article>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const skills = [
+            {
+                name: 'Enterprise UX Strategy',
+                category: 'Strategy',
+                proficiency: 5,
+                years: 8,
+                impact: 95,
+                projects: ['Oracle', 'Deloitte'],
+                evidence: 'Shaped console-level flows for high-complexity enterprise workflows.'
+            },
+            {
+                name: 'Information Architecture',
+                category: 'UX Core',
+                proficiency: 5,
+                years: 9,
+                impact: 92,
+                projects: ['Oracle', 'Snowtint', 'Deloitte'],
+                evidence: 'Improved discoverability and task success by restructuring dense navigation systems.'
+            },
+            {
+                name: 'Interaction Design',
+                category: 'UX Core',
+                proficiency: 5,
+                years: 10,
+                impact: 94,
+                projects: ['Oracle', 'Rage', 'Deloitte'],
+                evidence: 'Designed patterns for edge states, progressive disclosure, and safer destructive actions.'
+            },
+            {
+                name: 'Design Systems',
+                category: 'Systems',
+                proficiency: 4,
+                years: 7,
+                impact: 88,
+                projects: ['Oracle', 'Portfolio'],
+                evidence: 'Created reusable patterns and tokenized styling for consistency across surfaces.'
+            },
+            {
+                name: 'Usability Testing',
+                category: 'Research',
+                proficiency: 4,
+                years: 8,
+                impact: 85,
+                projects: ['Deloitte', 'Snowtint', 'Rage'],
+                evidence: 'Used feedback loops from test sessions to prune friction and improve completion rates.'
+            },
+            {
+                name: 'Stakeholder Facilitation',
+                category: 'Leadership',
+                proficiency: 5,
+                years: 9,
+                impact: 90,
+                projects: ['Oracle', 'Deloitte'],
+                evidence: 'Aligned product, engineering, and business goals in highly constrained timelines.'
+            },
+            {
+                name: 'Front-end Prototyping',
+                category: 'Build',
+                proficiency: 4,
+                years: 6,
+                impact: 84,
+                projects: ['Portfolio', 'Oracle Figma Plugin'],
+                evidence: 'Built interactive prototypes in HTML/CSS/JS to validate behavior before implementation.'
+            },
+            {
+                name: 'Inclusive Design',
+                category: 'Quality',
+                proficiency: 4,
+                years: 7,
+                impact: 87,
+                projects: ['Inclusive UX', 'Oracle'],
+                evidence: 'Applied accessible structures, contrast and language clarity to reduce exclusion.'
+            },
+            {
+                name: 'Product Thinking',
+                category: 'Strategy',
+                proficiency: 5,
+                years: 9,
+                impact: 93,
+                projects: ['Oracle', 'Portfolio', 'Deloitte'],
+                evidence: 'Balanced user value and platform constraints to prioritize roadmap outcomes.'
+            },
+            {
+                name: 'AI-assisted Workflow Design',
+                category: 'Innovation',
+                proficiency: 4,
+                years: 3,
+                impact: 80,
+                projects: ['Portfolio', 'Tools & Experiments'],
+                evidence: 'Introduced practical AI interactions without adding cognitive overhead.'
+            },
+            {
+                name: 'Visual Communication',
+                category: 'Craft',
+                proficiency: 4,
+                years: 10,
+                impact: 86,
+                projects: ['Snowtint', 'Rage', 'Portfolio'],
+                evidence: 'Used visual hierarchy and tone to make complex information easier to scan.'
+            },
+            {
+                name: 'Mentorship & Coaching',
+                category: 'Leadership',
+                proficiency: 4,
+                years: 5,
+                impact: 82,
+                projects: ['Mentoring Sessions', 'Portfolio'],
+                evidence: 'Guided designers and founders through product clarity and execution frameworks.'
+            }
+        ];
+
+        const controls = {
+            category: document.getElementById('categoryFilter'),
+            project: document.getElementById('projectFilter'),
+            sortBy: document.getElementById('sortBy'),
+            minLevel: document.getElementById('minLevel'),
+            levelValue: document.getElementById('levelValue')
+        };
+
+        const metricEls = {
+            count: document.getElementById('metricCount'),
+            avg: document.getElementById('metricAvg'),
+            years: document.getElementById('metricYears'),
+            top: document.getElementById('metricTop')
+        };
+
+        const projectTags = document.getElementById('projectTags');
+        const skillsList = document.getElementById('skillsList');
+        const timelineWrap = document.getElementById('timelineWrap');
+        const radarCanvas = document.getElementById('radarCanvas');
+        const vizTitle = document.getElementById('vizTitle');
+        const viewButtons = Array.from(document.querySelectorAll('.view-btn'));
+        const oracleRadarCanvas = document.getElementById('oracleRadarCanvas');
+        const oracleControls = document.getElementById('oracleControls');
+        const state = { view: 'radar' };
+
+        const oracleCompetencies = [
+            { key: 'changeAgility', label: 'Core.Change Agility', role: 2, self: 2 },
+            { key: 'collaboration', label: 'Core.Collaboration', role: 3, self: 3 },
+            { key: 'communicationImpact', label: 'Core.Communicating for Impact', role: 3, self: 3 },
+            { key: 'competitiveEdge', label: 'Core.Competitive Edge', role: 2, self: 2 },
+            { key: 'inspirationalLeadership', label: 'Core.Inspirational Leadership', role: 1, self: 1 },
+            { key: 'masteringComplexity', label: 'Core.Mastering Complexity', role: 2, self: 2 },
+            { key: 'performanceExecution', label: 'Core.Performance Drive & Execution', role: 2, self: 2 },
+            { key: 'interactionDesign', label: 'Functional.Development.Interaction Design', role: 3, self: 3 },
+            { key: 'productInnovation', label: 'Functional.Development.Product Innovation & Thought Leadership', role: 1, self: 1 },
+            { key: 'uxTesting', label: 'Functional.Development.Testing', role: 3, self: 3 },
+            { key: 'uxRequirements', label: 'Functional.Development.User Experience Requirements', role: 3, self: 3 },
+            { key: 'visualDesign', label: 'Functional.Development.Visual Design', role: 3, self: 3 }
+        ];
+
+        function initTheme() {
+            const theme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+            updateThemeIcon(theme);
+        }
+
+        function updateThemeIcon(theme) {
+            const icon = document.querySelector('#themeToggle .material-icons');
+            icon.textContent = theme === 'dark' ? 'light_mode' : 'dark_mode';
+        }
+
+        function setupFilters() {
+            const categories = ['All', ...new Set(skills.map((s) => s.category))];
+            const projects = ['All', ...new Set(skills.flatMap((s) => s.projects))];
+
+            controls.category.innerHTML = categories
+                .map((c) => `<option value="${c}">${c}</option>`)
+                .join('');
+
+            controls.project.innerHTML = projects
+                .map((p) => `<option value="${p}">${p}</option>`)
+                .join('');
+
+            projectTags.innerHTML = projects
+                .filter((p) => p !== 'All')
+                .map((p) => `<span class="work-tag">${p}</span>`)
+                .join('');
+        }
+
+        function getFilteredSkills() {
+            const category = controls.category.value;
+            const project = controls.project.value;
+            const minLevel = Number(controls.minLevel.value);
+            const sortBy = controls.sortBy.value;
+
+            const filtered = skills.filter((skill) => {
+                const categoryMatch = category === 'All' || skill.category === category;
+                const projectMatch = project === 'All' || skill.projects.includes(project);
+                const levelMatch = skill.proficiency >= minLevel;
+                return categoryMatch && projectMatch && levelMatch;
+            });
+
+            filtered.sort((a, b) => {
+                if (sortBy === 'proficiency') return b.proficiency - a.proficiency || b.impact - a.impact;
+                if (sortBy === 'years') return b.years - a.years || b.impact - a.impact;
+                return b.impact - a.impact || b.proficiency - a.proficiency;
+            });
+
+            return filtered;
+        }
+
+        function updateMetrics(list) {
+            const count = list.length;
+            const avg = count ? (list.reduce((sum, item) => sum + item.proficiency, 0) / count).toFixed(1) : '0.0';
+            const years = list.reduce((sum, item) => sum + item.years, 0);
+            const top = count ? list[0].name.split(' ').slice(0, 2).join(' ') : '-';
+
+            metricEls.count.textContent = String(count);
+            metricEls.avg.textContent = avg;
+            metricEls.years.textContent = `${years}y`;
+            metricEls.top.textContent = top;
+        }
+
+        function renderSkillList(list) {
+            if (!list.length) {
+                skillsList.innerHTML = '<p class="panel-sub">No skills match this filter set. Lower the min proficiency or reset project/category.</p>';
+                return;
+            }
+
+            skillsList.innerHTML = list
+                .map((item) => {
+                    const width = Math.round((item.proficiency / 5) * 100);
+                    return `
+                        <article class="skill-item">
+                            <div class="skill-head">
+                                <div class="skill-name">${item.name}</div>
+                                <div class="skill-meta">${item.category} | ${item.years}y</div>
+                            </div>
+                            <div class="bar"><span style="width:${width}%"></span></div>
+                            <div class="evidence">${item.evidence} <strong>Projects:</strong> ${item.projects.join(', ')}.</div>
+                        </article>
+                    `;
+                })
+                .join('');
+        }
+
+        function renderRadar(list) {
+            const ctx = radarCanvas.getContext('2d');
+            const styles = getComputedStyle(document.documentElement);
+            const accent = styles.getPropertyValue('--accent').trim();
+            const line = styles.getPropertyValue('--line').trim();
+            const ink = styles.getPropertyValue('--ink').trim();
+
+            const dpr = window.devicePixelRatio || 1;
+            const size = 700;
+            radarCanvas.width = size * dpr;
+            radarCanvas.height = size * dpr;
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.scale(dpr, dpr);
+
+            ctx.clearRect(0, 0, size, size);
+            const cx = size / 2;
+            const cy = size / 2;
+            const maxR = size * 0.36;
+
+            const visible = list.slice(0, 12);
+            const axisCount = Math.max(visible.length, 3);
+
+            for (let ring = 1; ring <= 5; ring += 1) {
+                const r = (maxR * ring) / 5;
+                ctx.beginPath();
+                ctx.strokeStyle = line;
+                ctx.lineWidth = ring === 5 ? 1.6 : 1;
+                ctx.arc(cx, cy, r, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(cx, cy, 8, 0, Math.PI * 2);
+            ctx.fillStyle = accent;
+            ctx.fill();
+            ctx.restore();
+
+            visible.forEach((skill, index) => {
+                const angle = (Math.PI * 2 * index) / axisCount - Math.PI / 2;
+                const length = maxR;
+                const r = (maxR * skill.proficiency) / 5;
+                const x = cx + Math.cos(angle) * length;
+                const y = cy + Math.sin(angle) * length;
+                const px = cx + Math.cos(angle) * r;
+                const py = cy + Math.sin(angle) * r;
+
+                ctx.beginPath();
+                ctx.strokeStyle = line;
+                ctx.lineWidth = 1;
+                ctx.moveTo(cx, cy);
+                ctx.lineTo(x, y);
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.fillStyle = accent;
+                ctx.arc(px, py, 4, 0, Math.PI * 2);
+                ctx.fill();
+
+                const labelOffset = 18;
+                const lx = cx + Math.cos(angle) * (length + labelOffset);
+                const ly = cy + Math.sin(angle) * (length + labelOffset);
+                ctx.fillStyle = ink;
+                ctx.font = '600 13px Manrope';
+                ctx.textAlign = lx < cx - 10 ? 'right' : lx > cx + 10 ? 'left' : 'center';
+                ctx.textBaseline = 'middle';
+                const short = skill.name.length > 19 ? `${skill.name.slice(0, 17)}..` : skill.name;
+                ctx.fillText(short, lx, ly);
+            });
+
+            if (visible.length) {
+                ctx.beginPath();
+                visible.forEach((skill, index) => {
+                    const angle = (Math.PI * 2 * index) / axisCount - Math.PI / 2;
+                    const r = (maxR * skill.proficiency) / 5;
+                    const px = cx + Math.cos(angle) * r;
+                    const py = cy + Math.sin(angle) * r;
+                    if (index === 0) {
+                        ctx.moveTo(px, py);
+                    } else {
+                        ctx.lineTo(px, py);
+                    }
+                });
+                ctx.closePath();
+                ctx.fillStyle = accent + '33';
+                ctx.strokeStyle = accent;
+                ctx.lineWidth = 2;
+                ctx.fill();
+                ctx.stroke();
+            }
+        }
+
+        function renderTimeline(list) {
+            const currentYear = new Date().getFullYear();
+            const startYear = currentYear - 12;
+
+            if (!list.length) {
+                timelineWrap.innerHTML = '<p class="panel-sub">No timeline to display for current filters.</p>';
+                return;
+            }
+
+            timelineWrap.innerHTML = list
+                .map((skill) => {
+                    const skillStart = Math.max(currentYear - skill.years, startYear);
+                    const left = ((skillStart - startYear) / 12) * 100;
+                    const width = Math.max((skill.years / 12) * 100, 8);
+                    return `
+                        <div class="timeline-row">
+                            <div class="timeline-head">
+                                <strong>${skill.name}</strong>
+                                <span>${skill.years} years</span>
+                            </div>
+                            <div class="timeline-track">
+                                <div class="timeline-fill" style="left:${left}%;width:${width}%"></div>
+                            </div>
+                        </div>
+                    `;
+                })
+                .join('');
+        }
+
+        function renderOracleControls() {
+            oracleControls.innerHTML = oracleCompetencies
+                .map((item, index) => `
+                    <div class="oracle-item">
+                        <div class="oracle-item-head">
+                            <div class="oracle-item-name">${item.label}</div>
+                            <div class="oracle-item-score">Role ${item.role} / Self ${item.self}</div>
+                        </div>
+                        <div class="oracle-range-grid">
+                            <div>
+                                <label for="oracle-role-${index}">This Role</label>
+                                <input id="oracle-role-${index}" type="range" min="0" max="5" step="1" value="${item.role}" data-index="${index}" data-field="role" />
+                            </div>
+                            <div>
+                                <label for="oracle-self-${index}">Sinha, Ankur</label>
+                                <input id="oracle-self-${index}" type="range" min="0" max="5" step="1" value="${item.self}" data-index="${index}" data-field="self" />
+                            </div>
+                        </div>
+                    </div>
+                `)
+                .join('');
+        }
+
+        function drawOraclePolygon(ctx, cx, cy, radius, values, color, fillAlpha, pointSize) {
+            const count = values.length;
+            if (!count) return;
+
+            ctx.beginPath();
+            values.forEach((v, i) => {
+                const angle = (Math.PI * 2 * i) / count - Math.PI / 2;
+                const r = (radius * v) / 5;
+                const px = cx + Math.cos(angle) * r;
+                const py = cy + Math.sin(angle) * r;
+                if (i === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            });
+            ctx.closePath();
+            ctx.fillStyle = fillAlpha;
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2.2;
+            ctx.fill();
+            ctx.stroke();
+
+            values.forEach((v, i) => {
+                const angle = (Math.PI * 2 * i) / count - Math.PI / 2;
+                const r = (radius * v) / 5;
+                const px = cx + Math.cos(angle) * r;
+                const py = cy + Math.sin(angle) * r;
+                ctx.beginPath();
+                ctx.arc(px, py, pointSize, 0, Math.PI * 2);
+                ctx.fillStyle = color;
+                ctx.fill();
+            });
+        }
+
+        function renderOracleRadar() {
+            const ctx = oracleRadarCanvas.getContext('2d');
+            const styles = getComputedStyle(document.documentElement);
+            const line = styles.getPropertyValue('--line').trim();
+            const ink = styles.getPropertyValue('--ink').trim();
+
+            const dpr = window.devicePixelRatio || 1;
+            const size = 700;
+            oracleRadarCanvas.width = size * dpr;
+            oracleRadarCanvas.height = size * dpr;
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.scale(dpr, dpr);
+
+            ctx.clearRect(0, 0, size, size);
+
+            const cx = size / 2;
+            const cy = size / 2;
+            const maxR = size * 0.33;
+            const count = oracleCompetencies.length;
+
+            for (let ring = 1; ring <= 5; ring += 1) {
+                const r = (maxR * ring) / 5;
+                ctx.beginPath();
+                for (let i = 0; i < count; i += 1) {
+                    const angle = (Math.PI * 2 * i) / count - Math.PI / 2;
+                    const x = cx + Math.cos(angle) * r;
+                    const y = cy + Math.sin(angle) * r;
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.closePath();
+                ctx.strokeStyle = line;
+                ctx.lineWidth = ring === 5 ? 1.6 : 1;
+                ctx.stroke();
+            }
+
+            oracleCompetencies.forEach((item, i) => {
+                const angle = (Math.PI * 2 * i) / count - Math.PI / 2;
+                const x = cx + Math.cos(angle) * maxR;
+                const y = cy + Math.sin(angle) * maxR;
+                ctx.beginPath();
+                ctx.moveTo(cx, cy);
+                ctx.lineTo(x, y);
+                ctx.strokeStyle = line;
+                ctx.lineWidth = 1;
+                ctx.stroke();
+
+                const lx = cx + Math.cos(angle) * (maxR + 18);
+                const ly = cy + Math.sin(angle) * (maxR + 18);
+                ctx.fillStyle = ink;
+                ctx.font = '600 12px Manrope';
+                ctx.textAlign = lx < cx - 8 ? 'right' : lx > cx + 8 ? 'left' : 'center';
+                ctx.textBaseline = 'middle';
+                const short = item.label.length > 34 ? `${item.label.slice(0, 31)}...` : item.label;
+                ctx.fillText(short, lx, ly);
+            });
+
+            drawOraclePolygon(
+                ctx,
+                cx,
+                cy,
+                maxR,
+                oracleCompetencies.map((c) => c.role),
+                '#f4b400',
+                'rgba(244, 180, 0, 0.24)',
+                3
+            );
+
+            drawOraclePolygon(
+                ctx,
+                cx,
+                cy,
+                maxR,
+                oracleCompetencies.map((c) => c.self),
+                '#039be5',
+                'rgba(3, 155, 229, 0.2)',
+                3
+            );
+        }
+
+        function switchView(view) {
+            state.view = view;
+            viewButtons.forEach((btn) => {
+                btn.classList.toggle('is-active', btn.dataset.view === view);
+            });
+
+            if (view === 'timeline') {
+                radarCanvas.style.display = 'none';
+                timelineWrap.classList.add('is-active');
+                vizTitle.textContent = 'Skill Growth Timeline';
+            } else {
+                radarCanvas.style.display = 'block';
+                timelineWrap.classList.remove('is-active');
+                vizTitle.textContent = 'Skill Radar';
+            }
+        }
+
+        function render() {
+            controls.levelValue.textContent = controls.minLevel.value;
+            const filtered = getFilteredSkills();
+            updateMetrics(filtered);
+            renderSkillList(filtered);
+
+            if (state.view === 'timeline') {
+                renderTimeline(filtered);
+            } else {
+                renderRadar(filtered);
+            }
+
+            document.dispatchEvent(new CustomEvent('skills:rendered', {
+                detail: { view: state.view }
+            }));
+        }
+
+        function bindEvents() {
+            [controls.category, controls.project, controls.sortBy, controls.minLevel].forEach((el) => {
+                el.addEventListener('input', render);
+                el.addEventListener('change', render);
+            });
+
+            oracleControls.addEventListener('input', (event) => {
+                const target = event.target;
+                if (!target || target.tagName !== 'INPUT') return;
+                const index = Number(target.getAttribute('data-index'));
+                const field = target.getAttribute('data-field');
+                if (Number.isNaN(index) || !oracleCompetencies[index] || !field) return;
+                oracleCompetencies[index][field] = Number(target.value);
+                renderOracleControls();
+                renderOracleRadar();
+            });
+
+            viewButtons.forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    switchView(btn.dataset.view);
+                    render();
+                });
+            });
+
+            window.addEventListener('resize', () => {
+                if (state.view === 'radar') {
+                    render();
+                }
+                renderOracleRadar();
+            });
+
+            document.getElementById('themeToggle').addEventListener('click', () => {
+                const current = document.documentElement.getAttribute('data-theme') || 'light';
+                const next = current === 'dark' ? 'light' : 'dark';
+                document.documentElement.setAttribute('data-theme', next);
+                localStorage.setItem('theme', next);
+                updateThemeIcon(next);
+                render();
+            });
+        }
+
+        initTheme();
+        setupFilters();
+        renderOracleControls();
+        renderOracleRadar();
+        bindEvents();
+        switchView('radar');
+        render();
+    </script>
+
+    <script type="module">
+        const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        async function initMotionLayer() {
+            if (reduceMotion) {
+                return;
+            }
+
+            try {
+                const { animate, inView, stagger } = await import('https://cdn.jsdelivr.net/npm/motion@11.11.17/+esm');
+
+                const introTargets = document.querySelectorAll('.hero-card, .control, .metric-card, .panel');
+                animate(introTargets, {
+                    opacity: [0, 1],
+                    y: [20, 0],
+                    filter: ['blur(4px)', 'blur(0px)']
+                }, {
+                    duration: 0.68,
+                    delay: stagger(0.06),
+                    easing: [0.22, 1, 0.36, 1]
+                });
+
+                document.querySelectorAll('.view-btn, .back-btn, .theme-toggle, .work-tag').forEach((el) => {
+                    el.addEventListener('pointerenter', () => {
+                        animate(el, { y: -2, scale: 1.02 }, { duration: 0.18 });
+                    });
+                    el.addEventListener('pointerleave', () => {
+                        animate(el, { y: 0, scale: 1 }, { duration: 0.2 });
+                    });
+                    el.addEventListener('pointerdown', () => {
+                        animate(el, { scale: 0.98 }, { duration: 0.12 });
+                    });
+                    el.addEventListener('pointerup', () => {
+                        animate(el, { scale: 1.02 }, { duration: 0.12 });
+                    });
+                });
+
+                inView('.metric-card', (el) => {
+                    animate(el, { opacity: [0.7, 1], y: [14, 0] }, {
+                        duration: 0.45,
+                        easing: [0.22, 1, 0.36, 1]
+                    });
+                });
+
+                function animateDynamicLists(view) {
+                    const skillRows = document.querySelectorAll('.skill-item');
+                    if (skillRows.length) {
+                        animate(skillRows, {
+                            opacity: [0, 1],
+                            x: [10, 0]
+                        }, {
+                            duration: 0.35,
+                            delay: stagger(0.03)
+                        });
+                    }
+
+                    if (view === 'timeline') {
+                        const fills = document.querySelectorAll('.timeline-fill');
+                        if (fills.length) {
+                            animate(fills, {
+                                scaleX: [0, 1],
+                                opacity: [0.6, 1]
+                            }, {
+                                duration: 0.55,
+                                delay: stagger(0.04),
+                                easing: [0.34, 1.56, 0.64, 1],
+                                transformOrigin: 'left center'
+                            });
+                        }
+                    } else {
+                        const radar = document.getElementById('radarCanvas');
+                        if (radar) {
+                            animate(radar, {
+                                opacity: [0.7, 1],
+                                scale: [0.98, 1]
+                            }, {
+                                duration: 0.4,
+                                easing: [0.22, 1, 0.36, 1]
+                            });
+                        }
+                    }
+                }
+
+                document.addEventListener('skills:rendered', (event) => {
+                    const view = event?.detail?.view || 'radar';
+                    animateDynamicLists(view);
+                });
+            } catch (error) {
+                console.warn('Motion layer could not load:', error);
+            }
+        }
+
+        initMotionLayer();
+    </script>
+</body>
+</html>

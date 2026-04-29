@@ -502,3 +502,76 @@ input[type=password].invalid, input[type=password]:focus.invalid {
   transform: scale(1.1);
   background-color: #d87d19;
 }
+
+/* Moments gallery enhancements */
+.moments-swipe-hint {
+  margin: 0 0 0.5rem;
+  font-size: 12px;
+  color: #7a7a7a;
+  letter-spacing: 0.02em;
+}
+
+.moments-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  margin-top: 0.65rem;
+}
+
+.moments-nav-btn {
+  border: 1px solid #d4d4d4;
+  background: #ffffff;
+  color: #546de5;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.moments-nav-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(84, 109, 229, 0.2);
+}
+
+.moments-nav-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+.moments-nav-btn .material-icons {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.moments-dots {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.moments-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  border: 0;
+  background: #c9c9c9;
+  cursor: pointer;
+  padding: 0;
+}
+
+.moments-dot.is-active {
+  background: #546de5;
+  transform: scale(1.18);
+}
+
+@media only screen and (min-width: 769px) {
+  .moments-swipe-hint {
+    display: none;
+  }
+}

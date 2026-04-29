@@ -25,6 +25,71 @@
   <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.3/css/font-awesome.css">
   <link href="../css/materialize.css" type="text/css" rel="stylesheet" media="screen,projection"/>
   <link href="../css/style.css" type="text/css" rel="stylesheet" media="screen,projection"/>
+  <style>
+    .moments-gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1rem;
+    }
+
+    .moments-item {
+      margin: 0;
+      border: 1px solid #e0e0e0;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #fff;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+    }
+
+    .moments-item img {
+      width: 100%;
+      height: 240px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .moments-item figcaption {
+      padding: 0.75rem 0.9rem;
+      font-size: 0.92rem;
+      color: #616161;
+    }
+
+    @media (max-width: 768px) {
+      .moments-gallery {
+        display: flex;
+        overflow-x: auto;
+        gap: 0.85rem;
+        padding: 0.15rem 0.1rem 0.6rem;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .moments-gallery::-webkit-scrollbar {
+        height: 6px;
+      }
+
+      .moments-gallery::-webkit-scrollbar-thumb {
+        background: #cfcfcf;
+        border-radius: 999px;
+      }
+
+      .moments-item {
+        flex: 0 0 86%;
+        scroll-snap-align: center;
+      }
+
+      .moments-item img {
+        height: 56vw;
+        min-height: 220px;
+        max-height: 340px;
+      }
+
+      .moments-item figcaption {
+        font-size: 0.88rem;
+        line-height: 1.45;
+      }
+    }
+  </style>
 </head>
 <body>
     <div class="navbar-fixed">
@@ -206,23 +271,25 @@
           <div class="row">
               <div class="col s12 center-align">
                 <div class="x-small-spacer"></div>
-                <img src="../img/D1.jpeg" class="responsive-img">
-                <div class="x-small-spacer"></div>
-                <img src="../img/D2.jpg" class="responsive-img">
-                <div class="x-small-spacer"></div>
-                <img src="../img/D3.jpg" class="responsive-img">
-                <div class="x-small-spacer"></div>
-                <img src="../img/D4.jpeg" class="responsive-img">
-                <div class="x-small-spacer"></div>
-                <img src="../img/D5.jpg" class="responsive-img">
-                Office Party
-                <div class="x-small-spacer"></div>
-                <img src="../img/image.jpg" class="responsive-img">
-                FAB Abudhabi 
-                <div class="x-small-spacer"></div>
-                <img src="../img/IMG_2888.mov" class="responsive-img">
+                <div class="moments-gallery">
+                  <figure class="moments-item">
+                    <img src="../img/D1.JPG" alt="Deloitte team moment" loading="lazy" class="responsive-img">
+                    <figcaption>Team moment from Deloitte Design Studio.</figcaption>
+                  </figure>
+                  <figure class="moments-item">
+                    <img src="../img/D6.jpg" alt="Deloitte office celebration" loading="lazy" class="responsive-img">
+                    <figcaption>Office celebration and cross-team collaboration.</figcaption>
+                  </figure>
+                  <figure class="moments-item">
+                    <img src="../img/FABworkshop1.JPG" alt="FAB workshop" loading="lazy" class="responsive-img">
+                    <figcaption>Client workshop session with FAB stakeholders.</figcaption>
+                  </figure>
+                  <figure class="moments-item">
+                    <img src="../img/image.jpg" alt="Deloitte memory" loading="lazy" class="responsive-img">
+                    <figcaption>A snapshot from the Deloitte journey.</figcaption>
+                  </figure>
                 </div>
-
+              </div>
             </div>
 
             <div class="spacer"></div>
