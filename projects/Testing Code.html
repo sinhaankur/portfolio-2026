@@ -13,6 +13,71 @@
   <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.3/css/font-awesome.css">
   <link href="../css/materialize.css" type="text/css" rel="stylesheet" media="screen,projection"/>
   <link href="../css/style.css" type="text/css" rel="stylesheet" media="screen,projection"/>
+  <style>
+    .moments-gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1rem;
+    }
+
+    .moments-item {
+      margin: 0;
+      border: 1px solid #e0e0e0;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #fff;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+    }
+
+    .moments-item img {
+      width: 100%;
+      height: 240px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .moments-item figcaption {
+      padding: 0.75rem 0.9rem;
+      font-size: 0.92rem;
+      color: #616161;
+    }
+
+    @media (max-width: 768px) {
+      .moments-gallery {
+        display: flex;
+        overflow-x: auto;
+        gap: 0.85rem;
+        padding: 0.15rem 0.1rem 0.6rem;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .moments-gallery::-webkit-scrollbar {
+        height: 6px;
+      }
+
+      .moments-gallery::-webkit-scrollbar-thumb {
+        background: #cfcfcf;
+        border-radius: 999px;
+      }
+
+      .moments-item {
+        flex: 0 0 86%;
+        scroll-snap-align: center;
+      }
+
+      .moments-item img {
+        height: 56vw;
+        min-height: 220px;
+        max-height: 340px;
+      }
+
+      .moments-item figcaption {
+        font-size: 0.88rem;
+        line-height: 1.45;
+      }
+    }
+  </style>
 </head>
 <body>
     <div class="navbar-fixed">
@@ -278,21 +343,29 @@
         <div id="moments">
           <div class="row center">
               <div class="col s12 center-align">
-              
-                <!-- spacer -->
                 <div class="x-small-spacer"></div>
-                <img src="../img/O1.jpeg" class="responsive-img center">
-                <!-- spacer -->
-                <div class="x-small-spacer"></div>
-                <img src="../img/O2.jpg" class="responsive-img center">
-                <!-- spacer -->
-                <div class="x-small-spacer"></div>
-                <img src="../img/O3.jpg" class="responsive-img center">
-                <!-- spacer -->
-                <div class="x-small-spacer"></div>
-                <img src="../img/O4.jpeg" class="responsive-img center">
-                <div class="x-small-spacer"></div>
-                <img src="../img/O5.jpg" class="responsive-img center">
+                <div class="moments-gallery">
+                  <figure class="moments-item">
+                    <img src="../img/WFH.png" alt="Oracle remote collaboration" loading="lazy" class="responsive-img center">
+                    <figcaption>Remote collaboration setup for Oracle product work.</figcaption>
+                  </figure>
+                  <figure class="moments-item">
+                    <img src="../img/oci.png" alt="OCI context" loading="lazy" class="responsive-img center">
+                    <figcaption>Context from Oracle Cloud Infrastructure workflows.</figcaption>
+                  </figure>
+                  <figure class="moments-item">
+                    <img src="../img/Oracle_1.png" alt="Oracle product moment" loading="lazy" class="responsive-img center">
+                    <figcaption>A snapshot from the Oracle design journey.</figcaption>
+                  </figure>
+                  <figure class="moments-item">
+                    <img src="../img/Oracle22.png" alt="Oracle services panel" loading="lazy" class="responsive-img center">
+                    <figcaption>Design explorations around Oracle service experiences.</figcaption>
+                  </figure>
+                  <figure class="moments-item">
+                    <img src="../img/oracleveridata.png" alt="GoldenGate Veridata context" loading="lazy" class="responsive-img center">
+                    <figcaption>GoldenGate Veridata context and product direction.</figcaption>
+                  </figure>
+                </div>
               </div>
 
             </div>
