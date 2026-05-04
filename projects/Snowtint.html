@@ -91,6 +91,28 @@
       }
     }
   </style>
+  <script>
+    document.documentElement.classList.add("js-animate");
+  </script>
+  <style>
+    .js-animate .work-header,
+    .js-animate blockquote,
+    .js-animate .hero-card,
+    .js-animate .hero,
+    .js-animate .pillar,
+    .js-animate .project-story,
+    .js-animate .project-arc,
+    .js-animate .collection-item,
+    .js-animate .moments-item,
+    .js-animate .panel,
+    .js-animate .principal-section .card,
+    .js-animate .metric-card,
+    .js-animate .skill-item,
+    .js-animate .public-chip,
+    .js-animate .intro .chip { opacity: 0; }
+  </style>
+  <script type="module" src="../js/page-animations.js"></script>
+  <script src="../js/page-transitions.js" defer></script>
 </head>
 <body>
     <div class="navbar-fixed">
@@ -141,30 +163,27 @@
 
         <div id="work">
             <p class="x-large-text">
-              I joined <a href="https://www.snowtint.com" target="_blank">Murali's Team</a> in 2017. 
-              At Snowtint Pvt Ltd in Bangalore, I served as a User Experience (UX) Researcher and Designer with a diverse set of responsibilities. My role involved conducting qualitative, contextual inquiries by designing comprehensive studies, recruiting participants, and facilitating research interviews. Additionally, I played a crucial role in client requirement workshops, engaging stakeholders from various levels within client organizations.
-              One of my primary tasks was to document client requirements, translating them into clear user requirements and interaction design annotations on wireframes, prototypes, and other low-fidelity representations of the user experience. I conducted in-depth analysis of design research, creating behavioral personas and developing user scenarios, mental models, and user journey maps.
-              Furthermore, I played a key role in extrapolating the product vision by synthesizing primary research findings with the client's vision. I was involved in the high-level information architecture of digital ecosystems, creating site maps or application maps for single or multichannel platforms.
-             </p>
-            <p class="x-large-text">
-              In the realm of UI design, I conceptualized and visualized low-fidelity representations of UI elements, utilizing wireframes, paper, or other experience prototyping techniques. I ensured detailed annotation of interaction design and interface behavior on wireframes and prototypes.
-             As part of the usability testing process, I conducted thorough analysis, synthesis, and documentation of usability issues, presenting the findings in a comprehensive test report. Overall, my time at Snowtint Pvt Ltd involved a multifaceted approach to UX research and design, combining qualitative research, client collaboration, and detailed documentation to enhance the user experience of digital products.
+              I joined <a href="https://www.snowtint.com" target="_blank">Murali's team</a> at Snowtint Pvt Ltd in Bangalore in 2017 as <b>Lead UX Designer</b> — my first role with explicit ownership of UX outcomes, not just artifacts. Snowtint was a young product studio, which meant I owned the full lifecycle: framing the problem with the founder, running the research, designing the flows, then handing off to engineering and watching it ship.
             </p>
+
             <p class="x-large-text">
-              Please reach out for detailed work samples.
+              Across two years I worked on three very different products — a Mac digital-catalogue tool (iPress), a campus hiring marketplace (Campus Select), and a celebrity fitness app (JCVD with Jean-Claude Van Damme). Different users, different industries, same job: lead designer, end to end.
             </p>
+
+            <p class="x-large-text">
+              Most work samples are linked below. Reach out for full case-study walkthroughs.
+            </p>
+
             <!-- spacer -->
             <div class="x-small-spacer"></div>
-            <div><h5>Role</h5><hr class="underline left"></div>
+            <div><h5>Role &amp; scope</h5><hr class="underline left"></div>
             <br>
-            <!-- <p class="x-large-text">
-               <b>UX Architect</b>.   
-            </p> -->
             <ul class="collection">
-              <li class="collection-item">Working closely with PMs to define omnichannel strategies</li>
-              <li class="collection-item">Evangelizing mobile-first customer solutions</li>
-              <li class="collection-item">Contributing to and helping evolve internal design pattern library</li>
-              <li class="collection-item">Assist with hiring and team growth</li>
+              <li class="collection-item"><b>Lead designer, end to end</b> — from contextual inquiry through wireframes, hi-fi, and engineer handoff on three shipping products.</li>
+              <li class="collection-item"><b>Research-first</b> — designed and ran qualitative studies, recruited participants, built behavioural personas, mental models, and journey maps before the first sketch.</li>
+              <li class="collection-item"><b>Stakeholder facilitation</b> — running workshops with founders and client stakeholders to align product vision with user reality.</li>
+              <li class="collection-item"><b>Pattern-library contribution</b> — building the studio's first internal pattern library so the next product didn't restart from zero.</li>
+              <li class="collection-item"><b>Hiring &amp; team growth</b> — interviewing and onboarding designers as Snowtint scaled.</li>
             </ul>
             <!-- spacer -->
             <div class="spacer"></div>
@@ -179,81 +198,114 @@
               <!-- spacer -->
               <div class="small-spacer"></div>
 
+              <p class="project-arc">
+                Three different products in two years — a Mac digital-catalogue tool, a campus hiring marketplace, a celebrity fitness app. <strong>Different users, different industries, same UX exercise: study the actual user, design from their job inwards, ship the simplest thing that works.</strong> Click any project for the longer story.
+              </p>
+
+              <div class="project-stack">
+
+                <details class="project-story" open>
+                  <summary aria-label="iPress for Macbook case study">
+                    <img src="../img/ipress4.png" alt="iPress for Macbook" class="ps-thumb">
+                    <div class="ps-meta">
+                      <p class="ps-headline">iPress for Macbook</p>
+                      <p class="ps-tagline">Reimagining a digital-catalogue tool that field reps actually wanted to use.</p>
+                    </div>
+                    <span class="ps-toggle">Story</span>
+                  </summary>
+                  <div class="ps-body">
+                    <div class="ps-grid">
+                      <div class="ps-block">
+                        <h6>Context</h6>
+                        <p>iPress was the studio's flagship — a Mac app that let field sales reps walk into a customer meeting and present a product catalogue without slides or PDFs. The previous version was a tool to be tolerated, not used.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>UX angle</h6>
+                        <p>The previous version was designed around the catalogue's data model — products, categories, attributes. The actual user wasn't browsing; they were presenting, in front of a customer, with about ninety seconds to make the point. Designing for that moment is a different problem.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>Approach</h6>
+                        <p>Spent time in customer meetings to see how reps actually used the tool. Re-designed around the moment of presenting — large media, fast switching, no fiddly chrome. The catalogue structure stayed underneath; the surface served the situation.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>What I learned</h6>
+                        <p>Design for the situation, not just the user. Knowing the room a tool is used in changes the design more than knowing the persona who uses it.</p>
+                        <span class="placeholder-note">Fill in: a moment from sitting in on a sales meeting, or a small UI choice that turned out to matter in front of a real customer.</span>
+                      </div>
+                    </div>
+                    <a class="ps-cta" href="../Mocks/Snowtint/iPress4.pdf" target="_blank" rel="noopener">Open the PDF →</a>
+                  </div>
+                </details>
+
+                <details class="project-story">
+                  <summary aria-label="Campus Select case study">
+                    <img src="../img/CSlogo.png" alt="Campus Select" class="ps-thumb">
+                    <div class="ps-meta">
+                      <p class="ps-headline">Campus Select</p>
+                      <p class="ps-tagline">A two-sided marketplace connecting hiring companies and students on campus.</p>
+                    </div>
+                    <span class="ps-toggle">Story</span>
+                  </summary>
+                  <div class="ps-body">
+                    <div class="ps-grid">
+                      <div class="ps-block">
+                        <h6>Context</h6>
+                        <p>Campus hiring in India was running on spreadsheets, WhatsApp groups, and on-campus drives that didn't scale. Companies wanted shortlists; students wanted offers; the campus office was the bottleneck.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>UX angle</h6>
+                        <p>Two-sided products usually fail because they're designed as two products. The interesting UX work is in the shared spine — the data model, the lifecycle, the moments where one side's action becomes the other side's input.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>Approach</h6>
+                        <p>Mapped the hiring cycle for all three sides (student, recruiter, campus office) before sketching. Designed the student app for high signal in short browsing windows, the recruiter side for shortlist quality, the campus dashboard as the system of record.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>What I learned</h6>
+                        <p>In multi-sided products, design from the data model up, not from any one screen down. Otherwise you end up debugging the same UX problem in three places.</p>
+                        <span class="placeholder-note">Fill in: a story from one of the sides — a student who got placed, a recruiter who'd been doing it manually for years.</span>
+                      </div>
+                    </div>
+                    <a class="ps-cta" href="../Mocks/Snowtint/Complete_CS_IND_4Jul2017%20.pdf" target="_blank" rel="noopener">Open the PDF →</a>
+                  </div>
+                </details>
+
+                <details class="project-story">
+                  <summary aria-label="JCVD Fitness App case study">
+                    <img src="../img/jcvdsmall.png" alt="JCVD Fitness App" class="ps-thumb">
+                    <div class="ps-meta">
+                      <p class="ps-headline">JCVD · Train with Van Damme</p>
+                      <p class="ps-tagline">A celebrity fitness app shipped on a tight launch window in partnership with Jean-Claude Van Damme.</p>
+                    </div>
+                    <span class="ps-toggle">Story</span>
+                  </summary>
+                  <div class="ps-body">
+                    <div class="ps-grid">
+                      <div class="ps-block">
+                        <h6>Context</h6>
+                        <p>A short-fuse partnership project: design and ship a fitness app under Jean-Claude Van Damme's brand, App Store launch in select regions, no second chance to get it right.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>UX angle</h6>
+                        <p>The user arriving at a celebrity fitness app probably isn't athletic — they're curious. So the on-ramp has to be generous, and the deeper workouts have to feel earned. Designing for the actual arrival mode, not the aspirational one, was most of the work.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>Approach</h6>
+                        <p>Tight design loops — IA, content structure, workout flows, visual language all decided alongside brand stakeholders so product and brand could agree in the same room. No second-pass reconciliation later.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>What I learned</h6>
+                        <p>On brand-led products, get the brand decisions and the product decisions in the same room. Settling them sequentially means redoing both.</p>
+                        <span class="placeholder-note">Fill in: a moment from working with the celebrity-side team, or a small product decision that the brand reframed.</span>
+                      </div>
+                    </div>
+                    <a class="ps-cta" href="../Mocks/Snowtint/JCVD.pdf" target="_blank" rel="noopener">Open the PDF →</a>
+                  </div>
+                </details>
+
+              </div>
             </div>
-            <!--<div class="row center-align">
 
-              <div class="col s12 card-hover" style="padding:3.5% !important" 
-              onclick="window.open('../Mocks/W&M.pdf')">
-                <br>
-                <img src="../img/WandM.png" class="responsive-img"><br><br>
-
-                <p class="left-align large-text">
-                  <span class="xxx-large-text">Wedding&MarryGold<br></span>
-                  Redesigned the e-commerce website.
-                </p>
-                
-              </div>
-            </div> -->
-            <!-- spacer -->
-              <div class="row center-align">
-
-                <div class="col s12 card-hover" style="padding:3.5% !important" 
-                 onclick="window.open('../Mocks/Snowtint/iPress4.pdf')">
-                  <br>
-                  <img src="../img/ipress4.png" class="responsive-img"><br><br>
-
-                  <p class="left-align large-text">
-                    <span class="xxx-large-text">Desgined iPress Application for Macbook<br></span>
-                    Reimagined application to create digital catalogue for products and enhance the buying experience.
-                  </p>
-                  
-                </div>
-              </div>
-              <!-- spacer -->
-              <!--<div class="spacer"></div>
-              <<div class="row center-align">
-                < Promotions project -->
-                <!--<div class="col s12 card-hover" style="padding:3.5% !important"
-                onclick="window.open('/Users/ankursinha/Documents/GitHub/Portfolio/Mocks/Snowtint/JCVD.pdf')"></div>
-                  <img src="../img/jcvdsmall.png" class="responsive-img"><br><br>
-                  <p class="left-align large-text">
-                    <span class="xxx-large-text">JCVD Application<br></span>
-                    Designed and built JCVD Fitness App in partnership Jean-Claude Van Damme.
-                    This was a short timelined project with Launch only in Apple store in certain regions.
-                    Link:https://appadvice.com/app/jcvd-trainwithvandamme/1293750552
-                  </p>
-                </div>
-              </div>
-              <spacer -->
-              <div class="small-spacer"></div>
-              <div class="row center-align">
-                <!-- Bundles project -->
-                <div class="col s6 card-hover" style="padding:3.5% !important"
-                onclick="window.open('../Mocks/Snowtint/Complete_CS_IND_4Jul2017 .pdf')">
-                  <img src="../img/CSlogo.png" class="responsive-img"><br><br>
-                  <p class="left-align large-text">
-                    <span class="xxx-large-text">Campus Select<br></span>
-                     Desgined based on research of user requirement to connect hiring companies and students.
-                  </p>
-                  
-                </div>
-
-                <div class="col s6 card-hover" style="padding:3.5% !important"
-                onclick="window.open('../')">
-                  <!-- <div class="video-container">
-                      <iframe width="560" height="315" src="https://www.youtube.com/embed/QtwaXLvbtHU" frameborder="0" allowfullscreen></iframe><br>
-                  </div> -->
-                  <img src="../img/jcvdsmall.png" class="responsive-img"><br>
-
-                  <p class="left-align large-text">
-                    <span class="xxx-large-text">JCVD Fitness App<br></span>
-                    Designed and built JCVD Fitness App in partnership Jean-Claude Van Damme.
-                    This was a short timelined project with Launch only in Apple store in certain regions.
-                  </p>
-                  
-                </div>
-
-              </div>
               <!-- spacer -->
               <div class="spacer"></div>
 
@@ -315,12 +367,12 @@
             <!-- spacer -->
             <!-- <div class="spacer"></div> -->
 
-            <div><h5>Takeaways from this role</h5><hr class="underline left"></div><br>
+            <div><h5>What this role taught me</h5><hr class="underline left"></div><br>
             <ul class="collection">
-              <li class="collection-item">Defining the problem and the scope early on is key</li>
-              <li class="collection-item">Going broad with ideas is helpful but tracking progress is necessary</li>
-              <li class="collection-item">Get in front of users to validate ideas as soon as you can</li>
-              <li class="collection-item">Never stop trying new things and strategies</li>
+              <li class="collection-item"><b>Lead is a verb, not a title.</b> Being "Lead" of a one-person design team forced me to learn to lead through the work — clear writing, sharp specs, and engineers who wanted to build my designs because the brief was honest.</li>
+              <li class="collection-item"><b>You learn the most from the user you'd never have asked for.</b> The Mac field rep, the campus placement officer, the celebrity-brand manager — each pulled my mental model further from "designer's defaults" than any course could.</li>
+              <li class="collection-item"><b>Patterns travel across products if you let them.</b> The interaction primitives I built for iPress quietly powered the next two products. That was the first time I felt the leverage of a design system, even before the term was on my radar.</li>
+              <li class="collection-item"><b>Ship is a feeling, not just an event.</b> A small studio ships every two weeks because it has to. That muscle — small, fast, real — is the one I still use most.</li>
             </ul>
 
             <p class="x-large-text">

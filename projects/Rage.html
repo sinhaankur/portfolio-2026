@@ -91,6 +91,28 @@
       }
     }
   </style>
+  <script>
+    document.documentElement.classList.add("js-animate");
+  </script>
+  <style>
+    .js-animate .work-header,
+    .js-animate blockquote,
+    .js-animate .hero-card,
+    .js-animate .hero,
+    .js-animate .pillar,
+    .js-animate .project-story,
+    .js-animate .project-arc,
+    .js-animate .collection-item,
+    .js-animate .moments-item,
+    .js-animate .panel,
+    .js-animate .principal-section .card,
+    .js-animate .metric-card,
+    .js-animate .skill-item,
+    .js-animate .public-chip,
+    .js-animate .intro .chip { opacity: 0; }
+  </style>
+  <script type="module" src="../js/page-animations.js"></script>
+  <script src="../js/page-transitions.js" defer></script>
 </head>
 <body>
     <div class="navbar-fixed">
@@ -120,8 +142,8 @@
 
         <div class="work-header">
             <img src="../img/Rage.png" class="responsive-img work-logo"><br><br>
-            <h1 class="center-align responsive-img">UX Designer</h1>
-            <h5 class="center-align" style="font-weight:400;">Improving User/customer experience</h5> -->
+            <h1 class="center-align responsive-img">Junior UX Designer</h1>
+            <h5 class="center-align" style="font-weight:400;">First role · usability testing &amp; interaction design across client work</h5>
         </div>
 
         <!-- spacer -->
@@ -141,37 +163,34 @@
 
         <div id="work">
             <p class="x-large-text">
-              I joined <a href="https://www.whatarage.com/" target="_blank">Krishana's DDH Team</a> in 2015. It is an independent design team with key focus on Usability Testing and designing, with its primary focus on user pain points and improving the overall user experience.
+              My first UX role. I joined <a href="https://www.whatarage.com/" target="_blank">Krishana's DDH team</a> at Rage Communications in 2015 — an independent design team focused on usability testing and interaction design for client products, mostly in retail banking.
             </p>
 
             <p class="x-large-text">
-              I evaluated Usability problem in the existing eco-system. After analysis I also did end user interview based on the persona's set for the Demography and types of users. After, This we get flexibility to focus on complex use cases and solved possible design relaated and user related problems.
+              I came in from a year of technical support, where most tickets were people drowning in complex software. Rage was where I learned to study that drowning systematically — running interviews, mapping the pain, then designing the screen that fixed it. The bulk of my work was on Citibank's Indian mobile banking app: usability testing the existing experience, building personas across demographics, and reworking the sign-on, account, credit-card, and merchant flows.
             </p>
 
             <p class="x-large-text">
-              Please reach out for detailed work samples.
+              Most artifacts are linked below. Reach out for full case-study walkthroughs.
             </p>
 
             <!-- spacer -->
             <div class="x-small-spacer"></div>
 
-            <div><h5>Role</h5><hr class="underline left"></div>
+            <div><h5>Role &amp; scope</h5><hr class="underline left"></div>
 
             <br>
 
              <p class="x-large-text">
-               <b>Junior UX Designer</b>.   
+               <b>Junior UX Designer</b> — apprentice on a small senior team, learning craft by doing.
             </p>
 
             <ul class="collection">
-              <li class="collection-item">Working closely with Stake holders and end user</li>
-              <li class="collection-item">Conduction User interviews</li>
-              <li class="collection-item">Conducting Usability Testing before and after Prodcut design</li>
-              <li class="collection-item">Creating and understanding Information Architecture</li>
-              <li class="collection-item">Running Card Sorting Session</li>
-              <li class="collection-item">Evangelizing mobile-first customer solutions</li>
-              <li class="collection-item">Contributing to and helping evolve internal design pattern library</li>
-              <li class="collection-item">Assist with hiring and team growth</li>
+              <li class="collection-item">Running usability tests on existing client products and synthesising findings into design recommendations.</li>
+              <li class="collection-item">Conducting user interviews across Indian banking demographics; building behavioural personas.</li>
+              <li class="collection-item">Card-sorting sessions and IA analysis to restructure the flows being tested.</li>
+              <li class="collection-item">Designing wireframes and interaction patterns under senior design review.</li>
+              <li class="collection-item">Sitting in on stakeholder workshops with client teams (Citibank, etc.) — listening more than talking, but in the room.</li>
             </ul>
 
             <!-- spacer -->
@@ -185,92 +204,184 @@
             <!-- Projects section starts here -->
             <div class="section">
 
-              <div><h5>Projects</h5><hr class="underline left"></div>
+              <div><h5>Selected projects</h5><hr class="underline left"></div>
 
               <!-- spacer -->
               <div class="small-spacer"></div>
 
+              <p class="project-arc">
+                Most of the work was Citibank India's mobile banking app, broken into the flows that needed UX attention. <strong>The exercise was always the same: usability-test what exists, find where users get stuck, redesign that piece, validate.</strong> One e-commerce project (Wedding&amp;MarryGold) closed out the year. Click any project for the longer story.
+              </p>
 
-              <div class="row center-align">
+              <div class="project-stack">
 
-                <div class="col s12 card-hover" style="padding:3.5% !important" 
-                onclick="window.open('../Mocks/01.Citibank_Version1.pdf')">
-                  <br>
-                  <img src="../img/Citi.png" class="responsive-img"><br><br>
+                <details class="project-story" open>
+                  <summary aria-label="Citibank Mobile App India case study">
+                    <img src="../img/Citi.png" alt="Citibank Mobile App India" class="ps-thumb">
+                    <div class="ps-meta">
+                      <p class="ps-headline">Citibank Mobile App India · Sign-On &amp; Account</p>
+                      <p class="ps-tagline">Reworking the parts of the journey users were dropping out of: sign-on and account summary.</p>
+                    </div>
+                    <span class="ps-toggle">Story</span>
+                  </summary>
+                  <div class="ps-body">
+                    <div class="ps-grid">
+                      <div class="ps-block">
+                        <h6>Context</h6>
+                        <p>Citibank's Indian mobile banking app was losing users at sign-on and confusing them at the account summary. Friction at the front door of a banking app is the most expensive kind.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>UX angle</h6>
+                        <p>Friction at the front door of a banking app is the most expensive kind — the user is right there, intending to use the app, and the UI gets in the way. Usability-testing those exact moments is where the design recommendations earn their cost.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>Approach</h6>
+                        <p>Sat in on usability sessions with Indian banking customers under senior supervision. Identified the moments where the UI assumed too much (terminology, unfamiliar inputs, hidden state). Wireframed each step around what users actually did, not what the spec said they would.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>What I learned</h6>
+                        <p>You can't redesign a screen well without watching someone use the broken version. Every change that worked traced back to a session; every one that didn't, skipped that step.</p>
+                        <span class="placeholder-note">Fill in: a moment from a usability session — a small UI assumption that broke for a real user.</span>
+                      </div>
+                    </div>
+                    <a class="ps-cta" href="../Mocks/01.Citibank_Version1.pdf" target="_blank" rel="noopener">Open the V1 mocks →</a>
+                  </div>
+                </details>
 
-                  <p class="left-align large-text">
-                    <span class="xxx-large-text">Citibank Mobile App India<br></span>
-                    Reimagined the core parts of the User journey with different features and for this project we have did usability testing 
-                    and redesigned Sign On & Account. 
-                    Please click on the this tile to view the V1 Mocks for Sign On & Account Summary.
-                  </p>
-                  
-                </div>
+                <details class="project-story">
+                  <summary aria-label="Citibank Credit Card Loan UX best practice case study">
+                    <img src="../img/Citi.png" alt="Citibank Credit Card Loan UX" class="ps-thumb">
+                    <div class="ps-meta">
+                      <p class="ps-headline">Citibank Credit Card Loan</p>
+                      <p class="ps-tagline">A UX-best-practice pass on the online credit-card application journey.</p>
+                    </div>
+                    <span class="ps-toggle">Story</span>
+                  </summary>
+                  <div class="ps-body">
+                    <div class="ps-grid">
+                      <div class="ps-block">
+                        <h6>Context</h6>
+                        <p>Online credit-card applications are where banks lose qualified applicants in the form. Citibank wanted a UX-best-practice pass before the next development cycle.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>UX angle</h6>
+                        <p>UX audits often end up as long lists of issues that nobody acts on. The interesting half of an audit is the prioritisation — which findings actually move the needle, and which dev cost is worth paying for which.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>Approach</h6>
+                        <p>Built a checklist of best-practice patterns (progress indication, smart defaults, conditional fields, low-friction input types). Audited every step, scored it, then prioritised changes by expected drop-off impact vs. dev cost.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>What I learned</h6>
+                        <p>An audit without prioritisation is research, not design. The forcing function of "which of these would you do first" is what turns findings into decisions.</p>
+                        <span class="placeholder-note">Fill in: which recommendation turned out to be the highest-impact one, or one the team initially pushed back on.</span>
+                      </div>
+                    </div>
+                    <a class="ps-cta" href="../Mocks/Wireframe%20Citibank/Citibank%20Credit%20Card%20Application-LetusKnowyouBetter.pdf" target="_blank" rel="noopener">Open the PDF →</a>
+                  </div>
+                </details>
+
+                <details class="project-story">
+                  <summary aria-label="Citibank Merchant Engagement Form case study">
+                    <img src="../img/Citi.png" alt="Citibank Merchant Engagement Form" class="ps-thumb">
+                    <div class="ps-meta">
+                      <p class="ps-headline">Citibank Merchant Engagement Form</p>
+                      <p class="ps-tagline">Wireframing a simpler merchant onboarding form for Citibank's commercial side.</p>
+                    </div>
+                    <span class="ps-toggle">Story</span>
+                  </summary>
+                  <div class="ps-body">
+                    <div class="ps-grid">
+                      <div class="ps-block">
+                        <h6>Context</h6>
+                        <p>Merchant onboarding for Citibank had grown into a long, branchy form that asked for everything up front. Merchants were giving up partway through.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>UX angle</h6>
+                        <p>Long forms aren't long because they have to be. They're long because every team that owns a field is afraid to defer it. The UX work is in deciding what's actually required to continue — and giving the user a sense of distance left.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>Approach</h6>
+                        <p>Broke the form into the smallest meaningful steps. Deferred any field not strictly required to continue. Added a clear progress indicator so merchants knew the end was in sight.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>What I learned</h6>
+                        <p>Progress indication isn't a decoration; it's a feature. People will tolerate a long form if they can see it ending.</p>
+                        <span class="placeholder-note">Fill in: a moment of pushback on which fields were "required", or a usability observation about progress.</span>
+                      </div>
+                    </div>
+                    <a class="ps-cta" href="../Mocks/Wireframe%20Citibank/Citibank%20Merchant%20Engagement%20Form%20(03072015)%20copy.pdf" target="_blank" rel="noopener">Open the wireframes →</a>
+                  </div>
+                </details>
+
+                <details class="project-story">
+                  <summary aria-label="Citibank Scan Information case study">
+                    <img src="../img/Citi.png" alt="Citibank Scan Information" class="ps-thumb">
+                    <div class="ps-meta">
+                      <p class="ps-headline">Citibank · Scan Information</p>
+                      <p class="ps-tagline">An update flow that let customers scan a card to update their info without retyping.</p>
+                    </div>
+                    <span class="ps-toggle">Story</span>
+                  </summary>
+                  <div class="ps-body">
+                    <div class="ps-grid">
+                      <div class="ps-block">
+                        <h6>Context</h6>
+                        <p>Updating card information in the app meant retyping a 16-digit number on a phone keyboard. Most people didn't bother.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>UX angle</h6>
+                        <p>The biggest UX wins are sometimes choosing the right input method, not redesigning the screen. Asking users to retype a 16-digit number on a phone keyboard is the design problem. Scan is the design solution.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>Approach</h6>
+                        <p>Designed scan as the default and manual as the fallback (most users never see manual). The verify-and-edit step lets users correct what OCR got wrong without restarting.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>What I learned</h6>
+                        <p>Design for the path of least resistance, then handle errors gracefully on that path. A scan flow is only as good as its recovery from a misread.</p>
+                        <span class="placeholder-note">Fill in: was this shipped, and if so, did the adoption confirm scan-as-default?</span>
+                      </div>
+                    </div>
+                    <a class="ps-cta" href="../Mocks/Wireframe%20Citibank/Citibank-ScanInformation.pdf" target="_blank" rel="noopener">Open the wireframes →</a>
+                  </div>
+                </details>
+
+                <details class="project-story">
+                  <summary aria-label="Wedding and MarryGold case study">
+                    <img src="../img/WandM.png" alt="Wedding and MarryGold" class="ps-thumb">
+                    <div class="ps-meta">
+                      <p class="ps-headline">Wedding &amp; MarryGold</p>
+                      <p class="ps-tagline">An e-commerce redesign — a pivot away from banking work for the year.</p>
+                    </div>
+                    <span class="ps-toggle">Story</span>
+                  </summary>
+                  <div class="ps-body">
+                    <div class="ps-grid">
+                      <div class="ps-block">
+                        <h6>Context</h6>
+                        <p>An e-commerce site for the Indian wedding market — a category where shoppers research for weeks and convert in minutes. The existing site treated everyone like a casual browser.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>UX angle</h6>
+                        <p>E-commerce in the wedding category isn't one user mode. The same person spends weeks researching, then converts in minutes. A single surface has to serve both modes without making either feel second-class.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>Approach</h6>
+                        <p>Designed for two distinct modes: long research sessions (deep filters, save-for-later, comparison) and conversion sprints (clear price, low-friction checkout). The homepage had to serve both, with neither shouting over the other.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>What I learned</h6>
+                        <p>Sometimes one surface needs to flex between user modes. Designing two parallel paths is often cleaner than trying to predict which mode a visitor is in.</p>
+                        <span class="placeholder-note">Fill in: a moment from the e-commerce switch — what felt different from banking work.</span>
+                      </div>
+                    </div>
+                    <a class="ps-cta" href="../Mocks/W&M.pdf" target="_blank" rel="noopener">Open the PDF →</a>
+                  </div>
+                </details>
+
               </div>
 
-              <!-- spacer -->
-              <div class="spacer"></div>
-
-              <div class="row center-align">
-                <!-- Promotions project -->
-                <div class="col s12 card-hover" style="padding:3.5% !important"
-                onclick="window.open('../Mocks/Wireframe Citibank/Citibank Credit Card Application-LetusKnowyouBetter.pdf')">
-                  <img src="../img/Citi.png" class="responsive-img"><br><br>
-                  <p class="left-align large-text">
-                    <span class="xxx-large-text">Citibank Credit Card Loan (UX Best Practice)<br></span>
-                    A prioritized design system to show all the UX Best Practice on a product throughout the online customer journey.
-                  </p>
-                </div>
-              </div>
-              
-              <!-- spacer -->
-              <div class="small-spacer"></div>
-
-
-              <div class="row center-align">
-                <!-- Citi Bank Wireframes project -->
-                <div class="col s6 card-hover" style="padding:3.5% !important"
-                onclick="window.open('../Mocks/Wireframe Citibank/Citibank Merchant Engagement Form (03072015) copy.pdf')">
-
-                  <img src="../img/Citi.png" class="responsive-img"><br><br>
-                  <p class="left-align large-text">
-                    <span class="xxx-large-text">Citibank Merchant Engagement Form UX (Wireframe)<br></span>
-                    Simplifying the flow for Merchat to enter their information in a simiplified steps.
-                    click on this tile to view the wireframes.
-                  </p>
-                  
-                </div>
-
-                <div class="col s6 card-hover" style="padding:3.5% !important"
-                onclick="window.open('../Mocks/Wireframe Citibank/Citibank-ScanInformation.pdf')">
-                  <!-- <div class="video-container">
-                      <iframe width="560" height="315" src="https://www.youtube.com/embed/QtwaXLvbtHU" frameborder="0" allowfullscreen></iframe><br>
-                  </div> -->
-
-                  <img src="../img/Citi.png" class="responsive-img"><br>
-
-                  <p class="left-align large-text">
-                    <span class="xxx-large-text">Citibank - Scan Information Wire frame<br></span>
-                    A cohesive experience that allows user to easily update the information without hasel. 
-                  </p>
-                  
-                </div>
-
-              </div>
-              <div class="row center-align">
-
-                <div class="col s12 card-hover" style="padding:3.5% !important" 
-                onclick="window.open('../Mocks/W&M.pdf')">
-                  <br>
-                  <img src="../img/WandM.png" class="responsive-img"><br><br>
-
-                  <p class="left-align large-text">
-                    <span class="xxx-large-text">Wedding&MarryGold<br></span>
-                    Redesigned the e-commerce website.
-                  </p>
-                  
-                </div>
-              </div>
               <!-- spacer -->
               <div class="spacer"></div>
 
@@ -350,12 +461,12 @@
             <!-- spacer -->
             <!-- <div class="spacer"></div> -->
 
-            <div><h5>Takeaways from this role</h5><hr class="underline left"></div><br>
+            <div><h5>What this first role taught me</h5><hr class="underline left"></div><br>
             <ul class="collection">
-              <li class="collection-item">Defining the problem and the scope early on is key</li>
-              <li class="collection-item">Going broad with ideas is helpful but tracking progress is necessary</li>
-              <li class="collection-item">Get in front of users to validate ideas as soon as you can</li>
-              <li class="collection-item">Never stop trying new things and strategies</li>
+              <li class="collection-item"><b>Watch a real user before drawing a real screen.</b> Every redesign that worked started with someone struggling in a usability session. Every one that didn't work skipped that step.</li>
+              <li class="collection-item"><b>Junior is the time to be precise about craft.</b> Wireframe quality, annotation discipline, file hygiene — none of it is glamorous, all of it compounds. I'm still drawing on muscle memory built here.</li>
+              <li class="collection-item"><b>Banking is a great UX classroom.</b> The constraints (compliance, low connectivity, low literacy on first-time users) force you to design for the actual user, not the imagined one.</li>
+              <li class="collection-item"><b>Listen in the room before you talk in it.</b> Senior people in stakeholder workshops weren't winning by speaking more — they were winning by hearing the disagreement everyone else missed. That's a skill you can practice.</li>
             </ul>
 
             <p class="x-large-text">

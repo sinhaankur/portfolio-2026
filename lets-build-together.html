@@ -365,6 +365,83 @@
       background: color-mix(in srgb, var(--panel) 90%, white 10%);
     }
 
+    .principal-section {
+      margin-top: 1rem;
+    }
+
+    .principal-section .card {
+      padding: 1.25rem 1.25rem 1.4rem;
+    }
+
+    .principal-section h2 {
+      margin: 0.4rem 0 0.5rem;
+      font-size: clamp(1.4rem, 3vw, 1.9rem);
+      line-height: 1.15;
+    }
+
+    .principal-section > .card > p {
+      margin: 0 0 1rem;
+      color: var(--muted);
+      max-width: 70ch;
+      line-height: 1.6;
+    }
+
+    .pillar-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.9rem;
+      margin-top: 0.6rem;
+    }
+
+    .pillar {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 1rem 1rem 1.1rem;
+      background: color-mix(in srgb, var(--panel) 92%, white 8%);
+      position: relative;
+      transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+    }
+
+    .pillar:hover {
+      transform: translateY(-3px);
+      border-color: var(--blue);
+      box-shadow: 0 14px 30px rgba(63, 103, 255, 0.12);
+    }
+
+    .pillar .pillar-num {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.72rem;
+      letter-spacing: 0.1em;
+      color: var(--blue);
+      text-transform: uppercase;
+    }
+
+    .pillar h3 {
+      margin: 0.3rem 0 0.5rem;
+      font-size: 1.05rem;
+      line-height: 1.25;
+      color: var(--ink);
+    }
+
+    .pillar p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.55;
+    }
+
+    .pillar ul {
+      margin: 0.6rem 0 0;
+      padding: 0 0 0 1rem;
+      color: var(--muted);
+      font-size: 0.88rem;
+      line-height: 1.55;
+    }
+
+    .pillar ul li + li {
+      margin-top: 0.25rem;
+    }
+
     @media (max-width: 980px) {
       .layout {
         grid-template-columns: 1fr;
@@ -377,6 +454,10 @@
       .layer::before,
       .layer::after {
         display: none;
+      }
+
+      .pillar-grid {
+        grid-template-columns: 1fr;
       }
     }
 
@@ -391,6 +472,33 @@
       .shell-bottom { width: 300px; height: 185px; }
     }
   </style>
+
+  <script>
+    document.documentElement.classList.add("js-animate");
+  </script>
+  <style>
+    .js-animate .work-header,
+    .js-animate blockquote,
+    .js-animate .hero-card,
+    .js-animate .hero,
+    .js-animate .pillar,
+    .js-animate .project-story,
+    .js-animate .project-arc,
+    .js-animate .collection-item,
+    .js-animate .moments-item,
+    .js-animate .panel,
+    .js-animate .principal-section .card,
+    .js-animate .metric-card,
+    .js-animate .skill-item,
+    .js-animate .insight-card,
+    .js-animate .form-card,
+    .js-animate .tool-card,
+    .js-animate .stat-card,
+    .js-animate .public-chip,
+    .js-animate .intro .chip { opacity: 0; }
+  </style>
+  <script type="module" src="js/page-animations.js"></script>
+  <script src="js/page-transitions.js" defer></script>
 </head>
 <body>
   <main class="page">
@@ -440,15 +548,18 @@
       <aside class="card right">
         <div>
           <div class="kicker">How We Can Work</div>
-          <h2>From first sketch to production handoff</h2>
+          <h2>Principal-level UX, on the problems that earn it</h2>
         </div>
         <p>
-          Bring me early if your challenge has complexity, cross-team coordination,
-          enterprise constraints, or unclear UX direction. I can support audits,
-          roadmap shaping, UX strategy, and execution-level design.
+          Bring me in when the problem is genuinely hard: multi-team scope, enterprise
+          constraints, an unclear north-star, or a console / admin surface where the
+          users are operators, not consumers. That's the work I do best.
         </p>
         <p>
-          You can start with either a quick discovery call or a focused working session.
+          Engagements typically start with one of three things — a UX audit on a
+          surface that isn't holding up, a strategy &amp; roadmap session for a
+          product that's outgrown its IA, or design leadership embedded with your
+          team for a bounded delivery.
         </p>
         <p>
           Public product names can be referenced. Detailed implementation artifacts remain restricted.
@@ -464,6 +575,67 @@
           <a class="cta ghost" href="skills-breakdown.html">See Skills Breakdown</a>
         </div>
       </aside>
+    </section>
+
+    <section class="principal-section" aria-labelledby="principalHeading">
+      <article class="card">
+        <div class="kicker">How I work at Principal level</div>
+        <h2 id="principalHeading">Three things that change at this altitude</h2>
+        <p>
+          Senior designers ship a feature well. Principals make sure the right feature
+          ships, in a way the rest of the org can build on. Here's what that looks like
+          in practice on the work I do today.
+        </p>
+
+        <div class="pillar-grid">
+          <div class="pillar">
+            <div class="pillar-num">01 · Strategy</div>
+            <h3>Framing the problem before the screen</h3>
+            <p>
+              Most "design problems" are misframed product problems. I spend the first
+              week of any engagement with PM and engineering leadership re-asking what
+              we're actually solving for, who pays the cost of getting it wrong, and
+              what good looks like in numbers.
+            </p>
+            <ul>
+              <li>Outcome framing with PM/Eng leadership</li>
+              <li>Competitive teardowns &amp; opportunity sizing</li>
+              <li>UX north-star + measurable success criteria</li>
+            </ul>
+          </div>
+
+          <div class="pillar">
+            <div class="pillar-num">02 · Systems</div>
+            <h3>Designing patterns, not screens</h3>
+            <p>
+              At Principal scope, every flow is a chance to extend the system. I ship
+              the screen <em>and</em> the reusable pattern — and treat adoption by
+              other teams as the success metric, not approval from a single review.
+            </p>
+            <ul>
+              <li>Design-system contribution (HgDS / RDS)</li>
+              <li>IA &amp; interaction patterns for dense, operator-grade surfaces</li>
+              <li>Cross-service consistency reviews (UX Review Board)</li>
+            </ul>
+          </div>
+
+          <div class="pillar">
+            <div class="pillar-num">03 · People</div>
+            <h3>Multiplying the team's output</h3>
+            <p>
+              The most leveraged thing a Principal does isn't pixels — it's raising
+              the bar for everyone around them. I mentor designers across teams,
+              partner on hiring, and codify the working practices that let the next
+              ten flows ship without my hands on them.
+            </p>
+            <ul>
+              <li>Cross-team design mentorship</li>
+              <li>Hiring loops &amp; rubric calibration</li>
+              <li>Critique cadence, review process, design ops</li>
+            </ul>
+          </div>
+        </div>
+      </article>
     </section>
   </main>
 
