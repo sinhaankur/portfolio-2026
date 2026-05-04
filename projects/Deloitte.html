@@ -90,6 +90,28 @@
       }
     }
   </style>
+  <script>
+    document.documentElement.classList.add("js-animate");
+  </script>
+  <style>
+    .js-animate .work-header,
+    .js-animate blockquote,
+    .js-animate .hero-card,
+    .js-animate .hero,
+    .js-animate .pillar,
+    .js-animate .project-story,
+    .js-animate .project-arc,
+    .js-animate .collection-item,
+    .js-animate .moments-item,
+    .js-animate .panel,
+    .js-animate .principal-section .card,
+    .js-animate .metric-card,
+    .js-animate .skill-item,
+    .js-animate .public-chip,
+    .js-animate .intro .chip { opacity: 0; }
+  </style>
+  <script type="module" src="../js/page-animations.js"></script>
+  <script src="../js/page-transitions.js" defer></script>
 </head>
 <body>
     <div class="navbar-fixed">
@@ -136,19 +158,15 @@
 
         <div id="work">
             <p class="x-large-text">
-              I joined the innovative team at Deloitte Design Studio within Deloitte India, Bangalore, in 2018. 
-              Throughout my tenure, I had the privilege of collaborating closely with esteemed clients such as Unilever, FAB LC, Vodafone MVB, CEAT, and Deloitte Digital itself. 
-              As an Assistant Manager, I contributed to various projects, leveraging my expertise as a UX Consultant in Technology Consulting. 
-              From June 2019 to February 2020, I served in this capacity, and prior to that, from March 2018 to May 2019, I held the role of User Experience Consultant, focusing on product strategy and design in the Bengaluru area. 
-  
+              I joined Deloitte Design Studio in Bangalore in 2018 as a UX Consultant in Technology Consulting, then moved to Assistant Manager in mid-2019. Over two years I worked on engagements with Unilever, FAB (First Abu Dhabi Bank), Vodafone, CEAT, and Deloitte Digital itself — moving between supply chain, retail banking, telecom, and CRM as the work changed.
             </p>
 
             <p class="x-large-text">
-              Working closely
+              The work was rarely "make a screen prettier." It was usually: sit with stakeholders, figure out what the product should actually do, then design the version that lets the team build something true to that. Consulting time is short, so the UX process has to be honest — research that informs decisions, IA that survives delivery, design that can be argued for in a room full of people with different agendas.
             </p>
 
             <p class="x-large-text">
-              For a deeper insight into my work, feel free to reach out for detailed samples.
+              Most artifacts are under client NDA. Linked PDFs below are the sanitized versions; reach out for the full case studies.
              </p>
 
             <div class="x-small-spacer"></div>
@@ -158,16 +176,11 @@
             <br>
 
             <ul class="collection">
-              <li class="collection-item">Working closely with clients & Stakeholders</li>
-              <li class="collection-item">Facilitating client requirement workshops with stakeholders of varying levels of client organizations</li>
-              <li class="collection-item">Contributing to and helping evolve internal design pattern library for each product with Visual designer</li>
-              <li class="collection-item">Documenting client requirements as user requirements, and interaction design annotations on wireframes, prototypes, and other low-fidelity representations of the user experience</li>
-              <li class="collection-item">Creation of behavioral personas</li>
-              <li class="collection-item">Development of user scenarios, mental models and user journey maps</li>
-              <li class="collection-item">Extrapolating product vision as a synthesis of primary research and client vision</li>
-              <li class="collection-item">High-level information architecture of a single, or multichannel, digital ecosystem, represented in a site map or application map</li>
-              <li class="collection-item">Qualitative, contextual inquiry including designing a study, recruiting and facilitating research interviews</li>
-              <li class="collection-item">Hiring for the growth of the team also known as blitz</li>
+              <li class="collection-item">UX work across multi-month client engagements — Unilever, FAB, Vodafone, CEAT, Deloitte Digital — moving between industries as the engagements changed.</li>
+              <li class="collection-item">Running requirement workshops with mixed stakeholder groups (executive sponsors, business owners, end users) and turning competing asks into one shared direction.</li>
+              <li class="collection-item">Qualitative contextual inquiry, behavioural personas, mental models, journey maps, and multi-channel information architecture — used to set the brief before a screen got drawn.</li>
+              <li class="collection-item">Partnering with visual designers to evolve per-product pattern libraries handed to clients at the end of the engagement.</li>
+              <li class="collection-item">Helping with the studio's design hiring &mdash; reviewing portfolios, sitting in on interviews.</li>
             </ul>
 
             <div class="spacer"></div>
@@ -181,57 +194,144 @@
               <div><h5>Selected projects</h5><hr class="underline left"></div>
 
               <div class="small-spacer"></div>
-              <div class="row center-align">
 
-                <div class="col s12 card-hover" style="padding:3.5% !important" 
-                onclick="window.open('../Mocks/Deloitte/Unilever.pdf')">
-                  <br>
-                  <img src="../img/Uniliver.png" class="responsive-img"><br><br>
+              <p class="project-arc">
+                Four projects across four industries — supply chain, automotive, banking, retail. <strong>The thing that links them isn't the screens. It's the same UX move: clients arrive with what feels like a software problem, and most of the time the real problem is how the people around the software work together.</strong> Click any project for the longer story.
+              </p>
 
-                  <p class="left-align large-text">
-                    <span class="xxx-large-text">Unilever Buyers Console<br></span>
-                    Creating a PowerBI backed KPI tool for the Buyers of Supply Chain industry. Explored a cleaner visual language while incorporating key business use cases.
-                  </p>
-                  
-                </div>
-              </div>
+              <div class="project-stack">
 
-              <div class="spacer"></div>
+                <details class="project-story" open>
+                  <summary aria-label="Unilever Buyers Console case study">
+                    <img src="../img/Uniliver.png" alt="Unilever Buyers Console" class="ps-thumb">
+                    <div class="ps-meta">
+                      <p class="ps-headline">Unilever Buyers Console</p>
+                      <p class="ps-tagline">A PowerBI-backed KPI tool for supply-chain buyers, built around the decisions they actually make.</p>
+                    </div>
+                    <span class="ps-toggle">Story</span>
+                  </summary>
+                  <div class="ps-body">
+                    <div class="ps-grid">
+                      <div class="ps-block">
+                        <h6>Context</h6>
+                        <p>Unilever's buyers were sitting on a wall of dashboards, but the dashboards weren't laid out around their decisions — they were laid out around the database. Buyers were exporting to Excel and rebuilding the same views every week.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>UX angle</h6>
+                        <p>The dashboards weren't broken; they just weren't designed around the buyer's job. They were designed around the data model. That's the difference between an analytics tool that gets used and one that gets exported to Excel.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>Approach</h6>
+                        <p>Spent time with actual buyers before drawing anything. Re-architected the IA around their weekly cadence — what to negotiate, what to expedite, what to defer. Cleaner visual language, fewer screens, the decision surfaced first.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>What I learned</h6>
+                        <p>For analytics tools, the IA <em>is</em> the design. Visual polish on a wrong-shape information architecture is wasted work.</p>
+                        <span class="placeholder-note">Fill in: a moment from time with buyers, or a small layout decision that turned out to matter.</span>
+                      </div>
+                    </div>
+                    <a class="ps-cta" href="../Mocks/Deloitte/Unilever.pdf" target="_blank" rel="noopener">Open the PDF →</a>
+                  </div>
+                </details>
 
-                <div class="col s12 card-hover" style="padding:3.5% !important"
-                onclick="window.open('../Mocks/Projects/CEAT/CEAT%20Documents/Ceat_TLD_UX_25Jan2019.pdf')">
-                  <img src="../img/CEAT.png" class="responsive-img"><br><br>
-                  <p class="left-align large-text">
-                    <span class="xxx-large-text">CEAT Salesforce<br></span> A Redesign of Salesforce application used by the Territory Leads to analysis demand and supply of Tyers accross Western India.
-                  </p>
-                </div>
-              
-              <div class="small-spacer"></div>
+                <details class="project-story">
+                  <summary aria-label="CEAT Salesforce case study">
+                    <img src="../img/CEAT.png" alt="CEAT Salesforce" class="ps-thumb">
+                    <div class="ps-meta">
+                      <p class="ps-headline">CEAT Salesforce</p>
+                      <p class="ps-tagline">Redesigning the Salesforce app Territory Leads use to balance tyre supply and demand across western India.</p>
+                    </div>
+                    <span class="ps-toggle">Story</span>
+                  </summary>
+                  <div class="ps-body">
+                    <div class="ps-grid">
+                      <div class="ps-block">
+                        <h6>Context</h6>
+                        <p>Territory Leads were using a stock Salesforce build to track tyre demand, dealer orders, and stock-outs across western India. The fields were generic; the work wasn't. Reps were keeping their real worksheet on paper.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>UX angle</h6>
+                        <p>Customising a platform like Salesforce isn't a clean-sheet UX exercise — most of the work is finding the few places where a small change has outsized effect, then designing those well within the platform's constraints.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>Approach</h6>
+                        <p>Discovery with Territory Leads and Regional Sales Managers first — what does their day actually look like, where does the platform fail them. Re-modelled the screens around the rep's day: territory snapshot first, supply-vs-demand second, action queues third. Picked the customisation levers that mattered most and let the rest stay default.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>What I learned</h6>
+                        <p>Even fixed platforms have UX latitude — but only if you know where to look. The skill is choosing the few changes that earn their cost.</p>
+                        <span class="placeholder-note">Fill in: a moment from a field visit, or a customisation that turned out to matter more (or less) than expected.</span>
+                      </div>
+                    </div>
+                    <a class="ps-cta" href="../Mocks/Projects/CEAT/CEAT%20Documents/CEAT_TL_UX_17Jan2019.pdf" target="_blank" rel="noopener">Open the PDF →</a>
+                  </div>
+                </details>
 
+                <details class="project-story">
+                  <summary aria-label="FAB Letter of Credit case study">
+                    <img src="../img/FAB.png" alt="FAB Letter of Credit" class="ps-thumb">
+                    <div class="ps-meta">
+                      <p class="ps-headline">FAB · Letter of Credit</p>
+                      <p class="ps-tagline">Digitalising a paper-based Letter of Credit flow for First Abu Dhabi Bank, end to end.</p>
+                    </div>
+                    <span class="ps-toggle">Story</span>
+                  </summary>
+                  <div class="ps-body">
+                    <div class="ps-grid">
+                      <div class="ps-block">
+                        <h6>Context</h6>
+                        <p>Letter of Credit is one of the most stakeholder-heavy flows in trade banking — applicant, beneficiary, issuing bank, advising bank, all working off paper that travels physically between parties. FAB wanted the whole thing digital without losing the audit trail every party needed.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>UX angle</h6>
+                        <p>In a multi-party flow, the journey map isn't a research artifact — it's the design tool. Each party's screen is a slice of one shared system, and any decision that doesn't hold for all four parties isn't really a decision yet.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>Approach</h6>
+                        <p>Built one shared journey map across all parties before drawing a single screen. Designed each role's view as a slice of that shared system — same data, different lens. Treated the audit trail as a UI primitive, not a buried log.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>What I learned</h6>
+                        <p>In stakeholder-heavy systems, the journey map earns more design decisions than the wireframes do. Spending the extra week on the map saves the extra month on revisions.</p>
+                        <span class="placeholder-note">Fill in: a workshop moment, or a stakeholder reaction that reshaped a decision.</span>
+                      </div>
+                    </div>
+                    <a class="ps-cta" href="../Mocks/Deloitte/LC_CompleteFlow_26July2019.pdf" target="_blank" rel="noopener">Open the PDF →</a>
+                  </div>
+                </details>
 
-              <div class="row center-align">
-                <div class="col s6 card-hover" style="padding:3.5% !important"
-                onclick="window.open('../Mocks/Deloitte/LC_CompleteFlow_26July2019.pdf')">
-                <img src="../img/FAB.png" class="responsive-img"><br><br>
-                  <p class="left-align large-text">
-                    <span class="xxx-large-text">FAB LC<br></span>
-                    Simplifying the Letter of Credit flow for all the enitites. 
-                    Digitalization of Paperbased system of LC.
-                  </p>
-                  
-                </div>
-
-                <div class="col s6 card-hover" style="padding:3.5% !important"
-                  onclick="window.open('../Mocks/Deloitte/Unilever.pdf')">
-                  <img src="../img/Uniliver.png" class="responsive-img"><br>
-
-                  <p class="left-align large-text">
-                    <span class="xxx-large-text">Unilever Supply Chain E2E<br></span>
-                    A cohesive experience for KPI based Dashboard. 
-                    Also, worked on internal Unilever Product Unilever E2E and Portfolio Buyers Tool.
-                  </p>
-                  
-                </div>
+                <details class="project-story">
+                  <summary aria-label="Unilever Supply Chain E2E case study">
+                    <img src="../img/Uniliver.png" alt="Unilever Supply Chain E2E" class="ps-thumb">
+                    <div class="ps-meta">
+                      <p class="ps-headline">Unilever Supply Chain E2E</p>
+                      <p class="ps-tagline">A cohesive KPI dashboard tying together internal Unilever supply-chain products.</p>
+                    </div>
+                    <span class="ps-toggle">Story</span>
+                  </summary>
+                  <div class="ps-body">
+                    <div class="ps-grid">
+                      <div class="ps-block">
+                        <h6>Context</h6>
+                        <p>Internal Unilever supply-chain teams were running multiple specialised tools (Buyers, Portfolio, E2E) — each useful, none speaking to the others. Leadership wanted one window on the whole chain.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>UX angle</h6>
+                        <p>Three useful tools can still add up to a confusing experience if they don't share a language. The interesting UX problem here wasn't another dashboard — it was the connective tissue.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>Approach</h6>
+                        <p>Established a shared KPI grammar across the three tools first. Designed the E2E view as a navigable layer on top — drill down anywhere and land in the underlying tool, in context. Avoided rebuilding what already worked.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>What I learned</h6>
+                        <p>Consistency at the language layer compounds across products. Most "we need a unified dashboard" requests are really "we need to agree on what these words mean."</p>
+                        <span class="placeholder-note">Fill in: an example of a term that needed alignment, or a decision the unified view made easier.</span>
+                      </div>
+                    </div>
+                    <a class="ps-cta" href="../Mocks/Deloitte/Unilever.pdf" target="_blank" rel="noopener">Open the PDF →</a>
+                  </div>
+                </details>
 
               </div>
 
@@ -243,12 +343,12 @@
             <div class="spacer"></div>
             <div class="x-small-spacer"></div>
 
-            <div><h5>Takeaways from this role</h5><hr class="underline left"></div><br>
+            <div><h5>What two years of consulting taught me about UX</h5><hr class="underline left"></div><br>
             <ul class="collection">
-              <li class="collection-item">Defining the problem and the scope early on is key</li>
-              <li class="collection-item">Going broad with ideas is helpful but tracking progress is necessary</li>
-              <li class="collection-item">Get in front of users to validate ideas as soon as you can</li>
-              <li class="collection-item">Never stop trying new things and strategies</li>
+              <li class="collection-item"><b>The brief is a hypothesis, not a contract.</b> Clients hire designers for an outcome, not the spec they wrote in the SOW. The first job is reframing the brief before the first sketch — and it's the most expensive thing to skip.</li>
+              <li class="collection-item"><b>The workshop is a design tool.</b> Stakeholder workshops, done well, do more architectural work than weeks of solo wireframing. A lot of "alignment problems" are facilitation problems in disguise.</li>
+              <li class="collection-item"><b>Patterns travel across industries.</b> A pattern that works for territory leads in one industry often works for buyers in another. Domain depth matters; cross-domain transfer matters more.</li>
+              <li class="collection-item"><b>The clock changes the craft.</b> Consulting forces UX decisions on imperfect data. The instinct it builds — knowing when more research is rigour vs. avoidance — is one of the most useful things I picked up.</li>
             </ul>
 
             <p class="x-large-text">

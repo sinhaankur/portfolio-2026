@@ -4,6 +4,220 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Cross-document page transitions on supporting browsers (Chrome 126+,
+   Edge 126+, Safari 18+). Older browsers ignore the rule and navigate
+   normally. webgames pages don't load this stylesheet, so transitions
+   only fire between the main portfolio pages — keeping the retro
+   subsection's separation intact. */
+@view-transition {
+  navigation: auto;
+}
+
+/* Directional slide overrides applied by js/page-transitions.js. When the
+   data attribute is absent (older browsers, lateral nav), the default
+   cross-fade from @view-transition stays in effect. */
+@keyframes vt-slide-out-left {
+  from { transform: translateX(0); opacity: 1; }
+  to   { transform: translateX(-24px); opacity: 0; }
+}
+@keyframes vt-slide-in-right {
+  from { transform: translateX(24px); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+@keyframes vt-slide-out-right {
+  from { transform: translateX(0); opacity: 1; }
+  to   { transform: translateX(24px); opacity: 0; }
+}
+@keyframes vt-slide-in-left {
+  from { transform: translateX(-24px); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+
+html[data-view-direction="forward"]::view-transition-old(root) {
+  animation: vt-slide-out-left 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+html[data-view-direction="forward"]::view-transition-new(root) {
+  animation: vt-slide-in-right 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+html[data-view-direction="back"]::view-transition-old(root) {
+  animation: vt-slide-out-right 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+html[data-view-direction="back"]::view-transition-new(root) {
+  animation: vt-slide-in-left 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+}
+
+/* ----- Project story accordion (shared across all case-study pages) ----- */
+.project-arc {
+  border-left: 3px solid #c74634;
+  padding: 0.4rem 0 0.4rem 1rem;
+  margin: 0 0 1.5rem;
+  color: #424242;
+  font-size: 1rem;
+  line-height: 1.6;
+  background: #fafafa;
+}
+
+.project-arc strong {
+  color: #c74634;
+  font-weight: 600;
+}
+
+.project-stack {
+  display: grid;
+  gap: 1rem;
+  margin: 0 0 1rem;
+}
+
+.project-story {
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  transition: box-shadow 0.25s ease, transform 0.25s ease;
+}
+
+.project-story:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(199, 70, 52, 0.12);
+}
+
+.project-story[open] {
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.12);
+}
+
+.project-story[open]:hover {
+  transform: none;
+}
+
+.project-story summary {
+  list-style: none;
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: 110px 1fr auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem 1.2rem;
+}
+
+.project-story summary::-webkit-details-marker { display: none; }
+
+.project-story summary:focus-visible {
+  outline: 2px solid #c74634;
+  outline-offset: -2px;
+}
+
+.project-story .ps-thumb {
+  width: 110px;
+  height: 70px;
+  object-fit: contain;
+  background: #f7f7f7;
+  border-radius: 8px;
+  padding: 6px;
+}
+
+.project-story .ps-headline {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #202124;
+  margin: 0 0 0.2rem;
+  line-height: 1.25;
+}
+
+.project-story .ps-tagline {
+  font-size: 0.92rem;
+  color: #5f6368;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.project-story .ps-toggle {
+  font-family: 'Roboto', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #c74634;
+  white-space: nowrap;
+}
+
+.project-story[open] .ps-toggle::after { content: ' −'; }
+.project-story:not([open]) .ps-toggle::after { content: ' +'; }
+
+.project-story .ps-body {
+  padding: 0.4rem 1.2rem 1.4rem;
+  border-top: 1px solid #f0f0f0;
+}
+
+.project-story .ps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin: 1rem 0 0;
+}
+
+.project-story .ps-block h6 {
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #c74634;
+  margin: 0 0 0.4rem;
+  font-weight: 700;
+}
+
+.project-story .ps-block p {
+  font-size: 0.95rem;
+  color: #424242;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.project-story .ps-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 1rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #c74634;
+  text-decoration: none;
+  border-bottom: 1px solid currentColor;
+  padding-bottom: 2px;
+}
+
+.project-story .ps-cta + .ps-cta { margin-left: 1rem; }
+
+.project-story .ps-cta:hover { color: #8a2f23; }
+
+.placeholder-note {
+  display: inline-block;
+  background: #fff7d6;
+  border-left: 3px solid #f7c948;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.82rem;
+  color: #6b5a13;
+  font-style: italic;
+  margin-top: 0.4rem;
+  border-radius: 0 4px 4px 0;
+}
+
+@media (max-width: 600px) {
+  .project-story summary {
+    grid-template-columns: 80px 1fr;
+    grid-template-areas: "thumb head" "toggle toggle";
+  }
+  .project-story .ps-thumb { width: 80px; height: 56px; grid-area: thumb; }
+  .project-story summary > .ps-meta { grid-area: head; }
+  .project-story .ps-toggle { grid-area: toggle; justify-self: end; padding-top: 0.4rem; }
+}
+
 .theme-color {
   background-color: #546de5;
 }

@@ -543,6 +543,29 @@
             }
         }
     </style>
+
+    <script>
+      document.documentElement.classList.add("js-animate");
+    </script>
+    <style>
+      .js-animate .work-header,
+      .js-animate blockquote,
+      .js-animate .hero-card,
+      .js-animate .hero,
+      .js-animate .pillar,
+      .js-animate .project-story,
+      .js-animate .project-arc,
+      .js-animate .collection-item,
+      .js-animate .moments-item,
+      .js-animate .panel,
+      .js-animate .principal-section .card,
+      .js-animate .metric-card,
+      .js-animate .skill-item,
+      .js-animate .public-chip,
+      .js-animate .intro .chip { opacity: 0; }
+    </style>
+    <script type="module" src="js/page-animations.js"></script>
+    <script src="js/page-transitions.js" defer></script>
 </head>
 <body>
     <div class="navbar">
@@ -559,11 +582,12 @@
     <main class="container-main">
         <section class="hero">
             <article class="hero-card">
-                <h1>Interactive Skills Breakdown</h1>
+                <h1>Skills, mapped to outcomes</h1>
                 <p>
-                    This page maps skills to actual outcomes from my work at Oracle, Deloitte, Snowtint,
-                    Rage, and independent product experiments. Filter by category, project, and depth to see
-                    how the profile changes.
+                    A Principal-level UX profile, broken down. Each skill below is tied to real work at
+                    Oracle, Deloitte Digital, Snowtint, Rage, and independent product experiments — not
+                    a generic checklist. Filter by category, project, and depth to see where the depth
+                    actually sits, and how the profile compares to Oracle's IC4 (Principal) competency bar.
                 </p>
                 <div class="work-tags" id="projectTags"></div>
             </article>
@@ -646,10 +670,10 @@
         <section class="oracle-competency panel">
             <div class="canvas-wrap">
                 <div class="panel-title">
-                    <h2>Oracle IC3 Role Competencies</h2>
+                    <h2>Oracle IC4 (Principal) Role Competencies</h2>
                     <span class="panel-sub">Role baseline vs current self-assessment</span>
                 </div>
-                <p class="panel-sub">Role Competencies: 99030.User Experience Developer 3-ProdDev.PRODEV.SWENG.IC3</p>
+                <p class="panel-sub">Role Competencies: 99031.User Experience Developer 4-ProdDev.PRODEV.SWENG.IC4</p>
                 <div class="oracle-legend">
                     <span><i style="background:#f4b400;"></i>This Role</span>
                     <span><i style="background:#039be5;"></i>Sinha, Ankur</span>
@@ -802,17 +826,17 @@
         const state = { view: 'radar' };
 
         const oracleCompetencies = [
-            { key: 'changeAgility', label: 'Core.Change Agility', role: 2, self: 2 },
-            { key: 'collaboration', label: 'Core.Collaboration', role: 3, self: 3 },
-            { key: 'communicationImpact', label: 'Core.Communicating for Impact', role: 3, self: 3 },
-            { key: 'competitiveEdge', label: 'Core.Competitive Edge', role: 2, self: 2 },
-            { key: 'inspirationalLeadership', label: 'Core.Inspirational Leadership', role: 1, self: 1 },
-            { key: 'masteringComplexity', label: 'Core.Mastering Complexity', role: 2, self: 2 },
-            { key: 'performanceExecution', label: 'Core.Performance Drive & Execution', role: 2, self: 2 },
-            { key: 'interactionDesign', label: 'Functional.Development.Interaction Design', role: 3, self: 3 },
-            { key: 'productInnovation', label: 'Functional.Development.Product Innovation & Thought Leadership', role: 1, self: 1 },
+            { key: 'changeAgility', label: 'Core.Change Agility', role: 3, self: 3 },
+            { key: 'collaboration', label: 'Core.Collaboration', role: 4, self: 4 },
+            { key: 'communicationImpact', label: 'Core.Communicating for Impact', role: 4, self: 4 },
+            { key: 'competitiveEdge', label: 'Core.Competitive Edge', role: 3, self: 3 },
+            { key: 'inspirationalLeadership', label: 'Core.Inspirational Leadership', role: 3, self: 3 },
+            { key: 'masteringComplexity', label: 'Core.Mastering Complexity', role: 4, self: 4 },
+            { key: 'performanceExecution', label: 'Core.Performance Drive & Execution', role: 3, self: 3 },
+            { key: 'interactionDesign', label: 'Functional.Development.Interaction Design', role: 4, self: 4 },
+            { key: 'productInnovation', label: 'Functional.Development.Product Innovation & Thought Leadership', role: 3, self: 3 },
             { key: 'uxTesting', label: 'Functional.Development.Testing', role: 3, self: 3 },
-            { key: 'uxRequirements', label: 'Functional.Development.User Experience Requirements', role: 3, self: 3 },
+            { key: 'uxRequirements', label: 'Functional.Development.User Experience Requirements', role: 4, self: 4 },
             { key: 'visualDesign', label: 'Functional.Development.Visual Design', role: 3, self: 3 }
         ];
 

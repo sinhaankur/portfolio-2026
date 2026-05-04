@@ -91,6 +91,28 @@
       }
     }
   </style>
+  <script>
+    document.documentElement.classList.add("js-animate");
+  </script>
+  <style>
+    .js-animate .work-header,
+    .js-animate blockquote,
+    .js-animate .hero-card,
+    .js-animate .hero,
+    .js-animate .pillar,
+    .js-animate .project-story,
+    .js-animate .project-arc,
+    .js-animate .collection-item,
+    .js-animate .moments-item,
+    .js-animate .panel,
+    .js-animate .principal-section .card,
+    .js-animate .metric-card,
+    .js-animate .skill-item,
+    .js-animate .public-chip,
+    .js-animate .intro .chip { opacity: 0; }
+  </style>
+  <script type="module" src="../js/page-animations.js"></script>
+  <script src="../js/page-transitions.js" defer></script>
 </head>
 <body>
     <div class="navbar-fixed">
@@ -141,15 +163,15 @@
 
         <div id="work">
             <p class="x-large-text">
-              I joined <a href="https://www.Oracle.com" target="_blank">Zeeshan's Team</a> in 2020. Part of DBaaS Team for OCI, primary use case designing the Database console for Database Admin and fleet Admin, working closely with Product Manager & UI Developer to deliver a seamless flow for upcoming cloud features.
+              I joined the OCI <a href="https://www.oracle.com/cloud/" target="_blank">Database-as-a-Service</a> org in 2020. The work is around the Database console — the surface database administrators and fleet operators use to run their day. The user sitting on the other side of these screens isn't a casual visitor; they're someone who lives in this tool.
             </p>
 
             <p class="x-large-text">
-              In comparison to the likes of AWS, We design with HgDS and RDS design system to illustrate the design flow. Our goal is to solve the end user problem of Database Console user.
+              That changes the UX problem in interesting ways. Density beats whitespace. A click saved compounds across thousands of operations. The interface has to disappear so the work can show. Most of what I think about, day to day, is how to make a tool an operator already knows feel like it's quietly getting out of the way.
             </p>
 
             <p class="x-large-text">
-              Please reach out for detailed work samples  
+              Most artifacts are under NDA. Sanitized walkthroughs are available on request — and the linked PDFs below capture what I can share publicly.
             </p>
 
             <!-- spacer -->
@@ -160,16 +182,15 @@
             <br>
 
             <p class="x-large-text">
-               <b>UX Architect</b>.   
+               <b>Principal UX Designer</b> on the DBaaS team.
             </p>
 
             <ul class="collection">
-              <li class="collection-item">Working closely with PMs to design strategies</li>
-              <li class="collection-item">Evangelizing user centered solutions</li>
-              <li class="collection-item">Contributing to and helping evolve internal design pattern library</li>
-              <li class="collection-item">Assist with hiring and team growth</li>
-              <li class="collection-item">Part of User Expereince Review Board to review other features/services work</li>
-              <li class="collection-item">Working on creating internal design process</li>
+              <li class="collection-item">UX work across several DBaaS services, partnering with PMs and engineering to frame the right problem before drawing screens.</li>
+              <li class="collection-item">Contributing to and reusing patterns from Oracle's HgDS and RDS design systems — especially where console-admin use cases (dense tables, long-running jobs, fleet operations) need things the defaults don't quite cover.</li>
+              <li class="collection-item">Sitting in on cross-team design reviews to keep flows consistent and accessible across services.</li>
+              <li class="collection-item">Mentoring designers and helping codify how the team goes from research → flows → handoff.</li>
+              <li class="collection-item">Helping shape internal critique and review cadence so feedback is structured, not ad-hoc.</li>
             </ul>
 
             <!-- spacer -->
@@ -183,72 +204,148 @@
             <!-- Projects section starts here -->
             <div class="section">
 
-              <div><h5>Projects</h5><hr class="underline left"></div>
+              <div><h5>Selected projects</h5><hr class="underline left"></div>
 
               <!-- spacer -->
               <div class="small-spacer"></div>
 
+              <p class="project-arc">
+                A few of the DBaaS surfaces I've worked on. <strong>Each one is a different kind of UX problem — but the through-line is the same: study how the operator actually works, then design the console around their job, not around the database's data model.</strong> Click any project below for the longer story.
+              </p>
 
-              <div class="row center-align">
+              <div class="project-stack">
 
-                <div class="col s12 card-hover" style="padding:3.5% !important" 
-                onclick="window.open('../Veridatat.pdf')">
-                  <br>
-                  <img src="../img/oracleveridata.png" class="responsive-img"><br><br>
+                <details class="project-story" open>
+                  <summary aria-label="GoldenGate Veridata case study">
+                    <img src="../img/oracleveridata.png" alt="GoldenGate Veridata" class="ps-thumb">
+                    <div class="ps-meta">
+                      <p class="ps-headline">GoldenGate Veridata</p>
+                      <p class="ps-tagline">Bringing a legacy data-comparison console onto the RDS design system.</p>
+                    </div>
+                    <span class="ps-toggle">Story</span>
+                  </summary>
+                  <div class="ps-body">
+                    <div class="ps-grid">
+                      <div class="ps-block">
+                        <h6>Context</h6>
+                        <p>GoldenGate Veridata is the tool DBAs use to compare and reconcile data between source and target databases during replication. The console had been carrying years of accumulated IA — admins were doing four jobs (configure, run, monitor, repair) inside one undifferentiated surface.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>UX angle</h6>
+                        <p>The interesting question wasn't "how do we modernise the look" — it was "what is the admin actually trying to do, and is the IA shaped around it?" Reframing the problem as four distinct jobs changed everything that came after.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>Approach</h6>
+                        <p>Re-anchored the IA around the four jobs instead of the legacy menu. Pressure-tested every flow against the user under incident conditions, not the one running a clean demo. Cleaned the visual language up to RDS while keeping the dense-table affordances admins actually rely on.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>What I learned</h6>
+                        <p>For an operator-grade tool, density isn't a problem to solve — it's a feature to design around. Stripping it for the sake of "clean" is a beginner move.</p>
+                        <span class="placeholder-note">Fill in: a moment from the work that proved this — a user observation, a pattern that travelled, a pushback that turned out to be right.</span>
+                      </div>
+                    </div>
+                    <a class="ps-cta" href="mailto:sinhaankur827@gmail.com?subject=Veridata%20case%20study%20walkthrough">Request a sanitized walkthrough →</a>
+                  </div>
+                </details>
 
-                  <p class="left-align large-text">
-                    <span class="xxx-large-text">GoldenGate Veridata<br></span>
-                    Redesigning existing IA and redesiged based on RDS. Reimagined the core parts of the Database Admin journey. 
-                    Explored a cleaner visual language while incorporating key use cases.
-                  </p>
-                  
-                </div>
-              </div>
+                <details class="project-story">
+                  <summary aria-label="Autonomous Database Services case study">
+                    <img src="../img/oci.png" alt="Autonomous Database Services on OCI" class="ps-thumb">
+                    <div class="ps-meta">
+                      <p class="ps-headline">Autonomous Database Services (OCI)</p>
+                      <p class="ps-tagline">A prioritised pattern for surfacing applicable promotions across the DB admin journey.</p>
+                    </div>
+                    <span class="ps-toggle">Story</span>
+                  </summary>
+                  <div class="ps-body">
+                    <div class="ps-grid">
+                      <div class="ps-block">
+                        <h6>Context</h6>
+                        <p>Autonomous Database has multiple promotional offers running at any time — different SKUs, regions, customer tiers. The console was either showing all of them (overwhelming) or none (revenue left on the table). Admins kept missing things they were eligible for.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>UX angle</h6>
+                        <p>A "promotion" isn't a UI element. It's a small system with eligibility, priority, dismissal state, repetition rules. Once you treat it that way, the design follows; treat it as a banner and you fight the same problem on every page.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>Approach</h6>
+                        <p>Designed a priority + dismissal model so a high-impact offer outranks a low-impact one, and the same offer doesn't shout at the same admin five screens in a row. Reusable pattern, not per-page custom work.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>What I learned</h6>
+                        <p>The hardest UX problems hide as "just a banner." Recognising when a small interface element is actually a system is half the job.</p>
+                        <span class="placeholder-note">Fill in: a specific moment — e.g. an unexpected edge case the system handled, or a downstream team that picked up the pattern.</span>
+                      </div>
+                    </div>
+                    <a class="ps-cta" href="mailto:sinhaankur827@gmail.com?subject=Autonomous%20DB%20promotions%20walkthrough">Request a sanitized walkthrough →</a>
+                  </div>
+                </details>
 
-              <!-- spacer -->
-              <div class="spacer"></div>
+                <details class="project-story">
+                  <summary aria-label="Spatial Studio case study">
+                    <img src="../img/Spatial.png" alt="Spatial Studio" class="ps-thumb">
+                    <div class="ps-meta">
+                      <p class="ps-headline">Spatial Studio</p>
+                      <p class="ps-tagline">Making spatial / market analysis usable for non-spatial analysts.</p>
+                    </div>
+                    <span class="ps-toggle">Story</span>
+                  </summary>
+                  <div class="ps-body">
+                    <div class="ps-grid">
+                      <div class="ps-block">
+                        <h6>Context</h6>
+                        <p>Spatial Studio sits between the database and analysts who want to ask geographic questions of their data. The catch: most users aren't trained spatial analysts. They're business users with a map and a question.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>UX angle</h6>
+                        <p>The user we were designing for wasn't the spec's user. The spec assumed a trained spatial analyst; the actual user was a business analyst with a question and a map. Designing for that gap is most of the work.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>Approach</h6>
+                        <p>Simple defaults that produce a useful map in one click. Deeper spatial controls hidden behind progressive disclosure for the moment a user is ready for them. Familiar shell so anyone moving between DB tools doesn't relearn the console.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>What I learned</h6>
+                        <p>Design for the user who'd never have asked for the tool. The expert can find the depth; the curious user is who you lose if the on-ramp is wrong.</p>
+                        <span class="placeholder-note">Fill in: a moment from a user session, or a default that turned out to be the right one.</span>
+                      </div>
+                    </div>
+                    <a class="ps-cta" href="mailto:sinhaankur827@gmail.com?subject=Spatial%20Studio%20walkthrough">Request a sanitized walkthrough →</a>
+                  </div>
+                </details>
 
-              <div class="row center-align">
-                <!-- Promotions project -->
-                <div class="col s12 card-hover" style="padding:3.5% !important"
-                onclick="window.open('../promotions.pdf')">
-                  <img src="../img/oci.png" class="responsive-img"><br><br>
-                  <p class="left-align large-text">
-                    <span class="xxx-large-text">Autonomous Database Services (OCI)<br></span>
-                    A prioritized design system to show all the applicable promotions on a product throughout the Database Admin journey.
-                  </p>
-                </div>
-              </div>
-              
-              <!-- spacer -->
-              <div class="small-spacer"></div>
-
-
-              <div class="row center-align">
-                <!-- Bundles project -->
-                <div class="col s6 card-hover" style="padding:3.5% !important"
-                onclick="window.open('../bundles.pdf')">
-
-                  <img src="../img/Spatial.png" class="responsive-img"><br><br>
-                  <p class="left-align large-text">
-                    <span class="xxx-large-text">Spatial Studio<br></span>
-                    Simplifying user analysis of the Market data.
-                  </p>
-                  
-                </div>
-
-                <div class="col s6 card-hover" style="padding:3.5% !important"
-                onclick="window.open('')">
-                  <!-- <div class="video-container">
-                      <iframe width="560" height="315" src="https://www.youtube.com/embed/QtwaXLvbtHU" frameborder="0" allowfullscreen></iframe><br>
-                  </div> -->
-
-                  <img src="../img/graphstudio.png" class="responsive-img"><br>
-
-                  <p class="left-align large-text">
-                    <span class="xxx-large-text">Graph Studio<br></span>
-                    Graph Studio Redesign                  
-                </div>
+                <details class="project-story">
+                  <summary aria-label="Graph Studio case study">
+                    <img src="../img/graphstudio.png" alt="Graph Studio" class="ps-thumb">
+                    <div class="ps-meta">
+                      <p class="ps-headline">Graph Studio</p>
+                      <p class="ps-tagline">A graph-analytics surface for users who don't speak Cypher.</p>
+                    </div>
+                    <span class="ps-toggle">Story</span>
+                  </summary>
+                  <div class="ps-body">
+                    <div class="ps-grid">
+                      <div class="ps-block">
+                        <h6>Context</h6>
+                        <p>Graph Studio gives analysts a way to explore graph data — relationships, paths, communities — without writing graph query languages by hand. The previous version asked too much technical fluency from the user.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>UX angle</h6>
+                        <p>The hard part isn't the visual canvas. It's choosing the right abstraction layer between "click and explore" and "write your own Cypher" — and making sure neither user feels punished for landing where they did.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>Approach</h6>
+                        <p>Visual canvas with progressive depth. A curious analyst gets value in one click; an advanced user can drop into the underlying query whenever they want. Same shell as the rest of the DB tools, so the console feels like one product across services.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>What I learned</h6>
+                        <p>The right abstraction is the one that gives value at the shallow end and never traps you at the deep end. Most failed analytics tools fail one of those two tests.</p>
+                        <span class="placeholder-note">Fill in: a moment from beta — a user who reached an unexpected insight, or feedback that surprised the team.</span>
+                      </div>
+                    </div>
+                    <a class="ps-cta" href="mailto:sinhaankur827@gmail.com?subject=Graph%20Studio%20walkthrough">Request a sanitized walkthrough →</a>
+                  </div>
+                </details>
 
               </div>
 
@@ -313,12 +410,12 @@
             <!-- spacer -->
             <!-- <div class="spacer"></div> -->
 
-            <div><h5>Takeaways from this role</h5><hr class="underline left"></div><br>
+            <div><h5>What designing for operators has taught me</h5><hr class="underline left"></div><br>
             <ul class="collection">
-              <li class="collection-item">Defining the problem and the scope early on is key</li>
-              <li class="collection-item">Going broad with ideas is helpful but tracking progress is necessary</li>
-              <li class="collection-item">Get in front of users to validate ideas as soon as you can</li>
-              <li class="collection-item">Never stop trying new things and strategies</li>
+              <li class="collection-item"><b>Density beats whitespace when the user lives in the tool.</b> Consumer-grade airy layouts cost operators time. Information density with clear hierarchy is the move — and the hardest sell to anyone trained on consumer UX defaults.</li>
+              <li class="collection-item"><b>Most console inconsistency is two teams solving the same problem in isolation.</b> A lot of UX work is conversation work — making sure the same pattern shows up in two places because we agreed on it, not because we both happened to land there.</li>
+              <li class="collection-item"><b>A pattern earns its place by being reused.</b> Adoption is a better signal than approval. If a pattern isn't being picked up by the next team, it probably wasn't the right pattern.</li>
+              <li class="collection-item"><b>Pressure-test against the tired user.</b> Polished demos lie. The truth shows up when someone is recovering a database at the end of a long day — that user is the one to design for.</li>
             </ul>
 
             <p class="x-large-text">
