@@ -44,11 +44,16 @@
                     {
                         "@type": "ListItem",
                         "position": 1,
-                        "name": "How AI Design Is Used Now"
+                        "name": "GovLens Chrome Extension"
                     },
                     {
                         "@type": "ListItem",
                         "position": 2,
+                        "name": "How AI Design Is Used Now"
+                    },
+                    {
+                        "@type": "ListItem",
+                        "position": 3,
                         "name": "How AI Research Is Evolving"
                     }
                 ]
@@ -325,6 +330,7 @@
         }
 
         #ai-insights,
+        #govlens-extension,
         #ai-design-insights,
         #ai-research-insights {
             scroll-margin-top: 90px;
@@ -517,6 +523,10 @@
             Back to Portfolio
         </a>
         <div class="navbar-actions" aria-label="In-page quick navigation">
+            <a href="#govlens-extension" class="top-nav-link" aria-label="Jump to GovLens extension section">
+                <span class="material-icons">verified_user</span>
+                GovLens
+            </a>
             <a href="#ai-insights" class="top-nav-link" aria-label="Jump to AI insights">
                 <span class="material-icons">psychology</span>
                 AI Insights
@@ -542,6 +552,22 @@
         </div>
 
         <div class="projects-grid">
+            <!-- GovLens Chrome Extension -->
+            <div class="project-card">
+                <span class="material-icons project-icon">verified_user</span>
+                <h2>GovLens Chrome Extension</h2>
+                <span class="status">Live</span>
+                <p>
+                    GovLens helps users quickly verify whether a site is an authentic Government of India domain and surfaces accessibility trust signals directly in the browser to reduce scam risk.
+                </p>
+                <div class="tech-stack">
+                    <span class="tech-badge">Chrome Extension</span>
+                    <span class="tech-badge">Trust Signals</span>
+                    <span class="tech-badge">Accessibility Checks</span>
+                </div>
+                <a href="#govlens-extension" class="cta-button">See GovLens Details →</a>
+            </div>
+
             <!-- Emoji Tetris Game -->
             <div class="project-card">
                 <span class="material-icons project-icon">sports_esports</span>
@@ -624,7 +650,65 @@
             </div>
         </div>
 
-        <section class="insights-section" id="ai-insights" aria-label="AI design and research details">
+        <section class="insights-section" id="ai-insights" aria-label="GovLens, AI design and AI research details">
+            <article class="insight-block" id="govlens-extension">
+                <div class="insight-header">
+                    <h2>GovLens: Accessibility + Trust for Government Websites</h2>
+                    <p>
+                        Many users are targeted by fake websites that mimic official portals. GovLens is designed to place clear trust information inside the browser so users can quickly decide whether a site is likely official, readable, and safer to use.
+                    </p>
+                </div>
+
+                <div class="detail-grid">
+                    <div class="detail-card">
+                        <h3>1) Government Domain Verification</h3>
+                        <p>GovLens checks domain patterns commonly used for official Government of India properties.</p>
+                        <ul>
+                            <li>Highlights expected official patterns such as <strong>.gov.in</strong> and <strong>.nic.in</strong>.</li>
+                            <li>Flags suspicious lookalike domains for caution.</li>
+                            <li>Shows quick visual trust status before users share sensitive details.</li>
+                        </ul>
+                    </div>
+
+                    <div class="detail-card">
+                        <h3>2) Accessibility-First Trust Layer</h3>
+                        <p>Accessible websites are typically better maintained and easier to trust and navigate, especially for first-time users.</p>
+                        <ul>
+                            <li>Checks key readability and structure signals in-page.</li>
+                            <li>Surfaces practical alerts users can understand without technical jargon.</li>
+                            <li>Supports safer browsing for citizens with varied digital literacy.</li>
+                        </ul>
+                    </div>
+
+                    <div class="detail-card">
+                        <h3>3) Scam Risk Reduction in Real Time</h3>
+                        <p>Instead of expecting users to investigate manually, GovLens brings risk context directly where browsing happens.</p>
+                        <ul>
+                            <li>Warns users when trust signals are weak or inconsistent.</li>
+                            <li>Encourages verification before payments, OTP entry, or document upload.</li>
+                            <li>Builds confidence for everyday public-service interactions online.</li>
+                        </ul>
+                    </div>
+
+                    <div class="detail-card">
+                        <h3>4) Public Trust by Design</h3>
+                        <p>GovLens combines usability, accessibility, and security awareness into one extension workflow.</p>
+                        <ul>
+                            <li>Simple status messaging for quick decision-making.</li>
+                            <li>Designed as a citizen-first utility rather than a technical dashboard.</li>
+                            <li>Helps keep trust anchored in the browser, where scams begin.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="framework">
+                    <h3>How to Find It</h3>
+                    <p>
+                        Search for <strong>GovLens</strong> on the Chrome Web Store to install. The goal is straightforward: reduce uncertainty, improve accessibility confidence, and help users avoid fraudulent lookalike websites.
+                    </p>
+                </div>
+            </article>
+
             <article class="insight-block" id="ai-design-insights">
                 <div class="insight-header">
                     <h2>How AI Design Is Used Now</h2>
