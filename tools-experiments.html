@@ -88,6 +88,23 @@
             align-items: center;
         }
 
+        .top-nav-link {
+            color: white;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.5rem 0.9rem;
+            border-radius: 0.25rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: background-color 0.3s ease;
+        }
+
+        .top-nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.12);
+        }
+
         .theme-toggle {
             background: none;
             border: none;
@@ -429,6 +446,10 @@
             <span class="material-icons">arrow_back</span>
             Back to Portfolio
         </a>
+        <a href="#ai-insights" class="top-nav-link">
+            <span class="material-icons">psychology</span>
+            AI Insights
+        </a>
         <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
             <span class="material-icons">dark_mode</span>
         </button>
@@ -523,8 +544,8 @@
             </div>
         </div>
 
-        <section class="insights-section" aria-label="AI design and research details">
-            <article class="insight-block">
+        <section class="insights-section" id="ai-insights" aria-label="AI design and research details">
+            <article class="insight-block" id="ai-design-insights">
                 <div class="insight-header">
                     <h2>How AI Design Is Used Now</h2>
                     <p>
@@ -582,7 +603,7 @@
                 </div>
             </article>
 
-            <article class="insight-block">
+            <article class="insight-block" id="ai-research-insights">
                 <div class="insight-header">
                     <h2>How AI Research Is Evolving</h2>
                     <p>
