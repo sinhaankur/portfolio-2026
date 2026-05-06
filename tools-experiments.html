@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tools &amp; Experiments — Ankur Sinha · Principal UX Designer</title>
     <meta name="description" content="Side projects, prototypes, and design tools built by Ankur Sinha — Principal UX Designer experimenting at the intersection of UX, AI, and code." />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
     <meta name="author" content="Ankur Sinha" />
     <link rel="canonical" href="https://sinhaankur-portfolio.netlify.app/tools-experiments.html" />
     <link rel="icon" href="img/logo.png" />
@@ -14,10 +15,46 @@
     <meta property="og:description" content="Side projects, prototypes, and design tools built by Ankur Sinha — Principal UX Designer." />
     <meta property="og:url" content="https://sinhaankur-portfolio.netlify.app/tools-experiments.html" />
     <meta property="og:image" content="https://sinhaankur-portfolio.netlify.app/img/camera-header.png" />
+    <meta property="og:image:alt" content="Tools and experiments by Ankur Sinha" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Tools &amp; Experiments — Ankur Sinha" />
     <meta name="twitter:description" content="Side projects, prototypes, and design tools built at the intersection of UX, AI, and code." />
-    <meta name="twitter:image" content="https://sinhaankur-portfolio.netlify.app/img/camera-header.png" />
+        <meta name="twitter:image" content="https://sinhaankur-portfolio.netlify.app/img/camera-header.png" />
+        <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "WebPage",
+            "name": "Tools & Experiments — Ankur Sinha",
+            "url": "https://sinhaankur-portfolio.netlify.app/tools-experiments.html",
+            "description": "Projects and AI design/research insights by Ankur Sinha.",
+            "about": [
+                "UX design",
+                "AI-assisted design",
+                "AI research operations",
+                "Interaction design"
+            ],
+            "author": {
+                "@type": "Person",
+                "name": "Ankur Sinha",
+                "url": "https://sinhaankur-portfolio.netlify.app/"
+            },
+            "mainEntity": {
+                "@type": "ItemList",
+                "itemListElement": [
+                    {
+                        "@type": "ListItem",
+                        "position": 1,
+                        "name": "How AI Design Is Used Now"
+                    },
+                    {
+                        "@type": "ListItem",
+                        "position": 2,
+                        "name": "How AI Research Is Evolving"
+                    }
+                ]
+            }
+        }
+        </script>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap">
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.3/css/font-awesome.css">
@@ -287,6 +324,12 @@
             gap: 2rem;
         }
 
+        #ai-insights,
+        #ai-design-insights,
+        #ai-research-insights {
+            scroll-margin-top: 90px;
+        }
+
         .insight-block {
             background-color: var(--md-sys-color-surface);
             border-radius: 0.75rem;
@@ -397,6 +440,29 @@
             .navbar {
                 flex-direction: column;
                 gap: 1rem;
+                padding: 0.9rem 1rem;
+                align-items: stretch;
+            }
+
+            .back-btn {
+                justify-content: center;
+            }
+
+            .navbar-actions {
+                width: 100%;
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 0.65rem;
+            }
+
+            .top-nav-link {
+                justify-content: center;
+                min-height: 44px;
+                background-color: rgba(255, 255, 255, 0.12);
+            }
+
+            .theme-toggle {
+                align-self: center;
             }
 
             .navigation-footer {
@@ -434,8 +500,12 @@
       .js-animate .form-card,
       .js-animate .tool-card,
       .js-animate .stat-card,
-      .js-animate .public-chip,
-      .js-animate .intro .chip { opacity: 0; }
+    .js-animate .public-chip,
+    .js-animate .intro .chip,
+    .js-animate .header-section,
+    .js-animate .project-card,
+    .js-animate .insight-block,
+    .js-animate .navigation-footer { opacity: 0; }
     </style>
     <script type="module" src="js/page-animations.js"></script>
     <script src="js/page-transitions.js" defer></script>
@@ -446,10 +516,20 @@
             <span class="material-icons">arrow_back</span>
             Back to Portfolio
         </a>
-        <a href="#ai-insights" class="top-nav-link">
-            <span class="material-icons">psychology</span>
-            AI Insights
-        </a>
+        <div class="navbar-actions" aria-label="In-page quick navigation">
+            <a href="#ai-insights" class="top-nav-link" aria-label="Jump to AI insights">
+                <span class="material-icons">psychology</span>
+                AI Insights
+            </a>
+            <a href="#ai-design-insights" class="top-nav-link" aria-label="Jump to AI design section">
+                <span class="material-icons">auto_awesome</span>
+                AI Design
+            </a>
+            <a href="#ai-research-insights" class="top-nav-link" aria-label="Jump to AI research section">
+                <span class="material-icons">insights</span>
+                AI Research
+            </a>
+        </div>
         <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
             <span class="material-icons">dark_mode</span>
         </button>

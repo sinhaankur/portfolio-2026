@@ -11,6 +11,7 @@
       name="description"
       content="Principal UX Designer with 11+ years turning complex enterprise products into experiences people actually understand. Case studies, writing, and mentorship from Ankur Sinha."
     />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
     <meta name="author" content="Ankur Sinha" />
     <link rel="canonical" href="https://sinhaankur-portfolio.netlify.app/" />
     <link rel="icon" href="img/logo.png" />
@@ -63,6 +64,8 @@
         "Enterprise UX",
         "Product Design",
         "Interaction Design",
+        "AI Design",
+        "AI Research",
         "Design Mentorship",
         "Inclusive Design"
       ]
@@ -161,6 +164,11 @@
         line-height: 1;
       }
 
+      .floating-game-icon .icon-label,
+      .floating-usability-icon .icon-label {
+        display: none;
+      }
+
       .floating-game-icon:hover {
         transform: scale(1.1);
         background-color: #5f6368;
@@ -194,6 +202,36 @@
         transform: scale(1.1);
         background-color: #1557b0;
       }
+
+      @media (max-width: 768px) {
+        .floating-game-icon,
+        .floating-usability-icon {
+          right: 14px;
+          border-radius: 999px;
+          width: auto;
+          min-height: 42px;
+          padding: 0 12px;
+          gap: 7px;
+        }
+
+        .floating-game-icon {
+          top: auto;
+          bottom: 72px;
+        }
+
+        .floating-usability-icon {
+          top: auto;
+          bottom: 22px;
+        }
+
+        .floating-game-icon .icon-label,
+        .floating-usability-icon .icon-label {
+          display: inline;
+          font-size: 12px;
+          font-weight: 600;
+          letter-spacing: 0.01em;
+        }
+      }
     </style>
   </head>
   <body>
@@ -201,16 +239,20 @@
       href="webgames/Gamelist.html"
       class="floating-game-icon"
       title="Play a game"
+      aria-label="Open games hub"
     >
       <i class="fa fa-gamepad"></i>
+      <span class="icon-label">Games</span>
     </a>
 
     <a
       href="./usability.html"
       class="floating-usability-icon"
       title="Usability"
+      aria-label="Open usability playbook"
     >
       <i class="fa fa-eye"></i>
+      <span class="icon-label">Usability</span>
     </a>
 
     <div class="bg">
@@ -247,6 +289,9 @@
             </a>
             <a href="./tools-experiments.html">
               <div class="chip">Tools & experiments</div>
+            </a>
+            <a href="./tools-experiments.html#ai-insights">
+              <div class="chip">AI design & research insights</div>
             </a>
             <a href="#scroll-to-work">
               <div class="chip">About</div>
