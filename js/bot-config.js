@@ -50,15 +50,13 @@ const BOT_CONFIG = {
     {
       type: 'message',
       sender: 'bot',
-      text: 'Scroll down for my work or here are some quick links for you!',
+      text: 'Scroll down to see my work, or jump straight to the about section below.',
       delay: 1500
     },
     {
       type: 'quickReplies',
       replies: [
-        { text: 'Learning', url: '#scroll-to-work', target: '' },
-        { text: 'Medium Article', url: 'https://medium.com/@sinhaankur827', target: '_blank' },
-        { text: 'LinkedIn', url: 'https://www.linkedin.com/in/sinhaankur27/', target: '_blank' }
+        { text: 'About', url: '#scroll-to-about', target: '' }
       ],
       delay: 1500
     }
