@@ -22,6 +22,12 @@ if (reduce) {
   };
 
   const TARGET_SELECTOR = [
+    ".navbar",
+    ".header-section",
+    ".projects-grid .project-card",
+    ".insights-section .insight-block",
+    ".navigation-footer",
+    ".section",
     ".work-header",
     "blockquote",
     ".hero-card",
