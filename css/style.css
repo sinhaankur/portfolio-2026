@@ -755,6 +755,8 @@ input[type=password] + label.active {
 
   .hero-home {
     width: 100%;
+    flex-direction: column;
+    gap: 0;
   }
 
   /* ---- Identity header ---- */
@@ -904,6 +906,29 @@ input[type=password] + label.active {
   .container > *:last-child,
   .social-icons {
     margin-bottom: 6rem;
+  }
+
+  /* ---- Bot chat card on mobile (replaces iPhone frame) ---- */
+  #home-pic-container {
+    width: 100%;
+    position: relative;
+    margin-bottom: 1rem;
+  }
+
+  #iphone-svg {
+    display: none;
+  }
+
+  div.screen-content {
+    position: static !important;
+    width: 100% !important;
+    height: 480px !important;
+    top: auto !important;
+    left: auto !important;
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+    overflow: hidden;
   }
 }
 
