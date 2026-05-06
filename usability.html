@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Usability &mdash; Ankur Sinha</title>
+  <meta name="description" content="A practical usability guide by Ankur Sinha: what and why of usability, methods, guidelines, and UX tools." />
+  <meta name="author" content="Ankur Sinha" />
+  <link rel="canonical" href="https://sinhaankur-portfolio.netlify.app/usability.html" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Usability Guide &mdash; Ankur Sinha" />
+  <meta property="og:description" content="A practical usability guide covering fundamentals, methods, guidelines, and tools for UX teams." />
+  <meta property="og:url" content="https://sinhaankur-portfolio.netlify.app/usability.html" />
+  <meta property="og:image" content="https://sinhaankur-portfolio.netlify.app/img/camera-header.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Usability Guide &mdash; Ankur Sinha" />
+  <meta name="twitter:description" content="A practical usability guide covering fundamentals, methods, guidelines, and tools for UX teams." />
+  <meta name="twitter:image" content="https://sinhaankur-portfolio.netlify.app/img/camera-header.png" />
+  <link rel="icon" href="img/logo.png" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
+  <link href="css/style.css" rel="stylesheet" />
+<style>
+:root{
+  --p:#0f766e;--ps:#115e59;--ac:#c2410c;
+  --bg:#f4f1ea;--sf:#fbf8f2;--cd:#fffdf8;
+  --tx:#1d2939;--mu:#667085;--br:#d7d2c7;--dv:#e7e1d4;
+  --sh:rgba(15,23,42,.12);--wa:#b45309;
+  --rsm:10px;--rmd:16px;--rlg:24px;--rp:999px;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --p:#5eead4;--ps:#99f6e4;--ac:#fdba74;
+    --bg:#09141a;--sf:#102028;--cd:#132730;
+    --tx:#f8fafc;--mu:#b9c5d1;--br:#28404a;--dv:#1f343d;
+    --sh:rgba(2,6,23,.4);--wa:#fcd34d;
+  }
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{
+  min-height:100%;font-family:Inter,"Avenir Next","Segoe UI",sans-serif;
+  background:radial-gradient(circle at top left,rgba(15,118,110,.10),transparent 34%),
+             radial-gradient(circle at right 18%,rgba(194,65,12,.07),transparent 30%),
+             linear-gradient(180deg,var(--sf) 0%,var(--bg) 100%);
+  background-attachment:fixed;color:var(--tx);
+  -webkit-font-smoothing:antialiased;
+}
+a{color:inherit;text-decoration:none}
+button{font:inherit;cursor:pointer;border:none;background:none}
+.nav{
+  position:sticky;top:0;z-index:200;
+  display:flex;align-items:center;justify-content:space-between;gap:1rem;
+  padding:.75rem 1.5rem;background:var(--cd);border-bottom:1px solid var(--br);
+  backdrop-filter:blur(12px);
+}
+.nav-back{
+  display:flex;align-items:center;gap:.4rem;
+  font-size:.85rem;font-weight:700;color:var(--p);
+  padding:.4rem .8rem;border-radius:var(--rp);border:1.5px solid var(--p);
+  transition:background .18s,color .18s;
+}
+.nav-back:hover{background:var(--p);color:#fff}
+.nav-back .material-icons{font-size:16px}
+.nav-tabs{
+  display:flex;gap:.25rem;background:var(--sf);
+  border:1px solid var(--br);border-radius:var(--rp);padding:4px;
+}
+.nav-tab{
+  font-size:.8rem;font-weight:700;letter-spacing:.03em;
+  padding:.4rem 1rem;border-radius:var(--rp);color:var(--mu);
+  transition:background .2s,color .2s;white-space:nowrap;
+}
+.nav-tab.active,.nav-tab:hover{background:var(--p);color:#fff}
+.page{max-width:1100px;margin:0 auto;padding:2rem 1.5rem 4rem}
+.sp{display:none}.sp.active{display:block}
+.hero{
+  border:1px solid var(--br);border-radius:var(--rlg);
+  background:var(--cd);padding:2rem 2.5rem;margin-bottom:2rem;
+  box-shadow:0 1px 3px var(--sh);display:flex;gap:2rem;align-items:center;
+}
+.hero-body{flex:1}
+.eyebrow{font-size:.68rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--ac);margin-bottom:.5rem}
+.hero-title{font-size:clamp(1.4rem,3vw,2.1rem);font-weight:800;line-height:1.2;color:var(--tx);margin-bottom:.75rem}
+.hero-desc{font-size:1rem;line-height:1.7;color:var(--mu)}
+.hero-icon{
+  width:88px;height:88px;border-radius:var(--rmd);flex-shrink:0;
+  background:linear-gradient(135deg,var(--p),var(--ps));
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 8px 24px rgba(15,118,110,.25);
+}
+.hero-icon .material-icons{font-size:42px;color:#fff}
+.feat{
+  border:1px solid var(--br);border-radius:var(--rlg);background:var(--cd);
+  overflow:hidden;margin-bottom:1.5rem;cursor:pointer;
+  display:grid;grid-template-columns:1fr auto;
+  transition:box-shadow .22s,transform .22s;box-shadow:0 1px 3px var(--sh);
+  position:relative;
+}
+.feat:hover{box-shadow:0 8px 28px var(--sh);transform:translateY(-2px)}
+.feat::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;width:5px;
+  background:linear-gradient(180deg,var(--ac),var(--p));
+  border-radius:var(--rlg) 0 0 var(--rlg);
+}
+.feat-body{padding:1.75rem 2rem}
+.feat-badge{
+  display:inline-flex;align-items:center;gap:.35rem;
+  font-size:.68rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ac);border:1.5px solid var(--ac);border-radius:var(--rp);
+  padding:.2rem .65rem;margin-bottom:.75rem;
+}
+.feat-title{font-size:1.4rem;font-weight:800;line-height:1.25;color:var(--tx);margin-bottom:.5rem}
+.feat-sub{font-size:.9rem;color:var(--mu);line-height:1.6;max-width:580px}
+.feat-art{
+  width:180px;flex-shrink:0;
+  background:linear-gradient(135deg,rgba(15,118,110,.10),rgba(194,65,12,.07));
+  display:flex;align-items:center;justify-content:center;
+}
+.feat-art .material-icons{font-size:64px;color:var(--p);opacity:.65}
+.tile-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;margin-bottom:1.5rem}
+.tile{
+  border:1px solid var(--br);border-radius:var(--rmd);background:var(--cd);
+  padding:1.5rem;cursor:pointer;display:flex;flex-direction:column;gap:.5rem;
+  transition:box-shadow .2s,transform .2s,border-color .2s;
+  box-shadow:0 1px 3px var(--sh);position:relative;overflow:hidden;
+}
+.tile::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
+  background:var(--p);transform:scaleX(0);transform-origin:left;transition:transform .22s;
+}
+.tile:hover,.tile.exp{box-shadow:0 8px 28px var(--sh);transform:translateY(-2px);border-color:var(--p)}
+.tile:hover::after,.tile.exp::after{transform:scaleX(1)}
+.ticon{
+  width:44px;height:44px;border-radius:var(--rsm);
+  display:flex;align-items:center;justify-content:center;margin-bottom:.25rem;
+}
+.ticon .material-icons{font-size:22px;color:#fff}
+.teyebrow{font-size:.65rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--ac)}
+.ttitle{font-size:1.05rem;font-weight:700;line-height:1.3;color:var(--tx)}
+.tdesc{font-size:.875rem;color:var(--mu);line-height:1.6;flex:1}
+.tcta{
+  display:flex;align-items:center;gap:.25rem;font-size:.78rem;font-weight:700;
+  color:var(--p);margin-top:.25rem;transition:gap .2s;
+}
+.tile:hover .tcta,.tile.exp .tcta{gap:.5rem}
+.tcta .material-icons{font-size:14px;transition:transform .2s}
+.tile.exp .tcta .material-icons{transform:rotate(90deg)}
+.drawer{
+  display:none;border:1px solid var(--p);border-radius:var(--rlg);
+  background:var(--sf);margin-bottom:1.5rem;overflow:hidden;
+  box-shadow:0 4px 20px var(--sh);
+}
+.drawer.open{display:block;animation:din .25s cubic-bezier(.16,1,.3,1) both}
+@keyframes din{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+.dhead{
+  background:linear-gradient(135deg,var(--p),var(--ps));
+  padding:1.5rem 2rem;display:flex;align-items:center;justify-content:space-between;
+}
+.dtitle{font-size:1.15rem;font-weight:800;color:#fff}
+.dclose{
+  width:32px;height:32px;border-radius:var(--rp);background:rgba(255,255,255,.15);
+  display:flex;align-items:center;justify-content:center;color:#fff;transition:background .2s;
+}
+.dclose:hover{background:rgba(255,255,255,.3)}
+.dclose .material-icons{font-size:18px}
+.dbody{padding:2rem;display:grid;gap:1rem}
+.dsec{border:1px solid var(--br);border-radius:var(--rmd);background:var(--cd);padding:1.25rem 1.5rem}
+.dseclabel{font-size:.75rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--p);margin-bottom:.75rem}
+.dsec p{font-size:.95rem;line-height:1.75;color:var(--tx)}
+.chips{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.75rem}
+.chip{font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border-radius:var(--rp);padding:.25rem .75rem;border:1.5px solid currentColor}
+.cp{color:var(--p)}.ca{color:var(--ac)}.cm{color:var(--mu)}
+.steps{display:flex;flex-direction:column;gap:.75rem;margin-top:.5rem}
+.step{display:grid;grid-template-columns:28px 1fr;gap:.75rem;align-items:start}
+.snum{
+  width:28px;height:28px;border-radius:var(--rp);background:var(--p);color:#fff;
+  font-size:.72rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;
+}
+.stxt{font-size:.9rem;line-height:1.6;color:var(--tx)}
+.stxt strong{color:var(--p);font-weight:700}
+.tko{
+  border-left:3px solid var(--ac);background:rgba(194,65,12,.06);
+  border-radius:0 var(--rsm) var(--rsm) 0;
+  padding:.9rem 1.2rem;margin-top:.75rem;
+  font-size:.88rem;line-height:1.65;color:var(--tx);font-style:italic;
+}
+.sb-layout{display:grid;grid-template-columns:210px 1fr;gap:1.5rem;align-items:start}
+.sb-nav{
+  position:sticky;top:72px;display:flex;flex-direction:column;gap:.25rem;
+  background:var(--cd);border:1px solid var(--br);border-radius:var(--rmd);padding:.75rem;
+}
+.sb-item{
+  display:flex;align-items:center;gap:.5rem;font-size:.82rem;font-weight:600;
+  padding:.55rem .75rem;border-radius:var(--rsm);color:var(--mu);
+  transition:background .18s,color .18s;cursor:pointer;text-align:left;
+}
+.sb-item .material-icons{font-size:16px}
+.sb-item.active,.sb-item:hover{background:rgba(15,118,110,.10);color:var(--p)}
+.sb-item.active{font-weight:800}
+.ht-content > div{display:none}
+.ht-content > div.active{display:block;animation:din .2s ease both}
+.icard{
+  border:1px solid var(--br);border-radius:var(--rlg);background:var(--cd);
+  padding:1.5rem 2rem;margin-bottom:1.5rem;box-shadow:0 1px 3px var(--sh);
+}
+.icard-label{font-size:.68rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--mu);margin-bottom:.4rem}
+.icard-title{font-size:1.3rem;font-weight:800;color:var(--tx);margin-bottom:.35rem}
+.icard-sub{font-size:.92rem;color:var(--mu);line-height:1.6}
+.ccard{border:1px solid var(--br);border-radius:var(--rmd);background:var(--cd);padding:1.5rem;margin-bottom:1rem;box-shadow:0 1px 3px var(--sh)}
+.ccard-title{font-size:1.05rem;font-weight:700;color:var(--tx);margin-bottom:.6rem}
+.ccard p{font-size:.92rem;line-height:1.75;color:var(--mu);margin-bottom:.75rem}
+.fnav{display:flex;justify-content:center;gap:1rem;padding:3rem 1rem 0;border-top:1px solid var(--dv);margin-top:2rem;flex-wrap:wrap}
+.flink{
+  display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:700;
+  color:var(--p);padding:.5rem 1rem;border-radius:var(--rp);border:1.5px solid var(--p);
+  transition:background .18s,color .18s;
+}
+.flink:hover{background:var(--p);color:#fff}
+.flink .material-icons{font-size:16px}
+@media(max-width:700px){
+  .nav-tabs{display:none}
+  .mob-tabs{display:flex !important}
+  .hero{flex-direction:column;padding:1.25rem;gap:1rem}
+  .hero-icon{width:60px;height:60px}
+  .hero-icon .material-icons{font-size:28px}
+  .feat{grid-template-columns:1fr}
+  .feat-art{display:none}
+  .sb-layout{grid-template-columns:1fr}
+  .sb-nav{position:static;flex-direction:row;flex-wrap:wrap}
+  .tile-grid{grid-template-columns:1fr}
+  .page{padding:1rem 1rem 3rem}
+}
+.mob-tabs{display:none;gap:.5rem;margin-bottom:1.25rem;overflow-x:auto;padding-bottom:4px}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="index.html" class="nav-back"><span class="material-icons">arrow_back</span>Portfolio</a>
+  <div class="nav-tabs" role="tablist">
+    <button class="nav-tab active" role="tab" aria-selected="true" aria-controls="sp-what-why" data-sec="what-why">What &amp; Why</button>
+    <button class="nav-tab" role="tab" aria-selected="false" aria-controls="sp-how-to" data-sec="how-to">How To &amp; Tools</button>
+  </div>
+</nav>
+
+<main class="page">
+
+  <div class="mob-tabs" role="tablist">
+    <button class="nav-tab active" role="tab" aria-selected="true" aria-controls="sp-what-why" data-sec="what-why">What &amp; Why of Usability</button>
+    <button class="nav-tab" role="tab" aria-selected="false" aria-controls="sp-how-to" data-sec="how-to">How To &amp; Tools</button>
+  </div>
+
+  <!-- WHAT & WHY -->
+  <div class="sp active" id="sp-what-why">
+
+    <div class="hero">
+      <div class="hero-body">
+        <p class="eyebrow">Usability &middot; A Practitioner's Guide</p>
+        <h1 class="hero-title">What is usability, and why does it matter?</h1>
+        <p class="hero-desc">Usability is the quality that makes a product easy, efficient, and satisfying to use. It is not one thing &mdash; it is a composite of learnability, efficiency, memorability, error tolerance, and satisfaction. Get it right and people accomplish their goals. Get it wrong and they leave, or make costly mistakes.</p>
+      </div>
+      <div class="hero-icon" aria-hidden="true"><span class="material-icons">visibility</span></div>
+    </div>
+
+    <div class="feat" role="button" tabindex="0" aria-expanded="false" aria-controls="dr-recruiting" data-tile="recruiting">
+      <div class="feat-body">
+        <span class="feat-badge"><span class="material-icons" style="font-size:11px">bookmark</span>Featured</span>
+        <h2 class="feat-title">Recruiting Participants &amp; the Legend of &#8220;The General Public&#8221;</h2>
+        <p class="feat-sub">&#8220;We want to test with everyday users&#8221; sounds reasonable. In practice it is one of the most common research mistakes. Learn why participant specificity is the foundation of valid findings &mdash; and how to recruit the right people without burning your timeline.</p>
+      </div>
+      <div class="feat-art" aria-hidden="true"><span class="material-icons">groups</span></div>
+    </div>
+    <div class="drawer" id="dr-recruiting">
+      <div class="dhead"><span class="dtitle">Recruiting Participants</span><button class="dclose" data-close="dr-recruiting"><span class="material-icons">close</span></button></div>
+      <div class="dbody">
+        <div class="dsec">
+          <p class="dseclabel">The problem with &#8220;The General Public&#8221;</p>
+          <p>Research aimed at &#8220;anyone&#8221; produces findings that apply to no one. Every product has a real user &mdash; a person with domain knowledge, a mental model shaped by prior tools, and specific goals. Recruiting outside that population generates noise, not signal. You end up optimising for a fictional user while your actual users suffer.</p>
+          <div class="chips"><span class="chip ca">Screener design</span><span class="chip cp">Participant profiles</span><span class="chip cm">Panel recruitment</span><span class="chip cm">Internal recruiting</span></div>
+        </div>
+        <div class="dsec">
+          <p class="dseclabel">How to recruit the right people</p>
+          <div class="steps">
+            <div class="step"><span class="snum">1</span><span class="stxt"><strong>Define your user profile first.</strong> Role, domain knowledge, frequency of use, technical comfort &mdash; be specific before opening any recruiting tool.</span></div>
+            <div class="step"><span class="snum">2</span><span class="stxt"><strong>Write a tight screener.</strong> 6&ndash;8 questions max. Avoid leading language. Screen on behaviours, not demographics alone.</span></div>
+            <div class="step"><span class="snum">3</span><span class="stxt"><strong>Use multiple channels.</strong> Customer success teams, LinkedIn, existing panels, UX agencies. Do not rely on a single source.</span></div>
+            <div class="step"><span class="snum">4</span><span class="stxt"><strong>Plan for 5&ndash;8 participants per segment.</strong> Diminishing returns kick in fast; beyond 8 you are confirming, not discovering.</span></div>
+            <div class="step"><span class="snum">5</span><span class="stxt"><strong>Compensate fairly.</strong> Poor incentives bias your sample toward people who need the money, not your target user.</span></div>
+          </div>
+          <div class="tko"><strong>Takeaway:</strong> Specificity in recruiting is the difference between research that changes product decisions and research that validates whatever stakeholders already believed.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tile-grid">
+      <div class="tile" role="button" tabindex="0" aria-expanded="false" aria-controls="dr-basics" data-tile="basics">
+        <div class="ticon" style="background:linear-gradient(135deg,#0f766e,#115e59)"><span class="material-icons">auto_awesome</span></div>
+        <span class="teyebrow">Foundation</span>
+        <span class="ttitle">Basics of User Experience</span>
+        <span class="tdesc">The five quality components of usability, why UX is not UI, and the mental models that make or break a product.</span>
+        <span class="tcta">Explore <span class="material-icons">chevron_right</span></span>
+      </div>
+      <div class="tile" role="button" tabindex="0" aria-expanded="false" aria-controls="dr-methods" data-tile="methods">
+        <div class="ticon" style="background:linear-gradient(135deg,#7c3aed,#6d28d9)"><span class="material-icons">science</span></div>
+        <span class="teyebrow">Research</span>
+        <span class="ttitle">Methods</span>
+        <span class="tdesc">When to use moderated testing, card sorting, tree testing, surveys, diary studies, and contextual inquiry.</span>
+        <span class="tcta">Explore <span class="material-icons">chevron_right</span></span>
+      </div>
+      <div class="tile" role="button" tabindex="0" aria-expanded="false" aria-controls="dr-guidelines" data-tile="guidelines">
+        <div class="ticon" style="background:linear-gradient(135deg,#b45309,#92400e)"><span class="material-icons">rule</span></div>
+        <span class="teyebrow">Standards</span>
+        <span class="ttitle">Guidelines</span>
+        <span class="tdesc">Nielsen's 10 heuristics, WCAG 2.2 in plain language, and enterprise-specific rules that go beyond the checklist.</span>
+        <span class="tcta">Explore <span class="material-icons">chevron_right</span></span>
+      </div>
+    </div>
+
+    <div class="drawer" id="dr-basics">
+      <div class="dhead"><span class="dtitle">Basics of User Experience</span><button class="dclose" data-close="dr-basics"><span class="material-icons">close</span></button></div>
+      <div class="dbody">
+        <div class="dsec">
+          <p class="dseclabel">The five components of usability</p>
+          <div class="steps">
+            <div class="step"><span class="snum">1</span><span class="stxt"><strong>Learnability</strong> &mdash; How quickly can a new user accomplish basic tasks on first encounter?</span></div>
+            <div class="step"><span class="snum">2</span><span class="stxt"><strong>Efficiency</strong> &mdash; Once learned, how fast can experienced users reach their goals?</span></div>
+            <div class="step"><span class="snum">3</span><span class="stxt"><strong>Memorability</strong> &mdash; When users return after an absence, can they re-establish proficiency quickly?</span></div>
+            <div class="step"><span class="snum">4</span><span class="stxt"><strong>Error tolerance</strong> &mdash; How severe are mistakes, and how easily can users recover?</span></div>
+            <div class="step"><span class="snum">5</span><span class="stxt"><strong>Satisfaction</strong> &mdash; Is the experience pleasant and fulfilling to use?</span></div>
+          </div>
+        </div>
+        <div class="dsec">
+          <p class="dseclabel">UX is not UI</p>
+          <p>UI is the surface &mdash; buttons, typography, colour. UX is the entire experience a person has: the first moment of confusion, the moment of success, the feeling after the session ends. A polished UI on top of a broken information architecture is still a bad experience.</p>
+          <div class="chips"><span class="chip cp">Information Architecture</span><span class="chip cp">Interaction Design</span><span class="chip cm">Visual Design</span><span class="chip cm">Content Strategy</span></div>
+          <div class="tko"><strong>Takeaway:</strong> Usability is a quality attribute, not a deliverable. You cannot hand someone &#8220;usability&#8221; &mdash; you can only measure and improve it through observation.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="drawer" id="dr-methods">
+      <div class="dhead"><span class="dtitle">Methods</span><button class="dclose" data-close="dr-methods"><span class="material-icons">close</span></button></div>
+      <div class="dbody">
+        <div class="dsec">
+          <p class="dseclabel">Choosing the right method</p>
+          <p>No single method answers every question. The choice depends on where you are in the design process and what you need to know.</p>
+          <div class="steps">
+            <div class="step"><span class="snum" style="background:var(--ac)">Q</span><span class="stxt"><strong>Qualitative</strong> &mdash; moderated testing, contextual inquiry, cognitive walkthroughs. Use when you need to understand <em>why</em>.</span></div>
+            <div class="step"><span class="snum" style="background:#7c3aed">Q</span><span class="stxt"><strong>Quantitative</strong> &mdash; unmoderated testing, surveys, analytics. Use when you need to measure <em>how many</em> and <em>how often</em>.</span></div>
+            <div class="step"><span class="snum" style="background:var(--wa)">A</span><span class="stxt"><strong>Attitudinal vs. behavioural.</strong> What people say and what they do are often different. Prefer behavioural data when available.</span></div>
+          </div>
+        </div>
+        <div class="dsec">
+          <p class="dseclabel">Method reference</p>
+          <div class="steps">
+            <div class="step"><span class="snum">&rarr;</span><span class="stxt"><strong>Card sorting</strong> &mdash; reveals mental models for navigation. Run early.</span></div>
+            <div class="step"><span class="snum">&rarr;</span><span class="stxt"><strong>Tree testing</strong> &mdash; validates IA without visual design interference. Run after card sorting.</span></div>
+            <div class="step"><span class="snum">&rarr;</span><span class="stxt"><strong>Diary studies</strong> &mdash; captures longitudinal experience over days or weeks. Costly but uniquely revealing.</span></div>
+            <div class="step"><span class="snum">&rarr;</span><span class="stxt"><strong>Heuristic evaluation</strong> &mdash; fast expert review. Surfaces obvious issues before participant studies.</span></div>
+            <div class="step"><span class="snum">&rarr;</span><span class="stxt"><strong>First-click testing</strong> &mdash; validates whether users find the right starting point for a task.</span></div>
+          </div>
+          <div class="tko"><strong>Takeaway:</strong> Mix generative and evaluative methods. Generative tells you what to build; evaluative tells you whether you built it well.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="drawer" id="dr-guidelines">
+      <div class="dhead"><span class="dtitle">Guidelines</span><button class="dclose" data-close="dr-guidelines"><span class="material-icons">close</span></button></div>
+      <div class="dbody">
+        <div class="dsec">
+          <p class="dseclabel">Nielsen's 10 heuristics</p>
+          <div class="steps">
+            <div class="step"><span class="snum">1</span><span class="stxt"><strong>Visibility of system status</strong> &mdash; always keep users informed about what is happening.</span></div>
+            <div class="step"><span class="snum">2</span><span class="stxt"><strong>Match the real world</strong> &mdash; use words and concepts the user knows.</span></div>
+            <div class="step"><span class="snum">3</span><span class="stxt"><strong>User control &amp; freedom</strong> &mdash; support undo, redo, and easy exits.</span></div>
+            <div class="step"><span class="snum">4</span><span class="stxt"><strong>Consistency &amp; standards</strong> &mdash; follow platform conventions.</span></div>
+            <div class="step"><span class="snum">5</span><span class="stxt"><strong>Error prevention</strong> &mdash; design to prevent problems first.</span></div>
+            <div class="step"><span class="snum">6</span><span class="stxt"><strong>Recognition over recall</strong> &mdash; make options visible; do not make users memorise.</span></div>
+            <div class="step"><span class="snum">7</span><span class="stxt"><strong>Flexibility &amp; efficiency</strong> &mdash; accelerators for experts; do not punish novices.</span></div>
+            <div class="step"><span class="snum">8</span><span class="stxt"><strong>Aesthetic &amp; minimalist design</strong> &mdash; every extra element competes for attention.</span></div>
+            <div class="step"><span class="snum">9</span><span class="stxt"><strong>Help users recognise &amp; recover from errors</strong> &mdash; plain language, precise, constructive.</span></div>
+            <div class="step"><span class="snum">10</span><span class="stxt"><strong>Help &amp; documentation</strong> &mdash; easy to find, action-oriented.</span></div>
+          </div>
+          <div class="tko"><strong>Takeaway:</strong> Heuristics are a diagnostic vocabulary, not a design spec. Severity is context-dependent &mdash; a violation affecting 80% of users daily dwarfs one affecting 0.1% weekly.</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /sp-what-why -->
+
+  <!-- HOW TO & TOOLS -->
+  <div class="sp" id="sp-how-to">
+
+    <div class="icard">
+      <p class="icard-label">How To &amp; Tools</p>
+      <h2 class="icard-title">Practical frameworks and approaches</h2>
+      <p class="icard-sub">Select a topic to explore a structured breakdown &mdash; from running research to managing projects and designing for clarity.</p>
+    </div>
+
+    <div class="sb-layout">
+      <nav class="sb-nav" aria-label="How To topics">
+        <button class="sb-item active" data-ht="content-strategy"><span class="material-icons">edit_note</span>Content Strategy</button>
+        <button class="sb-item" data-ht="project-management"><span class="material-icons">manage_accounts</span>Project Management</button>
+        <button class="sb-item" data-ht="visual-design"><span class="material-icons">palette</span>Visual Design</button>
+      </nav>
+      <div class="ht-content">
+
+        <div id="ht-content-strategy" class="active">
+          <div class="ccard">
+            <h3 class="ccard-title">Content Strategy in UX</h3>
+            <p>Content is the product. Words, labels, instructions, and error messages are interface elements &mdash; not filler. Content strategy in UX means designing the information architecture, hierarchy, and language from the first wireframe.</p>
+            <div class="chips"><span class="chip cp">Voice &amp; Tone</span><span class="chip cp">Microcopy</span><span class="chip ca">Plain Language</span><span class="chip cm">IA</span></div>
+          </div>
+          <div class="ccard">
+            <h3 class="ccard-title">Core principles</h3>
+            <div class="steps">
+              <div class="step"><span class="snum">1</span><span class="stxt"><strong>Lead with the user's goal.</strong> Labels, headings, and CTAs should answer &#8220;what does the user want to do?&#8221; not &#8220;what does this section contain?&#8221;</span></div>
+              <div class="step"><span class="snum">2</span><span class="stxt"><strong>Write at the level of your audience.</strong> Plain language reduces cognitive load for everyone. Jargon is acceptable when the audience genuinely owns it.</span></div>
+              <div class="step"><span class="snum">3</span><span class="stxt"><strong>Error messages are content.</strong> &#8220;Something went wrong&#8221; is not a message. Tell users what happened, what it means, and how to fix it.</span></div>
+              <div class="step"><span class="snum">4</span><span class="stxt"><strong>Audit before redesign.</strong> Inventory what exists, what's redundant, what's missing before redesigning anything.</span></div>
+              <div class="step"><span class="snum">5</span><span class="stxt"><strong>Test your labels.</strong> Card sorting and first-click tests validate whether labels are interpreted as intended.</span></div>
+            </div>
+            <div class="tko"><strong>Takeaway:</strong> &#8220;We'll fix the copy later&#8221; is how products ship with confirmation dialogs saying &#8220;Are you sure?&#8221; and errors saying &#8220;Error 403.&#8221; Make content a first-class design decision.</div>
+          </div>
+        </div>
+
+        <div id="ht-project-management">
+          <div class="ccard">
+            <h3 class="ccard-title">Managing UX Research Projects</h3>
+            <p>UX research does not manage itself. Without a clear plan, studies run over schedule, findings get buried in decks nobody reads, and stakeholders lose confidence in the process. Treat research like a product: scope it, schedule it, ship findings on time.</p>
+            <div class="chips"><span class="chip cp">Research Ops</span><span class="chip ca">Stakeholder Mgmt</span><span class="chip cm">Planning</span></div>
+          </div>
+          <div class="ccard">
+            <h3 class="ccard-title">A lightweight UX project framework</h3>
+            <div class="steps">
+              <div class="step"><span class="snum">1</span><span class="stxt"><strong>Research brief (day 1).</strong> Document the research question, not the solution hypothesis. Align stakeholders before recruiting starts.</span></div>
+              <div class="step"><span class="snum">2</span><span class="stxt"><strong>Study plan (week 1).</strong> Method, participant criteria, screener, session guide, schedule, roles. Written, reviewed, approved.</span></div>
+              <div class="step"><span class="snum">3</span><span class="stxt"><strong>Pilot session.</strong> Run one session with a colleague first. Catch broken prototypes and timing issues.</span></div>
+              <div class="step"><span class="snum">4</span><span class="stxt"><strong>Same-day synthesis.</strong> Cluster observations within 24 hours. Do not batch synthesis to the end of a two-week study.</span></div>
+              <div class="step"><span class="snum">5</span><span class="stxt"><strong>Two-format readout.</strong> A one-page summary for quick decisions. A detailed report for the record. Lead with the one-pager.</span></div>
+              <div class="step"><span class="snum">6</span><span class="stxt"><strong>Track decisions, not just findings.</strong> What changed because of this research? Document it. This is how research builds credibility over time.</span></div>
+            </div>
+            <div class="tko"><strong>Takeaway:</strong> A 3-day study with clear output beats a 3-week study with a 60-slide deck nobody finishes reading. Research velocity matters.</div>
+          </div>
+        </div>
+
+        <div id="ht-visual-design">
+          <div class="ccard">
+            <h3 class="ccard-title">Visual Design as a Usability Tool</h3>
+            <p>Visual design is not decoration &mdash; it is communication. Every spacing decision, contrast ratio, and typographic weight is either helping users understand a hierarchy or making it harder. Ask of every visual decision: does this help users know what to do next?</p>
+            <div class="chips"><span class="chip cp">Visual Hierarchy</span><span class="chip ca">Colour &amp; Contrast</span><span class="chip cp">Typography</span><span class="chip cm">Spacing</span></div>
+          </div>
+          <div class="ccard">
+            <h3 class="ccard-title">Principles that drive usability through visual design</h3>
+            <div class="steps">
+              <div class="step"><span class="snum">1</span><span class="stxt"><strong>Hierarchy before aesthetics.</strong> Define primary, secondary, and tertiary actions before choosing colours. The most important action should be most visually prominent.</span></div>
+              <div class="step"><span class="snum">2</span><span class="stxt"><strong>WCAG AA as a floor.</strong> 4.5:1 contrast ratio for text is the minimum. Aim for 7:1 in data-dense contexts.</span></div>
+              <div class="step"><span class="snum">3</span><span class="stxt"><strong>Do not communicate with colour alone.</strong> 8% of males have some form of colour blindness. Use shape, label, and pattern alongside colour.</span></div>
+              <div class="step"><span class="snum">4</span><span class="stxt"><strong>Whitespace is information architecture.</strong> Spacing groups related elements and separates unrelated ones. Insufficient whitespace makes everything feel equally important.</span></div>
+              <div class="step"><span class="snum">5</span><span class="stxt"><strong>Typography is UI.</strong> Font size, weight, and line-height determine whether users can scan efficiently. 16px body, 1.5 line-height, limited weight range.</span></div>
+            </div>
+            <div class="tko"><strong>Takeaway:</strong> A usability test revealing users ignoring your primary CTA is often a visual design problem. Hierarchy, contrast, and size communicate intent before the user reads a single word.</div>
+          </div>
+        </div>
+
+      </div><!-- /ht-content -->
+    </div><!-- /sb-layout -->
+  </div><!-- /sp-how-to -->
+
+  <div class="fnav">
+    <a href="index.html" class="flink"><span class="material-icons">home</span>Portfolio</a>
+    <a href="technical-insights.html" class="flink"><span class="material-icons">lightbulb</span>Technical Insights</a>
+    <a href="tools-experiments.html" class="flink"><span class="material-icons">build</span>Tools &amp; Experiments</a>
+  </div>
+
+</main>
+
+<script>
+(function(){
+  function switchSec(name){
+    document.querySelectorAll('.nav-tab').forEach(function(t){
+      var a=t.dataset.sec===name;
+      t.classList.toggle('active',a);
+      t.setAttribute('aria-selected',a);
+    });
+    document.querySelectorAll('.sp').forEach(function(p){
+      p.classList.toggle('active',p.id==='sp-'+name);
+    });
+  }
+  document.querySelectorAll('.nav-tab').forEach(function(btn){
+    btn.addEventListener('click',function(){switchSec(btn.dataset.sec);});
+  });
+  function closeAll(){
+    document.querySelectorAll('.drawer').forEach(function(d){d.classList.remove('open');});
+    document.querySelectorAll('[data-tile]').forEach(function(t){
+      t.classList.remove('exp');t.setAttribute('aria-expanded','false');
+    });
+  }
+  document.querySelectorAll('[data-tile]').forEach(function(tile){
+    tile.addEventListener('click',function(){
+      var id='dr-'+tile.dataset.tile;
+      var dr=document.getElementById(id);
+      if(!dr)return;
+      var was=dr.classList.contains('open');
+      closeAll();
+      if(!was){
+        dr.classList.add('open');
+        tile.classList.add('exp');
+        tile.setAttribute('aria-expanded','true');
+        setTimeout(function(){dr.scrollIntoView({behavior:'smooth',block:'nearest'});},50);
+      }
+    });
+    tile.addEventListener('keydown',function(e){
+      if(e.key==='Enter'||e.key===' '){e.preventDefault();tile.click();}
+    });
+  });
+  document.querySelectorAll('[data-close]').forEach(function(btn){
+    btn.addEventListener('click',function(e){
+      e.stopPropagation();
+      var dr=document.getElementById(btn.dataset.close);
+      if(dr)dr.classList.remove('open');
+      var k=btn.dataset.close.replace('dr-','');
+      document.querySelectorAll('[data-tile]').forEach(function(t){
+        if(t.dataset.tile===k){t.classList.remove('exp');t.setAttribute('aria-expanded','false');}
+      });
+    });
+  });
+  document.querySelectorAll('.sb-item').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      document.querySelectorAll('.sb-item').forEach(function(b){b.classList.remove('active');});
+      btn.classList.add('active');
+      var target='ht-'+btn.dataset.ht;
+      document.querySelectorAll('.ht-content > div').forEach(function(d){
+        d.classList.toggle('active',d.id===target);
+      });
+    });
+  });
+})();
+</script>
+
+</body>
+</html>
