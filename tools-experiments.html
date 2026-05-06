@@ -263,6 +263,107 @@
             background-color: rgba(103, 80, 164, 0.1);
         }
 
+        .insights-section {
+            margin-top: 1rem;
+            margin-bottom: 2rem;
+            display: grid;
+            gap: 2rem;
+        }
+
+        .insight-block {
+            background-color: var(--md-sys-color-surface);
+            border-radius: 0.75rem;
+            padding: 2rem;
+            box-shadow: var(--md-elevation-1);
+        }
+
+        .insight-header {
+            margin-bottom: 1rem;
+        }
+
+        .insight-header h2 {
+            color: var(--md-sys-color-primary);
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .insight-header p {
+            color: var(--md-sys-color-outline);
+            line-height: 1.65;
+            font-size: 1rem;
+        }
+
+        .detail-grid {
+            margin-top: 1.25rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1rem;
+        }
+
+        .detail-card {
+            border: 1px solid rgba(103, 80, 164, 0.18);
+            border-radius: 0.6rem;
+            padding: 1rem;
+            background-color: rgba(103, 80, 164, 0.03);
+        }
+
+        [data-theme="dark"] .detail-card {
+            background-color: rgba(208, 188, 255, 0.06);
+            border-color: rgba(208, 188, 255, 0.28);
+        }
+
+        .detail-card h3 {
+            color: var(--md-sys-color-primary);
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .detail-card p {
+            font-size: 0.92rem;
+            line-height: 1.6;
+            color: #424242;
+            margin-bottom: 0.55rem;
+        }
+
+        [data-theme="dark"] .detail-card p {
+            color: #c7c7c7;
+        }
+
+        .detail-card ul {
+            margin: 0;
+            padding-left: 1rem;
+        }
+
+        .detail-card li {
+            font-size: 0.88rem;
+            line-height: 1.5;
+            margin: 0.25rem 0;
+        }
+
+        .framework {
+            margin-top: 1.25rem;
+            border-left: 4px solid var(--md-sys-color-primary);
+            padding: 0.75rem 0 0.75rem 1rem;
+            background-color: rgba(103, 80, 164, 0.06);
+            border-radius: 0 0.5rem 0.5rem 0;
+        }
+
+        [data-theme="dark"] .framework {
+            background-color: rgba(208, 188, 255, 0.08);
+        }
+
+        .framework h3 {
+            font-size: 1.05rem;
+            color: var(--md-sys-color-primary);
+            margin-bottom: 0.4rem;
+        }
+
+        .framework p {
+            margin: 0;
+            font-size: 0.95rem;
+            line-height: 1.65;
+        }
+
         @media (max-width: 768px) {
             .container-main {
                 margin: 1rem auto;
@@ -283,6 +384,14 @@
 
             .navigation-footer {
                 gap: 1rem;
+            }
+
+            .insight-block {
+                padding: 1.25rem;
+            }
+
+            .insight-header h2 {
+                font-size: 1.4rem;
             }
         }
     </style>
@@ -413,6 +522,124 @@
                 <a href="./technical-insights.html" class="cta-button">Read Insights →</a>
             </div>
         </div>
+
+        <section class="insights-section" aria-label="AI design and research details">
+            <article class="insight-block">
+                <div class="insight-header">
+                    <h2>How AI Design Is Used Now</h2>
+                    <p>
+                        AI in design has moved from novelty to everyday production workflow. Strong teams are not using AI to replace product thinking, but to compress repetitive loops so more time goes into systems thinking, user clarity, and strategic decisions.
+                    </p>
+                </div>
+
+                <div class="detail-grid">
+                    <div class="detail-card">
+                        <h3>1) Discovery and Opportunity Mapping</h3>
+                        <p>AI accelerates synthesis in the early phase by clustering qualitative notes and surfacing recurring user intent patterns.</p>
+                        <ul>
+                            <li>Interview transcript summarization with theme extraction.</li>
+                            <li>Auto-tagging support tickets into friction categories.</li>
+                            <li>Opportunity maps ranked by user pain and business impact.</li>
+                        </ul>
+                    </div>
+
+                    <div class="detail-card">
+                        <h3>2) Information Architecture and Content</h3>
+                        <p>Designers are using AI to draft first-pass structures while retaining editorial ownership for tone and domain precision.</p>
+                        <ul>
+                            <li>Alternative navigation trees from the same content corpus.</li>
+                            <li>Microcopy variants for errors, confirmations, and onboarding.</li>
+                            <li>Terminology simplification for plain-language UX.</li>
+                        </ul>
+                    </div>
+
+                    <div class="detail-card">
+                        <h3>3) Interaction and Prototyping</h3>
+                        <p>AI helps teams expand exploration breadth by generating multiple flow options and edge-case states before committing to high-fidelity build.</p>
+                        <ul>
+                            <li>Flow alternatives for novice vs expert pathways.</li>
+                            <li>State coverage drafts for empty, error, and loading scenarios.</li>
+                            <li>Prompt-to-prototype snippets for rapid interaction testing.</li>
+                        </ul>
+                    </div>
+
+                    <div class="detail-card">
+                        <h3>4) Design Systems and QA</h3>
+                        <p>In mature teams, AI is integrated into design system governance to improve consistency and reduce UI debt.</p>
+                        <ul>
+                            <li>Token usage checks across screens.</li>
+                            <li>Component mismatch detection against system rules.</li>
+                            <li>Accessibility pre-checks for contrast and labeling gaps.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="framework">
+                    <h3>Practical AI Design Operating Model</h3>
+                    <p>
+                        Best results come from a human-led loop: <strong>Frame</strong> the problem, <strong>Generate</strong> variants, <strong>Evaluate</strong> with UX criteria, <strong>Validate</strong> with users, and <strong>Institutionalize</strong> what works into system standards. AI is strongest in generation and compression; humans remain accountable for judgment and outcomes.
+                    </p>
+                </div>
+            </article>
+
+            <article class="insight-block">
+                <div class="insight-header">
+                    <h2>How AI Research Is Evolving</h2>
+                    <p>
+                        AI research in product teams now combines qualitative rigor with scalable signal processing. The goal is not to automate insight, but to increase confidence by triangulating multiple data layers faster.
+                    </p>
+                </div>
+
+                <div class="detail-grid">
+                    <div class="detail-card">
+                        <h3>1) Multi-Source Insight Pipelines</h3>
+                        <p>Research is increasingly continuous and instrumented rather than periodic and presentation-driven.</p>
+                        <ul>
+                            <li>Combining interviews, session replay, analytics, and support logs.</li>
+                            <li>Semantic clustering to detect emerging behavior shifts.</li>
+                            <li>Weekly evidence snapshots instead of quarterly report decks.</li>
+                        </ul>
+                    </div>
+
+                    <div class="detail-card">
+                        <h3>2) Agent-Assisted Desk Research</h3>
+                        <p>Researchers use AI agents for rapid environmental scans, then manually validate source quality and interpretation.</p>
+                        <ul>
+                            <li>Competitive teardown drafts with evidence references.</li>
+                            <li>Policy and standards extraction for compliance-heavy domains.</li>
+                            <li>Pattern-library retrieval from prior internal studies.</li>
+                        </ul>
+                    </div>
+
+                    <div class="detail-card">
+                        <h3>3) Evidence Quality and Bias Controls</h3>
+                        <p>The strongest AI-research practices include explicit guardrails to prevent false confidence.</p>
+                        <ul>
+                            <li>Traceability: every claim mapped to a source artifact.</li>
+                            <li>Bias checks: demographic and behavioral representativeness review.</li>
+                            <li>Confidence labels: high, medium, or exploratory findings.</li>
+                        </ul>
+                    </div>
+
+                    <div class="detail-card">
+                        <h3>4) Metrics That Matter</h3>
+                        <p>Teams are shifting from output metrics to decision metrics that show real product movement.</p>
+                        <ul>
+                            <li>Time-to-insight from raw data to actionable recommendation.</li>
+                            <li>Decision adoption rate in roadmap and release planning.</li>
+                            <li>Outcome lift after changes: completion, error reduction, retention.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="framework">
+                    <h3>Applied AI Research Loop</h3>
+                    <p>
+                        A reliable loop is: <strong>Question</strong> (define decision risk), <strong>Collect</strong> (mixed methods), <strong>Synthesize</strong> (AI + human review), <strong>Test</strong> (prototype and experiment), <strong>Close the loop</strong> (measure post-launch behavior). This turns research into an operating system for product quality, not a one-time artifact.
+                    </p>
+                </div>
+            </article>
+        </section>
 
         <!-- Navigation Footer -->
         <div class="navigation-footer">
