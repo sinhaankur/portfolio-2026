@@ -21,7 +21,6 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap">
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.3/css/font-awesome.css">
-    <link href="css/materialize.css" type="text/css" rel="stylesheet" media="screen,projection"/>
     <link href="css/style.css" type="text/css" rel="stylesheet" media="screen,projection"/>
     <style>
         :root {
@@ -31,7 +30,9 @@
             --md-sys-color-background-dark: #09141a;
             --md-sys-color-surface: #fffdf8;
             --md-sys-color-surface-dark: #132730;
-            --md-sys-color-outline: #b7ae9b;
+            --md-sys-color-surface-soft: #fbf8f2;
+            --md-sys-color-surface-soft-dark: #102028;
+            --md-sys-color-outline: #d7d2c7;
             --md-sys-color-muted: #667085;
             --md-sys-color-accent: #c2410c;
             --md-elevation-1: 0px 1px 3px rgba(15, 23, 42, 0.12);
@@ -42,6 +43,10 @@
             --md-sys-color-primary: var(--md-sys-color-primary-dark);
             --md-sys-color-background: var(--md-sys-color-background-dark);
             --md-sys-color-surface: var(--md-sys-color-surface-dark);
+            --md-sys-color-surface-soft: var(--md-sys-color-surface-soft-dark);
+            --md-sys-color-outline: #28404a;
+            --md-sys-color-muted: #b9c5d1;
+            --md-sys-color-accent: #fdba74;
         }
 
         * {
@@ -55,10 +60,11 @@
             background:
                 radial-gradient(circle at top left, rgba(15, 118, 110, 0.10), transparent 34%),
                 radial-gradient(circle at right 18%, rgba(194, 65, 12, 0.07), transparent 30%),
-                linear-gradient(180deg, #fbf8f2 0%, var(--md-sys-color-background) 100%);
-            color: #1a1a1a;
+                linear-gradient(180deg, var(--md-sys-color-surface-soft) 0%, var(--md-sys-color-background) 100%);
+            color: var(--md-sys-color-muted);
             transition: background-color 0.3s ease, color 0.3s ease;
             background-attachment: fixed;
+            -webkit-font-smoothing: antialiased;
         }
 
         [data-theme="dark"] body {
@@ -82,7 +88,7 @@
         .navbar-brand {
             font-size: 1.5rem;
             font-weight: 500;
-            color: white;
+            color: var(--md-sys-color-primary);
             text-decoration: none;
             display: flex;
             align-items: center;
@@ -195,7 +201,7 @@
         .insight-card p {
             font-size: 1rem;
             line-height: 1.8;
-            color: #3f4b59;
+            color: var(--md-sys-color-muted);
             margin-bottom: 1rem;
         }
 
