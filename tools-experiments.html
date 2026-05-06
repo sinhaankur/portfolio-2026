@@ -60,23 +60,25 @@
             }
         }
         </script>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap">
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.3/css/font-awesome.css">
     <link href="css/materialize.css" type="text/css" rel="stylesheet" media="screen,projection"/>
     <link href="css/style.css" type="text/css" rel="stylesheet" media="screen,projection"/>
     <style>
         :root {
-            --md-sys-color-primary: #6750a4;
-            --md-sys-color-primary-dark: #d0bcff;
-            --md-sys-color-background: #fffbfe;
-            --md-sys-color-background-dark: #1a1a1a;
-            --md-sys-color-surface: #fffbfe;
-            --md-sys-color-surface-dark: #2d2d2d;
-            --md-sys-color-outline: #79747e;
-            --md-sys-color-success: #065f46;
-            --md-elevation-1: 0px 1px 3px rgba(0, 0, 0, 0.12), 0px 1px 2px rgba(0, 0, 0, 0.24);
-            --md-elevation-2: 0px 3px 6px rgba(0, 0, 0, 0.15), 0px 2px 4px rgba(0, 0, 0, 0.12);
+            --md-sys-color-primary: #0f766e;
+            --md-sys-color-primary-dark: #5eead4;
+            --md-sys-color-background: #f4f1ea;
+            --md-sys-color-background-dark: #09141a;
+            --md-sys-color-surface: #fffdf8;
+            --md-sys-color-surface-dark: #132730;
+            --md-sys-color-outline: #b7ae9b;
+            --md-sys-color-muted: #667085;
+            --md-sys-color-success: #0f766e;
+            --md-sys-color-accent: #c2410c;
+            --md-elevation-1: 0px 1px 3px rgba(15, 23, 42, 0.12);
+            --md-elevation-2: 0px 8px 24px rgba(15, 23, 42, 0.14);
         }
 
         [data-theme="dark"] {
@@ -92,10 +94,14 @@
         }
 
         html, body {
-            font-family: 'Roboto', sans-serif;
-            background-color: var(--md-sys-color-background);
+            font-family: 'Inter', 'Avenir Next', 'Segoe UI', sans-serif;
+            background:
+                radial-gradient(circle at top left, rgba(15, 118, 110, 0.10), transparent 34%),
+                radial-gradient(circle at right 18%, rgba(194, 65, 12, 0.07), transparent 30%),
+                linear-gradient(180deg, #fbf8f2 0%, var(--md-sys-color-background) 100%);
             color: #1a1a1a;
             transition: background-color 0.3s ease, color 0.3s ease;
+            background-attachment: fixed;
         }
 
         [data-theme="dark"] body {
@@ -103,7 +109,7 @@
         }
 
         .navbar {
-            background-color: var(--md-sys-color-primary);
+            background-color: var(--md-sys-color-surface);
             padding: 1rem 2rem;
             box-shadow: var(--md-elevation-1);
             display: flex;
@@ -112,6 +118,8 @@
             position: sticky;
             top: 0;
             z-index: 100;
+            border-bottom: 1px solid var(--md-sys-color-outline);
+            backdrop-filter: blur(12px);
         }
 
         .navbar-brand {
@@ -131,26 +139,28 @@
         }
 
         .top-nav-link {
-            color: white;
+            color: var(--md-sys-color-primary);
             text-decoration: none;
             display: inline-flex;
             align-items: center;
             gap: 0.4rem;
             padding: 0.5rem 0.9rem;
-            border-radius: 0.25rem;
+            border-radius: 999px;
             font-size: 0.9rem;
-            font-weight: 500;
+            font-weight: 700;
             transition: background-color 0.3s ease;
+            border: 1.5px solid var(--md-sys-color-primary);
         }
 
         .top-nav-link:hover {
-            background-color: rgba(255, 255, 255, 0.12);
+            background-color: var(--md-sys-color-primary);
+            color: #fff;
         }
 
         .theme-toggle {
             background: none;
             border: none;
-            color: white;
+            color: var(--md-sys-color-primary);
             font-size: 1.5rem;
             cursor: pointer;
             padding: 0.5rem;
@@ -159,22 +169,26 @@
         }
 
         .theme-toggle:hover {
-            background-color: rgba(255, 255, 255, 0.1);
+            background-color: rgba(15, 118, 110, 0.1);
         }
 
         .back-btn {
-            color: white;
+            color: var(--md-sys-color-primary);
             text-decoration: none;
             display: flex;
             align-items: center;
             gap: 0.5rem;
             padding: 0.5rem 1rem;
-            border-radius: 0.25rem;
+            border-radius: 999px;
+            border: 1.5px solid var(--md-sys-color-primary);
             transition: background-color 0.3s ease;
+            font-size: 0.82rem;
+            font-weight: 700;
         }
 
         .back-btn:hover {
-            background-color: rgba(255, 255, 255, 0.1);
+            background-color: var(--md-sys-color-primary);
+            color: #fff;
         }
 
         .container-main {
@@ -197,7 +211,7 @@
 
         .header-section p {
             font-size: 1.1rem;
-            color: var(--md-sys-color-outline);
+            color: var(--md-sys-color-muted);
             line-height: 1.6;
         }
 
@@ -210,12 +224,13 @@
 
         .project-card {
             background-color: var(--md-sys-color-surface);
-            border-radius: 0.75rem;
+            border-radius: 1rem;
             padding: 2rem;
             box-shadow: var(--md-elevation-1);
             transition: box-shadow 0.3s ease, transform 0.3s ease;
             display: flex;
             flex-direction: column;
+            border: 1px solid var(--md-sys-color-outline);
         }
 
         .project-card:hover {
@@ -252,7 +267,7 @@
         .project-card p {
             font-size: 0.95rem;
             line-height: 1.6;
-            color: #424242;
+            color: #3f4b59;
             margin-bottom: 1rem;
             flex-grow: 1;
         }
@@ -269,7 +284,7 @@
         }
 
         .tech-badge {
-            background-color: rgba(103, 80, 164, 0.1);
+            background-color: rgba(15, 118, 110, 0.1);
             color: var(--md-sys-color-primary);
             padding: 0.35rem 0.75rem;
             border-radius: 0.5rem;
@@ -282,7 +297,7 @@
             color: white;
             border: none;
             padding: 0.75rem 1rem;
-            border-radius: 0.25rem;
+            border-radius: 999px;
             cursor: pointer;
             font-size: 0.95rem;
             font-weight: 600;
@@ -293,7 +308,7 @@
         }
 
         .project-card .cta-button:hover {
-            background-color: #5a4491;
+            background-color: #115e59;
         }
 
         .navigation-footer {
@@ -301,7 +316,7 @@
             justify-content: center;
             gap: 2rem;
             padding: 3rem 1rem;
-            border-top: 1px solid var(--md-sys-color-outline);
+            border-top: 1px solid #e7e1d4;
             margin-top: 3rem;
             flex-wrap: wrap;
         }
@@ -314,12 +329,14 @@
             align-items: center;
             gap: 0.5rem;
             padding: 0.5rem 1rem;
-            border-radius: 0.25rem;
+            border-radius: 999px;
+            border: 1.5px solid var(--md-sys-color-primary);
             transition: background-color 0.3s ease;
         }
 
         .nav-link:hover {
-            background-color: rgba(103, 80, 164, 0.1);
+            background-color: var(--md-sys-color-primary);
+            color: #fff;
         }
 
         .insights-section {
@@ -367,10 +384,10 @@
         }
 
         .detail-card {
-            border: 1px solid rgba(103, 80, 164, 0.18);
-            border-radius: 0.6rem;
+            border: 1px solid var(--md-sys-color-outline);
+            border-radius: 0.75rem;
             padding: 1rem;
-            background-color: rgba(103, 80, 164, 0.03);
+            background-color: rgba(15, 118, 110, 0.04);
         }
 
         [data-theme="dark"] .detail-card {
@@ -387,7 +404,7 @@
         .detail-card p {
             font-size: 0.92rem;
             line-height: 1.6;
-            color: #424242;
+            color: #3f4b59;
             margin-bottom: 0.55rem;
         }
 
@@ -408,9 +425,9 @@
 
         .framework {
             margin-top: 1.25rem;
-            border-left: 4px solid var(--md-sys-color-primary);
+            border-left: 4px solid var(--md-sys-color-accent);
             padding: 0.75rem 0 0.75rem 1rem;
-            background-color: rgba(103, 80, 164, 0.06);
+            background-color: rgba(194, 65, 12, 0.08);
             border-radius: 0 0.5rem 0.5rem 0;
         }
 
