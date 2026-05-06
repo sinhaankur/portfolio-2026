@@ -63,7 +63,6 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap">
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.3/css/font-awesome.css">
-    <link href="css/materialize.css" type="text/css" rel="stylesheet" media="screen,projection"/>
     <link href="css/style.css" type="text/css" rel="stylesheet" media="screen,projection"/>
     <style>
         :root {
@@ -73,7 +72,9 @@
             --md-sys-color-background-dark: #09141a;
             --md-sys-color-surface: #fffdf8;
             --md-sys-color-surface-dark: #132730;
-            --md-sys-color-outline: #b7ae9b;
+            --md-sys-color-surface-soft: #fbf8f2;
+            --md-sys-color-surface-soft-dark: #102028;
+            --md-sys-color-outline: #d7d2c7;
             --md-sys-color-muted: #667085;
             --md-sys-color-success: #0f766e;
             --md-sys-color-accent: #c2410c;
@@ -85,6 +86,10 @@
             --md-sys-color-primary: var(--md-sys-color-primary-dark);
             --md-sys-color-background: var(--md-sys-color-background-dark);
             --md-sys-color-surface: var(--md-sys-color-surface-dark);
+            --md-sys-color-surface-soft: var(--md-sys-color-surface-soft-dark);
+            --md-sys-color-outline: #28404a;
+            --md-sys-color-muted: #b9c5d1;
+            --md-sys-color-accent: #fdba74;
         }
 
         * {
@@ -98,7 +103,7 @@
             background:
                 radial-gradient(circle at top left, rgba(15, 118, 110, 0.10), transparent 34%),
                 radial-gradient(circle at right 18%, rgba(194, 65, 12, 0.07), transparent 30%),
-                linear-gradient(180deg, #fbf8f2 0%, var(--md-sys-color-background) 100%);
+                linear-gradient(180deg, var(--md-sys-color-surface-soft) 0%, var(--md-sys-color-background) 100%);
             color: #1a1a1a;
             transition: background-color 0.3s ease, color 0.3s ease;
             background-attachment: fixed;
@@ -578,7 +583,7 @@
                     <span class="tech-badge">Trust Signals</span>
                     <span class="tech-badge">Accessibility Checks</span>
                 </div>
-                <a href="#govlens-extension" class="cta-button">See GovLens Details →</a>
+                <a href="https://chromewebstore.google.com/detail/govlens-%E2%80%93-universal-gover/oeodgpaofncmgjpbhnonmenmbiiiofoi" target="_blank" rel="noopener noreferrer" class="cta-button">Install on Chrome →</a>
             </div>
 
             <!-- Emoji Tetris Game -->
@@ -715,10 +720,14 @@
                 </div>
 
                 <div class="framework">
-                    <h3>How to Find It</h3>
+                    <h3>Built &amp; Designed by Ankur Sinha</h3>
                     <p>
-                        Search for <strong>GovLens</strong> on the Chrome Web Store to install. The goal is straightforward: reduce uncertainty, improve accessibility confidence, and help users avoid fraudulent lookalike websites.
+                        GovLens is live on the Chrome Web Store. The goal is straightforward: reduce uncertainty, improve accessibility confidence, and help users avoid fraudulent lookalike websites.
                     </p>
+                    <a href="https://chromewebstore.google.com/detail/govlens-%E2%80%93-universal-gover/oeodgpaofncmgjpbhnonmenmbiiiofoi" target="_blank" rel="noopener noreferrer" class="cta-button" style="display:inline-flex;align-items:center;gap:0.4rem;margin-top:0.75rem;">
+                        <span class="material-icons" style="font-size:18px">open_in_new</span>
+                        Install GovLens on Chrome →
+                    </a>
                 </div>
             </article>
 
