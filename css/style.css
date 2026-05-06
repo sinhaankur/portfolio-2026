@@ -486,7 +486,8 @@ h5  {
     }
 
     .bg {
-      height: 45vh!important;
+      height: auto!important;
+      min-height: 50vh;
     }
 
     .hide-on-small-and-down {
@@ -736,6 +737,183 @@ div.screen-content {
 
 input[type=password] + label.active {
   color:#546de5 !important;
+}
+
+/* ============================================================
+   MOBILE-FIRST HOME PAGE — ≤600px
+   (Materialize hides .intro at ≥601px so these rules are safe)
+   ============================================================ */
+@media only screen and (max-width: 600px) {
+
+  /* Let the hero background grow with content */
+  .bg {
+    height: auto !important;
+    min-height: 100svh;
+    padding-bottom: 2.5rem;
+    align-items: flex-start !important;
+  }
+
+  .hero-home {
+    width: 100%;
+  }
+
+  /* ---- Identity header ---- */
+  .intro {
+    padding: 2rem 1.25rem 0.5rem;
+    width: 100%;
+  }
+
+  .intro-identity {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .intro-identity #logo {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    flex-shrink: 0;
+  }
+
+  .intro-identity h4 {
+    font-size: 1.3rem !important;
+    font-weight: 700 !important;
+    margin: 0 0 0.15rem !important;
+    color: #202124 !important;
+    line-height: 1.2 !important;
+  }
+
+  .intro-identity h5 {
+    font-size: 0.8rem !important;
+    font-weight: 400 !important;
+    color: #5f6368 !important;
+    margin: 0 !important;
+    line-height: 1.4 !important;
+  }
+
+  /* ---- Primary CTA — "See my work" ---- */
+  .intro-cta-primary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: #202124;
+    color: #fff;
+    text-decoration: none;
+    border-radius: 14px;
+    padding: 0.85rem 1.25rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 0.875rem;
+    min-height: 48px;
+    letter-spacing: 0.01em;
+    transition: background 0.15s ease;
+  }
+
+  .intro-cta-primary:hover {
+    background: #3c4043;
+    color: #fff;
+  }
+
+  .intro-cta-primary .material-icons {
+    font-size: 18px;
+  }
+
+  /* ---- 2-column navigation tile grid ---- */
+  .chip-nav {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    margin-bottom: 0.875rem;
+  }
+
+  .chip-tile {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.4rem;
+    background: #fff;
+    border-radius: 14px;
+    border: 1px solid rgba(0, 0, 0, 0.07);
+    padding: 0.875rem 0.75rem;
+    text-decoration: none;
+    color: #202124;
+    font-size: 0.82rem;
+    font-weight: 500;
+    min-height: 72px;
+    line-height: 1.35;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .chip-tile:active {
+    transform: scale(0.97);
+    box-shadow: none;
+  }
+
+  .chip-tile .material-icons {
+    font-size: 20px;
+    color: #5f6368;
+  }
+
+  /* Teal accent for GovLens tile */
+  .chip-tile--accent {
+    background: rgba(15, 118, 110, 0.06);
+    border-color: rgba(15, 118, 110, 0.22);
+    color: #0d4f4a;
+  }
+
+  .chip-tile--accent .material-icons {
+    color: #0f766e;
+  }
+
+  /* ---- Secondary CTA — "Let's build together" ---- */
+  .intro-cta-secondary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(84, 109, 229, 0.07);
+    color: #546de5;
+    border: 1.5px solid rgba(84, 109, 229, 0.28);
+    border-radius: 14px;
+    padding: 0.85rem 1.25rem;
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 600;
+    min-height: 48px;
+    text-align: center;
+    line-height: 1.4;
+    transition: background 0.15s ease;
+  }
+
+  .intro-cta-secondary:hover {
+    background: rgba(84, 109, 229, 0.14);
+    color: #546de5;
+  }
+
+  /* ---- Fix about section ---- */
+  /* Remove the 280px top margin on the first about image */
+  .about-img-shadow {
+    margin-top: 0 !important;
+  }
+
+  /* ---- Bottom padding so floating pills don't overlap last section ---- */
+  .container > *:last-child,
+  .social-icons {
+    margin-bottom: 6rem;
+  }
+}
+
+/* Fix bg height at tablet range too (601-768) — it stays auto from
+   desktop but 45vh was set at max-width:768, which also catches tablet */
+@media only screen and (min-width: 601px) and (max-width: 768px) {
+  .bg {
+    height: auto !important;
+    min-height: 70vh;
+  }
 }
 
 input[type=password]:focus {
