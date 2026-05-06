@@ -231,6 +231,120 @@ button{font:inherit;cursor:pointer;border:none;background:none}
   .page{padding:1rem 1rem 3rem}
 }
 .mob-tabs{display:none;gap:.5rem;margin-bottom:1.25rem;overflow-x:auto;padding-bottom:4px}
+
+/* ── Inline Diagrams ── */
+.viz{margin:1.5rem 0;border-radius:var(--rmd);overflow:hidden;border:1px solid var(--br)}
+.viz-label{font-size:.62rem;font-weight:800;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--mu);padding:.55rem 1.25rem;background:var(--dv);border-bottom:1px solid var(--br)}
+
+/* Ecosystem map */
+.eco{display:flex;flex-direction:column;align-items:center;gap:0;background:var(--sf);padding:2rem 1.5rem}
+.eco-root{background:var(--p);color:#fff;font-size:.9rem;font-weight:800;padding:.55rem 1.4rem;
+  border-radius:var(--rp);box-shadow:0 4px 14px rgba(15,118,110,.3);white-space:nowrap}
+.eco-arrow-down{width:2px;height:28px;background:var(--p);margin:0 auto;position:relative}
+.eco-arrow-down::after{content:'';position:absolute;bottom:-5px;left:50%;transform:translateX(-50%);
+  border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid var(--p)}
+.eco-def{background:var(--cd);border:1px solid var(--p);border-radius:var(--rsm);
+  font-size:.82rem;color:var(--tx);text-align:center;padding:.6rem 1.25rem;max-width:480px;line-height:1.5}
+.eco-branch{display:flex;justify-content:center;gap:.75rem;flex-wrap:wrap;margin:1.25rem 0 .75rem}
+.eco-pill{display:flex;flex-direction:column;align-items:center;gap:.3rem;
+  background:var(--cd);border:1.5px solid var(--br);border-radius:var(--rmd);
+  padding:.75rem .9rem;width:130px;text-align:center;position:relative}
+.eco-pill::before{content:'';position:absolute;top:-18px;left:50%;width:2px;height:18px;background:var(--br)}
+.eco-pill .material-icons{font-size:20px;color:var(--p)}
+.eco-pill-name{font-size:.72rem;font-weight:800;color:var(--tx)}
+.eco-pill-desc{font-size:.62rem;color:var(--mu);line-height:1.45}
+.eco-outcomes{display:flex;gap:1rem;margin-top:.5rem;flex-wrap:wrap;justify-content:center}
+.eco-out{display:flex;align-items:center;gap:.5rem;border-radius:var(--rsm);padding:.6rem 1rem;font-size:.8rem;font-weight:700}
+.eco-out.good{background:#dcfce7;color:#14532d;border:1.5px solid #86efac}
+.eco-out.bad{background:#fee2e2;color:#7f1d1d;border:1.5px solid #fca5a5}
+
+/* UX layers diagram */
+.layers{display:flex;flex-direction:column;gap:0;background:var(--sf);padding:1.5rem}
+.layer{display:flex;align-items:center;gap:1rem;padding:.75rem 1.25rem;border-radius:0;
+  position:relative;transition:transform .15s}
+.layer:hover{transform:translateX(4px)}
+.layer-bar{width:6px;align-self:stretch;border-radius:3px;flex-shrink:0}
+.layer-icon{font-size:20px;flex-shrink:0}
+.layer-name{font-size:.85rem;font-weight:800;color:var(--tx);white-space:nowrap}
+.layer-desc{font-size:.78rem;color:var(--mu);line-height:1.5}
+.layer-tag{margin-left:auto;font-size:.65rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+  padding:.2rem .6rem;border-radius:var(--rp);white-space:nowrap;flex-shrink:0}
+
+/* 2×2 method matrix */
+.matrix-wrap{background:var(--sf);padding:1.5rem}
+.matrix{display:grid;grid-template-columns:auto 1fr 1fr;grid-template-rows:auto 1fr 1fr;
+  gap:6px;max-width:560px;margin:0 auto}
+.mx-corner{background:transparent}
+.mx-col-head,.mx-row-head{font-size:.68rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--mu);display:flex;align-items:center;justify-content:center;padding:.5rem}
+.mx-row-head{writing-mode:vertical-rl;transform:rotate(180deg);font-size:.62rem;
+  border:1px solid var(--br);border-radius:var(--rsm) var(--rsm) 0 0;background:var(--dv)}
+.mx-cell{border:1px solid var(--br);border-radius:var(--rsm);background:var(--cd);
+  padding:1rem;display:flex;flex-direction:column;gap:.4rem}
+.mx-cell-title{font-size:.78rem;font-weight:800;color:var(--tx)}
+.mx-cell-tags{display:flex;flex-wrap:wrap;gap:.3rem}
+.mx-tag{font-size:.62rem;font-weight:700;padding:.15rem .5rem;border-radius:var(--rp);
+  background:rgba(15,118,110,.1);color:var(--p);border:1px solid rgba(15,118,110,.2)}
+.mx-tag.purple{background:rgba(124,58,237,.1);color:#7c3aed;border-color:rgba(124,58,237,.2)}
+.mx-tag.amber{background:rgba(180,83,9,.1);color:#b45309;border-color:rgba(180,83,9,.2)}
+
+/* Heuristics severity table */
+.sev-table{width:100%;border-collapse:collapse;background:var(--cd);font-size:.82rem}
+.sev-table th{background:var(--p);color:#fff;font-size:.68rem;font-weight:800;
+  letter-spacing:.1em;text-transform:uppercase;padding:.6rem 1rem;text-align:left}
+.sev-table td{padding:.6rem 1rem;border-bottom:1px solid var(--br);color:var(--tx);vertical-align:top}
+.sev-table tr:last-child td{border-bottom:none}
+.sev-table tr:hover td{background:rgba(15,118,110,.04)}
+.sev-dot{display:inline-flex;align-items:center;gap:.35rem;font-weight:700}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block;flex-shrink:0}
+
+/* Research timeline */
+.timeline{display:flex;flex-direction:column;gap:0;padding:1.5rem;background:var(--sf)}
+.tl-row{display:grid;grid-template-columns:80px 24px 1fr;gap:0 .75rem;align-items:start}
+.tl-day{font-size:.7rem;font-weight:800;color:var(--ac);padding-top:.35rem;text-align:right}
+.tl-spine{display:flex;flex-direction:column;align-items:center}
+.tl-node{width:20px;height:20px;border-radius:50%;background:var(--p);border:3px solid var(--sf);
+  flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.tl-node .material-icons{font-size:10px;color:#fff}
+.tl-line{width:2px;flex:1;background:var(--br);min-height:24px}
+.tl-body{padding:.2rem 0 1.25rem}
+.tl-title{font-size:.85rem;font-weight:800;color:var(--tx)}
+.tl-sub{font-size:.75rem;color:var(--mu);line-height:1.5;margin-top:.2rem}
+
+/* Content strategy flow */
+.flow{display:flex;align-items:stretch;background:var(--sf);padding:1.5rem;
+  gap:0;overflow-x:auto;flex-wrap:nowrap}
+.flow-node{min-width:120px;display:flex;flex-direction:column;align-items:center;
+  gap:.5rem;text-align:center;flex-shrink:0}
+.flow-box{background:var(--cd);border:1.5px solid var(--br);border-radius:var(--rmd);
+  padding:.7rem .9rem;width:100%;font-size:.75rem;font-weight:700;color:var(--tx);line-height:1.4}
+.flow-box.hi{border-color:var(--p);background:rgba(15,118,110,.07)}
+.flow-box.warn{border-color:var(--wa);background:rgba(180,83,9,.06);color:var(--wa)}
+.flow-icon{font-size:.65rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--mu)}
+.flow-arr{display:flex;align-items:center;padding:0 .25rem;flex-shrink:0;align-self:center;margin-top:-20px}
+.flow-arr .material-icons{font-size:20px;color:var(--br)}
+
+/* Hierarchy ladder */
+.ladder{display:flex;flex-direction:column;gap:.5rem;padding:1.5rem;background:var(--sf)}
+.rung{display:flex;align-items:center;gap:.75rem;border-radius:var(--rsm);padding:.6rem 1rem;
+  border-left:4px solid;font-size:.82rem}
+.rung-num{font-weight:800;font-size:1rem;width:24px;text-align:center;flex-shrink:0}
+.rung-text{flex:1}
+.rung-text strong{display:block;font-weight:800}
+.rung-text span{font-size:.75rem;color:var(--mu)}
+.rung-badge{font-size:.65rem;font-weight:800;padding:.15rem .55rem;border-radius:var(--rp);margin-left:auto;white-space:nowrap;flex-shrink:0}
+
+@media(max-width:700px){
+  .eco-pill{width:calc(50% - .75rem)}
+  .eco-pill::before{display:none}
+  .flow{flex-wrap:wrap;gap:.75rem}
+  .flow-arr{display:none}
+  .matrix{grid-template-columns:1fr 1fr;grid-template-rows:auto auto auto}
+  .mx-row-head,.mx-col-head{display:none}
+  .mx-corner{display:none}
+  .layer{flex-wrap:wrap}
+}
 </style>
 </head>
 <body>
@@ -260,6 +374,47 @@ button{font:inherit;cursor:pointer;border:none;background:none}
         <p class="hero-desc">Usability is the quality that makes a product easy, efficient, and satisfying to use. It is not one thing &mdash; it is a composite of learnability, efficiency, memorability, error tolerance, and satisfaction. Get it right and people accomplish their goals. Get it wrong and they leave, or make costly mistakes.</p>
       </div>
       <div class="hero-icon" aria-hidden="true"><span class="material-icons">visibility</span></div>
+    </div>
+
+    <!-- DIAGRAM 1: Usability Ecosystem Map -->
+    <div class="viz" aria-label="Usability ecosystem diagram">
+      <div class="viz-label">Diagram — Usability Ecosystem</div>
+      <div class="eco">
+        <div class="eco-root">Usability</div>
+        <div class="eco-arrow-down"></div>
+        <div class="eco-def">A composite quality: easy to learn, efficient to use, easy to remember, forgiving of errors, and satisfying overall</div>
+        <div class="eco-branch">
+          <div class="eco-pill">
+            <span class="material-icons">school</span>
+            <span class="eco-pill-name">Learnability</span>
+            <span class="eco-pill-desc">First-use task success rate</span>
+          </div>
+          <div class="eco-pill">
+            <span class="material-icons">bolt</span>
+            <span class="eco-pill-name">Efficiency</span>
+            <span class="eco-pill-desc">Task time for expert users</span>
+          </div>
+          <div class="eco-pill">
+            <span class="material-icons">psychology</span>
+            <span class="eco-pill-name">Memorability</span>
+            <span class="eco-pill-desc">Re-proficiency after absence</span>
+          </div>
+          <div class="eco-pill">
+            <span class="material-icons">shield</span>
+            <span class="eco-pill-name">Error Tolerance</span>
+            <span class="eco-pill-desc">Frequency &amp; recoverability</span>
+          </div>
+          <div class="eco-pill">
+            <span class="material-icons">sentiment_satisfied</span>
+            <span class="eco-pill-name">Satisfaction</span>
+            <span class="eco-pill-desc">Subjective pleasantness</span>
+          </div>
+        </div>
+        <div class="eco-outcomes">
+          <div class="eco-out good"><span class="material-icons" style="font-size:16px">check_circle</span>Users accomplish goals</div>
+          <div class="eco-out bad"><span class="material-icons" style="font-size:16px">cancel</span>Users leave or make costly mistakes</div>
+        </div>
+      </div>
     </div>
 
     <div class="feat" role="button" tabindex="0" aria-expanded="false" aria-controls="dr-recruiting" data-tile="recruiting">
@@ -335,6 +490,58 @@ button{font:inherit;cursor:pointer;border:none;background:none}
           <div class="chips"><span class="chip cp">Information Architecture</span><span class="chip cp">Interaction Design</span><span class="chip cm">Visual Design</span><span class="chip cm">Content Strategy</span></div>
           <div class="tko"><strong>Takeaway:</strong> Usability is a quality attribute, not a deliverable. You cannot hand someone &#8220;usability&#8221; &mdash; you can only measure and improve it through observation.</div>
         </div>
+
+        <!-- DIAGRAM 2: UX Discipline Layers -->
+        <div class="viz" aria-label="UX discipline layers">
+          <div class="viz-label">Diagram — UX Discipline Layers (outermost to innermost)</div>
+          <div class="layers">
+            <div class="layer" style="background:rgba(15,118,110,.06)">
+              <div class="layer-bar" style="background:#0f766e"></div>
+              <span class="material-icons layer-icon" style="color:#0f766e">account_tree</span>
+              <div>
+                <div class="layer-name">Information Architecture</div>
+                <div class="layer-desc">How content is organised, labelled, and navigated. Sets the entire mental model.</div>
+              </div>
+              <span class="layer-tag" style="background:rgba(15,118,110,.12);color:#0f766e">Outermost</span>
+            </div>
+            <div class="layer" style="background:rgba(124,58,237,.04)">
+              <div class="layer-bar" style="background:#7c3aed"></div>
+              <span class="material-icons layer-icon" style="color:#7c3aed">touch_app</span>
+              <div>
+                <div class="layer-name">Interaction Design</div>
+                <div class="layer-desc">Flows, transitions, feedback, and the logic of actions &amp; responses.</div>
+              </div>
+              <span class="layer-tag" style="background:rgba(124,58,237,.1);color:#7c3aed">Structure</span>
+            </div>
+            <div class="layer" style="background:rgba(180,83,9,.04)">
+              <div class="layer-bar" style="background:#b45309"></div>
+              <span class="material-icons layer-icon" style="color:#b45309">edit_note</span>
+              <div>
+                <div class="layer-name">Content Strategy</div>
+                <div class="layer-desc">Labels, microcopy, error messages, and hierarchy of information.</div>
+              </div>
+              <span class="layer-tag" style="background:rgba(180,83,9,.1);color:#b45309">Language</span>
+            </div>
+            <div class="layer" style="background:rgba(194,65,12,.04)">
+              <div class="layer-bar" style="background:#c2410c"></div>
+              <span class="material-icons layer-icon" style="color:#c2410c">palette</span>
+              <div>
+                <div class="layer-name">Visual Design (UI)</div>
+                <div class="layer-desc">Colour, typography, spacing, iconography. Communicates hierarchy and brand.</div>
+              </div>
+              <span class="layer-tag" style="background:rgba(194,65,12,.1);color:#c2410c">Surface</span>
+            </div>
+            <div class="layer" style="background:rgba(15,23,42,.03)">
+              <div class="layer-bar" style="background:#667085"></div>
+              <span class="material-icons layer-icon" style="color:#667085">accessible</span>
+              <div>
+                <div class="layer-name">Accessibility</div>
+                <div class="layer-desc">Runs through all layers — keyboard, screen reader, contrast, and cognitive load.</div>
+              </div>
+              <span class="layer-tag" style="background:rgba(102,112,133,.1);color:#667085">Pervasive</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -361,6 +568,90 @@ button{font:inherit;cursor:pointer;border:none;background:none}
           </div>
           <div class="tko"><strong>Takeaway:</strong> Mix generative and evaluative methods. Generative tells you what to build; evaluative tells you whether you built it well.</div>
         </div>
+
+        <!-- DIAGRAM 3: Research Methods 2×2 Matrix -->
+        <div class="viz" aria-label="Research methods matrix">
+          <div class="viz-label">Diagram — Research Methods 2×2 (Attitude vs Behaviour × Qualitative vs Quantitative)</div>
+          <div class="matrix-wrap">
+            <div class="matrix">
+              <div class="mx-corner"></div>
+              <div class="mx-col-head">Qualitative (Why)</div>
+              <div class="mx-col-head">Quantitative (How many)</div>
+              <div class="mx-row-head">Attitudinal<br>(What people say)</div>
+              <div class="mx-cell">
+                <div class="mx-cell-title">Say + Why</div>
+                <div class="mx-cell-tags">
+                  <span class="mx-tag">Interviews</span>
+                  <span class="mx-tag">Focus groups</span>
+                  <span class="mx-tag">Diary studies</span>
+                </div>
+              </div>
+              <div class="mx-cell">
+                <div class="mx-cell-title">Say + How many</div>
+                <div class="mx-cell-tags">
+                  <span class="mx-tag amber">Surveys</span>
+                  <span class="mx-tag amber">NPS</span>
+                  <span class="mx-tag amber">SUS scores</span>
+                </div>
+              </div>
+              <div class="mx-row-head">Behavioural<br>(What people do)</div>
+              <div class="mx-cell">
+                <div class="mx-cell-title">Do + Why</div>
+                <div class="mx-cell-tags">
+                  <span class="mx-tag purple">Moderated testing</span>
+                  <span class="mx-tag purple">Contextual inquiry</span>
+                  <span class="mx-tag purple">Card sorting</span>
+                </div>
+              </div>
+              <div class="mx-cell">
+                <div class="mx-cell-title">Do + How many</div>
+                <div class="mx-cell-tags">
+                  <span class="mx-tag amber">Unmoderated testing</span>
+                  <span class="mx-tag amber">Analytics</span>
+                  <span class="mx-tag amber">A/B testing</span>
+                  <span class="mx-tag amber">Eye tracking</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- DIAGRAM 4: Research Timeline -->
+        <div class="viz" aria-label="Research sprint timeline">
+          <div class="viz-label">Diagram — Lightweight Research Sprint (5–7 days)</div>
+          <div class="timeline">
+            <div class="tl-row">
+              <div class="tl-day">Day 1</div>
+              <div class="tl-spine"><div class="tl-node"><span class="material-icons">flag</span></div><div class="tl-line"></div></div>
+              <div class="tl-body"><div class="tl-title">Research Brief</div><div class="tl-sub">Define the research question. Align stakeholders. Not the solution — the question.</div></div>
+            </div>
+            <div class="tl-row">
+              <div class="tl-day">Days 2–3</div>
+              <div class="tl-spine"><div class="tl-node"><span class="material-icons">description</span></div><div class="tl-line"></div></div>
+              <div class="tl-body"><div class="tl-title">Study Plan + Screener</div><div class="tl-sub">Method, participant criteria, session guide, schedule, roles. Written and approved.</div></div>
+            </div>
+            <div class="tl-row">
+              <div class="tl-day">Day 3</div>
+              <div class="tl-spine"><div class="tl-node"><span class="material-icons">science</span></div><div class="tl-line"></div></div>
+              <div class="tl-body"><div class="tl-title">Pilot Session</div><div class="tl-sub">Run once with a colleague. Fix broken flows and timing before real participants.</div></div>
+            </div>
+            <div class="tl-row">
+              <div class="tl-day">Days 4–5</div>
+              <div class="tl-spine"><div class="tl-node"><span class="material-icons">groups</span></div><div class="tl-line"></div></div>
+              <div class="tl-body"><div class="tl-title">Sessions (5–8 participants)</div><div class="tl-sub">Run sessions. Synthesise same-day — cluster observations within 24 hours.</div></div>
+            </div>
+            <div class="tl-row">
+              <div class="tl-day">Day 6</div>
+              <div class="tl-spine"><div class="tl-node"><span class="material-icons">auto_awesome</span></div><div class="tl-line"></div></div>
+              <div class="tl-body"><div class="tl-title">Synthesis</div><div class="tl-sub">Themes, severity, prioritisation. Do not batch to end of study.</div></div>
+            </div>
+            <div class="tl-row">
+              <div class="tl-day">Day 7</div>
+              <div class="tl-spine"><div class="tl-node"><span class="material-icons">present_to_all</span></div></div>
+              <div class="tl-body"><div class="tl-title">Two-format Readout</div><div class="tl-sub">1-page summary for decisions. Full report for the record. Lead with the summary.</div></div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -382,6 +673,48 @@ button{font:inherit;cursor:pointer;border:none;background:none}
             <div class="step"><span class="snum">10</span><span class="stxt"><strong>Help &amp; documentation</strong> &mdash; easy to find, action-oriented.</span></div>
           </div>
           <div class="tko"><strong>Takeaway:</strong> Heuristics are a diagnostic vocabulary, not a design spec. Severity is context-dependent &mdash; a violation affecting 80% of users daily dwarfs one affecting 0.1% weekly.</div>
+        </div>
+
+        <!-- DIAGRAM 5: Heuristics Severity Table -->
+        <div class="viz" aria-label="Heuristic violation severity guide">
+          <div class="viz-label">Diagram — Heuristic Violation Severity Scale</div>
+          <table class="sev-table" aria-label="Severity levels">
+            <thead>
+              <tr><th>Severity</th><th>Definition</th><th>Action</th><th>Example</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="sev-dot"><span class="dot" style="background:#dc2626"></span>Critical (4)</span></td>
+                <td>Prevents task completion. High frequency.</td>
+                <td>Fix before release</td>
+                <td>Form submit button disabled with no feedback</td>
+              </tr>
+              <tr>
+                <td><span class="sev-dot"><span class="dot" style="background:#f97316"></span>Serious (3)</span></td>
+                <td>Causes significant confusion or delay.</td>
+                <td>Fix this sprint</td>
+                <td>Error message that says "Error 403" only</td>
+              </tr>
+              <tr>
+                <td><span class="sev-dot"><span class="dot" style="background:#eab308"></span>Minor (2)</span></td>
+                <td>Irritating but user can work around it.</td>
+                <td>Schedule soon</td>
+                <td>Inconsistent button label between two screens</td>
+              </tr>
+              <tr>
+                <td><span class="sev-dot"><span class="dot" style="background:#22c55e"></span>Cosmetic (1)</span></td>
+                <td>Noticeable but almost no impact on task.</td>
+                <td>Fix if time allows</td>
+                <td>Slight misalignment on a rarely used modal</td>
+              </tr>
+              <tr>
+                <td><span class="sev-dot"><span class="dot" style="background:#667085"></span>Not an issue (0)</span></td>
+                <td>Disputed or not a real problem.</td>
+                <td>Document, move on</td>
+                <td>Reviewer preference vs. established standard</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -422,6 +755,42 @@ button{font:inherit;cursor:pointer;border:none;background:none}
             </div>
             <div class="tko"><strong>Takeaway:</strong> &#8220;We'll fix the copy later&#8221; is how products ship with confirmation dialogs saying &#8220;Are you sure?&#8221; and errors saying &#8220;Error 403.&#8221; Make content a first-class design decision.</div>
           </div>
+
+          <!-- DIAGRAM 6: Content Strategy Flow -->
+          <div class="viz" aria-label="Content strategy flow">
+            <div class="viz-label">Diagram — Content Strategy: From User Goal to Interface Label</div>
+            <div class="flow">
+              <div class="flow-node">
+                <div class="flow-box hi">User Goal<br><span style="font-weight:400;color:var(--mu)">"I need to pay my invoice"</span></div>
+                <div class="flow-icon">Start</div>
+              </div>
+              <div class="flow-arr"><span class="material-icons">arrow_forward</span></div>
+              <div class="flow-node">
+                <div class="flow-box">Content Audit<br><span style="font-weight:400;color:var(--mu)">What exists? What's missing?</span></div>
+                <div class="flow-icon">Inventory</div>
+              </div>
+              <div class="flow-arr"><span class="material-icons">arrow_forward</span></div>
+              <div class="flow-node">
+                <div class="flow-box">IA &amp; Hierarchy<br><span style="font-weight:400;color:var(--mu)">Where does it live? What's primary?</span></div>
+                <div class="flow-icon">Structure</div>
+              </div>
+              <div class="flow-arr"><span class="material-icons">arrow_forward</span></div>
+              <div class="flow-node">
+                <div class="flow-box">Label Writing<br><span style="font-weight:400;color:var(--mu)">Action-led, plain language</span></div>
+                <div class="flow-icon">Language</div>
+              </div>
+              <div class="flow-arr"><span class="material-icons">arrow_forward</span></div>
+              <div class="flow-node">
+                <div class="flow-box warn">Validate<br><span style="font-weight:400">First-click test or card sort</span></div>
+                <div class="flow-icon">Test</div>
+              </div>
+              <div class="flow-arr"><span class="material-icons">arrow_forward</span></div>
+              <div class="flow-node">
+                <div class="flow-box hi">Shipped Label<br><span style="font-weight:400;color:var(--mu)">"Pay Invoice →"</span></div>
+                <div class="flow-icon">Output</div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div id="ht-project-management">
@@ -460,6 +829,38 @@ button{font:inherit;cursor:pointer;border:none;background:none}
               <div class="step"><span class="snum">5</span><span class="stxt"><strong>Typography is UI.</strong> Font size, weight, and line-height determine whether users can scan efficiently. 16px body, 1.5 line-height, limited weight range.</span></div>
             </div>
             <div class="tko"><strong>Takeaway:</strong> A usability test revealing users ignoring your primary CTA is often a visual design problem. Hierarchy, contrast, and size communicate intent before the user reads a single word.</div>
+          </div>
+
+          <!-- DIAGRAM 7: Visual Hierarchy Ladder -->
+          <div class="viz" aria-label="Visual hierarchy ladder">
+            <div class="viz-label">Diagram — Visual Hierarchy Ladder (most to least attention)</div>
+            <div class="ladder">
+              <div class="rung" style="border-color:#0f766e;background:rgba(15,118,110,.07)">
+                <span class="rung-num" style="color:#0f766e">1</span>
+                <div class="rung-text"><strong style="color:#0f766e">Size &amp; Scale</strong><span>Largest element captures first fixation. Primary action must be largest interactive element.</span></div>
+                <span class="rung-badge" style="background:rgba(15,118,110,.12);color:#0f766e">Highest weight</span>
+              </div>
+              <div class="rung" style="border-color:#7c3aed;background:rgba(124,58,237,.05)">
+                <span class="rung-num" style="color:#7c3aed">2</span>
+                <div class="rung-text"><strong style="color:#7c3aed">Colour &amp; Contrast</strong><span>Use colour to direct — not decorate. High contrast = high importance. Min 4.5:1 for text (WCAG AA).</span></div>
+                <span class="rung-badge" style="background:rgba(124,58,237,.1);color:#7c3aed">Accessibility</span>
+              </div>
+              <div class="rung" style="border-color:#b45309;background:rgba(180,83,9,.05)">
+                <span class="rung-num" style="color:#b45309">3</span>
+                <div class="rung-text"><strong style="color:#b45309">Weight &amp; Type</strong><span>Font weight signals hierarchy. Limit to 2–3 weights. 800 for headings, 600 for labels, 400 for body.</span></div>
+                <span class="rung-badge" style="background:rgba(180,83,9,.1);color:#b45309">Typography</span>
+              </div>
+              <div class="rung" style="border-color:#0ea5e9;background:rgba(14,165,233,.05)">
+                <span class="rung-num" style="color:#0ea5e9">4</span>
+                <div class="rung-text"><strong style="color:#0ea5e9">Whitespace &amp; Proximity</strong><span>Related items are grouped by closeness. Generous whitespace between groups = IA made visible.</span></div>
+                <span class="rung-badge" style="background:rgba(14,165,233,.1);color:#0ea5e9">Layout</span>
+              </div>
+              <div class="rung" style="border-color:#667085;background:rgba(102,112,133,.04)">
+                <span class="rung-num" style="color:#667085">5</span>
+                <div class="rung-text"><strong style="color:#667085">Position</strong><span>Top-left receives first attention (F-pattern for LTR). Primary actions should not be bottom-right on critical flows.</span></div>
+                <span class="rung-badge" style="background:rgba(102,112,133,.1);color:#667085">Scanning</span>
+              </div>
+            </div>
           </div>
         </div>
 
