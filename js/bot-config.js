@@ -17,7 +17,7 @@ const BOT_CONFIG = {
     {
       type: 'message',
       sender: 'bot',
-      text: 'Hello! I am <b>Ankur</b>. Principal UX Designer at Oracle (DBTool Team)',
+      text: 'Hello! I am <b>Ankur</b>. Principal UX Designer focused on <b>agentic workflows</b> and human–AI interaction.',
       delay: 1500
     },
     {
@@ -27,7 +27,7 @@ const BOT_CONFIG = {
     {
       type: 'message',
       sender: 'bot',
-      text: 'Working on cloud solution, designing a shared UX vision for an integrated cloud platform.',
+      text: 'By day I lead design at Oracle on cloud DB tooling. On the side I ship the <b>Sentinel / Recourse / Helm</b> trilogy — code prototypes of how humans stay in the loop with AI.',
       delay: 1500
     },
     {
@@ -56,6 +56,7 @@ const BOT_CONFIG = {
     {
       type: 'quickReplies',
       replies: [
+        { text: 'See the trilogy', url: 'https://github.com/sinhaankur/Probabilistic-UI', target: '_blank' },
         { text: 'About', url: '#scroll-to-about', target: '' }
       ],
       delay: 1500
