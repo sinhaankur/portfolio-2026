@@ -142,8 +142,8 @@
 
         <div class="work-header">
             <img src="../img/Oracle.png" class="responsive-img work-logo"><br><br>
-            <h1 class="center-align responsive-img">Principal UX Designer</h1> 
-            <h5 class="center-align" style="font-weight:400;">Improving console experience for Database Admins</h5>
+            <h1 class="center-align responsive-img">Principal UX Designer</h1>
+            <h5 class="center-align" style="font-weight:400;">Designing AI-assisted database operations and human-in-the-loop interaction patterns for autonomous agents on OCI Database Tools.</h5>
         </div>
 
         <!-- spacer -->
@@ -187,10 +187,12 @@
 
             <ul class="collection">
               <li class="collection-item">UX work across several DBaaS services, partnering with PMs and engineering to frame the right problem before drawing screens.</li>
+              <li class="collection-item">Designing the human-in-the-loop layer for AI-assisted database operations — confidence-state UX, permission handshakes, and audit-trail interfaces for autonomous agents acting on production state.</li>
               <li class="collection-item">Contributing to and reusing patterns from Oracle's HgDS and RDS design systems — especially where console-admin use cases (dense tables, long-running jobs, fleet operations) need things the defaults don't quite cover.</li>
               <li class="collection-item">Sitting in on cross-team design reviews to keep flows consistent and accessible across services.</li>
               <li class="collection-item">Mentoring designers and helping codify how the team goes from research → flows → handoff.</li>
               <li class="collection-item">Helping shape internal critique and review cadence so feedback is structured, not ad-hoc.</li>
+              <li class="collection-item">In parallel — publishing open-source code prototypes (<a href="https://github.com/sinhaankur/Helm" target="_blank">Helm</a>, <a href="https://github.com/sinhaankur/Human-in-the-Loop" target="_blank">Sentinel</a>, <a href="https://github.com/sinhaankur/Recourse" target="_blank">Recourse</a>) and the <a href="https://github.com/sinhaankur/Probabilistic-UI" target="_blank">Probabilistic-UI</a> pattern library as a way to mentor the field publicly and explore the same agentic-UX design moves in adjacent contexts.</li>
             </ul>
 
             <!-- spacer -->
@@ -216,6 +218,38 @@
               <div class="project-stack">
 
                 <details class="project-story" open>
+                  <summary aria-label="AI-assisted database operations case study">
+                    <img src="../img/oci.png" alt="AI-assisted database operations on OCI" class="ps-thumb">
+                    <div class="ps-meta">
+                      <p class="ps-headline">AI-assisted database operations</p>
+                      <p class="ps-tagline">Designing the human-in-the-loop layer for AI agents that act on production database state.</p>
+                    </div>
+                    <span class="ps-toggle">Story</span>
+                  </summary>
+                  <div class="ps-body">
+                    <div class="ps-grid">
+                      <div class="ps-block">
+                        <h6>Context</h6>
+                        <p>Oracle's database services have been getting AI features — query authoring, code generation, autonomous agents that modify state. The design problem isn't "add a chat box." It's how a DBA stays in control while the AI is acting on production systems where mistakes are extraordinarily expensive.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>UX angle</h6>
+                        <p>Three different problem classes hiding inside one feature ask: making model uncertainty legible, making permission asks honest, and making background-agent actions auditable. Each one needed its own primitive.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>Approach</h6>
+                        <p>Confidence-state UX with calibrated bands gating between auto-execute, review-and-edit, and constraint-elicitation. Permission handshakes that are silent for read paths and multi-factor with a diff view for production schema changes — friction-as-a-feature on irreversible writes. Audit-trail interfaces that sync CLI and background-agent actions to a visual log with undo, verify, and intervene affordances. Confidence-score-bound highlighting on AI-generated PL/SQL so reviewers verify-and-edit instead of accept-or-reject.</p>
+                      </div>
+                      <div class="ps-block">
+                        <h6>What I learned</h6>
+                        <p>For AI in operator-grade tools, the design's job is to make the model's uncertainty visible — not to hide it behind confidence theater. <em>Reversibility</em> (recovery cost), not safety, is the right policy axis. The same primitives I've documented in the open-source <a href="https://github.com/sinhaankur/Probabilistic-UI" target="_blank">Probabilistic-UI</a> pattern library carry across all three problem classes.</p>
+                      </div>
+                    </div>
+                    <a class="ps-cta" href="mailto:sinhaankur827@gmail.com?subject=AI-assisted%20DB%20ops%20walkthrough">Request a sanitized walkthrough →</a>
+                  </div>
+                </details>
+
+                <details class="project-story">
                   <summary aria-label="GoldenGate Veridata case study">
                     <img src="../img/oracleveridata.png" alt="GoldenGate Veridata" class="ps-thumb">
                     <div class="ps-meta">
@@ -241,7 +275,6 @@
                       <div class="ps-block">
                         <h6>What I learned</h6>
                         <p>For an operator-grade tool, density isn't a problem to solve — it's a feature to design around. Stripping it for the sake of "clean" is a beginner move.</p>
-                        <span class="placeholder-note">Fill in: a moment from the work that proved this — a user observation, a pattern that travelled, a pushback that turned out to be right.</span>
                       </div>
                     </div>
                     <a class="ps-cta" href="mailto:sinhaankur827@gmail.com?subject=Veridata%20case%20study%20walkthrough">Request a sanitized walkthrough →</a>
@@ -274,7 +307,6 @@
                       <div class="ps-block">
                         <h6>What I learned</h6>
                         <p>The hardest UX problems hide as "just a banner." Recognising when a small interface element is actually a system is half the job.</p>
-                        <span class="placeholder-note">Fill in: a specific moment — e.g. an unexpected edge case the system handled, or a downstream team that picked up the pattern.</span>
                       </div>
                     </div>
                     <a class="ps-cta" href="mailto:sinhaankur827@gmail.com?subject=Autonomous%20DB%20promotions%20walkthrough">Request a sanitized walkthrough →</a>
@@ -307,7 +339,6 @@
                       <div class="ps-block">
                         <h6>What I learned</h6>
                         <p>Design for the user who'd never have asked for the tool. The expert can find the depth; the curious user is who you lose if the on-ramp is wrong.</p>
-                        <span class="placeholder-note">Fill in: a moment from a user session, or a default that turned out to be the right one.</span>
                       </div>
                     </div>
                     <a class="ps-cta" href="mailto:sinhaankur827@gmail.com?subject=Spatial%20Studio%20walkthrough">Request a sanitized walkthrough →</a>
@@ -340,7 +371,6 @@
                       <div class="ps-block">
                         <h6>What I learned</h6>
                         <p>The right abstraction is the one that gives value at the shallow end and never traps you at the deep end. Most failed analytics tools fail one of those two tests.</p>
-                        <span class="placeholder-note">Fill in: a moment from beta — a user who reached an unexpected insight, or feedback that surprised the team.</span>
                       </div>
                     </div>
                     <a class="ps-cta" href="mailto:sinhaankur827@gmail.com?subject=Graph%20Studio%20walkthrough">Request a sanitized walkthrough →</a>
