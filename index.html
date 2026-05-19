@@ -236,6 +236,101 @@
         }
       }
     </style>
+
+    <!-- Open source section — Safari-safe flex grid with explicit card chrome -->
+    <style>
+      .open-source-grid {
+        display: -webkit-box;
+        display: -ms-flexbox;
+        display: flex;
+        -webkit-box-orient: horizontal;
+        -webkit-box-direction: normal;
+        -ms-flex-direction: row;
+        flex-direction: row;
+        -ms-flex-wrap: wrap;
+        flex-wrap: wrap;
+        gap: 20px;
+        margin: 32px auto 0 auto;
+        max-width: 1100px;
+        padding: 0 16px;
+        -webkit-box-pack: center;
+        -ms-flex-pack: center;
+        justify-content: center;
+      }
+
+      .open-source-card {
+        -webkit-box-flex: 1;
+        -ms-flex: 1 1 280px;
+        flex: 1 1 280px;
+        max-width: 340px;
+        min-width: 0;
+        background: #ffffff;
+        border: 1px solid #e6e6e6;
+        border-radius: 14px;
+        padding: 24px 22px 22px;
+        text-decoration: none;
+        color: #202124;
+        text-align: left;
+        box-shadow: 0 2px 6px rgba(32, 33, 36, 0.04);
+        transition: -webkit-transform 0.18s ease, transform 0.18s ease,
+                    box-shadow 0.18s ease, border-color 0.18s ease;
+        display: -webkit-box;
+        display: -ms-flexbox;
+        display: flex;
+        -webkit-box-orient: vertical;
+        -webkit-box-direction: normal;
+        -ms-flex-direction: column;
+        flex-direction: column;
+      }
+
+      .open-source-card:hover,
+      .open-source-card:focus {
+        -webkit-transform: translateY(-3px);
+        transform: translateY(-3px);
+        box-shadow: 0 8px 24px rgba(32, 33, 36, 0.10);
+        border-color: #d1d1d1;
+        outline: none;
+      }
+
+      .open-source-card-title {
+        margin: 0 0 8px 0;
+        font-size: 22px;
+        font-weight: 600;
+        color: #202124;
+        line-height: 1.2;
+      }
+
+      .open-source-card-desc {
+        margin: 0 0 16px 0;
+        font-size: 14px;
+        line-height: 1.55;
+        color: #5f6368;
+        -webkit-box-flex: 1;
+        -ms-flex: 1 1 auto;
+        flex: 1 1 auto;
+      }
+
+      .open-source-card-cta {
+        font-size: 12px;
+        font-weight: 600;
+        color: #c0392b;
+        letter-spacing: 0.02em;
+      }
+
+      @media (max-width: 760px) {
+        .open-source-grid {
+          gap: 14px;
+          padding: 0 12px;
+        }
+        .open-source-card {
+          -ms-flex: 1 1 100%;
+          flex: 1 1 100%;
+          max-width: 100%;
+          padding: 20px 18px 18px;
+        }
+        .open-source-card-title { font-size: 19px; }
+      }
+    </style>
   </head>
   <body>
     <a
@@ -296,9 +391,9 @@
                 <span class="material-icons">lightbulb_outline</span>
                 <span>Technical insights</span>
               </a>
-              <a href="https://github.com/sinhaankur/Probabilistic-UI" target="_blank" rel="noopener" class="chip-tile chip-tile--accent">
+              <a href="#open-source" class="chip-tile chip-tile--accent">
                 <span class="material-icons">psychology</span>
-                <span>Agentic UX · trilogy</span>
+                <span>Open source · trilogy</span>
               </a>
               <a href="./tools-experiments.html" class="chip-tile">
                 <span class="material-icons">construction</span>
@@ -340,6 +435,56 @@
           "
         ></div>
       </div>
+
+      <!-- Open source — promoted to the top of work history -->
+      <div class="section" id="open-source">
+        <div class="row center-align">
+          <div class="col l3 s12"></div>
+          <div class="col l6 s12">
+            <p class="center-align x-large-text" style="color: #5f6368">
+              <span style="font-size: 14px; color: #80868b">Ongoing<br /></span>
+              <span class="xxx-large-text" style="color: #202124">Open source<br /></span>
+              Research &amp; mentorship — agentic-UX patterns, in public
+            </p>
+            <p class="center-align" style="color: #5f6368; font-size: 14px; margin-top: 1.5rem; line-height: 1.55;">
+              I publish open-source code prototypes to mentor the field publicly and explore the design moves I want enterprise products to use. A connected trilogy — same shared vocabulary across all three, documented as a pattern library at <a href="https://github.com/sinhaankur/Probabilistic-UI" target="_blank" rel="noopener" style="color: #c0392b;">Probabilistic-UI</a>.
+            </p>
+          </div>
+          <div class="col l3 s12"></div>
+        </div>
+
+        <div class="open-source-grid">
+          <a class="open-source-card" href="https://sinhaankur.github.io/Helm/" target="_blank" rel="noopener">
+            <h5 class="open-source-card-title">Helm</h5>
+            <p class="open-source-card-desc">Real-time oversight of LLM agents — approval gate, reversibility chip, diff view.</p>
+            <span class="open-source-card-cta">Live demo →</span>
+          </a>
+
+          <a class="open-source-card" href="https://sinhaankur.github.io/Human-in-the-Loop/" target="_blank" rel="noopener">
+            <h5 class="open-source-card-title">Sentinel</h5>
+            <p class="open-source-card-desc">Embeddable inline AI oversight — ships as React lib, Chrome ext, VS Code participant, Docker.</p>
+            <span class="open-source-card-cta">Live demo →</span>
+          </a>
+
+          <a class="open-source-card" href="https://sinhaankur.github.io/Recourse/" target="_blank" rel="noopener">
+            <h5 class="open-source-card-title">Recourse</h5>
+            <p class="open-source-card-desc">Consumer AI as advocate against institutional loops — outcome-driven, statute-anchored.</p>
+            <span class="open-source-card-cta">Live demo →</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="row center-align">
+        <div
+          style="
+            background-color: #32393b;
+            height: 1px;
+            width: 150px;
+            margin: 40px auto;
+          "
+        ></div>
+      </div>
+
       <div class="section">
         <div class="row center-align">
           <div class="col l3 s12"></div>
@@ -369,62 +514,6 @@
           >
             <img src="img/Oracle.png" class="responsive-img" />
           </div>
-
-          <div class="col l1 s12"></div>
-        </div>
-      </div>
-      <div class="row center-align">
-        <div
-          style="
-            background-color: #32393b;
-            height: 1px;
-            width: 150px;
-            margin: 40px auto;
-          "
-        ></div>
-      </div>
-      <div class="section" id="open-source">
-        <div class="row center-align">
-          <div class="col l3 s12"></div>
-
-          <div class="col l6 s12">
-            <p class="center-align x-large-text" style="color: #5f6368">
-              <span style="font-size: 14px; color: #80868b">
-                Ongoing<br
-              /></span>
-              <span class="xxx-large-text" style="color: #202124">
-                Open source<br
-              /></span>
-              Research &amp; mentorship — agentic-UX patterns, in public
-            </p>
-            <p class="center-align" style="color: #5f6368; font-size: 14px; margin-top: 1.5rem; line-height: 1.55;">
-              I publish open-source code prototypes to mentor the field publicly and explore the design moves I want enterprise products to use. A connected trilogy — same shared vocabulary across all three, documented as a pattern library at <a href="https://github.com/sinhaankur/Probabilistic-UI" target="_blank" rel="noopener" style="color: #c0392b;">Probabilistic-UI</a>.
-            </p>
-          </div>
-
-          <div class="col l3 s12"></div>
-        </div>
-
-        <div class="row center-align" style="margin-top: 1.5rem;">
-          <div class="col l1 s12"></div>
-
-          <a class="col l3 s12 card-hover" style="padding: 2.5% !important; display: block; text-decoration: none; margin: 0 0.5%;" href="https://sinhaankur.github.io/Helm/" target="_blank" rel="noopener">
-            <h5 style="margin: 0 0 0.4rem 0; color: #202124;">Helm</h5>
-            <p style="color: #5f6368; font-size: 13px; line-height: 1.4; margin: 0 0 0.6rem 0;">Real-time oversight of LLM agents — approval gate, reversibility chip, diff view.</p>
-            <span style="font-size: 12px; color: #c0392b;">Live demo →</span>
-          </a>
-
-          <a class="col l3 s12 card-hover" style="padding: 2.5% !important; display: block; text-decoration: none; margin: 0 0.5%;" href="https://sinhaankur.github.io/Human-in-the-Loop/" target="_blank" rel="noopener">
-            <h5 style="margin: 0 0 0.4rem 0; color: #202124;">Sentinel</h5>
-            <p style="color: #5f6368; font-size: 13px; line-height: 1.4; margin: 0 0 0.6rem 0;">Embeddable inline AI oversight — ships as React lib, Chrome ext, VS Code, Docker.</p>
-            <span style="font-size: 12px; color: #c0392b;">Live demo →</span>
-          </a>
-
-          <a class="col l3 s12 card-hover" style="padding: 2.5% !important; display: block; text-decoration: none; margin: 0 0.5%;" href="https://sinhaankur.github.io/Recourse/" target="_blank" rel="noopener">
-            <h5 style="margin: 0 0 0.4rem 0; color: #202124;">Recourse</h5>
-            <p style="color: #5f6368; font-size: 13px; line-height: 1.4; margin: 0 0 0.6rem 0;">Consumer AI as advocate against institutional loops — outcome-driven, statute-anchored.</p>
-            <span style="font-size: 12px; color: #c0392b;">Live demo →</span>
-          </a>
 
           <div class="col l1 s12"></div>
         </div>
