@@ -331,6 +331,167 @@
         .open-source-card-title { font-size: 19px; }
       }
     </style>
+
+    <!-- Unhosted section — dark feature card with the trust-radius diagram -->
+    <style>
+      .unhosted-card {
+        max-width: 980px;
+        margin: 32px auto 0 auto;
+        background: #0f1010;
+        color: #f5f5f5;
+        border-radius: 18px;
+        padding: 36px 36px 32px;
+        box-shadow: 0 14px 40px rgba(15, 16, 16, 0.18);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .unhosted-card::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          circle at 85% 0%,
+          rgba(192, 57, 43, 0.28),
+          transparent 55%
+        );
+        pointer-events: none;
+      }
+
+      .unhosted-card-inner {
+        position: relative;
+        z-index: 1;
+        display: -webkit-box;
+        display: -ms-flexbox;
+        display: flex;
+        -webkit-box-orient: horizontal;
+        -webkit-box-direction: normal;
+        -ms-flex-direction: row;
+        flex-direction: row;
+        -ms-flex-wrap: wrap;
+        flex-wrap: wrap;
+        gap: 36px;
+      }
+
+      .unhosted-copy {
+        -webkit-box-flex: 2;
+        -ms-flex: 2 1 360px;
+        flex: 2 1 360px;
+        min-width: 0;
+      }
+
+      .unhosted-eyebrow {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: #c0392b;
+        margin: 0 0 14px 0;
+      }
+
+      .unhosted-title {
+        margin: 0 0 8px 0;
+        font-size: 32px;
+        font-weight: 600;
+        line-height: 1.1;
+        color: #ffffff;
+        letter-spacing: -0.01em;
+      }
+
+      .unhosted-tagline {
+        margin: 0 0 18px 0;
+        font-size: 17px;
+        line-height: 1.5;
+        color: #d8d3c8;
+      }
+
+      .unhosted-desc {
+        margin: 0 0 20px 0;
+        font-size: 14px;
+        line-height: 1.65;
+        color: #b5afa3;
+      }
+
+      .unhosted-status {
+        display: inline-block;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #d8d3c8;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        padding: 5px 10px;
+        border-radius: 999px;
+        margin-right: 8px;
+      }
+
+      .unhosted-diagram {
+        -webkit-box-flex: 1;
+        -ms-flex: 1 1 260px;
+        flex: 1 1 260px;
+        min-width: 0;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.10);
+        border-radius: 12px;
+        padding: 20px;
+        font-family: "Courier New", "Menlo", monospace;
+        font-size: 12px;
+        line-height: 1.6;
+        color: #d8d3c8;
+        white-space: pre;
+        overflow-x: auto;
+      }
+
+      .unhosted-repos {
+        margin: 24px 0 0 0;
+        padding: 20px 0 0 0;
+        border-top: 1px solid rgba(255, 255, 255, 0.10);
+        display: -webkit-box;
+        display: -ms-flexbox;
+        display: flex;
+        -ms-flex-wrap: wrap;
+        flex-wrap: wrap;
+        gap: 8px;
+        position: relative;
+        z-index: 1;
+      }
+
+      .unhosted-repo {
+        display: inline-block;
+        font-size: 12px;
+        font-weight: 500;
+        color: #f5f5f5;
+        text-decoration: none;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 999px;
+        padding: 6px 14px;
+        transition: background 0.18s ease, border-color 0.18s ease,
+                    -webkit-transform 0.18s ease, transform 0.18s ease;
+      }
+
+      .unhosted-repo:hover,
+      .unhosted-repo:focus {
+        background: rgba(192, 57, 43, 0.18);
+        border-color: rgba(192, 57, 43, 0.55);
+        -webkit-transform: translateY(-1px);
+        transform: translateY(-1px);
+        outline: none;
+      }
+
+      @media (max-width: 760px) {
+        .unhosted-card {
+          padding: 26px 22px 22px;
+          margin: 24px 12px 0 12px;
+          border-radius: 14px;
+        }
+        .unhosted-card-inner { gap: 24px; }
+        .unhosted-title { font-size: 26px; }
+        .unhosted-tagline { font-size: 15px; }
+        .unhosted-diagram { font-size: 11px; padding: 16px; }
+      }
+    </style>
   </head>
   <body>
     <a
@@ -391,6 +552,10 @@
                 <span class="material-icons">lightbulb_outline</span>
                 <span>Technical insights</span>
               </a>
+              <a href="#unhosted" class="chip-tile chip-tile--accent">
+                <span class="material-icons">memory</span>
+                <span>Unhosted · currently building</span>
+              </a>
               <a href="#open-source" class="chip-tile chip-tile--accent">
                 <span class="material-icons">psychology</span>
                 <span>Open source · trilogy</span>
@@ -436,7 +601,63 @@
         ></div>
       </div>
 
-      <!-- Open source — promoted to the top of work history -->
+      <!-- Unhosted — currently building -->
+      <div class="section" id="unhosted">
+        <div class="row center-align">
+          <div class="col l3 s12"></div>
+          <div class="col l6 s12">
+            <p class="center-align x-large-text" style="color: #5f6368">
+              <span style="font-size: 14px; color: #80868b">Currently building<br /></span>
+              <span class="xxx-large-text" style="color: #202124">Unhosted<br /></span>
+              AI that lives where you do — frontier-class inference on hardware you own
+            </p>
+          </div>
+          <div class="col l3 s12"></div>
+        </div>
+
+        <div class="unhosted-card">
+          <div class="unhosted-card-inner">
+            <div class="unhosted-copy">
+              <p class="unhosted-eyebrow">github.com/unhosted-ai · CLI v0.0.34</p>
+              <h3 class="unhosted-title">AI that lives where you do.</h3>
+              <p class="unhosted-tagline">Pool the computers you already own — and optionally your friends', and optionally a public swarm of strangers' GPUs — into a single inference cluster. One endpoint. Mac, Linux, Windows. CUDA, Metal, ROCm.</p>
+              <p class="unhosted-desc">Three trust modes. You decide the radius. Local and trusted are free forever; public is the safety net you pay for in USDC only when you opt in. You can use Unhosted for the rest of your life and never spend a dollar.</p>
+              <span class="unhosted-status">pre-alpha</span>
+              <span class="unhosted-status">built in public</span>
+              <span class="unhosted-status">Apache 2.0</span>
+            </div>
+            <pre class="unhosted-diagram" aria-hidden="true">       ╭───────────────────────────────╮
+       │   public · pay (USDC)         │
+       │   ╭───────────────────────╮   │
+       │   │  trusted · free       │   │
+       │   │   ╭───────────────╮   │   │
+       │   │   │ local · free  │   │   │
+       │   │   ╰───────────────╯   │   │
+       │   ╰───────────────────────╯   │
+       ╰───────────────────────────────╯</pre>
+          </div>
+
+          <div class="unhosted-repos">
+            <a class="unhosted-repo" href="https://github.com/unhosted-ai/unhosted-core" target="_blank" rel="noopener">unhosted-core · Rust daemon</a>
+            <a class="unhosted-repo" href="https://github.com/unhosted-ai/unhosted-payments" target="_blank" rel="noopener">unhosted-payments · settlement layer</a>
+            <a class="unhosted-repo" href="https://github.com/unhosted-ai/unhosted-plugins" target="_blank" rel="noopener">unhosted-plugins · MCP server first</a>
+            <a class="unhosted-repo" href="https://github.com/unhosted-ai/homebrew-unhosted" target="_blank" rel="noopener">homebrew-unhosted · brew tap</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="row center-align">
+        <div
+          style="
+            background-color: #32393b;
+            height: 1px;
+            width: 150px;
+            margin: 40px auto;
+          "
+        ></div>
+      </div>
+
+      <!-- Open source — research & mentorship -->
       <div class="section" id="open-source">
         <div class="row center-align">
           <div class="col l3 s12"></div>
