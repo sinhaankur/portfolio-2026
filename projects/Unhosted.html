@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0"/>
+  <link rel="icon" href="../img/logo.png">
+  <title>Unhosted — Ankur Sinha · Principal UX Designer</title>
+  <meta name="description" content="Unhosted is frontier-class AI inference on hardware you own. Three trust modes — local, trusted, public — pooled into one inference cluster. Currently building, pre-alpha, CLI at v0.0.34. Founder + lead designer + engineer: Ankur Sinha." />
+  <meta name="author" content="Ankur Sinha" />
+  <link rel="canonical" href="https://sinhaankur-portfolio.netlify.app/projects/Unhosted.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="Ankur Sinha · Principal UX Designer" />
+  <meta property="og:title" content="Unhosted — AI that lives where you do" />
+  <meta property="og:description" content="Frontier-class AI inference on hardware you own. Three trust modes — local, trusted, public. Currently building, pre-alpha." />
+  <meta property="og:url" content="https://sinhaankur-portfolio.netlify.app/projects/Unhosted.html" />
+  <meta property="og:image" content="https://sinhaankur-portfolio.netlify.app/img/Oracle.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Unhosted — AI that lives where you do" />
+  <meta name="twitter:description" content="Frontier-class AI inference on hardware you own. Three trust modes — local, trusted, public." />
+
+  <!-- CSS -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.3/css/font-awesome.css">
+  <link href="../css/materialize.css" type="text/css" rel="stylesheet" media="screen,projection"/>
+  <link href="../css/style.css" type="text/css" rel="stylesheet" media="screen,projection"/>
+
+  <style>
+    /* Hero feature card — same dark + vermilion treatment as the homepage Unhosted card */
+    .uh-hero {
+      max-width: 980px;
+      margin: 32px auto 8px auto;
+      background: #0f1010;
+      color: #f5f5f5;
+      border-radius: 18px;
+      padding: 44px 40px 36px;
+      box-shadow: 0 14px 40px rgba(15, 16, 16, 0.18);
+      position: relative;
+      overflow: hidden;
+    }
+    .uh-hero::after {
+      content: "";
+      position: absolute; inset: 0;
+      background: radial-gradient(circle at 85% 0%, rgba(192, 57, 43, 0.28), transparent 55%);
+      pointer-events: none;
+    }
+    .uh-hero-inner {
+      position: relative; z-index: 1;
+      display: -webkit-box; display: -ms-flexbox; display: flex;
+      -ms-flex-direction: row; flex-direction: row;
+      -ms-flex-wrap: wrap; flex-wrap: wrap;
+      gap: 40px;
+    }
+    .uh-hero-copy { -ms-flex: 2 1 380px; flex: 2 1 380px; min-width: 0; }
+    .uh-hero-eyebrow {
+      font-size: 11px; font-weight: 600;
+      letter-spacing: 0.18em; text-transform: uppercase;
+      color: #c0392b; margin: 0 0 14px 0;
+    }
+    .uh-hero-title {
+      margin: 0 0 12px 0;
+      font-size: clamp(28px, 4.5vw, 42px);
+      font-weight: 600; line-height: 1.1;
+      color: #ffffff; letter-spacing: -0.01em;
+    }
+    .uh-hero-tagline {
+      margin: 0 0 16px 0;
+      font-size: 17px; line-height: 1.5;
+      color: #d8d3c8;
+    }
+    .uh-hero-status {
+      display: inline-block;
+      font-size: 11px; font-weight: 600;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: #d8d3c8;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      padding: 5px 10px; border-radius: 999px;
+      margin-right: 8px; margin-top: 4px;
+    }
+    .uh-diagram {
+      -ms-flex: 1 1 280px; flex: 1 1 280px;
+      min-width: 0;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      border-radius: 12px;
+      padding: 22px;
+      font-family: "Courier New", "Menlo", monospace;
+      font-size: 12px; line-height: 1.6;
+      color: #d8d3c8; white-space: pre; overflow-x: auto;
+    }
+
+    /* Trust-mode cards */
+    .trust-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+      margin: 20px 0 8px 0;
+    }
+    .trust-card {
+      background: #fff;
+      border: 1px solid #e6e6e6;
+      border-radius: 12px;
+      padding: 20px 20px 18px;
+    }
+    .trust-card-label {
+      font-size: 11px; font-weight: 700;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: #c0392b; margin: 0 0 6px 0;
+    }
+    .trust-card-name { font-size: 18px; font-weight: 600; margin: 0 0 8px 0; color: #202124; }
+    .trust-card-body { font-size: 14px; line-height: 1.55; color: #5f6368; margin: 0; }
+
+    /* Status table for "what's shipped" */
+    .uh-status-table {
+      width: 100%; border-collapse: collapse;
+      margin: 12px 0 8px 0;
+      font-size: 14px;
+    }
+    .uh-status-table th, .uh-status-table td {
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 1px solid #eee;
+      vertical-align: top;
+    }
+    .uh-status-table th {
+      font-size: 11px; font-weight: 600;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: #80868b; background: #fafafa;
+    }
+    .uh-status-shipped {
+      display: inline-block;
+      background: rgba(42, 122, 80, 0.10);
+      color: #1f6b3f; border: 1px solid rgba(42, 122, 80, 0.25);
+      font-size: 11px; font-weight: 600;
+      padding: 2px 8px; border-radius: 999px;
+      letter-spacing: 0.04em; text-transform: uppercase;
+    }
+    .uh-status-pending {
+      display: inline-block;
+      background: rgba(176, 128, 48, 0.10);
+      color: #8a5e1a; border: 1px solid rgba(176, 128, 48, 0.25);
+      font-size: 11px; font-weight: 600;
+      padding: 2px 8px; border-radius: 999px;
+      letter-spacing: 0.04em; text-transform: uppercase;
+    }
+
+    /* Repo "project stories" — same shape as Oracle.html */
+    .uh-repo-card {
+      background: #fff;
+      border: 1px solid #ececec;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 16px;
+    }
+    .uh-repo-head {
+      display: -webkit-box; display: -ms-flexbox; display: flex;
+      -ms-flex-align: baseline; align-items: baseline;
+      -ms-flex-wrap: wrap; flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .uh-repo-name {
+      font-size: 19px; font-weight: 600;
+      color: #202124; margin: 0;
+    }
+    .uh-repo-lang {
+      font-size: 11px; font-weight: 600;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: #80868b;
+      background: #f5f5f5;
+      padding: 2px 8px; border-radius: 999px;
+    }
+    .uh-repo-link {
+      margin-left: auto;
+      font-size: 13px; font-weight: 600;
+      color: #c0392b; text-decoration: none;
+    }
+    .uh-repo-link:hover { color: #8a2f23; }
+    .uh-repo-body p { font-size: 14px; line-height: 1.6; color: #5f6368; margin: 8px 0; }
+    .uh-repo-body strong { color: #202124; }
+
+    @media (max-width: 760px) {
+      .uh-hero { padding: 28px 22px 24px; margin: 16px 8px 8px 8px; border-radius: 14px; }
+      .uh-hero-inner { gap: 24px; }
+      .uh-diagram { font-size: 11px; padding: 16px; }
+    }
+  </style>
+  <script>
+    document.documentElement.classList.add("js-animate");
+  </script>
+  <style>
+    .js-animate .work-header,
+    .js-animate blockquote,
+    .js-animate .uh-hero,
+    .js-animate .trust-card,
+    .js-animate .uh-repo-card,
+    .js-animate .collection-item { opacity: 0; }
+  </style>
+  <script type="module" src="../js/page-animations.js"></script>
+  <script src="../js/page-transitions.js" defer></script>
+</head>
+<body class="case-study-page">
+
+  <div class="navbar-fixed">
+    <nav class="lighten-1" role="navigation">
+      <div class="nav-wrapper container">
+        <a id="logo-container" href="../index.html#scroll-to-work" class="brand-logo"><img src="../img/logo.svg"></a>
+        <ul class="right hide-on-med-and-down">
+          <li><a href="../index.html#scroll-to-about">About</a></li>
+          <li><a href="https://medium.com/@sinhaankur" target="_blank">Writing</a></li>
+          <li><a href="../resume.pdf" target="_blank">Resume</a></li>
+        </ul>
+        <ul id="nav-mobile" class="side-nav">
+          <li><a href="../index.html#scroll-to-about">About</a></li>
+          <li><a href="https://medium.com/@sinhaankur" target="_blank">Writing</a></li>
+          <li><a href="../resume.pdf" target="_blank">Resume</a></li>
+        </ul>
+        <a href="#" data-activates="nav-mobile" class="button-collapse"><i class="material-icons" style="color:#424242;">menu</i></a>
+      </div>
+    </nav>
+  </div><br>
+
+  <div class="container">
+    <div class="spacer"></div>
+
+    <div class="work-header">
+      <h1 class="center-align responsive-img">Currently building</h1>
+      <h5 class="center-align" style="font-weight:400;">Unhosted — AI that lives where you do. Frontier-class inference on hardware you own.</h5>
+    </div>
+
+    <!-- Hero feature card with the trust-radius diagram -->
+    <div class="uh-hero">
+      <div class="uh-hero-inner">
+        <div class="uh-hero-copy">
+          <p class="uh-hero-eyebrow">github.com/unhosted-ai · CLI v0.0.34</p>
+          <h2 class="uh-hero-title">AI that lives where you do.</h2>
+          <p class="uh-hero-tagline">Pool the computers you already own — and optionally your friends', and optionally a public swarm of strangers' GPUs — into a single inference cluster. One endpoint. Mac, Linux, Windows. CUDA, Metal, ROCm.</p>
+          <p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.65; color: #b5afa3;">Three trust modes. You decide the radius. Local and trusted are free forever; public is the safety net you pay for in USDC only when you opt in. You can use Unhosted for the rest of your life and never spend a dollar.</p>
+          <span class="uh-hero-status">pre-alpha</span>
+          <span class="uh-hero-status">built in public</span>
+          <span class="uh-hero-status">Apache 2.0</span>
+        </div>
+        <pre class="uh-diagram" aria-hidden="true">       ╭───────────────────────────────╮
+       │   public · pay (USDC)         │
+       │   ╭───────────────────────╮   │
+       │   │  trusted · free       │   │
+       │   │   ╭───────────────╮   │   │
+       │   │   │ local · free  │   │   │
+       │   │   ╰───────────────╯   │   │
+       │   ╰───────────────────────╯   │
+       ╰───────────────────────────────╯</pre>
+      </div>
+    </div>
+
+    <div class="small-spacer"></div>
+    <p class="x-large-text">
+      Unhosted is the open-source project I started to answer one question: <strong>when frontier AI runs as well on your laptop as it does in a hyperscaler, who owns the inference?</strong>
+    </p>
+
+    <div class="small-spacer"></div>
+    <div><h5>The trust radius</h5><hr class="underline left"></div>
+
+    <div class="trust-grid">
+      <div class="trust-card">
+        <p class="trust-card-label">1 · Local</p>
+        <p class="trust-card-name">Devices you own</p>
+        <p class="trust-card-body">Your laptop, gaming PC, home server. No internet required. Free forever. The whole product works here without ever crossing the network boundary.</p>
+      </div>
+      <div class="trust-card">
+        <p class="trust-card-label">2 · Trusted</p>
+        <p class="trust-card-name">Friends, family, team</p>
+        <p class="trust-card-body">Your roommate's PC, your homelab, your team. End-to-end encrypted, no public exposure, no payment. Pair once over the internet, then routes treat them like local.</p>
+      </div>
+      <div class="trust-card">
+        <p class="trust-card-label">3 · Public</p>
+        <p class="trust-card-name">Strangers' GPUs · USDC</p>
+        <p class="trust-card-body">Opt-in safety net. A swarm of strangers renting idle GPUs for USDC per token. Used only when your circle can't fulfill the request, with a per-month spend cap you set.</p>
+      </div>
+    </div>
+
+    <div class="small-spacer"></div>
+    <div><h5>What's honest about today</h5><hr class="underline left"></div>
+
+    <p class="x-large-text">
+      The product is pre-alpha and shipping in public. Status is named explicitly, not hidden behind a polished feature page. This table is the truth about what works today.
+    </p>
+
+    <table class="uh-status-table">
+      <thead>
+        <tr><th>Capability</th><th>Status</th><th>Notes</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Single-machine inference</td>
+          <td><span class="uh-status-shipped">shipped</span></td>
+          <td>v0.0.1. Wraps <code>llama.cpp</code> <code>llama-server</code>. Smoke-tested on M-series.</td>
+        </tr>
+        <tr>
+          <td>LAN cluster (request routing)</td>
+          <td><span class="uh-status-shipped">shipped</span></td>
+          <td>v0.0.2. Round-robin across local + peers; verified end-to-end.</td>
+        </tr>
+        <tr>
+          <td>mDNS peer discovery + pairing</td>
+          <td><span class="uh-status-shipped">shipped</span></td>
+          <td>v0.0.3. One-click pair in the app sidebar; hot-reload routing.</td>
+        </tr>
+        <tr>
+          <td>Model management (<code>unhosted pull</code>)</td>
+          <td><span class="uh-status-shipped">shipped</span></td>
+          <td>Known short names + direct GGUF URL support.</td>
+        </tr>
+        <tr>
+          <td>Public-mode policy + signed receipts</td>
+          <td><span class="uh-status-shipped">shipped</span></td>
+          <td><code>unhosted-payments-core</code> 0.0.2 + daemon integration in v0.0.39. Cross-language wire compatibility (Rust ↔ TypeScript) verified.</td>
+        </tr>
+        <tr>
+          <td>Wallet-js payer helpers</td>
+          <td><span class="uh-status-shipped">shipped</span></td>
+          <td><code>@unhosted-ai/wallet-js</code> 0.0.1. Browser + Node.</td>
+        </tr>
+        <tr>
+          <td>VRAM-pooling via RPC-enabled <code>llama.cpp</code></td>
+          <td><span class="uh-status-shipped">shipped</span></td>
+          <td>Distributed via the <code>homebrew-unhosted</code> tap because upstream Homebrew omits <code>-DGGML_RPC=ON</code>.</td>
+        </tr>
+        <tr>
+          <td>MCP server (first plugin)</td>
+          <td><span class="uh-status-pending">scaffolded</span></td>
+          <td>Exposes local capabilities (memory, web fetch, VRAM-pool status) as MCP tools so Claude Desktop and IDE clients can call into the daemon.</td>
+        </tr>
+        <tr>
+          <td>First payment rail (Lightning leading candidate)</td>
+          <td><span class="uh-status-pending">pending</span></td>
+          <td>Slice 3 of the transactional-public-mode ADR.</td>
+        </tr>
+        <tr>
+          <td>Solidity escrow on Base</td>
+          <td><span class="uh-status-pending">pending</span></td>
+          <td>Slice 5 of the transactional-public-mode ADR.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="small-spacer"></div>
+    <div><h5>Repos in the org</h5><hr class="underline left"></div>
+
+    <div class="uh-repo-card">
+      <div class="uh-repo-head">
+        <p class="uh-repo-name">unhosted-core</p>
+        <span class="uh-repo-lang">Rust</span>
+        <a class="uh-repo-link" href="https://github.com/unhosted-ai/unhosted-core" target="_blank" rel="noopener">View on GitHub →</a>
+      </div>
+      <div class="uh-repo-body">
+        <p>The daemon. Wraps <code>llama.cpp</code>'s <code>llama-server</code> on each node and presents a single OpenAI-compatible inference endpoint across the whole cluster.</p>
+        <p><strong>What it does:</strong> mDNS peer discovery on the LAN, one-click pairing over the internet for trusted nodes, round-robin routing across local + peers with hot-reload, model management (<code>unhosted pull llama3.1:70b</code>), VRAM-pooling via RPC-enabled <code>llama.cpp</code>, public-mode policy + signed-receipt verification.</p>
+        <p><strong>Why it lives in its own crate:</strong> the daemon's release cadence is hardware-bound (Apple silicon updates, CUDA driver versions, ROCm releases). Compliance and rails work for the public mode happens on a different clock — that's <code>unhosted-payments</code>.</p>
+      </div>
+    </div>
+
+    <div class="uh-repo-card">
+      <div class="uh-repo-head">
+        <p class="uh-repo-name">unhosted-payments</p>
+        <span class="uh-repo-lang">Rust + TypeScript</span>
+        <a class="uh-repo-link" href="https://github.com/unhosted-ai/unhosted-payments" target="_blank" rel="noopener">View on GitHub →</a>
+      </div>
+      <div class="uh-repo-body">
+        <p>The settlement layer. When peers rent out idle compute to strangers in public mode, this is where the money moves — policy-driven, multi-rail, country-aware.</p>
+        <p><strong>Why a separate repo:</strong> three reasons. <em>Cadence</em> — compliance and rails work on a different clock than daemon engineering; a blocked KYC vendor review shouldn't pause a VRAM-pool release. <em>Surface</em> — payments touches more languages than the daemon's Rust (TypeScript for wallet helpers, Solidity for the Base escrow, possibly Swift/Kotlin for mobile receipt verification). <em>Trust boundary</em> — sensitive code (key handling, settlement state) is reviewable in isolation; a reader auditing payments shouldn't have to skim 50k lines of daemon code to find the parts that move money.</p>
+        <p><strong>Shape:</strong> Rust <code>core</code> crate with <code>PeerPaymentPolicy</code>, <code>PaymentRail</code>, <code>KycTier</code>, <code>Country</code>, <code>SignedReceipt</code>, <code>verify_receipt</code>, <code>sign_receipt</code>. TypeScript <code>wallet-js</code> for payer-side browser/Node helpers, cross-verified by an integration test that signs a quote in Node and posts it to a running daemon. Solidity escrow on Base pending.</p>
+      </div>
+    </div>
+
+    <div class="uh-repo-card">
+      <div class="uh-repo-head">
+        <p class="uh-repo-name">unhosted-plugins</p>
+        <span class="uh-repo-lang">TypeScript</span>
+        <a class="uh-repo-link" href="https://github.com/unhosted-ai/unhosted-plugins" target="_blank" rel="noopener">View on GitHub →</a>
+      </div>
+      <div class="uh-repo-body">
+        <p>Extensions that talk to a running Unhosted daemon. Each plugin lives in its own top-level directory; the only thing that makes it a "plugin" is that it talks to the documented HTTP API at <code>127.0.0.1:7777</code>.</p>
+        <p><strong>First plugin (scaffolded):</strong> <code>mcp-server/</code> — exposes Unhosted's local capabilities (memory, web fetch, VRAM-pool status) as MCP tools so MCP-aware clients like Claude Desktop or IDE extensions can call into the daemon.</p>
+        <p><strong>Why a separate repo:</strong> the core daemon stays small, and plugin work doesn't block daemon releases (or vice versa).</p>
+      </div>
+    </div>
+
+    <div class="uh-repo-card">
+      <div class="uh-repo-head">
+        <p class="uh-repo-name">homebrew-unhosted</p>
+        <span class="uh-repo-lang">Ruby</span>
+        <a class="uh-repo-link" href="https://github.com/unhosted-ai/homebrew-unhosted" target="_blank" rel="noopener">View on GitHub →</a>
+      </div>
+      <div class="uh-repo-body">
+        <p>Homebrew tap for Unhosted dependencies that aren't shipped by upstream Homebrew the way Unhosted needs them.</p>
+        <p><strong>Today:</strong> one formula, <code>llama-cpp-rpc</code> — <code>llama.cpp</code> built with <code>-DGGML_RPC=ON</code>, which Unhosted's VRAM-pooling feature requires. Upstream <code>brew install llama.cpp</code> omits the flag, so <code>llama-server</code> ships without <code>--rpc</code> support and <code>rpc-server</code> isn't built at all. The tap fills the gap.</p>
+      </div>
+    </div>
+
+    <div class="spacer"></div>
+    <div><h5>Design moves I'm proud of</h5><hr class="underline left"></div>
+
+    <ul class="collection">
+      <li class="collection-item">
+        <strong>"Status: pre-alpha" as the first line of the README.</strong>
+        Most pre-alpha projects pretend otherwise. Naming it up front earns the right to ship in public without misleading anyone. The same posture runs through the "What's honest" status table — a binary "works / doesn't" per capability, no aspirational features dressed as shipped ones.
+      </li>
+      <li class="collection-item">
+        <strong>Three trust modes as a visual primitive, not a settings page.</strong>
+        Most local-AI tools force the user to choose between "private and limited" and "powerful and surveilled." The radius diagram says the truth: you can choose three concentric circles, and you can stop at the inner one for the rest of your life if you want. The radius is the product.
+      </li>
+      <li class="collection-item">
+        <strong>"You can use Unhosted forever and never spend a dollar."</strong>
+        A revenue model can sit *under* a free product if the free product is genuinely complete on its own. Public mode is the safety net for the cases your circle can't fulfill, not the upsell that the rest of the product is designed to push you toward.
+      </li>
+      <li class="collection-item">
+        <strong>Separate repos by cadence + trust boundary, not by tech.</strong>
+        <code>unhosted-payments</code> isn't a separate repo because it's a different language — it's a separate repo because a blocked KYC review shouldn't pause a VRAM-pool release, and because a reader auditing the money-moving code shouldn't have to skim 50k lines of daemon code first.
+      </li>
+      <li class="collection-item">
+        <strong>The CLI is the source of truth; the GUI is a wrapper.</strong>
+        Every operation that the desktop app can do is also expressible as <code>unhosted &lt;verb&gt;</code>. That makes the product scriptable by default and forces the design of each verb to be sharp enough to type.
+      </li>
+    </ul>
+
+    <div class="small-spacer"></div>
+
+    <blockquote><p class="left-align xxx-large-text">If frontier AI ends up running on the hardware you already own, the design problem is no longer about chat windows. It's about <em>where</em> the inference happens, <em>who</em> the trust boundary is around, and <em>how legibly</em> the system tells you those things.</p></blockquote>
+
+    <div class="small-spacer"></div>
+
+    <p class="x-large-text">
+      Read the full manifesto, ADRs, and design docs at <a href="https://github.com/unhosted-ai/unhosted-core" target="_blank">github.com/unhosted-ai/unhosted-core</a>. Reach out at <a href="mailto:sinhaankur827@gmail.com">sinhaankur827@gmail.com</a> if you want to talk inference, distributed systems, payments, or design.
+    </p>
+
+    <div class="spacer"></div>
+
+    <div class="row center">
+      <a class="btn-large waves-effect waves-light theme-color" href="https://github.com/unhosted-ai" target="_blank" rel="noopener">View the org on GitHub</a>
+    </div>
+
+    <div class="spacer"></div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/1.15.1/TweenMax.min.js"></script>
+  <script src="../js/materialize.js"></script>
+  <script src="../js/init.js"></script>
+</body>
+</html>
