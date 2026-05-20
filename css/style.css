@@ -780,7 +780,7 @@ input[type=password] + label.active {
     flex-shrink: 0;
   }
 
-  .intro-identity h4 {
+  .intro-identity .intro-name {
     font-size: 1.3rem !important;
     font-weight: 700 !important;
     margin: 0 0 0.15rem !important;
@@ -788,7 +788,7 @@ input[type=password] + label.active {
     line-height: 1.2 !important;
   }
 
-  .intro-identity h5 {
+  .intro-identity .intro-subtitle {
     font-size: 0.8rem !important;
     font-weight: 400 !important;
     color: #5f6368 !important;
@@ -1094,7 +1094,7 @@ input[type=password].invalid, input[type=password]:focus.invalid {
     border-radius: 12px;
     flex-shrink: 0;
   }
-  .intro-identity h4 {
+  .intro-identity .intro-name {
     font-family: "Google Sans", "Roboto", sans-serif;
     font-size: 2rem;
     font-weight: 600;
@@ -1103,7 +1103,7 @@ input[type=password].invalid, input[type=password]:focus.invalid {
     margin: 0 0 0.25rem;
     letter-spacing: -0.01em;
   }
-  .intro-identity h5 {
+  .intro-identity .intro-subtitle {
     font-family: "Google Sans", "Roboto", sans-serif;
     font-size: 0.95rem;
     font-weight: 400;
@@ -1235,6 +1235,23 @@ input[type=password].invalid, input[type=password]:focus.invalid {
     padding-right: 1.5rem;
   }
   #iphone-svg { height: 600px; }
+}
+
+/* Anchor-based card-hover (keyboard-accessible alternative to onclick) */
+a.card-hover-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+a.card-hover-link:hover,
+a.card-hover-link:focus {
+  text-decoration: none;
+  color: inherit;
+}
+a.card-hover-link:focus-visible {
+  outline: 3px solid rgba(84, 109, 229, 0.55);
+  outline-offset: 4px;
+  border-radius: 14px;
 }
 
 /* ============================================================
