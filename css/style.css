@@ -571,9 +571,10 @@ h5  {
 /* HOME-PAGE STYLES */
 .bg {
   height: 100vh;
-  background-color: #f3f3f3;
+  background-color: transparent;
   display: flex;
   align-items: center;
+  position: relative;
 }
 
 .hero-home {
@@ -1237,6 +1238,113 @@ input[type=password].invalid, input[type=password]:focus.invalid {
 }
 
 /* ============================================================
+   AMBIENT BACKGROUND — Framer-style soft gradient mesh
+   Four large blurred radial blobs drifting slowly behind all
+   content. A faint SVG grain on top adds tactility. Sits
+   underneath everything via fixed positioning + z-index. The
+   hero's white .bg sits above it; transparent sections below
+   reveal it. Respects prefers-reduced-motion.
+   ============================================================ */
+.ambient-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at top left, #fafbff 0%, #ffffff 50%, #ffffff 100%);
+}
+
+.ambient-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.55;
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+}
+
+.ambient-blob--a {
+  width: 620px;
+  height: 620px;
+  top: -140px;
+  left: -120px;
+  background: radial-gradient(circle, rgba(84, 109, 229, 0.45), rgba(84, 109, 229, 0) 70%);
+  animation: ambientDrift1 32s ease-in-out infinite;
+}
+.ambient-blob--b {
+  width: 540px;
+  height: 540px;
+  top: 18%;
+  right: -100px;
+  background: radial-gradient(circle, rgba(255, 158, 109, 0.32), rgba(255, 158, 109, 0) 70%);
+  animation: ambientDrift2 38s ease-in-out infinite;
+}
+.ambient-blob--c {
+  width: 680px;
+  height: 680px;
+  bottom: -160px;
+  left: 30%;
+  background: radial-gradient(circle, rgba(15, 118, 110, 0.22), rgba(15, 118, 110, 0) 70%);
+  animation: ambientDrift3 44s ease-in-out infinite;
+}
+.ambient-blob--d {
+  width: 460px;
+  height: 460px;
+  top: 40%;
+  left: 38%;
+  background: radial-gradient(circle, rgba(244, 114, 182, 0.20), rgba(244, 114, 182, 0) 70%);
+  animation: ambientDrift4 50s ease-in-out infinite;
+}
+
+/* Subtle SVG noise grain overlay — adds tactile feel without bytes */
+.ambient-grain {
+  position: absolute;
+  inset: 0;
+  opacity: 0.5;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.35 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  background-size: 200px 200px;
+}
+
+@keyframes ambientDrift1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%      { transform: translate(80px, 40px) scale(1.08); }
+}
+@keyframes ambientDrift2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%      { transform: translate(-60px, 60px) scale(1.05); }
+}
+@keyframes ambientDrift3 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%      { transform: translate(50px, -50px) scale(1.10); }
+}
+@keyframes ambientDrift4 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%      { transform: translate(-70px, -30px) scale(1.06); }
+}
+
+/* The hero's .bg used to be solid; let the mesh peek through subtly */
+body { background: transparent; }
+
+/* Reduced motion — keep the mesh, kill the drift */
+@media (prefers-reduced-motion: reduce) {
+  .ambient-blob {
+    animation: none !important;
+  }
+}
+
+/* Smaller viewports — scale the mesh down so it isn't overwhelming */
+@media (max-width: 600px) {
+  .ambient-blob { filter: blur(60px); opacity: 0.45; }
+  .ambient-blob--a { width: 360px; height: 360px; }
+  .ambient-blob--b { width: 320px; height: 320px; }
+  .ambient-blob--c { width: 380px; height: 380px; }
+  .ambient-blob--d { width: 280px; height: 280px; }
+  .ambient-grain { opacity: 0.35; }
+}
+
+/* ============================================================
    THE ARC SECTION — operations → design → open source
    The narrative spine of the homepage. Sits right after the
    hero. Three beats with a quiet horizontal connector on
@@ -1244,7 +1352,9 @@ input[type=password].invalid, input[type=password]:focus.invalid {
    ============================================================ */
 .arc-section {
   padding: 6rem 0 5rem;
-  background: linear-gradient(180deg, #fafafa 0%, #ffffff 100%);
+  background: linear-gradient(180deg, rgba(255,255,255,0.72) 0%, rgba(255,255,255,0.92) 100%);
+  backdrop-filter: blur(8px) saturate(1.05);
+  -webkit-backdrop-filter: blur(8px) saturate(1.05);
   border-top: 1px solid rgba(0, 0, 0, 0.04);
 }
 .arc-section .container {
