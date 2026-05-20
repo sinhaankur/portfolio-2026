@@ -1058,3 +1058,180 @@ input[type=password].invalid, input[type=password]:focus.invalid {
     display: none;
   }
 }
+
+/* ============================================================
+   TABLET + DESKTOP HOME PAGE — ≥601px
+   Mobile rules live above; here we let the same intro markup
+   breathe at wider widths and bring back the iPhone as a
+   companion column on desktop (≥993px).
+   ============================================================ */
+@media only screen and (min-width: 601px) {
+  .bg {
+    min-height: 100vh;
+    padding: 4rem 0;
+  }
+  .hero-home {
+    width: 100%;
+    gap: 3rem;
+  }
+
+  .intro {
+    width: 100%;
+    max-width: 560px;
+    padding: 0 1.5rem;
+  }
+
+  .intro-identity {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+  .intro-identity #logo {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    flex-shrink: 0;
+  }
+  .intro-identity h4 {
+    font-family: "Google Sans", "Roboto", sans-serif;
+    font-size: 2rem;
+    font-weight: 600;
+    color: #202124;
+    line-height: 1.15;
+    margin: 0 0 0.25rem;
+    letter-spacing: -0.01em;
+  }
+  .intro-identity h5 {
+    font-family: "Google Sans", "Roboto", sans-serif;
+    font-size: 0.95rem;
+    font-weight: 400;
+    color: #5f6368;
+    margin: 0;
+    line-height: 1.4;
+  }
+
+  .intro-tagline {
+    color: #3c4043;
+    font-size: 1.05rem;
+    line-height: 1.55;
+    margin: 0 0 1.5rem;
+    max-width: 520px;
+  }
+
+  .intro-cta-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #202124;
+    color: #fff;
+    text-decoration: none;
+    border-radius: 14px;
+    padding: 0.85rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0 0.5rem 1rem 0;
+    min-height: 48px;
+    transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .intro-cta-primary:hover {
+    background: #3c4043;
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+  }
+  .intro-cta-primary .material-icons { font-size: 18px; }
+
+  .intro-cta-secondary {
+    display: inline-flex;
+    align-items: center;
+    background: rgba(84, 109, 229, 0.08);
+    color: #546de5;
+    border: 1.5px solid rgba(84, 109, 229, 0.28);
+    border-radius: 14px;
+    padding: 0.85rem 1.5rem;
+    text-decoration: none;
+    font-size: 1rem;
+    font-weight: 600;
+    min-height: 48px;
+    transition: background 0.15s ease, transform 0.15s ease;
+  }
+  .intro-cta-secondary:hover {
+    background: rgba(84, 109, 229, 0.16);
+    color: #546de5;
+    transform: translateY(-1px);
+  }
+
+  .chip-nav {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.625rem;
+    margin: 1.5rem 0;
+  }
+  .chip-tile {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    padding: 0.7rem 0.9rem;
+    text-decoration: none;
+    color: #202124;
+    font-size: 0.9rem;
+    font-weight: 500;
+    line-height: 1.3;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  }
+  .chip-tile:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
+    border-color: rgba(84, 109, 229, 0.35);
+    color: #202124;
+  }
+  .chip-tile .material-icons {
+    font-size: 18px;
+    color: #5f6368;
+  }
+  .chip-tile--accent {
+    background: rgba(15, 118, 110, 0.06);
+    border-color: rgba(15, 118, 110, 0.22);
+    color: #0d4f4a;
+  }
+  .chip-tile--accent .material-icons { color: #0f766e; }
+  .chip-tile--accent:hover {
+    background: rgba(15, 118, 110, 0.12);
+    border-color: rgba(15, 118, 110, 0.4);
+    color: #0d4f4a;
+  }
+}
+
+/* Tablet — iPhone hidden via .hide-on-med-and-down; intro is centered */
+@media only screen and (min-width: 601px) and (max-width: 992px) {
+  .hero-home { justify-content: center; }
+  .intro { margin: 0 auto; }
+  .chip-nav { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* Desktop — two-column hero: intro on the left, iPhone on the right */
+@media only screen and (min-width: 993px) {
+  .hero-home {
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+  }
+  #home-pic-container {
+    flex: 0 0 auto;
+    order: 2;
+  }
+  .intro {
+    flex: 1 1 auto;
+    max-width: 560px;
+    order: 1;
+    padding-right: 1.5rem;
+  }
+  #iphone-svg { height: 600px; }
+}
