@@ -1235,3 +1235,146 @@ input[type=password].invalid, input[type=password]:focus.invalid {
   }
   #iphone-svg { height: 600px; }
 }
+
+/* ============================================================
+   THE ARC SECTION — operations → design → open source
+   The narrative spine of the homepage. Sits right after the
+   hero. Three beats with a quiet horizontal connector on
+   desktop; stacks vertically on mobile.
+   ============================================================ */
+.arc-section {
+  padding: 6rem 0 5rem;
+  background: linear-gradient(180deg, #fafafa 0%, #ffffff 100%);
+  border-top: 1px solid rgba(0, 0, 0, 0.04);
+}
+.arc-section .container {
+  max-width: 1080px;
+}
+.arc-eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #546de5;
+  margin: 0 0 0.875rem;
+  text-align: center;
+}
+.arc-headline {
+  font-family: "Google Sans", "Roboto", sans-serif;
+  font-size: clamp(1.5rem, 3.4vw, 2.25rem);
+  font-weight: 600;
+  color: #202124;
+  letter-spacing: -0.01em;
+  text-align: center;
+  margin: 0 auto 3rem;
+  max-width: 760px;
+  line-height: 1.2;
+}
+.arc-beats {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 2.5rem;
+  counter-reset: arc-beat;
+}
+.arc-beat {
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 18px;
+  padding: 1.75rem 1.75rem 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  position: relative;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.arc-beat:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.07);
+  border-color: rgba(84, 109, 229, 0.25);
+}
+.arc-beat-num {
+  display: inline-block;
+  font-family: "Google Sans", "Roboto", sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  color: #546de5;
+  background: rgba(84, 109, 229, 0.10);
+  padding: 0.25rem 0.55rem;
+  border-radius: 6px;
+  margin-bottom: 0.875rem;
+}
+.arc-beat-title {
+  font-family: "Google Sans", "Roboto", sans-serif;
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: #202124;
+  margin: 0 0 0.65rem;
+  letter-spacing: -0.005em;
+}
+.arc-beat p {
+  color: #3c4043;
+  font-size: 1rem;
+  line-height: 1.6;
+  margin: 0;
+}
+.arc-beat p a {
+  color: #546de5;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(84, 109, 229, 0.35);
+}
+.arc-beat p a:hover {
+  border-bottom-color: #546de5;
+}
+.arc-closer {
+  text-align: center;
+  font-family: "Google Sans", "Roboto", sans-serif;
+  font-size: 1.05rem;
+  font-style: italic;
+  color: #5f6368;
+  max-width: 640px;
+  margin: 0 auto;
+  line-height: 1.5;
+}
+
+/* Desktop — three columns with a subtle horizontal connector behind them */
+@media only screen and (min-width: 768px) {
+  .arc-beats {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    position: relative;
+  }
+  .arc-beats::before {
+    content: "";
+    position: absolute;
+    top: 2.65rem;
+    left: 14%;
+    right: 14%;
+    height: 1px;
+    background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(84, 109, 229, 0.25) 15%,
+      rgba(84, 109, 229, 0.25) 85%,
+      transparent 100%);
+    z-index: 0;
+    pointer-events: none;
+  }
+  .arc-beat { z-index: 1; }
+}
+
+@media only screen and (max-width: 600px) {
+  .arc-section {
+    padding: 3.5rem 1.25rem 3rem;
+  }
+  .arc-headline {
+    font-size: 1.4rem;
+    margin-bottom: 2rem;
+  }
+  .arc-beat {
+    padding: 1.25rem 1.25rem 1.1rem;
+    border-radius: 14px;
+  }
+  .arc-beat-title { font-size: 1.15rem; }
+  .arc-closer { font-size: 0.95rem; }
+}
