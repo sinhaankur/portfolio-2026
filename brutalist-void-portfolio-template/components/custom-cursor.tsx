@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { motion, useMotionValue, useSpring, AnimatePresence } from "framer-motion"
+import { useTheme } from "next-themes"
 import type { BodyInfo } from "./universe-engine/types"
 import { useDisplayPrefs } from "./display-prefs"
 
@@ -32,7 +33,15 @@ export function CustomCursor() {
   const [isHoveringLink, setIsHoveringLink] = useState(false)
   const [universeBody, setUniverseBody] = useState<BodyInfo | null>(null)
   const [universeClickable, setUniverseClickable] = useState(false)
+  const [themeMounted, setThemeMounted] = useState(false)
   const { systemCursor, reduceMotion } = useDisplayPrefs()
+  const { resolvedTheme } = useTheme()
+
+  // next-themes returns undefined on first render — gate the cursor-colour
+  // theme branch on a mounted flag so SSR matches CSR.
+  useEffect(() => {
+    setThemeMounted(true)
+  }, [])
 
   // User pref wins over capability: opt-in `systemCursor` or `reduceMotion`
   // disables the reticle even on capable devices.
@@ -124,7 +133,16 @@ export function CustomCursor() {
   const state: CursorState = universeBody ? "body" : isHoveringLink ? "link" : "idle"
   const ringSize = state === "body" ? 44 : state === "link" ? 36 : 18
   const ringOpacity = state === "body" ? 0.95 : state === "link" ? 1 : 0.75
-  const ringColor = state === "body" ? "#ffd66b" : "#ffffff"
+  // Light theme flips the reticle to ink-on-paper and the body-state highlight
+  // to a deep warm amber (matching the chart-mode constellation accent), so
+  // the cursor reads correctly against a cream page.
+  const isLight = themeMounted && resolvedTheme === "light"
+  const inkColor = isLight ? "#0a0a0a" : "#ffffff"
+  const accentColor = isLight ? "#b34a13" : "#ffd66b"
+  const ringColor = state === "body" ? accentColor : inkColor
+  // Drop-shadow tint matches the surrounding page so the reticle gets a soft
+  // outline rather than the chromatic bleed of mix-blend-difference.
+  const dropShadowColor = isLight ? "rgba(245,245,240,0.85)" : "rgba(0,0,0,0.45)"
 
   // Hairlines are visible in idle + body states (astronomical reticle).
   // In body state they extend further to form a clear target sight.
@@ -138,9 +156,10 @@ export function CustomCursor() {
       style={{
         x: springX,
         y: springY,
-        // Tiny drop shadow keeps the white reticle legible over bright pixels
-        // (Sun, Polaris halo) without the chromatic muddiness of mix-blend-difference.
-        filter: "drop-shadow(0 0 4px rgba(0,0,0,0.45))",
+        // Drop shadow flips to a soft paper-coloured glow on light theme so
+        // the ink reticle gets a halo against bright photographic pixels
+        // (the Sun, planet highlights) without going muddy.
+        filter: `drop-shadow(0 0 4px ${dropShadowColor})`,
       }}
       animate={{ opacity: isVisible ? 1 : 0 }}
       transition={{ opacity: { duration: 0.15 } }}
@@ -154,20 +173,20 @@ export function CustomCursor() {
           height: ringSize,
           borderWidth: state === "link" ? 0 : 1.5,
           borderColor: ringColor,
-          backgroundColor: state === "link" ? "rgba(255,255,255,0.95)" : "transparent",
+          backgroundColor: state === "link" ? inkColor : "transparent",
           opacity: ringOpacity,
         }}
         transition={{ type: "spring", stiffness: 450, damping: 28, mass: 0.5 }}
       />
 
-      {/* Centre dot — warm-gold over universe bodies, white otherwise. Hidden when link. */}
+      {/* Centre dot — accent over universe bodies, ink otherwise. Hidden when link. */}
       <motion.div
         className="absolute top-0 left-0 rounded-full"
         style={{ translateX: "-50%", translateY: "-50%" }}
         animate={{
           width: state === "body" ? 5 : state === "link" ? 0 : 2.5,
           height: state === "body" ? 5 : state === "link" ? 0 : 2.5,
-          backgroundColor: state === "body" ? "#ffd66b" : "#ffffff",
+          backgroundColor: state === "body" ? accentColor : inkColor,
         }}
         transition={{ type: "spring", stiffness: 450, damping: 28, mass: 0.5 }}
       />
@@ -176,8 +195,8 @@ export function CustomCursor() {
       {state !== "link" && (
         <>
           <motion.span
-            className="absolute top-0 left-0 bg-white"
-            style={{ translateX: "-50%", width: 1 }}
+            className="absolute top-0 left-0"
+            style={{ translateX: "-50%", width: 1, backgroundColor: inkColor }}
             animate={{
               height: hairlineLength,
               top: -hairlineGap,
@@ -186,8 +205,8 @@ export function CustomCursor() {
             transition={{ type: "spring", stiffness: 400, damping: 28 }}
           />
           <motion.span
-            className="absolute top-0 left-0 bg-white"
-            style={{ translateX: "-50%", width: 1 }}
+            className="absolute top-0 left-0"
+            style={{ translateX: "-50%", width: 1, backgroundColor: inkColor }}
             animate={{
               height: hairlineLength,
               top: hairlineGap - hairlineLength,
@@ -196,8 +215,8 @@ export function CustomCursor() {
             transition={{ type: "spring", stiffness: 400, damping: 28 }}
           />
           <motion.span
-            className="absolute top-0 left-0 bg-white"
-            style={{ translateY: "-50%", height: 1 }}
+            className="absolute top-0 left-0"
+            style={{ translateY: "-50%", height: 1, backgroundColor: inkColor }}
             animate={{
               width: hairlineLength,
               left: -hairlineGap,
@@ -206,8 +225,8 @@ export function CustomCursor() {
             transition={{ type: "spring", stiffness: 400, damping: 28 }}
           />
           <motion.span
-            className="absolute top-0 left-0 bg-white"
-            style={{ translateY: "-50%", height: 1 }}
+            className="absolute top-0 left-0"
+            style={{ translateY: "-50%", height: 1, backgroundColor: inkColor }}
             animate={{
               width: hairlineLength,
               left: hairlineGap - hairlineLength,

@@ -143,9 +143,25 @@ export function Footer() {
             })}
           </ul>
 
-          {/* Copyright */}
+          {/* Copyright — link goes to the LICENSE file on GitHub so the
+              "all rights reserved" stance is one click away from the footer. */}
           <p className="font-mono text-xs tracking-widest text-muted-foreground">
-            © {new Date().getFullYear()} ANKUR SINHA
+            ©{" "}{new Date().getFullYear()}{" "}ANKUR SINHA · {" "}
+            <a
+              href="https://github.com/sinhaankur/Portfolio/blob/main/LICENSE"
+              target="_blank"
+              rel="noreferrer noopener"
+              data-cursor-hover
+              className="
+                hover:text-foreground transition-colors duration-200
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+                focus-visible:ring-offset-2 focus-visible:ring-offset-background
+                rounded
+              "
+              aria-label="License — all rights reserved (opens on GitHub)"
+            >
+              ALL RIGHTS RESERVED
+            </a>
           </p>
         </div>
       </div>
