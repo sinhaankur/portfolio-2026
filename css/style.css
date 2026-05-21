@@ -1687,6 +1687,125 @@ body { background: transparent; }
 }
 
 /* ============================================================
+   EXPERIENCE OVERVIEW — sketchy horizontal career timeline
+   Sits before the per-company sections; gives the whole arc
+   at a glance. Animates as it enters the viewport.
+   ============================================================ */
+.experience-overview {
+  max-width: 980px;
+  margin: var(--s-16) auto var(--s-12);
+  padding: 0 var(--s-6);
+  text-align: center;
+  color: var(--c-ink-1);
+}
+.exp-eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  color: var(--c-brand);
+  margin: 0 0 var(--s-3);
+  font-family: var(--font-display);
+}
+.exp-headline {
+  font-family: var(--font-display);
+  font-size: var(--fs-h2);
+  font-weight: 600;
+  color: var(--c-ink-1);
+  margin: 0 auto var(--s-8);
+  max-width: 720px;
+  line-height: var(--lh-tight);
+  letter-spacing: -0.01em;
+}
+.exp-timeline {
+  margin: 0 auto var(--s-6);
+  max-width: 880px;
+}
+.exp-timeline svg {
+  width: 100%;
+  height: auto;
+  color: var(--c-ink-2);
+  overflow: visible;
+}
+.exp-spine {
+  stroke-dasharray: 1100;
+  stroke-dashoffset: 1100;
+  animation: expDraw 1.8s var(--ease-out) 0.2s forwards;
+}
+.exp-dot {
+  opacity: 0;
+  transform-origin: center;
+  animation: expDotIn 0.5s var(--ease-out) forwards;
+}
+.exp-dot--1 { animation-delay: 0.5s;  }
+.exp-dot--2 { animation-delay: 0.85s; }
+.exp-dot--3 { animation-delay: 1.2s;  }
+.exp-dot--4 { animation-delay: 1.55s; }
+.exp-pulse {
+  opacity: 0;
+  transform-origin: 730px 50px;
+  animation: expPulse 2.4s ease-in-out 2s infinite;
+}
+.exp-year {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  fill: var(--c-ink-4);
+  letter-spacing: 0.04em;
+}
+.exp-co {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  fill: var(--c-ink-2);
+}
+.exp-co--current {
+  fill: var(--c-brand);
+}
+.exp-closer {
+  font-size: var(--fs-lead);
+  color: var(--c-ink-3);
+  font-style: italic;
+  max-width: 640px;
+  margin: var(--s-6) auto 0;
+  line-height: var(--lh-base);
+}
+
+@keyframes expDraw {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes expDotIn {
+  0%   { opacity: 0; transform: scale(0); }
+  60%  { transform: scale(1.25); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes expPulse {
+  0%, 100% { opacity: 0;   transform: scale(1); }
+  50%      { opacity: 0.4; transform: scale(1.6); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .exp-spine, .exp-dot, .exp-pulse {
+    animation: none !important;
+    opacity: 1 !important;
+    stroke-dashoffset: 0 !important;
+    transform: none !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .experience-overview {
+    margin: var(--s-12) auto var(--s-8);
+    padding: 0 var(--s-4);
+  }
+  .exp-eyebrow { font-size: 0.7rem; }
+  .exp-headline { font-size: 1.25rem; }
+  .exp-year { font-size: 10px; }
+  .exp-co   { font-size: 11px; }
+  .exp-closer { font-size: 0.95rem; }
+}
+
+/* ============================================================
    SKETCH DIVIDER — hand-drawn squiggle replaces plain hr lines
    ============================================================ */
 .sketch-divider {
