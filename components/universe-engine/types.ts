@@ -93,3 +93,43 @@ export type Constellation = {
   /** Click target — e.g. Polaris resets the camera. */
   clickAction?: "reset-view"
 }
+
+/**
+ * A named small body — comet, asteroid, or interstellar visitor.
+ *
+ * The Data Engine extension to UniverseEngine. Each body declares its
+ * orbital elements; the renderer animates it continuously along an
+ * approximated Kepler orbit (semi-major axis + eccentricity + inclination
+ * + epoch phase). Periodic bodies (Halley, Tempel-Tuttle, etc.) keep
+ * coming back; interstellar visitors (1I/'Oumuamua, 2I/Borisov) follow
+ * a one-way hyperbolic-ish path that doesn't repeat.
+ *
+ * Add entries to `namedBodies` in astronomy.ts — they appear in the scene
+ * automatically with name-on-hover, kind-aware styling, and per-period
+ * orbital animation. This is intentionally a data-only authoring surface
+ * so the catalog can keep growing.
+ */
+export type NamedBody = {
+  /** Common name shown in the cursor label / info panel. */
+  name: string
+  /** Catalog designation (e.g. "1P/Halley"). */
+  designation: string
+  /** Category — drives styling + hit-zone behavior. */
+  kind: "comet" | "asteroid" | "interstellar"
+  /** Semi-major axis in AU. For interstellars, this is the perihelion distance. */
+  aAU: number
+  /** Eccentricity (0 = circular, <1 elliptical, >=1 unbound). */
+  eccentricity: number
+  /** Orbital inclination relative to the ecliptic, in degrees. */
+  inclDeg: number
+  /** Period in Earth years. Use Infinity for interstellar visitors. */
+  periodYears: number
+  /** 0–1 phase along the orbit at scene start (jitters body positions). */
+  startPhase: number
+  /** Short fact shown in the info panel. */
+  fact: string
+  /** Visual sphere radius in scene units (default 0.05). */
+  visualRadius?: number
+  /** Optional hex colour override. Defaults derived from `kind`. */
+  shade?: string
+}

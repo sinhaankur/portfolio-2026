@@ -34,6 +34,7 @@ import {
 
 import {
   ASTEROID_BELT_INFO,
+  DEG,
   GALACTIC_PLANE_TILT_RAD,
   KUIPER_BELT_INFO,
   MILKY_WAY_INFO,
@@ -48,6 +49,7 @@ import {
   gauss,
   magToVisualRadius,
   moons,
+  namedBodies,
   planetToInfo,
   raDecToScenePos,
   timeWarpRef,
@@ -59,6 +61,7 @@ import type {
   ConstellationStar,
   HoverHandler,
   MoonData,
+  NamedBody,
   ScenePlanet,
 } from "./types"
 
@@ -1254,6 +1257,180 @@ function SolarSystem({
 }
 
 /* ============================================================
+ * Named small bodies — comets, asteroids, interstellars
+ *
+ * Each body is animated continuously along its own elliptical / hyperbolic
+ * path defined in astronomy.ts. The orbit math is a deliberate
+ * simplification of Kepler's laws — true anomaly is approximated as a
+ * uniform angle around the focus (the Sun) rather than solving Kepler's
+ * equation per frame — so the motion isn't physically accurate but reads
+ * correctly (slower at aphelion, faster at perihelion).
+ *
+ * Each body is also a hover target. The cursor reticle picks up its name,
+ * the InfoPanel surfaces its designation + fact, and (on mobile) the
+ * MobileBodySheet slides up with the same data.
+ *
+ * Scene-scale: same sqrt(aAU) * 3 mapping the planets use, so a comet at
+ * 17.8 AU sits at the right radial distance relative to Saturn/Uranus.
+ * ============================================================ */
+
+function NamedBodyMesh({
+  body,
+  onHover,
+  invert = false,
+}: {
+  body: NamedBody
+  onHover: HoverHandler
+  invert?: boolean
+}) {
+  const groupRef = useRef<Group>(null)
+
+  // Pre-compute everything time-independent: orbital scale, tilt, base colour.
+  const config = useMemo(() => {
+    const a = Math.sqrt(body.aAU) * 3 // scene-scale semi-major axis
+    const e = body.eccentricity
+    const inclination = body.inclDeg * DEG
+    const visualRadius = body.visualRadius ?? 0.05
+    // Periodic bodies loop; interstellars get a finite "passage window"
+    // measured in seconds of scene time so the user can see them coming
+    // and going without them living on screen indefinitely.
+    const period = isFinite(body.periodYears)
+      ? body.periodYears * 365.25 / TIME_WARP_DAYS_PER_SEC
+      : 120 // ~2 minutes of scene time end-to-end for interstellars
+    const angularSpeed = (2 * Math.PI) / period
+    const phase = body.startPhase * Math.PI * 2
+
+    // Default colours by kind: comets get a warm ice-blue, asteroids a
+    // dusty grey-brown, interstellars a sharper accent.
+    const defaultShade =
+      body.kind === "comet"        ? "#9ed4ff" :
+      body.kind === "asteroid"     ? "#b8a482" :
+      /* interstellar */              "#ffd66b"
+    const shade = body.shade ?? defaultShade
+
+    return { a, e, inclination, visualRadius, angularSpeed, phase, shade, isLoop: isFinite(body.periodYears) }
+  }, [body])
+
+  // Pre-compute a thin trail of orbit positions so each body draws a
+  // dotted ellipse behind it, hinting at the path.
+  const trailGeometry = useMemo(() => {
+    const STEPS = config.isLoop ? 90 : 60
+    const positions = new Float32Array(STEPS * 3)
+    for (let i = 0; i < STEPS; i++) {
+      const t = (i / STEPS) * Math.PI * 2
+      // Kepler ellipse with the Sun at one focus.
+      const r = config.a * (1 - config.e * config.e) / (1 + config.e * Math.cos(t))
+      const x = r * Math.cos(t)
+      const z = r * Math.sin(t)
+      const y = z * Math.sin(config.inclination)
+      const z2 = z * Math.cos(config.inclination)
+      positions[i * 3]     = x
+      positions[i * 3 + 1] = y
+      positions[i * 3 + 2] = z2
+    }
+    const geo = new BufferGeometry()
+    geo.setAttribute("position", new BufferAttribute(positions, 3))
+    return geo
+  }, [config])
+
+  useFrame((_, delta) => {
+    const tw = timeWarpRef.current
+    if (!groupRef.current) return
+
+    // Advance phase; loop for periodic bodies, ping-pong for interstellars
+    // so they continue to pass through the scene every couple of minutes.
+    config.phase += delta * config.angularSpeed * tw
+    if (config.isLoop) {
+      if (config.phase > Math.PI * 2) config.phase -= Math.PI * 2
+    } else {
+      // Interstellar — keep phase in [0, 2π] and reset position when it
+      // wanders too far so the body re-enters the scene periodically.
+      if (config.phase > Math.PI * 2) {
+        config.phase = 0
+      }
+    }
+
+    const t = config.phase
+    const r = config.a * (1 - config.e * config.e) / (1 + config.e * Math.cos(t))
+    const x = r * Math.cos(t)
+    const z = r * Math.sin(t)
+    const y = z * Math.sin(config.inclination)
+    const z2 = z * Math.cos(config.inclination)
+    groupRef.current.position.set(x, y, z2)
+  })
+
+  // Hit-zone radius — never smaller than 0.16 so even tiny bodies are
+  // findable with a finger or cursor.
+  const hitRadius = Math.max(0.16, config.visualRadius * 3)
+
+  return (
+    // Both the trail (anchored at the Sun) and the moving body live in the
+    // same parent so they share the SolarSystem's coordinate frame.
+    <group>
+      {/* Orbit trail — thin dotted ellipse traced once at mount, never updated. */}
+      <points geometry={trailGeometry}>
+        <pointsMaterial
+          size={invert ? 0.024 : 0.020}
+          sizeAttenuation
+          color={invert ? "#1a1208" : config.shade}
+          transparent
+          opacity={config.isLoop ? (invert ? 0.4 : 0.25) : (invert ? 0.3 : 0.18)}
+          depthWrite={false}
+        />
+      </points>
+
+      {/* The body itself — moved each frame to its current orbit position. */}
+      <group ref={groupRef}>
+        <mesh>
+          <sphereGeometry args={[config.visualRadius, 16, 16]} />
+          <meshStandardMaterial
+            color={config.shade}
+            emissive={config.shade}
+            emissiveIntensity={invert ? 0.0 : 0.6}
+            roughness={0.7}
+          />
+        </mesh>
+        <mesh
+          onPointerOver={(e) => {
+            e.stopPropagation()
+            onHover({
+              name: body.name,
+              classification:
+                body.kind === "comet"        ? `Comet · ${body.designation}` :
+                body.kind === "asteroid"     ? `Asteroid · ${body.designation}` :
+                /* interstellar */              `Interstellar · ${body.designation}`,
+              aAU: body.aAU,
+              periodDays: isFinite(body.periodYears) ? body.periodYears * 365.25 : undefined,
+              fact: body.fact,
+            })
+          }}
+          onPointerOut={() => onHover(null)}
+        >
+          <sphereGeometry args={[hitRadius, 12, 12]} />
+          <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+        </mesh>
+      </group>
+    </group>
+  )
+}
+
+function NamedBodies({
+  onHover,
+  invert = false,
+}: {
+  onHover: HoverHandler
+  invert?: boolean
+}) {
+  return (
+    <group>
+      {namedBodies.map((body) => (
+        <NamedBodyMesh key={body.designation} body={body} onHover={onHover} invert={invert} />
+      ))}
+    </group>
+  )
+}
+
+/* ============================================================
  * Public scene composition — mounted inside the <Canvas>.
  * ============================================================ */
 
@@ -1298,6 +1475,9 @@ export function SceneContents({
       </group>
       <group position={SOLAR_SYSTEM_POSITION}>
         <SolarSystem onHover={onHover} invert={invert} />
+        {/* Comets, asteroids, interstellars — share the SolarSystem origin
+            so their orbits sit around the same Sun the planets do. */}
+        <NamedBodies onHover={onHover} invert={invert} />
       </group>
       <Constellations onHover={onHover} onResetView={onResetView} invert={invert} />
       {enableMotion && <ShootingStars count={mobile ? 3 : 6} invert={invert} />}

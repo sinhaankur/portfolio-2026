@@ -16,6 +16,7 @@ import type {
   Constellation,
   ConstellationStar,
   MoonData,
+  NamedBody,
   Planet,
   ScenePlanet,
 } from "./types"
@@ -97,24 +98,28 @@ export const KUIPER_BELT_INFO: BodyInfo = {
  * ------------------------------------------------------------------------ */
 
 export const planetsData: Planet[] = [
-  { name: "Mercury", aAU: 0.387, radiusEarth: 0.383, periodDays: 87.97,   tiltDeg: 0.03,   rotHours: 1407.6, inclDeg: 7.005, startPhase: 0.0, shade: "#7a7a7a", surfaceTempK: { min: 100, mean: 440, max: 700 }, classification: "Terrestrial planet", moons: 0, fact: "No atmosphere. Day side 700 K, night side 100 K — biggest swing in the solar system." },
-  { name: "Venus",   aAU: 0.723, radiusEarth: 0.949, periodDays: 224.70,  tiltDeg: 177.4,  rotHours: -5832.5, inclDeg: 3.395, startPhase: 2.1, shade: "#bdbdbd", surfaceTempK: { mean: 737 }, classification: "Terrestrial planet (retrograde)", moons: 0, fact: "Hottest surface — 737 K — runaway CO₂ greenhouse. Rotates backwards on a 243-day day." },
+  { name: "Mercury", aAU: 0.387, radiusEarth: 0.383, periodDays: 87.97,   tiltDeg: 0.03,   rotHours: 1407.6, inclDeg: 7.005, startPhase: 0.0, shade: "#7a7a7a", surfaceTempK: { min: 100, mean: 440, max: 700 }, classification: "Terrestrial planet", moons: 0, fact: "No atmosphere. Day side 700 K, night side 100 K — biggest swing in the solar system. A year on Mercury is just 88 Earth days; a single day is 176 Earth days. Two years pass for every day.", textureUrl: "/textures/mercury.jpg" },
+  { name: "Venus",   aAU: 0.723, radiusEarth: 0.949, periodDays: 224.70,  tiltDeg: 177.4,  rotHours: -5832.5, inclDeg: 3.395, startPhase: 2.1, shade: "#bdbdbd", surfaceTempK: { mean: 737 }, classification: "Terrestrial planet (retrograde)", moons: 0, fact: "Hottest surface — 737 K — runaway CO₂ greenhouse. Rotates backwards on a 243-day day. The 177° axial tilt means Venus is technically upside-down relative to the rest of the planets.", textureUrl: "/textures/venus.jpg" },
   { name: "Earth",   aAU: 1.000, radiusEarth: 1.000, periodDays: 365.25,  tiltDeg: 23.44,  rotHours: 23.93,  inclDeg: 0.000, startPhase: 4.5, shade: "#dcdcdc", surfaceTempK: { min: 184, mean: 288, max: 330 }, classification: "Terrestrial planet — life", moons: 1, fact: "Mean surface 288 K. Only known planet with liquid water and life.", textureUrl: "/textures/earth.jpg" },
-  { name: "Mars",    aAU: 1.524, radiusEarth: 0.532, periodDays: 686.97,  tiltDeg: 25.19,  rotHours: 24.62,  inclDeg: 1.850, startPhase: 1.3, shade: "#8e8e8e", surfaceTempK: { min: 130, mean: 210, max: 308 }, classification: "Terrestrial planet", moons: 2, fact: "Thin CO₂ atmosphere, polar ice caps, evidence of ancient liquid water." },
+  { name: "Mars",    aAU: 1.524, radiusEarth: 0.532, periodDays: 686.97,  tiltDeg: 25.19,  rotHours: 24.62,  inclDeg: 1.850, startPhase: 1.3, shade: "#c1623a", surfaceTempK: { min: 130, mean: 210, max: 308 }, classification: "Terrestrial planet", moons: 2, fact: "Thin CO₂ atmosphere, polar ice caps, evidence of ancient liquid water. Hosts the solar system's tallest mountain (Olympus Mons, 22 km) and longest canyon (Valles Marineris, 4,000 km). The 25° axial tilt gives Mars Earth-like seasons.", textureUrl: "/textures/mars.jpg" },
   { name: "Jupiter", aAU: 5.203, radiusEarth: 11.21, periodDays: 4332.59, tiltDeg: 3.13,   rotHours: 9.92,   inclDeg: 1.303, startPhase: 5.8, shade: "#cfcfcf", surfaceTempK: { mean: 165 }, classification: "Gas giant", moons: 95, fact: "Largest planet. 10-hour day. Great Red Spot is a storm wider than Earth.", textureUrl: "/textures/jupiter.jpg" },
   { name: "Saturn",  aAU: 9.537, radiusEarth: 9.449, periodDays: 10759.22,tiltDeg: 26.73,  rotHours: 10.66,  inclDeg: 2.485, startPhase: 3.2, shade: "#bababa", surfaceTempK: { mean: 134 }, classification: "Gas giant", moons: 146, fact: "Ring system spans 282,000 km but is only ~10 m thick.", hasRings: true, textureUrl: "/textures/saturn.jpg" },
-  { name: "Uranus",  aAU: 19.19, radiusEarth: 4.007, periodDays: 30688.50,tiltDeg: 97.77,  rotHours: -17.24, inclDeg: 0.773, startPhase: 0.7, shade: "#a5a5a5", surfaceTempK: { mean: 76 }, classification: "Ice giant (sideways)", moons: 28, fact: "Rotates on its side at 98° tilt — likely from an ancient collision." },
-  { name: "Neptune", aAU: 30.07, radiusEarth: 3.883, periodDays: 60182.00,tiltDeg: 28.32,  rotHours: 16.11,  inclDeg: 1.770, startPhase: 2.9, shade: "#8c8c8c", surfaceTempK: { mean: 72 }, classification: "Ice giant", moons: 16, fact: "Coldest planet. Fastest winds — 2,100 km/h. 165-year orbit." },
+  { name: "Uranus",  aAU: 19.19, radiusEarth: 4.007, periodDays: 30688.50,tiltDeg: 97.77,  rotHours: -17.24, inclDeg: 0.773, startPhase: 0.7, shade: "#a5dad0", surfaceTempK: { mean: 76 }, classification: "Ice giant (sideways)", moons: 28, fact: "Rotates on its side at 98° tilt — likely from an ancient collision. Each pole experiences 42 years of sunlight followed by 42 years of darkness. Surface methane gives it that pale blue-green colour.", textureUrl: "/textures/uranus.jpg" },
+  { name: "Neptune", aAU: 30.07, radiusEarth: 3.883, periodDays: 60182.00,tiltDeg: 28.32,  rotHours: 16.11,  inclDeg: 1.770, startPhase: 2.9, shade: "#4a6db8", surfaceTempK: { mean: 72 }, classification: "Ice giant", moons: 16, fact: "Coldest planet. Fastest winds in the solar system — 2,100 km/h supersonic gales. 165-year orbit means it has completed only one orbit since its discovery in 1846.", textureUrl: "/textures/neptune.jpg" },
   // Pluto — reclassified to dwarf planet in 2006 but still part of the family.
   // 17.16° inclination really does tilt its ring above the ecliptic — Pluto
   // crosses inside Neptune's orbit for ~20 years every 248-year orbit.
-  { name: "Pluto",   aAU: 39.48, radiusEarth: 0.186, periodDays: 90560.00,tiltDeg: 122.5,  rotHours: -153.3, inclDeg: 17.16, startPhase: 4.1, shade: "#c2b5a0", surfaceTempK: { min: 33, mean: 44, max: 55 }, classification: "Dwarf planet · Kuiper Belt", moons: 5, fact: "Reclassified from planet to dwarf planet in 2006. 17° orbital inclination lifts it above the ecliptic. Charon is so massive (12% of Pluto) they orbit a barycentre outside Pluto's surface — effectively a binary system." },
+  { name: "Pluto",   aAU: 39.48, radiusEarth: 0.186, periodDays: 90560.00,tiltDeg: 122.5,  rotHours: -153.3, inclDeg: 17.16, startPhase: 4.1, shade: "#a07b54", surfaceTempK: { min: 33, mean: 44, max: 55 }, classification: "Dwarf planet · Kuiper Belt", moons: 5, fact: "Reclassified from planet to dwarf planet in 2006. 17° orbital inclination lifts it above the ecliptic. Charon is so massive (12% of Pluto's mass) they orbit a barycentre outside Pluto's surface — effectively a binary system. The famous heart-shaped Tombaugh Regio was photographed by New Horizons in 2015." },
 ]
 
 export function buildScenePlanets(): ScenePlanet[] {
   return planetsData.map((p) => {
     const orbitRadius = Math.sqrt(p.aAU) * 3
-    const visualRadius = Math.sqrt(p.radiusEarth) * 0.2
+    // Visual size is sqrt-scaled from real Earth-radii so the giants don't
+    // visually dwarf the inner planets, then floored at 0.13 scene units so
+    // tiny bodies like Pluto stay findable on their orbit ring instead of
+    // shrinking to a pinprick.
+    const visualRadius = Math.max(0.13, Math.sqrt(p.radiusEarth) * 0.2)
     const orbitalSpeedRadPerSec = (2 * Math.PI) / (p.periodDays / TIME_WARP_DAYS_PER_SEC)
     const rotSpeedRadPerSec = (2 * Math.PI) / ((p.rotHours / 24) / TIME_WARP_DAYS_PER_SEC)
     return {
@@ -160,6 +165,161 @@ export const moons: MoonData[] = [
   // Charon — Pluto's largest moon. Tidally locked in a mutual rotation
   // (Pluto-Charon are double-tidally-locked: both faces stay turned to each other).
   { name: "Charon",          parent: "Pluto",   visualRadius: 0.04,  orbitRadius: 0.22, periodDays: 6.39,   shade: "#9e958a", fact: "Half the diameter of Pluto. Mutually tidally locked — the two bodies present the same face to each other forever. Discovered in 1978 from a smudge on a photographic plate." },
+]
+
+/* --------------------------------------------------------------------------
+ * Named small bodies — comets, asteroids, interstellars
+ *
+ * Add an entry and it joins the scene with its name on hover, orbital
+ * animation tuned to its real period, and a hover-info panel summarising
+ * what it is. This is the Data Engine's extension point — keep growing
+ * the catalog and the scene will keep evolving.
+ *
+ * Notes on values:
+ *   - Periodic bodies have finite periodYears; their phase loops.
+ *   - Interstellar visitors set periodYears: Infinity — the renderer
+ *     interprets this as a one-way crossing along a hyperbolic path
+ *     and never recycles them on screen.
+ *   - eccentricity ~0 = circular, ~0.5 = clearly elliptical,
+ *     0.97 (Halley) = a long thin streak.
+ * ------------------------------------------------------------------------ */
+
+export const namedBodies: NamedBody[] = [
+  // ----- Periodic comets — sources of named annual meteor showers -----
+  {
+    name: "Halley's Comet",
+    designation: "1P/Halley",
+    kind: "comet",
+    aAU: 17.8,
+    eccentricity: 0.967,
+    inclDeg: 162.3,        // retrograde — orbits backwards relative to the planets
+    periodYears: 75.3,
+    startPhase: 0.62,
+    fact: "Returns every ~76 years; next perihelion in 2061. Parent body of both the Eta Aquariids (May) and Orionids (October) meteor showers — Earth crosses its trail twice per orbit.",
+    visualRadius: 0.07,
+  },
+  {
+    name: "Comet Swift-Tuttle",
+    designation: "109P/Swift–Tuttle",
+    kind: "comet",
+    aAU: 26.1,
+    eccentricity: 0.963,
+    inclDeg: 113.4,
+    periodYears: 133.3,
+    startPhase: 0.18,
+    fact: "Source of the Perseids meteor shower (peaks August 12 each year). Nucleus is ~26 km across — one of the largest objects that repeatedly crosses Earth's orbit.",
+    visualRadius: 0.06,
+  },
+  {
+    name: "Comet Tempel-Tuttle",
+    designation: "55P/Tempel–Tuttle",
+    kind: "comet",
+    aAU: 10.3,
+    eccentricity: 0.906,
+    inclDeg: 162.5,
+    periodYears: 33.2,
+    startPhase: 0.34,
+    fact: "Source of the Leonids meteor shower (peaks November 17). Every 33 years its return triggers spectacular Leonid storms — the 1833 storm rained ~100,000 meteors per hour over North America.",
+    visualRadius: 0.05,
+  },
+  {
+    name: "Comet Encke",
+    designation: "2P/Encke",
+    kind: "comet",
+    aAU: 2.22,
+    eccentricity: 0.848,
+    inclDeg: 11.8,
+    periodYears: 3.3,
+    startPhase: 0.71,
+    fact: "Shortest-period known comet — completes an orbit in just 3.3 years, the second comet ever found to be periodic. Parent of the Taurid meteor shower in October/November.",
+    visualRadius: 0.05,
+  },
+  {
+    name: "Comet Giacobini-Zinner",
+    designation: "21P/Giacobini–Zinner",
+    kind: "comet",
+    aAU: 3.5,
+    eccentricity: 0.706,
+    inclDeg: 31.9,
+    periodYears: 6.6,
+    startPhase: 0.05,
+    fact: "Parent of the Draconids meteor shower (peaks October 8). Visited by the ICE spacecraft in 1985 — the first ever direct flyby of a comet's tail.",
+    visualRadius: 0.05,
+  },
+  // ----- Named near-Earth + main-belt asteroids -----
+  {
+    name: "Apophis",
+    designation: "99942 Apophis",
+    kind: "asteroid",
+    aAU: 0.922,
+    eccentricity: 0.191,
+    inclDeg: 3.34,
+    periodYears: 0.89,
+    startPhase: 0.44,
+    fact: "370-metre near-Earth asteroid that passes inside the Moon's orbit on April 13, 2029 — closer than geostationary satellites. Originally feared to be on an impact trajectory; later radar passes ruled out a strike this century.",
+    visualRadius: 0.045,
+  },
+  {
+    name: "Eros",
+    designation: "433 Eros",
+    kind: "asteroid",
+    aAU: 1.458,
+    eccentricity: 0.223,
+    inclDeg: 10.83,
+    periodYears: 1.76,
+    startPhase: 0.81,
+    fact: "First near-Earth asteroid discovered (1898). The NEAR Shoemaker spacecraft orbited Eros for a year and soft-landed on its surface in 2001 — the first ever asteroid landing.",
+    visualRadius: 0.05,
+  },
+  {
+    name: "Chiron",
+    designation: "2060 Chiron",
+    kind: "asteroid",
+    aAU: 13.7,
+    eccentricity: 0.379,
+    inclDeg: 6.93,
+    periodYears: 50.4,
+    startPhase: 0.27,
+    fact: "Centaur — outer-solar-system body orbiting between Saturn and Uranus. Behaves like a hybrid: it has a tail and coma like a comet, but a large rocky/icy body like an asteroid. The discovery of Chiron in 1977 forced astronomers to invent a new category.",
+    visualRadius: 0.05,
+  },
+  {
+    name: "Vesta",
+    designation: "4 Vesta",
+    kind: "asteroid",
+    aAU: 2.362,
+    eccentricity: 0.089,
+    inclDeg: 7.14,
+    periodYears: 3.63,
+    startPhase: 0.55,
+    fact: "Brightest asteroid as seen from Earth — visible to the naked eye at opposition. Second-largest object in the asteroid belt after Ceres; visited by NASA's Dawn spacecraft 2011–2012.",
+    visualRadius: 0.05,
+  },
+  // ----- Interstellar visitors — one-way trajectories -----
+  {
+    name: "'Oumuamua",
+    designation: "1I/2017 U1 ('Oumuamua)",
+    kind: "interstellar",
+    aAU: 0.255,            // perihelion distance (0.255 AU, inside Mercury's orbit)
+    eccentricity: 1.20,     // hyperbolic
+    inclDeg: 122.7,
+    periodYears: Infinity,
+    startPhase: 0.5,
+    fact: "First confirmed interstellar object ever observed (October 2017). Cigar-shaped, ~100 m long, accelerating in ways comets don't quite explain. Now leaving the solar system forever at 26 km/s.",
+    visualRadius: 0.04,
+  },
+  {
+    name: "Comet Borisov",
+    designation: "2I/Borisov",
+    kind: "interstellar",
+    aAU: 2.006,            // perihelion (2.006 AU, just outside Mars)
+    eccentricity: 3.36,     // strongly hyperbolic
+    inclDeg: 44.05,
+    periodYears: Infinity,
+    startPhase: 0.5,
+    fact: "Second known interstellar visitor (August 2019). Unlike 'Oumuamua, Borisov was clearly a comet — visible coma and tail. Spectroscopy showed exotic chemistry hinting at an origin around a cool red-dwarf star.",
+    visualRadius: 0.04,
+  },
 ]
 
 /* --------------------------------------------------------------------------
