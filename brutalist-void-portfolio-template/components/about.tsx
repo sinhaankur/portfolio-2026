@@ -49,7 +49,7 @@ export function About() {
         </p>
         <h2
           id="about-heading"
-          className="font-sans text-3xl md:text-5xl font-light italic"
+          className="font-display text-3xl md:text-5xl lg:text-6xl font-light italic tracking-[-0.01em]"
         >
           Stream of consciousness
         </h2>

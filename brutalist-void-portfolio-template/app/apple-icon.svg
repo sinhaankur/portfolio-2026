@@ -1,0 +1,22 @@
+<svg width="180" height="180" viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
+  <!--
+    Ankur Sinha — Apple touch icon (180×180).
+    Same brand mark scaled up: sun (accent-red), two orbital rings, one planet.
+    Solid dark background so the mark reads on iOS home screens.
+  -->
+  <rect width="180" height="180" rx="40" fill="#0a0a0a"/>
+
+  <!-- Outer orbit -->
+  <circle cx="90" cy="90" r="62" fill="none" stroke="#fafafa" stroke-opacity="0.65" stroke-width="3"/>
+  <!-- Inner orbit -->
+  <circle cx="90" cy="90" r="36" fill="none" stroke="#fafafa" stroke-opacity="0.55" stroke-width="3"/>
+
+  <!-- Sun -->
+  <circle cx="90" cy="90" r="14" fill="#ff3b30"/>
+
+  <!-- Sun glow (subtle inner highlight) -->
+  <circle cx="90" cy="90" r="14" fill="none" stroke="#ff3b30" stroke-opacity="0.35" stroke-width="6"/>
+
+  <!-- Planet on outer orbit (upper-right at ~30°) -->
+  <circle cx="143.8" cy="59" r="9" fill="#fafafa"/>
+</svg>

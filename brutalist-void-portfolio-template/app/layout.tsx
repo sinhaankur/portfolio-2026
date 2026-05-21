@@ -1,6 +1,6 @@
 import type React from "react"
 import type { Metadata, Viewport } from "next"
-import { Inter, Instrument_Serif, JetBrains_Mono } from "next/font/google"
+import { Inter, Instrument_Serif, JetBrains_Mono, Fraunces } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
 import "./globals.css"
 
@@ -10,8 +10,20 @@ const inter = Inter({
   display: "swap",
 })
 
-// One restrained serif — used only for the few italic moments that need it.
-// Instrument Serif has a sharp, modern italic that pairs cleanly with Inter.
+// Editorial display font with real optical character at large sizes.
+// Used on case-study headlines and section h2s — anywhere Inter Light
+// was feeling generic at display size.
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-fraunces",
+  // Variable axes — keeps the file count down while giving us weight + opsz.
+  axes: ["opsz", "SOFT", "WONK"],
+  style: ["normal", "italic"],
+  display: "swap",
+})
+
+// Instrument Serif still appears for short inline italic moments
+// (single-word emphasis like "collaborate"). Fraunces handles the big stuff.
 const instrument = Instrument_Serif({
   subsets: ["latin"],
   weight: "400",
@@ -52,7 +64,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${inter.variable} ${instrument.variable} ${jetbrains.variable}`}
+      className={`${inter.variable} ${fraunces.variable} ${instrument.variable} ${jetbrains.variable}`}
     >
       <body className="font-sans antialiased overflow-x-hidden bg-background text-foreground">
         <ThemeProvider

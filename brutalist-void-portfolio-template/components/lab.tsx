@@ -76,7 +76,7 @@ export function Lab() {
           </p>
           <h2
             id="lab-heading"
-            className="font-sans text-3xl md:text-5xl font-light italic"
+            className="font-display text-3xl md:text-5xl lg:text-6xl font-light italic tracking-[-0.01em]"
           >
             What I build when nobody's asking.
           </h2>
@@ -133,7 +133,7 @@ export function Lab() {
                   </span>
                 </div>
 
-                <h3 className="font-sans text-4xl md:text-5xl lg:text-6xl font-light tracking-tight text-foreground">
+                <h3 className="font-display text-4xl md:text-5xl lg:text-6xl font-light tracking-[-0.02em] leading-[1.02] text-foreground">
                   Unhosted — <span className="italic">AI that lives where you do.</span>
                 </h3>
 

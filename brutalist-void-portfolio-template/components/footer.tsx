@@ -46,9 +46,9 @@ export function Footer() {
             </p>
             <h2
               id="contact-heading"
-              className="font-sans text-3xl md:text-5xl font-light tracking-tight text-foreground"
+              className="font-display text-3xl md:text-5xl lg:text-6xl font-light tracking-[-0.01em] text-foreground"
             >
-              Let's <span className="italic font-serif">collaborate</span>.
+              Let's <span className="italic">collaborate</span>.
             </h2>
             <p className="mt-4 font-sans text-base md:text-lg text-foreground/75 leading-relaxed">
               Working on a hard human–AI surface, a console for operators, or

@@ -5,14 +5,17 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber"
 import { OrbitControls, Stars } from "@react-three/drei"
 import {
   AdditiveBlending,
+  NormalBlending,
   BufferGeometry,
   BufferAttribute,
+  Color,
   Points,
   Mesh,
   Group,
   FogExp2,
   DoubleSide,
   ShaderMaterial,
+  TOUCH,
 } from "three"
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib"
 import { GalaxyMusic } from "./galaxy-music"
@@ -122,26 +125,27 @@ const GALAXY_VERTEX_SHADER = /* glsl */ `
 
 const GALAXY_FRAGMENT_SHADER = /* glsl */ `
   varying float vAlpha;
+  uniform vec3 uStarColor;
   void main() {
     vec2 uv = gl_PointCoord * 2.0 - 1.0;
     float dist = length(uv);
     if (dist > 1.0) discard;
     float falloff = exp(-3.2 * dist * dist);
-    gl_FragColor = vec4(vec3(1.0), falloff * vAlpha);
+    gl_FragColor = vec4(uStarColor, falloff * vAlpha);
   }
 `
 
 // Milky Way structure: 4 spiral arms (Perseus, Sagittarius, Scutum-Centaurus, Norma),
 // dense central bulge, thin disc. Our Sun sits ~26,000 ly out on the Orion Arm.
-function MilkyWay({ onHover }: { onHover: HoverHandler }) {
+function MilkyWay({ onHover, mobile = false, invert = false }: { onHover: HoverHandler; mobile?: boolean; invert?: boolean }) {
   const pointsRef = useRef<Points>(null)
   const matRef = useRef<ShaderMaterial>(null)
   const { gl } = useThree()
 
   const geometry = useMemo(() => {
-    // 4 spiral arms + central bulge
-    const armCount = 14000
-    const bulgeCount = 4000
+    // 4 spiral arms + central bulge — halved on mobile to keep ~60fps on phones
+    const armCount = mobile ? 6000 : 14000
+    const bulgeCount = mobile ? 1800 : 4000
     const total = armCount + bulgeCount
     const positions = new Float32Array(total * 3)
     const sizes = new Float32Array(total)
@@ -196,14 +200,16 @@ function MilkyWay({ onHover }: { onHover: HoverHandler }) {
     geo.setAttribute("aSize", new BufferAttribute(sizes, 1))
     geo.setAttribute("aAlpha", new BufferAttribute(alphas, 1))
     return geo
-  }, [])
+  }, [mobile])
 
   const uniforms = useMemo(
     () => ({
       uTime: { value: 0 },
       uPixelRatio: { value: Math.min(gl.getPixelRatio(), 2) },
+      uStarColor: { value: new Color(invert ? "#0a0a0a" : "#ffffff") },
     }),
-    [gl],
+    // recreate uniforms when invert flips so the new color is bound
+    [gl, invert],
   )
 
   useFrame((_, delta) => {
@@ -223,7 +229,10 @@ function MilkyWay({ onHover }: { onHover: HoverHandler }) {
           uniforms={uniforms}
           transparent
           depthWrite={false}
-          blending={AdditiveBlending}
+          // Additive glow looks right against ink, but on cream paper additive
+          // blending erases stars (white + cream → cream). Use normal blending
+          // when inverted so dark stars actually read.
+          blending={invert ? NormalBlending : AdditiveBlending}
         />
       </points>
 
@@ -985,7 +994,7 @@ function SolarSystem({ onHover }: { onHover: HoverHandler }) {
 function InfoPanel({ info }: { info: BodyInfo | null }) {
   if (!info) {
     return (
-      <div className="font-mono text-[10px] tracking-[0.25em] uppercase text-white/35 pointer-events-none">
+      <div className="font-mono text-[10px] tracking-[0.25em] uppercase text-foreground/45 pointer-events-none">
         Hover any body for data
       </div>
     )
@@ -995,17 +1004,17 @@ function InfoPanel({ info }: { info: BodyInfo | null }) {
   const c = info.surfaceTempC
 
   return (
-    <div className="font-mono text-[11px] text-white/90 leading-relaxed pointer-events-none">
-      <div className="text-[10px] tracking-[0.3em] uppercase text-white/50 mb-1">
+    <div className="font-mono text-[11px] text-foreground/90 leading-relaxed pointer-events-none">
+      <div className="text-[10px] tracking-[0.3em] uppercase text-foreground/50 mb-1">
         {info.classification}
       </div>
-      <div className="text-base font-sans tracking-tight text-white mb-2">
+      <div className="text-base font-sans tracking-tight text-foreground mb-2">
         {info.name}
       </div>
 
       {k && (
         <div>
-          <span className="text-white/55">Surface temp · </span>
+          <span className="text-foreground/55">Surface temp · </span>
           {k.min !== undefined && k.max !== undefined ? (
             <>
               {k.min}–{k.max} K
@@ -1013,20 +1022,20 @@ function InfoPanel({ info }: { info: BodyInfo | null }) {
           ) : (
             <>{k.mean} K</>
           )}
-          {c && <span className="text-white/55"> ({c.mean}°C avg)</span>}
+          {c && <span className="text-foreground/55"> ({c.mean}°C avg)</span>}
         </div>
       )}
 
       {info.aAU !== undefined && (
         <div>
-          <span className="text-white/55">Orbit · </span>
+          <span className="text-foreground/55">Orbit · </span>
           {info.aAU.toFixed(2)} AU · {Math.round(info.periodDays ?? 0).toLocaleString()} days
         </div>
       )}
 
       {info.rotHours !== undefined && (
         <div>
-          <span className="text-white/55">Day · </span>
+          <span className="text-foreground/55">Day · </span>
           {Math.abs(info.rotHours) < 100
             ? `${Math.abs(info.rotHours).toFixed(1)} h${info.rotHours < 0 ? " (retrograde)" : ""}`
             : `${(Math.abs(info.rotHours) / 24).toFixed(0)} days${info.rotHours < 0 ? " (retrograde)" : ""}`}
@@ -1035,27 +1044,27 @@ function InfoPanel({ info }: { info: BodyInfo | null }) {
 
       {info.tiltDeg !== undefined && (
         <div>
-          <span className="text-white/55">Axial tilt · </span>
+          <span className="text-foreground/55">Axial tilt · </span>
           {info.tiltDeg.toFixed(1)}°
         </div>
       )}
 
       {info.radiusEarth !== undefined && (
         <div>
-          <span className="text-white/55">Radius · </span>
+          <span className="text-foreground/55">Radius · </span>
           {info.radiusEarth.toFixed(2)} × Earth
         </div>
       )}
 
       {info.moons !== undefined && info.moons > 0 && (
         <div>
-          <span className="text-white/55">Moons · </span>
+          <span className="text-foreground/55">Moons · </span>
           {info.moons}
         </div>
       )}
 
       {info.fact && (
-        <div className="mt-2 max-w-xs text-white/70 font-sans text-[12px] leading-snug">
+        <div className="mt-2 max-w-xs text-foreground/75 font-sans text-[12px] leading-snug">
           {info.fact}
         </div>
       )}
@@ -1071,33 +1080,42 @@ function SceneContents({
   enableMotion,
   onHover,
   onResetView,
+  mobile = false,
+  invert = false,
 }: {
   enableMotion: boolean
   onHover: HoverHandler
   onResetView: () => void
+  mobile?: boolean
+  invert?: boolean
 }) {
   const { scene } = useThree()
   useEffect(() => {
-    scene.fog = new FogExp2("#050505", 0.0035)
+    scene.fog = new FogExp2(invert ? "#efece3" : "#050505", 0.0035)
     return () => {
       scene.fog = null
     }
-  }, [scene])
+  }, [scene, invert])
 
   return (
     <>
-      <Stars
-        radius={400}
-        depth={100}
-        count={2200}
-        factor={4}
-        saturation={0}
-        fade
-        speed={enableMotion ? 0.2 : 0}
-      />
+      {/* drei <Stars> is white-only and additive — in inverted (chart) mode
+          we drop it and rely on the MilkyWay points (which we recolor) so the
+          backdrop reads as ink-on-paper instead of disappearing into cream. */}
+      {!invert && (
+        <Stars
+          radius={400}
+          depth={100}
+          count={mobile ? 1100 : 2200}
+          factor={4}
+          saturation={0}
+          fade
+          speed={enableMotion ? 0.2 : 0}
+        />
+      )}
       {/* Milky Way disc is tilted ~60.2° relative to the ecliptic in real life. */}
       <group rotation={[GALACTIC_PLANE_TILT_RAD, 0, 0]}>
-        <MilkyWay onHover={onHover} />
+        <MilkyWay onHover={onHover} mobile={mobile} invert={invert} />
       </group>
       {/* Solar system on the Orion Arm — ~26,670 ly out of the galactic centre */}
       <group position={SOLAR_SYSTEM_POSITION}>
@@ -1106,8 +1124,8 @@ function SceneContents({
       {/* Big Dipper + Polaris (North Star) — click Polaris to reset the view */}
       <Constellations onHover={onHover} onResetView={onResetView} />
       {/* Cyclical shooting stars across the sky */}
-      {enableMotion && <ShootingStars count={6} />}
-      <ambientLight intensity={0.18} />
+      {enableMotion && <ShootingStars count={mobile ? 3 : 6} />}
+      <ambientLight intensity={invert ? 0.55 : 0.18} />
     </>
   )
 }
@@ -1115,17 +1133,29 @@ function SceneContents({
 export function GalaxyScene({ interactive = false }: { interactive?: boolean }) {
   const [mounted, setMounted] = useState(false)
   const [reducedMotion, setReducedMotion] = useState(false)
+  const [mobile, setMobile] = useState(false)
   const [hovered, setHovered] = useState<BodyInfo | null>(null)
   const [timeWarpDisplay, setTimeWarpDisplay] = useState(1)
   const orbitRef = useRef<OrbitControlsImpl | null>(null)
+  // The hero scopes `.dark` on its section so the universe always reads on ink —
+  // no inversion needed at the canvas level. `useTheme()` is kept off this path
+  // because the section's local scope already drives the surrounding HUD chrome.
+  const invert = false
 
   useEffect(() => {
     setMounted(true)
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)")
-    setReducedMotion(mq.matches)
-    const update = () => setReducedMotion(mq.matches)
-    mq.addEventListener("change", update)
-    return () => mq.removeEventListener("change", update)
+    const motionMq = window.matchMedia("(prefers-reduced-motion: reduce)")
+    const mobileMq = window.matchMedia("(max-width: 768px)")
+    setReducedMotion(motionMq.matches)
+    setMobile(mobileMq.matches)
+    const onMotion = () => setReducedMotion(motionMq.matches)
+    const onMobile = () => setMobile(mobileMq.matches)
+    motionMq.addEventListener("change", onMotion)
+    mobileMq.addEventListener("change", onMobile)
+    return () => {
+      motionMq.removeEventListener("change", onMotion)
+      mobileMq.removeEventListener("change", onMobile)
+    }
   }, [])
 
   const onHover = useCallback<HoverHandler>((info) => setHovered(info), [])
@@ -1137,7 +1167,7 @@ export function GalaxyScene({ interactive = false }: { interactive?: boolean }) 
   if (!mounted) {
     return (
       <div className="w-full h-full flex items-center justify-center">
-        <div className="w-64 h-64 rounded-full border border-white/10 motion-safe:animate-pulse" />
+        <div className="w-64 h-64 rounded-full border border-foreground/10 motion-safe:animate-pulse" />
       </div>
     )
   }
@@ -1157,7 +1187,7 @@ export function GalaxyScene({ interactive = false }: { interactive?: boolean }) 
         // wheel events so page scroll still works in passive mode.
         style={{ pointerEvents: "auto" }}
       >
-        <SceneContents enableMotion={!reducedMotion} onHover={onHover} onResetView={handleReset} />
+        <SceneContents enableMotion={!reducedMotion} onHover={onHover} onResetView={handleReset} mobile={mobile} invert={invert} />
 
         <OrbitControls
           ref={orbitRef as React.Ref<OrbitControlsImpl>}
@@ -1171,6 +1201,8 @@ export function GalaxyScene({ interactive = false }: { interactive?: boolean }) 
           autoRotateSpeed={0.15}
           rotateSpeed={0.5}
           zoomSpeed={0.7}
+          // One-finger rotate, two-finger pinch-zoom — mirrors how phones already feel.
+          touches={{ ONE: TOUCH.ROTATE, TWO: TOUCH.DOLLY_PAN }}
           // Camera orbits around the solar system, not the galactic centre.
           target={SOLAR_SYSTEM_POSITION}
           makeDefault
@@ -1187,8 +1219,8 @@ export function GalaxyScene({ interactive = false }: { interactive?: boolean }) 
       <div className="absolute bottom-6 right-6 md:bottom-8 md:right-12 z-30 pointer-events-auto flex flex-col items-end gap-2">
         <GalaxyMusic />
 
-        <label className="flex items-center gap-3 px-4 py-2.5 border border-white/25 rounded-full bg-black/40 backdrop-blur-sm">
-          <span className="font-mono text-[10px] tracking-[0.25em] uppercase text-white/70">
+        <label className="flex items-center gap-3 px-4 py-2.5 border border-foreground/25 rounded-full bg-background/50 backdrop-blur-sm">
+          <span className="font-mono text-[10px] tracking-[0.25em] uppercase text-foreground/70">
             Time
           </span>
           <input
@@ -1203,9 +1235,9 @@ export function GalaxyScene({ interactive = false }: { interactive?: boolean }) 
               timeWarpRef.current = v
             }}
             aria-label="Adjust simulation speed"
-            className="w-32 md:w-40 accent-white cursor-ew-resize"
+            className="w-32 md:w-40 accent-accent cursor-ew-resize"
           />
-          <span className="font-mono text-[10px] tracking-widest text-white/85 tabular-nums w-10 text-right">
+          <span className="font-mono text-[10px] tracking-widest text-foreground/85 tabular-nums w-10 text-right">
             {timeWarpDisplay === 0 ? "PAUSED" : `${timeWarpDisplay.toFixed(2)}×`}
           </span>
         </label>
@@ -1220,10 +1252,10 @@ export function GalaxyScene({ interactive = false }: { interactive?: boolean }) 
           className="
             absolute top-20 right-6 md:top-40 md:right-12 z-30
             inline-flex items-center gap-2 px-3.5 py-2
-            border border-white/25 rounded-full
-            bg-black/40 backdrop-blur-sm
+            border border-foreground/25 rounded-full
+            bg-background/50 backdrop-blur-sm
             font-mono text-[10px] tracking-[0.25em] uppercase
-            text-white/85 hover:text-white hover:border-accent/60
+            text-foreground/85 hover:text-foreground hover:border-accent/60
             transition-colors duration-300
             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
             focus-visible:ring-offset-2 focus-visible:ring-offset-background

@@ -94,10 +94,10 @@ export function SkillsBreakdown() {
           <p className="font-mono text-xs tracking-[0.3em] text-muted-foreground mb-4">
             Skills · Twelve practices · One through-line
           </p>
-          <h1 className="font-sans text-4xl md:text-6xl lg:text-7xl font-light tracking-tight leading-[1.05]">
-            <span className="italic font-serif">What I'm</span> good at —
+          <h1 className="font-display text-4xl md:text-6xl lg:text-7xl font-light tracking-[-0.02em] leading-[1.02]">
+            <span className="italic">What I'm</span> good at —
             <br />
-            with the work that <span className="italic font-serif">earned it</span>.
+            with the work that <span className="italic">earned it</span>.
           </h1>
           <p className="mt-8 font-sans text-base md:text-lg text-foreground/80 leading-relaxed max-w-2xl">
             Not a checklist. Each practice below is tied to the projects, the

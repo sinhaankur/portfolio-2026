@@ -189,7 +189,7 @@ export function Works() {
         </p>
         <h2
           id="works-heading"
-          className="font-sans text-3xl md:text-5xl font-light italic"
+          className="font-display text-3xl md:text-5xl lg:text-6xl font-light italic tracking-[-0.01em]"
         >
           12+ years, four companies, one through-line.
         </h2>
@@ -286,7 +286,7 @@ function TimelineRow({
 
       <div className="min-w-0">
         <motion.h3
-          className="font-sans text-3xl md:text-5xl lg:text-6xl font-light tracking-tight text-foreground transition-colors duration-300"
+          className="font-display text-3xl md:text-5xl lg:text-6xl font-light tracking-[-0.02em] leading-[1.02] text-foreground transition-colors duration-300"
           animate={
             prefersReducedMotion
               ? undefined
