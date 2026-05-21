@@ -8,7 +8,7 @@ import { UpcomingBadge } from "@/components/upcoming-badge"
 export const metadata: Metadata = {
   title: "Skills · Ankur Sinha",
   description:
-    "Principal-level UX profile — skills tied to real work at Oracle, Deloitte, Snowtint, Rage, and independent product experiments. Filter, sort, set a proficiency floor.",
+    "Principal-level UX profile — skills tied to real work at Oracle, Deloitte, Snowtint, Rage, and independent product experiments. Filter by category or company.",
 }
 
 export default function SkillsPage() {
