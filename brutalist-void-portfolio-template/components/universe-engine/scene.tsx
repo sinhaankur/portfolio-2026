@@ -14,7 +14,7 @@
 
 import { useRef, useMemo, useEffect, useState } from "react"
 import { useFrame, useThree } from "@react-three/fiber"
-import { Stars } from "@react-three/drei"
+import { Html, Stars } from "@react-three/drei"
 import {
   AdditiveBlending,
   BufferAttribute,
@@ -446,6 +446,22 @@ function ConstellationGroup({
   const isPolaris = constellation.id === "polaris"
   const onClick = isClickable ? onResetView : undefined
 
+  // Centroid of the constellation's stars — anchor for the hover label.
+  // Single-star "constellations" (Polaris) anchor on the star itself.
+  const centroid = useMemo<[number, number, number]>(() => {
+    const pts = constellation.stars.map((s) =>
+      raDecToScenePos(s.raHours, s.decDeg, SKY_SHELL_DISTANCE),
+    )
+    const sum = pts.reduce(
+      (acc, p) => [acc[0] + p[0], acc[1] + p[1], acc[2] + p[2]] as [number, number, number],
+      [0, 0, 0] as [number, number, number],
+    )
+    const cx = sum[0] / pts.length
+    const cy = sum[1] / pts.length
+    const cz = sum[2] / pts.length
+    return [cx, cy, cz]
+  }, [constellation.stars])
+
   return (
     <group>
       <AsterismLine
@@ -453,6 +469,37 @@ function ConstellationGroup({
         edges={constellation.edges}
         active={active}
       />
+
+      {/* Hover label — fades in when the constellation is active.
+          Lives outside the 3D point cloud as an HTML overlay so it stays crisp
+          at any camera distance. drei's <Html> positions it in scene space. */}
+      {active && (
+        <Html
+          position={centroid}
+          center
+          distanceFactor={120}
+          zIndexRange={[10, 0]}
+          // pointer events disabled — label is a hint, not a target
+          style={{ pointerEvents: "none" }}
+        >
+          <div
+            className="
+              whitespace-nowrap select-none pointer-events-none
+              font-mono text-[10px] tracking-[0.3em] uppercase
+              px-2 py-1 rounded-full
+              bg-black/55 backdrop-blur-sm border border-white/20
+              text-white
+            "
+            style={{
+              // Fade-in animation lives in CSS so it doesn't allocate a
+              // motion node per constellation per frame.
+              animation: "ue-label-in 220ms ease-out both",
+            }}
+          >
+            {constellation.name}
+          </div>
+        </Html>
+      )}
       {/* Also let the user hover the asterism line itself — invisible thick
           hit segments along each edge so the line isn't just decorative. */}
       {constellation.edges.map(([a, b], i) => (

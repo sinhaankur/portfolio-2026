@@ -228,6 +228,13 @@
   color: var(--accent-foreground);
 }
 
+/* Universe engine — constellation label fade-in (used by drei <Html /> overlays).
+   Pure CSS so it runs without allocating a motion node per constellation per frame. */
+@keyframes ue-label-in {
+  from { opacity: 0; transform: translateY(4px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 /* Marquee animation */
 @keyframes marquee-left {
   from {

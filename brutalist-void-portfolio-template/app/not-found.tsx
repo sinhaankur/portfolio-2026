@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { CustomCursor } from "@/components/custom-cursor"
 import { Navbar } from "@/components/navbar"
+import { StaticStarfield } from "@/components/universe-engine/static-starfield"
 
 export const metadata: Metadata = {
   title: "Drifted off course · 404",
@@ -34,17 +35,15 @@ export default function NotFound() {
         "
         style={{ colorScheme: "dark" }}
       >
-        {/* Layered starfields — pure CSS so this page stays under ~2 kB. */}
-        <Starfield density="dense" sizePx={1.5} blur={0} opacity={0.6} parallax={0} />
-        <Starfield density="mid"   sizePx={2}   blur={0.5} opacity={0.5} parallax={0} />
-        <Starfield density="sparse" sizePx={3} blur={1} opacity={0.7} parallax={0} />
+        {/* Shared three-layer CSS starfield (also used as the hero's lazy-load fallback). */}
+        <StaticStarfield />
 
         {/* Drifting planet — sits behind the type, scaled responsively */}
         <div
           aria-hidden="true"
           className="
             absolute -right-32 top-1/2 -translate-y-1/2
-            w-[420px] h-[420px] sm:w-[520px] sm:h-[520px] md:w-[640px] md:h-[640px]
+            w-105 h-105 sm:w-130 sm:h-130 md:w-160 md:h-160
             rounded-full
             motion-safe:animate-pulse
           "
@@ -117,49 +116,3 @@ export default function NotFound() {
   )
 }
 
-/**
- * Inline starfield — multi-layer radial-gradient backgrounds tile across the
- * viewport. Pure CSS, no JS, no canvas — sized in px so density stays
- * consistent from phone (320 px) to retina ultra-wide (3840 px+).
- */
-function Starfield({
-  density,
-  sizePx,
-  blur,
-  opacity,
-}: {
-  density: "sparse" | "mid" | "dense"
-  sizePx: number
-  blur: number
-  opacity: number
-  parallax: number
-}) {
-  const tilePx = density === "dense" ? 140 : density === "mid" ? 220 : 320
-  // Pre-computed pseudo-random star coordinates per density layer so the
-  // server-rendered HTML matches the client render (no hydration mismatch).
-  const seeds: Record<string, [number, number][]> = {
-    dense: [[12, 18], [37, 56], [68, 22], [83, 73], [22, 88], [54, 41], [91, 32]],
-    mid:   [[18, 28], [62, 14], [80, 60], [44, 78], [8, 64]],
-    sparse: [[30, 40], [70, 70], [50, 12]],
-  }
-  const stars = seeds[density]
-  const gradients = stars
-    .map(
-      ([xPct, yPct]) =>
-        `radial-gradient(${sizePx}px ${sizePx}px at ${xPct}% ${yPct}%, rgba(255,255,255,${opacity}) 0%, transparent 60%)`,
-    )
-    .join(",")
-
-  return (
-    <div
-      aria-hidden="true"
-      className="absolute inset-0 pointer-events-none"
-      style={{
-        backgroundImage: gradients,
-        backgroundSize: `${tilePx}px ${tilePx}px`,
-        backgroundRepeat: "repeat",
-        filter: blur > 0 ? `blur(${blur}px)` : undefined,
-      }}
-    />
-  )
-}

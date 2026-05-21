@@ -10,6 +10,7 @@ import { CustomCursor } from "@/components/custom-cursor"
 import { UpcomingBadge } from "@/components/upcoming-badge"
 import { Container } from "@/components/container"
 import { ScrollProgress } from "@/components/case-study/scroll-progress"
+import { CaseStudyToc } from "@/components/case-study/case-study-toc"
 
 type CaseStudyLayoutProps = {
   eyebrow: string
@@ -48,6 +49,7 @@ export function CaseStudyLayout({
       <CustomCursor />
       <Navbar />
       <ScrollProgress />
+      <CaseStudyToc />
 
       <main id="main" className="pt-24 pb-24">
         <Container width="default">
@@ -148,12 +150,42 @@ export function CaseStudyLayout({
 
 /* ===== Reusable section primitives ===== */
 
-export function CaseSectionHeading({ children }: { children: ReactNode }) {
+/**
+ * Slugify a heading's text content for use as the h2's id.
+ * "What I learned" → "what-i-learned" — stable for deep-linking and the TOC.
+ */
+function slugify(input: string): string {
+  return input
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+}
+
+export function CaseSectionHeading({
+  children,
+  id,
+}: {
+  children: ReactNode
+  /** Optional override. Defaults to a slug of the string children. */
+  id?: string
+}) {
+  const resolvedId =
+    id ?? (typeof children === "string" ? slugify(children) : undefined)
+
   return (
-    <div className="mb-10">
+    <div className="mb-10 scroll-mt-28">
       <div className="flex items-baseline gap-4 mb-2">
         <span aria-hidden="true" className="block w-12 h-px bg-accent" />
-        <h2 className="font-display text-2xl md:text-3xl lg:text-4xl font-light tracking-[-0.01em] text-foreground">
+        <h2
+          id={resolvedId}
+          data-case-section
+          className="font-display text-2xl md:text-3xl lg:text-4xl font-light tracking-[-0.01em] text-foreground"
+        >
           {children}
         </h2>
       </div>
@@ -351,7 +383,8 @@ export function CaseMoments({
         <div className="flex items-baseline gap-4 mb-2">
           <span aria-hidden="true" className="block w-12 h-px bg-accent" />
           <h2
-            id="moments-heading"
+            id={slugify(title)}
+            data-case-section
             className="font-display text-2xl md:text-3xl lg:text-4xl font-light tracking-[-0.01em] text-foreground"
           >
             {title}
