@@ -51,3 +51,17 @@ export type Heuristic = {
   /** Optional interactive demo. Lookups happen in demos/registry.ts. */
   demo?: DemoKey
 }
+
+/** Per-heuristic verdict during an active audit session. */
+export type AuditVerdict = "pass" | "fail" | "skip" | null
+
+/**
+ * One stored audit session — the URL being audited and the user's
+ * verdicts per heuristic. Persisted in localStorage so the user can
+ * pause mid-audit and pick up later.
+ */
+export type AuditSession = {
+  url: string
+  startedAt: number
+  verdicts: Record<string, AuditVerdict>
+}

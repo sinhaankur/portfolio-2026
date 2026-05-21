@@ -27,6 +27,9 @@ import { useMemo, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { heuristics } from "./heuristics"
 import { HeuristicCard } from "./heuristic-card"
+import { AuditBar } from "./audit-bar"
+import { AuditSummary } from "./audit-summary"
+import { useAuditSession } from "./use-audit-session"
 import type { SurfaceKind } from "./types"
 
 type Filter = SurfaceKind | "all"
@@ -41,6 +44,7 @@ const SURFACES: { key: Filter; label: string; hint: string }[] = [
 
 export function UsabilityEngine() {
   const [filter, setFilter] = useState<Filter>("all")
+  const audit = useAuditSession()
 
   const filtered = useMemo(() => {
     if (filter === "all") return heuristics
@@ -61,6 +65,9 @@ export function UsabilityEngine() {
 
   return (
     <section aria-labelledby="usability-engine-heading" className="relative">
+      {/* Audit bar — URL input (idle) or active-audit chip (running) */}
+      <AuditBar heuristics={filtered} audit={audit} />
+
       {/* Surface picker */}
       <div className="mb-12 md:mb-16">
         <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-muted-foreground mb-4">
@@ -134,7 +141,13 @@ export function UsabilityEngine() {
         >
           {filtered.map((h, i) => (
             <li key={h.id}>
-              <HeuristicCard heuristic={h} index={i} />
+              <HeuristicCard
+                heuristic={h}
+                index={i}
+                auditActive={audit.isActive}
+                verdict={audit.session.verdicts[h.id] ?? null}
+                onVerdict={(v) => audit.setVerdict(h.id, v)}
+              />
             </li>
           ))}
           {filtered.length === 0 && (
@@ -144,6 +157,11 @@ export function UsabilityEngine() {
           )}
         </motion.ol>
       </AnimatePresence>
+
+      {/* Audit report — only renders once at least one verdict is set. */}
+      {audit.isActive && (
+        <AuditSummary heuristics={filtered} session={audit.session} />
+      )}
     </section>
   )
 }

@@ -12,7 +12,7 @@
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { ChevronDown } from "lucide-react"
-import type { Heuristic } from "./types"
+import type { AuditVerdict, Heuristic } from "./types"
 import { demoRegistry } from "./demos/registry"
 
 const SEVERITY_TONE: Record<Heuristic["severity"], { dot: string; label: string }> = {
@@ -21,7 +21,24 @@ const SEVERITY_TONE: Record<Heuristic["severity"], { dot: string; label: string 
   minor:   { dot: "bg-emerald-500", label: "Minor" },
 }
 
-export function HeuristicCard({ heuristic, index }: { heuristic: Heuristic; index: number }) {
+export function HeuristicCard({
+  heuristic,
+  index,
+  verdict = null,
+  onVerdict,
+  auditActive = false,
+}: {
+  heuristic: Heuristic
+  index: number
+  /** Current per-heuristic audit verdict, if an audit is active. */
+  verdict?: AuditVerdict
+  /** Called when the user changes the verdict. */
+  onVerdict?: (v: AuditVerdict) => void
+  /** True when audit-mode is on. Drives whether vote controls render. */
+  auditActive?: boolean
+}) {
+  // Default-open the fix when the user marks the heuristic as failing,
+  // since that's the moment they need to read what to do next.
   const [auditOpen, setAuditOpen] = useState(false)
   const Demo = heuristic.demo ? demoRegistry[heuristic.demo] : null
 
@@ -86,8 +103,17 @@ export function HeuristicCard({ heuristic, index }: { heuristic: Heuristic; inde
             </div>
           )}
 
-          {/* Self-audit — collapsible */}
-          <div className="mt-8 border border-border rounded-lg bg-card overflow-hidden">
+          {/* Self-audit — collapsible. In audit-mode the user sees vote
+              controls; otherwise it's a static question + tap-to-reveal fix. */}
+          <div
+            className={`
+              mt-8 border rounded-lg overflow-hidden transition-colors
+              ${verdict === "pass" ? "border-emerald-500/40 bg-emerald-500/[0.04]" : ""}
+              ${verdict === "fail" ? "border-red-500/40 bg-red-500/[0.04]" : ""}
+              ${verdict === "skip" ? "border-foreground/15 bg-secondary/30" : ""}
+              ${!verdict ? "border-border bg-card" : ""}
+            `}
+          >
             <button
               type="button"
               onClick={() => setAuditOpen((v) => !v)}
@@ -115,6 +141,37 @@ export function HeuristicCard({ heuristic, index }: { heuristic: Heuristic; inde
                 <ChevronDown className="w-4 h-4" />
               </motion.span>
             </button>
+
+            {/* Verdict controls — visible whenever audit-mode is active. */}
+            {auditActive && (
+              <div className="px-5 py-3 border-t border-border/60 flex flex-wrap gap-2">
+                <VerdictButton
+                  active={verdict === "pass"}
+                  onClick={() => onVerdict?.(verdict === "pass" ? null : "pass")}
+                  tone="good"
+                  label="✓ Pass"
+                  helper="This site does this well"
+                />
+                <VerdictButton
+                  active={verdict === "fail"}
+                  onClick={() => {
+                    onVerdict?.(verdict === "fail" ? null : "fail")
+                    if (verdict !== "fail") setAuditOpen(true)
+                  }}
+                  tone="bad"
+                  label="✕ Fail"
+                  helper="This site needs work here"
+                />
+                <VerdictButton
+                  active={verdict === "skip"}
+                  onClick={() => onVerdict?.(verdict === "skip" ? null : "skip")}
+                  tone="muted"
+                  label="– Skip"
+                  helper="Not applicable / unsure"
+                />
+              </div>
+            )}
+
             <AnimatePresence initial={false}>
               {auditOpen && (
                 <motion.div
@@ -140,5 +197,45 @@ export function HeuristicCard({ heuristic, index }: { heuristic: Heuristic; inde
         </div>
       </div>
     </motion.article>
+  )
+}
+
+function VerdictButton({
+  active,
+  onClick,
+  tone,
+  label,
+  helper,
+}: {
+  active: boolean
+  onClick: () => void
+  tone: "good" | "bad" | "muted"
+  label: string
+  helper: string
+}) {
+  const baseTint =
+    tone === "good" ? "text-emerald-700 dark:text-emerald-300" :
+    tone === "bad"  ? "text-red-600 dark:text-red-400" :
+                      "text-foreground/65"
+  const activeBg =
+    tone === "good" ? "bg-emerald-500 text-white border-emerald-500" :
+    tone === "bad"  ? "bg-red-500 text-white border-red-500" :
+                      "bg-foreground text-background border-foreground"
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={helper}
+      aria-pressed={active}
+      className={`
+        inline-flex items-center px-3 py-1.5 rounded-full border
+        font-mono text-[11px] tracking-[0.15em] uppercase
+        transition-colors duration-200
+        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+        ${active ? activeBg : `border-border bg-background hover:border-accent/60 ${baseTint}`}
+      `}
+    >
+      {label}
+    </button>
   )
 }
