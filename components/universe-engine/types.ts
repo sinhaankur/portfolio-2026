@@ -56,7 +56,7 @@ export type ScenePlanet = {
 
 export type MoonData = {
   name: string
-  parent: "Earth" | "Jupiter" | "Saturn" | "Neptune" | "Pluto"
+  parent: "Earth" | "Mars" | "Jupiter" | "Saturn" | "Uranus" | "Neptune" | "Pluto"
   visualRadius: number
   orbitRadius: number
   periodDays: number
@@ -80,6 +80,11 @@ export type ConstellationId =
   | "leo"
   | "lyra"
   | "cygnus"
+  | "scorpius"
+  | "crux"
+  | "centaurus"
+  | "sagittarius"
+  | "pegasus"
 
 export type Constellation = {
   id: ConstellationId
@@ -115,7 +120,7 @@ export type NamedBody = {
   /** Catalog designation (e.g. "1P/Halley"). */
   designation: string
   /** Category — drives styling + hit-zone behavior. */
-  kind: "comet" | "asteroid" | "interstellar" | "spacecraft"
+  kind: "comet" | "asteroid" | "interstellar" | "spacecraft" | "dwarf"
   /** Semi-major axis in AU. For interstellars, this is the perihelion distance. */
   aAU: number
   /** Eccentricity (0 = circular, <1 elliptical, >=1 unbound). */
@@ -150,7 +155,7 @@ export type SkyPoint = {
   id: string
   name: string
   designation: string
-  kind: "galaxy" | "nebula" | "cluster" | "exoplanet-host"
+  kind: "galaxy" | "nebula" | "cluster" | "exoplanet-host" | "black-hole"
   raHours: number
   decDeg: number
   /** Distance from Earth as a human-readable string (e.g. "2.5 million ly"). */

@@ -1366,10 +1366,13 @@ function NamedBodyMesh({
     // Asteroids: dusty grey-brown. Interstellars: warm accent for the
     // two rare visitors we have. Spacecraft: cold silver-white so they
     // read as engineered hardware drifting through a sky of natural bodies.
+    // Dwarf planets: warm earthy-pink — Eris and Sedna's actual surface
+    // reflectance, plus differentiates them from main-belt asteroids.
     const defaultShade =
       body.kind === "comet"        ? "#9ed4ff" :
       body.kind === "asteroid"     ? "#b8a482" :
       body.kind === "spacecraft"   ? "#e8eef5" :
+      body.kind === "dwarf"        ? "#d49a76" :
       /* interstellar */              "#ffd66b"
     const shade = body.shade ?? defaultShade
 
@@ -1464,6 +1467,7 @@ function NamedBodyMesh({
                 body.kind === "comet"        ? `Comet · ${body.designation}` :
                 body.kind === "asteroid"     ? `Asteroid · ${body.designation}` :
                 body.kind === "spacecraft"   ? `Spacecraft · ${body.designation}` :
+                body.kind === "dwarf"        ? `Dwarf planet · ${body.designation}` :
                 /* interstellar */              `Interstellar · ${body.designation}`,
               aAU: body.aAU,
               periodDays: isFinite(body.periodYears) ? body.periodYears * 365.25 : undefined,
@@ -1530,6 +1534,7 @@ function SkyPointMesh({
     point.kind === "galaxy"           ? 5 :
     point.kind === "nebula"           ? 2.5 :
     point.kind === "cluster"          ? 2 :
+    point.kind === "black-hole"       ? 1.5 :
     /* exoplanet-host */                  0.5
   )
 
@@ -1552,6 +1557,14 @@ function SkyPointMesh({
           core: invert ? "#0a0a0a" : "#ffffff",
           halo: invert ? "#2a2a2a" : "#cfd7ff",
         }
+      case "black-hole":
+        // Iconic Event-Horizon-Telescope colour scheme: a dark central
+        // shadow ringed by a glowing orange accretion disk. The core
+        // renders BLACK against any background so the silhouette pops.
+        return {
+          core: "#000000",
+          halo: invert ? "#b34a13" : "#ff7a1a",
+        }
       case "exoplanet-host":
       default:
         return {
@@ -1566,27 +1579,37 @@ function SkyPointMesh({
 
   return (
     <group position={position}>
-      {/* Diffuse halo — bigger and softer for galaxies/nebulae, tight for clusters/hosts. */}
-      {(point.kind === "galaxy" || point.kind === "nebula") && (
+      {/* Diffuse halo — bigger and softer for galaxies/nebulae/black-holes,
+          tight for clusters/hosts. The black-hole halo is the accretion disk. */}
+      {(point.kind === "galaxy" || point.kind === "nebula" || point.kind === "black-hole") && (
         <mesh>
           <sphereGeometry args={[visualSize, 16, 16]} />
           <meshBasicMaterial
             color={palette.halo}
             transparent
-            opacity={invert ? 0.18 : 0.22}
+            opacity={point.kind === "black-hole" ? (invert ? 0.45 : 0.55) : (invert ? 0.18 : 0.22)}
             blending={invert ? NormalBlending : AdditiveBlending}
             depthWrite={false}
           />
         </mesh>
       )}
-      {/* Core */}
+      {/* Core — opaque for black holes (the event-horizon shadow needs to read
+          as a hole punched out of the halo), additive-glow for everything else. */}
       <mesh>
-        <sphereGeometry args={[visualSize * (point.kind === "exoplanet-host" ? 1.0 : 0.45), 14, 14]} />
+        <sphereGeometry args={[
+          visualSize * (point.kind === "exoplanet-host" ? 1.0 : point.kind === "black-hole" ? 0.55 : 0.45),
+          14,
+          14,
+        ]} />
         <meshBasicMaterial
           color={palette.core}
-          transparent
-          opacity={point.kind === "exoplanet-host" ? 1 : (invert ? 0.55 : 0.55)}
-          blending={invert ? NormalBlending : AdditiveBlending}
+          transparent={point.kind !== "black-hole"}
+          opacity={
+            point.kind === "exoplanet-host" ? 1 :
+            point.kind === "black-hole"     ? 1 :
+                                              (invert ? 0.55 : 0.55)
+          }
+          blending={point.kind === "black-hole" ? NormalBlending : (invert ? NormalBlending : AdditiveBlending)}
           depthWrite={false}
         />
       </mesh>
@@ -1621,10 +1644,11 @@ function SkyPointMesh({
         onPointerOver={(e) => {
           e.stopPropagation()
           const classBase =
-            point.kind === "galaxy"  ? "Galaxy" :
-            point.kind === "nebula"  ? "Nebula" :
-            point.kind === "cluster" ? "Star cluster" :
-                                       "Exoplanet host star"
+            point.kind === "galaxy"     ? "Galaxy" :
+            point.kind === "nebula"     ? "Nebula" :
+            point.kind === "cluster"    ? "Star cluster" :
+            point.kind === "black-hole" ? "Black hole" :
+                                          "Exoplanet host star"
           const factWithDistance = point.distance
             ? `${point.fact} Distance · ${point.distance}.`
             : point.fact
