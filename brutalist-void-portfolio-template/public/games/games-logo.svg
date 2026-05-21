@@ -1,0 +1,25 @@
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!-- Background circle -->
+  <circle cx="100" cy="100" r="95" fill="#6200ea" opacity="0.1" stroke="#6200ea" stroke-width="2"/>
+  
+  <!-- Tetris block - I piece (cyan) -->
+  <rect x="30" y="50" width="15" height="60" fill="#03dac6" rx="2"/>
+  
+  <!-- Tetris block - O piece (yellow) -->
+  <rect x="60" y="70" width="30" height="30" fill="#FFD54F" rx="2"/>
+  
+  <!-- Tetris block - T piece (purple) -->
+  <g>
+    <rect x="110" y="70" width="45" height="15" fill="#D1C4E9" rx="2"/>
+    <rect x="127.5" y="85" width="15" height="25" fill="#D1C4E9" rx="2"/>
+  </g>
+  
+  <!-- Game controller style element -->
+  <circle cx="100" cy="145" r="8" fill="#6200ea"/>
+  <circle cx="100" cy="165" r="5" fill="#03dac6"/>
+  <circle cx="85" cy="155" r="5" fill="#03dac6"/>
+  <circle cx="115" cy="155" r="5" fill="#03dac6"/>
+  
+  <!-- Shine effect -->
+  <circle cx="100" cy="100" r="90" fill="none" stroke="white" stroke-width="1" opacity="0.3"/>
+</svg>

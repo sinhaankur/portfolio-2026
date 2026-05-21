@@ -4,50 +4,111 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository overview
 
-Hand-written **static portfolio site**, deployed at `https://sinhaankur-portfolio.netlify.app/`. No build step, no test suite, no package manager — plain HTML/CSS/JS.
+The **live site** is a Next.js 16 / React 19 / Tailwind v4 portfolio in
+[`brutalist-void-portfolio-template/`](./brutalist-void-portfolio-template).
+It is deployed by Netlify per [`netlify.toml`](./netlify.toml) at the repo root.
+Custom domain: `www.sinhaankur.com` (see [`CNAME`](./CNAME)).
+
+The previous hand-written static HTML portfolio has been parked in
+[`_archive_legacy/`](./_archive_legacy/README.md) (switched over 2026-05-21). It is no longer deployed.
+Do **not** link the live site to anything inside `_archive_legacy/` — if you need an asset
+from there, copy it into
+[`brutalist-void-portfolio-template/public/`](./brutalist-void-portfolio-template/public/)
+and reference it from there.
 
 ## Local development
-The static site is plain files — open them in a browser or serve the root over HTTP:
 
 ```bash
-python3 -m http.server 8080
+cd brutalist-void-portfolio-template
+pnpm install
+pnpm dev          # serves on http://localhost:3000
 ```
 
-`.vscode/launch.json` is preconfigured to launch Chrome against `http://localhost:8080`. There is no build, no lint, no test. Edits go live on the next reload.
+- `pnpm dev` — Next.js dev server (Turbopack).
+- `pnpm build` — production build. Netlify runs this.
+- `pnpm start` — serve the production build.
 
-Deployment is via Netlify pointed at the repo root; there is no `netlify.toml`, so Netlify just publishes the root directory as-is.
+There is no test suite. There is no separate lint command beyond Next.js's
+built-in checks.
 
-## Page layout and navigation
-- `index.html` — landing page. Loads jQuery + Materialize, embeds the chat-bot widget, and links into the case studies.
-- `projects/*.html` — case-study pages (Oracle, Deloitte, Snowtint, Rage, etc.). Each one links back to `../index.html` and uses `../css/` and `../img/` paths — keep relative paths consistent when adding new project pages.
-- `booking.html`, `technical-insights.html`, `tools-experiments.html` — top-level standalone pages. These are newer and layer **Material Design 3 CSS variables** (inline `<style>` with `--md-sys-color-*` tokens) on top of the older Materialize stylesheet. The older pages use only Materialize. Match the style of whichever neighbour you're editing rather than mixing them.
-- `webgames/` — the games subsection (Gamelist + individual games like `emojittetris.html`) follows a **separate "retro / neobrutalism" design system** built around `webgames/css/retro.css`. Tokens come from the `Retro UI Project/` reference (DM Sans + Space Mono fonts, 0px radius, hard 4×4 black offset shadows, deep red / bright yellow / deep blue on warm off-white). New game pages should `<link>` retro.css and lean on its component classes (`.retro-card`, `.retro-btn`, `.retro-btn--primary`, `.retro-icon-btn`, `.retro-panel`, `.retro-eyebrow`). Light/dark via `data-theme` on `<html>`. Do **not** try to unify these pages with the Materialize/Material Design 3 styling used by the rest of the site — they are intentionally a different visual language.
-- `404.html` — Netlify error page.
-- `_archive/` — old pages no longer linked. Don't restore from here without checking with the user.
+## Deployment
 
-## The "Ankur AI" chat-bot widget on the home page
-The fake Messenger bot inside the iPhone mockup on `index.html` is **data-driven**. To change what the bot says or which quick replies appear, edit **`js/bot-config.js`** (the `BOT_CONFIG.conversation` array of step objects: `start`, `typingIndicator`, `message`, `template`, `quickReplies`, `customMessage`). `js/bot.js` is the engine that walks that array and shouldn't normally need changes.
+Netlify is configured by [`netlify.toml`](./netlify.toml):
 
-The `customMessage` handler `handleBookingMentorship` in `bot.js` deep-links into `booking.html` by building a URL with `?name=&email=&date=&time=` (booking) or `?name=&email=&topic=&sessionType=mentoring` (mentorship). If you change parameter names on either side, change them on both — `booking.html`'s `prefillBookingFormFromURL()` reads these params and auto-submits when all required fields are present.
+- `base = "brutalist-void-portfolio-template"`
+- `command = "pnpm install --frozen-lockfile=false && pnpm build"`
+- `publish = "brutalist-void-portfolio-template/.next"`
+- `@netlify/plugin-nextjs` runs SSR / ISR / image optimisation.
 
-## Booking form (EmailJS)
-`booking.html` posts via the EmailJS browser SDK (no backend). Credentials are inline at the top of the script block:
+Don't switch to a static-export unless you also strip the dynamic features
+(custom cursor, theme toggle, galaxy scene, SoundCloud widget) that depend on
+client-only execution.
 
-- `EMAILJS_SERVICE_ID = 'service_dimyux6'`
-- `EMAILJS_TEMPLATE_ID = 'template_wlojvia'`
-- `EMAILJS_PUBLIC_KEY = 'rBWTRCahNRhuNW_GE'` — public/browser key, intentionally committed; **do not** treat this as a leaked secret.
+## Site map (live)
 
-Submissions are sent to `sinhaankur827@gmail.com`. To change the recipient, update `to_email` inside the `formData` object (not the EmailJS template).
+App-router routes live under
+[`brutalist-void-portfolio-template/app/`](./brutalist-void-portfolio-template/app):
 
-## Asset and library conventions
-- `css/materialize.css` + `js/materialize.js` are vendored (both minified and unminified copies exist). Don't upgrade Materialize casually — the older project pages depend on its specific class names (`tabs`, `carousel`, `side-nav`, `modal`, `button-collapse`, `chip`, `card-hover`, `responsive-img`).
-- `js/animations.js` is an **ES module** that imports **Motion One** from `cdn.jsdelivr.net` (pinned to `motion@11.11.17`). It drives the entrance fade-ups on the home page. `index.html` has a small inline pre-hide style gated by a `.js-animate` class on `<html>`, plus a 2.5s fallback that removes the class if Motion never initializes (e.g. the CDN is blocked). Respects `prefers-reduced-motion`. Only `index.html` uses it; project pages don't load it.
-- `js/init.js` wires up Materialize plugins (`sideNav`, `modal`, `tabs`, `carousel`) and the `.video` hover-to-play behaviour on case-study pages — `img/IMG_*.MP4` files are paired with same-named `.JPG` poster frames and played via the `.video` class.
-- jQuery 2.1.1 is loaded from a CDN; everything depends on it being present before `bot.js`/`init.js`.
-- `index.html` has a `#language-dropdown` `<select>` but **no translation logic is implemented** anywhere. Don't assume i18n exists.
+- `/` — home (Hero galaxy + About + Works + Lab + Usability summary + Stack & Beliefs + Footer).
+- `/works/oracle`, `/works/deloitte`, `/works/snowtint`, `/works/rage` — company case studies.
+- `/lab/unhosted` — Unhosted (flagship open-source project case study).
+- `/skills` — skills matrix with category + project filters.
+- `/usability` — long-form usability guide.
+- `/upcoming` — roadmap.
+- `/games/Gamelist.html` — retro neobrutalism mini-games index, served from
+  `public/games/` (preserved from the previous build as a separate visual language).
+
+## Component conventions
+
+- Section eyebrow numbering on home: `01 — DISCIPLINE`, `02 — DOMAIN`,
+  `03 — PHILOSOPHY`, `04 — EXPERIENCE`, `05 — THE LAB`, `06 — HOW I WORK`,
+  `07 — STACK & BELIEFS`, `08 — CONTACT`. Keep them in order if you add a new section.
+- All sections wrap content in `max-w-6xl px-6 md:px-12` (or the `Container`
+  primitive) so nothing stretches edge-to-edge on wide displays.
+- Type ramp: `Inter` (sans), `Instrument Serif` italic (decorative italic moments),
+  `JetBrains Mono` (eyebrows, mono labels). Configured in `app/layout.tsx`.
+- Case studies use shared primitives from
+  [`components/case-study/case-study-layout.tsx`](./brutalist-void-portfolio-template/components/case-study/case-study-layout.tsx):
+  `CaseStudyLayout`, `CaseSectionHeading`, `CaseProse`, `CaseList`, `CasePullQuote`,
+  `CaseLessons`, `CaseMoments`, `ProjectStory`, `CaseNextLinks`.
+- Case-study back link is configurable via `backTo={{ label, href }}` on
+  `CaseStudyLayout`. Lab case studies (Unhosted) point back to `/#lab`;
+  company case studies default to `/#works`.
+- Case-study moment images live under `public/img/case-studies/<company>/`.
+
+## The galaxy hero
+
+`components/hero.tsx` mounts `components/galaxy-scene.tsx` (R3F / Three.js). Overlay
+controls cluster at the bottom-right corner: opt-in SoundCloud music chip
+(`components/galaxy-music.tsx`, plays Ludovico Einaudi — Experience Reimagined via
+SoundCloud Widget API) above a time-warp slider. Reset view appears at top-right when
+in explore mode. Info panel sits bottom-left, lifted above the Enter Work CTA.
+
+The scene only renders after the client mounts. Reduced-motion users get a static
+fallback. Solar system positioning uses real AU values, planet axial tilts, and
+RA/Dec for the Big Dipper / Polaris constellation.
+
+## Music attribution
+
+The galaxy hero embeds a SoundCloud widget pointing at
+`https://soundcloud.com/ludovicoeinaudi/experience-reimagined` and exposes a small
+opt-in play button. Playback only starts after the user clicks; it never auto-plays.
+The widget iframe is visually hidden — all control runs through the SoundCloud
+Widget API.
+
+## Navbar
+
+Anchor-based nav items (`#works`, `#lab`, `#contact`) resolve to `/#anchor` when
+not on the home route, so clicking them from a case-study page navigates back to
+the home page and then scrolls. Don't revert to in-page-only `#anchor` hrefs.
 
 ## Things to avoid
 
-- Don't introduce a build step, package manager, or framework — the site is intentionally dependency-free server-side.
-- Don't refactor `js/materialize.js` or remove jQuery — too many pages depend on the exact API.
-- The `_archive/`, `_resources/`, and `Mocks/` directories hold reference material (PDFs, old pages, sketch plugin XML); don't link to them from live pages.
+- Don't link the live site to anything in `_archive_legacy/`.
+- Don't introduce a global test runner or lint script unless the user asks for it.
+- Don't put case-study images in `/public/img/*` at the root level; nest them
+  under `/public/img/case-studies/<company>/` to keep things tidy.
+- Don't auto-play music. The galaxy music chip is strictly opt-in.
+- Don't ship features that depend on the legacy Netlify URL
+  (`sinhaankur-portfolio.netlify.app/Mocks/...`). If a PDF needs to be linked,
+  copy it into `public/` first or use a mailto CTA.
