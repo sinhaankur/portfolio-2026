@@ -18,11 +18,16 @@ Repository layout:
 
 | Path | What it holds |
 |------|----------------|
-| [`brutalist-void-portfolio-template/`](./brutalist-void-portfolio-template) | The live Next.js 16 / React 19 / Tailwind v4 site that is deployed |
-| [`_archive_legacy/`](./_archive_legacy) | The previous hand-written static-HTML build, parked but not deployed |
-| [`LICENSE`](./LICENSE) | All-rights-reserved license — read before using any of this code |
-| [`CLAUDE.md`](./CLAUDE.md) | Internal notes for the AI assistant that helps me iterate on the site |
-| [`CNAME`](./CNAME) | Custom-domain configuration for GitHub Pages |
+| [`app/`](./app)              | Next.js 16 App Router — routes, metadata, OG image, sitemap |
+| [`components/`](./components) | React components (including the universe-engine module) |
+| [`public/`](./public)        | Static assets — favicons, OG image fallback, planet textures, resume PDF |
+| [`hooks/`](./hooks)          | Custom React hooks |
+| [`lib/`](./lib)              | Utility helpers |
+| [`styles/`](./styles)        | Global styling beyond Tailwind |
+| [`archive/`](./archive)      | The previous hand-written static-HTML build, parked but not deployed |
+| [`LICENSE`](./LICENSE)        | All-rights-reserved license — read before using any of this code |
+| [`CLAUDE.md`](./CLAUDE.md)    | Internal notes for the AI assistant that helps me iterate on the site |
+| [`CNAME`](./CNAME)            | Custom-domain configuration for GitHub Pages |
 | [`netlify.toml`](./netlify.toml) | Legacy Netlify config; the site now ships via GitHub Pages |
 
 ---
@@ -37,10 +42,14 @@ Repository layout:
   planets and one dwarf planet (Pluto) orbit at real AU values with real
   axial tilts and rotation periods.
 - **Universe Engine** — extracted as a self-contained module under
-  [`components/universe-engine/`](./brutalist-void-portfolio-template/components/universe-engine).
-  Custom GLSL shaders, a sticky time-warp control, theme-aware "chart mode"
+  [`components/universe-engine/`](./components/universe-engine). Custom
+  GLSL shaders, a sticky time-warp control, theme-aware "chart mode"
   rendering for light theme, and a mobile bottom sheet that replaces the
   desktop hover label on touch devices.
+- **Hover Earth / Jupiter / Saturn** — the abstract grey chart-marker
+  morphs into a photographic globe on hover, with the parent's moons
+  brightening + scaling up. Textures lazy-load on first hover so the
+  assets stay out of the critical path.
 - **Astronomical reticle cursor** — context-aware. Switches to a target
   ring + warm-gold dot + body name label when over an interactive
   universe body.
@@ -55,10 +64,7 @@ Repository layout:
 
 ## Local development
 
-The live site is the Next.js project inside `brutalist-void-portfolio-template/`.
-
 ```bash
-cd brutalist-void-portfolio-template
 pnpm install
 pnpm dev          # http://localhost:3000
 ```
@@ -76,9 +82,9 @@ No test suite. No separate lint pipeline.
 ## Deployment
 
 Deployed via **GitHub Pages** with a custom Actions workflow
-(`.github/workflows/deploy.yml`) that builds the Next.js static export
-and uploads it to Pages. Custom domain: `www.sinhaankur.com` (see
-[`CNAME`](./CNAME)).
+([`.github/workflows/deploy.yml`](./.github/workflows/deploy.yml)) that
+builds the Next.js static export and uploads it to Pages. Custom domain:
+`www.sinhaankur.com` (see [`CNAME`](./CNAME)).
 
 The Netlify config in [`netlify.toml`](./netlify.toml) is kept as a
 fallback only; the live site no longer routes through Netlify.
@@ -108,7 +114,8 @@ Third-party dependencies (Next.js, React, Three.js, react-three-fiber,
 drei, framer-motion, Tailwind CSS, lucide-react, etc.) retain their own
 licenses (typically MIT or Apache 2.0). Typefaces (Inter, Instrument
 Serif, JetBrains Mono, Fraunces) are governed by the SIL Open Font
-License 1.1.
+License 1.1. Planet surface textures for Jupiter and Saturn are © Solar
+System Scope, CC BY 4.0; Earth's Blue Marble is NASA public domain.
 
 Full terms: [LICENSE](./LICENSE).
 

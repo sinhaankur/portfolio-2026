@@ -1,0 +1,5 @@
+# Authorise post-install build scripts for trusted native deps.
+# sharp builds a native binding; without this, pnpm 10+ blocks the script and
+# next/image — even with images.unoptimized: true — emits a warning at build.
+allowBuilds:
+  sharp: true

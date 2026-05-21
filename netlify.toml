@@ -1,17 +1,19 @@
-# Netlify configuration — the live site is now the Next.js portfolio
-# inside brutalist-void-portfolio-template/. The legacy static site has been
-# parked in _archive_legacy/ and is no longer published.
+# Netlify fallback config — the live site is published via GitHub Pages
+# (see .github/workflows/deploy.yml). This file is kept so the site can
+# be redeployed on Netlify without reconfiguration if needed.
+# The Next.js project lives at the repo root; the legacy static build is
+# parked in archive/ and is no longer published.
 
 [build]
-  base       = "brutalist-void-portfolio-template"
-  command    = "pnpm install --frozen-lockfile=false && pnpm build"
-  publish    = "brutalist-void-portfolio-template/.next"
+  command = "pnpm install --frozen-lockfile=false && pnpm build"
+  publish = ".next"
 
 [build.environment]
   # Pin Node major to a version Next.js 16 supports.
   NODE_VERSION = "20"
   NPM_FLAGS    = "--legacy-peer-deps"
 
-# Netlify's official Next.js runtime handles SSR, ISR, and image optimisation.
+# Netlify's official Next.js runtime handles SSR, ISR, and image optimisation
+# in case this is ever flipped back to be the primary host.
 [[plugins]]
   package = "@netlify/plugin-nextjs"
