@@ -1,8 +1,24 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import dynamic from "next/dynamic"
 import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion"
-import { UniverseEngine } from "./universe-engine"
+import { StaticStarfield } from "./universe-engine/static-starfield"
+
+// The R3F universe scene is ~250 KB compressed of Three.js + drei + custom
+// shaders. Loading it eagerly blocks the home page's first paint and bloats
+// the initial JS payload for visitors who never scroll past the typography.
+//
+// Split it into a separate chunk that streams in after first paint. While
+// it's loading, show the static starfield so the hero still reads as a
+// cosmic scene instead of a blank rectangle.
+const UniverseEngine = dynamic(
+  () => import("./universe-engine").then((m) => ({ default: m.UniverseEngine })),
+  {
+    ssr: false,
+    loading: () => <StaticStarfield />,
+  },
+)
 
 export function Hero() {
   const containerRef = useRef<HTMLElement>(null)
