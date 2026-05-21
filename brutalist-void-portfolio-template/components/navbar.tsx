@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { usePathname } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { ThemeToggle } from "./theme-toggle"
+import { DisplayMenu } from "./display-menu"
 
 // Anchor-based links use a leading "#" — when we're not on "/", clicking these
 // needs to route to "/#anchor" instead of just looking for an in-page id.
@@ -135,8 +136,9 @@ export function Navbar() {
             })}
           </ul>
 
-          {/* Theme toggle */}
-          <div className="hidden md:flex items-center">
+          {/* Theme toggle + accessibility menu */}
+          <div className="hidden md:flex items-center gap-2">
+            <DisplayMenu />
             <ThemeToggle />
           </div>
 
@@ -220,8 +222,9 @@ export function Navbar() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.4 }}
-                className="mt-8"
+                className="mt-8 flex items-center gap-3"
               >
+                <DisplayMenu />
                 <ThemeToggle />
               </motion.div>
             </nav>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { motion, useMotionValue, useSpring, AnimatePresence } from "framer-motion"
 import type { BodyInfo } from "./universe-engine/types"
+import { useDisplayPrefs } from "./display-prefs"
 
 /**
  * Custom cursor.
@@ -26,11 +27,16 @@ type UniverseHoverDetail = {
 }
 
 export function CustomCursor() {
-  const [enabled, setEnabled] = useState(false)
+  const [supportsCustom, setSupportsCustom] = useState(false)
   const [isVisible, setIsVisible] = useState(false)
   const [isHoveringLink, setIsHoveringLink] = useState(false)
   const [universeBody, setUniverseBody] = useState<BodyInfo | null>(null)
   const [universeClickable, setUniverseClickable] = useState(false)
+  const { systemCursor, reduceMotion } = useDisplayPrefs()
+
+  // User pref wins over capability: opt-in `systemCursor` or `reduceMotion`
+  // disables the reticle even on capable devices.
+  const enabled = supportsCustom && !systemCursor && !reduceMotion
 
   const x = useMotionValue(0)
   const y = useMotionValue(0)
@@ -42,16 +48,16 @@ export function CustomCursor() {
   useEffect(() => {
     if (typeof window === "undefined") return
     const finePointer = window.matchMedia("(pointer: fine)")
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)")
+    const osReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)")
     const update = () => {
-      setEnabled(finePointer.matches && !reducedMotion.matches)
+      setSupportsCustom(finePointer.matches && !osReducedMotion.matches)
     }
     update()
     finePointer.addEventListener("change", update)
-    reducedMotion.addEventListener("change", update)
+    osReducedMotion.addEventListener("change", update)
     return () => {
       finePointer.removeEventListener("change", update)
-      reducedMotion.removeEventListener("change", update)
+      osReducedMotion.removeEventListener("change", update)
     }
   }, [])
 

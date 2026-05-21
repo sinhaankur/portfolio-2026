@@ -206,6 +206,7 @@ export function Lab() {
                 ease: [0.25, 0.46, 0.45, 0.94],
               }}
               whileHover={prefersReducedMotion ? undefined : { y: -4 }}
+              whileTap={prefersReducedMotion ? undefined : { scale: 0.985 }}
               className="
                 group relative flex flex-col p-7 md:p-8
                 border border-border rounded-xl
