@@ -72,11 +72,11 @@ from the NASA Blue Marble image collection (Visible Earth, image record
 57752, "Land — Shallow Topography"). NASA imagery is in the public
 domain and may be used without permission or fee.
 
-The equirectangular surface textures for Mercury, Venus, Mars, Jupiter,
-Saturn, Uranus, and Neptune (all under `public/textures/`) are © Solar
-System Scope (https://www.solarsystemscope.com/textures), licensed
-under the Creative Commons Attribution 4.0 International license
-(CC BY 4.0). Attribution is given here and is required of any
+The equirectangular surface textures for the Sun, Mercury, Venus, Mars,
+Jupiter, Saturn, Uranus, and Neptune (all under `public/textures/`)
+are © Solar System Scope (https://www.solarsystemscope.com/textures),
+licensed under the Creative Commons Attribution 4.0 International
+license (CC BY 4.0). Attribution is given here and is required of any
 downstream re-use of those specific files.
 
 NO WARRANTY

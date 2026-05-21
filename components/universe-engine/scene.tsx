@@ -1143,17 +1143,54 @@ function SolarSystem({
 }) {
   const sunRef = useRef<Mesh>(null)
   const coronaRef = useRef<Mesh>(null)
+  const sunTexMeshRef = useRef<Mesh>(null)
+  const sunTexMatRef = useRef<import("three").MeshStandardMaterial>(null)
+  const coronaInnerMatRef = useRef<import("three").MeshBasicMaterial>(null)
+  const coronaOuterMatRef = useRef<import("three").MeshBasicMaterial>(null)
+  const [sunHovered, setSunHovered] = useState(false)
+  const [sunTexture, setSunTexture] = useState<Texture | null>(null)
   const scenePlanets = useMemo(buildScenePlanets, [])
   const sunRotSpeed = useMemo(
     () => (2 * Math.PI) / (25 / TIME_WARP_DAYS_PER_SEC),
     [],
   )
 
+  // Lazy-load the Solar System Scope Sun texture on first hover.
+  useEffect(() => {
+    if (!sunHovered || sunTexture) return
+    const loader = new TextureLoader()
+    loader.load("/textures/sun.jpg", (tex) => {
+      tex.colorSpace = SRGBColorSpace
+      tex.anisotropy = 4
+      setSunTexture(tex)
+    })
+  }, [sunHovered, sunTexture])
+
   useFrame((_, delta) => {
-    if (sunRef.current) sunRef.current.rotation.y += delta * sunRotSpeed * timeWarpRef.current
+    const tw = timeWarpRef.current
+    if (sunRef.current) sunRef.current.rotation.y += delta * sunRotSpeed * tw
+    if (sunTexMeshRef.current) sunTexMeshRef.current.rotation.y += delta * sunRotSpeed * tw
     if (coronaRef.current) {
       const s = 1 + Math.sin(performance.now() * 0.0008) * 0.025
       coronaRef.current.scale.set(s, s, s)
+    }
+    // Texture fade + corona flare on hover.
+    if (sunTexMatRef.current) {
+      const k = 1 - Math.exp(-delta * 7)
+      const target = sunHovered && sunTexture ? 1 : 0
+      sunTexMatRef.current.opacity += (target - sunTexMatRef.current.opacity) * k
+    }
+    const flareBoost = sunHovered ? 1 : 0
+    const k = 1 - Math.exp(-delta * 6)
+    if (coronaInnerMatRef.current) {
+      const baseOpacity = invert ? 0.32 : 0.22
+      const targetOpacity = baseOpacity + flareBoost * (invert ? 0.25 : 0.35)
+      coronaInnerMatRef.current.opacity += (targetOpacity - coronaInnerMatRef.current.opacity) * k
+    }
+    if (coronaOuterMatRef.current) {
+      const baseOpacity = invert ? 0.14 : 0.08
+      const targetOpacity = baseOpacity + flareBoost * (invert ? 0.18 : 0.25)
+      coronaOuterMatRef.current.opacity += (targetOpacity - coronaOuterMatRef.current.opacity) * k
     }
   })
 
@@ -1180,9 +1217,29 @@ function SolarSystem({
           toneMapped={false}
         />
       </mesh>
+      {/* Textured Sun layer — Solar System Scope Sol photo, fades in on hover
+          over the abstract glowing sphere. Slightly larger so it doesn't
+          z-fight with the base sphere. */}
+      {sunTexture && (
+        <mesh ref={sunTexMeshRef}>
+          <sphereGeometry args={[0.705, 64, 64]} />
+          <meshStandardMaterial
+            ref={sunTexMatRef as React.Ref<import("three").MeshStandardMaterial>}
+            map={sunTexture}
+            emissiveMap={sunTexture}
+            emissive="#ffffff"
+            emissiveIntensity={invert ? 0.6 : 1.4}
+            toneMapped={false}
+            transparent
+            opacity={0}
+            depthWrite={false}
+          />
+        </mesh>
+      )}
       <mesh ref={coronaRef}>
         <sphereGeometry args={[0.92, 48, 48]} />
         <meshBasicMaterial
+          ref={coronaInnerMatRef as React.Ref<import("three").MeshBasicMaterial>}
           color={invert ? "#c95824" : "#ffffff"}
           transparent
           opacity={coronaInnerOpacity}
@@ -1193,6 +1250,7 @@ function SolarSystem({
       <mesh>
         <sphereGeometry args={[1.3, 48, 48]} />
         <meshBasicMaterial
+          ref={coronaOuterMatRef as React.Ref<import("three").MeshBasicMaterial>}
           color={invert ? "#e5a878" : "#ffffff"}
           transparent
           opacity={coronaOuterOpacity}
@@ -1203,9 +1261,11 @@ function SolarSystem({
       <mesh
         onPointerOver={(e) => {
           e.stopPropagation()
+          setSunHovered(true)
           onHover(SUN_INFO)
         }}
         onPointerOut={() => {
+          setSunHovered(false)
           onHover(null)
         }}
       >
