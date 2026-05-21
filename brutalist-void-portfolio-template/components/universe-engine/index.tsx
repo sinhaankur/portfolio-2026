@@ -178,7 +178,12 @@ export function UniverseEngine({
 
           <div className="absolute bottom-6 right-6 md:bottom-8 md:right-12 z-30 pointer-events-auto flex flex-col items-end gap-2">
             {showMusic && <GalaxyMusic />}
-            <TimeWarpSlider value={timeWarpDisplay} onChange={setTimeWarpDisplay} />
+            {/* Time-warp slider stays desktop-only — the pill is too wide on
+                phones, it collides with the hero typography and CTA. Touch
+                users still get pinch-zoom + drag + tap-to-explore. */}
+            <div className="hidden md:block">
+              <TimeWarpSlider value={timeWarpDisplay} onChange={setTimeWarpDisplay} />
+            </div>
           </div>
 
           {interactive && <ResetViewButton onClick={handleReset} />}

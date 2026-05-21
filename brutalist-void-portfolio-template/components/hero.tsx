@@ -108,10 +108,12 @@ export function Hero() {
         </p>
       )}
 
-      {/* Typography Overlay — pointer-events disabled on the wrapper so drag passes through to the canvas */}
+      {/* Typography Overlay — pointer-events disabled on the wrapper so drag passes through to the canvas.
+          Mobile uses a much larger bottom padding (pb-44) so HUMAN–AI sits well above the HUD chip + CTA
+          cluster. Without it, the right-aligned text collides with the time-warp slider on phones. */}
       <motion.div
         style={prefersReducedMotion ? undefined : { opacity, scale }}
-        className="relative z-10 h-full flex flex-col justify-between p-8 md:p-12 md:px-12 md:py-20 pointer-events-none"
+        className="relative z-10 h-full flex flex-col justify-between px-8 pt-8 pb-44 md:p-12 md:px-12 md:py-20 pointer-events-none"
       >
         {/* Top Left */}
         <motion.div
@@ -196,12 +198,13 @@ export function Hero() {
         </motion.div>
       </motion.div>
 
-      {/* Scroll Indicator */}
+      {/* Scroll Indicator — hidden on mobile because the Enter Work CTA covers
+          the same affordance and the bottom band is crowded enough on phones. */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1.5 }}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10"
+        className="hidden md:block absolute bottom-8 left-1/2 -translate-x-1/2 z-10"
         aria-hidden="true"
       >
         <motion.div
