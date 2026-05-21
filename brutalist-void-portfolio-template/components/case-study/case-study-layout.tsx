@@ -294,6 +294,9 @@ export function ProjectStory({
             src={image.src}
             alt={image.alt}
             loading="lazy"
+            decoding="async"
+            width={96}
+            height={96}
             className="hidden sm:block w-20 h-20 md:w-24 md:h-24 object-cover rounded-md border border-border shrink-0 bg-secondary/40"
           />
         )}
@@ -412,6 +415,7 @@ export function CaseMoments({
                   src={m.src}
                   alt={m.alt}
                   loading="lazy"
+                  decoding="async"
                   className="
                     w-full h-full object-cover
                     transition-transform duration-700 ease-out
