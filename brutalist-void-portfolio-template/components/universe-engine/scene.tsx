@@ -172,11 +172,9 @@ function MilkyWay({
         onPointerOver={(e) => {
           e.stopPropagation()
           onHover(SGR_A_INFO)
-          document.body.style.cursor = "help"
         }}
         onPointerOut={() => {
           onHover(null)
-          document.body.style.cursor = "auto"
         }}
       >
         <sphereGeometry args={[6, 24, 24]} />
@@ -189,11 +187,9 @@ function MilkyWay({
         onPointerOver={(e) => {
           e.stopPropagation()
           onHover(MILKY_WAY_INFO)
-          document.body.style.cursor = "help"
         }}
         onPointerOut={() => {
           onHover(null)
-          document.body.style.cursor = "auto"
         }}
       >
         <sphereGeometry args={[35, 24, 24]} />
@@ -241,11 +237,9 @@ function MoonBody({ moon, onHover }: { moon: MoonData; onHover: HoverHandler }) 
             periodDays: moon.periodDays,
             fact: moon.fact,
           })
-          document.body.style.cursor = "help"
         }}
         onPointerOut={() => {
           onHover(null)
-          document.body.style.cursor = "auto"
         }}
       >
         <sphereGeometry args={[hitRadius, 16, 16]} />
@@ -415,13 +409,12 @@ function ConstellationStarMesh({
             name: star.name,
             classification: star.designation,
             fact: `Magnitude ${star.magnitude}. ${isPolaris ? constellationFact : `Part of ${constellationName} — ${constellationFact}`}`,
+            clickable: isClickable,
           })
-          document.body.style.cursor = isClickable ? "pointer" : "help"
         }}
         onPointerOut={() => {
           onDeactivate()
           onHover(null)
-          document.body.style.cursor = "auto"
         }}
         onClick={(e) => {
           if (!onClick) return
@@ -543,12 +536,10 @@ function EdgeHitZone({
         e.stopPropagation()
         onActivate()
         onHover(info)
-        document.body.style.cursor = "help"
       }}
       onPointerOut={() => {
         onDeactivate()
         onHover(null)
-        document.body.style.cursor = "auto"
       }}
     >
       <cylinderGeometry args={[0.7, 0.7, length, 8, 1, true]} />
@@ -750,11 +741,9 @@ function Belt({
         onPointerOver={(e) => {
           e.stopPropagation()
           onHover(info)
-          document.body.style.cursor = "help"
         }}
         onPointerOut={() => {
           onHover(null)
-          document.body.style.cursor = "auto"
         }}
       >
         <torusGeometry args={[midRadius, halfWidth, 8, 96]} />
@@ -825,11 +814,9 @@ function PlanetBody({
               onPointerOver={(e) => {
                 e.stopPropagation()
                 onHover(planetToInfo(planet.raw))
-                document.body.style.cursor = "help"
               }}
               onPointerOut={() => {
                 onHover(null)
-                document.body.style.cursor = "auto"
               }}
             >
               <sphereGeometry args={[hitRadius, 24, 24]} />
@@ -911,11 +898,9 @@ function SolarSystem({ onHover }: { onHover: HoverHandler }) {
         onPointerOver={(e) => {
           e.stopPropagation()
           onHover(SUN_INFO)
-          document.body.style.cursor = "help"
         }}
         onPointerOut={() => {
           onHover(null)
-          document.body.style.cursor = "auto"
         }}
       >
         <sphereGeometry args={[0.9, 32, 32]} />

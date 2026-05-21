@@ -76,7 +76,19 @@ export function UniverseEngine({
     }
   }, [])
 
-  const onHover = useCallback<HoverHandler>((info) => setHovered(info), [])
+  const onHover = useCallback<HoverHandler>((info) => {
+    setHovered(info)
+    // Broadcast the hover state so the custom cursor can adapt — e.g. switch
+    // into target-ring + body-label mode without coupling the cursor to the
+    // engine via props. detail.body is null when the pointer leaves a body.
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("universe:hover", {
+          detail: { body: info, clickable: Boolean(info?.clickable) },
+        }),
+      )
+    }
+  }, [])
   const handleReset = useCallback(() => {
     orbitRef.current?.reset()
   }, [])
