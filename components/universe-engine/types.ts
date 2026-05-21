@@ -133,3 +133,32 @@ export type NamedBody = {
   /** Optional hex colour override. Defaults derived from `kind`. */
   shade?: string
 }
+
+/**
+ * A far-field point projected onto the sky-shell at fixed RA/Dec.
+ *
+ * Covers everything that isn't part of the solar system: galaxies,
+ * nebulae, star clusters, exoplanet host stars. Real-world J2000
+ * coordinates project to a sphere around the Sun (same shell that
+ * constellations live on), so the layout reads as a real sky chart.
+ *
+ * Each kind gets its own rendering treatment in scene.tsx — galaxies
+ * and nebulae are diffuse halos, clusters small point clouds, exoplanet
+ * hosts a single accent dot with a host-tag visible on hover.
+ */
+export type SkyPoint = {
+  id: string
+  name: string
+  designation: string
+  kind: "galaxy" | "nebula" | "cluster" | "exoplanet-host"
+  raHours: number
+  decDeg: number
+  /** Distance from Earth as a human-readable string (e.g. "2.5 million ly"). */
+  distance?: string
+  /** Apparent magnitude — used to scale the visual size for stars + dots. */
+  magnitude?: number
+  /** Visual size in scene units. Defaults vary by kind (galaxies ~3, dots ~0.4). */
+  visualSize?: number
+  /** Short fact shown in the info panel. */
+  fact: string
+}

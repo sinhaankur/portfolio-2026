@@ -52,6 +52,7 @@ import {
   namedBodies,
   planetToInfo,
   raDecToScenePos,
+  skyPoints,
   timeWarpRef,
 } from "./astronomy"
 import { GALAXY_FRAGMENT_SHADER, GALAXY_VERTEX_SHADER } from "./shaders"
@@ -63,6 +64,7 @@ import type {
   MoonData,
   NamedBody,
   ScenePlanet,
+  SkyPoint,
 } from "./types"
 
 /* ============================================================
@@ -1431,6 +1433,169 @@ function NamedBodies({
 }
 
 /* ============================================================
+ * Sky points — far-field galaxies, nebulae, clusters, exoplanet hosts
+ *
+ * Catalog lives in astronomy.ts as `skyPoints`. Each entry has J2000
+ * RA/Dec and projects onto the same sky-shell that constellations use.
+ *
+ * Rendering per kind:
+ *   galaxy   — diffuse warm halo at the projected position
+ *   nebula   — diffuse cool halo with a brighter core
+ *   cluster  — small tight clump of bright points
+ *   host     — single accent dot with a "host star" hint on hover
+ *
+ * All four kinds share the same hover-info pipeline so the cursor
+ * label + InfoPanel + mobile sheet all light up the same way.
+ * ============================================================ */
+
+function SkyPointMesh({
+  point,
+  onHover,
+  invert = false,
+}: {
+  point: SkyPoint
+  onHover: HoverHandler
+  invert?: boolean
+}) {
+  const position = useMemo(
+    () => raDecToScenePos(point.raHours, point.decDeg, SKY_SHELL_DISTANCE),
+    [point.raHours, point.decDeg],
+  )
+
+  const visualSize = point.visualSize ?? (
+    point.kind === "galaxy"           ? 5 :
+    point.kind === "nebula"           ? 2.5 :
+    point.kind === "cluster"          ? 2 :
+    /* exoplanet-host */                  0.5
+  )
+
+  // Per-kind colour palettes. Chart mode (invert) flips to ink-on-cream
+  // accents so the halos stay readable.
+  const palette = useMemo(() => {
+    switch (point.kind) {
+      case "galaxy":
+        return {
+          core: invert ? "#3a1d12" : "#ffd9c2",
+          halo: invert ? "#6b3a20" : "#d68a5c",
+        }
+      case "nebula":
+        return {
+          core: invert ? "#1e2a45" : "#a8d2ff",
+          halo: invert ? "#3a5085" : "#5587d0",
+        }
+      case "cluster":
+        return {
+          core: invert ? "#0a0a0a" : "#ffffff",
+          halo: invert ? "#2a2a2a" : "#cfd7ff",
+        }
+      case "exoplanet-host":
+      default:
+        return {
+          core: invert ? "#b34a13" : "#ffd66b",
+          halo: invert ? "#7a3a16" : "#ffb84d",
+        }
+    }
+  }, [point.kind, invert])
+
+  // Hit-zone scales with the visual so even tiny exoplanet dots are findable.
+  const hitRadius = Math.max(1, visualSize * 1.4)
+
+  return (
+    <group position={position}>
+      {/* Diffuse halo — bigger and softer for galaxies/nebulae, tight for clusters/hosts. */}
+      {(point.kind === "galaxy" || point.kind === "nebula") && (
+        <mesh>
+          <sphereGeometry args={[visualSize, 16, 16]} />
+          <meshBasicMaterial
+            color={palette.halo}
+            transparent
+            opacity={invert ? 0.18 : 0.22}
+            blending={invert ? NormalBlending : AdditiveBlending}
+            depthWrite={false}
+          />
+        </mesh>
+      )}
+      {/* Core */}
+      <mesh>
+        <sphereGeometry args={[visualSize * (point.kind === "exoplanet-host" ? 1.0 : 0.45), 14, 14]} />
+        <meshBasicMaterial
+          color={palette.core}
+          transparent
+          opacity={point.kind === "exoplanet-host" ? 1 : (invert ? 0.55 : 0.55)}
+          blending={invert ? NormalBlending : AdditiveBlending}
+          depthWrite={false}
+        />
+      </mesh>
+      {/* Cluster spray — for star clusters, add a handful of bright pinpoints
+          around the core to suggest individual stars. */}
+      {point.kind === "cluster" && (
+        <group>
+          {[
+            [0.7, 0.5, 0],
+            [-0.5, 0.8, 0.2],
+            [0.4, -0.6, -0.3],
+            [-0.7, -0.3, 0.1],
+            [0.0, 0.9, -0.4],
+            [-0.9, 0.1, 0.3],
+            [0.6, 0.0, 0.5],
+          ].map(([dx, dy, dz], i) => (
+            <mesh key={i} position={[dx * visualSize * 0.7, dy * visualSize * 0.7, dz * visualSize * 0.7]}>
+              <sphereGeometry args={[visualSize * 0.12, 8, 8]} />
+              <meshBasicMaterial
+                color={palette.core}
+                transparent
+                opacity={0.9}
+                blending={invert ? NormalBlending : AdditiveBlending}
+                depthWrite={false}
+              />
+            </mesh>
+          ))}
+        </group>
+      )}
+      {/* Hover hit-zone — invisible, scaled up so small dots are tappable. */}
+      <mesh
+        onPointerOver={(e) => {
+          e.stopPropagation()
+          const classBase =
+            point.kind === "galaxy"  ? "Galaxy" :
+            point.kind === "nebula"  ? "Nebula" :
+            point.kind === "cluster" ? "Star cluster" :
+                                       "Exoplanet host star"
+          const factWithDistance = point.distance
+            ? `${point.fact} Distance · ${point.distance}.`
+            : point.fact
+          onHover({
+            name: point.name,
+            classification: `${classBase} · ${point.designation}`,
+            fact: factWithDistance,
+          })
+        }}
+        onPointerOut={() => onHover(null)}
+      >
+        <sphereGeometry args={[hitRadius, 10, 10]} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+      </mesh>
+    </group>
+  )
+}
+
+function SkyPoints({
+  onHover,
+  invert = false,
+}: {
+  onHover: HoverHandler
+  invert?: boolean
+}) {
+  return (
+    <group>
+      {skyPoints.map((p) => (
+        <SkyPointMesh key={p.id} point={p} onHover={onHover} invert={invert} />
+      ))}
+    </group>
+  )
+}
+
+/* ============================================================
  * Public scene composition — mounted inside the <Canvas>.
  * ============================================================ */
 
@@ -1480,6 +1645,8 @@ export function SceneContents({
         <NamedBodies onHover={onHover} invert={invert} />
       </group>
       <Constellations onHover={onHover} onResetView={onResetView} invert={invert} />
+      {/* Deep-sky targets + exoplanet hosts — share the sky-shell with constellations. */}
+      <SkyPoints onHover={onHover} invert={invert} />
       {enableMotion && <ShootingStars count={mobile ? 3 : 6} invert={invert} />}
       <ambientLight intensity={invert ? 0.55 : 0.18} />
     </>
