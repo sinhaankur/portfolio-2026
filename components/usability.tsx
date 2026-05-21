@@ -1,40 +1,34 @@
 "use client"
 
+/**
+ * Section 06 — How I work / Usability.
+ *
+ * Previous version had four "pillars" — three of them duplicated Philosophy
+ * (section 03): 'Code my own prototypes' = 'Prototypes are the argument',
+ * 'Reversibility as the policy axis' = same principle, 'Calibrated language'
+ * = 'Uncertainty must be legible'. After Philosophy was rewritten as a
+ * numbered manifesto, this section read as the same content in a 2x2 grid.
+ *
+ * Restructured as a clear landing for the long-form /usability guide.
+ * Credentials lead (the unique credibility signal), a one-paragraph stance,
+ * a short topic preview, and a prominent CTA. No principle restatement.
+ */
+
+import Link from "next/link"
 import { motion } from "framer-motion"
-
-type Pillar = {
-  number: string
-  title: string
-  body: string
-}
-
-const pillars: Pillar[] = [
-  {
-    number: "01",
-    title: "Code my own prototypes",
-    body: "React/TS, SwiftUI, Compose, Tauri, Electron, Next.js. The prototype that makes the design argument unambiguously — handed off with the contract already in code.",
-  },
-  {
-    number: "02",
-    title: "Reversibility as the policy axis",
-    body: "'Is this safe?' is the wrong binary. What is the recovery cost? — that's the scale, and it's what determines when to pause for the human.",
-  },
-  {
-    number: "03",
-    title: "Calibrated language over raw percentages",
-    body: "Likely / Unsure / Low — vocabulary the user can actually act on. Numbers progressively-disclose on hover, when they're needed.",
-  },
-  {
-    number: "04",
-    title: "Outcome-driven over task-driven",
-    body: "Surface the outcome the user actually wants, then let them steer the system there. Workflows are means; outcomes are the end.",
-  },
-]
+import { ArrowUpRight } from "lucide-react"
 
 const credentials = [
-  { label: "HFI Certified Usability Analyst", detail: "CUA" },
-  { label: "B.Tech, Computer Science", detail: "BTLIT Bangalore · VTU · 2008–2013" },
+  { label: "HFI Certified Usability Analyst", detail: "CUA · Human Factors International" },
+  { label: "B.Tech · Computer Science", detail: "BTLIT Bangalore · VTU · 2008–2013" },
   { label: "12+ years shipping product", detail: "Enterprise SaaS · AI surfaces · Native + Web" },
+]
+
+const topics = [
+  "What usability actually means (and what it doesn't)",
+  "The eight axes I score on",
+  "How calibrated confidence beats raw percentages",
+  "When to escalate to a human reviewer",
 ]
 
 export function Usability() {
@@ -42,84 +36,110 @@ export function Usability() {
     <section
       id="usability"
       aria-labelledby="usability-heading"
-      className="relative py-32 md:py-40 px-6 md:px-12 border-t border-border"
+      className="relative py-24 md:py-32 px-6 md:px-12 border-t border-border"
     >
       <div className="mx-auto w-full max-w-6xl">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.8 }}
-        className="mb-20 md:mb-24 max-w-4xl"
-      >
-        <p className="font-mono text-xs tracking-[0.3em] text-muted-foreground mb-4">
-          06 — HOW I WORK
-        </p>
-        <h2
-          id="usability-heading"
-          className="font-display text-3xl md:text-5xl lg:text-6xl font-light italic tracking-[-0.01em]"
+        {/* Section header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7 }}
+          className="mb-14 md:mb-20 max-w-3xl"
         >
-          Usability is the litmus test, not the checklist.
-        </h2>
-        <p className="mt-6 font-sans text-base md:text-lg text-foreground/80 leading-relaxed">
-          Accessibility, calibrated confidence, and recoverability aren't
-          accessories. They're how you tell if enterprise software is actually
-          any good.
-        </p>
-      </motion.div>
+          <p className="font-mono text-xs tracking-[0.3em] text-muted-foreground mb-4">
+            06 — USABILITY
+          </p>
+          <h2
+            id="usability-heading"
+            className="font-display text-3xl md:text-5xl lg:text-6xl font-light italic tracking-[-0.01em] leading-[1.05]"
+          >
+            Usability is the litmus test, not the checklist.
+          </h2>
+          <p className="mt-6 font-sans text-base md:text-lg text-foreground/75 max-w-2xl leading-relaxed">
+            Accessibility, calibrated confidence, and recoverability aren't
+            accessories — they're how you tell if enterprise software is
+            actually any good. The full practitioner's guide lives at{" "}
+            <span className="font-mono text-sm text-foreground">/usability</span>.
+          </p>
+        </motion.div>
 
-      {/* Four pillars */}
-      <ul className="grid gap-px bg-border md:grid-cols-2 mb-20 border border-border">
-        {pillars.map((pillar, index) => (
-          <motion.li
-            key={pillar.number}
-            initial={{ opacity: 0, y: 24 }}
+        <div className="grid gap-12 md:gap-16 lg:grid-cols-[1fr_1.1fr]">
+          {/* Credentials — lead with the credibility signal. */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-40px" }}
-            transition={{
-              duration: 0.6,
-              delay: index * 0.08,
-              ease: [0.25, 0.46, 0.45, 0.94],
-            }}
-            className="bg-background p-8 md:p-10"
+            transition={{ duration: 0.6 }}
           >
-            <p className="font-mono text-[10px] tracking-[0.3em] text-accent mb-4">
-              {pillar.number}
-            </p>
-            <h3 className="font-sans text-2xl md:text-3xl font-light tracking-tight mb-4">
-              {pillar.title}
-            </h3>
-            <p className="font-sans text-sm md:text-base text-foreground/80 leading-relaxed">
-              {pillar.body}
-            </p>
-          </motion.li>
-        ))}
-      </ul>
+            <div className="flex items-baseline gap-3 mb-6">
+              <span aria-hidden="true" className="block w-3 h-px bg-accent shrink-0" />
+              <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-muted-foreground">
+                Foundation
+              </p>
+            </div>
+            <ul className="space-y-5">
+              {credentials.map((c) => (
+                <li key={c.label} className="border-b border-border/60 pb-5 last:border-b-0">
+                  <p className="font-sans text-base md:text-lg text-foreground leading-snug">
+                    {c.label}
+                  </p>
+                  <p className="mt-1 font-mono text-[11px] tracking-wider text-muted-foreground">
+                    {c.detail}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </motion.div>
 
-      {/* Credentials */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.6 }}
-        className="border-t border-border pt-10"
-      >
-        <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-muted-foreground mb-6">
-          Credentials &amp; foundation
-        </p>
-        <ul className="grid gap-6 md:grid-cols-3">
-          {credentials.map((credential) => (
-            <li key={credential.label}>
-              <p className="font-sans text-base md:text-lg text-foreground">
-                {credential.label}
+          {/* Topic preview + CTA */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-40px" }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+          >
+            <div className="flex items-baseline gap-3 mb-6">
+              <span aria-hidden="true" className="block w-3 h-px bg-accent shrink-0" />
+              <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-muted-foreground">
+                In the guide
               </p>
-              <p className="mt-1 font-mono text-xs text-muted-foreground">
-                {credential.detail}
-              </p>
-            </li>
-          ))}
-        </ul>
-      </motion.div>
+            </div>
+            <ul className="space-y-3 mb-10">
+              {topics.map((topic, i) => (
+                <li
+                  key={topic}
+                  className="grid grid-cols-[2rem_1fr] gap-3 items-baseline"
+                >
+                  <span className="font-mono text-[10px] tracking-widest text-accent">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <p className="font-sans text-base md:text-lg text-foreground/85 leading-snug">
+                    {topic}
+                  </p>
+                </li>
+              ))}
+            </ul>
+
+            <Link
+              href="/usability"
+              data-cursor-hover
+              className="
+                group inline-flex items-center gap-3
+                px-5 py-3 border border-foreground/30 rounded-full
+                bg-background hover:bg-foreground hover:text-background hover:border-foreground
+                font-mono text-xs tracking-[0.25em] uppercase
+                transition-colors duration-300
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+                focus-visible:ring-offset-4 focus-visible:ring-offset-background
+                min-h-11
+              "
+            >
+              Read the full guide
+              <ArrowUpRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+            </Link>
+          </motion.div>
+        </div>
       </div>
     </section>
   )

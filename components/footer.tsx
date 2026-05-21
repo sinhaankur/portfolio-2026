@@ -5,11 +5,9 @@ import { motion, useReducedMotion } from "framer-motion"
 import { ArrowUpRight } from "lucide-react"
 
 const socials = [
-  { label: "Email", href: "mailto:sinhaankur827@gmail.com" },
+  { label: "Email", href: "mailto:sinhaankur@ymail.com" },
   { label: "LinkedIn", href: "https://linkedin.com/in/sinhaankur27" },
   { label: "GitHub", href: "https://github.com/sinhaankur" },
-  { label: "Resume", href: "/ankur-sinha-resume.md", download: true },
-  { label: "Previous Build", href: "https://sinhaankur-portfolio.netlify.app/" },
 ]
 
 export function Footer() {
@@ -22,13 +20,13 @@ export function Footer() {
       const now = new Date()
       const hours = now.getHours().toString().padStart(2, "0")
       const minutes = now.getMinutes().toString().padStart(2, "0")
-      const seconds = now.getSeconds().toString().padStart(2, "0")
-      setTime(`${hours}:${minutes}:${seconds}`)
+      setTime(`${hours}:${minutes}`)
     }
 
     updateTime()
-    // 1 second is enough — millisecond resolution is decorative and burns frames
-    const interval = setInterval(updateTime, 1000)
+    // Minute resolution — seconds add visual jitter for no benefit. Updates
+    // every 30s so the displayed time is at most 30s stale.
+    const interval = setInterval(updateTime, 30_000)
     return () => clearInterval(interval)
   }, [])
 
@@ -58,7 +56,7 @@ export function Footer() {
           </div>
 
           <motion.a
-            href="mailto:sinhaankur827@gmail.com?subject=Let%27s%20collaborate"
+            href="mailto:sinhaankur@ymail.com?subject=Let%27s%20collaborate"
             aria-label="Email Ankur Sinha to collaborate"
             data-cursor-hover
             onMouseEnter={() => setIsHovered(true)}
