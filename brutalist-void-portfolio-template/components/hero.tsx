@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion"
-import { GalaxyScene } from "./galaxy-scene"
+import { UniverseEngine } from "./universe-engine"
 
 export function Hero() {
   const containerRef = useRef<HTMLElement>(null)
@@ -42,9 +42,10 @@ export function Hero() {
         Ankur Sinha — Principal UX Designer, Human–AI Interaction
       </h1>
 
-      {/* Galaxy + solar system background. Non-interactive by default so page scroll works. */}
+      {/* Universe engine — galaxy + solar system + constellations.
+          Passive backdrop by default so page scroll works; explore mode flips it interactive. */}
       <div className="absolute inset-0" aria-hidden="true">
-        <GalaxyScene interactive={interactive} />
+        <UniverseEngine interactive={interactive} />
       </div>
 
       {/* Explore-mode toggle — placed BELOW the fixed navbar on mobile (top-20
