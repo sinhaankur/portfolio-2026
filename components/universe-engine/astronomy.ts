@@ -157,11 +157,20 @@ export function planetToInfo(p: Planet): BodyInfo {
 
 export const moons: MoonData[] = [
   { name: "Moon (Luna)",     parent: "Earth",   visualRadius: 0.05,  orbitRadius: 0.42, periodDays: 27.32,  shade: "#bdbdbd", fact: "Earth's only natural satellite. Surface temp −173 to +127 °C. Tidally locked — same face always toward Earth." },
+  // Mars's two tiny moons — both probably captured asteroids
+  { name: "Phobos",          parent: "Mars",    visualRadius: 0.025, orbitRadius: 0.38, periodDays: 0.319,  shade: "#9a8b78", fact: "Closer to its planet than any other moon in the solar system — orbits Mars in just 7.6 hours. Spirals inward by ~1.8 m per century; will eventually crash or shatter into a ring." },
+  { name: "Deimos",          parent: "Mars",    visualRadius: 0.020, orbitRadius: 0.55, periodDays: 1.263,  shade: "#a89a85", fact: "Smaller of Mars's two moons — only 12 km across. From the Martian surface, Deimos would look like a slightly brighter star, not a disc." },
   { name: "Io",              parent: "Jupiter", visualRadius: 0.05,  orbitRadius: 0.95, periodDays: 1.77,   shade: "#cfcfcf", fact: "Most volcanically active body in the solar system — 400+ active volcanoes from tidal heating from Jupiter." },
   { name: "Europa",          parent: "Jupiter", visualRadius: 0.045, orbitRadius: 1.15, periodDays: 3.55,   shade: "#dcdcdc", fact: "Icy crust over a subsurface ocean. One of the best candidates for life beyond Earth." },
   { name: "Ganymede",        parent: "Jupiter", visualRadius: 0.07,  orbitRadius: 1.40, periodDays: 7.15,   shade: "#bababa", fact: "Largest moon in the solar system — bigger than Mercury. Has its own magnetic field." },
   { name: "Callisto",        parent: "Jupiter", visualRadius: 0.065, orbitRadius: 1.75, periodDays: 16.69,  shade: "#9a9a9a", fact: "Most heavily cratered body known. Outermost Galilean moon — sees least of Jupiter's radiation." },
+  // Saturn's notable moons — Titan + Enceladus + Mimas + Iapetus
+  { name: "Mimas",           parent: "Saturn",  visualRadius: 0.030, orbitRadius: 1.45, periodDays: 0.942,  shade: "#cccccc", fact: "The 'Death Star moon' — a 130-km crater (Herschel) covers a third of its face, making it eerily resemble the Empire's battle station decades before Star Wars existed." },
+  { name: "Enceladus",       parent: "Saturn",  visualRadius: 0.040, orbitRadius: 1.65, periodDays: 1.370,  shade: "#f5f5f5", fact: "Geysers of liquid water erupt through cracks at its south pole, feeding Saturn's E-ring. Cassini flew through the plumes and detected organic molecules — one of the strongest candidates for life beyond Earth." },
   { name: "Titan",           parent: "Saturn",  visualRadius: 0.08,  orbitRadius: 1.85, periodDays: 15.95,  shade: "#d6c98c", fact: "Saturn's largest moon — bigger than Mercury. Only moon with a thick atmosphere (nitrogen + methane). Has lakes of liquid methane." },
+  { name: "Iapetus",         parent: "Saturn",  visualRadius: 0.060, orbitRadius: 2.10, periodDays: 79.32,  shade: "#76695a", fact: "Two-faced moon — one hemisphere is bright water ice, the other is black as coal. The leading face sweeps up dust from outer moon Phoebe, painting it dark; the trailing face stays clean." },
+  // Uranus's notable moon
+  { name: "Miranda",         parent: "Uranus",  visualRadius: 0.035, orbitRadius: 0.70, periodDays: 1.413,  shade: "#bcb8b0", fact: "The most geologically bizarre body in the solar system — sheer cliffs 20 km tall (taller than Everest), chevron-shaped features, and patchwork terrain that looks like the moon was smashed apart and put back together." },
   { name: "Triton",          parent: "Neptune", visualRadius: 0.055, orbitRadius: 0.95, periodDays: -5.88,  shade: "#d8c6b8", fact: "Neptune's largest moon. Orbits BACKWARDS (retrograde) — likely a captured Kuiper Belt object." },
   // Charon — Pluto's largest moon. Tidally locked in a mutual rotation
   // (Pluto-Charon are double-tidally-locked: both faces stay turned to each other).
@@ -381,6 +390,67 @@ export const namedBodies: NamedBody[] = [
     fact: "Second known interstellar visitor (August 2019). Unlike 'Oumuamua, Borisov was clearly a comet — visible coma and tail. Spectroscopy showed exotic chemistry hinting at an origin around a cool red-dwarf star.",
     visualRadius: 0.04,
   },
+  // ----- Trans-Neptunian dwarf planets — Pluto's distant cousins -----
+  {
+    name: "Eris",
+    designation: "136199 Eris",
+    kind: "dwarf",
+    aAU: 67.78,
+    eccentricity: 0.434,
+    inclDeg: 44.04,
+    periodYears: 558,
+    startPhase: 0.21,
+    fact: "Slightly larger than Pluto and 27% more massive — its discovery in 2005 triggered the great planetary redefinition of 2006. Its highly inclined orbit takes it from 38 AU at perihelion to 97 AU at aphelion. Largest known dwarf planet.",
+    visualRadius: 0.08,
+  },
+  {
+    name: "Sedna",
+    designation: "90377 Sedna",
+    kind: "dwarf",
+    aAU: 506,
+    eccentricity: 0.851,
+    inclDeg: 11.93,
+    periodYears: 11400,
+    startPhase: 0.5,
+    fact: "Currently the third-most distant known body in the solar system — out near 84 AU at perihelion, but reaches 937 AU at aphelion. A single Sedna year is 11,400 Earth years. May be a member of the inner Oort Cloud.",
+    visualRadius: 0.06,
+  },
+  {
+    name: "Makemake",
+    designation: "136472 Makemake",
+    kind: "dwarf",
+    aAU: 45.79,
+    eccentricity: 0.156,
+    inclDeg: 28.99,
+    periodYears: 309,
+    startPhase: 0.62,
+    fact: "Third-largest dwarf planet, in the classical Kuiper Belt. Named for the creator god of Rapa Nui (Easter Island). Discovered Easter 2005. Surface coated in frozen methane and ethane.",
+    visualRadius: 0.06,
+  },
+  {
+    name: "Haumea",
+    designation: "136108 Haumea",
+    kind: "dwarf",
+    aAU: 43.13,
+    eccentricity: 0.196,
+    inclDeg: 28.21,
+    periodYears: 283,
+    startPhase: 0.39,
+    fact: "Spins so fast (one rotation every 3.9 hours) that it's been pulled into an elongated football shape — roughly 2,300 km long by 1,000 km wide. The first known TNO with confirmed rings, discovered 2017. Has two small moons, Hi'iaka and Namaka.",
+    visualRadius: 0.06,
+  },
+  {
+    name: "Gonggong",
+    designation: "225088 Gonggong",
+    kind: "dwarf",
+    aAU: 67.38,
+    eccentricity: 0.502,
+    inclDeg: 30.66,
+    periodYears: 553,
+    startPhase: 0.85,
+    fact: "Fifth-largest known dwarf planet, with a deep red surface from frozen methane irradiated by cosmic rays. Discovered in 2007, formally named in 2019 for the Chinese water god. Has a moon, Xiangliu.",
+    visualRadius: 0.06,
+  },
   // ----- Active spacecraft — human-built outposts at known positions -----
   // Orbital values here are conceptual approximations; spacecraft are
   // rendered as gently drifting points so the user can find each one even
@@ -563,6 +633,82 @@ export const constellations: Constellation[] = [
     ],
     // Spine: Deneb → Sadr → Albireo. Crossbar: Fawaris → Sadr → Gienah.
     edges: [[0, 2], [2, 1], [4, 2], [2, 3]],
+  },
+  {
+    id: "scorpius",
+    name: "Scorpius",
+    designation: "The Scorpion — Summer zodiac",
+    fact: "One of the few constellations that actually looks like its namesake. Antares (the red supergiant 'heart') will go supernova; when it does, it'll briefly outshine the full Moon. Lies right against the galactic centre, so the densest part of the Milky Way runs through its tail.",
+    stars: [
+      { name: "Antares",     designation: "α Scorpii · Heart · Red supergiant", raHours: 16.490, decDeg: -26.43, magnitude: 1.06 },
+      { name: "Dschubba",    designation: "δ Scorpii · Head",                  raHours: 16.005, decDeg: -22.62, magnitude: 2.32 },
+      { name: "Acrab",       designation: "β Scorpii · Head",                  raHours: 16.090, decDeg: -19.81, magnitude: 2.62 },
+      { name: "Pi Scorpii",  designation: "π Scorpii · Head",                  raHours: 15.985, decDeg: -26.11, magnitude: 2.89 },
+      { name: "Larawag",     designation: "ε Scorpii · Body",                  raHours: 16.836, decDeg: -34.29, magnitude: 2.31 },
+      { name: "Sargas",      designation: "θ Scorpii · Tail",                  raHours: 17.622, decDeg: -42.998, magnitude: 1.86 },
+      { name: "Shaula",      designation: "λ Scorpii · Tail tip · Sting",      raHours: 17.560, decDeg: -37.10, magnitude: 1.62 },
+    ],
+    // Head triangle (Dschubba-Acrab-Pi) → Antares → body → tail to sting
+    edges: [[2, 1], [1, 3], [3, 0], [0, 4], [4, 5], [5, 6]],
+  },
+  {
+    id: "crux",
+    name: "Southern Cross",
+    designation: "Crux · Smallest of the 88 constellations",
+    fact: "The most iconic southern asterism, on the flags of Australia, New Zealand, Brazil, Papua New Guinea, and Samoa. Acrux is the 13th-brightest star in the sky; the cross's long axis points toward the south celestial pole — the southern equivalent of how the Big Dipper points to Polaris.",
+    stars: [
+      { name: "Acrux",   designation: "α Crucis · Foot of the cross", raHours: 12.443, decDeg: -63.10, magnitude: 0.77 },
+      { name: "Gacrux",  designation: "γ Crucis · Top of the cross",  raHours: 12.519, decDeg: -57.11, magnitude: 1.59 },
+      { name: "Mimosa",  designation: "β Crucis · Left arm",          raHours: 12.795, decDeg: -59.69, magnitude: 1.25 },
+      { name: "Imai",    designation: "δ Crucis · Right arm",         raHours: 12.252, decDeg: -58.75, magnitude: 2.79 },
+    ],
+    // Vertical: Acrux ↔ Gacrux. Horizontal: Mimosa ↔ Imai.
+    edges: [[0, 1], [2, 3]],
+  },
+  {
+    id: "centaurus",
+    name: "Centaurus",
+    designation: "The Centaur · Southern sky",
+    fact: "Hosts the closest star system to the Sun: α Centauri (Rigil Kentaurus), a triple system 4.37 ly away. The faintest member, Proxima Centauri, has at least one Earth-mass planet in its habitable zone. Also home to Omega Centauri — the largest globular cluster in the Milky Way, possibly the core of a digested dwarf galaxy.",
+    stars: [
+      { name: "Rigil Kentaurus", designation: "α Centauri · Closest star system", raHours: 14.660, decDeg: -60.83, magnitude: -0.27 },
+      { name: "Hadar",           designation: "β Centauri",                       raHours: 14.064, decDeg: -60.37, magnitude: 0.61 },
+      { name: "Muhlifain",       designation: "γ Centauri",                       raHours: 12.692, decDeg: -48.96, magnitude: 2.17 },
+      { name: "Menkent",         designation: "θ Centauri",                       raHours: 14.111, decDeg: -36.37, magnitude: 2.06 },
+    ],
+    edges: [[0, 1], [1, 2], [2, 3]],
+  },
+  {
+    id: "sagittarius",
+    name: "Sagittarius",
+    designation: "The Archer · 'Teapot' asterism",
+    fact: "Marks the direction of the galactic centre — when you look at Sagittarius, you're looking through the densest part of the Milky Way toward Sgr A*, the 4-million-solar-mass black hole at the galactic core. The eight brightest stars form the famous Teapot, with the Milky Way as steam pouring from its spout.",
+    stars: [
+      { name: "Kaus Australis", designation: "ε Sagittarii",  raHours: 18.403, decDeg: -34.38, magnitude: 1.85 },
+      { name: "Nunki",          designation: "σ Sagittarii",  raHours: 18.921, decDeg: -26.30, magnitude: 2.05 },
+      { name: "Ascella",        designation: "ζ Sagittarii",  raHours: 19.045, decDeg: -29.88, magnitude: 2.59 },
+      { name: "Kaus Media",     designation: "δ Sagittarii",  raHours: 18.349, decDeg: -29.83, magnitude: 2.70 },
+      { name: "Kaus Borealis",  designation: "λ Sagittarii",  raHours: 18.466, decDeg: -25.42, magnitude: 2.81 },
+      { name: "Phi Sgr",        designation: "φ Sagittarii",  raHours: 18.755, decDeg: -26.99, magnitude: 3.17 },
+      { name: "Tau Sgr",        designation: "τ Sagittarii",  raHours: 19.115, decDeg: -27.67, magnitude: 3.32 },
+    ],
+    // Teapot: body (Kaus Media-Phi-Tau-Ascella) + handle (Phi-Nunki-Ascella) + spout (Kaus Australis-Kaus Media) + lid (Kaus Media-Kaus Borealis-Phi)
+    edges: [[3, 5], [5, 6], [6, 2], [2, 1], [1, 5], [3, 0], [3, 4], [4, 5]],
+  },
+  {
+    id: "pegasus",
+    name: "Pegasus",
+    designation: "The Winged Horse · Great Square",
+    fact: "The Great Square of Pegasus is one of the easiest asterisms to find in the autumn northern sky. The fourth corner is technically Alpheratz — which the IAU assigned to neighbouring Andromeda. From Markab and Algenib, follow the line out to reach the Andromeda Galaxy.",
+    stars: [
+      { name: "Markab",   designation: "α Pegasi · SW corner",   raHours: 23.079, decDeg: 15.21, magnitude: 2.49 },
+      { name: "Scheat",   designation: "β Pegasi · NW corner",   raHours: 23.063, decDeg: 28.08, magnitude: 2.42 },
+      { name: "Algenib",  designation: "γ Pegasi · SE corner",   raHours: 0.220,  decDeg: 15.18, magnitude: 2.83 },
+      { name: "Alpheratz", designation: "α Andromedae · NE corner (shared)", raHours: 0.140,  decDeg: 29.09, magnitude: 2.06 },
+      { name: "Enif",     designation: "ε Pegasi · Nose",        raHours: 21.737, decDeg: 9.88,  magnitude: 2.39 },
+    ],
+    // Great Square: Markab-Scheat-Alpheratz-Algenib. Plus Enif extension out to the head.
+    edges: [[0, 1], [1, 3], [3, 2], [2, 0], [0, 4]],
   },
 ]
 
@@ -780,5 +926,40 @@ export const skyPoints: SkyPoint[] = [
     distance: "11.9 ly",
     fact: "Closest single sun-like star — same spectral type (G-class) as our Sun. At least four candidate planets detected. Long a favourite target in SETI searches; it's where 'Contact' set its alien signal.",
     visualSize: 0.6,
+  },
+  // ----- Black holes -----
+  {
+    id: "m87-star",
+    name: "M87*",
+    designation: "M87* · Pōwehi · 6.5 billion M☉",
+    kind: "black-hole",
+    raHours: 12.514,
+    decDeg: 12.39,
+    distance: "53.5 million ly",
+    fact: "First black hole ever imaged — the Event Horizon Telescope unveiled it in April 2019, showing the iconic glowing donut around a dark shadow. Sits at the heart of galaxy Messier 87. Mass: 6.5 billion times the Sun.",
+    visualSize: 1.8,
+  },
+  {
+    id: "ton-618",
+    name: "TON 618",
+    designation: "TON 618 · 66 billion M☉ · Ultramassive",
+    kind: "black-hole",
+    raHours: 12.494,
+    decDeg: 31.74,
+    distance: "10.4 billion ly",
+    fact: "Among the most massive black holes known — 66 billion times the Sun. The event horizon alone is ~1,300 AU across, far wider than the Sun's heliosphere. Powers a hyperluminous quasar visible from a third of the way across the observable universe.",
+    visualSize: 2.2,
+  },
+  {
+    id: "cygnus-x1",
+    name: "Cygnus X-1",
+    designation: "Cygnus X-1 · 21 M☉ · Stellar-mass",
+    kind: "black-hole",
+    raHours: 19.973,
+    decDeg: 35.20,
+    magnitude: 8.95,        // its blue-supergiant companion's mag
+    distance: "7,200 ly",
+    fact: "First object widely accepted as a black hole (1971) — an X-ray binary in which a 21-solar-mass black hole accretes from a blue supergiant companion. Subject of the 1974 Hawking-Thorne wager — Hawking conceded in 1990.",
+    visualSize: 1.2,
   },
 ]
