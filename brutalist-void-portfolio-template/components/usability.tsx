@@ -57,7 +57,7 @@ export function Usability() {
         </p>
         <h2
           id="usability-heading"
-          className="font-sans text-3xl md:text-5xl font-light italic"
+          className="font-display text-3xl md:text-5xl lg:text-6xl font-light italic tracking-[-0.01em]"
         >
           Usability is the litmus test, not the checklist.
         </h2>

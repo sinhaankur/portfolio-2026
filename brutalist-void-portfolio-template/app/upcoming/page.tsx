@@ -49,7 +49,7 @@ export default function UpcomingPage() {
             <p className="font-mono text-xs tracking-[0.3em] text-muted-foreground mb-6">
               06 — UPCOMING
             </p>
-            <h1 className="font-sans text-5xl md:text-7xl lg:text-8xl font-light tracking-tight text-balance">
+            <h1 className="font-display text-5xl md:text-7xl lg:text-8xl font-light tracking-[-0.02em] leading-[1.02] text-balance">
               What's <span className="italic">next</span>.
             </h1>
             <p className="mt-8 md:mt-12 max-w-2xl font-sans text-lg md:text-xl text-foreground/85 leading-relaxed">

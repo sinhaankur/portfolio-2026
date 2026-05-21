@@ -75,7 +75,7 @@ export function TechMarquee() {
           </p>
           <h2
             id="stack-heading"
-            className="font-sans text-3xl md:text-5xl font-light italic"
+            className="font-display text-3xl md:text-5xl lg:text-6xl font-light italic tracking-[-0.01em]"
           >
             What I work with — and what I work toward.
           </h2>

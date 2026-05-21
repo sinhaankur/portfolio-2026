@@ -30,9 +30,11 @@ export function Hero() {
     <section
       ref={containerRef}
       aria-labelledby="hero-name"
-      // Hero is its own dark planetarium regardless of the overall theme —
-      // the universe scene only reads correctly against a deep backdrop.
-      className="relative h-screen w-full overflow-hidden bg-[#050505] text-white"
+      // The hero is a self-contained dark planetarium regardless of the page theme —
+      // the universe scene needs an ink backdrop to read. Scoping `dark` on the section
+      // means descendant token classes (bg-background, text-foreground, border-foreground/X)
+      // resolve to the dark palette here, while the rest of the page can be cream.
+      className="dark relative h-screen w-full overflow-hidden bg-background text-foreground"
       style={{ colorScheme: "dark" }}
     >
       {/* Visually-hidden semantic H1 — gives screen readers a clean page title */}
@@ -45,15 +47,16 @@ export function Hero() {
         <GalaxyScene interactive={interactive} />
       </div>
 
-      {/* Explore-mode toggle — top right */}
-      <div className="absolute top-6 right-6 md:top-24 md:right-12 z-30">
+      {/* Explore-mode toggle — placed BELOW the fixed navbar on mobile (top-20
+          ≈ navbar height + gap) and at a clear top-right cluster on desktop. */}
+      <div className="absolute top-20 right-4 md:top-24 md:right-12 z-30 pointer-events-auto">
         <button
           type="button"
           onClick={() => setInteractive((v) => !v)}
           data-cursor-hover
           aria-pressed={interactive}
           className="
-            inline-flex items-center gap-2 px-4 py-2
+            inline-flex items-center gap-2 px-4 py-2.5
             border border-foreground/25 rounded-full
             bg-background/40 backdrop-blur-sm
             font-mono text-[10px] tracking-[0.25em] uppercase
@@ -61,7 +64,7 @@ export function Hero() {
             transition-colors duration-300
             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
             focus-visible:ring-offset-2 focus-visible:ring-offset-background
-            min-h-9
+            min-h-11 touch-manipulation
           "
         >
           {interactive ? (
@@ -70,10 +73,14 @@ export function Hero() {
                 <span className="motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75" />
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent" />
               </span>
-              Exploring · Esc to exit
+              <span className="hidden sm:inline">Exploring · Esc to exit</span>
+              <span className="sm:hidden">Exploring · tap to exit</span>
             </>
           ) : (
-            <>Tap to explore</>
+            <>
+              <span aria-hidden="true" className="text-accent">✺</span>
+              Tap to explore
+            </>
           )}
         </button>
       </div>
@@ -101,7 +108,7 @@ export function Hero() {
           </p>
           <p
             aria-hidden="true"
-            className="font-sans text-4xl md:text-6xl lg:text-7xl font-light tracking-tight text-balance"
+            className="font-display text-4xl md:text-6xl lg:text-7xl font-light tracking-[-0.02em] leading-[1.02] text-balance"
           >
             PRINCIPAL
             <br />
@@ -124,11 +131,11 @@ export function Hero() {
             transition={{ type: "spring", stiffness: 300, damping: 20 }}
             className="
               group relative inline-flex items-center gap-3
-              px-7 py-3.5 border border-white/30 rounded-full
+              px-7 py-3.5 border border-foreground/30 rounded-full
               font-mono text-xs tracking-[0.25em] uppercase
-              bg-black/30 backdrop-blur-sm
-              text-white
-              hover:bg-white hover:text-black hover:border-white
+              bg-background/40 backdrop-blur-sm
+              text-foreground
+              hover:bg-foreground hover:text-background hover:border-foreground
               transition-colors duration-500
               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
               focus-visible:ring-offset-2 focus-visible:ring-offset-background
@@ -164,7 +171,7 @@ export function Hero() {
           </p>
           <p
             aria-hidden="true"
-            className="font-sans text-4xl md:text-6xl lg:text-7xl font-light tracking-tight text-balance"
+            className="font-display text-4xl md:text-6xl lg:text-7xl font-light tracking-[-0.02em] leading-[1.02] text-balance"
           >
             HUMAN–AI
             <br />

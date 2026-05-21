@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { Github, ExternalLink } from "lucide-react"
 import {
   CaseStudyLayout,
   CaseSectionHeading,
@@ -173,6 +174,68 @@ export default function UnhostedCaseStudy() {
         </>
       }
     >
+      {/* GitHub + links action row */}
+      <section aria-label="Project links" className="-mt-8 md:-mt-12">
+        <div className="flex flex-wrap items-center gap-3">
+          <a
+            href="https://github.com/unhosted-ai"
+            target="_blank"
+            rel="noreferrer noopener"
+            data-cursor-hover
+            className="
+              inline-flex items-center gap-2.5
+              px-5 py-3 rounded-full
+              border border-foreground/80 bg-foreground text-background
+              hover:bg-background hover:text-foreground hover:border-foreground
+              transition-colors duration-300
+              font-mono text-xs tracking-[0.2em] uppercase
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+              focus-visible:ring-offset-4 focus-visible:ring-offset-background
+            "
+          >
+            <Github className="w-4 h-4" aria-hidden="true" />
+            github.com/unhosted-ai
+            <ExternalLink className="w-3 h-3 opacity-60" aria-hidden="true" />
+          </a>
+          <a
+            href="https://github.com/unhosted-ai/unhosted-core"
+            target="_blank"
+            rel="noreferrer noopener"
+            data-cursor-hover
+            className="
+              inline-flex items-center gap-2
+              px-4 py-2.5 rounded-full
+              border border-border bg-background hover:border-accent/60
+              transition-colors duration-300
+              font-mono text-[10px] tracking-[0.2em] uppercase text-foreground/85
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+              focus-visible:ring-offset-4 focus-visible:ring-offset-background
+            "
+          >
+            <Github className="w-3.5 h-3.5" aria-hidden="true" />
+            unhosted-core
+          </a>
+          <a
+            href="https://github.com/unhosted-ai/unhosted-payments"
+            target="_blank"
+            rel="noreferrer noopener"
+            data-cursor-hover
+            className="
+              inline-flex items-center gap-2
+              px-4 py-2.5 rounded-full
+              border border-border bg-background hover:border-accent/60
+              transition-colors duration-300
+              font-mono text-[10px] tracking-[0.2em] uppercase text-foreground/85
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+              focus-visible:ring-offset-4 focus-visible:ring-offset-background
+            "
+          >
+            <Github className="w-3.5 h-3.5" aria-hidden="true" />
+            unhosted-payments
+          </a>
+        </div>
+      </section>
+
       {/* Featured ASCII diagram + status pills */}
       <section>
         <div className="rounded-md border border-border bg-secondary/30 p-6 md:p-10">

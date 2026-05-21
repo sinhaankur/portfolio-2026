@@ -80,7 +80,7 @@ export function CaseStudyLayout({
             <motion.h1
               {...fadeUp}
               transition={{ ...fadeUp.transition, delay: 0.05 }}
-              className="font-sans text-4xl md:text-6xl lg:text-7xl font-light tracking-tight leading-[1.05] text-foreground"
+              className="font-display text-4xl md:text-6xl lg:text-7xl font-light tracking-[-0.02em] leading-[1.02] text-foreground"
             >
               {title}
             </motion.h1>
@@ -151,7 +151,7 @@ export function CaseSectionHeading({ children }: { children: ReactNode }) {
     <div className="mb-10">
       <div className="flex items-baseline gap-4 mb-2">
         <span aria-hidden="true" className="block w-12 h-px bg-accent" />
-        <h2 className="font-sans text-2xl md:text-3xl font-light tracking-tight text-foreground">
+        <h2 className="font-display text-2xl md:text-3xl lg:text-4xl font-light tracking-[-0.01em] text-foreground">
           {children}
         </h2>
       </div>
@@ -350,7 +350,7 @@ export function CaseMoments({
           <span aria-hidden="true" className="block w-12 h-px bg-accent" />
           <h2
             id="moments-heading"
-            className="font-sans text-2xl md:text-3xl font-light tracking-tight text-foreground"
+            className="font-display text-2xl md:text-3xl lg:text-4xl font-light tracking-[-0.01em] text-foreground"
           >
             {title}
           </h2>

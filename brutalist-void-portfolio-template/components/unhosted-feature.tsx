@@ -70,7 +70,7 @@ export function UnhostedFeature() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] }}
-          className="font-sans text-5xl md:text-7xl lg:text-8xl font-light tracking-tight text-balance"
+          className="font-display text-5xl md:text-7xl lg:text-8xl font-light tracking-[-0.02em] leading-[1.02] text-balance"
         >
           Unhosted — <span className="italic">AI that lives where you do.</span>
         </motion.h2>

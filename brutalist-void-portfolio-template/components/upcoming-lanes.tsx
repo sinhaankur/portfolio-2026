@@ -158,7 +158,7 @@ export function UpcomingLanes() {
               </div>
               <h2
                 id={`lane-${lane.number}`}
-                className="font-sans text-4xl md:text-6xl font-light tracking-tight"
+                className="font-display text-4xl md:text-6xl font-light tracking-[-0.02em] leading-[1.02]"
               >
                 {lane.name}
               </h2>
