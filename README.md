@@ -114,7 +114,7 @@ Full terms: [LICENSE](./LICENSE).
 
 For any use outside the permissions above, contact:
 
-**Ankur Sinha** · h99311@gmail.com · [www.sinhaankur.com](https://www.sinhaankur.com)
+**Ankur Sinha** · sinhaankur@ymail.com · [www.sinhaankur.com](https://www.sinhaankur.com)
 
 ---
 
