@@ -35,8 +35,11 @@ type Experience = {
   duration: string
   blurb: string
   tags: string[]
-  status?: "Current" | "NDA" | "Case study" | "Foundational"
-  href?: string
+  /** Only Oracle is currently active — surfaces as a small "Currently" tick
+   *  on the date column. Past roles don't carry a status pill; the
+   *  "Case study →" cue at the bottom-right is the consistent affordance. */
+  current?: boolean
+  href: string
 }
 
 const timeline: Experience[] = [
@@ -48,7 +51,7 @@ const timeline: Experience[] = [
     blurb:
       "Lead designer for cloud database tooling and AI orchestration surfaces. Cross-tool consistency across the data lifecycle. Specifics under NDA.",
     tags: ["Enterprise", "Data tooling", "AI orchestration"],
-    status: "Current",
+    current: true,
     href: "/works/oracle",
   },
   {
@@ -59,7 +62,6 @@ const timeline: Experience[] = [
     blurb:
       "Brought UCD process to enterprise channels — Salesforce, Supply Chain ERPs. Owned end-to-end user research, information architecture, and reporting surfaces with product, engineering, QA, and clients.",
     tags: ["Service design", "Enterprise", "Salesforce"],
-    status: "Case study",
     href: "/works/deloitte",
   },
   {
@@ -70,7 +72,6 @@ const timeline: Experience[] = [
     blurb:
       "Founded and led the company's first UX team. Built a group of interaction designers and researchers; owned production across web, social, and mobile; set strategic UX direction.",
     tags: ["Founding UX", "Team lead", "Web", "Mobile"],
-    status: "Case study",
     href: "/works/snowtint",
   },
   {
@@ -81,7 +82,6 @@ const timeline: Experience[] = [
     blurb:
       "Banking and consumer projects: Citibank (NA / India / Philippines), HSBC, Deutsche Bank, Vodafone, Unilever, CEAT, Quikr. Wireframes, interaction design, end-user interviews, client presentation.",
     tags: ["Banking", "Consumer", "Client work"],
-    status: "Foundational",
     href: "/works/rage",
   },
 ]
@@ -155,30 +155,28 @@ export function Works() {
                 "
               >
                 <div className="grid gap-3 md:grid-cols-[10rem_1fr] md:gap-10 md:items-start">
-                  {/* Period column */}
+                  {/* Period column — currently-active roles get a pulsing
+                      accent dot prefix so the "Present" date doesn't have
+                      to carry that signal alone. */}
                   <div className="font-mono text-xs tracking-widest text-muted-foreground pt-2 md:pt-3">
+                    {entry.current && (
+                      <p className="inline-flex items-center gap-1.5 text-accent mb-1.5">
+                        <span className="relative flex h-1.5 w-1.5" aria-hidden="true">
+                          <span className="motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75" />
+                          <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent" />
+                        </span>
+                        Currently
+                      </p>
+                    )}
                     <p>{entry.period}</p>
                     <p className="mt-1 text-muted-foreground/65">{entry.duration}</p>
                   </div>
 
                   {/* Content column */}
                   <div className="min-w-0">
-                    <div className="flex items-baseline justify-between gap-4 flex-wrap">
-                      <h3 className="font-display text-3xl md:text-4xl lg:text-5xl font-light tracking-[-0.02em] leading-[1.02] text-foreground">
-                        {entry.company}
-                      </h3>
-                      <span
-                        className="
-                          font-mono text-[10px] tracking-widest uppercase
-                          px-2.5 py-1 border border-border rounded-full
-                          text-foreground/80
-                          group-hover:border-accent/60 group-hover:text-foreground
-                          transition-colors duration-300
-                        "
-                      >
-                        {entry.status}
-                      </span>
-                    </div>
+                    <h3 className="font-display text-3xl md:text-4xl lg:text-5xl font-light tracking-[-0.02em] leading-[1.02] text-foreground">
+                      {entry.company}
+                    </h3>
                     <p className="mt-2 font-mono text-xs md:text-sm tracking-wider uppercase text-accent">
                       {entry.role}
                     </p>
