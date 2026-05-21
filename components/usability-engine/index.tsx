@@ -29,6 +29,7 @@ import { heuristics } from "./heuristics"
 import { HeuristicCard } from "./heuristic-card"
 import { AuditBar } from "./audit-bar"
 import { AuditSummary } from "./audit-summary"
+import { OllamaCallout } from "./ollama-callout"
 import { useAuditSession } from "./use-audit-session"
 import type { SurfaceKind } from "./types"
 
@@ -65,6 +66,11 @@ export function UsabilityEngine() {
 
   return (
     <section aria-labelledby="usability-engine-heading" className="relative">
+      {/* Ollama callout — collapsible 'run the LLM checks yourself' banner.
+          The static site can't call an LLM, but the catalog is a spec —
+          anyone with Ollama can run the per-heuristic prompts locally. */}
+      <OllamaCallout />
+
       {/* Audit bar — URL input (idle) or active-audit chip (running) */}
       <AuditBar heuristics={filtered} audit={audit} />
 

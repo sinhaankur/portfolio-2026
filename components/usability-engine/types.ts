@@ -31,6 +31,30 @@ export type DemoKey =
   | "undo"
   | "recognition"
 
+/**
+ * How a heuristic can be checked against a real surface.
+ *
+ *   script  — deterministic, runnable from a backend that fetches the URL.
+ *             No human judgment required. Example: 'page has an HTML lang
+ *             attribute', 'every <img> has alt text', 'HTTPS only'.
+ *
+ *   llm     — requires reading the surface as a human would. An LLM with
+ *             a screenshot or HTML can evaluate. Subjective but trainable.
+ *             Example: 'is this jargon plain-language to a non-engineer?',
+ *             'is this error message actionable?'.
+ *
+ *   hybrid  — script catches some failures (e.g. missing labels) and LLM
+ *             evaluates the rest (e.g. labels are present but unhelpful).
+ *
+ *   manual  — irreducibly human. Requires running the surface, feeling it,
+ *             watching real users. Aesthetic minimalism, edge-case error
+ *             flows, content tone.
+ *
+ * The /usability engine on this static site can't run script or LLM checks
+ * itself (no backend). The metadata is the spec for when one lands.
+ */
+export type Checkability = "script" | "llm" | "hybrid" | "manual"
+
 export type Heuristic = {
   id: string
   /** Display number — '01' through '10' for Nielsen + extensions. */
@@ -48,6 +72,14 @@ export type Heuristic = {
   auditQuestion: string
   /** Concrete advice when the audit answer is "no" or "unsure". */
   fix: string
+  /** How this heuristic would be checked if the engine had a backend. */
+  checkability: Checkability
+  /**
+   * Two-or-three-sentence spec for the automated check — describes what
+   * a script / LLM would actually do. Surfaces in the audit detail when
+   * the user marks the heuristic as Fail.
+   */
+  automationSpec: string
   /** Optional interactive demo. Lookups happen in demos/registry.ts. */
   demo?: DemoKey
 }

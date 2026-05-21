@@ -11,14 +11,32 @@
 
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { ChevronDown } from "lucide-react"
-import type { AuditVerdict, Heuristic } from "./types"
+import { ChevronDown, Terminal } from "lucide-react"
+import type { AuditVerdict, Checkability, Heuristic } from "./types"
 import { demoRegistry } from "./demos/registry"
 
 const SEVERITY_TONE: Record<Heuristic["severity"], { dot: string; label: string }> = {
   blocker: { dot: "bg-red-500",     label: "Blocker" },
   major:   { dot: "bg-amber-500",   label: "Major" },
   minor:   { dot: "bg-emerald-500", label: "Minor" },
+}
+
+const CHECKABILITY_LABEL: Record<Checkability, string> = {
+  script: "Script-checkable",
+  llm:    "LLM-checkable",
+  hybrid: "Script + LLM",
+  manual: "Human judgment",
+}
+
+const CHECKABILITY_HELP: Record<Checkability, string> = {
+  script:
+    "A small headless-browser script could decide this deterministically. No model required — just an automated crawl against the URL.",
+  llm:
+    "An LLM with access to the rendered surface (HTML or screenshot) can judge this. Run it locally with Ollama — see the prompt below.",
+  hybrid:
+    "Script catches the structural failures (missing labels, missing alt text). LLM judges the language-aware parts (are the labels actually useful?). Best run as a two-pass check.",
+  manual:
+    "Resists automation. Requires running the surface yourself, watching users, or reviewing the system architecture. No prompt, no script — just judgment.",
 }
 
 export function HeuristicCard({
@@ -66,6 +84,15 @@ export function HeuristicCard({
             <span aria-hidden="true" className={`block w-1.5 h-1.5 rounded-full ${SEVERITY_TONE[heuristic.severity].dot}`} />
             {SEVERITY_TONE[heuristic.severity].label}
           </span>
+          {/* Checkability badge — surfaces whether the user is voting on a
+              script-decidable check, an LLM-checkable one, or human judgment. */}
+          <span
+            className="mt-2 inline-flex items-center gap-1.5 font-mono text-[9px] tracking-widest uppercase text-foreground/55"
+            title={CHECKABILITY_HELP[heuristic.checkability]}
+          >
+            <span aria-hidden="true" className="block w-1.5 h-1.5 rounded-full bg-foreground/30" />
+            {CHECKABILITY_LABEL[heuristic.checkability]}
+          </span>
         </div>
 
         {/* Content column */}
@@ -108,8 +135,8 @@ export function HeuristicCard({
           <div
             className={`
               mt-8 border rounded-lg overflow-hidden transition-colors
-              ${verdict === "pass" ? "border-emerald-500/40 bg-emerald-500/[0.04]" : ""}
-              ${verdict === "fail" ? "border-red-500/40 bg-red-500/[0.04]" : ""}
+              ${verdict === "pass" ? "border-emerald-500/40 bg-emerald-500/4" : ""}
+              ${verdict === "fail" ? "border-red-500/40 bg-red-500/4" : ""}
               ${verdict === "skip" ? "border-foreground/15 bg-secondary/30" : ""}
               ${!verdict ? "border-border bg-card" : ""}
             `}
@@ -182,13 +209,51 @@ export function HeuristicCard({
                   transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
                   className="overflow-hidden"
                 >
-                  <div className="px-5 pb-5 pt-1 border-t border-border">
-                    <p className="font-mono text-[10px] tracking-[0.25em] uppercase text-muted-foreground mb-2">
-                      If the answer is "no" or "unsure":
-                    </p>
-                    <p className="font-sans text-sm md:text-base text-foreground/85 leading-relaxed max-w-2xl">
-                      {heuristic.fix}
-                    </p>
+                  <div className="px-5 pb-5 pt-1 border-t border-border space-y-5">
+                    {/* The fix */}
+                    <div className="pt-4">
+                      <p className="font-mono text-[10px] tracking-[0.25em] uppercase text-muted-foreground mb-2">
+                        If the answer is "no" or "unsure":
+                      </p>
+                      <p className="font-sans text-sm md:text-base text-foreground/85 leading-relaxed max-w-2xl">
+                        {heuristic.fix}
+                      </p>
+                    </div>
+
+                    {/* How an automated check would run */}
+                    <div className="pt-3 border-t border-border/60">
+                      <p className="font-mono text-[10px] tracking-[0.25em] uppercase text-muted-foreground mb-2 inline-flex items-center gap-2">
+                        <Terminal className="w-3 h-3" aria-hidden="true" />
+                        How this check could run automatically
+                      </p>
+                      <p className="font-sans text-sm text-foreground/80 leading-relaxed max-w-2xl mb-3">
+                        {heuristic.automationSpec}
+                      </p>
+                      <p className="font-mono text-[10px] tracking-wider text-muted-foreground/85 leading-relaxed max-w-2xl">
+                        {CHECKABILITY_HELP[heuristic.checkability]}
+                      </p>
+                      {(heuristic.checkability === "llm" || heuristic.checkability === "hybrid") && (
+                        <div className="mt-4 rounded-md bg-foreground/5 border border-border p-3">
+                          <p className="font-mono text-[10px] tracking-widest uppercase text-foreground/65 mb-2 inline-flex items-center gap-2">
+                            <span aria-hidden="true" className="block w-1.5 h-1.5 rounded-full bg-accent" />
+                            Run it yourself · Ollama
+                          </p>
+                          <p className="font-mono text-[11px] text-foreground/85 leading-relaxed mb-3">
+                            Install Ollama and pull a model, then paste the page HTML
+                            (or a screenshot, with a vision model) into a prompt that
+                            asks for this specific check:
+                          </p>
+                          <pre className="bg-background border border-border rounded p-3 font-mono text-[10.5px] text-foreground/85 leading-snug whitespace-pre-wrap overflow-x-auto">
+{`# in a terminal
+brew install ollama        # or download: https://ollama.com
+ollama pull llama3.2
+
+# in a separate shell
+ollama run llama3.2 "${heuristic.automationSpec.replace(/"/g, '\\"').slice(0, 240)}..."`}
+                          </pre>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </motion.div>
               )}

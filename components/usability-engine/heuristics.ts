@@ -5,6 +5,11 @@
  * extensions for AI / agentic interfaces. Each entry is a row of data;
  * the engine handles rendering, demo lookup, and audit aggregation.
  *
+ * Each heuristic also declares its `checkability` — how it would be
+ * automated if the engine had a backend (script / llm / hybrid / manual)
+ * — and an `automationSpec` describing what that check would actually
+ * do. The fields drive the audit detail when a verdict is marked Fail.
+ *
  * Add a row, the scene picks it up. To add an interactive demo for a
  * heuristic, register it in `demos/registry.ts` and reference the key
  * here under `demo`.
@@ -25,6 +30,9 @@ export const heuristics: Heuristic[] = [
     auditQuestion:
       "Does every user action show feedback within 100 ms — visual, audio, or haptic?",
     fix: "Add a state transition for every interactive element: idle → pressed → working → resolved. Use spinners, progress bars, optimistic updates, or colour changes. If something is going to take more than 1 second, show a determinate progress indicator.",
+    checkability: "hybrid",
+    automationSpec:
+      "A script can enumerate every <button> / <a> / interactive ARIA role and check for visible state transitions on click (aria-busy, aria-disabled, class toggles, focus rings). An LLM judges the *quality* of the feedback — is the loading copy informative or just a spinner?",
     demo: "visibility-status",
   },
   {
@@ -39,6 +47,9 @@ export const heuristics: Heuristic[] = [
     auditQuestion:
       "Have you tested every label, error, and tooltip with a user who's never seen the codebase?",
     fix: "Run a 'jargon audit': open the product, list every noun and verb the UI uses, and ask 5 users to define each one. Replace anything that gets defined differently by 2+ users.",
+    checkability: "llm",
+    automationSpec:
+      "An LLM walks the rendered text on the page, flags tokens that match a developer-vocabulary list (id, uuid, payload, token, hash, sync, async, idempotent), and proposes plain-language substitutes. The model also reads each label in isolation and judges whether a non-technical user would understand it without context.",
   },
   {
     id: "user-control",
@@ -52,6 +63,9 @@ export const heuristics: Heuristic[] = [
     auditQuestion:
       "Can every destructive or commitment action be undone within at least 5 seconds, without a confirmation modal?",
     fix: "Default to soft-delete with an 'Undo' snackbar (Gmail pattern) over hard-delete with a confirmation modal. Modals interrupt the flow without giving real recovery; snackbars don't interrupt and give you a real escape.",
+    checkability: "hybrid",
+    automationSpec:
+      "Script finds every destructive verb in button copy ('delete', 'remove', 'discard', 'archive', 'cancel') and follows the click. LLM evaluates the resulting flow: is the action reversible? Within how long? Is the recovery affordance visible without a modal?",
     demo: "undo",
   },
   {
@@ -66,6 +80,9 @@ export const heuristics: Heuristic[] = [
     auditQuestion:
       "Does the same concept (e.g. 'save', 'cancel', 'delete') always use the same word, icon, and position across your product?",
     fix: "Build a design system. Even a tiny one. A single source of truth for buttons, colours, spacing, and copy means the team can't accidentally invent a fourth version of 'Delete' on a Tuesday.",
+    checkability: "script",
+    automationSpec:
+      "Crawl the site, collect every button by accessible name, cluster by intent (Save / Cancel / Delete / Submit / OK). Flag clusters with more than one unique label. Same for icons: hash visual fingerprints, flag duplicates with mismatched copy or vice versa.",
   },
   {
     id: "error-prevention",
@@ -79,6 +96,9 @@ export const heuristics: Heuristic[] = [
     auditQuestion:
       "Does your form validate inline as the user types — not after they hit Submit?",
     fix: "Validate on the blur event of each field (when the user moves to the next one), not on Submit. Show specific, helpful guidance ('Need an @ sign and a dot') not generic refusal ('Invalid email'). Disable Submit until the form is in a submittable state.",
+    checkability: "script",
+    automationSpec:
+      "For every <form>, simulate intentionally-bad input in each field (invalid email, future date in past field, 25-char name, etc.). Record whether validation fires on blur, on submit, or never. Flag any field with submit-only validation as a fail.",
     demo: "error-prevention",
   },
   {
@@ -93,6 +113,9 @@ export const heuristics: Heuristic[] = [
     auditQuestion:
       "Do you offer recent / suggested / autocomplete options on every input where the user might be looking for something they've used before?",
     fix: "Audit your inputs. For each one, ask: 'Where would the user have stored this answer?' If the answer is 'somewhere I can show them' — show them. Recent searches, recently used files, last-shipped-to addresses, frequent collaborators.",
+    checkability: "hybrid",
+    automationSpec:
+      "Script enumerates inputs and detects autocomplete attributes, listbox roles, datalist presence. LLM evaluates whether each input *should* have suggestions (search vs new-form-field) — the script alone can't tell which inputs would benefit from history.",
     demo: "recognition",
   },
   {
@@ -107,6 +130,9 @@ export const heuristics: Heuristic[] = [
     auditQuestion:
       "Can a power user complete the three most common tasks without leaving the keyboard?",
     fix: "Ship a command palette (⌘K). Surface keyboard shortcuts on hover or in a help menu. Let returning users pre-fill, batch, or skip steps that first-time users need.",
+    checkability: "script",
+    automationSpec:
+      "Headless browser presses ⌘+K, ?, /, Esc and checks for a command palette or shortcut help overlay. Also enumerates accessKey attributes and aria-keyshortcuts to detect declared shortcuts. Heuristic: at least one global shortcut should be discoverable.",
   },
   {
     id: "minimalist-design",
@@ -120,6 +146,9 @@ export const heuristics: Heuristic[] = [
     auditQuestion:
       "Take any screen. Cover everything that isn't the primary action. Can the user still complete their task?",
     fix: "Practice the 'cover-it' test weekly. Anything that doesn't survive the test moves to a secondary surface (modal, drawer, tooltip, settings page) or gets deleted.",
+    checkability: "manual",
+    automationSpec:
+      "Resists automation. An LLM can rank visual density and flag screens with > N attention-grabbing elements, but 'is this minimalist?' is fundamentally a taste judgment that requires knowing the user's primary task — and primary tasks vary by user segment, not by URL.",
   },
   {
     id: "recognize-recover",
@@ -133,6 +162,9 @@ export const heuristics: Heuristic[] = [
     auditQuestion:
       "Does every error message in your product name the action that would resolve it?",
     fix: "Write errors as 'X happened because Y. Try Z.' If you can't write the Z, you need to redesign the flow until you can. Errors without a recovery path are just blame.",
+    checkability: "llm",
+    automationSpec:
+      "Trigger every error path (network failure, validation failure, 4xx, 5xx, edge inputs). Pipe the resulting error copy through an LLM that scores it on three axes: names what happened? names why? names what to do next? Anything that scores 2/3 or lower fails the heuristic.",
   },
   {
     id: "help-and-docs",
@@ -146,6 +178,9 @@ export const heuristics: Heuristic[] = [
     auditQuestion:
       "Where the user needs help, does the help appear inline (tooltip, contextual link), or do they have to leave the surface?",
     fix: "Replace 'See documentation' links with inline disclosure. A '?' icon next to a field that opens a one-paragraph explanation is worth more than a 4,000-word knowledge-base article behind a search bar.",
+    checkability: "script",
+    automationSpec:
+      "Crawl for elements with aria-describedby, title, [data-tooltip], or '?' icon patterns. Flag form fields with technical labels (UUID, ISIN, IBAN, etc.) that lack inline help. Flag any 'See documentation' links that lead off-domain.",
   },
   // ----- Extensions beyond Nielsen's 10 -----
   {
@@ -160,6 +195,9 @@ export const heuristics: Heuristic[] = [
     auditQuestion:
       "Does every AI claim in your product display its confidence level — and can the user check the basis?",
     fix: "Adopt a calibrated vocabulary: 'Confident', 'Likely', 'Unsure', 'Low'. Reserve raw percentages for power users who hover. Show the source citation or basis for every confident claim.",
+    checkability: "llm",
+    automationSpec:
+      "An LLM reads any AI-generated surface (chat response, suggestion, summary, prediction) and checks for: a confidence label, a source/basis the user can click to verify, and language calibrated to the confidence ('possibly' for low, 'likely' for medium). Generated prose without any of those signals fails.",
   },
   {
     id: "reversibility-as-policy",
@@ -173,5 +211,8 @@ export const heuristics: Heuristic[] = [
     auditQuestion:
       "Have you mapped every agentic action in your product to its recovery cost — and gated the high-cost ones with an approval surface?",
     fix: "Build a reversibility chip into your agent UX (Helm's pattern). For each action: cheap to undo → run autonomously; expensive to undo → present for human approval first. Make the recovery path part of the design, not an afterthought.",
+    checkability: "manual",
+    automationSpec:
+      "An LLM can list every agentic action surface in a product and propose a recovery-cost rating, but the actual judgment requires reading the system architecture (does undo restore the original state? at what blast radius?) and the user model (which users have authority to approve?). That's design review territory, not pattern detection.",
   },
 ]
