@@ -39,6 +39,9 @@ export type Planet = {
   moons: number
   fact?: string
   hasRings?: boolean
+  /** Optional equirectangular surface texture URL — when set, the planet
+   *  morphs from its abstract grey shade to the photographic globe on hover. */
+  textureUrl?: string
 }
 
 export type ScenePlanet = {

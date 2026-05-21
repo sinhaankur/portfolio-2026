@@ -64,6 +64,21 @@ under the SIL Open Font License 1.1, governed by their respective
 copyright holders. Their use here is permitted by those licenses; the
 typefaces themselves are not covered by the terms above.
 
+PLANETARY TEXTURES
+
+The equirectangular surface texture for Earth in
+`brutalist-void-portfolio-template/public/textures/earth.jpg` is derived
+from the NASA Blue Marble image collection (Visible Earth, image record
+57752, "Land — Shallow Topography"). NASA imagery is in the public
+domain and may be used without permission or fee.
+
+The equirectangular surface textures for Jupiter
+(`public/textures/jupiter.jpg`) and Saturn (`public/textures/saturn.jpg`)
+are © Solar System Scope (https://www.solarsystemscope.com/textures),
+licensed under the Creative Commons Attribution 4.0 International
+license (CC BY 4.0). Attribution is given here and is required of any
+downstream re-use of those specific files.
+
 NO WARRANTY
 
 This work is provided "as is", without warranty of any kind, express

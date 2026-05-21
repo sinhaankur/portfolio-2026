@@ -892,19 +892,62 @@ function Belt({
  * Planets + Sun + Orbit Rings
  * ============================================================ */
 
-function SaturnRings({ planetRadius, invert = false }: { planetRadius: number; invert?: boolean }) {
+function SaturnRings({
+  planetRadius,
+  invert = false,
+  highlighted = false,
+}: {
+  planetRadius: number
+  invert?: boolean
+  highlighted?: boolean
+}) {
   // Rings sit in Saturn's equatorial plane. The parent group applies the
   // 26.73° axial tilt, so rings inherit it naturally.
   const ringColor = invert ? "#1a1208" : "#ffffff"
+  const innerMatRef = useRef<import("three").MeshBasicMaterial>(null)
+  const outerMatRef = useRef<import("three").MeshBasicMaterial>(null)
+
+  const innerIdle = invert ? 0.55 : 0.35
+  const outerIdle = invert ? 0.42 : 0.28
+  const innerHover = invert ? 0.85 : 0.65
+  const outerHover = invert ? 0.7 : 0.55
+
+  // Lerp ring opacity toward the hover target each frame — rings become
+  // markedly more present when Saturn is hovered, signalling "this is the
+  // body you're inspecting" alongside the texture morph on the planet.
+  useFrame((_, delta) => {
+    const k = 1 - Math.exp(-delta * 8)
+    if (innerMatRef.current) {
+      const target = highlighted ? innerHover : innerIdle
+      innerMatRef.current.opacity += (target - innerMatRef.current.opacity) * k
+    }
+    if (outerMatRef.current) {
+      const target = highlighted ? outerHover : outerIdle
+      outerMatRef.current.opacity += (target - outerMatRef.current.opacity) * k
+    }
+  })
+
   return (
     <group rotation={[Math.PI / 2, 0, 0]}>
       <mesh>
         <ringGeometry args={[planetRadius * 1.45, planetRadius * 1.78, 96]} />
-        <meshBasicMaterial color={ringColor} transparent opacity={invert ? 0.55 : 0.35} side={DoubleSide} />
+        <meshBasicMaterial
+          ref={innerMatRef as React.Ref<import("three").MeshBasicMaterial>}
+          color={ringColor}
+          transparent
+          opacity={innerIdle}
+          side={DoubleSide}
+        />
       </mesh>
       <mesh>
         <ringGeometry args={[planetRadius * 1.85, planetRadius * 2.10, 96]} />
-        <meshBasicMaterial color={ringColor} transparent opacity={invert ? 0.42 : 0.28} side={DoubleSide} />
+        <meshBasicMaterial
+          ref={outerMatRef as React.Ref<import("three").MeshBasicMaterial>}
+          color={ringColor}
+          transparent
+          opacity={outerIdle}
+          side={DoubleSide}
+        />
       </mesh>
     </group>
   )
@@ -921,25 +964,27 @@ function PlanetBody({
 }) {
   const meshRef = useRef<Mesh>(null)
   const orbitRef = useRef<Group>(null)
-  const earthMeshRef = useRef<Mesh>(null)
-  const earthMatRef = useRef<import("three").MeshStandardMaterial>(null)
+  const texMeshRef = useRef<Mesh>(null)
+  const texMatRef = useRef<import("three").MeshStandardMaterial>(null)
   const [isHovered, setIsHovered] = useState(false)
-  const [earthTexture, setEarthTexture] = useState<Texture | null>(null)
+  const [texture, setTexture] = useState<Texture | null>(null)
 
-  const isEarth = planet.raw.name === "Earth"
+  const textureUrl = planet.raw.textureUrl
+  const hasTexture = Boolean(textureUrl)
 
-  // Lazy-load the NASA Blue Marble equirectangular texture on demand —
-  // only once Earth is hovered for the first time, so the asset (~100 KB)
-  // doesn't sit in the critical path for visitors who never explore.
+  // Lazy-load the planet's equirectangular surface texture on demand —
+  // only once the planet is hovered for the first time, so the assets
+  // (NASA Blue Marble for Earth, Solar System Scope CC BY for Jupiter +
+  // Saturn) never enter the critical path for visitors who don't explore.
   useEffect(() => {
-    if (!isEarth || !isHovered || earthTexture) return
+    if (!textureUrl || !isHovered || texture) return
     const loader = new TextureLoader()
-    loader.load("/textures/earth.jpg", (tex) => {
+    loader.load(textureUrl, (tex) => {
       tex.colorSpace = SRGBColorSpace
       tex.anisotropy = 4
-      setEarthTexture(tex)
+      setTexture(tex)
     })
-  }, [isEarth, isHovered, earthTexture])
+  }, [textureUrl, isHovered, texture])
 
   useEffect(() => {
     if (orbitRef.current) orbitRef.current.rotation.y = planet.raw.startPhase
@@ -950,25 +995,27 @@ function PlanetBody({
     if (orbitRef.current) orbitRef.current.rotation.y += delta * planet.orbitalSpeedRadPerSec * tw
     if (meshRef.current) meshRef.current.rotation.y += delta * planet.rotSpeedRadPerSec * tw
 
-    // Earth-only — the textured globe rotates in lockstep with the grey
-    // sphere and lerps its material opacity toward the hover target so the
-    // morph between abstract chart-marker and photographic globe is smooth.
-    if (isEarth && earthMeshRef.current) {
-      earthMeshRef.current.rotation.y += delta * planet.rotSpeedRadPerSec * tw
+    // Textured sphere rotates in lockstep with the grey one underneath so
+    // surface features (Earth's continents, Jupiter's bands, Saturn's
+    // stripes) drift naturally as time advances.
+    if (texMeshRef.current) {
+      texMeshRef.current.rotation.y += delta * planet.rotSpeedRadPerSec * tw
     }
-    if (isEarth && earthMatRef.current) {
+    // Lerp the textured material's opacity toward the hover target — the
+    // morph between abstract chart-marker and photographic globe stays smooth.
+    if (texMatRef.current) {
       const k = 1 - Math.exp(-delta * 8)
-      const target = isHovered && earthTexture ? 1 : 0
-      earthMatRef.current.opacity += (target - earthMatRef.current.opacity) * k
+      const target = isHovered && texture ? 1 : 0
+      texMatRef.current.opacity += (target - texMatRef.current.opacity) * k
     }
   })
 
   const hitRadius = Math.max(planet.visualRadius * 2.2, 0.18)
   const childMoons = moons.filter((m) => m.parent === planet.raw.name)
-  // Earth's moon (Luna) brightens + scales up while Earth is hovered. Other
-  // parents (Jupiter, Saturn, Neptune, Pluto) can pick up the same treatment
-  // later once the pattern proves itself.
-  const moonsHighlighted = isEarth && isHovered
+  // Whichever planet's hovered: its moons brighten + scale up. Earth's
+  // Luna, Jupiter's Galilean four, Saturn's Titan, Neptune's Triton,
+  // Pluto's Charon — all coordinated to the parent's hover state.
+  const moonsHighlighted = isHovered
 
   return (
     <group rotation={[planet.inclination, 0, 0]}>
@@ -986,17 +1033,18 @@ function PlanetBody({
               />
             </mesh>
 
-            {/* Earth-only: textured globe sphere stacked on top of the grey one.
-                Material opacity lerps in/out via useFrame so the swap reads as
-                a smooth morph from chart-marker to photographic Earth. The
-                textured sphere is slightly larger so it doesn't z-fight with
-                the grey one underneath at the same radius. */}
-            {isEarth && earthTexture && (
-              <mesh ref={earthMeshRef}>
+            {/* Textured-globe overlay — stacked on top of the grey sphere for
+                any planet with a textureUrl (Earth, Jupiter, Saturn). Material
+                opacity lerps in/out via useFrame so the swap reads as a smooth
+                morph from chart-marker to photographic globe. The textured
+                sphere is fractionally larger so it doesn't z-fight with the
+                grey one underneath. */}
+            {hasTexture && texture && (
+              <mesh ref={texMeshRef}>
                 <sphereGeometry args={[planet.visualRadius * 1.005, 64, 64]} />
                 <meshStandardMaterial
-                  ref={earthMatRef as React.Ref<import("three").MeshStandardMaterial>}
-                  map={earthTexture}
+                  ref={texMatRef as React.Ref<import("three").MeshStandardMaterial>}
+                  map={texture}
                   roughness={0.85}
                   metalness={0.0}
                   transparent
@@ -1009,11 +1057,11 @@ function PlanetBody({
             <mesh
               onPointerOver={(e) => {
                 e.stopPropagation()
-                if (isEarth) setIsHovered(true)
+                setIsHovered(true)
                 onHover(planetToInfo(planet.raw))
               }}
               onPointerOut={() => {
-                if (isEarth) setIsHovered(false)
+                setIsHovered(false)
                 onHover(null)
               }}
             >
@@ -1021,7 +1069,11 @@ function PlanetBody({
               <meshBasicMaterial transparent opacity={0} depthWrite={false} />
             </mesh>
             {planet.raw.hasRings && (
-              <SaturnRings planetRadius={planet.visualRadius} invert={invert} />
+              <SaturnRings
+                planetRadius={planet.visualRadius}
+                invert={invert}
+                highlighted={isHovered}
+              />
             )}
           </group>
 
