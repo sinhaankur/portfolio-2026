@@ -3,29 +3,31 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Light theme — warm off-white, deep ink foreground, warm red accent.
-   Pulled from the existing /upcoming preview palette so the two visual languages stay coherent. */
+/* Light theme — warm off-white "navigator's chart" feel.
+   Cards sit on a faintly warmer paper colour than the page so the page reads
+   as the surface and cards as objects on it. Borders shift to a soft warm
+   grey-rose rather than flat grey so the whole palette stays editorial. */
 :root {
   --background: oklch(0.97 0.005 95);          /* #f5f5f0 warm off-white */
   --foreground: oklch(0.15 0 0);               /* #0a0a0a deep ink */
-  --card: oklch(0.99 0.003 95);                /* near-white */
+  --card: oklch(0.985 0.004 88);               /* slightly warmer paper for cards */
   --card-foreground: oklch(0.15 0 0);
   --popover: oklch(0.99 0.003 95);
   --popover-foreground: oklch(0.15 0 0);
   --primary: oklch(0.15 0 0);
   --primary-foreground: oklch(0.99 0.003 95);
-  --secondary: oklch(0.92 0.005 95);
+  --secondary: oklch(0.93 0.006 80);            /* warmer than before */
   --secondary-foreground: oklch(0.15 0 0);
-  --muted: oklch(0.92 0.005 95);
-  --muted-foreground: oklch(0.42 0 0);         /* ~#737373 readable on warm bg */
+  --muted: oklch(0.93 0.006 80);
+  --muted-foreground: oklch(0.42 0 0);
   --muted-foreground-dim: oklch(0.55 0 0);
-  --accent: oklch(0.65 0.22 27);               /* warm red, ~#ff3b30 */
+  --accent: oklch(0.62 0.22 27);                /* slightly deeper warm red for contrast on paper */
   --accent-foreground: oklch(0.99 0.003 95);
   --destructive: oklch(0.55 0.22 27);
   --destructive-foreground: oklch(0.99 0.003 95);
-  --border: oklch(0.85 0.003 95);
-  --input: oklch(0.85 0.003 95);
-  --ring: oklch(0.65 0.22 27);
+  --border: oklch(0.86 0.01 60);                /* warm ink-on-paper hairline, not cold grey */
+  --input: oklch(0.86 0.01 60);
+  --ring: oklch(0.62 0.22 27);
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
@@ -130,9 +132,38 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Light mode — give the page a faint paper grain so the cream tokens
+     don't read as flat CSS. The texture is a low-octave SVG turbulence
+     blended low so it shows up on retina without crawling at viewport
+     scale on a 4K monitor. */
+  :where(:root:not(.dark)) body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.045;
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paper'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='2' stitchTiles='stitch' seed='4'/%3E%3CfeColorMatrix values='0 0 0 0 0.1 0 0 0 0 0.07 0 0 0 0 0.05 0 0 0 0.6 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paper)'/%3E%3C/svg%3E");
+    background-size: 320px 320px;
+  }
+
+  /* Fraunces — tune the variable axes per usage so display text picks up
+     the SOFT + WONK character that makes it editorial rather than generic.
+     Plain Inter inherits no variation. */
+  .font-display {
+    font-variation-settings: "opsz" 96, "SOFT" 80, "WONK" 1;
+  }
+  .font-display.italic,
+  .font-display em,
+  em.font-display {
+    /* Italic moments lean further into the soft, wonky cut. */
+    font-variation-settings: "opsz" 96, "SOFT" 100, "WONK" 1;
+  }
 }
 
-/* Noise texture overlay */
+/* Noise texture overlay (dark mode only — light mode uses the paper grain above) */
 .noise-overlay {
   position: fixed;
   top: 0;
@@ -144,6 +175,38 @@
   opacity: 0.03;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
 }
+:where(:root:not(.dark)) .noise-overlay {
+  /* The body::before paper grain replaces the dark-mode noise overlay in light mode. */
+  display: none;
+}
+
+/* Light-mode card refinement — a hairline outer stroke + a faint inner
+   highlight, so cards read as paper on paper, not as a stamped div. */
+:where(:root:not(.dark)) .bg-card,
+:where(:root:not(.dark)) [class*="bg-card"] {
+  box-shadow:
+    0 0 0 0.5px color-mix(in oklch, var(--foreground) 8%, transparent),
+    inset 0 1px 0 color-mix(in oklch, #ffffff 60%, transparent);
+}
+
+/* Section divider — ink rule with a chart-style tick mark for the eyebrow.
+   Apply with class="section-divider" anywhere a section break is desired. */
+.section-divider {
+  position: relative;
+  height: 1px;
+  background: color-mix(in oklch, var(--foreground) 18%, transparent);
+}
+.section-divider::before,
+.section-divider::after {
+  content: "";
+  position: absolute;
+  top: -3px;
+  width: 1px;
+  height: 7px;
+  background: color-mix(in oklch, var(--foreground) 24%, transparent);
+}
+.section-divider::before { left: 0; }
+.section-divider::after  { right: 0; }
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {

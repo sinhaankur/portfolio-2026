@@ -9,6 +9,7 @@ import { Footer } from "@/components/footer"
 import { CustomCursor } from "@/components/custom-cursor"
 import { UpcomingBadge } from "@/components/upcoming-badge"
 import { Container } from "@/components/container"
+import { ScrollProgress } from "@/components/case-study/scroll-progress"
 
 type CaseStudyLayoutProps = {
   eyebrow: string
@@ -46,6 +47,7 @@ export function CaseStudyLayout({
     <>
       <CustomCursor />
       <Navbar />
+      <ScrollProgress />
 
       <main id="main" className="pt-24 pb-24">
         <Container width="default">
