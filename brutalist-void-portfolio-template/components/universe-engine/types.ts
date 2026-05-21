@@ -18,6 +18,8 @@ export type BodyInfo = {
   radiusEarth?: number
   moons?: number
   fact?: string
+  /** True if the body responds to a click (e.g. Polaris resets the view). */
+  clickable?: boolean
 }
 
 export type HoverHandler = (info: BodyInfo | null) => void
@@ -51,7 +53,7 @@ export type ScenePlanet = {
 
 export type MoonData = {
   name: string
-  parent: "Earth" | "Jupiter" | "Saturn" | "Neptune"
+  parent: "Earth" | "Jupiter" | "Saturn" | "Neptune" | "Pluto"
   visualRadius: number
   orbitRadius: number
   periodDays: number
