@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <title>Emoji Snake — Simple Games</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#f5f5f0">
+  <link rel="icon" href="../img/logo.png">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link href="css/retro.css" rel="stylesheet">
+  <style>
+    html, body { margin: 0; min-height: 100dvh; overflow-x: hidden; }
+    body {
+      display: flex; flex-direction: column; align-items: center; gap: 0.75rem;
+      padding:
+        max(0.75rem, env(safe-area-inset-top))
+        max(0.75rem, env(safe-area-inset-right))
+        max(0.75rem, env(safe-area-inset-bottom))
+        max(0.75rem, env(safe-area-inset-left));
+    }
+    .game-topbar {
+      width: min(100%, 720px);
+      display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+    }
+    .back-link {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      font-family: "Space Mono", monospace; font-size: 0.75rem;
+      letter-spacing: 0.15em; text-transform: uppercase;
+      color: hsl(var(--foreground)); text-decoration: none;
+      padding: 0.5rem 0.8rem; min-height: 40px;
+      border: 2px solid hsl(var(--border));
+      background: hsl(var(--card));
+      box-shadow: 3px 3px 0 hsl(var(--border));
+    }
+    .back-link:active { transform: translate(2px, 2px); box-shadow: none; }
+    .game-container {
+      background: hsl(var(--card));
+      color: hsl(var(--card-foreground));
+      border: 3px solid hsl(var(--border));
+      box-shadow: var(--shadow-lg);
+      padding: clamp(0.75rem, 2vw, 1.5rem);
+      display: flex; flex-direction: column; align-items: center;
+      gap: clamp(0.6rem, 1.5vw, 1rem);
+      width: min(100%, 560px);
+    }
+    .game-container h1 {
+      font-family: "DM Sans", sans-serif; font-weight: 700;
+      font-size: clamp(1.25rem, 4vw, 1.875rem);
+      letter-spacing: -0.02em; margin: 0; text-transform: uppercase;
+    }
+    .stats-row {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; width: 100%;
+    }
+    .stat {
+      border: 2px solid hsl(var(--border)); background: hsl(var(--card));
+      padding: 0.4rem 0.5rem; text-align: center;
+      box-shadow: 3px 3px 0 hsl(var(--border));
+    }
+    .stat label {
+      display: block; font-family: "Space Mono", monospace; font-size: 0.6rem;
+      letter-spacing: 0.15em; text-transform: uppercase; opacity: 0.7;
+    }
+    .stat span {
+      display: block; font-family: "Space Mono", monospace;
+      font-size: clamp(0.95rem, 2.4vw, 1.3rem); font-weight: 700; margin-top: 0.15rem;
+    }
+    canvas#game {
+      width: min(100%, 480px); height: auto; aspect-ratio: 1 / 1;
+      background: hsl(var(--card)); border: 3px solid hsl(var(--border));
+      box-shadow: var(--shadow); touch-action: none; image-rendering: pixelated;
+      display: block;
+    }
+    .game-container .retro-btn { width: 100%; }
+    .controls {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(2, auto);
+      gap: 0.4rem; width: 100%;
+    }
+    .controls .ctrl {
+      min-height: 52px; font-size: 1.15rem; font-weight: 700;
+      padding: 0.5rem 0.3rem; touch-action: manipulation;
+    }
+    .controls .ctrl-empty { visibility: hidden; }
+    @media (pointer: fine) {
+      .controls { display: none; }
+      .controls.show { display: grid; }
+    }
+    .controls-toggle {
+      font-family: "Space Mono", monospace; font-size: 0.65rem;
+      letter-spacing: 0.18em; text-transform: uppercase;
+      background: none; border: 0; color: hsl(var(--foreground));
+      opacity: 0.6; cursor: pointer; padding: 0.25rem 0;
+    }
+    .controls-toggle:hover { opacity: 1; }
+    @media (pointer: coarse) { .controls-toggle { display: none; } }
+    .message-box {
+      position: fixed; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: hsl(var(--card)); color: hsl(var(--card-foreground));
+      border: 3px solid hsl(var(--border)); box-shadow: var(--shadow-lg);
+      padding: 1.75rem; text-align: center; z-index: 100; display: none;
+      max-width: min(90%, 420px); width: 100%; font-family: "DM Sans", sans-serif;
+    }
+    .message-box h2 { margin: 0 0 0.5rem 0; font-size: 1.5rem; letter-spacing: -0.02em; }
+    .message-box p { margin: 0 0 1.25rem 0; font-size: 1.1rem; line-height: 1.4; }
+    .message-box .stat-list {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;
+      margin: 0 0 1.25rem; text-align: left;
+    }
+    .message-box .retro-btn { width: 100%; }
+  </style>
+</head>
+<body>
+  <header class="game-topbar">
+    <a href="Gamelist.html" class="back-link">← Games</a>
+    <button id="themeToggle" class="retro-icon-btn" title="Toggle Dark/Light Mode" aria-label="Toggle theme">🌙</button>
+  </header>
+
+  <div class="game-container">
+    <h1>Emoji Snake</h1>
+    <div class="stats-row">
+      <div class="stat"><label>Score</label><span id="score">0</span></div>
+      <div class="stat"><label>Length</label><span id="lengthEl">3</span></div>
+      <div class="stat"><label>High</label><span id="high">0</span></div>
+    </div>
+    <canvas id="game" width="480" height="480"></canvas>
+    <button id="startButton" class="retro-btn retro-btn--primary">Start Game</button>
+    <button id="controlsToggle" class="controls-toggle" type="button">Show on-screen controls</button>
+
+    <div class="controls" id="controls" aria-label="On-screen controls">
+      <div class="ctrl-empty"></div>
+      <button class="retro-btn ctrl" id="upBtn" aria-label="Up">▲</button>
+      <div class="ctrl-empty"></div>
+      <button class="retro-btn ctrl" id="leftBtn" aria-label="Left">◀</button>
+      <button class="retro-btn ctrl" id="downBtn" aria-label="Down">▼</button>
+      <button class="retro-btn ctrl" id="rightBtn" aria-label="Right">▶</button>
+    </div>
+  </div>
+
+  <div id="messageBox" class="message-box">
+    <h2 id="messageTitle">Game Over</h2>
+    <p id="messageText"></p>
+    <div class="stat-list">
+      <div class="stat"><label>Score</label><span id="finalScore">0</span></div>
+      <div class="stat"><label>Length</label><span id="finalLength">3</span></div>
+    </div>
+    <button id="restartButton" class="retro-btn retro-btn--primary">Play again</button>
+  </div>
+
+<script>
+/* ================================================================
+   EMOJI SNAKE — Simple Games
+   ----------------------------------------------------------------
+   20x20 grid. Snake starts at length 3 in the middle, food spawns
+   at a random empty cell. Eat food → +1 length, +10 × level points.
+   Speed increases gradually with score (level = floor(score/100) + 1).
+   ================================================================ */
+const COLS = 20;
+const ROWS = 20;
+const FOOD_EMOJIS = ['🍎','🍓','🍒','🍇','🍌','🥝','🍑','🍍','🍋','🥭'];
+const SNAKE_HEAD = '😀';
+const SNAKE_BODY = '🟢';
+
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const scoreEl = document.getElementById('score');
+const lengthEl = document.getElementById('lengthEl');
+const highEl = document.getElementById('high');
+const startButton = document.getElementById('startButton');
+const restartButton = document.getElementById('restartButton');
+const messageBox = document.getElementById('messageBox');
+const messageTitle = document.getElementById('messageTitle');
+const messageText = document.getElementById('messageText');
+const finalScore = document.getElementById('finalScore');
+const finalLength = document.getElementById('finalLength');
+const controlsEl = document.getElementById('controls');
+const controlsToggle = document.getElementById('controlsToggle');
+
+let snake = [];
+let dir = { x: 1, y: 0 };
+let queuedDir = null;
+let food = null;
+let foodEmoji = '🍎';
+let score = 0;
+let highScore = Number(localStorage.getItem('emojiSnakeHigh') || 0);
+let running = false;
+let gameOver = false;
+let lastStepTime = 0;
+let stepInterval = 140;
+let rAF = null;
+
+function cellPx() { return canvas.width / COLS; }
+
+function initTheme() {
+  const saved = localStorage.getItem('emojiSnakeTheme') || 'light';
+  setTheme(saved);
+  document.getElementById('themeToggle').addEventListener('click', () => {
+    setTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+  });
+}
+function setTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  document.documentElement.style.colorScheme = t;
+  localStorage.setItem('emojiSnakeTheme', t);
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', t === 'dark' ? '#0a0a0a' : '#f5f5f0');
+  const btn = document.getElementById('themeToggle');
+  btn.textContent = t === 'dark' ? '☀️' : '🌙';
+}
+
+function placeFood() {
+  const occupied = new Set(snake.map(s => `${s.x},${s.y}`));
+  const empties = [];
+  for (let y = 0; y < ROWS; y++) {
+    for (let x = 0; x < COLS; x++) {
+      if (!occupied.has(`${x},${y}`)) empties.push({ x, y });
+    }
+  }
+  if (empties.length === 0) {
+    // Board filled — win.
+    return finishGame('You filled the board!');
+  }
+  food = empties[Math.floor(Math.random() * empties.length)];
+  foodEmoji = FOOD_EMOJIS[Math.floor(Math.random() * FOOD_EMOJIS.length)];
+}
+
+function updateHud() {
+  scoreEl.textContent = score;
+  lengthEl.textContent = snake.length;
+  highEl.textContent = highScore;
+}
+
+function draw() {
+  const px = cellPx();
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Faint grid for retro feel
+  ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+  ctx.lineWidth = 1;
+  for (let i = 1; i < COLS; i++) {
+    ctx.beginPath(); ctx.moveTo(i * px, 0); ctx.lineTo(i * px, canvas.height); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, i * px); ctx.lineTo(canvas.width, i * px); ctx.stroke();
+  }
+
+  if (food) {
+    ctx.font = `${px * 0.85}px Arial`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(foodEmoji, food.x * px + px / 2, food.y * px + px / 2);
+  }
+
+  snake.forEach((seg, i) => {
+    ctx.font = `${px * 0.85}px Arial`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(i === 0 ? SNAKE_HEAD : SNAKE_BODY, seg.x * px + px / 2, seg.y * px + px / 2);
+  });
+}
+
+function step() {
+  if (queuedDir) { dir = queuedDir; queuedDir = null; }
+  const head = snake[0];
+  const next = { x: head.x + dir.x, y: head.y + dir.y };
+
+  // Wall collision
+  if (next.x < 0 || next.x >= COLS || next.y < 0 || next.y >= ROWS) {
+    return finishGame('Hit a wall.');
+  }
+  // Self collision (allow the tail tip since it moves away)
+  for (let i = 0; i < snake.length - 1; i++) {
+    if (snake[i].x === next.x && snake[i].y === next.y) {
+      return finishGame('Bit yourself.');
+    }
+  }
+  snake.unshift(next);
+  if (food && next.x === food.x && next.y === food.y) {
+    const level = Math.floor(score / 100) + 1;
+    score += 10 * level;
+    // Speed increases gently: 4 ms faster per food eaten, floor at 55 ms.
+    stepInterval = Math.max(55, stepInterval - 4);
+    placeFood();
+    updateHud();
+  } else {
+    snake.pop();
+  }
+}
+
+function finishGame(reason) {
+  running = false;
+  gameOver = true;
+  cancelAnimationFrame(rAF);
+  rAF = null;
+  if (score > highScore) {
+    highScore = score;
+    localStorage.setItem('emojiSnakeHigh', String(highScore));
+  }
+  finalScore.textContent = score;
+  finalLength.textContent = snake.length;
+  messageTitle.textContent = score === highScore && score > 0 ? 'New high score!' : 'Game over';
+  messageText.textContent = reason;
+  messageBox.style.display = 'block';
+  startButton.style.display = 'block';
+  startButton.textContent = 'Play again';
+  draw();
+  updateHud();
+}
+
+function loop(time) {
+  rAF = requestAnimationFrame(loop);
+  if (!running) return;
+  if (time - lastStepTime < stepInterval) return;
+  lastStepTime = time;
+  step();
+  draw();
+}
+
+function startGame() {
+  snake = [
+    { x: Math.floor(COLS / 2),     y: Math.floor(ROWS / 2) },
+    { x: Math.floor(COLS / 2) - 1, y: Math.floor(ROWS / 2) },
+    { x: Math.floor(COLS / 2) - 2, y: Math.floor(ROWS / 2) },
+  ];
+  dir = { x: 1, y: 0 };
+  queuedDir = null;
+  score = 0;
+  stepInterval = 140;
+  placeFood();
+  updateHud();
+  running = true;
+  gameOver = false;
+  messageBox.style.display = 'none';
+  startButton.style.display = 'none';
+  lastStepTime = performance.now();
+  if (rAF) cancelAnimationFrame(rAF);
+  rAF = requestAnimationFrame(loop);
+}
+
+function trySetDir(nx, ny) {
+  // Block 180° turns into the snake's own body.
+  if (dir.x === -nx && dir.y === -ny && snake.length > 1) return;
+  queuedDir = { x: nx, y: ny };
+}
+
+document.addEventListener('keydown', (e) => {
+  switch (e.key) {
+    case 'ArrowUp':    case 'w': case 'W': trySetDir(0, -1); e.preventDefault(); break;
+    case 'ArrowDown':  case 's': case 'S': trySetDir(0, 1);  e.preventDefault(); break;
+    case 'ArrowLeft':  case 'a': case 'A': trySetDir(-1, 0); e.preventDefault(); break;
+    case 'ArrowRight': case 'd': case 'D': trySetDir(1, 0);  e.preventDefault(); break;
+  }
+});
+
+// Touch — swipe on canvas
+let tx = null, ty = null;
+canvas.addEventListener('touchstart', (e) => {
+  if (e.touches.length > 1) return;
+  tx = e.touches[0].clientX; ty = e.touches[0].clientY;
+}, { passive: true });
+canvas.addEventListener('touchend', (e) => {
+  if (tx === null) return;
+  const t = e.changedTouches[0];
+  const dx = t.clientX - tx, dy = t.clientY - ty;
+  tx = ty = null;
+  if (Math.abs(dx) < 18 && Math.abs(dy) < 18) return;
+  if (Math.abs(dx) > Math.abs(dy)) trySetDir(dx > 0 ? 1 : -1, 0);
+  else trySetDir(0, dy > 0 ? 1 : -1);
+}, { passive: true });
+
+function bindButton(id, fn) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener('click', (e) => { e.preventDefault(); fn(); });
+  el.addEventListener('touchstart', (e) => { e.preventDefault(); fn(); }, { passive: false });
+}
+bindButton('upBtn',    () => trySetDir(0, -1));
+bindButton('downBtn',  () => trySetDir(0, 1));
+bindButton('leftBtn',  () => trySetDir(-1, 0));
+bindButton('rightBtn', () => trySetDir(1, 0));
+
+controlsToggle.addEventListener('click', () => {
+  controlsEl.classList.toggle('show');
+  controlsToggle.textContent = controlsEl.classList.contains('show')
+    ? 'Hide on-screen controls'
+    : 'Show on-screen controls';
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && running) {
+    running = false;
+    cancelAnimationFrame(rAF);
+    rAF = null;
+  }
+});
+
+startButton.addEventListener('click', startGame);
+restartButton.addEventListener('click', startGame);
+
+// Boot
+snake = [
+  { x: 10, y: 10 }, { x: 9, y: 10 }, { x: 8, y: 10 },
+];
+placeFood();
+initTheme();
+updateHud();
+draw();
+</script>
+</body>
+</html>

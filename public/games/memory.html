@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <title>Emoji Memory — Simple Games</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#f5f5f0">
+  <link rel="icon" href="../img/logo.png">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link href="css/retro.css" rel="stylesheet">
+  <style>
+    html, body { margin: 0; min-height: 100dvh; overflow-x: hidden; }
+    body {
+      display: flex; flex-direction: column; align-items: center; gap: 0.75rem;
+      padding:
+        max(0.75rem, env(safe-area-inset-top))
+        max(0.75rem, env(safe-area-inset-right))
+        max(0.75rem, env(safe-area-inset-bottom))
+        max(0.75rem, env(safe-area-inset-left));
+    }
+    .game-topbar {
+      width: min(100%, 720px);
+      display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+    }
+    .back-link {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      font-family: "Space Mono", monospace; font-size: 0.75rem;
+      letter-spacing: 0.15em; text-transform: uppercase;
+      color: hsl(var(--foreground)); text-decoration: none;
+      padding: 0.5rem 0.8rem; min-height: 40px;
+      border: 2px solid hsl(var(--border));
+      background: hsl(var(--card));
+      box-shadow: 3px 3px 0 hsl(var(--border));
+    }
+    .back-link:active { transform: translate(2px, 2px); box-shadow: none; }
+    .game-container {
+      background: hsl(var(--card));
+      color: hsl(var(--card-foreground));
+      border: 3px solid hsl(var(--border));
+      box-shadow: var(--shadow-lg);
+      padding: clamp(0.75rem, 2vw, 1.5rem);
+      display: flex; flex-direction: column; align-items: center;
+      gap: clamp(0.6rem, 1.5vw, 1rem);
+      width: min(100%, 560px);
+    }
+    .game-container h1 {
+      font-family: "DM Sans", sans-serif; font-weight: 700;
+      font-size: clamp(1.25rem, 4vw, 1.875rem);
+      letter-spacing: -0.02em; margin: 0; text-transform: uppercase;
+    }
+    .stats-row {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.4rem; width: 100%;
+    }
+    .stat {
+      border: 2px solid hsl(var(--border)); background: hsl(var(--card));
+      padding: 0.4rem 0.5rem; text-align: center;
+      box-shadow: 3px 3px 0 hsl(var(--border));
+    }
+    .stat label {
+      display: block; font-family: "Space Mono", monospace; font-size: 0.55rem;
+      letter-spacing: 0.15em; text-transform: uppercase; opacity: 0.7;
+    }
+    .stat span {
+      display: block; font-family: "Space Mono", monospace;
+      font-size: clamp(0.9rem, 2.2vw, 1.2rem); font-weight: 700; margin-top: 0.15rem;
+    }
+    .difficulty {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.4rem; width: 100%;
+    }
+    .difficulty .difficulty-btn {
+      min-height: 44px; font-size: 0.85rem; font-weight: 700;
+      letter-spacing: 0.08em; text-transform: uppercase;
+    }
+    .difficulty .difficulty-btn[aria-pressed="true"] {
+      background: hsl(var(--primary, 0 0% 10%));
+      color: hsl(var(--primary-foreground, 0 0% 100%));
+    }
+    .board {
+      display: grid; gap: 0.5rem; width: 100%;
+      perspective: 1000px;
+    }
+    .card {
+      position: relative; aspect-ratio: 1 / 1;
+      cursor: pointer;
+      transform-style: preserve-3d;
+      transition: transform 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+    .card.flipped, .card.matched { transform: rotateY(180deg); }
+    .card.matched { cursor: default; }
+    .card-face {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      border: 3px solid hsl(var(--border));
+      box-shadow: 3px 3px 0 hsl(var(--border));
+      background: hsl(var(--card));
+      font-family: "DM Sans", sans-serif;
+      font-weight: 700; font-size: clamp(1.5rem, 6vw, 2.5rem);
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+    }
+    .card-face.back {
+      transform: rotateY(180deg);
+      background: hsl(var(--card));
+    }
+    .card-face.front {
+      background: var(--accent-color, hsl(var(--primary, 0 0% 10%)));
+      color: hsl(var(--primary-foreground, 0 0% 100%));
+      font-family: "Space Mono", monospace;
+      font-size: clamp(1.2rem, 4vw, 1.8rem);
+      letter-spacing: 0.1em;
+    }
+    .card.matched .card-face.back {
+      opacity: 0.35;
+      transition: opacity 0.2s 0.2s;
+    }
+    .game-container .retro-btn { width: 100%; }
+    .message-box {
+      position: fixed; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: hsl(var(--card)); color: hsl(var(--card-foreground));
+      border: 3px solid hsl(var(--border)); box-shadow: var(--shadow-lg);
+      padding: 1.75rem; text-align: center; z-index: 100; display: none;
+      max-width: min(90%, 420px); width: 100%; font-family: "DM Sans", sans-serif;
+    }
+    .message-box h2 { margin: 0 0 0.5rem 0; font-size: 1.5rem; }
+    .message-box p { margin: 0 0 1.25rem 0; font-size: 1.1rem; line-height: 1.4; }
+    .message-box .stat-list {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;
+      margin: 0 0 1.25rem; text-align: left;
+    }
+    .message-box .retro-btn { width: 100%; }
+  </style>
+</head>
+<body>
+  <header class="game-topbar">
+    <a href="Gamelist.html" class="back-link">← Games</a>
+    <button id="themeToggle" class="retro-icon-btn" title="Toggle Dark/Light Mode" aria-label="Toggle theme">🌙</button>
+  </header>
+
+  <div class="game-container">
+    <h1>Emoji Memory</h1>
+
+    <div class="difficulty" role="tablist" aria-label="Difficulty">
+      <button class="retro-btn difficulty-btn" data-diff="easy"   aria-pressed="true">Easy · 4×3</button>
+      <button class="retro-btn difficulty-btn" data-diff="medium" aria-pressed="false">Medium · 4×4</button>
+      <button class="retro-btn difficulty-btn" data-diff="hard"   aria-pressed="false">Hard · 6×4</button>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat"><label>Moves</label><span id="moves">0</span></div>
+      <div class="stat"><label>Pairs</label><span id="pairs">0</span></div>
+      <div class="stat"><label>Time</label><span id="time">0:00</span></div>
+      <div class="stat"><label>Best</label><span id="best">—</span></div>
+    </div>
+
+    <div id="board" class="board" aria-label="Card board"></div>
+
+    <button id="startButton" class="retro-btn retro-btn--primary">New game</button>
+  </div>
+
+  <div id="messageBox" class="message-box">
+    <h2 id="messageTitle">All matched!</h2>
+    <p id="messageText"></p>
+    <div class="stat-list">
+      <div class="stat"><label>Moves</label><span id="finalMoves">0</span></div>
+      <div class="stat"><label>Time</label><span id="finalTime">0:00</span></div>
+    </div>
+    <button id="restartButton" class="retro-btn retro-btn--primary">Play again</button>
+  </div>
+
+<script>
+/* ================================================================
+   EMOJI MEMORY — Simple Games
+   ----------------------------------------------------------------
+   Match the pairs. Three difficulties (4×3 / 4×4 / 6×4). Tracks
+   moves + elapsed time; best (lowest moves + fastest tie-break)
+   per difficulty is stored in localStorage.
+   ================================================================ */
+const EMOJI_POOL = [
+  '🦊','🐯','🐻','🐼','🐨','🐶','🦁','🐸','🦄','🐙',
+  '🦋','🐝','🐌','🐳','🦖','🦉','🦩','🦚','🐉','🐢',
+];
+
+const DIFFICULTIES = {
+  easy:   { cols: 4, rows: 3 },  // 12 cards = 6 pairs
+  medium: { cols: 4, rows: 4 },  // 16 cards = 8 pairs
+  hard:   { cols: 6, rows: 4 },  // 24 cards = 12 pairs
+};
+
+const boardEl = document.getElementById('board');
+const movesEl = document.getElementById('moves');
+const pairsEl = document.getElementById('pairs');
+const timeEl  = document.getElementById('time');
+const bestEl  = document.getElementById('best');
+const startButton = document.getElementById('startButton');
+const restartButton = document.getElementById('restartButton');
+const messageBox = document.getElementById('messageBox');
+const messageText = document.getElementById('messageText');
+const finalMoves = document.getElementById('finalMoves');
+const finalTime  = document.getElementById('finalTime');
+
+let cards = [];
+let selected = [];
+let lock = false;
+let moves = 0;
+let matched = 0;
+let totalPairs = 0;
+let difficulty = 'easy';
+let startedAt = 0;
+let elapsedMs = 0;
+let timerRAF = null;
+let won = false;
+
+function initTheme() {
+  const saved = localStorage.getItem('emojiMemoryTheme') || 'light';
+  setTheme(saved);
+  document.getElementById('themeToggle').addEventListener('click', () => {
+    setTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+  });
+}
+function setTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  document.documentElement.style.colorScheme = t;
+  localStorage.setItem('emojiMemoryTheme', t);
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', t === 'dark' ? '#0a0a0a' : '#f5f5f0');
+  const btn = document.getElementById('themeToggle');
+  btn.textContent = t === 'dark' ? '☀️' : '🌙';
+}
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function formatTime(ms) {
+  const total = Math.floor(ms / 1000);
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+function bestKey() { return `emojiMemoryBest:${difficulty}`; }
+function loadBest() {
+  try {
+    const raw = localStorage.getItem(bestKey());
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+function saveBest(rec) {
+  try { localStorage.setItem(bestKey(), JSON.stringify(rec)); } catch {}
+}
+function updateBestDisplay() {
+  const best = loadBest();
+  bestEl.textContent = best ? `${best.moves}m ${formatTime(best.timeMs)}` : '—';
+}
+
+function buildBoard() {
+  const { cols, rows } = DIFFICULTIES[difficulty];
+  const pairCount = (cols * rows) / 2;
+  totalPairs = pairCount;
+  const pool = shuffle(EMOJI_POOL).slice(0, pairCount);
+  const deck = shuffle([...pool, ...pool]);
+
+  cards = deck.map((emoji, idx) => ({ id: idx, emoji, matched: false, flipped: false }));
+  selected = [];
+  lock = false;
+  moves = 0;
+  matched = 0;
+  won = false;
+  elapsedMs = 0;
+  startedAt = 0;
+  movesEl.textContent = '0';
+  pairsEl.textContent = `0 / ${pairCount}`;
+  timeEl.textContent = '0:00';
+
+  boardEl.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+  boardEl.innerHTML = '';
+
+  cards.forEach((card) => {
+    const el = document.createElement('button');
+    el.type = 'button';
+    el.className = 'card';
+    el.setAttribute('aria-label', 'Hidden card');
+    el.dataset.id = card.id;
+    el.innerHTML = `
+      <span class="card-face back">${card.emoji}</span>
+      <span class="card-face front">?</span>
+    `;
+    el.addEventListener('click', () => onCardClick(card, el));
+    boardEl.appendChild(el);
+  });
+
+  updateBestDisplay();
+}
+
+function onCardClick(card, el) {
+  if (lock || card.flipped || card.matched) return;
+  if (!startedAt) startTimer();
+
+  card.flipped = true;
+  el.classList.add('flipped');
+  selected.push({ card, el });
+
+  if (selected.length === 2) {
+    moves++;
+    movesEl.textContent = moves;
+    const [a, b] = selected;
+    if (a.card.emoji === b.card.emoji) {
+      a.card.matched = b.card.matched = true;
+      a.el.classList.add('matched');
+      b.el.classList.add('matched');
+      selected = [];
+      matched++;
+      pairsEl.textContent = `${matched} / ${totalPairs}`;
+      if (matched === totalPairs) finish();
+    } else {
+      lock = true;
+      setTimeout(() => {
+        a.card.flipped = b.card.flipped = false;
+        a.el.classList.remove('flipped');
+        b.el.classList.remove('flipped');
+        selected = [];
+        lock = false;
+      }, 700);
+    }
+  }
+}
+
+function startTimer() {
+  startedAt = performance.now();
+  const tick = (t) => {
+    if (won) return;
+    elapsedMs = t - startedAt;
+    timeEl.textContent = formatTime(elapsedMs);
+    timerRAF = requestAnimationFrame(tick);
+  };
+  timerRAF = requestAnimationFrame(tick);
+}
+
+function finish() {
+  won = true;
+  if (timerRAF) cancelAnimationFrame(timerRAF);
+  const best = loadBest();
+  const rec = { moves, timeMs: Math.floor(elapsedMs) };
+  const isBest = !best || rec.moves < best.moves || (rec.moves === best.moves && rec.timeMs < best.timeMs);
+  if (isBest) saveBest(rec);
+  finalMoves.textContent = moves;
+  finalTime.textContent = formatTime(elapsedMs);
+  document.getElementById('messageTitle').textContent =
+    isBest ? 'New personal best!' : 'All matched!';
+  messageText.textContent = isBest
+    ? `Cleared the ${difficulty} board in ${moves} moves.`
+    : `Cleared the ${difficulty} board.`;
+  messageBox.style.display = 'block';
+  updateBestDisplay();
+}
+
+function setDifficulty(diff) {
+  difficulty = diff;
+  document.querySelectorAll('.difficulty-btn').forEach((b) => {
+    b.setAttribute('aria-pressed', String(b.dataset.diff === diff));
+  });
+  if (timerRAF) cancelAnimationFrame(timerRAF);
+  buildBoard();
+  messageBox.style.display = 'none';
+}
+
+document.querySelectorAll('.difficulty-btn').forEach((b) => {
+  b.addEventListener('click', () => setDifficulty(b.dataset.diff));
+});
+
+startButton.addEventListener('click', () => {
+  if (timerRAF) cancelAnimationFrame(timerRAF);
+  buildBoard();
+  messageBox.style.display = 'none';
+});
+restartButton.addEventListener('click', () => {
+  if (timerRAF) cancelAnimationFrame(timerRAF);
+  buildBoard();
+  messageBox.style.display = 'none';
+});
+
+// Boot
+initTheme();
+setDifficulty('easy');
+</script>
+</body>
+</html>

@@ -2,7 +2,8 @@
 <html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#f5f5f0">
     <title>Simple Games — Ankur Sinha</title>
     <link rel="icon" href="../img/logo.png">
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -24,13 +25,26 @@
       html.js-animate #themeToggle {
         opacity: 0;
       }
+      .retro-topbar-inner { gap: 0.75rem; }
+      .retro-topbar-back {
+        display: inline-flex; align-items: center; gap: 0.4rem;
+        font-family: "Space Mono", monospace; font-size: 0.7rem;
+        letter-spacing: 0.18em; text-transform: uppercase;
+        color: hsl(var(--foreground)); text-decoration: none;
+        padding: 0.45rem 0.7rem; min-height: 40px;
+        border: 2px solid hsl(var(--border)); background: hsl(var(--card));
+        box-shadow: 3px 3px 0 hsl(var(--border));
+        margin-right: 0.5rem;
+      }
+      .retro-topbar-back:active { transform: translate(2px, 2px); box-shadow: none; }
     </style>
 </head>
 <body>
     <div class="retro-shell">
         <header class="retro-topbar">
             <div class="retro-container retro-topbar-inner">
-                <a href="../index.html" class="retro-brand">
+                <a href="../" class="retro-topbar-back" aria-label="Back to sinhaankur.com">← sinhaankur.com</a>
+                <a href="Gamelist.html" class="retro-brand">
                     <img src="games-logo.svg" alt="">
                     <span>Simple Games</span>
                 </a>
@@ -44,7 +58,7 @@
             <div class="retro-container">
                 <span class="retro-eyebrow">Arcade · Built by Ankur</span>
                 <h1 style="margin-top: 1rem;">Tiny games,<br>big chunky shadows.</h1>
-                <p>A small collection of browser games stitched together for fun. Pick one, play it, refresh for another go. New entries land here as I build them.</p>
+                <p>A small collection of browser games stitched together for fun. Plays on phone, tablet, laptop, anything with a screen. Pick one, play it, refresh for another go.</p>
             </div>
         </section>
 
@@ -55,18 +69,48 @@
                     <div class="retro-card-body">
                         <div class="retro-card-meta">
                             <span class="retro-tag">Puzzle</span>
-                            <span class="retro-tag">Keyboard</span>
+                            <span class="retro-tag">Keyboard + Touch</span>
                         </div>
                         <h2 class="retro-card-title">Emoji Tetris</h2>
-                        <p class="retro-card-desc">The block-stacking classic, reskinned with emoji blocks. Stack, rotate, clear lines, chase a high score.</p>
+                        <p class="retro-card-desc">The block-stacking classic with ghost piece, next-piece preview, hold slot, combo bonuses, and a gentle level-based speed curve. High score persists.</p>
                         <div>
                             <a href="emojittetris.html" class="retro-btn retro-btn--primary">Play now →</a>
                         </div>
                     </div>
                 </article>
 
+                <article class="retro-card">
+                    <div class="retro-card-media retro-card-media--accent" aria-hidden="true">😀🍎🟢</div>
+                    <div class="retro-card-body">
+                        <div class="retro-card-meta">
+                            <span class="retro-tag">Arcade</span>
+                            <span class="retro-tag">Keyboard + Touch</span>
+                        </div>
+                        <h2 class="retro-card-title">Emoji Snake</h2>
+                        <p class="retro-card-desc">Eat the fruit, grow longer, don't bite your own tail. Speed creeps up gradually as you score. Swipe on phones, arrow keys on desktop.</p>
+                        <div>
+                            <a href="snake.html" class="retro-btn retro-btn--primary">Play now →</a>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="retro-card">
+                    <div class="retro-card-media retro-card-media--secondary" aria-hidden="true">🦊🐯🐻</div>
+                    <div class="retro-card-body">
+                        <div class="retro-card-meta">
+                            <span class="retro-tag">Memory</span>
+                            <span class="retro-tag">Tap or click</span>
+                        </div>
+                        <h2 class="retro-card-title">Emoji Memory</h2>
+                        <p class="retro-card-desc">Flip cards, match the pairs. Three difficulties from 4×3 to 6×4. Tracks moves and time, remembers your personal best per board.</p>
+                        <div>
+                            <a href="memory.html" class="retro-btn retro-btn--primary">Play now →</a>
+                        </div>
+                    </div>
+                </article>
+
                 <article class="retro-card retro-card--disabled" aria-label="Coming soon game slot">
-                    <div class="retro-card-media retro-card-media--accent" aria-hidden="true">🎯</div>
+                    <div class="retro-card-media" aria-hidden="true">🎯</div>
                     <div class="retro-card-body">
                         <div class="retro-card-meta">
                             <span class="retro-tag">Coming soon</span>
@@ -83,7 +127,7 @@
 
         <footer class="retro-footer">
             <div class="retro-container">
-                <span class="retro-mono">© 2025 SIMPLE GAMES · ANKUR SINHA</span>
+                <span class="retro-mono">© 2026 SIMPLE GAMES · ANKUR SINHA</span>
             </div>
         </footer>
     </div>
@@ -98,6 +142,8 @@
                 root.setAttribute('data-theme', theme);
                 if (icon) icon.textContent = theme === 'dark' ? '☀' : '☾';
                 try { localStorage.setItem('games-theme', theme); } catch (e) {}
+                var meta = document.querySelector('meta[name="theme-color"]');
+                if (meta) meta.setAttribute('content', theme === 'dark' ? '#0a0a0a' : '#f5f5f0');
             }
 
             var saved;
