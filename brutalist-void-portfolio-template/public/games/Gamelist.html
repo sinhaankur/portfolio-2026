@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Games — Ankur Sinha</title>
+    <link rel="icon" href="../img/logo.png">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link href="css/retro.css" rel="stylesheet">
+    <script>
+      (function () {
+        var r = document.documentElement;
+        if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          r.classList.add("js-animate");
+          setTimeout(function () { r.classList.remove("js-animate"); }, 2500);
+        }
+      })();
+    </script>
+    <style>
+      html.js-animate .retro-hero .retro-eyebrow,
+      html.js-animate .retro-hero h1,
+      html.js-animate .retro-hero p,
+      html.js-animate .retro-grid .retro-card,
+      html.js-animate #themeToggle {
+        opacity: 0;
+      }
+    </style>
+</head>
+<body>
+    <div class="retro-shell">
+        <header class="retro-topbar">
+            <div class="retro-container retro-topbar-inner">
+                <a href="../index.html" class="retro-brand">
+                    <img src="games-logo.svg" alt="">
+                    <span>Simple Games</span>
+                </a>
+                <button id="themeToggle" class="retro-icon-btn" aria-label="Toggle dark mode" title="Toggle dark mode">
+                    <span id="themeIcon" aria-hidden="true">☾</span>
+                </button>
+            </div>
+        </header>
+
+        <section class="retro-hero">
+            <div class="retro-container">
+                <span class="retro-eyebrow">Arcade · Built by Ankur</span>
+                <h1 style="margin-top: 1rem;">Tiny games,<br>big chunky shadows.</h1>
+                <p>A small collection of browser games stitched together for fun. Pick one, play it, refresh for another go. New entries land here as I build them.</p>
+            </div>
+        </section>
+
+        <main class="retro-container">
+            <div class="retro-grid">
+                <article class="retro-card">
+                    <div class="retro-card-media retro-card-media--primary" aria-hidden="true">🟦🟨🟥</div>
+                    <div class="retro-card-body">
+                        <div class="retro-card-meta">
+                            <span class="retro-tag">Puzzle</span>
+                            <span class="retro-tag">Keyboard</span>
+                        </div>
+                        <h2 class="retro-card-title">Emoji Tetris</h2>
+                        <p class="retro-card-desc">The block-stacking classic, reskinned with emoji blocks. Stack, rotate, clear lines, chase a high score.</p>
+                        <div>
+                            <a href="emojittetris.html" class="retro-btn retro-btn--primary">Play now →</a>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="retro-card retro-card--disabled" aria-label="Coming soon game slot">
+                    <div class="retro-card-media retro-card-media--accent" aria-hidden="true">🎯</div>
+                    <div class="retro-card-body">
+                        <div class="retro-card-meta">
+                            <span class="retro-tag">Coming soon</span>
+                        </div>
+                        <h2 class="retro-card-title">In the workshop</h2>
+                        <p class="retro-card-desc">More titles are being prototyped. Drop back any time — the lineup grows.</p>
+                        <div>
+                            <button class="retro-btn" disabled aria-disabled="true">Soon</button>
+                        </div>
+                    </div>
+                </article>
+            </div>
+        </main>
+
+        <footer class="retro-footer">
+            <div class="retro-container">
+                <span class="retro-mono">© 2025 SIMPLE GAMES · ANKUR SINHA</span>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        (function () {
+            var root = document.documentElement;
+            var toggle = document.getElementById('themeToggle');
+            var icon = document.getElementById('themeIcon');
+
+            function apply(theme) {
+                root.setAttribute('data-theme', theme);
+                if (icon) icon.textContent = theme === 'dark' ? '☀' : '☾';
+                try { localStorage.setItem('games-theme', theme); } catch (e) {}
+            }
+
+            var saved;
+            try { saved = localStorage.getItem('games-theme'); } catch (e) {}
+            apply(saved === 'dark' ? 'dark' : 'light');
+
+            if (toggle) {
+                toggle.addEventListener('click', function () {
+                    apply(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+                });
+            }
+        })();
+    </script>
+    <script type="module" src="js/animations.js"></script>
+</body>
+</html>

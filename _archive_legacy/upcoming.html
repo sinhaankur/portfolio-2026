@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Upcoming Build Preview · Ankur Sinha</title>
+    <meta
+      name="description"
+      content="Preview the upcoming portfolio build with Unhosted-inspired local mode palette and dark/light theme switch."
+    />
+    <link rel="icon" href="img/logo.png" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.3/css/font-awesome.css"
+    />
+    <style>
+      :root {
+        --bg: #f5f5f0;
+        --fg: #0a0a0a;
+        --surface: #ffffff;
+        --surface-2: #fafaf7;
+        --accent: #ff3b30;
+        --accent-soft: rgba(255, 59, 48, 0.1);
+        --mute: #737373;
+        --line: rgba(10, 10, 10, 0.1);
+        --line-strong: rgba(10, 10, 10, 0.18);
+        --ok: #2bb673;
+      }
+
+      :root[data-theme="dark"] {
+        --bg: #0a0a0a;
+        --fg: #f5f5f0;
+        --surface: #121212;
+        --surface-2: #1a1a1a;
+        --accent: #ff6b61;
+        --accent-soft: rgba(255, 107, 97, 0.16);
+        --mute: #b0b0b0;
+        --line: rgba(245, 245, 240, 0.14);
+        --line-strong: rgba(245, 245, 240, 0.24);
+        --ok: #34d399;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Inter", "Segoe UI", sans-serif;
+        color: var(--fg);
+        background:
+          radial-gradient(circle at 85% -10%, var(--accent-soft), transparent 45%),
+          linear-gradient(180deg, var(--surface-2) 0%, var(--bg) 100%);
+      }
+
+      .shell {
+        max-width: 1040px;
+        margin: 0 auto;
+        padding: 24px 18px 64px;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 28px;
+      }
+
+      .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--fg);
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 600;
+        opacity: 0.9;
+      }
+
+      .back-link:hover {
+        opacity: 1;
+      }
+
+      .theme-toggle {
+        border: 1px solid var(--line-strong);
+        background: var(--surface);
+        color: var(--fg);
+        border-radius: 999px;
+        padding: 9px 14px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      .theme-toggle:hover {
+        border-color: var(--accent);
+      }
+
+      .hero {
+        border: 1px solid var(--line);
+        background: var(--surface);
+        border-radius: 20px;
+        padding: 28px;
+        box-shadow: 0 18px 40px rgba(0, 0, 0, 0.08);
+      }
+
+      .eyebrow {
+        margin: 0 0 10px;
+        color: var(--mute);
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        font-weight: 700;
+      }
+
+      h1 {
+        margin: 0;
+        line-height: 1.1;
+        font-size: clamp(1.9rem, 4vw, 3rem);
+      }
+
+      .lede {
+        margin: 14px 0 0;
+        line-height: 1.65;
+        color: var(--mute);
+        max-width: 70ch;
+      }
+
+      .chips {
+        margin-top: 18px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid var(--line);
+        background: var(--surface-2);
+        border-radius: 999px;
+        padding: 8px 12px;
+        font-size: 12px;
+        color: var(--fg);
+      }
+
+      .chip .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--ok);
+      }
+
+      .grid {
+        margin-top: 20px;
+        display: grid;
+        gap: 14px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .card {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--surface);
+        padding: 16px;
+      }
+
+      .card h3 {
+        margin: 0 0 8px;
+        font-size: 16px;
+      }
+
+      .card p {
+        margin: 0;
+        color: var(--mute);
+        line-height: 1.55;
+        font-size: 14px;
+      }
+
+      .palette {
+        margin-top: 24px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--surface);
+        padding: 16px;
+      }
+
+      .palette h2 {
+        margin: 0 0 12px;
+        font-size: 18px;
+      }
+
+      .swatches {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .swatch {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        overflow: hidden;
+        background: var(--surface-2);
+      }
+
+      .swatch-color {
+        height: 50px;
+      }
+
+      .swatch-label {
+        padding: 8px;
+        font-size: 11px;
+        color: var(--mute);
+        text-align: center;
+      }
+
+      .note {
+        margin-top: 18px;
+        padding: 12px 14px;
+        border-left: 3px solid var(--accent);
+        background: var(--accent-soft);
+        color: var(--fg);
+        font-size: 13px;
+      }
+
+      @media (max-width: 900px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+
+        .swatches {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+      }
+    </style>
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem("unhosted-theme");
+          if (stored === "dark" || stored === "light") {
+            document.documentElement.dataset.theme = stored;
+          }
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <main class="shell">
+      <div class="topbar">
+        <a class="back-link" href="index.html" aria-label="Back to current website">
+          <i class="fa fa-arrow-left" aria-hidden="true"></i>
+          Current website
+        </a>
+        <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle theme">
+          Theme: Light
+        </button>
+      </div>
+
+      <section class="hero">
+        <p class="eyebrow">Upcoming Build Preview</p>
+        <h1>What is new and where this portfolio is heading</h1>
+        <p class="lede">
+          This page is a safe preview lane. Your current website remains unchanged.
+          The visual language here uses an Unhosted-inspired local mode palette and
+          includes a dark/light switch to evaluate readability and atmosphere before rollout.
+        </p>
+
+        <div class="chips">
+          <span class="chip"><span class="dot"></span>Local-first palette</span>
+          <span class="chip"><span class="dot"></span>Dark/light mode switch</span>
+          <span class="chip"><span class="dot"></span>No impact to live homepage</span>
+        </div>
+
+        <div class="grid">
+          <article class="card">
+            <h3>Design Direction</h3>
+            <p>Sharper typography, cleaner card hierarchy, and stronger contrast for project storytelling.</p>
+          </article>
+          <article class="card">
+            <h3>Interaction Style</h3>
+            <p>Controlled motion and compact UI components tuned for desktop and mobile scanning.</p>
+          </article>
+          <article class="card">
+            <h3>Rollout Strategy</h3>
+            <p>Ship behind preview links first, then migrate proven modules into your main site gradually.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="palette" aria-label="Color palette">
+        <h2>Mode-local inspired color palette</h2>
+        <div class="swatches">
+          <div class="swatch"><div class="swatch-color" style="background:#F5F5F0"></div><div class="swatch-label">BG</div></div>
+          <div class="swatch"><div class="swatch-color" style="background:#0A0A0A"></div><div class="swatch-label">FG</div></div>
+          <div class="swatch"><div class="swatch-color" style="background:#FFFFFF"></div><div class="swatch-label">Surface</div></div>
+          <div class="swatch"><div class="swatch-color" style="background:#FAFAF7"></div><div class="swatch-label">Surface-2</div></div>
+          <div class="swatch"><div class="swatch-color" style="background:#FF3B30"></div><div class="swatch-label">Accent</div></div>
+          <div class="swatch"><div class="swatch-color" style="background:#737373"></div><div class="swatch-label">Mute</div></div>
+        </div>
+        <p class="note">
+          Theme preference is stored as <strong>unhosted-theme</strong> in localStorage to mirror Unhosted style behavior.
+        </p>
+      </section>
+    </main>
+
+    <script>
+      (function () {
+        var KEY = "unhosted-theme";
+        var btn = document.getElementById("theme-toggle");
+
+        function currentTheme() {
+          try {
+            var stored = localStorage.getItem(KEY);
+            if (stored === "dark" || stored === "light") return stored;
+          } catch (e) {}
+          return "light";
+        }
+
+        function setTheme(theme) {
+          document.documentElement.dataset.theme = theme;
+          try {
+            localStorage.setItem(KEY, theme);
+          } catch (e) {}
+        }
+
+        function paint(theme) {
+          btn.textContent = "Theme: " + (theme === "dark" ? "Dark" : "Light");
+          btn.setAttribute("aria-label", "Switch to " + (theme === "dark" ? "light" : "dark") + " mode");
+        }
+
+        var theme = currentTheme();
+        setTheme(theme);
+        paint(theme);
+
+        btn.addEventListener("click", function () {
+          theme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+          setTheme(theme);
+          paint(theme);
+        });
+      })();
+    </script>
+  </body>
+</html>
