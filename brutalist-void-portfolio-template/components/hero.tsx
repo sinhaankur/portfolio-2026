@@ -63,16 +63,22 @@ export function Hero() {
         <UniverseEngine interactive={interactive} />
       </div>
 
-      {/* Explore-mode toggle — placed BELOW the fixed navbar on mobile (top-20
-          ≈ navbar height + gap) and at a clear top-right cluster on desktop. */}
-      <div className="absolute top-20 right-4 md:top-24 md:right-12 z-30 pointer-events-auto">
+      {/* Explore-mode toggle. On mobile: an icon-only circle (44×44) so it
+          doesn't horizontally overlap the PRINCIPAL DESIGNER headline at the
+          same Y. On desktop: a wider pill with the full "Tap to explore"
+          label, since there's room. Positioned in the gap between the navbar
+          and the hero typography (mobile) or in the top-right cluster (desktop). */}
+      <div className="absolute top-16 right-4 md:top-24 md:right-12 z-30 pointer-events-auto">
         <button
           type="button"
           onClick={() => setInteractive((v) => !v)}
           data-cursor-hover
           aria-pressed={interactive}
+          aria-label={interactive ? "Exit explore mode" : "Tap to explore the universe"}
+          title={interactive ? "Exit explore mode" : "Tap to explore the universe"}
           className="
-            inline-flex items-center gap-2 px-4 py-2.5
+            inline-flex items-center justify-center gap-2
+            h-11 w-11 md:h-auto md:w-auto md:px-4 md:py-2.5
             border border-foreground/25 rounded-full
             bg-background/40 backdrop-blur-sm
             font-mono text-[10px] tracking-[0.25em] uppercase
@@ -80,7 +86,7 @@ export function Hero() {
             transition-colors duration-300
             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
             focus-visible:ring-offset-2 focus-visible:ring-offset-background
-            min-h-11 touch-manipulation
+            touch-manipulation
           "
         >
           {interactive ? (
@@ -89,13 +95,12 @@ export function Hero() {
                 <span className="motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75" />
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent" />
               </span>
-              <span className="hidden sm:inline">Exploring · Esc to exit</span>
-              <span className="sm:hidden">Exploring · tap to exit</span>
+              <span className="hidden md:inline">Exploring · Esc to exit</span>
             </>
           ) : (
             <>
-              <span aria-hidden="true" className="text-accent">✺</span>
-              Tap to explore
+              <span aria-hidden="true" className="text-accent text-base md:text-xs leading-none">✺</span>
+              <span className="hidden md:inline">Tap to explore</span>
             </>
           )}
         </button>
@@ -112,11 +117,12 @@ export function Hero() {
       )}
 
       {/* Typography Overlay — pointer-events disabled on the wrapper so drag passes through to the canvas.
-          Mobile uses a much larger bottom padding (pb-44) so HUMAN–AI sits well above the HUD chip + CTA
-          cluster. Without it, the right-aligned text collides with the time-warp slider on phones. */}
+          Mobile uses pt-24 to fully clear the fixed navbar (~44 px tall + breathing room) and pb-44 so
+          HUMAN–AI sits above the HUD chip + Upcoming badge cluster. Without these, "01 — DISCIPLINE"
+          collides with "ANKUR SINHA" in the navbar at the same Y. */}
       <motion.div
         style={prefersReducedMotion ? undefined : { opacity, scale }}
-        className="relative z-10 h-full flex flex-col justify-between px-8 pt-8 pb-44 md:p-12 md:px-12 md:py-20 pointer-events-none"
+        className="relative z-10 h-full flex flex-col justify-between px-6 pt-24 pb-44 md:p-12 md:px-12 md:py-20 pointer-events-none"
       >
         {/* Top Left */}
         <motion.div
