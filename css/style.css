@@ -1269,10 +1269,16 @@ input[type=password].invalid, input[type=password]:focus.invalid {
     font-weight: 500;
     line-height: 1.3;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    transform:
+      perspective(700px)
+      rotateX(var(--tilt-x, 0deg))
+      rotateY(var(--tilt-y, 0deg))
+      translateY(var(--lift, 0px));
+    transition: transform 180ms var(--ease-out), box-shadow 0.15s ease, border-color 0.15s ease;
+    will-change: transform;
   }
   .chip-tile:hover {
-    transform: translateY(-2px);
+    --lift: -2px;
     box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
     border-color: rgba(84, 109, 229, 0.35);
     color: #202124;
@@ -1328,6 +1334,22 @@ a.card-hover-link {
   display: block;
   text-decoration: none;
   color: inherit;
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--r-lg);
+  transform:
+    perspective(1200px)
+    rotateX(var(--tilt-x, 0deg))
+    rotateY(var(--tilt-y, 0deg))
+    translateY(var(--lift, 0px));
+  transform-style: preserve-3d;
+  transition: transform 220ms var(--ease-out), box-shadow var(--motion-base);
+  will-change: transform;
+}
+a.card-hover-link:hover {
+  --lift: -4px;
+  text-decoration: none;
+  color: inherit;
 }
 a.card-hover-link:hover,
 a.card-hover-link:focus {
@@ -1337,8 +1359,45 @@ a.card-hover-link:focus {
 a.card-hover-link:focus-visible {
   outline: 3px solid rgba(84, 109, 229, 0.55);
   outline-offset: 4px;
-  border-radius: 14px;
+  border-radius: var(--r-lg);
 }
+/* Cursor-following glow */
+a.card-hover-link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    280px circle at var(--glow-x, 50%) var(--glow-y, 50%),
+    rgba(84, 109, 229, 0.10),
+    transparent 65%
+  );
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 250ms ease;
+  border-radius: inherit;
+}
+a.card-hover-link:hover::after { opacity: 1; }
+
+/* ============================================================
+   CURSOR SPOTLIGHT — a soft brand-tinted halo following the
+   mouse across the whole page. Pointer FX JS sets --px/--py
+   on :root. Hidden on touch + reduced-motion.
+   ============================================================ */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  background: radial-gradient(
+    440px circle at var(--px, 50%) var(--py, 50%),
+    rgba(84, 109, 229, 0.06),
+    transparent 70%
+  );
+  transition: opacity 0.3s ease;
+}
+@media (hover: none) { body::before { display: none; } }
+@media (prefers-reduced-motion: reduce) { body::before { display: none; } }
 
 /* ============================================================
    AMBIENT BACKGROUND — Framer-style soft gradient mesh
@@ -1499,13 +1558,36 @@ body { background: transparent; }
   padding: 1.75rem 1.75rem 1.5rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   position: relative;
-  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  overflow: hidden;
+  transform:
+    perspective(900px)
+    rotateX(var(--tilt-x, 0deg))
+    rotateY(var(--tilt-y, 0deg))
+    translateY(var(--lift, 0px));
+  transform-style: preserve-3d;
+  transition: transform 200ms var(--ease-out), box-shadow var(--motion-base), border-color var(--motion-base);
+  will-change: transform;
 }
 .arc-beat:hover {
-  transform: translateY(-3px);
+  --lift: -3px;
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.07);
   border-color: rgba(84, 109, 229, 0.25);
 }
+/* Cursor-following glow inside each card */
+.arc-beat::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    240px circle at var(--glow-x, 50%) var(--glow-y, 50%),
+    rgba(84, 109, 229, 0.10),
+    transparent 65%
+  );
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 250ms ease;
+}
+.arc-beat:hover::after { opacity: 1; }
 .arc-beat-doodle {
   width: 56px;
   height: 56px;
