@@ -1599,6 +1599,60 @@ body { background: transparent; }
 .arc-beat:hover .arc-beat-doodle {
   transform: rotate(-3deg) scale(1.06);
 }
+
+/* Scroll-triggered path-draw on Arc doodles — each beat draws sequentially
+   when the section enters the viewport. */
+.arc-beat-doodle path,
+.arc-beat-doodle circle,
+.arc-beat-doodle rect {
+  stroke-dasharray: 220;
+  stroke-dashoffset: 220;
+  transition: stroke-dashoffset 1.6s var(--ease-out);
+}
+.arc-section.is-in-view .arc-beat:nth-child(1) .arc-beat-doodle path,
+.arc-section.is-in-view .arc-beat:nth-child(1) .arc-beat-doodle circle,
+.arc-section.is-in-view .arc-beat:nth-child(1) .arc-beat-doodle rect {
+  stroke-dashoffset: 0;
+  transition-delay: 0.1s;
+}
+.arc-section.is-in-view .arc-beat:nth-child(2) .arc-beat-doodle path,
+.arc-section.is-in-view .arc-beat:nth-child(2) .arc-beat-doodle circle,
+.arc-section.is-in-view .arc-beat:nth-child(2) .arc-beat-doodle rect {
+  stroke-dashoffset: 0;
+  transition-delay: 0.3s;
+}
+.arc-section.is-in-view .arc-beat:nth-child(3) .arc-beat-doodle path,
+.arc-section.is-in-view .arc-beat:nth-child(3) .arc-beat-doodle circle,
+.arc-section.is-in-view .arc-beat:nth-child(3) .arc-beat-doodle rect {
+  stroke-dashoffset: 0;
+  transition-delay: 0.5s;
+}
+
+/* Unhosted card — subtle "trust-radius" breathing once in view */
+.unhosted-card.is-in-view {
+  animation: unhostedBreathe 6s ease-in-out 0.4s infinite;
+}
+@keyframes unhostedBreathe {
+  0%, 100% {
+    box-shadow:
+      inset 0 0 60px rgba(84, 109, 229, 0.05),
+      0 24px 60px rgba(0, 0, 0, 0.20);
+  }
+  50% {
+    box-shadow:
+      inset 0 0 100px rgba(84, 109, 229, 0.14),
+      0 28px 70px rgba(0, 0, 0, 0.26);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .arc-beat-doodle path,
+  .arc-beat-doodle circle,
+  .arc-beat-doodle rect {
+    stroke-dashoffset: 0 !important;
+    transition: none !important;
+  }
+  .unhosted-card.is-in-view { animation: none !important; }
+}
 .arc-beat-num {
   display: inline-block;
   font-family: var(--font-display);
