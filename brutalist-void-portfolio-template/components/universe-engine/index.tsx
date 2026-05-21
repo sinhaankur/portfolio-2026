@@ -176,7 +176,10 @@ export function UniverseEngine({
             </div>
           )}
 
-          <div className="absolute bottom-6 right-6 md:bottom-8 md:right-12 z-30 pointer-events-auto flex flex-col items-end gap-2">
+          {/* HUD cluster — mobile lifts it to bottom-24 so the music chip
+              clears the Upcoming badge that sits in the same corner at
+              bottom-6. Desktop keeps the tight bottom-8 anchor. */}
+          <div className="absolute bottom-24 right-6 md:bottom-8 md:right-12 z-30 pointer-events-auto flex flex-col items-end gap-2">
             {showMusic && <GalaxyMusic />}
             {/* Time-warp slider stays desktop-only — the pill is too wide on
                 phones, it collides with the hero typography and CTA. Touch

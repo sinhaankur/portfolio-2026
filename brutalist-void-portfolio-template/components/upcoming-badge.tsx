@@ -38,7 +38,7 @@ export function UpcomingBadge({
       onFocus={() => setIsHovered(true)}
       onBlur={() => setIsHovered(false)}
       className="
-        group fixed bottom-6 right-6 z-50
+        group fixed bottom-6 right-6 z-30
         inline-flex items-center gap-3
         rounded-full border border-border
         bg-background/70 backdrop-blur-md
