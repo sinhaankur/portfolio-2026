@@ -330,6 +330,72 @@
         }
         .open-source-card-title { font-size: 19px; }
       }
+
+      /* — Trilogy diagrams: per-card SVG illustrations — */
+      .os-diagram {
+        width: 100%;
+        height: auto;
+        max-height: 130px;
+        display: block;
+        margin: 0 0 18px 0;
+        color: #546de5;
+      }
+      .os-diagram--helm      { color: #546de5; }
+      .os-diagram--sentinel  { color: #0f766e; }
+      .os-diagram--recourse  { color: #c0392b; }
+
+      /* Staged path-draw + fade on hover — each anim group reveals sequentially */
+      .os-anim {
+        opacity: 0;
+        transition: opacity 220ms ease;
+      }
+      .open-source-card:hover .os-anim,
+      .open-source-card:focus .os-anim { opacity: 1; }
+      .open-source-card:hover .os-anim--1 { transition-delay: 0ms; }
+      .open-source-card:hover .os-anim--2 { transition-delay: 120ms; }
+      .open-source-card:hover .os-anim--3 { transition-delay: 240ms; }
+      .open-source-card:hover .os-anim--4 { transition-delay: 360ms; }
+
+      /* Sentinel rings — ripple expand on hover */
+      .os-anim--ring-1, .os-anim--ring-2, .os-anim--ring-3,
+      .os-anim--core, .os-anim--label {
+        transform-origin: center;
+        transition: opacity 280ms ease, transform 600ms cubic-bezier(0.2,0.7,0.2,1);
+      }
+      .open-source-card:hover .os-anim--ring-1 { transition-delay: 0ms;   transform: scale(1.04); }
+      .open-source-card:hover .os-anim--ring-2 { transition-delay: 90ms;  transform: scale(1.06); }
+      .open-source-card:hover .os-anim--ring-3 { transition-delay: 180ms; transform: scale(1.08); }
+      .open-source-card:hover .os-anim--core   { transition-delay: 280ms; transform: scale(1.05); }
+      .open-source-card:hover .os-anim--label  { transition-delay: 380ms; }
+
+      /* Recourse loop spin */
+      .os-loop {
+        transform-origin: 170px 55px;
+        animation: recourseSpin 14s linear infinite;
+        animation-play-state: paused;
+      }
+      .open-source-card:hover .os-loop { animation-play-state: running; }
+      @keyframes recourseSpin {
+        from { transform: rotate(0deg); }
+        to   { transform: rotate(360deg); }
+      }
+
+      /* Default state: show a hint (partial opacity) so it's not blank-feeling */
+      .os-anim { opacity: 0.55; }
+      .open-source-card:hover .os-anim { opacity: 1; }
+
+      @media (prefers-reduced-motion: reduce) {
+        .os-anim, .os-loop, .open-source-card .os-anim {
+          opacity: 1 !important;
+          transform: none !important;
+          animation: none !important;
+          transition: none !important;
+        }
+      }
+
+      @media (max-width: 760px) {
+        .os-diagram { max-height: 100px; margin-bottom: 14px; }
+      }
     </style>
 
     <!-- Unhosted section — dark feature card with the trust-radius diagram -->
@@ -744,18 +810,76 @@
 
         <div class="open-source-grid">
           <a class="open-source-card" href="https://sinhaankur.github.io/Helm/" target="_blank" rel="noopener">
+            <!-- Helm: approval gate diagram — request → gate → approve/reject -->
+            <svg class="os-diagram os-diagram--helm" viewBox="0 0 220 110" aria-hidden="true">
+              <defs>
+                <marker id="helm-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                  <path d="M0 0 L10 5 L0 10 z" fill="currentColor"/>
+                </marker>
+              </defs>
+              <!-- Request packet -->
+              <rect class="os-anim os-anim--1" x="6" y="38" width="34" height="34" rx="6" fill="none" stroke="currentColor" stroke-width="2"/>
+              <text class="os-anim os-anim--1" x="23" y="60" text-anchor="middle" font-size="11" fill="currentColor" font-family="ui-monospace,monospace">req</text>
+              <!-- Arrow to gate -->
+              <path class="os-anim os-anim--2" d="M44 55 L74 55" fill="none" stroke="currentColor" stroke-width="1.8" marker-end="url(#helm-arrow)"/>
+              <!-- Gate (with diff-eye glyph) -->
+              <rect class="os-anim os-anim--3 os-gate" x="80" y="22" width="60" height="66" rx="8" fill="none" stroke="currentColor" stroke-width="2"/>
+              <circle class="os-anim os-anim--3" cx="110" cy="48" r="6" fill="none" stroke="currentColor" stroke-width="1.8"/>
+              <circle class="os-anim os-anim--3" cx="110" cy="48" r="2" fill="currentColor"/>
+              <path class="os-anim os-anim--3" d="M92 70 L128 70 M92 78 L122 78" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              <!-- Approve arrow -->
+              <path class="os-anim os-anim--4" d="M144 38 L188 18" fill="none" stroke="#16a34a" stroke-width="1.8" marker-end="url(#helm-arrow)"/>
+              <path class="os-anim os-anim--4" d="M186 8 L192 14 L196 6" fill="none" stroke="#16a34a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              <!-- Reject arrow -->
+              <path class="os-anim os-anim--4" d="M144 72 L188 92" fill="none" stroke="#dc2626" stroke-width="1.8" marker-end="url(#helm-arrow)"/>
+              <path class="os-anim os-anim--4" d="M186 86 L196 96 M196 86 L186 96" stroke="#dc2626" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
             <h3 class="open-source-card-title">Helm</h3>
             <p class="open-source-card-desc">Real-time oversight of LLM agents — approval gate, reversibility chip, diff view.</p>
             <span class="open-source-card-cta">Live demo →</span>
           </a>
 
           <a class="open-source-card" href="https://sinhaankur.github.io/Human-in-the-Loop/" target="_blank" rel="noopener">
+            <!-- Sentinel: concentric shield rings (embeddable layers) -->
+            <svg class="os-diagram os-diagram--sentinel" viewBox="0 0 220 110" aria-hidden="true">
+              <!-- Layered protection rings — outer to inner -->
+              <ellipse class="os-anim os-anim--ring-1" cx="110" cy="55" rx="98" ry="40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-dasharray="4 4" opacity="0.45"/>
+              <ellipse class="os-anim os-anim--ring-2" cx="110" cy="55" rx="74" ry="32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-dasharray="4 4" opacity="0.6"/>
+              <ellipse class="os-anim os-anim--ring-3" cx="110" cy="55" rx="50" ry="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-dasharray="4 4" opacity="0.8"/>
+              <!-- Core: shield -->
+              <path class="os-anim os-anim--core" d="M110 36 L98 42 L98 56 Q98 64 110 72 Q122 64 122 56 L122 42 Z"
+                    fill="rgba(84,109,229,0.10)" stroke="currentColor" stroke-width="2"/>
+              <path class="os-anim os-anim--core" d="M104 54 L109 58 L117 49" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              <!-- Layer labels -->
+              <text class="os-anim os-anim--label" x="6"   y="20" font-size="9"  fill="currentColor" font-family="ui-monospace,monospace" opacity="0.7">react</text>
+              <text class="os-anim os-anim--label" x="174" y="20" font-size="9"  fill="currentColor" font-family="ui-monospace,monospace" opacity="0.7">chrome</text>
+              <text class="os-anim os-anim--label" x="6"   y="100" font-size="9" fill="currentColor" font-family="ui-monospace,monospace" opacity="0.7">vscode</text>
+              <text class="os-anim os-anim--label" x="178" y="100" font-size="9" fill="currentColor" font-family="ui-monospace,monospace" opacity="0.7">docker</text>
+            </svg>
             <h3 class="open-source-card-title">Sentinel</h3>
             <p class="open-source-card-desc">Embeddable inline AI oversight — ships as React lib, Chrome ext, VS Code participant, Docker.</p>
             <span class="open-source-card-cta">Live demo →</span>
           </a>
 
           <a class="open-source-card" href="https://sinhaankur.github.io/Recourse/" target="_blank" rel="noopener">
+            <!-- Recourse: citizen vs institution loop, broken by document/statute -->
+            <svg class="os-diagram os-diagram--recourse" viewBox="0 0 220 110" aria-hidden="true">
+              <!-- Citizen (left) -->
+              <circle class="os-anim os-anim--1" cx="28" cy="40" r="10" fill="none" stroke="currentColor" stroke-width="2"/>
+              <path class="os-anim os-anim--1" d="M14 70 Q14 52 28 52 Q42 52 42 70 Z" fill="none" stroke="currentColor" stroke-width="2"/>
+              <!-- Institutional loop (right) — circular arrow chasing itself -->
+              <circle class="os-anim os-anim--2 os-loop" cx="170" cy="55" r="30" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="6 5" opacity="0.55"/>
+              <path class="os-anim os-anim--2" d="M196 42 L200 36 L194 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <!-- Document statute (middle) breaking the loop -->
+              <rect class="os-anim os-anim--3" x="80" y="34" width="44" height="56" rx="3" fill="rgba(15,118,110,0.08)" stroke="currentColor" stroke-width="2"/>
+              <path class="os-anim os-anim--3" d="M86 46 L118 46 M86 54 L118 54 M86 62 L110 62 M86 70 L114 70 M86 78 L108 78"
+                    stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+              <!-- Arrows from citizen → document → loop -->
+              <path class="os-anim os-anim--4" d="M48 55 L76 55" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              <path class="os-anim os-anim--4" d="M70 51 L76 55 L70 59" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              <path class="os-anim os-anim--4" d="M128 55 L140 55" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              <path class="os-anim os-anim--4" d="M134 51 L140 55 L134 59" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
             <h3 class="open-source-card-title">Recourse</h3>
             <p class="open-source-card-desc">Consumer AI as advocate against institutional loops — outcome-driven, statute-anchored.</p>
             <span class="open-source-card-cta">Live demo →</span>
