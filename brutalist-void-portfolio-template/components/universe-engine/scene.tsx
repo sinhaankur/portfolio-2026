@@ -27,6 +27,9 @@ import {
   NormalBlending,
   Points,
   ShaderMaterial,
+  SRGBColorSpace,
+  TextureLoader,
+  type Texture,
 } from "three"
 
 import {
@@ -203,8 +206,21 @@ function MilkyWay({
  * Moons — orbit their parent planet's equatorial plane.
  * ============================================================ */
 
-function MoonBody({ moon, onHover }: { moon: MoonData; onHover: HoverHandler }) {
+function MoonBody({
+  moon,
+  onHover,
+  highlighted = false,
+}: {
+  moon: MoonData
+  onHover: HoverHandler
+  /** Set by the parent planet's hover state — gives the moon a coordinated scale-up + halo. */
+  highlighted?: boolean
+}) {
   const orbitRef = useRef<Group>(null)
+  const bodyRef = useRef<Mesh>(null)
+  const haloRef = useRef<Mesh>(null)
+  const haloMatRef = useRef<import("three").MeshBasicMaterial>(null)
+
   const speedRadPerSec = useMemo(
     () => (2 * Math.PI) / (moon.periodDays / TIME_WARP_DAYS_PER_SEC),
     [moon.periodDays],
@@ -217,13 +233,44 @@ function MoonBody({ moon, onHover }: { moon: MoonData; onHover: HoverHandler }) 
 
   useFrame((_, delta) => {
     if (orbitRef.current) orbitRef.current.rotation.y += delta * speedRadPerSec * timeWarpRef.current
+
+    // Lerp the moon's visual emphasis when the parent planet is hovered.
+    const k = 1 - Math.exp(-delta * 10)
+    const scaleTarget = highlighted ? 1.6 : 1.0
+    if (bodyRef.current) {
+      const s = bodyRef.current.scale.x
+      const next = s + (scaleTarget - s) * k
+      bodyRef.current.scale.set(next, next, next)
+    }
+    if (haloRef.current) {
+      const haloTarget = highlighted ? 2.6 : 0.001
+      const s = haloRef.current.scale.x
+      const next = s + (haloTarget - s) * k
+      haloRef.current.scale.set(next, next, next)
+    }
+    if (haloMatRef.current) {
+      const opacityTarget = highlighted ? 0.35 : 0
+      haloMatRef.current.opacity += (opacityTarget - haloMatRef.current.opacity) * k
+    }
   })
 
   const hitRadius = Math.max(moon.visualRadius * 3, 0.12)
 
   return (
     <group ref={orbitRef}>
-      <mesh position={[moon.orbitRadius, 0, 0]}>
+      {/* Halo — only visible when the parent planet is being hovered. */}
+      <mesh ref={haloRef} position={[moon.orbitRadius, 0, 0]} scale={0.001}>
+        <sphereGeometry args={[moon.visualRadius, 16, 16]} />
+        <meshBasicMaterial
+          ref={haloMatRef as React.Ref<import("three").MeshBasicMaterial>}
+          color="#fff2b8"
+          transparent
+          opacity={0}
+          blending={AdditiveBlending}
+          depthWrite={false}
+        />
+      </mesh>
+      <mesh ref={bodyRef} position={[moon.orbitRadius, 0, 0]}>
         <sphereGeometry args={[moon.visualRadius, 24, 24]} />
         <meshStandardMaterial color={moon.shade} roughness={0.95} />
       </mesh>
@@ -874,6 +921,25 @@ function PlanetBody({
 }) {
   const meshRef = useRef<Mesh>(null)
   const orbitRef = useRef<Group>(null)
+  const earthMeshRef = useRef<Mesh>(null)
+  const earthMatRef = useRef<import("three").MeshStandardMaterial>(null)
+  const [isHovered, setIsHovered] = useState(false)
+  const [earthTexture, setEarthTexture] = useState<Texture | null>(null)
+
+  const isEarth = planet.raw.name === "Earth"
+
+  // Lazy-load the NASA Blue Marble equirectangular texture on demand —
+  // only once Earth is hovered for the first time, so the asset (~100 KB)
+  // doesn't sit in the critical path for visitors who never explore.
+  useEffect(() => {
+    if (!isEarth || !isHovered || earthTexture) return
+    const loader = new TextureLoader()
+    loader.load("/textures/earth.jpg", (tex) => {
+      tex.colorSpace = SRGBColorSpace
+      tex.anisotropy = 4
+      setEarthTexture(tex)
+    })
+  }, [isEarth, isHovered, earthTexture])
 
   useEffect(() => {
     if (orbitRef.current) orbitRef.current.rotation.y = planet.raw.startPhase
@@ -883,10 +949,26 @@ function PlanetBody({
     const tw = timeWarpRef.current
     if (orbitRef.current) orbitRef.current.rotation.y += delta * planet.orbitalSpeedRadPerSec * tw
     if (meshRef.current) meshRef.current.rotation.y += delta * planet.rotSpeedRadPerSec * tw
+
+    // Earth-only — the textured globe rotates in lockstep with the grey
+    // sphere and lerps its material opacity toward the hover target so the
+    // morph between abstract chart-marker and photographic globe is smooth.
+    if (isEarth && earthMeshRef.current) {
+      earthMeshRef.current.rotation.y += delta * planet.rotSpeedRadPerSec * tw
+    }
+    if (isEarth && earthMatRef.current) {
+      const k = 1 - Math.exp(-delta * 8)
+      const target = isHovered && earthTexture ? 1 : 0
+      earthMatRef.current.opacity += (target - earthMatRef.current.opacity) * k
+    }
   })
 
   const hitRadius = Math.max(planet.visualRadius * 2.2, 0.18)
   const childMoons = moons.filter((m) => m.parent === planet.raw.name)
+  // Earth's moon (Luna) brightens + scales up while Earth is hovered. Other
+  // parents (Jupiter, Saturn, Neptune, Pluto) can pick up the same treatment
+  // later once the pattern proves itself.
+  const moonsHighlighted = isEarth && isHovered
 
   return (
     <group rotation={[planet.inclination, 0, 0]}>
@@ -903,12 +985,35 @@ function PlanetBody({
                 metalness={0.0}
               />
             </mesh>
+
+            {/* Earth-only: textured globe sphere stacked on top of the grey one.
+                Material opacity lerps in/out via useFrame so the swap reads as
+                a smooth morph from chart-marker to photographic Earth. The
+                textured sphere is slightly larger so it doesn't z-fight with
+                the grey one underneath at the same radius. */}
+            {isEarth && earthTexture && (
+              <mesh ref={earthMeshRef}>
+                <sphereGeometry args={[planet.visualRadius * 1.005, 64, 64]} />
+                <meshStandardMaterial
+                  ref={earthMatRef as React.Ref<import("three").MeshStandardMaterial>}
+                  map={earthTexture}
+                  roughness={0.85}
+                  metalness={0.0}
+                  transparent
+                  opacity={0}
+                  depthWrite={false}
+                />
+              </mesh>
+            )}
+
             <mesh
               onPointerOver={(e) => {
                 e.stopPropagation()
+                if (isEarth) setIsHovered(true)
                 onHover(planetToInfo(planet.raw))
               }}
               onPointerOut={() => {
+                if (isEarth) setIsHovered(false)
                 onHover(null)
               }}
             >
@@ -921,7 +1026,12 @@ function PlanetBody({
           </group>
 
           {childMoons.map((m) => (
-            <MoonBody key={m.name} moon={m} onHover={onHover} />
+            <MoonBody
+              key={m.name}
+              moon={m}
+              onHover={onHover}
+              highlighted={moonsHighlighted}
+            />
           ))}
         </group>
       </group>
