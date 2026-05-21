@@ -279,7 +279,9 @@
   list-style: none;
 }
 
-/* Honor reduced-motion globally — kills marquees, ping pulses, lenis-induced wobble */
+/* Honor reduced-motion globally — kills marquees, ping pulses, lenis-induced wobble.
+   The `.motion-reduced` class is toggled by the in-app Display menu so users can
+   force-disable animation even if their OS doesn't advertise reduced-motion. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -298,4 +300,33 @@
   .noise-overlay {
     display: none;
   }
+}
+
+html.motion-reduced *,
+html.motion-reduced *::before,
+html.motion-reduced *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+html.motion-reduced .animate-marquee-left,
+html.motion-reduced .animate-marquee-right {
+  animation: none !important;
+}
+html.motion-reduced .noise-overlay {
+  display: none;
+}
+
+/* Larger text — bumps the rem base so the whole type ramp scales together. */
+html.text-larger {
+  font-size: 18px;
+}
+
+/* When the user opts back into the native cursor, the custom reticle bails out
+   in JS — this class also makes sure nothing else (e.g. a stray `cursor: none`)
+   sneaks back in. */
+html.cursor-system,
+html.cursor-system body {
+  cursor: auto !important;
 }

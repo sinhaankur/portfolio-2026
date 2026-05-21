@@ -2,6 +2,7 @@ import type React from "react"
 import type { Metadata, Viewport } from "next"
 import { Inter, Instrument_Serif, JetBrains_Mono, Fraunces } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
+import { DisplayPrefsProvider } from "@/components/display-prefs"
 import "./globals.css"
 
 const inter = Inter({
@@ -73,11 +74,13 @@ export default function RootLayout({
           enableSystem={false}
           disableTransitionOnChange={false}
         >
-          <a href="#main" className="skip-link">
-            Skip to main content
-          </a>
-          <div className="noise-overlay" aria-hidden="true" />
-          {children}
+          <DisplayPrefsProvider>
+            <a href="#main" className="skip-link">
+              Skip to main content
+            </a>
+            <div className="noise-overlay" aria-hidden="true" />
+            {children}
+          </DisplayPrefsProvider>
         </ThemeProvider>
       </body>
     </html>

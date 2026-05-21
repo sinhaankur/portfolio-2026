@@ -29,6 +29,7 @@ import type { OrbitControls as OrbitControlsImpl } from "three-stdlib"
 import { SOLAR_SYSTEM_POSITION, SUN_OFFSET_SCENE, timeWarpRef } from "./astronomy"
 import { SceneContents } from "./scene"
 import { InfoPanel, ResetViewButton, TimeWarpSlider } from "./hud"
+import { MobileBodySheet } from "./mobile-sheet"
 import { GalaxyMusic } from "../galaxy-music"
 import type { BodyInfo, HoverHandler } from "./types"
 
@@ -57,6 +58,10 @@ export function UniverseEngine({
   const [reducedMotion, setReducedMotion] = useState(false)
   const [mobile, setMobile] = useState(false)
   const [hovered, setHovered] = useState<BodyInfo | null>(null)
+  // Sticky selection — mobile devices fire pointerover/pointerout in pairs on
+  // each tap, so `hovered` clears immediately. `selectedBody` latches on the
+  // most-recent tap and only clears when the user dismisses the bottom sheet.
+  const [selectedBody, setSelectedBody] = useState<BodyInfo | null>(null)
   const [timeWarpDisplay, setTimeWarpDisplay] = useState(timeWarpRef.current)
   const orbitRef = useRef<OrbitControlsImpl | null>(null)
 
@@ -78,6 +83,9 @@ export function UniverseEngine({
 
   const onHover = useCallback<HoverHandler>((info) => {
     setHovered(info)
+    // Latch the most-recent body so the mobile sheet has something to show
+    // after pointerout fires (touch always pairs over/out per tap).
+    if (info) setSelectedBody(info)
     // Broadcast the hover state so the custom cursor can adapt — e.g. switch
     // into target-ring + body-label mode without coupling the cursor to the
     // engine via props. detail.body is null when the pointer leaves a body.
@@ -92,6 +100,7 @@ export function UniverseEngine({
   const handleReset = useCallback(() => {
     orbitRef.current?.reset()
   }, [])
+  const dismissSheet = useCallback(() => setSelectedBody(null), [])
 
   if (!mounted) {
     return (
@@ -141,9 +150,13 @@ export function UniverseEngine({
 
       {showHud && (
         <>
-          <div className="absolute bottom-44 left-8 md:bottom-52 md:left-12 z-20 pointer-events-none max-w-70">
-            <InfoPanel info={hovered} />
-          </div>
+          {/* Corner info panel — desktop only. Mobile gets the bottom sheet
+              instead (richer, dismissable, doesn't fight with the time-warp HUD). */}
+          {!mobile && (
+            <div className="absolute bottom-44 left-8 md:bottom-52 md:left-12 z-20 pointer-events-none max-w-70">
+              <InfoPanel info={hovered} />
+            </div>
+          )}
 
           <div className="absolute bottom-6 right-6 md:bottom-8 md:right-12 z-30 pointer-events-auto flex flex-col items-end gap-2">
             {showMusic && <GalaxyMusic />}
@@ -151,6 +164,14 @@ export function UniverseEngine({
           </div>
 
           {interactive && <ResetViewButton onClick={handleReset} />}
+
+          {mobile && (
+            <MobileBodySheet
+              body={selectedBody}
+              onDismiss={dismissSheet}
+              onAction={handleReset}
+            />
+          )}
         </>
       )}
     </div>
