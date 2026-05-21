@@ -14,6 +14,24 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
     setMounted(true)
   }, [])
 
+  // Global keyboard shortcut — Shift+L flips theme from anywhere.
+  // Skipped when focus is inside a text-entry surface so users typing in
+  // forms / contenteditable / select / inputs don't trip it.
+  useEffect(() => {
+    if (!mounted) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "L" || e.metaKey || e.ctrlKey || e.altKey) return
+      const target = e.target as HTMLElement | null
+      const tag = target?.tagName
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return
+      if (target?.isContentEditable) return
+      e.preventDefault()
+      setTheme(resolvedTheme === "dark" ? "light" : "dark")
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [mounted, resolvedTheme, setTheme])
+
   // Avoid hydration mismatch — render a fixed-size placeholder until theme resolves
   if (!mounted) {
     return (
@@ -26,7 +44,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
   }
 
   const isDark = resolvedTheme === "dark"
-  const nextLabel = isDark ? "Switch to light theme" : "Switch to dark theme"
+  const nextLabel = `${isDark ? "Switch to light theme" : "Switch to dark theme"} (Shift+L)`
 
   return (
     <button

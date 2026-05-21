@@ -159,6 +159,15 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${inter.variable} ${fraunces.variable} ${instrument.variable} ${jetbrains.variable}`}
     >
+      <head>
+        {/* Preconnect to the SoundCloud widget origin — the galaxy hero's
+            music chip embeds it on user opt-in. Preconnecting saves the
+            DNS + TLS handshake (~150–300 ms on slow networks) for the
+            inevitable click. */}
+        <link rel="preconnect" href="https://w.soundcloud.com" />
+        <link rel="preconnect" href="https://api.soundcloud.com" />
+        <link rel="dns-prefetch" href="https://api-widget.soundcloud.com" />
+      </head>
       <body className="font-sans antialiased overflow-x-hidden bg-background text-foreground">
         {/* JSON-LD Person schema — feeds Google knowledge panel + rich previews. */}
         <script

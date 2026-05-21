@@ -151,8 +151,8 @@ export function GalaxyMusic() {
         className="
           group inline-flex items-center justify-center
           w-9 h-9 rounded-full
-          border border-white/25 bg-black/40 backdrop-blur-sm
-          text-white/85 hover:text-white hover:border-accent/60
+          border border-foreground/25 bg-background/50 backdrop-blur-sm
+          text-foreground/85 hover:text-foreground hover:border-accent/60
           transition-colors duration-300
           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
           focus-visible:ring-offset-2 focus-visible:ring-offset-background
@@ -161,13 +161,13 @@ export function GalaxyMusic() {
       >
         {playing ? (
           <span aria-hidden="true" className="flex gap-0.5">
-            <span className="block w-0.5 h-3 bg-white" />
-            <span className="block w-0.5 h-3 bg-white" />
+            <span className="block w-0.5 h-3 bg-foreground" />
+            <span className="block w-0.5 h-3 bg-foreground" />
           </span>
         ) : (
           <span
             aria-hidden="true"
-            className="block w-0 h-0 ml-0.5 border-y-[5px] border-y-transparent border-l-[7px] border-l-white"
+            className="block w-0 h-0 ml-0.5 border-y-[5px] border-y-transparent border-l-[7px] border-l-current"
           />
         )}
       </button>
