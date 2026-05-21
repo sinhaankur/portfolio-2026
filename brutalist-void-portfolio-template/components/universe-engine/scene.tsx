@@ -271,14 +271,22 @@ function AsterismLine({
   stars,
   edges,
   active,
+  invert = false,
 }: {
   stars: ConstellationStar[]
   edges: [number, number][]
   active: boolean
+  invert?: boolean
 }) {
   const matRef = useRef<LineMatRef>(null)
-  const colorTarget = useMemo(() => new Color("#ffffff"), [])
-  const colorActive = useMemo(() => new Color("#ffd66b"), [])
+  // Chart-mode (light theme): ink hairlines that flush warmer amber on hover,
+  // mimicking how a vintage map annotates traced constellations in red-orange.
+  const colorTarget = useMemo(() => new Color(invert ? "#0a0a0a" : "#ffffff"), [invert])
+  const colorActive = useMemo(() => new Color(invert ? "#b34a13" : "#ffd66b"), [invert])
+  // Idle opacity is higher in chart mode — dark ink on cream needs to read
+  // without the additive bloom that helps it pop against deep space.
+  const idleOpacity = invert ? 0.45 : 0.18
+  const activeOpacity = invert ? 0.95 : 0.9
 
   const geometry = useMemo(() => {
     if (edges.length === 0) {
@@ -305,7 +313,7 @@ function AsterismLine({
   // Lerp opacity + color toward target each frame for a smooth highlight.
   useFrame((_, delta) => {
     if (!matRef.current) return
-    const targetOpacity = active ? 0.9 : 0.18
+    const targetOpacity = active ? activeOpacity : idleOpacity
     const k = 1 - Math.exp(-delta * 8)
     matRef.current.opacity += (targetOpacity - matRef.current.opacity) * k
     matRef.current.color.lerp(active ? colorActive : colorTarget, k)
@@ -317,9 +325,9 @@ function AsterismLine({
     <lineSegments geometry={geometry}>
       <lineBasicMaterial
         ref={matRef as React.Ref<LineMatRef>}
-        color="#ffffff"
+        color={invert ? "#0a0a0a" : "#ffffff"}
         transparent
-        opacity={0.18}
+        opacity={idleOpacity}
         depthWrite={false}
       />
     </lineSegments>
@@ -331,6 +339,7 @@ function ConstellationStarMesh({
   active,
   isClickable,
   isPolaris,
+  invert = false,
   onActivate,
   onDeactivate,
   onClick,
@@ -342,6 +351,7 @@ function ConstellationStarMesh({
   active: boolean
   isClickable: boolean
   isPolaris: boolean
+  invert?: boolean
   onActivate: () => void
   onDeactivate: () => void
   onClick?: () => void
@@ -352,14 +362,27 @@ function ConstellationStarMesh({
   const meshRef = useRef<Mesh>(null)
   const haloRef = useRef<Mesh>(null)
   const haloMatRef = useRef<import("three").MeshBasicMaterial>(null)
+  const dotMatRef = useRef<import("three").MeshBasicMaterial>(null)
 
   const position = useMemo(
     () => raDecToScenePos(star.raHours, star.decDeg, SKY_SHELL_DISTANCE),
     [star.raHours, star.decDeg],
   )
   const baseRadius = magToVisualRadius(star.magnitude) * (isPolaris ? 1.4 : 1.0)
-  const haloColorIdle = useMemo(() => new Color("#ffffff"), [])
-  const haloColorActive = useMemo(() => new Color("#fff2b8"), [])
+  // Chart-mode colours: ink dots on cream with a warm amber halo on hover.
+  const dotColor = invert ? "#0a0a0a" : "#ffffff"
+  const haloColorIdle = useMemo(
+    () => new Color(invert ? "#1a1006" : "#ffffff"),
+    [invert],
+  )
+  const haloColorActive = useMemo(
+    () => new Color(invert ? "#b34a13" : "#fff2b8"),
+    [invert],
+  )
+  // Idle halo opacity needs to be lower on cream (we don't have additive bloom)
+  // or the warm tint becomes a muddy smear behind every star.
+  const haloOpacityIdle = invert ? 0.08 : 0.18
+  const haloOpacityActive = invert ? 0.55 : 0.6
 
   // Animated scale + halo brightness — lerp each frame so the highlight
   // doesn't snap. Same target reached from any direction.
@@ -378,7 +401,7 @@ function ConstellationStarMesh({
       haloRef.current.scale.set(next, next, next)
     }
     if (haloMatRef.current) {
-      const opacityTarget = active ? 0.6 : 0.18
+      const opacityTarget = active ? haloOpacityActive : haloOpacityIdle
       haloMatRef.current.opacity += (opacityTarget - haloMatRef.current.opacity) * k
       haloMatRef.current.color.lerp(active ? haloColorActive : haloColorIdle, k)
     }
@@ -388,16 +411,17 @@ function ConstellationStarMesh({
     <group position={position}>
       <mesh ref={meshRef}>
         <sphereGeometry args={[baseRadius, 16, 16]} />
-        <meshBasicMaterial color="#ffffff" />
+        <meshBasicMaterial ref={dotMatRef as React.Ref<import("three").MeshBasicMaterial>} color={dotColor} />
       </mesh>
       <mesh ref={haloRef}>
         <sphereGeometry args={[baseRadius, 12, 12]} />
         <meshBasicMaterial
           ref={haloMatRef as React.Ref<import("three").MeshBasicMaterial>}
-          color="#ffffff"
+          color={dotColor}
           transparent
-          opacity={0.18}
-          blending={AdditiveBlending}
+          opacity={haloOpacityIdle}
+          // Normal blending on cream so the halo doesn't bleach to invisible.
+          blending={invert ? NormalBlending : AdditiveBlending}
           depthWrite={false}
         />
       </mesh>
@@ -435,12 +459,14 @@ function ConstellationGroup({
   setActive,
   onResetView,
   onHover,
+  invert = false,
 }: {
   constellation: Constellation
   active: boolean
   setActive: (id: ConstellationId | null) => void
   onResetView: () => void
   onHover: HoverHandler
+  invert?: boolean
 }) {
   const isClickable = constellation.clickAction === "reset-view"
   const isPolaris = constellation.id === "polaris"
@@ -468,6 +494,7 @@ function ConstellationGroup({
         stars={constellation.stars}
         edges={constellation.edges}
         active={active}
+        invert={invert}
       />
 
       {/* Hover label — fades in when the constellation is active.
@@ -483,13 +510,16 @@ function ConstellationGroup({
           style={{ pointerEvents: "none" }}
         >
           <div
-            className="
+            className={`
               whitespace-nowrap select-none pointer-events-none
               font-mono text-[10px] tracking-[0.3em] uppercase
-              px-2 py-1 rounded-full
-              bg-black/55 backdrop-blur-sm border border-white/20
-              text-white
-            "
+              px-2 py-1 rounded-full backdrop-blur-sm
+              ${
+                invert
+                  ? "bg-white/85 border border-foreground/25 text-foreground"
+                  : "bg-black/55 border border-white/20 text-white"
+              }
+            `}
             style={{
               // Fade-in animation lives in CSS so it doesn't allocate a
               // motion node per constellation per frame.
@@ -524,6 +554,7 @@ function ConstellationGroup({
           active={active}
           isClickable={isClickable}
           isPolaris={isPolaris}
+          invert={invert}
           onActivate={() => setActive(constellation.id)}
           onDeactivate={() => setActive(null)}
           onClick={onClick}
@@ -598,9 +629,11 @@ function EdgeHitZone({
 function Constellations({
   onHover,
   onResetView,
+  invert = false,
 }: {
   onHover: HoverHandler
   onResetView: () => void
+  invert?: boolean
 }) {
   const [active, setActive] = useState<ConstellationId | null>(null)
 
@@ -614,6 +647,7 @@ function Constellations({
           setActive={setActive}
           onResetView={onResetView}
           onHover={onHover}
+          invert={invert}
         />
       ))}
     </group>
@@ -624,7 +658,7 @@ function Constellations({
  * Shooting stars — cyclical meteor streaks across the sky.
  * ============================================================ */
 
-function Meteor({ baseDelay }: { baseDelay: number }) {
+function Meteor({ baseDelay, invert = false }: { baseDelay: number; invert?: boolean }) {
   const groupRef = useRef<Group>(null)
   const stateRef = useRef({
     t: -baseDelay,
@@ -699,24 +733,28 @@ function Meteor({ baseDelay }: { baseDelay: number }) {
     return geo
   }, [])
 
+  // On cream paper, ink streaks read as inked-meteor lines on a chart.
+  const meteorColor = invert ? "#0a0a0a" : "#ffffff"
+  const streakOpacity = invert ? 0.6 : 0.4
+
   return (
     <group ref={groupRef}>
       <mesh>
         <sphereGeometry args={[0.06, 16, 16]} />
-        <meshBasicMaterial color="#ffffff" />
+        <meshBasicMaterial color={meteorColor} />
       </mesh>
       <line geometry={streakGeometry}>
-        <lineBasicMaterial color="#ffffff" transparent opacity={0.4} />
+        <lineBasicMaterial color={meteorColor} transparent opacity={streakOpacity} />
       </line>
     </group>
   )
 }
 
-function ShootingStars({ count = 6 }: { count?: number }) {
+function ShootingStars({ count = 6, invert = false }: { count?: number; invert?: boolean }) {
   return (
     <group>
       {Array.from({ length: count }).map((_, i) => (
-        <Meteor key={i} baseDelay={i * 3 + Math.random() * 5} />
+        <Meteor key={i} baseDelay={i * 3 + Math.random() * 5} invert={invert} />
       ))}
     </group>
   )
@@ -736,6 +774,7 @@ function Belt({
   opacity,
   info,
   onHover,
+  invert = false,
 }: {
   innerRadius: number
   outerRadius: number
@@ -746,6 +785,7 @@ function Belt({
   opacity: number
   info: import("./types").BodyInfo
   onHover: HoverHandler
+  invert?: boolean
 }) {
   const ref = useRef<Points>(null)
 
@@ -777,7 +817,8 @@ function Belt({
         <pointsMaterial
           size={pointSize}
           sizeAttenuation
-          color="#bcbcbc"
+          // Ink dust on cream; pale grey on ink — same role, opposite end of the value scale.
+          color={invert ? "#1a1208" : "#bcbcbc"}
           depthWrite={false}
           transparent
           opacity={opacity}
@@ -804,18 +845,19 @@ function Belt({
  * Planets + Sun + Orbit Rings
  * ============================================================ */
 
-function SaturnRings({ planetRadius }: { planetRadius: number }) {
+function SaturnRings({ planetRadius, invert = false }: { planetRadius: number; invert?: boolean }) {
   // Rings sit in Saturn's equatorial plane. The parent group applies the
   // 26.73° axial tilt, so rings inherit it naturally.
+  const ringColor = invert ? "#1a1208" : "#ffffff"
   return (
     <group rotation={[Math.PI / 2, 0, 0]}>
       <mesh>
         <ringGeometry args={[planetRadius * 1.45, planetRadius * 1.78, 96]} />
-        <meshBasicMaterial color="#ffffff" transparent opacity={0.35} side={DoubleSide} />
+        <meshBasicMaterial color={ringColor} transparent opacity={invert ? 0.55 : 0.35} side={DoubleSide} />
       </mesh>
       <mesh>
         <ringGeometry args={[planetRadius * 1.85, planetRadius * 2.10, 96]} />
-        <meshBasicMaterial color="#ffffff" transparent opacity={0.28} side={DoubleSide} />
+        <meshBasicMaterial color={ringColor} transparent opacity={invert ? 0.42 : 0.28} side={DoubleSide} />
       </mesh>
     </group>
   )
@@ -824,9 +866,11 @@ function SaturnRings({ planetRadius }: { planetRadius: number }) {
 function PlanetBody({
   planet,
   onHover,
+  invert = false,
 }: {
   planet: ScenePlanet
   onHover: HoverHandler
+  invert?: boolean
 }) {
   const meshRef = useRef<Mesh>(null)
   const orbitRef = useRef<Group>(null)
@@ -852,6 +896,8 @@ function PlanetBody({
             <mesh ref={meshRef}>
               <sphereGeometry args={[planet.visualRadius, 48, 48]} />
               <meshStandardMaterial
+                // Planet shades read fine on either theme — pale greys catch
+                // both ink-and-cream and white-on-black light without changes.
                 color={planet.raw.shade}
                 roughness={0.95}
                 metalness={0.0}
@@ -869,7 +915,9 @@ function PlanetBody({
               <sphereGeometry args={[hitRadius, 24, 24]} />
               <meshBasicMaterial transparent opacity={0} depthWrite={false} />
             </mesh>
-            {planet.raw.hasRings && <SaturnRings planetRadius={planet.visualRadius} />}
+            {planet.raw.hasRings && (
+              <SaturnRings planetRadius={planet.visualRadius} invert={invert} />
+            )}
           </group>
 
           {childMoons.map((m) => (
@@ -881,7 +929,15 @@ function PlanetBody({
   )
 }
 
-function OrbitRing({ radius, inclination }: { radius: number; inclination: number }) {
+function OrbitRing({
+  radius,
+  inclination,
+  invert = false,
+}: {
+  radius: number
+  inclination: number
+  invert?: boolean
+}) {
   const geometry = useMemo(() => {
     const segments = 192
     const arr = new Float32Array((segments + 1) * 3)
@@ -899,13 +955,25 @@ function OrbitRing({ radius, inclination }: { radius: number; inclination: numbe
   return (
     <group rotation={[inclination, 0, 0]}>
       <line geometry={geometry}>
-        <lineBasicMaterial color="#ffffff" transparent opacity={0.08} />
+        <lineBasicMaterial
+          // Faint hairline orbits — ink on cream needs ~6× the opacity to
+          // read at the same value as white-on-black.
+          color={invert ? "#0a0a0a" : "#ffffff"}
+          transparent
+          opacity={invert ? 0.42 : 0.08}
+        />
       </line>
     </group>
   )
 }
 
-function SolarSystem({ onHover }: { onHover: HoverHandler }) {
+function SolarSystem({
+  onHover,
+  invert = false,
+}: {
+  onHover: HoverHandler
+  invert?: boolean
+}) {
   const sunRef = useRef<Mesh>(null)
   const coronaRef = useRef<Mesh>(null)
   const scenePlanets = useMemo(buildScenePlanets, [])
@@ -922,24 +990,48 @@ function SolarSystem({ onHover }: { onHover: HoverHandler }) {
     }
   })
 
+  // Chart-mode Sun: a warm-amber disc ringed by a thin halo (like a printed
+  // sun stamp on an old star map) instead of the glowing white sphere.
+  // Lighting drops to almost ambient — planets get most of their colour from
+  // the scene's ambientLight when invert is on.
+  const sunBodyColor = invert ? "#c95824" : "#ffffff"
+  const sunEmissive = invert ? "#7a3a16" : "#ffffff"
+  const sunEmissiveIntensity = invert ? 0.0 : 1.6
+  const coronaBlending = invert ? NormalBlending : AdditiveBlending
+  const coronaInnerOpacity = invert ? 0.32 : 0.22
+  const coronaOuterOpacity = invert ? 0.14 : 0.08
+  const pointLightIntensity = invert ? 0.5 : 3.5
+
   return (
     <group>
       <mesh ref={sunRef}>
         <sphereGeometry args={[0.7, 64, 64]} />
         <meshStandardMaterial
-          color="#ffffff"
-          emissive="#ffffff"
-          emissiveIntensity={1.6}
+          color={sunBodyColor}
+          emissive={sunEmissive}
+          emissiveIntensity={sunEmissiveIntensity}
           toneMapped={false}
         />
       </mesh>
       <mesh ref={coronaRef}>
         <sphereGeometry args={[0.92, 48, 48]} />
-        <meshBasicMaterial color="#ffffff" transparent opacity={0.22} blending={AdditiveBlending} depthWrite={false} />
+        <meshBasicMaterial
+          color={invert ? "#c95824" : "#ffffff"}
+          transparent
+          opacity={coronaInnerOpacity}
+          blending={coronaBlending}
+          depthWrite={false}
+        />
       </mesh>
       <mesh>
         <sphereGeometry args={[1.3, 48, 48]} />
-        <meshBasicMaterial color="#ffffff" transparent opacity={0.08} blending={AdditiveBlending} depthWrite={false} />
+        <meshBasicMaterial
+          color={invert ? "#e5a878" : "#ffffff"}
+          transparent
+          opacity={coronaOuterOpacity}
+          blending={coronaBlending}
+          depthWrite={false}
+        />
       </mesh>
       <mesh
         onPointerOver={(e) => {
@@ -953,14 +1045,19 @@ function SolarSystem({ onHover }: { onHover: HoverHandler }) {
         <sphereGeometry args={[0.9, 32, 32]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
-      <pointLight position={[0, 0, 0]} intensity={3.5} distance={60} color="#ffffff" decay={1.3} />
+      <pointLight position={[0, 0, 0]} intensity={pointLightIntensity} distance={60} color="#ffffff" decay={1.3} />
 
       {scenePlanets.map((p) => (
-        <OrbitRing key={`orbit-${p.raw.name}`} radius={p.orbitRadius} inclination={p.inclination} />
+        <OrbitRing
+          key={`orbit-${p.raw.name}`}
+          radius={p.orbitRadius}
+          inclination={p.inclination}
+          invert={invert}
+        />
       ))}
 
       {scenePlanets.map((p) => (
-        <PlanetBody key={p.raw.name} planet={p} onHover={onHover} />
+        <PlanetBody key={p.raw.name} planet={p} onHover={onHover} invert={invert} />
       ))}
 
       {/* Asteroid Belt — 2.2–3.2 AU → sqrt × 3 → 4.45–5.37 scene units */}
@@ -974,6 +1071,7 @@ function SolarSystem({ onHover }: { onHover: HoverHandler }) {
         opacity={0.75}
         info={ASTEROID_BELT_INFO}
         onHover={onHover}
+        invert={invert}
       />
 
       {/* Kuiper Belt — 30–50 AU → 16.43–21.21 scene units */}
@@ -987,6 +1085,7 @@ function SolarSystem({ onHover }: { onHover: HoverHandler }) {
         opacity={0.5}
         info={KUIPER_BELT_INFO}
         onHover={onHover}
+        invert={invert}
       />
     </group>
   )
@@ -1036,10 +1135,10 @@ export function SceneContents({
         <MilkyWay onHover={onHover} mobile={mobile} invert={invert} />
       </group>
       <group position={SOLAR_SYSTEM_POSITION}>
-        <SolarSystem onHover={onHover} />
+        <SolarSystem onHover={onHover} invert={invert} />
       </group>
-      <Constellations onHover={onHover} onResetView={onResetView} />
-      {enableMotion && <ShootingStars count={mobile ? 3 : 6} />}
+      <Constellations onHover={onHover} onResetView={onResetView} invert={invert} />
+      {enableMotion && <ShootingStars count={mobile ? 3 : 6} invert={invert} />}
       <ambientLight intensity={invert ? 0.55 : 0.18} />
     </>
   )

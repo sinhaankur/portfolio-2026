@@ -1,0 +1,15 @@
+# .mailmap — collapse all historical commit-author identities into a single
+# canonical "Ankur Sinha". `git log`, `git shortlog`, and `git blame` honour
+# this file when displaying author names.
+#
+# Note: GitHub's web UI (contributors graph, contributors list, repo
+# insights) does NOT honour .mailmap — those read raw commit metadata. To
+# remove non-canonical authors from GitHub's display, the commit history
+# must be rewritten and force-pushed (see commit log for the cleanup pass).
+
+Ankur Sinha <14087196+sinhaankur@users.noreply.github.com>
+Ankur Sinha <14087196+sinhaankur@users.noreply.github.com> Ankur Sinha <hey@sinhaankur.com>
+Ankur Sinha <14087196+sinhaankur@users.noreply.github.com> Ankur Sinha <sinhaankur@ymail.com>
+Ankur Sinha <14087196+sinhaankur@users.noreply.github.com> Ankur Sinha <h99311@gmail.com>
+Ankur Sinha <14087196+sinhaankur@users.noreply.github.com> SS <154571640+fastandfab@users.noreply.github.com>
+Ankur Sinha <14087196+sinhaankur@users.noreply.github.com> SS <fastandfab@users.noreply.github.com>

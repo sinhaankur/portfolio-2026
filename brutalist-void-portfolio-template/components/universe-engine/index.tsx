@@ -1,6 +1,18 @@
 "use client"
 
 /**
+ * Copyright (c) 2026 Ankur Sinha. All rights reserved.
+ *
+ * The Universe Engine — its scene composition, custom GLSL shaders,
+ * constellation catalog, planet table, scale model, and HUD chrome — is
+ * the original work of Ankur Sinha and is published under the terms of
+ * the LICENSE file at the repository root. It is NOT open source and
+ * may not be redistributed, repurposed, or used as the basis for another
+ * portfolio, template, or product without prior written permission.
+ *
+ * https://github.com/sinhaankur/Portfolio/blob/main/LICENSE
+ *
+ * ---
  * Universe Engine — public entry.
  *
  * Mounts the R3F <Canvas>, wires OrbitControls + viewport/motion detection,
@@ -25,6 +37,7 @@ import { Canvas } from "@react-three/fiber"
 import { OrbitControls } from "@react-three/drei"
 import { TOUCH } from "three"
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib"
+import { useTheme } from "next-themes"
 
 import { SOLAR_SYSTEM_POSITION, SUN_OFFSET_SCENE, timeWarpRef } from "./astronomy"
 import { SceneContents } from "./scene"
@@ -41,9 +54,9 @@ export type UniverseEngineProps = {
   /** Show the music opt-in chip in the HUD cluster. Defaults to true. */
   showMusic?: boolean
   /**
-   * Future hook: render as a light "astronomical chart" (cream paper, ink stars)
-   * instead of a dark planetarium. The shader path supports this; consumer UI
-   * doesn't expose it yet.
+   * Force chart-mode rendering (ink stars on cream paper). When omitted,
+   * the engine reads the page theme via next-themes and inverts itself in
+   * light mode automatically.
    */
   invert?: boolean
 }
@@ -52,7 +65,7 @@ export function UniverseEngine({
   interactive = false,
   showHud = true,
   showMusic = true,
-  invert = false,
+  invert: invertProp,
 }: UniverseEngineProps) {
   const [mounted, setMounted] = useState(false)
   const [reducedMotion, setReducedMotion] = useState(false)
@@ -64,6 +77,11 @@ export function UniverseEngine({
   const [selectedBody, setSelectedBody] = useState<BodyInfo | null>(null)
   const [timeWarpDisplay, setTimeWarpDisplay] = useState(timeWarpRef.current)
   const orbitRef = useRef<OrbitControlsImpl | null>(null)
+  const { resolvedTheme } = useTheme()
+  // Prop override wins; otherwise the engine flips to chart mode automatically
+  // when the page theme is light. Gated on `mounted` to avoid the SSR/CSR
+  // mismatch that next-themes deliberately introduces.
+  const invert = invertProp ?? (mounted && resolvedTheme === "light")
 
   useEffect(() => {
     setMounted(true)

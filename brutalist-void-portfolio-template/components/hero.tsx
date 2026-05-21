@@ -46,12 +46,11 @@ export function Hero() {
     <section
       ref={containerRef}
       aria-labelledby="hero-name"
-      // The hero is a self-contained dark planetarium regardless of the page theme —
-      // the universe scene needs an ink backdrop to read. Scoping `dark` on the section
-      // means descendant token classes (bg-background, text-foreground, border-foreground/X)
-      // resolve to the dark palette here, while the rest of the page can be cream.
-      className="dark relative h-screen w-full overflow-hidden bg-background text-foreground"
-      style={{ colorScheme: "dark" }}
+      // Hero tracks the page theme. In dark mode it reads as the classic
+      // planetarium; in light mode the universe engine flips itself into
+      // chart mode (ink stars on cream paper, warm-amber sun, hairline orbits)
+      // via its internal theme detection.
+      className="relative h-screen w-full overflow-hidden bg-background text-foreground"
     >
       {/* Visually-hidden semantic H1 — gives screen readers a clean page title */}
       <h1 id="hero-name" className="sr-only">

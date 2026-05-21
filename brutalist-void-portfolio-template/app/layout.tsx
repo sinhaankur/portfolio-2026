@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2026 Ankur Sinha. All rights reserved.
+ * Licensed under the terms in /LICENSE — proprietary, not OSI-approved.
+ * https://github.com/sinhaankur/Portfolio/blob/main/LICENSE
+ */
+
 import type React from "react"
 import type { Metadata, Viewport } from "next"
 import { Inter, Instrument_Serif, JetBrains_Mono, Fraunces } from "next/font/google"
