@@ -115,7 +115,7 @@ export type NamedBody = {
   /** Catalog designation (e.g. "1P/Halley"). */
   designation: string
   /** Category — drives styling + hit-zone behavior. */
-  kind: "comet" | "asteroid" | "interstellar"
+  kind: "comet" | "asteroid" | "interstellar" | "spacecraft"
   /** Semi-major axis in AU. For interstellars, this is the perihelion distance. */
   aAU: number
   /** Eccentricity (0 = circular, <1 elliptical, >=1 unbound). */

@@ -381,6 +381,70 @@ export const namedBodies: NamedBody[] = [
     fact: "Second known interstellar visitor (August 2019). Unlike 'Oumuamua, Borisov was clearly a comet — visible coma and tail. Spectroscopy showed exotic chemistry hinting at an origin around a cool red-dwarf star.",
     visualRadius: 0.04,
   },
+  // ----- Active spacecraft — human-built outposts at known positions -----
+  // Orbital values here are conceptual approximations; spacecraft are
+  // rendered as gently drifting points so the user can find each one even
+  // though their real trajectories don't loop.
+  {
+    name: "Voyager 1",
+    designation: "Voyager 1 · NASA · 1977",
+    kind: "spacecraft",
+    aAU: 166,              // current heliocentric distance (mid-2025)
+    eccentricity: 1.00001,  // escape trajectory
+    inclDeg: 35.7,
+    periodYears: Infinity,
+    startPhase: 0.0,
+    fact: "Furthest human-made object — outside the heliopause as of August 2012. Still transmitting from ~166 AU on a 22.6-watt signal that takes 23 hours to reach Earth. Carrying the Golden Record toward Gliese 445 (encounter in ~40,000 years).",
+    visualRadius: 0.05,
+  },
+  {
+    name: "Voyager 2",
+    designation: "Voyager 2 · NASA · 1977",
+    kind: "spacecraft",
+    aAU: 138,
+    eccentricity: 1.00001,
+    inclDeg: -78.8,         // dove south after Neptune flyby
+    periodYears: Infinity,
+    startPhase: 0.3,
+    fact: "Only spacecraft to have flown by all four giant planets — Jupiter, Saturn, Uranus, Neptune. Crossed the heliopause November 2018, six years after Voyager 1, on the opposite side of the Sun.",
+    visualRadius: 0.05,
+  },
+  {
+    name: "New Horizons",
+    designation: "New Horizons · NASA · 2006",
+    kind: "spacecraft",
+    aAU: 62,
+    eccentricity: 1.00001,
+    inclDeg: 2.3,
+    periodYears: Infinity,
+    startPhase: 0.55,
+    fact: "Flew past Pluto in July 2015 — first close-up images of the dwarf planet ever taken. In 2019 it flew past Arrokoth, the most distant object ever visited (44 AU). Now drifting outward at 14 km/s toward the heliopause.",
+    visualRadius: 0.045,
+  },
+  {
+    name: "James Webb Space Telescope",
+    designation: "JWST · NASA / ESA / CSA · 2021",
+    kind: "spacecraft",
+    aAU: 1.01,              // ~1 AU + 1.5M km (Sun-Earth L2)
+    eccentricity: 0.0167,
+    inclDeg: 0.0,
+    periodYears: 1.0,
+    startPhase: 0.65,
+    fact: "Orbits the Sun-Earth L2 Lagrange point, 1.5 million km beyond Earth on the night side, kept cold by a tennis-court-sized sun shield. Looking deeper into the universe than any telescope before — first light January 2022.",
+    visualRadius: 0.045,
+  },
+  {
+    name: "Parker Solar Probe",
+    designation: "Parker Solar Probe · NASA · 2018",
+    kind: "spacecraft",
+    aAU: 0.39,              // semi-major axis
+    eccentricity: 0.881,     // closest approach ~0.046 AU, just 9.86 solar radii
+    inclDeg: 3.4,
+    periodYears: 0.25,
+    startPhase: 0.45,
+    fact: "Closest object ever to the Sun — perihelion of 0.046 AU (6.9 million km / 9.86 solar radii) in December 2024, dipping inside the corona at 690,000 km/h. Carbon-composite heat shield protects the cold side from 1,400 °C.",
+    visualRadius: 0.045,
+  },
 ]
 
 /* --------------------------------------------------------------------------

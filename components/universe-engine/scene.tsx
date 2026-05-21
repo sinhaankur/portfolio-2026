@@ -1362,11 +1362,14 @@ function NamedBodyMesh({
     const angularSpeed = (2 * Math.PI) / period
     const phase = body.startPhase * Math.PI * 2
 
-    // Default colours by kind: comets get a warm ice-blue, asteroids a
-    // dusty grey-brown, interstellars a sharper accent.
+    // Default colours by kind. Comets: warm ice-blue (gas+dust coma).
+    // Asteroids: dusty grey-brown. Interstellars: warm accent for the
+    // two rare visitors we have. Spacecraft: cold silver-white so they
+    // read as engineered hardware drifting through a sky of natural bodies.
     const defaultShade =
       body.kind === "comet"        ? "#9ed4ff" :
       body.kind === "asteroid"     ? "#b8a482" :
+      body.kind === "spacecraft"   ? "#e8eef5" :
       /* interstellar */              "#ffd66b"
     const shade = body.shade ?? defaultShade
 
@@ -1460,6 +1463,7 @@ function NamedBodyMesh({
               classification:
                 body.kind === "comet"        ? `Comet · ${body.designation}` :
                 body.kind === "asteroid"     ? `Asteroid · ${body.designation}` :
+                body.kind === "spacecraft"   ? `Spacecraft · ${body.designation}` :
                 /* interstellar */              `Interstellar · ${body.designation}`,
               aAU: body.aAU,
               periodDays: isFinite(body.periodYears) ? body.periodYears * 365.25 : undefined,
