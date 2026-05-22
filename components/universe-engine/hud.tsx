@@ -9,8 +9,9 @@
  * if a consumer wraps it in a light scope.
  */
 
+import { useEffect, useState } from "react"
 import type { BodyInfo } from "./types"
-import { timeWarpRef } from "./astronomy"
+import { simTimeRef, timeWarpRef } from "./astronomy"
 
 export function InfoPanel({ info }: { info: BodyInfo | null }) {
   if (!info) {
@@ -130,6 +131,47 @@ export function TimeWarpSlider({
         {value === 0 ? "PAUSED" : `${value.toFixed(2)}×`}
       </span>
     </label>
+  )
+}
+
+/**
+ * Date readout — surfaces the current simulation date.
+ *
+ * Reads from the module-scoped `simTimeRef` accumulator (advanced each
+ * frame by SceneClock) and polls at ~5 Hz, which is enough resolution
+ * for "MAR 14 · 2026" to update smoothly without re-rendering on every
+ * frame. Pairs naturally with the TimeWarpSlider: pause the slider and
+ * the date freezes; crank it to 3× and the date races forward.
+ */
+export function DateReadout() {
+  const [dateStr, setDateStr] = useState<string | null>(null)
+  useEffect(() => {
+    let cancelled = false
+    const tick = () => {
+      if (cancelled) return
+      const { days, epochMs } = simTimeRef.current
+      const d = new Date(epochMs + days * 86_400_000)
+      const month = d
+        .toLocaleString("en-US", { month: "short" })
+        .toUpperCase()
+      setDateStr(`${month} ${d.getDate()} · ${d.getFullYear()}`)
+    }
+    tick()
+    const id = setInterval(tick, 200)
+    return () => {
+      cancelled = true
+      clearInterval(id)
+    }
+  }, [])
+  return (
+    <div className="flex items-center gap-2 px-3.5 py-2.5 border border-foreground/25 rounded-full bg-background/50 backdrop-blur-sm">
+      <span className="font-mono text-[10px] tracking-[0.25em] uppercase text-foreground/70">
+        Date
+      </span>
+      <span className="font-mono text-[10px] tracking-[0.18em] uppercase text-foreground/90 tabular-nums">
+        {dateStr ?? "—"}
+      </span>
+    </div>
   )
 }
 

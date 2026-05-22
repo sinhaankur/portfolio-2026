@@ -42,6 +42,32 @@ export function Hero() {
     return () => window.removeEventListener("keydown", onKey)
   }, [interactive])
 
+  // Gesture affordance — shows once per session the first time the user
+  // enters explore mode. Auto-dismisses after 6.5s or on any pointer/wheel
+  // interaction (whichever comes first), since once you've moved the
+  // camera you don't need the prompt anymore.
+  const [gestureHintVisible, setGestureHintVisible] = useState(false)
+  useEffect(() => {
+    if (!interactive || typeof window === "undefined") return
+    if (sessionStorage.getItem("ue-gesture-seen") === "1") return
+    setGestureHintVisible(true)
+    sessionStorage.setItem("ue-gesture-seen", "1")
+    const t = setTimeout(() => setGestureHintVisible(false), 6500)
+    return () => clearTimeout(t)
+  }, [interactive])
+  useEffect(() => {
+    if (!gestureHintVisible) return
+    const el = containerRef.current
+    if (!el) return
+    const dismiss = () => setGestureHintVisible(false)
+    el.addEventListener("wheel", dismiss, { once: true, passive: true })
+    el.addEventListener("pointerdown", dismiss, { once: true })
+    return () => {
+      el.removeEventListener("wheel", dismiss)
+      el.removeEventListener("pointerdown", dismiss)
+    }
+  }, [gestureHintVisible])
+
   return (
     <section
       ref={containerRef}
@@ -115,6 +141,34 @@ export function Hero() {
           <span className="md:hidden">Tap a planet to fly · tap a comet to follow its orbit</span>
           <span className="hidden md:inline">Click a planet to fly · click a comet or spacecraft to follow its orbit</span>
         </p>
+      )}
+
+      {/* First-time gesture affordance — three explicit verbs (drag /
+          scroll / click) so a new visitor doesn't have to discover the
+          universe is interactive on their own. Shown once per session,
+          dismissed automatically on first pointer/wheel interaction. */}
+      {interactive && gestureHintVisible && (
+        <div
+          className="absolute bottom-52 md:bottom-36 left-1/2 -translate-x-1/2 z-20 pointer-events-none"
+          style={{ animation: "ue-label-in 420ms ease-out both" }}
+        >
+          <div className="flex items-center gap-3 md:gap-4 px-4 py-2 rounded-full border border-foreground/25 bg-background/65 backdrop-blur-sm">
+            <span className="flex items-center gap-1.5 font-mono text-[10px] tracking-[0.22em] uppercase text-foreground/80">
+              <span aria-hidden="true" className="text-accent text-[12px] leading-none">↻</span>
+              Drag
+            </span>
+            <span aria-hidden="true" className="text-foreground/30">·</span>
+            <span className="flex items-center gap-1.5 font-mono text-[10px] tracking-[0.22em] uppercase text-foreground/80">
+              <span aria-hidden="true" className="text-accent text-[12px] leading-none">⇅</span>
+              Scroll
+            </span>
+            <span aria-hidden="true" className="text-foreground/30">·</span>
+            <span className="flex items-center gap-1.5 font-mono text-[10px] tracking-[0.22em] uppercase text-foreground/80">
+              <span aria-hidden="true" className="text-accent text-[12px] leading-none">✺</span>
+              Click
+            </span>
+          </div>
+        </div>
       )}
 
       {/* Typography Overlay — pointer-events disabled on the wrapper so drag passes through to the canvas.

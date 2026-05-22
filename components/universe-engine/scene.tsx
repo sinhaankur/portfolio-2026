@@ -62,6 +62,7 @@ import {
   requestFlyTo,
   requestFollow,
   schwarzschildRadiusMeters,
+  simTimeRef,
   skyPoints,
   timeWarpRef,
 } from "./astronomy"
@@ -197,31 +198,60 @@ function FlyToController({ interactive }: { interactive: boolean }) {
 
     controls.target.lerp(_flyTargetVec, k)
 
-    // Move the camera along the existing target→camera ray so the user's
-    // viewing angle is preserved — only distance changes during a fly.
-    _flyCamDir.copy(camera.position).sub(controls.target)
-    const currentDist = _flyCamDir.length()
-    if (currentDist < 1e-4) {
-      // Degenerate case (camera on top of target) — pick a default look-up.
-      _flyCamDir.set(0.6, 0.4, 1).normalize()
+    let arrivedCamera = false
+    let nextDist: number
+
+    if (state.cameraPos) {
+      // Narrative-vantage mode — lerp the camera toward a *specific*
+      // world point instead of along the existing ray. Used by waypoints
+      // like Pale Blue Dot where the camera angle is itself the story.
+      _flyDesiredCamPos.set(state.cameraPos.x, state.cameraPos.y, state.cameraPos.z)
+      camera.position.lerp(_flyDesiredCamPos, k)
+      nextDist = camera.position.distanceTo(controls.target)
+      arrivedCamera = camera.position.distanceTo(_flyDesiredCamPos) < 0.5
     } else {
-      _flyCamDir.normalize()
+      // Default mode — move along the existing target→camera ray so the
+      // user's viewing angle is preserved; only distance changes.
+      _flyCamDir.copy(camera.position).sub(controls.target)
+      const currentDist = _flyCamDir.length()
+      if (currentDist < 1e-4) {
+        // Degenerate case (camera on top of target) — pick a default look-up.
+        _flyCamDir.set(0.6, 0.4, 1).normalize()
+      } else {
+        _flyCamDir.normalize()
+      }
+      nextDist = currentDist + (state.distance - currentDist) * k
+      _flyDesiredCamPos.copy(controls.target).addScaledVector(_flyCamDir, nextDist)
+      camera.position.copy(_flyDesiredCamPos)
+      const distErr = Math.abs(nextDist - state.distance) / Math.max(state.distance, 0.001)
+      arrivedCamera = distErr < 0.04
     }
-    const nextDist = currentDist + (state.distance - currentDist) * k
-    _flyDesiredCamPos.copy(controls.target).addScaledVector(_flyCamDir, nextDist)
-    camera.position.copy(_flyDesiredCamPos)
 
     controls.update()
 
-    // Arrival check — both target and distance within tolerance.
+    // Arrival check — both target lerp and camera lerp converged.
     const targetErr = controls.target.distanceTo(_flyTargetVec)
-    const distErr = Math.abs(nextDist - state.distance) / Math.max(state.distance, 0.001)
-    if (targetErr < 0.08 && distErr < 0.04) {
+    if (targetErr < 0.08 && arrivedCamera) {
       controls.target.copy(_flyTargetVec)
       state.active = false
     }
   })
 
+  return null
+}
+
+/* ============================================================
+ * SceneClock — advances the simulation-time accumulator each
+ * frame using the same scaling every orbiting body uses. The
+ * HUD's date readout reads from this so what it displays is
+ * the same instant the planets are at; pausing the time-warp
+ * slider freezes both at once.
+ * ============================================================ */
+
+function SceneClock() {
+  useFrame((_, delta) => {
+    simTimeRef.current.days += delta * TIME_WARP_DAYS_PER_SEC * timeWarpRef.current
+  })
   return null
 }
 
@@ -3223,6 +3253,7 @@ export function SceneContents({
   return (
     <>
       <FlyToController interactive={interactive} />
+      <SceneClock />
       {/* drei <Stars> is white-only / additive. Drop it in inverted mode and
           let the MilkyWay points carry the field as ink-on-paper instead. */}
       {!invert && (

@@ -241,6 +241,20 @@
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+/* Universe engine — engine fade-in on mount. Smooths the handoff from the
+   StaticStarfield loading fallback to the live R3F scene so the engine
+   appears intentional rather than "the heavy thing finally loaded." */
+@keyframes ue-engine-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.ue-engine-fade-in {
+  animation: ue-engine-fade-in 700ms ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ue-engine-fade-in { animation: none; opacity: 1; }
+}
+
 /* Marquee animation */
 @keyframes marquee-left {
   from {
