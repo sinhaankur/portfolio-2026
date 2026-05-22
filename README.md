@@ -76,11 +76,11 @@ fallback only; the live site no longer routes through Netlify.
 
 ## License & use
 
-**All rights reserved. Copyright (c) 2026 Ankur Sinha.**
+**Personal Portfolio License. Copyright (c) 2026 Ankur Sinha. All rights reserved.**
 
-This is **not** open-source software. The repository is published for
-transparency and portfolio review, not as a starter template or reusable
-library.
+This is a **personal-use license**, not open-source software. The
+repository is published for portfolio review, transparency, and
+personal study — not as a starter template or reusable library.
 
 - You **may** read the source, fork the repo on GitHub to study it, and
   reference techniques in your own original work with attribution.

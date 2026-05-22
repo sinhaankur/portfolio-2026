@@ -1,21 +1,29 @@
+PERSONAL PORTFOLIO LICENSE
+==========================
+
 Copyright (c) 2026 Ankur Sinha. All rights reserved.
 
-This repository contains the source code, content, and creative materials
-for the personal portfolio of Ankur Sinha, published at
+This is a personal-use license, not an open-source license. The
+repository is published for portfolio review, transparency, and personal
+study only. No general right to reuse, redistribute, or build on this
+work is granted — every permission below is a narrow exception to a
+default of "all rights reserved."
+
+This repository contains the source code, content, and creative
+materials for the personal portfolio of Ankur Sinha, published at
 https://www.sinhaankur.com.
 
 The code, written copy, case-study text, visual design, brand mark,
-illustrations, photographs, motion behavior, and other original creative
-materials in this repository are the exclusive intellectual property of
-Ankur Sinha unless otherwise noted in this file.
-
-This work is made public for transparency, portfolio review, and reference.
-It is NOT open source under an OSI-approved license.
+illustrations, photographs, motion behavior, and other original
+creative materials in this repository are the exclusive intellectual
+property of Ankur Sinha unless otherwise noted in this file.
 
 YOU MAY, WITHOUT PERMISSION:
 
-  - View, read, and study the source code on GitHub
-  - Fork the repository on GitHub for the purpose of reading or learning
+  - View, read, and study the source code on GitHub for personal,
+    non-commercial purposes
+  - Fork the repository on GitHub for the sole purpose of reading or
+    learning — not for hosting, deploying, or republishing
   - Reference specific patterns, techniques, or ideas in your own
     original work, with attribution where appropriate
   - Quote short excerpts (one or two sentences) of case-study text for
@@ -26,7 +34,8 @@ YOU MAY NOT, WITHOUT PRIOR WRITTEN PERMISSION FROM ANKUR SINHA:
 
   - Republish, redistribute, host, or deploy this site (in whole or in
     substantial part) under any domain, name, or attribution other than
-    Ankur Sinha's own
+    Ankur Sinha's own — including personal portfolios, "inspired by"
+    rebuilds, and template marketplaces
   - Use the visual design, brand mark, copy, case-study content, or
     overall composition as the foundation of another personal portfolio,
     commercial product, template, theme, or starter project
