@@ -39,9 +39,18 @@ import { TOUCH } from "three"
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib"
 import { useTheme } from "next-themes"
 
-import { SOLAR_SYSTEM_POSITION, SUN_OFFSET_SCENE, timeWarpRef } from "./astronomy"
+import {
+  DEFAULT_JOURNEY,
+  SOLAR_SYSTEM_POSITION,
+  SUN_OFFSET_SCENE,
+  cancelFlyTo,
+  cancelFollow,
+  followRef,
+  requestFlyTo,
+  timeWarpRef,
+} from "./astronomy"
 import { SceneContents } from "./scene"
-import { DestinationsMenu, InfoPanel, ResetViewButton, TimeWarpSlider } from "./hud"
+import { InfoPanel, ResetViewButton, TimeWarpSlider } from "./hud"
 import { MobileBodySheet } from "./mobile-sheet"
 import { GalaxyMusic } from "../galaxy-music"
 import type { BodyInfo, HoverHandler } from "./types"
@@ -116,9 +125,68 @@ export function UniverseEngine({
     }
   }, [])
   const handleReset = useCallback(() => {
+    // Cancel any sustained follow first; otherwise the controller would
+    // immediately re-target the followed body and undo the reset.
+    cancelFollow()
+    cancelFlyTo()
     orbitRef.current?.reset()
+    // Broadcast a sky-focus clear so any persistent detail blooms (galaxy
+    // spiral, nebula reveal) collapse back to their idle halos.
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("universe:sky-focus", { detail: { pointId: null } }),
+      )
+    }
   }, [])
   const dismissSheet = useCallback(() => setSelectedBody(null), [])
+
+  // Following-mode banner. Polls the module-scoped followRef on a 200ms
+  // interval — cheap enough vs. re-rendering on every frame, fresh enough
+  // that the banner appears/disappears in step with the user's actions.
+  const [followingLabel, setFollowingLabel] = useState<string | null>(null)
+  useEffect(() => {
+    const tick = () => setFollowingLabel(followRef.current?.label ?? null)
+    tick()
+    const id = setInterval(tick, 200)
+    return () => clearInterval(id)
+  }, [])
+  const stopFollowing = useCallback(() => {
+    cancelFollow()
+    setFollowingLabel(null)
+  }, [])
+
+  // Default journey — auto-cycles canonical sights while the user hasn't
+  // entered explore mode. When `interactive` flips true the journey
+  // cleans up and the in-flight fly-to is cancelled so the camera stops
+  // moving and hands control to the user.
+  useEffect(() => {
+    if (interactive) {
+      cancelFlyTo()
+      return
+    }
+    if (reducedMotion) return
+
+    let cancelled = false
+    let i = 0
+    let timer: ReturnType<typeof setTimeout> | null = null
+
+    const tick = () => {
+      if (cancelled) return
+      const wp = DEFAULT_JOURNEY[i]
+      requestFlyTo(wp.target, wp.distance, wp.label)
+      i = (i + 1) % DEFAULT_JOURNEY.length
+      timer = setTimeout(tick, wp.linger)
+    }
+
+    // Initial delay so the page can paint + the user can read the hero
+    // typography before the camera starts to move.
+    timer = setTimeout(tick, 3500)
+
+    return () => {
+      cancelled = true
+      if (timer) clearTimeout(timer)
+    }
+  }, [interactive, reducedMotion])
 
   if (!mounted) {
     return (
@@ -184,28 +252,50 @@ export function UniverseEngine({
             </div>
           )}
 
-          {/* HUD cluster — mobile lifts it to bottom-24 so the music chip
-              clears the Upcoming badge that sits in the same corner at
-              bottom-6. Desktop keeps the tight bottom-8 anchor. */}
-          <div className="absolute bottom-24 right-6 md:bottom-8 md:right-12 z-30 pointer-events-auto flex flex-col items-end gap-2">
-            {showMusic && <GalaxyMusic />}
+          {/* HUD cluster — horizontal row, anchored bottom-right alongside
+              UPCOMING (which lives at bottom-6 right-6). The previous stacked
+              layout placed the music chip at bottom-24+, which on shorter
+              viewports collided with the "INTERACTION" italic baseline. Sitting
+              on the same baseline as UPCOMING keeps the chip out of the
+              typography zone entirely, with a horizontal gap to UPCOMING. */}
+          <div className="absolute bottom-6 right-44 md:right-56 z-30 pointer-events-auto flex flex-row items-center gap-2">
             {/* Time-warp slider stays desktop-only — the pill is too wide on
-                phones, it collides with the hero typography and CTA. Touch
-                users still get pinch-zoom + drag + tap-to-explore. */}
+                phones, it would push the cluster into UPCOMING. Touch users
+                still get pinch-zoom + drag + tap-to-explore. */}
             <div className="hidden md:block">
               <TimeWarpSlider value={timeWarpDisplay} onChange={setTimeWarpDisplay} />
             </div>
+            {showMusic && <GalaxyMusic />}
           </div>
 
           {interactive && <ResetViewButton onClick={handleReset} />}
 
-          {/* Destinations dropdown — bottom-left, explore-mode only. Mobile
-              sits above the Enter Work CTA (bottom-12 left-8) and below the
-              typography wrapper (pb-44). Desktop sits between Enter Work
-              (bottom-20) and the InfoPanel slot (bottom-52). */}
-          {interactive && (
+          {/* Following indicator — only when follow mode is active. Same
+              bottom-left slot the destinations menu used to live in. Click
+              the chip to stop following; Reset (top-right) also clears it. */}
+          {interactive && followingLabel && (
             <div className="absolute bottom-32 left-6 md:bottom-32 md:left-12 z-30 pointer-events-auto">
-              <DestinationsMenu />
+              <button
+                type="button"
+                onClick={stopFollowing}
+                aria-label={`Stop following ${followingLabel}`}
+                className="
+                  inline-flex items-center gap-2 px-3 py-1.5
+                  border border-accent/60 rounded-full
+                  bg-background/70 backdrop-blur-sm
+                  font-mono text-[10px] tracking-[0.25em] uppercase
+                  text-foreground hover:border-accent
+                  transition-colors duration-300
+                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+                "
+              >
+                <span aria-hidden="true" className="relative flex h-1.5 w-1.5">
+                  <span className="motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent" />
+                </span>
+                Following · {followingLabel}
+                <span aria-hidden="true" className="text-foreground/60 ml-1">×</span>
+              </button>
             </div>
           )}
 

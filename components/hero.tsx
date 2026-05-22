@@ -112,8 +112,8 @@ export function Hero() {
           users a way to actually fly to bodies. */}
       {interactive && (
         <p className="absolute bottom-36 md:bottom-24 left-1/2 -translate-x-1/2 z-20 font-mono text-[10px] tracking-[0.25em] uppercase text-foreground/55 pointer-events-none whitespace-nowrap">
-          <span className="md:hidden">Drag · pinch · tap a body to fly</span>
-          <span className="hidden md:inline">Drag · scroll · click a body to fly · arrows to pan</span>
+          <span className="md:hidden">Tap a body to fly · double-tap a comet to follow</span>
+          <span className="hidden md:inline">Click a body to fly · double-click a comet to follow its orbit</span>
         </p>
       )}
 

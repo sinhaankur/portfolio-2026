@@ -95,6 +95,10 @@ export function requestFlyTo(
   distance: number,
   label?: string,
 ) {
+  // Any new fly-to cancels an active follow — they're mutually exclusive
+  // modes. The follow stays sticky until the user takes a deliberate
+  // action that hands the camera back to a fixed target.
+  followRef.current = null
   flyToRef.current.target.x = target.x
   flyToRef.current.target.y = target.y
   flyToRef.current.target.z = target.z
@@ -103,73 +107,106 @@ export function requestFlyTo(
   flyToRef.current.label = label
 }
 
-/**
- * Canonical destinations — surfaced in the HUD as quick-jump shortcuts. Each
- * entry resolves to a fixed scene-space target (no time-warp tracking for
- * orbiting bodies; we snap to a stationary point near the body's average
- * position so the user lands somewhere sensible regardless of phase).
- */
-export type Destination = {
-  id: string
-  label: string
-  hint: string
-  target: { x: number; y: number; z: number }
-  distance: number
+/* --------------------------------------------------------------------------
+ * Follow controller
+ *
+ * Sustained tracking of a moving body — currently used by comets, where
+ * double-clicking the comet locks the camera onto its orbital path and
+ * follows it as it sweeps through perihelion. The FlyToController reads
+ * this ref each frame; when set, it overrides the static fly-to target
+ * with the body's current world position.
+ *
+ * The follower is a getter function so callers (NamedBodyMesh) can pass a
+ * closure over their own group ref — the ref is read once per frame and
+ * gives an always-current world position without needing to plumb a body
+ * id through the controller.
+ *
+ * Cleared by: requestFlyTo (any new fly cancels follow), explicit
+ * cancelFollow() call, or the engine's reset handler.
+ * ------------------------------------------------------------------------ */
+
+export type FollowGetter = () => { x: number; y: number; z: number } | null
+
+export const followRef: {
+  current: { getter: FollowGetter; distance: number; label?: string } | null
+} = { current: null }
+
+/** Request follow mode. Cancels any in-flight fly-to. */
+export function requestFollow(getter: FollowGetter, distance: number, label?: string) {
+  flyToRef.current.active = false
+  followRef.current = { getter, distance, label }
 }
 
-export const DESTINATIONS: Destination[] = [
-  // The default-view homecoming. Mirrors the initial camera framing.
+/** Cancel follow mode (called by reset, by a new fly, by Esc / explore toggle). */
+export function cancelFollow() {
+  followRef.current = null
+}
+
+/** Cancel any active fly-to. Called when the user takes over via explore mode. */
+export function cancelFlyTo() {
+  flyToRef.current.active = false
+}
+
+/* --------------------------------------------------------------------------
+ * Default journey
+ *
+ * Plays automatically while the user hasn't entered explore mode. The
+ * camera moves through a small loop of canonical sights — opens with a
+ * solar-system overview, then visits Saturn → galactic centre → Andromeda
+ * → Orion Nebula → back to open view. Loops until the user clicks "Tap
+ * to explore," at which point the journey stops and the user has the
+ * controls. Respects prefers-reduced-motion (skipped if true).
+ *
+ * Linger values include the fly-in animation (~1s) plus the dwell time
+ * at the target. Tuned to feel unhurried — each scene gets ~5s to read.
+ * ------------------------------------------------------------------------ */
+
+export type JourneyWaypoint = {
+  target: { x: number; y: number; z: number }
+  distance: number
+  label?: string
+  /** ms to linger before flying to the next waypoint. */
+  linger: number
+}
+
+export const DEFAULT_JOURNEY: JourneyWaypoint[] = [
   {
-    id: "home",
-    label: "Default view",
-    hint: "Reset to the opening framing",
-    target: { x: SUN_OFFSET_SCENE, y: 0, z: 0 },
-    distance: 13,
+    target: { x: SUN_OFFSET_SCENE, y: 4, z: 9 },
+    distance: 14,
+    label: "Open view",
+    linger: 6500,
   },
   {
-    id: "sun",
-    label: "The Sun",
-    hint: "Solar surface · corona",
-    target: { x: SUN_OFFSET_SCENE, y: 0, z: 0 },
-    distance: 3.2,
-  },
-  // Saturn — the showpiece. Park ~7 AU from the Sun (scene units = sqrt(9.537)*3 ≈ 9.27)
-  // and a little above the ecliptic so the rings catch light.
-  {
-    id: "saturn",
-    label: "Saturn",
-    hint: "Rings + Titan",
+    // Saturn — Park ~9.27 scene units from the Sun, slightly above the
+    // ecliptic so the rings catch the camera at an interesting angle.
     target: { x: SUN_OFFSET_SCENE + 9.27, y: 0.35, z: 0 },
-    distance: 1.8,
+    distance: 2.2,
+    label: "Saturn",
+    linger: 6500,
   },
-  // Sgr A* — galactic centre. Lives at origin of the MilkyWay group, which
-  // sits inside a 60.2° X-axis rotation. Sample point matches.
   {
-    id: "sgr-a",
-    label: "Sagittarius A*",
-    hint: "Galactic centre",
+    // Galactic centre (Sgr A*) — origin of the MilkyWay group.
     target: { x: 0, y: 0, z: 0 },
     distance: 38,
+    label: "Galactic centre",
+    linger: 6500,
   },
-  // Andromeda Galaxy — projected onto the sky-shell around the Sun.
-  // raHours 0.712, decDeg 41.27. Pre-computed here so the HUD doesn't have
-  // to pull raDecToScenePos.
   {
-    id: "m31",
-    label: "Andromeda",
-    hint: "M31 · 2.5 Mly away",
+    // Andromeda (M31) — projected onto the sky-shell around the Sun.
     target: { x: SUN_OFFSET_SCENE + 102.2, y: 99.0, z: 16.9 },
     distance: 22,
+    label: "Andromeda",
+    linger: 7000,
   },
-  // Orion Nebula. raHours 5.588, decDeg -5.39 → projected onto sky shell.
   {
-    id: "m42",
-    label: "Orion Nebula",
-    hint: "M42 · Trapezium reveal on focus",
+    // Orion Nebula (M42) — projected onto the sky-shell around the Sun.
     target: { x: SUN_OFFSET_SCENE - 53.1, y: -14.1, z: -138.5 },
     distance: 14,
+    label: "Orion Nebula",
+    linger: 7000,
   },
 ]
+
 
 /* --------------------------------------------------------------------------
  * Info records — surface on hover
