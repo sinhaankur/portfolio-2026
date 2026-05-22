@@ -1,6 +1,13 @@
 "use client"
 
 import { motion, useReducedMotion } from "framer-motion"
+import {
+  DialGlyph,
+  PrototypeGlyph,
+  ReversibleGlyph,
+  SeamGlyph,
+} from "./principle-glyphs"
+import type { ComponentType } from "react"
 
 /**
  * Philosophy section — was a horizontal marquee of single-line statements
@@ -23,6 +30,10 @@ type Principle = {
   title: string
   body: string
   appliedIn: string
+  /** Per-principle line-art glyph — sits in the number column.
+   *  Encodes the *idea*, not a generic icon: the seam, the dial,
+   *  the reversibility axis, the prototype viewport. */
+  Glyph: ComponentType<{ className?: string }>
 }
 
 const principles: Principle[] = [
@@ -32,6 +43,7 @@ const principles: Principle[] = [
     body:
       "The moment of decision, override, and trust — where a human meets an AI agent — that's the surface I work on. Not the model, not the wrapper. The seam.",
     appliedIn: "Helm · Sentinel · Recourse · Unhosted",
+    Glyph: SeamGlyph,
   },
   {
     number: "02",
@@ -39,6 +51,7 @@ const principles: Principle[] = [
     body:
       "An AI's claim is only trustworthy if you can read how sure it is — and the basis must be checkable. Confidence without calibration is a lie with a UI on top.",
     appliedIn: "Helm's approval gate · Sentinel's diff view",
+    Glyph: DialGlyph,
   },
   {
     number: "03",
@@ -46,6 +59,7 @@ const principles: Principle[] = [
     body:
       "Not \"safety\" — that's a category, not a control. The right question is: can the human undo what the agent just did, within how many seconds? That's the real surface area.",
     appliedIn: "Helm's reversibility chip · Recourse's audit trail",
+    Glyph: ReversibleGlyph,
   },
   {
     number: "04",
@@ -53,6 +67,7 @@ const principles: Principle[] = [
     body:
       "I write my own code because a prototype is the only design document that can't be ignored. Ship the argument, then defend it in production.",
     appliedIn: "Every Lab project · every case study",
+    Glyph: PrototypeGlyph,
   },
 ]
 
@@ -107,7 +122,9 @@ export function About() {
           {principles.map((p, i) => (
             <motion.li key={p.number} {...fadeUp(i)} className="group">
               <div className="grid grid-cols-[3.5rem_1fr] md:grid-cols-[6rem_1fr] gap-4 md:gap-10 items-start">
-                {/* Number + tick mark */}
+                {/* Number + tick mark + per-principle glyph. The glyph
+                    visualises the *idea* (seam, dial, reversibility axis,
+                    prototype viewport) — not a generic decorative icon. */}
                 <div className="pt-2 md:pt-3">
                   <div className="flex items-center gap-2">
                     <span aria-hidden="true" className="block w-3 h-px bg-accent shrink-0" />
@@ -115,6 +132,13 @@ export function About() {
                       {p.number}
                     </span>
                   </div>
+                  <p.Glyph
+                    className="
+                      mt-3 md:mt-4 w-9 md:w-12 h-9 md:h-12
+                      text-foreground/55 group-hover:text-accent
+                      transition-colors duration-500
+                    "
+                  />
                 </div>
 
                 {/* Claim + warrant + applied */}

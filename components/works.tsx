@@ -128,8 +128,18 @@ export function Works() {
           </p>
         </motion.div>
 
-        {/* Timeline */}
-        <ol className="border-t border-border">
+        {/* Timeline — desktop adds a vertical rail with a year-marker dot
+            per role on the right edge of the period column. The rail
+            visualises the 12+ years as a continuous spine instead of a
+            stack of independent rows. */}
+        <ol className="border-t border-border md:relative">
+          {/* Vertical rail — sits at the column boundary on md+. Hidden on
+              mobile because the layout collapses to single column there. */}
+          <div
+            aria-hidden="true"
+            className="hidden md:block absolute top-0 bottom-0 w-px bg-border"
+            style={{ left: "10rem" }}
+          />
           {timeline.map((entry, index) => (
             <motion.li
               key={entry.company}
@@ -141,7 +151,7 @@ export function Works() {
               onMouseLeave={() => setHoveredIndex(null)}
               onFocus={() => setHoveredIndex(index)}
               onBlur={() => setHoveredIndex(null)}
-              className="border-b border-border"
+              className="border-b border-border md:relative"
             >
               <Link
                 href={entry.href!}
@@ -154,19 +164,40 @@ export function Works() {
                   rounded-md
                 "
               >
+                {/* Rail marker — a year dot sitting on the rail, aligned to
+                    each role's row. Currently-active roles get the pulsing
+                    accent treatment; past roles get a quiet border-only dot. */}
+                <div
+                  aria-hidden="true"
+                  className="hidden md:block absolute"
+                  style={{ left: "calc(10rem - 5px)", top: "2.5rem" }}
+                >
+                  {entry.current ? (
+                    <span className="relative flex h-2.5 w-2.5">
+                      <span className="motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75" />
+                      <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-accent border-2 border-background" />
+                    </span>
+                  ) : (
+                    <span className="block h-2.5 w-2.5 rounded-full bg-background border border-foreground/40 group-hover:border-accent transition-colors duration-300" />
+                  )}
+                </div>
+
                 <div className="grid gap-3 md:grid-cols-[10rem_1fr] md:gap-10 md:items-start">
                   {/* Period column — currently-active roles get a pulsing
-                      accent dot prefix so the "Present" date doesn't have
-                      to carry that signal alone. */}
-                  <div className="font-mono text-xs tracking-widest text-muted-foreground pt-2 md:pt-3">
+                      accent dot prefix on mobile (where the rail is hidden);
+                      desktop reads the rail-mounted dot instead. */}
+                  <div className="font-mono text-xs tracking-widest text-muted-foreground pt-2 md:pt-3 md:pr-8">
                     {entry.current && (
-                      <p className="inline-flex items-center gap-1.5 text-accent mb-1.5">
+                      <p className="inline-flex items-center gap-1.5 text-accent mb-1.5 md:hidden">
                         <span className="relative flex h-1.5 w-1.5" aria-hidden="true">
                           <span className="motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75" />
                           <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent" />
                         </span>
                         Currently
                       </p>
+                    )}
+                    {entry.current && (
+                      <p className="hidden md:block text-accent mb-1.5">Currently</p>
                     )}
                     <p>{entry.period}</p>
                     <p className="mt-1 text-muted-foreground/65">{entry.duration}</p>

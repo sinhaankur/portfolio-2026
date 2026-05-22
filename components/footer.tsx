@@ -43,6 +43,27 @@ export function Footer() {
             <p className="font-mono text-xs tracking-[0.3em] text-muted-foreground mb-4">
               08 — CONTACT
             </p>
+            {/* Small celestial-atlas line-art mark — a paper plane arcing
+                across a horizon line. Encodes "outgoing message" + ties
+                back to the universe engine's line-art hand. */}
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 80 40"
+              className="mb-6 w-16 h-8 text-accent/70"
+              stroke="currentColor"
+              strokeWidth="1.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              fill="none"
+            >
+              {/* Horizon — a thin baseline */}
+              <line x1="2" y1="34" x2="78" y2="34" strokeDasharray="1.5 2.5" />
+              {/* Paper plane — folded triangle with a fold-crease */}
+              <polygon points="32,8 60,22 38,26" />
+              <line x1="32" y1="8" x2="38" y2="26" />
+              {/* Arc trailing behind the plane */}
+              <path d="M 8 30 Q 18 24 30 22" strokeDasharray="2 2.5" />
+            </svg>
             <h2
               id="contact-heading"
               className="font-display text-3xl md:text-5xl lg:text-6xl font-light tracking-[-0.01em] text-foreground"

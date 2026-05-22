@@ -105,7 +105,7 @@ export function Usability() {
                 In the guide
               </p>
             </div>
-            <ul className="space-y-3 mb-10">
+            <ul className="space-y-3 mb-8">
               {topics.map((topic, i) => (
                 <li
                   key={topic}
@@ -120,6 +120,42 @@ export function Usability() {
                 </li>
               ))}
             </ul>
+
+            {/* Sample verdict preview — three mini-rows showing what an
+                audit verdict looks like. Makes "litmus test" concrete:
+                blocker (red dot) / major (amber) / minor (muted) with
+                checkmark / cross / dash for pass / fail / n.a. */}
+            <div
+              aria-label="Sample audit output preview"
+              className="mb-10 border border-border rounded-md bg-secondary/30 p-4"
+            >
+              <p className="font-mono text-[9px] tracking-[0.3em] uppercase text-muted-foreground mb-3">
+                Sample verdict
+              </p>
+              <ul className="space-y-2">
+                <li className="grid grid-cols-[10px_1fr_18px] items-center gap-3">
+                  <span aria-hidden="true" className="h-2 w-2 rounded-full bg-red-500/80" />
+                  <span className="font-mono text-[11px] tracking-wider text-foreground/85">
+                    Visibility of status
+                  </span>
+                  <span aria-label="Fail" className="font-mono text-xs text-red-500/90">×</span>
+                </li>
+                <li className="grid grid-cols-[10px_1fr_18px] items-center gap-3">
+                  <span aria-hidden="true" className="h-2 w-2 rounded-full bg-amber-500/80" />
+                  <span className="font-mono text-[11px] tracking-wider text-foreground/85">
+                    Recognition over recall
+                  </span>
+                  <span aria-label="Pass" className="font-mono text-xs text-emerald-500/90">✓</span>
+                </li>
+                <li className="grid grid-cols-[10px_1fr_18px] items-center gap-3">
+                  <span aria-hidden="true" className="h-2 w-2 rounded-full bg-muted-foreground/60" />
+                  <span className="font-mono text-[11px] tracking-wider text-foreground/70">
+                    Help &amp; documentation
+                  </span>
+                  <span aria-label="Not applicable" className="font-mono text-xs text-muted-foreground/70">—</span>
+                </li>
+              </ul>
+            </div>
 
             <Link
               href="/usability"

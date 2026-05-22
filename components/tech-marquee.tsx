@@ -18,34 +18,52 @@
  */
 
 import { motion } from "framer-motion"
+import {
+  AIGlyph,
+  DesignGlyph,
+  FrontendGlyph,
+  LanguagesGlyph,
+  NativeGlyph,
+} from "./stack-glyphs"
+import type { ComponentType } from "react"
 
-type StackGroup = { label: string; items: string[]; description?: string }
+type StackGroup = {
+  label: string
+  items: string[]
+  description?: string
+  Glyph: ComponentType<{ className?: string }>
+}
 
 const stack: StackGroup[] = [
   {
     label: "Frontend",
     description: "Where most of the prototyping happens.",
     items: ["React 19", "TypeScript", "Next.js", "Tailwind v4", "Framer Motion", "Three.js"],
+    Glyph: FrontendGlyph,
   },
   {
     label: "Native",
     description: "When the surface needs to feel native.",
     items: ["SwiftUI", "Jetpack Compose", "Tauri", "Electron"],
+    Glyph: NativeGlyph,
   },
   {
     label: "Languages",
     description: "What I write directly — not via Copilot.",
     items: ["TypeScript", "Python", "Rust", "Go", "Swift", "Kotlin"],
+    Glyph: LanguagesGlyph,
   },
   {
     label: "AI & runtime",
     description: "Where the agent-side of the interface lives.",
     items: ["Claude", "Anthropic SDK", "MCP", "llama.cpp", "Ollama", "On-device AI"],
+    Glyph: AIGlyph,
   },
   {
     label: "Design",
     description: "Specs and tokens, when the prototype isn't enough.",
     items: ["Figma", "FigJam", "Storybook", "Token Studio"],
+    Glyph: DesignGlyph,
   },
 ]
 
@@ -100,8 +118,18 @@ export function TechMarquee() {
                     {group.label}
                   </span>
                 </div>
+                {/* Per-category glyph — same line-art hand as the principle
+                    glyphs in section 03. Encodes the category's job (markup,
+                    device shell, code tokens, agent graph, design surface). */}
+                <group.Glyph
+                  className="
+                    mt-3 w-8 h-8 md:w-9 md:h-9
+                    text-foreground/45
+                    transition-colors duration-500
+                  "
+                />
                 {group.description && (
-                  <p className="mt-2 font-sans text-xs md:text-sm text-muted-foreground leading-snug max-w-xs">
+                  <p className="mt-3 font-sans text-xs md:text-sm text-muted-foreground leading-snug max-w-xs">
                     {group.description}
                   </p>
                 )}
