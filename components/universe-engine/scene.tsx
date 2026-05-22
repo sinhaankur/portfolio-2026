@@ -2594,6 +2594,17 @@ function NamedBodyMesh({
    *  matching real solar-wind sublimation. */
   const tailMeshRef = useRef<Mesh>(null)
   const tailMatRef = useRef<import("three").MeshBasicMaterial>(null)
+  /** Motion trail — ring buffer of recent positions rendered as fading
+   *  particles behind the body. Makes orbital movement legible at any
+   *  time-warp (the body itself moves slowly in any given second; the
+   *  trail makes that motion visible by streaking the recent path). */
+  const motionTrailRef = useRef<{
+    positions: Float32Array
+    colors: Float32Array
+    ages: Float32Array
+    geometry: BufferGeometry
+    nextIdx: number
+  } | null>(null)
   /** Trail material — opacity lerps with hover state so the static orbit
    *  paths don't pile up at crossings (the no-collisions rule). */
   const trailMatRef = useRef<import("three").PointsMaterial>(null)
@@ -2641,8 +2652,41 @@ function NamedBodyMesh({
     // Tail flag — comets get coma + tail. Borisov was interstellar but
     // clearly a comet by appearance (visible coma + tail), so flag it too.
     const hasTail = body.kind === "comet" || body.name === "Comet Borisov"
-    return { a, e, inclination, longNode, argPeri, visualRadius, angularSpeed, phase, shade, isLoop: isFinite(body.periodYears), hasTail }
+    // Pre-parsed RGB for the motion-trail particle colour, in 0..1 range.
+    const shadeRgb = (() => {
+      const hex = shade.replace("#", "")
+      return {
+        r: parseInt(hex.slice(0, 2), 16) / 255,
+        g: parseInt(hex.slice(2, 4), 16) / 255,
+        b: parseInt(hex.slice(4, 6), 16) / 255,
+      }
+    })()
+    return { a, e, inclination, longNode, argPeri, visualRadius, angularSpeed, phase, shade, shadeRgb, isLoop: isFinite(body.periodYears), hasTail }
   }, [body])
+
+  // Initialise the motion-trail ring buffer for comets / interstellars /
+  // dwarfs — bodies whose motion is the headline detail. Built lazily so
+  // bodies without a trail (asteroids, spacecraft using custom shapes)
+  // don't allocate.
+  useEffect(() => {
+    const wantsTrail = body.kind === "comet" || body.kind === "interstellar" || body.kind === "dwarf" || body.name === "Comet Borisov"
+    if (!wantsTrail) return
+    const MOTION_TRAIL_LEN = 48
+    const positions = new Float32Array(MOTION_TRAIL_LEN * 3)
+    const colors = new Float32Array(MOTION_TRAIL_LEN * 3)
+    const ages = new Float32Array(MOTION_TRAIL_LEN)
+    // Start fully aged so nothing renders before the first useFrame pushes
+    // real positions into the buffer.
+    for (let i = 0; i < MOTION_TRAIL_LEN; i++) ages[i] = 999
+    const geometry = new BufferGeometry()
+    geometry.setAttribute("position", new BufferAttribute(positions, 3))
+    geometry.setAttribute("color", new BufferAttribute(colors, 3))
+    motionTrailRef.current = { positions, colors, ages, geometry, nextIdx: 0 }
+    return () => {
+      geometry.dispose()
+      motionTrailRef.current = null
+    }
+  }, [body.kind, body.name])
 
   // Pre-compute a thin trail of orbit positions so each body draws a
   // dotted ellipse behind it, hinting at the path. Uses the same full
@@ -2692,6 +2736,38 @@ function NamedBodyMesh({
     // each frame to point away from the Sun (origin). Solar wind blows
     // gas + dust radially outward, so this matches real comet visuals
     // independent of the body's velocity direction.
+    // Motion trail — push the current world-frame-equivalent position into
+    // the ring buffer and age every existing particle. Per-vertex colour
+    // is set so newer particles are bright (full shade) and older ones
+    // fade to black. With additive blending, this reads as a glowing
+    // streak following the body's recent path through space — orbital
+    // motion becomes legible at any time-warp.
+    const trail = motionTrailRef.current
+    if (trail) {
+      const idx = trail.nextIdx * 3
+      trail.positions[idx]     = px
+      trail.positions[idx + 1] = py
+      trail.positions[idx + 2] = pz
+      trail.ages[trail.nextIdx] = 0
+      trail.nextIdx = (trail.nextIdx + 1) % trail.ages.length
+      const TRAIL_LIFE = 2.4 // seconds (real time, ignores warp so user
+                              // sees a consistent-length trail)
+      const r = config.shadeRgb.r
+      const g = config.shadeRgb.g
+      const b = config.shadeRgb.b
+      const dimMul = invert ? 0.7 : 1.0
+      for (let i = 0; i < trail.ages.length; i++) {
+        trail.ages[i] += delta
+        const intensity = Math.max(0, 1 - trail.ages[i] / TRAIL_LIFE) * dimMul
+        const ci = i * 3
+        trail.colors[ci]     = r * intensity
+        trail.colors[ci + 1] = g * intensity
+        trail.colors[ci + 2] = b * intensity
+      }
+      trail.geometry.attributes.position.needsUpdate = true
+      trail.geometry.attributes.color.needsUpdate = true
+    }
+
     if (tailRef.current && config.hasTail) {
       const len = Math.sqrt(px * px + py * py + pz * pz) || 1
       _tailFrom.set(0, 1, 0)
@@ -2754,6 +2830,26 @@ function NamedBodyMesh({
           depthWrite={false}
         />
       </points>
+
+      {/* Motion trail — fading particle streak following the body's recent
+          actual movement (not the static orbit ellipse above). Per-vertex
+          colours drive per-particle fade from full shade → black. Makes
+          the body's orbital motion legible even when angular speed is
+          slow (Halley moves ~0.4° per real second at 1× warp; the trail
+          shows that motion as a visible streak). */}
+      {motionTrailRef.current && (
+        <points geometry={motionTrailRef.current.geometry}>
+          <pointsMaterial
+            size={invert ? 0.05 : 0.045}
+            sizeAttenuation
+            vertexColors
+            transparent
+            opacity={0.95}
+            blending={invert ? NormalBlending : AdditiveBlending}
+            depthWrite={false}
+          />
+        </points>
+      )}
 
       {/* The body itself — moved each frame to its current orbit position.
           Spacecraft with a registered procedural shape (Voyager, JWST,
@@ -3011,29 +3107,68 @@ function GalaxyDetail({
   // existing diffuse halo. Adding Triangulum is a one-rotation change.
   const isAndromeda = pointId === "m31"
 
-  // Pre-built spiral arm point cloud, sized normalized so the outer
-  // group's scale controls absolute size in scene units.
+  // Andromeda procedural model — built to the structural spec:
+  //   - 30% of stars in a dense central bulge, exponential radial decay,
+  //     warm yellow-orange-white colour (older stars)
+  //   - 70% in two logarithmic spiral arms (r = a · e^(bθ), b = 0.26 to
+  //     match Andromeda's tight winding)
+  //   - 15% of arm stars are pink H II regions (star-forming clouds)
+  //   - The rest are blue/white young main-sequence stars
+  // Geometry is normalized to roughly [-1, 1] so the parent scale lerp
+  // controls absolute scene-size. Per-vertex colour attribute drives
+  // the pointsMaterial via vertexColors.
   const armsGeometry = useMemo(() => {
-    const count = 1500
-    const positions = new Float32Array(count * 3)
-    const arms = 2
-    const spin = 1.6
-    const radius = 1.0
-    for (let i = 0; i < count; i++) {
-      const r = Math.pow(Math.random(), 1.4) * radius
-      const armAngle = ((i % arms) / arms) * Math.PI * 2
-      const spinAngle = r * spin * 1.2
-      const randomness = 0.20
-      const rx = Math.pow(Math.random(), 2.6) * (Math.random() < 0.5 ? 1 : -1) * randomness * r
-      const ry = Math.pow(Math.random(), 2.6) * (Math.random() < 0.5 ? 1 : -1) * randomness * r * 0.10
-      const rz = Math.pow(Math.random(), 2.6) * (Math.random() < 0.5 ? 1 : -1) * randomness * r
+    const numStars = 9000
+    const numBulge = Math.floor(numStars * 0.30)
+    const numArms = numStars - numBulge
+    const positions = new Float32Array(numStars * 3)
+    const colors = new Float32Array(numStars * 3)
+
+    // Bulge — dense exponential cluster around the centre, slightly puffy.
+    for (let i = 0; i < numBulge; i++) {
+      const r = -Math.log(Math.max(1e-4, Math.random())) * 0.18
+      const theta = Math.random() * Math.PI * 2
+      const z = (Math.random() - 0.5) * 0.12 * Math.exp(-r * 1.5)
       const i3 = i * 3
-      positions[i3]     = Math.cos(armAngle + spinAngle) * r + rx
-      positions[i3 + 1] = ry
-      positions[i3 + 2] = Math.sin(armAngle + spinAngle) * r + rz
+      positions[i3]     = r * Math.cos(theta)
+      positions[i3 + 1] = z
+      positions[i3 + 2] = r * Math.sin(theta)
+      // Yellow / orange / white — older stellar population
+      colors[i3]     = 0.92 + Math.random() * 0.08
+      colors[i3 + 1] = 0.80 + Math.random() * 0.12
+      colors[i3 + 2] = 0.58 + Math.random() * 0.14
     }
+
+    // Spiral arms — two logarithmic arms with realistic dispersion.
+    const a = 0.06          // anchor radius
+    const b = 0.26          // arm tightness — matches Andromeda's spec
+    const armOffsets = [0, Math.PI]
+    for (let i = numBulge; i < numStars; i++) {
+      const r = 0.16 + Math.pow(Math.random(), 0.7) * 0.95
+      const armChoice = armOffsets[i % 2]
+      let theta = Math.log(r / a) / b + armChoice
+      const dispersion = (Math.random() - 0.5) * (0.40 / (r + 0.1))
+      theta += dispersion
+      const z = (Math.random() - 0.5) * 0.04
+      const i3 = i * 3
+      positions[i3]     = r * Math.cos(theta)
+      positions[i3 + 1] = z
+      positions[i3 + 2] = r * Math.sin(theta)
+      // 15% pink H II star-forming regions, 85% blue-white young stars.
+      if (Math.random() < 0.15) {
+        colors[i3]     = 0.92 + Math.random() * 0.08
+        colors[i3 + 1] = 0.52 + Math.random() * 0.10
+        colors[i3 + 2] = 0.72 + Math.random() * 0.10
+      } else {
+        colors[i3]     = 0.62 + Math.random() * 0.18
+        colors[i3 + 1] = 0.72 + Math.random() * 0.18
+        colors[i3 + 2] = 0.92 + Math.random() * 0.08
+      }
+    }
+
     const geo = new BufferGeometry()
     geo.setAttribute("position", new BufferAttribute(positions, 3))
+    geo.setAttribute("color", new BufferAttribute(colors, 3))
     return geo
   }, [])
 
@@ -3083,68 +3218,78 @@ function GalaxyDetail({
 
   if (!isAndromeda) return null
 
-  // Andromeda's apparent inclination is ~77° from face-on. Use that to
-  // tilt the disc — almost edge-on but enough to see arms.
+  // Andromeda's apparent inclination from Earth: 77° from face-on. The
+  // position angle (orientation of the major axis on the sky) is ~38°.
+  // Together these give the iconic tilted-oval look any naked-eye view
+  // recognises immediately.
   const ANDROMEDA_TILT = 77 * DEG
+  const ANDROMEDA_POSITION_ANGLE = 38 * DEG
   // Scene-units scale: idle halo is `size` (=5 for Andromeda); detail
   // blooms to ~3× so the spiral structure reads.
   const detailScale = size * 2.4
 
-  // Arm palette — Andromeda's outer disc skews blue (young stars), inner
-  // tilts warmer toward the bulge.
-  const armColor = invert ? "#3a1a14" : "#a8c8ff"
+  // Tight central bulge core — kept as a soft warm glow because the
+  // dense inner region in a real galaxy is too star-packed to resolve
+  // into individual points. The star-cloud bulge baked into the
+  // geometry handles the outer-bulge population.
   const bulgeColor = invert ? "#5a3416" : "#ffd9b0"
-  // Dust lane — a dark band across the disc. We render this as a tilted
-  // ring in normalBlending so it actually subtracts visual brightness
-  // from the disc behind it. On invert it lifts darker; on dark it
-  // creates a brown smudge that reads as dust silhouette.
   const dustColor = invert ? "#0a0a0a" : "#1a0a04"
   const companionColor = invert ? "#3a1d12" : "#ffd9c2"
 
   return (
     <group ref={rootRef} scale={0.001}>
-      {/* Disc — tilted to apparent inclination so the spiral reads as a
-          near-edge-on ellipse with a bright bulge. */}
-      <group rotation={[ANDROMEDA_TILT, 0, 0]}>
-        <group ref={spinRef}>
-          {/* Spiral arms point cloud */}
-          <points geometry={armsGeometry} scale={detailScale}>
-            <pointsMaterial
-              ref={armsMatRef as React.Ref<import("three").PointsMaterial>}
-              size={detailScale * 0.06}
-              sizeAttenuation
-              color={armColor}
-              transparent
-              opacity={0}
-              blending={invert ? NormalBlending : AdditiveBlending}
-              depthWrite={false}
-            />
-          </points>
-          {/* Bright central bulge — large warm sphere */}
-          <mesh>
-            <sphereGeometry args={[detailScale * 0.28, 24, 24]} />
-            <meshBasicMaterial
-              ref={bulgeMatRef as React.Ref<import("three").MeshBasicMaterial>}
-              color={bulgeColor}
-              transparent
-              opacity={0}
-              blending={invert ? NormalBlending : AdditiveBlending}
-              depthWrite={false}
-            />
-          </mesh>
-          {/* Dust lane — a thin ring across the disc plane that suggests
-              the iconic dark band Andromeda is famous for. */}
-          <mesh rotation={[Math.PI / 2, 0, 0]}>
-            <ringGeometry args={[detailScale * 0.45, detailScale * 0.58, 48]} />
-            <meshBasicMaterial
-              ref={dustMatRef as React.Ref<import("three").MeshBasicMaterial>}
-              color={dustColor}
-              transparent
-              opacity={0}
-              side={DoubleSide}
-              depthWrite={false}
-            />
-          </mesh>
+      {/* Position angle — rotates the apparent major-axis on the sky
+          plane (≈38° east of north for Andromeda). Wraps the inclination
+          + spin so the spiral's projection lands at the right angle. */}
+      <group rotation={[0, 0, ANDROMEDA_POSITION_ANGLE]}>
+        {/* Disc inclination — tilts the disc plane 77° from face-on so
+            the spiral reads as a near-edge-on ellipse. */}
+        <group rotation={[ANDROMEDA_TILT, 0, 0]}>
+          <group ref={spinRef}>
+            {/* Per-vertex coloured star cloud — bulge yellow / arm blue /
+                H II pink, with logarithmic spiral arm structure baked in. */}
+            <points geometry={armsGeometry} scale={detailScale}>
+              <pointsMaterial
+                ref={armsMatRef as React.Ref<import("three").PointsMaterial>}
+                size={detailScale * 0.045}
+                sizeAttenuation
+                vertexColors
+                color={"#ffffff"}
+                transparent
+                opacity={0}
+                blending={invert ? NormalBlending : AdditiveBlending}
+                depthWrite={false}
+              />
+            </points>
+            {/* Tight bulge core — the unresolvable centre. Smaller and
+                tighter than before so it complements the per-vertex
+                bulge stars instead of swallowing them in a blob. */}
+            <mesh>
+              <sphereGeometry args={[detailScale * 0.14, 20, 20]} />
+              <meshBasicMaterial
+                ref={bulgeMatRef as React.Ref<import("three").MeshBasicMaterial>}
+                color={bulgeColor}
+                transparent
+                opacity={0}
+                blending={invert ? NormalBlending : AdditiveBlending}
+                depthWrite={false}
+              />
+            </mesh>
+            {/* Dust lane — a thin elliptical band across the disc plane
+                suggesting the iconic dark band that obscures part of
+                Andromeda's near side. */}
+            <mesh rotation={[Math.PI / 2, 0, 0]}>
+              <ringGeometry args={[detailScale * 0.45, detailScale * 0.58, 64]} />
+              <meshBasicMaterial
+                ref={dustMatRef as React.Ref<import("three").MeshBasicMaterial>}
+                color={dustColor}
+                transparent
+                opacity={0}
+                side={DoubleSide}
+                depthWrite={false}
+              />
+            </mesh>
+          </group>
         </group>
       </group>
 
@@ -3430,21 +3575,23 @@ function BlackHoleDetail({
           full model (event horizon + accretion disk + lensed skins) as
           a unit; per-BH scale stays driven by computeBlackHoleProportions
           so Cygnus X-1 and TON 618 still read as distinct sizes. */}
-      {/* Findability halo — soft glow so the BH spots from sky-shell distance
-          (~150 u away) without users having to scan blindly. Sized at 0.5 ×
-          detailScale (was 0.9 — bigger halo collided with adjacent sky-points
-          like the M87 / TON 618 pair in Virgo). Brightness bumped to keep it
-          findable at the smaller radius — favour brightness over girth. */}
-      <mesh>
-        <sphereGeometry args={[props.detailScale * 0.5, 24, 24]} />
-        <meshBasicMaterial
-          color={invert ? "#3a2418" : "#ffd6a8"}
-          transparent
-          opacity={hovered ? (invert ? 0.22 : 0.32) : (invert ? 0.14 : 0.22)}
-          blending={invert ? NormalBlending : AdditiveBlending}
-          depthWrite={false}
-        />
-      </mesh>
+      {/* Findability halo — soft glow so the BH spots from sky-shell distance.
+          Only visible when NOT hovered: it's a spotting aid for users
+          scanning the sky, not an embellishment to show on top of the
+          model. The moment a user engages (hover/focus), the halo
+          disappears so the BH silhouette + disk + jets read clean. */}
+      {!hovered && (
+        <mesh>
+          <sphereGeometry args={[props.detailScale * 0.5, 24, 24]} />
+          <meshBasicMaterial
+            color={invert ? "#3a2418" : "#ffd6a8"}
+            transparent
+            opacity={invert ? 0.14 : 0.22}
+            blending={invert ? NormalBlending : AdditiveBlending}
+            depthWrite={false}
+          />
+        </mesh>
+      )}
 
       <group ref={spinRef} scale={meshScale}>
         <Clone object={bhScene} />
