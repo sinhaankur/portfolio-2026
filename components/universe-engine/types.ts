@@ -104,6 +104,12 @@ export type Planet = {
   /** Optional equirectangular surface texture URL — when set, the planet
    *  morphs from its abstract grey shade to the photographic globe on hover. */
   textureUrl?: string
+  /** Optional equirectangular city-lights / night-side texture URL. When
+   *  set alongside textureUrl, the planet renders through a custom shader
+   *  that blends day texture on the lit side and night texture on the
+   *  shadow side, with a smoothed terminator. Currently only Earth uses
+   *  this (Black Marble night-lights composite). */
+  nightTextureUrl?: string
   /** Override the formula-derived visual radius. Useful for dwarf planets
    *  whose real radius (Pluto = 0.186 Earth-radii) would render as a
    *  pinprick that's impossible to find from the inner-system view. */

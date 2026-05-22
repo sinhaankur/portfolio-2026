@@ -110,6 +110,48 @@ const CORONA_FRAGMENT_SHADER = `
     gl_FragColor = vec4(uColor, fres * uIntensity);
   }
 `
+
+/* ============================================================
+ * Day / night shader — currently scoped to Earth.
+ *
+ * Lambert dot(normal, sunDir) drives a smooth terminator between the
+ * NASA Blue Marble day texture and NASA Black Marble night-lights
+ * texture. No PBR — we don't need the standard material's lighting
+ * because the day texture already encodes sun-lit color. The night
+ * side gets boosted city-lights emission so they read as bright
+ * pinpricks against the shadow.
+ * ============================================================ */
+const DAY_NIGHT_VERTEX_SHADER = `
+  varying vec2 vUv;
+  varying vec3 vWorldNormal;
+  void main() {
+    vUv = uv;
+    vWorldNormal = normalize(mat3(modelMatrix) * normal);
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`
+const DAY_NIGHT_FRAGMENT_SHADER = `
+  uniform sampler2D tDay;
+  uniform sampler2D tNight;
+  uniform vec3 uSunDir;
+  uniform float uOpacity;
+  uniform float uNightStrength;
+  varying vec2 vUv;
+  varying vec3 vWorldNormal;
+  void main() {
+    float NdotL = dot(normalize(vWorldNormal), normalize(uSunDir));
+    // Smoothstep across the terminator — atmospheric scattering on the real
+    // Earth softens the day/night boundary over ~5°. Our 0.18 ramp here
+    // approximates that without needing a Rayleigh-scattering shader.
+    float dayMix = smoothstep(-0.08, 0.18, NdotL);
+    vec3 dayColor = texture2D(tDay, vUv).rgb;
+    vec3 nightColor = texture2D(tNight, vUv).rgb;
+    // Night-side emission boost so the city lights read bright against
+    // an otherwise black hemisphere.
+    vec3 color = mix(nightColor * uNightStrength, dayColor, dayMix);
+    gl_FragColor = vec4(color, uOpacity);
+  }
+`
 import { CONSTELLATION_FIGURES } from "./constellation-figures"
 import { SPACECRAFT_SHAPES } from "./spacecraft-shapes"
 import type {
@@ -1666,6 +1708,10 @@ function PlanetBody({
   /** Rotates in lockstep with the planet body — children inherit the spin
    *  so surface features (rover pins on Mars) stay glued to the right spot. */
   const surfaceRotRef = useRef<Group>(null)
+  /** Earth's day/night shader material — uniforms are updated each frame
+   *  with the sun direction in world space so the terminator stays accurate
+   *  as Earth orbits and rotates. */
+  const dayNightMatRef = useRef<ShaderMaterial>(null)
   /** Ref on the position group so eccentric orbits (Pluto) can have their
    *  orbital distance vary with current orbit angle, matching the elliptical
    *  ring rendered by OrbitRing. */
@@ -1677,6 +1723,7 @@ function PlanetBody({
   // body (same machinery the sky-points use).
   const [focused, setFocused] = useState(false)
   const [texture, setTexture] = useState<Texture | null>(null)
+  const [nightTexture, setNightTexture] = useState<Texture | null>(null)
   const detailActive = isHovered || focused
 
   // Listen for a global focus-clear (e.g. Reset) so the planet collapses
@@ -1719,6 +1766,43 @@ function PlanetBody({
     }, delay)
     return () => clearTimeout(timer)
   }, [textureUrl, texture, planet.raw.aAU])
+
+  // Optional night-side texture (city lights). Currently only Earth ships
+  // this — drives the day/night shader below. Loaded with a small delay
+  // so it lands after the day texture (which is the primary surface).
+  const nightTextureUrl = planet.raw.nightTextureUrl
+  useEffect(() => {
+    if (!nightTextureUrl || nightTexture) return
+    const timer = setTimeout(() => {
+      const loader = new TextureLoader()
+      loader.load(nightTextureUrl, (tex) => {
+        tex.colorSpace = SRGBColorSpace
+        tex.anisotropy = 8
+        setNightTexture(tex)
+      })
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [nightTextureUrl, nightTexture])
+
+  // Day/night shader uniforms — stable object so the shader sees the same
+  // reference across re-renders. Textures + sun direction are mutated in
+  // place after the uniforms are wired up. Only used for planets that
+  // ship both day + night textures (just Earth today).
+  const dayNightUniforms = useMemo(
+    () => ({
+      tDay:           { value: null as Texture | null },
+      tNight:         { value: null as Texture | null },
+      uSunDir:        { value: new Vector3(1, 0, 0) },
+      uOpacity:       { value: 0 },
+      uNightStrength: { value: 1.8 },
+    }),
+    [],
+  )
+  useEffect(() => {
+    if (texture) dayNightUniforms.tDay.value = texture
+    if (nightTexture) dayNightUniforms.tNight.value = nightTexture
+  }, [texture, nightTexture, dayNightUniforms])
+  const useDayNightShader = Boolean(nightTextureUrl)
 
   useEffect(() => {
     if (orbitRef.current) orbitRef.current.rotation.y = planet.raw.startPhase
@@ -1772,6 +1856,19 @@ function PlanetBody({
       const k = 1 - Math.exp(-delta * 8)
       const target = texture ? 1 : 0
       texMatRef.current.opacity += (target - texMatRef.current.opacity) * k
+    }
+    // Day/night shader path (Earth only today) — update opacity + the sun
+    // direction uniform each frame. Sun world position is fixed at the
+    // solar system's origin offset; Earth's world position moves with the
+    // orbit. dot(normal, sunDir) in the shader produces the terminator.
+    if (useDayNightShader && texMeshRef.current) {
+      const k = 1 - Math.exp(-delta * 8)
+      const target = texture && nightTexture ? 1 : 0
+      dayNightUniforms.uOpacity.value += (target - dayNightUniforms.uOpacity.value) * k
+      texMeshRef.current.getWorldPosition(_earthWorldPos)
+      _sunWorldPos.set(SUN_OFFSET_SCENE, 0, 0)
+      _sunDirTmp.copy(_sunWorldPos).sub(_earthWorldPos).normalize()
+      dayNightUniforms.uSunDir.value.copy(_sunDirTmp)
     }
     // Rocky-planet atmosphere glow — soft halo that fades in when the
     // planet is hovered or focused. Sells the "look closer" moment.
@@ -1833,13 +1930,29 @@ function PlanetBody({
             {/* Textured-globe overlay — stacked on top of the grey sphere for
                 any planet with a textureUrl. Higher segment count on Earth
                 so deep-zoom inspection doesn't reveal facets. Opacity lerps
-                in on hover OR focus. */}
-            {hasTexture && texture && (
+                in on hover OR focus.
+                Earth takes the day/night shader path (lit + city-lights
+                hemispheres separated by a smoothed terminator); everyone
+                else uses the standard PBR sphere lit by the Sun point light. */}
+            {hasTexture && useDayNightShader && texture && nightTexture && (
+              <mesh ref={texMeshRef}>
+                <sphereGeometry args={[planet.visualRadius * 1.005, 96, 96]} />
+                <shaderMaterial
+                  ref={dayNightMatRef as React.Ref<ShaderMaterial>}
+                  vertexShader={DAY_NIGHT_VERTEX_SHADER}
+                  fragmentShader={DAY_NIGHT_FRAGMENT_SHADER}
+                  uniforms={dayNightUniforms}
+                  transparent
+                  depthWrite={false}
+                />
+              </mesh>
+            )}
+            {hasTexture && !useDayNightShader && texture && (
               <mesh ref={texMeshRef}>
                 <sphereGeometry args={[
                   planet.visualRadius * 1.005,
-                  planet.raw.name === "Earth" ? 96 : 64,
-                  planet.raw.name === "Earth" ? 96 : 64,
+                  64,
+                  64,
                 ]} />
                 <meshStandardMaterial
                   ref={texMatRef as React.Ref<import("three").MeshStandardMaterial>}
@@ -2373,6 +2486,11 @@ function SolarSystem({
 // fresh Vector3s every frame for every comet.
 const _tailFrom = new Vector3()
 const _tailTo = new Vector3()
+
+// Reusable vectors for the Earth day/night shader's sun-direction uniform.
+const _earthWorldPos = new Vector3()
+const _sunWorldPos = new Vector3()
+const _sunDirTmp = new Vector3()
 
 function orbitalElementsToCartesian(
   a: number,
