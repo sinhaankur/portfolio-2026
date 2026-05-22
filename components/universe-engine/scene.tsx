@@ -12,9 +12,16 @@
  * around the Sun (not the galactic centre).
  */
 
-import { useRef, useMemo, useEffect, useState } from "react"
+import { Suspense, useRef, useMemo, useEffect, useState } from "react"
 import { useFrame, useThree } from "@react-three/fiber"
-import { Html, Stars } from "@react-three/drei"
+import { Clone, Html, Stars, useGLTF } from "@react-three/drei"
+
+// Preload the black-hole mesh at module init so it's ready by the time a
+// user explores far enough to focus a sky-point BH. 8.4 MB asset — single
+// network request, cached for every instance via drei's loader cache.
+// Attribution: "Blackhole" by rubykamen, CC-BY-4.0
+// https://sketchfab.com/3d-models/blackhole-74cbeaeae2174a218fe9455d77902b5c
+useGLTF.preload("/models/blackhole.glb")
 import {
   AdditiveBlending,
   BufferAttribute,
@@ -627,20 +634,19 @@ function MoonBody({
   )
   const startPhase = useMemo(() => Math.random() * Math.PI * 2, [])
 
-  // Lazy-load the moon's surface texture (Luna is the only one with one
-  // today) the first time the parent planet is highlighted. Keeps the
-  // ~1 MB JPEG out of first paint while still feeling instant — Earth
-  // bloom hits before the user can deep-zoom in to read the surface.
+  // Eagerly load the moon's surface texture on mount — same always-visible
+  // treatment as the planets. Luna is the only moon shipping a texture today
+  // (~1 MB JPEG), and TextureLoader is async so first paint still lands fast.
   const textureUrl = moon.textureUrl
   useEffect(() => {
-    if (!textureUrl || !highlighted || texture) return
+    if (!textureUrl || texture) return
     const loader = new TextureLoader()
     loader.load(textureUrl, (tex) => {
       tex.colorSpace = SRGBColorSpace
       tex.anisotropy = 8
       setTexture(tex)
     })
-  }, [textureUrl, highlighted, texture])
+  }, [textureUrl, texture])
 
   useEffect(() => {
     if (orbitRef.current) orbitRef.current.rotation.y = startPhase
@@ -673,10 +679,10 @@ function MoonBody({
       const opacityTarget = highlighted ? 0.18 : 0
       haloMatRef.current.opacity += (opacityTarget - haloMatRef.current.opacity) * k
     }
-    // Texture overlay fades in only when the parent planet is highlighted —
-    // matches the planet's chart-marker → photo-real morph beat.
+    // Texture overlay is always-on — fades in as soon as the JPEG lands so
+    // the moon reads as a real photographed surface, not a chart marker.
     if (texMatRef.current) {
-      const target = highlighted && texture ? 1 : 0
+      const target = texture ? 1 : 0
       texMatRef.current.opacity += (target - texMatRef.current.opacity) * k
     }
   })
@@ -1554,20 +1560,21 @@ function PlanetBody({
   const textureUrl = planet.raw.textureUrl
   const hasTexture = Boolean(textureUrl)
 
-  // Lazy-load the planet's equirectangular surface texture on demand —
-  // triggers on either hover OR focus (click → fly-to), so a user who flies
-  // straight to Earth still sees continents on arrival. Assets (NASA Blue
-  // Marble for Earth at 2K, Solar System Scope CC BY for Jupiter + Saturn)
-  // stay out of the critical path for visitors who never explore.
+  // Eagerly load each planet's equirectangular surface texture on mount —
+  // the solar system is meant to read as the real solar system at a glance,
+  // not an abstract chart that resolves on hover. TextureLoader is async, so
+  // first paint isn't blocked: the grey markers render immediately and the
+  // photographic surfaces fade in as each JPEG (NASA Blue Marble for Earth,
+  // Solar System Scope CC BY for the rest) lands.
   useEffect(() => {
-    if (!textureUrl || !detailActive || texture) return
+    if (!textureUrl || texture) return
     const loader = new TextureLoader()
     loader.load(textureUrl, (tex) => {
       tex.colorSpace = SRGBColorSpace
       tex.anisotropy = 8
       setTexture(tex)
     })
-  }, [textureUrl, detailActive, texture])
+  }, [textureUrl, texture])
 
   useEffect(() => {
     if (orbitRef.current) orbitRef.current.rotation.y = planet.raw.startPhase
@@ -1584,11 +1591,11 @@ function PlanetBody({
     if (texMeshRef.current) {
       texMeshRef.current.rotation.y += delta * planet.rotSpeedRadPerSec * tw
     }
-    // Lerp the textured material's opacity toward the hover/focus target — the
-    // morph between abstract chart-marker and photographic globe stays smooth.
+    // Lerp the textured material's opacity to full as soon as the JPEG lands —
+    // the photo-real globe is the default state now, not a hover reveal.
     if (texMatRef.current) {
       const k = 1 - Math.exp(-delta * 8)
-      const target = detailActive && texture ? 1 : 0
+      const target = texture ? 1 : 0
       texMatRef.current.opacity += (target - texMatRef.current.opacity) * k
     }
     // Rocky-planet atmosphere glow — soft halo that fades in when the
@@ -1858,16 +1865,18 @@ function SolarSystem({
     [],
   )
 
-  // Lazy-load the Solar System Scope Sun texture on first hover.
+  // Eagerly load the Solar System Scope Sun texture on mount — the Sun is
+  // the centre of the scene, so its detailed view shouldn't be gated on
+  // hover. Fades in via the opacity lerp below as soon as it lands.
   useEffect(() => {
-    if (!sunHovered || sunTexture) return
+    if (sunTexture) return
     const loader = new TextureLoader()
     loader.load("/textures/sun.jpg", (tex) => {
       tex.colorSpace = SRGBColorSpace
       tex.anisotropy = 4
       setSunTexture(tex)
     })
-  }, [sunHovered, sunTexture])
+  }, [sunTexture])
 
   useFrame((_, delta) => {
     const tw = timeWarpRef.current
@@ -1877,10 +1886,11 @@ function SolarSystem({
       const s = 1 + Math.sin(performance.now() * 0.0008) * 0.025
       coronaRef.current.scale.set(s, s, s)
     }
-    // Texture fade + corona flare on hover.
+    // Texture is always-on — fades in once it lands, then stays at full
+    // opacity. Hover still drives the corona flare below.
     if (sunTexMatRef.current) {
       const k = 1 - Math.exp(-delta * 7)
-      const target = sunHovered && sunTexture ? 1 : 0
+      const target = sunTexture ? 1 : 0
       sunTexMatRef.current.opacity += (target - sunTexMatRef.current.opacity) * k
     }
     const flareBoost = sunHovered ? 1 : 0
@@ -2657,7 +2667,6 @@ function BlackHoleDetail({
 }) {
   const rootRef = useRef<Group>(null)
   const spinRef = useRef<Group>(null)
-  const matRefs = useRef<Array<import("three").MeshBasicMaterial | null>>([])
 
   // Default to a generic supermassive value if mass wasn't declared on
   // the sky-point — keeps the renderer working even if someone adds a
@@ -2671,28 +2680,15 @@ function BlackHoleDetail({
   )
 
   // Stellar-mass black holes (X-ray binaries) have brighter, hotter disks
-  // relative to their horizon than supermassive ones. We push more
-  // luminosity into the inner disk when mass is small.
+  // relative to their horizon than supermassive ones. Drives the visual
+  // spin speed below — small systems spin visibly faster.
   const isStellarMass = M < 1000
-  const diskBoost = isStellarMass ? 1.25 : 1.0
 
-  // Palette — strict Gargantua. Christopher Nolan's directive (per Kip
-  // Thorne's paper) was to render the disk as Nolan saw it: warm golden,
-  // symmetric, with no Doppler asymmetry. The plasma is hot enough that
-  // the inner edge radiates near white; the outer reaches cool toward
-  // amber as the temperature drops. Both lensed arcs share the same
-  // luminosity (`haloMain`) — there is no "hot side / cold side"
-  // because Nolan deliberately suppressed the Doppler beaming for
-  // cinematic legibility.
-  const palette = {
-    shadow:    "#000000",
-    photon:    invert ? "#1a0d06" : "#ffffff",
-    haloMain:  invert ? "#1a0d06" : "#fff7df",
-    diskCore:  invert ? "#1a0d06" : "#ffffff",
-    diskMid:   invert ? "#2a1810" : "#fff0c8",
-    diskOuter: invert ? "#3a2014" : "#ffc878",
-    diskFar:   invert ? "#4a2810" : "#c87a28",
-  }
+  // Sketchfab "Blackhole" by rubykamen (CC-BY-4.0). The model's natural
+  // extent runs roughly ±5 units around origin; this factor brings it
+  // into our scene-scale alongside the physics-driven detailScale.
+  const { scene: bhScene } = useGLTF("/models/blackhole.glb")
+  const meshScale = props.detailScale * 0.08
 
   useFrame((_, delta) => {
     const k = 1 - Math.exp(-delta * 6)
@@ -2708,146 +2704,18 @@ function BlackHoleDetail({
     if (spinRef.current) {
       spinRef.current.rotation.y += delta * (hovered ? baseSpin : baseSpin * 0.4)
     }
-    const opacityFactor = hovered ? 1.0 : 0.55
-    matRefs.current.forEach((m) => {
-      if (!m) return
-      const target = parseFloat((m.userData?.targetOpacity as string) ?? "0")
-      const visible = target * opacityFactor
-      m.opacity += (visible - m.opacity) * k
-    })
   })
-
-  const registerMat = (i: number, targetOpacity: number) =>
-    (m: import("three").MeshBasicMaterial | null) => {
-      matRefs.current[i] = m
-      if (m) m.userData = { targetOpacity }
-    }
 
   return (
     <group ref={rootRef} scale={0.001}>
-      {/* === Accretion disk — four concentric belts, tilted ~10° from
-          edge-on so the elliptical shape reads but the disk still
-          appears nearly side-on. Layers go from white-hot at the inner
-          edge to warm orange dust at the outer reach. === */}
-      <group ref={spinRef} rotation={[Math.PI / 2 - 0.18, 0, 0]}>
-        {/* Far dust trail — warm orange, low opacity. The dramatic
-            "extending into space" trail you see in Gargantua. */}
-        <mesh>
-          <ringGeometry args={[props.diskInner4, props.diskOuter4, 128]} />
-          <meshBasicMaterial
-            ref={registerMat(0, (invert ? 0.25 : 0.45) * diskBoost)}
-            color={palette.diskFar}
-            transparent
-            opacity={0}
-            side={DoubleSide}
-            blending={invert ? NormalBlending : AdditiveBlending}
-            depthWrite={false}
-          />
-        </mesh>
-        {/* Outer disk — warm/orange transition. */}
-        <mesh>
-          <ringGeometry args={[props.diskInner3, props.diskOuter3, 128]} />
-          <meshBasicMaterial
-            ref={registerMat(1, (invert ? 0.4 : 0.65) * diskBoost)}
-            color={palette.diskOuter}
-            transparent
-            opacity={0}
-            side={DoubleSide}
-            blending={invert ? NormalBlending : AdditiveBlending}
-            depthWrite={false}
-          />
-        </mesh>
-        {/* Mid disk — bulk of the visible glow. Off-white. */}
-        <mesh>
-          <ringGeometry args={[props.diskInner2, props.diskOuter2, 128]} />
-          <meshBasicMaterial
-            ref={registerMat(2, (invert ? 0.55 : 0.85) * diskBoost)}
-            color={palette.diskMid}
-            transparent
-            opacity={0}
-            side={DoubleSide}
-            blending={invert ? NormalBlending : AdditiveBlending}
-            depthWrite={false}
-          />
-        </mesh>
-        {/* Inner disk — white hot, just outside the ISCO. The brightest
-            part of the visible disk. */}
-        <mesh>
-          <ringGeometry args={[props.diskInner1, props.diskOuter1, 128]} />
-          <meshBasicMaterial
-            ref={registerMat(3, (invert ? 0.85 : 1.0) * diskBoost)}
-            color={palette.diskCore}
-            transparent
-            opacity={0}
-            side={DoubleSide}
-            blending={invert ? NormalBlending : AdditiveBlending}
-            depthWrite={false}
-          />
-        </mesh>
+      {/* Sketchfab "Blackhole" by rubykamen (CC-BY-4.0) — replaces the
+          procedural Gargantua build. The spinning wrapper rotates the
+          full model (event horizon + accretion disk + lensed skins) as
+          a unit; per-BH scale stays driven by computeBlackHoleProportions
+          so Cygnus X-1 and TON 618 still read as distinct sizes. */}
+      <group ref={spinRef} scale={meshScale}>
+        <Clone object={bhScene} />
       </group>
-
-      {/* === Event horizon — opaque black sphere. Renders AFTER the
-          disk's far side (which it occludes behind itself) but BEFORE
-          the lensed halo (which sits on top of the shadow silhouette).
-          Sized to the *shadow* radius (~2.6 × horizon for Schwarzschild),
-          not the bare event horizon — that's the dark region you actually
-          see because every photon in the photon-sphere catchment is
-          deflected into the horizon. === */}
-      <mesh>
-        <sphereGeometry args={[props.shadowR, 64, 64]} />
-        <meshBasicMaterial color={palette.shadow} />
-      </mesh>
-
-      {/* === Lensed halo — the secondary image of the disk's far side,
-          gravitationally bent up over the top and down under the bottom
-          of the shadow. This is the single most recognisable element of
-          Gargantua's silhouette in Interstellar; rendered as two
-          half-rings that together close into one continuous loop around
-          the shadow. Both arcs share identical brightness — Nolan's
-          directive was no Doppler asymmetry, so neither side is dimmed. === */}
-      <mesh>
-        <ringGeometry args={[props.haloInner, props.haloOuter, 96, 1, 0, Math.PI]} />
-        <meshBasicMaterial
-          ref={registerMat(4, (invert ? 0.90 : 1.10) * diskBoost)}
-          color={palette.haloMain}
-          transparent
-          opacity={0}
-          side={DoubleSide}
-          blending={invert ? NormalBlending : AdditiveBlending}
-          depthWrite={false}
-        />
-      </mesh>
-      <mesh rotation={[0, 0, Math.PI]}>
-        <ringGeometry args={[props.haloInner, props.haloOuter, 96, 1, 0, Math.PI]} />
-        <meshBasicMaterial
-          ref={registerMat(5, (invert ? 0.90 : 1.10) * diskBoost)}
-          color={palette.haloMain}
-          transparent
-          opacity={0}
-          side={DoubleSide}
-          blending={invert ? NormalBlending : AdditiveBlending}
-          depthWrite={false}
-        />
-      </mesh>
-
-      {/* === Photon ring — the Einstein-ring sliver at the photon
-          sphere, sitting right at the shadow's edge. Visually the
-          brightest thing on screen — it traces where light from the
-          disk has been bent into a near-circular orbit before escaping
-          to the camera. Tilted in step with the disk so it reads as
-          the disk's bright inner rim seen edge-on. === */}
-      <mesh rotation={[Math.PI / 2 - 0.18, 0, 0]}>
-        <ringGeometry args={[props.photonInner, props.photonOuter, 128]} />
-        <meshBasicMaterial
-          ref={registerMat(6, (invert ? 1.00 : 1.20) * diskBoost)}
-          color={palette.photon}
-          transparent
-          opacity={0}
-          side={DoubleSide}
-          blending={invert ? NormalBlending : AdditiveBlending}
-          depthWrite={false}
-        />
-      </mesh>
 
       {/* Physics data overlay — fades in on hover. Mass, Schwarzschild
           radius, photon-sphere radius, ISCO factor. Anchored to the side
@@ -2892,6 +2760,9 @@ function BlackHoleDetail({
                   <span className="text-right tabular-nums">{a.toFixed(2)}</span>
                 </>
               )}
+            </div>
+            <div className="mt-1.5 pt-1.5 border-t border-current/15 text-[8px] tracking-[0.18em] opacity-45">
+              Model · rubykamen · CC-BY-4.0
             </div>
           </div>
         </Html>
@@ -3225,20 +3096,29 @@ function SkyPointMesh({
       {point.kind === "galaxy" && (
         <GalaxyDetail pointId={point.id} size={visualSize} hovered={detailActive} invert={invert} />
       )}
-      {/* Black-hole hover detail — Gargantua/M87*-style accretion disk with
-          gravitationally-lensed top + bottom arcs over the event horizon.
-          Proportions driven by the BH's actual Schwarzschild radius (mass
-          + spin); a data overlay surfaces the calculated rs / photon sphere
-          / ISCO when focused. */}
+      {/* Black-hole hover detail — Sketchfab "Blackhole" by rubykamen
+          (CC-BY-4.0), 8.4 MB GLB preloaded at module init. Wrapped in
+          Suspense so the first BH render doesn't unmount the rest of
+          the scene while the asset is still in flight; fallback is the
+          plain black shadow sphere sized to the BH's apparent shadow. */}
       {point.kind === "black-hole" && (
-        <BlackHoleDetail
-          size={visualSize}
-          hovered={detailActive}
-          invert={invert}
-          massSolar={point.massSolar}
-          spin={point.spin}
-          name={point.name}
-        />
+        <Suspense
+          fallback={
+            <mesh>
+              <sphereGeometry args={[visualSize * 0.5, 16, 16]} />
+              <meshBasicMaterial color="#000000" />
+            </mesh>
+          }
+        >
+          <BlackHoleDetail
+            size={visualSize}
+            hovered={detailActive}
+            invert={invert}
+            massSolar={point.massSolar}
+            spin={point.spin}
+            name={point.name}
+          />
+        </Suspense>
       )}
       {/* Cluster spray — for star clusters, add a handful of bright pinpoints
           around the core to suggest individual stars. */}

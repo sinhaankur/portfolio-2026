@@ -33,3 +33,11 @@ next-env.d.ts
 .vscode/
 .claude/
 .idea/
+
+# downloaded 3D asset variants kept locally for reference but not shipped
+# (the variant we actually ship lives in public/models/)
+/blackhole.glb
+/blackhole-2.glb
+/Blackhole.usdz
+/blackhole/
+/blackhole-2/
