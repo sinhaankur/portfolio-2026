@@ -138,8 +138,8 @@ export function Hero() {
           users a way to actually fly to bodies. */}
       {interactive && (
         <p className="absolute bottom-36 md:bottom-24 left-1/2 -translate-x-1/2 z-20 font-mono text-[10px] tracking-[0.25em] uppercase text-foreground/55 pointer-events-none whitespace-nowrap">
-          <span className="md:hidden">Tap a planet to fly · tap a comet to follow its orbit</span>
-          <span className="hidden md:inline">Click a planet to fly · click a comet or spacecraft to follow its orbit</span>
+          <span className="md:hidden">Tap any body to follow its orbit</span>
+          <span className="hidden md:inline">Click any body — planet, moon, comet, spacecraft — to follow its orbit</span>
         </p>
       )}
 
