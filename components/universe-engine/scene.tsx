@@ -654,7 +654,7 @@ function MoonBody({
 
   // Eagerly load the moon's surface texture on mount — same always-visible
   // treatment as the planets. Luna is the only moon shipping a texture today
-  // (~1 MB JPEG), and TextureLoader is async so first paint still lands fast.
+  // (~550 KB WebP), and TextureLoader is async so first paint still lands fast.
   const textureUrl = moon.textureUrl
   useEffect(() => {
     if (!textureUrl || texture) return
@@ -1582,8 +1582,9 @@ function PlanetBody({
   // the solar system is meant to read as the real solar system at a glance,
   // not an abstract chart that resolves on hover. TextureLoader is async, so
   // first paint isn't blocked: the grey markers render immediately and the
-  // photographic surfaces fade in as each JPEG (NASA Blue Marble for Earth,
-  // Solar System Scope CC BY for the rest) lands.
+  // photographic surfaces fade in as each WebP (NASA Blue Marble for Earth,
+  // Solar System Scope CC BY for the rest) lands. WebP keeps the same
+  // visual quality at ~35% of the original JPEG size — meaningful on mobile.
   //
   // Mobile-first: outer planets (Jupiter + beyond) get a 500ms delay so the
   // inner-system textures (which are smaller in scene size + closer to the
@@ -1899,7 +1900,7 @@ function SolarSystem({
   useEffect(() => {
     if (sunTexture) return
     const loader = new TextureLoader()
-    loader.load("/textures/sun.jpg", (tex) => {
+    loader.load("/textures/sun.webp", (tex) => {
       tex.colorSpace = SRGBColorSpace
       tex.anisotropy = 4
       setSunTexture(tex)
