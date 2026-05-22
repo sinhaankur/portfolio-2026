@@ -10,6 +10,25 @@
  * also live here so the data + scene files stay decoupled.
  */
 
+/** A landing site or named feature pinned to a planet's surface — e.g.
+ *  Mars rover landing sites. Pinned at real lat / lon, rotates with the
+ *  planet so the pin stays attached to the right spot. */
+export type SurfaceFeature = {
+  name: string
+  /** Latitude in degrees, -90 (south pole) to +90 (north pole). */
+  lat: number
+  /** Longitude in degrees, 0–360 east-positive (planetographic convention). */
+  lon: number
+  /** Landing date or mission start. Free-form short string. */
+  date: string
+  /** Mission status — drives the pin colour. */
+  status: "active" | "completed" | "lost"
+  /** Agency / nation, e.g. "NASA", "ESA / Roscosmos", "CNSA". */
+  agency: string
+  /** Short fact for the hover label tooltip. */
+  fact: string
+}
+
 /** Deeper per-body data sourced from NASA Planetary Fact Sheet. Surfaced
  *  via the InfoPanel's "More" disclosure so the default panel stays light
  *  but curious readers can pull up mass / density / gravity / etc. */
@@ -91,6 +110,9 @@ export type Planet = {
   visualRadiusOverride?: number
   /** Deeper NASA Planetary Fact Sheet data — surfaced via InfoPanel disclosure. */
   deep?: BodyDeepFacts
+  /** Surface landing sites — e.g. Mars rovers. Renders as small pins on the
+   *  planet's surface, rotating with the body. */
+  surfaceFeatures?: SurfaceFeature[]
 }
 
 export type ScenePlanet = {

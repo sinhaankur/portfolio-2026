@@ -118,6 +118,7 @@ import type {
   ConstellationStar,
   HoverHandler,
   MoonData,
+  SurfaceFeature,
   NamedBody,
   ScenePlanet,
   SkyPoint,
@@ -1558,6 +1559,94 @@ function SaturnRings({
   )
 }
 
+/** Single rover landing-site pin — a tiny coloured dome on the planet
+ *  surface plus an invisible larger hit-zone so the pin is touch-findable.
+ *  Hover surfaces the rover's full name + date + fact as a floating label. */
+function RoverPin({
+  feature,
+  planetRadius,
+  invert,
+}: {
+  feature: SurfaceFeature
+  planetRadius: number
+  invert: boolean
+}) {
+  const [isHovered, setIsHovered] = useState(false)
+  const latRad = feature.lat * DEG
+  const lonRad = feature.lon * DEG
+  // Lat / lon → 3D position on the planet's surface in mesh-local frame
+  // (after axial tilt, before per-frame rotation). Standard planetographic
+  // spherical-to-cartesian: lat measures from equator, lon eastward from
+  // the prime meridian (treated as local +x at rotation = 0).
+  const r = planetRadius * 1.012   // sit slightly above surface so the
+  const x = r * Math.cos(latRad) * Math.cos(lonRad)
+  const y = r * Math.sin(latRad)
+  const z = r * Math.cos(latRad) * Math.sin(lonRad)
+
+  const pinRadius = planetRadius * 0.025
+  const hitRadius = Math.max(planetRadius * 0.12, 0.05)
+  // Status colour: active = green, completed = warm amber, lost = muted red.
+  const color =
+    feature.status === "active"    ? (invert ? "#1f6f3f" : "#7dffaf") :
+    feature.status === "completed" ? (invert ? "#7a4a14" : "#ffc878") :
+    /* lost */                       (invert ? "#7a2828" : "#ff8888")
+
+  return (
+    <group position={[x, y, z]}>
+      <mesh>
+        <sphereGeometry args={[pinRadius, 10, 10]} />
+        <meshBasicMaterial color={color} />
+      </mesh>
+      {/* Touch-friendly hit zone — invisible sphere larger than the visible
+          pin so a finger or cursor can land on the landing site without
+          surgical precision. */}
+      <mesh
+        onPointerOver={(e) => {
+          e.stopPropagation()
+          setIsHovered(true)
+        }}
+        onPointerOut={() => setIsHovered(false)}
+      >
+        <sphereGeometry args={[hitRadius, 8, 8]} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+      </mesh>
+      {isHovered && (
+        <Html
+          position={[0, pinRadius * 3, 0]}
+          center
+          distanceFactor={4}
+          zIndexRange={[20, 0]}
+          style={{ pointerEvents: "none" }}
+        >
+          <div
+            className={`
+              whitespace-nowrap select-none pointer-events-none
+              font-mono text-[9px] tracking-[0.25em] uppercase
+              px-2.5 py-1.5 rounded-md backdrop-blur-sm
+              ${
+                invert
+                  ? "bg-white/90 border border-foreground/30 text-foreground"
+                  : "bg-black/75 border border-white/25 text-white"
+              }
+            `}
+            style={{ animation: "ue-label-in 220ms ease-out both", maxWidth: "18rem" }}
+          >
+            <div className="text-[10px] tracking-[0.22em] mb-1 opacity-90">
+              {feature.name}
+            </div>
+            <div className="text-[8px] tracking-[0.18em] opacity-65 mb-1.5">
+              {feature.agency} · {feature.date} · {feature.status}
+            </div>
+            <div className="font-sans normal-case tracking-normal text-[10px] leading-snug opacity-85 whitespace-normal">
+              {feature.fact}
+            </div>
+          </div>
+        </Html>
+      )}
+    </group>
+  )
+}
+
 function PlanetBody({
   planet,
   onHover,
@@ -1574,6 +1663,9 @@ function PlanetBody({
   const texMeshRef = useRef<Mesh>(null)
   const texMatRef = useRef<import("three").MeshStandardMaterial>(null)
   const atmosMatRef = useRef<import("three").MeshBasicMaterial>(null)
+  /** Rotates in lockstep with the planet body — children inherit the spin
+   *  so surface features (rover pins on Mars) stay glued to the right spot. */
+  const surfaceRotRef = useRef<Group>(null)
   /** Ref on the position group so eccentric orbits (Pluto) can have their
    *  orbital distance vary with current orbit angle, matching the elliptical
    *  ring rendered by OrbitRing. */
@@ -1665,7 +1757,12 @@ function PlanetBody({
 
     // Textured sphere rotates in lockstep with the grey one underneath so
     // surface features (Earth's continents, Jupiter's bands, Saturn's
-    // stripes) drift naturally as time advances.
+    // stripes) drift naturally as time advances. The surface-pins group
+    // also tracks the same spin so rover pins stay glued to their
+    // landing coordinates as Mars rotates.
+    if (surfaceRotRef.current) {
+      surfaceRotRef.current.rotation.y += delta * visibleRotSpeed * tw
+    }
     if (texMeshRef.current) {
       texMeshRef.current.rotation.y += delta * visibleRotSpeed * tw
     }
@@ -1754,6 +1851,24 @@ function PlanetBody({
                   depthWrite={false}
                 />
               </mesh>
+            )}
+
+            {/* Surface landing-site pins — currently populated for Mars
+                (rovers + landers). Rotates with the planet body so each
+                pin stays glued to its real lat / lon as Mars spins.
+                Renders only when the user is engaged with the planet
+                (hover or focus), so far-out idle views don't clutter. */}
+            {planet.raw.surfaceFeatures && detailActive && (
+              <group ref={surfaceRotRef}>
+                {planet.raw.surfaceFeatures.map((feature) => (
+                  <RoverPin
+                    key={feature.name}
+                    feature={feature}
+                    planetRadius={planet.visualRadius}
+                    invert={invert}
+                  />
+                ))}
+              </group>
             )}
 
             {/* Rocky-planet atmosphere halo — Earth's cyan, Venus's pale
