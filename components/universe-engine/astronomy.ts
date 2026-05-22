@@ -1796,6 +1796,12 @@ export const skyPoints: SkyPoint[] = [
     distance: "11.9 ly",
     fact: "Closest single sun-like star — same spectral type (G-class) as our Sun. At least four candidate planets detected. Long a favourite target in SETI searches; it's where 'Contact' set its alien signal.",
     visualSize: 0.6,
+    planets: [
+      { name: "Tau Ceti g", aAU: 0.133, radiusEarth: 1.86, periodDays: 20.0,  type: "Super-Earth, hot",                                          fact: "Innermost candidate. Hot — well inside the habitable zone's inner edge." },
+      { name: "Tau Ceti h", aAU: 0.243, radiusEarth: 1.91, periodDays: 49.4,  type: "Super-Earth, warm",                                         fact: "Warm super-Earth, near the inner edge of the habitable zone." },
+      { name: "Tau Ceti e", aAU: 0.538, radiusEarth: 1.81, periodDays: 162.9, type: "Super-Earth, habitable zone", habitableZone: true,           fact: "In Tau Ceti's habitable zone. Confirmed by radial-velocity in 2017 — one of the closest unconfirmed-rocky planets to Earth." },
+      { name: "Tau Ceti f", aAU: 1.334, radiusEarth: 1.83, periodDays: 636.1, type: "Super-Earth, outer habitable zone", habitableZone: true,     fact: "Sits near the outer habitable-zone edge — potentially cold but in a Mars-like temperature regime where a thick CO₂ atmosphere could support liquid water." },
+    ],
   },
   {
     id: "hd-209458",
@@ -1808,6 +1814,9 @@ export const skyPoints: SkyPoint[] = [
     distance: "159 ly",
     fact: "Host of HD 209458 b ('Osiris') — the first exoplanet observed transiting its star (1999), and the first found to have a detected atmosphere. Hot Jupiter at 0.047 AU; the atmosphere is evaporating into a comet-like tail.",
     visualSize: 0.5,
+    planets: [
+      { name: "HD 209458 b (Osiris)", aAU: 0.047, radiusEarth: 15.46, periodDays: 3.52, type: "Hot Jupiter — evaporating", fact: "Osiris — first exoplanet observed transiting (1999), first with a detected atmosphere (Hubble 2001), first found to be evaporating into a comet-like hydrogen tail. The transit method launched the modern era of exoplanet discovery." },
+    ],
   },
   {
     id: "hr-8799",
@@ -1838,6 +1847,13 @@ export const skyPoints: SkyPoint[] = [
     distance: "41 ly",
     fact: "Hosts five known planets including 55 Cancri e — a super-Earth so hot (2,400 K dayside) that early models suggested a carbon-rich composition with surface diamond. Later observations point to a lava-ocean world, but the diamond-planet nickname stuck.",
     visualSize: 0.55,
+    planets: [
+      { name: "55 Cnc e", aAU: 0.0154, radiusEarth: 1.88,  periodDays: 0.74,  type: "Super-Earth, lava world",   fact: "'Diamond planet' — 2,400 K dayside, possibly a lava ocean or a carbon-rich super-Earth. Orbits in just 18 hours." },
+      { name: "55 Cnc b", aAU: 0.114,  radiusEarth: 13.4,  periodDays: 14.65, type: "Hot Jupiter",               fact: "Discovered 1996; one of the first Jupiter-mass exoplanets ever found. 4× more massive than Jupiter." },
+      { name: "55 Cnc c", aAU: 0.241,  radiusEarth: 6.5,   periodDays: 44.34, type: "Warm Neptune",              fact: "Warm Neptune-mass — orbits inside the inner habitable-zone edge." },
+      { name: "55 Cnc f", aAU: 0.781,  radiusEarth: 5.5,   periodDays: 261,   type: "Warm Neptune, habitable zone", habitableZone: true, fact: "Sits in 55 Cnc's habitable zone — likely a gas dwarf, not a rocky world, but if it has a large moon, that moon could be habitable." },
+      { name: "55 Cnc d", aAU: 5.957,  radiusEarth: 12.0,  periodDays: 5285,  type: "Cold gas giant",            fact: "Outermost — a long-period Jupiter-analog at ~6 AU. The most 'Jupiter-like' exoplanet in the system." },
+    ],
   },
   {
     id: "k2-18",
@@ -1866,6 +1882,9 @@ export const skyPoints: SkyPoint[] = [
     distance: "1,410 ly",
     fact: "Yellow dwarf hosting WASP-12 b, a hot Jupiter so close to its star (0.023 AU) that its atmosphere is being shredded into a comet-like cloud trailing the planet. The host's tidal forces are dragging the planet inward — it'll be destroyed within ~10 million years.",
     visualSize: 0.5,
+    planets: [
+      { name: "WASP-12 b", aAU: 0.023, radiusEarth: 21.4, periodDays: 1.09, type: "Doomed hot Jupiter", fact: "1.5 Jupiter-masses, surface 2,800 K. Being torn apart — tidal forces drag the atmosphere off in a comet-like cloud, and the planet itself is spiralling inward; will be destroyed within ~10 million years." },
+    ],
   },
   {
     id: "psr-b1257-12",
@@ -1878,6 +1897,11 @@ export const skyPoints: SkyPoint[] = [
     distance: "2,300 ly",
     fact: "Millisecond pulsar — a spinning neutron star, the dead core of a supernova. Hosts the first exoplanets ever confirmed (1992, three years before 51 Pegasi b), three rocky worlds orbiting through the lethal radiation of the pulsar. The planets are likely a second generation, formed from the debris of the supernova that birthed the pulsar.",
     visualSize: 0.55,
+    planets: [
+      { name: "Draugr (PSR B1257+12 A)", aAU: 0.19, radiusEarth: 0.5, periodDays: 25.26,  type: "Pulsar planet, sub-Mercury",         fact: "Innermost pulsar planet. Only ~0.02 Earth-masses — about the mass of the Moon. Named for an undead creature from Norse mythology." },
+      { name: "Poltergeist (PSR B1257+12 B)", aAU: 0.36, radiusEarth: 1.2, periodDays: 66.5419, type: "Pulsar planet, super-Earth",     fact: "Discovered 1992 alongside Phobetor — the first two exoplanets ever confirmed. ~4.3 Earth-masses." },
+      { name: "Phobetor (PSR B1257+12 C)", aAU: 0.46, radiusEarth: 1.4, periodDays: 98.2114, type: "Pulsar planet, super-Earth",       fact: "Outermost. ~3.9 Earth-masses. Like its siblings, blasted continuously by the pulsar's lethal beam of radiation." },
+    ],
   },
   {
     id: "lhs-1140",
@@ -1890,6 +1914,10 @@ export const skyPoints: SkyPoint[] = [
     distance: "49 ly",
     fact: "Red dwarf hosting LHS 1140 b — a super-Earth in the habitable zone, recently confirmed via JWST to have a steam atmosphere (water vapour over a possible ocean world). One of the most accessible targets for atmospheric biosignature searches in the 2020s.",
     visualSize: 0.5,
+    planets: [
+      { name: "LHS 1140 c", aAU: 0.027, radiusEarth: 1.28, periodDays: 3.78,  type: "Rocky, hot",                                          fact: "Inner super-Earth, too hot for surface liquid water." },
+      { name: "LHS 1140 b", aAU: 0.0936, radiusEarth: 1.73, periodDays: 24.7, type: "Super-Earth, habitable zone", habitableZone: true, fact: "JWST 2024 hinted at water vapour in its atmosphere — possibly a 'Hycean' world or full ocean. Density consistent with ~10–20% water by mass. One of the strongest current candidates for liquid-water habitability." },
+    ],
   },
   {
     id: "tabbys-star",
