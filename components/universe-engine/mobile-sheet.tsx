@@ -19,7 +19,7 @@
 
 import { motion, AnimatePresence, type PanInfo } from "framer-motion"
 import type { BodyInfo } from "./types"
-import { DeepFactsDisclosure } from "./hud"
+import { DeepFactsDisclosure, OrbitalElements } from "./hud"
 
 export function MobileBodySheet({
   body,
@@ -185,6 +185,10 @@ function BodyStats({ body }: { body: BodyInfo }) {
           sheet stays scannable; tap to expand. Keyed on name to reset when
           the user opens a different body. */}
       <DeepFactsDisclosure key={body.name} deep={body.deep} variant="sheet" />
+      {/* Orbital elements — for comets / asteroids / spacecraft / dwarfs.
+          Always visible (not behind a disclosure) since they're the headline
+          data for moving bodies. */}
+      <OrbitalElements orbital={body.orbital} variant="sheet" />
     </dl>
   )
 }

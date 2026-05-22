@@ -363,4 +363,9 @@ export const SPACECRAFT_SHAPES: Record<string, ShapeEntry> = {
   "New Horizons":                 { render: (p) => <NewHorizonsShape {...p} />,  scale: 4.5 },
   "James Webb Space Telescope":   { render: (p) => <JWSTShape {...p} />,         scale: 3.0 },
   "Parker Solar Probe":           { render: (p) => <ParkerShape {...p} />,       scale: 4.0 },
+  // Pioneers 10 / 11 share the Voyager-era high-gain antenna + RTG boom
+  // hardware — close enough to reuse the shape rather than draw a near
+  // duplicate. Different mission, same silhouette family.
+  "Pioneer 10":                   { render: (p) => <VoyagerShape {...p} />,      scale: 4.5 },
+  "Pioneer 11":                   { render: (p) => <VoyagerShape {...p} />,      scale: 4.5 },
 }

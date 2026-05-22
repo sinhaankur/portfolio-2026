@@ -869,7 +869,7 @@ export const namedBodies: NamedBody[] = [
     // they read as probes, not planets, when they happen to cluster
     // near Earth at the current sim time. Real orbital positions are
     // preserved — only the render size shrinks.
-    visualRadius: 0.018,
+    visualRadius: 0.028,
   },
   {
     name: "OSIRIS-APEX",
@@ -883,7 +883,7 @@ export const namedBodies: NamedBody[] = [
     periodYears: 1.22,
     startPhase: 0.85,
     fact: "Originally OSIRIS-REx — flew to asteroid Bennu and dropped the sample capsule on Utah in September 2023, then was redirected as OSIRIS-APEX to rendezvous with near-Earth asteroid 99942 Apophis on April 13, 2029, the day Apophis makes its closest flyby of Earth (~32,000 km).",
-    visualRadius: 0.018,
+    visualRadius: 0.028,
   },
   {
     name: "Lucy",
@@ -897,7 +897,7 @@ export const namedBodies: NamedBody[] = [
     periodYears: 6.0,
     startPhase: 0.20,
     fact: "First mission to the Jupiter Trojans — the two clouds of asteroids that share Jupiter's orbit, 60° ahead and behind it. Eleven-year tour visiting eight asteroids between 2025 and 2033, including Donaldjohanson (April 2025) and Eurybates with its tiny moon Queta.",
-    visualRadius: 0.018,
+    visualRadius: 0.028,
   },
   {
     name: "BepiColombo",
@@ -911,7 +911,7 @@ export const namedBodies: NamedBody[] = [
     periodYears: 0.53,
     startPhase: 0.92,
     fact: "Joint ESA / JAXA Mercury mission — completing nine planetary flybys (Earth × 1, Venus × 2, Mercury × 6) before braking into Mercury orbit in November 2026. Two orbiters then separate: one mapping the surface, one studying the magnetosphere.",
-    visualRadius: 0.018,
+    visualRadius: 0.028,
   },
   // ----- Dormant interstellar probes — still on their escape trajectories
   // even though communications ended decades ago. Worth carrying for

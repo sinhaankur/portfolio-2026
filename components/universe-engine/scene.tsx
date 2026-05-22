@@ -2441,6 +2441,12 @@ function NamedBodyMesh({
               periodDays: isFinite(body.periodYears) ? body.periodYears * 365.25 : undefined,
               fact: body.fact,
               followable: interactive,
+              orbital: {
+                eccentricity: body.eccentricity,
+                inclDeg: body.inclDeg,
+                longNodeDeg: body.longNodeDeg,
+                argPeriDeg: body.argPeriDeg,
+              },
             })
           }}
           onPointerOut={() => onHover(null)}

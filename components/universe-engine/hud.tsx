@@ -27,6 +27,75 @@ function formatMassEarth(m: number): string {
   return `${m.toFixed(1)} × Earth`
 }
 
+/** Round-trip a hyperbolic eccentricity (escape trajectory, e ≈ 1.00001)
+ *  to a readable label rather than printing "1.000". */
+function formatEccentricity(e: number): string {
+  if (e >= 1) return "≈ 1 (escape)"
+  if (e < 0.005) return e.toFixed(3)
+  return e.toFixed(3)
+}
+
+/** Whether an orbital-elements record has any field worth displaying.
+ *  Used to skip rendering the orbital block for circular Earth-like
+ *  orbits where every field is either undefined or zero. */
+function hasOrbitalDetail(o: NonNullable<BodyInfo["orbital"]>): boolean {
+  return (
+    (o.eccentricity !== undefined && o.eccentricity > 0) ||
+    (o.inclDeg !== undefined && o.inclDeg !== 0) ||
+    (o.longNodeDeg !== undefined && o.longNodeDeg !== 0) ||
+    (o.argPeriDeg !== undefined && o.argPeriDeg !== 0)
+  )
+}
+
+/** Shared rendering of orbital elements (i / e / Ω / ω). Used by the
+ *  desktop InfoPanel and the mobile bottom sheet so both surfaces show
+ *  the same numbers in the same layout. */
+export function OrbitalElements({
+  orbital,
+  variant = "panel",
+}: {
+  orbital?: BodyInfo["orbital"]
+  variant?: "panel" | "sheet"
+}) {
+  if (!orbital || !hasOrbitalDetail(orbital)) return null
+  const isSheet = variant === "sheet"
+  const gridClass = isSheet
+    ? "mt-4 pt-3 border-t border-border grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 font-mono text-xs"
+    : "mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 font-sans text-[10px]"
+  const labelClass = isSheet ? "text-foreground/55 shrink-0" : "text-foreground/55"
+  const valueClass = isSheet
+    ? "text-foreground/85 tabular-nums"
+    : "text-right text-foreground/85 tabular-nums"
+  return (
+    <dl className={gridClass}>
+      {orbital.eccentricity !== undefined && orbital.eccentricity > 0 && (
+        <>
+          <dt className={labelClass}>eccentricity</dt>
+          <dd className={valueClass}>{formatEccentricity(orbital.eccentricity)}</dd>
+        </>
+      )}
+      {orbital.inclDeg !== undefined && orbital.inclDeg !== 0 && (
+        <>
+          <dt className={labelClass}>inclination</dt>
+          <dd className={valueClass}>{orbital.inclDeg.toFixed(1)}°</dd>
+        </>
+      )}
+      {orbital.longNodeDeg !== undefined && orbital.longNodeDeg !== 0 && (
+        <>
+          <dt className={labelClass}>Ω asc. node</dt>
+          <dd className={valueClass}>{orbital.longNodeDeg.toFixed(1)}°</dd>
+        </>
+      )}
+      {orbital.argPeriDeg !== undefined && orbital.argPeriDeg !== 0 && (
+        <>
+          <dt className={labelClass}>ω peri-arg</dt>
+          <dd className={valueClass}>{orbital.argPeriDeg.toFixed(1)}°</dd>
+        </>
+      )}
+    </dl>
+  )
+}
+
 /** Shared disclosure used by both the desktop InfoPanel and the mobile
  *  bottom sheet. Surfaces NASA Planetary Fact Sheet data behind a small
  *  "More" toggle so the default panel stays light. Reset via React key
@@ -208,6 +277,11 @@ export function InfoPanel({ info }: { info: BodyInfo | null }) {
           panel stays glanceable. Keyed on name so the disclosure resets
           collapsed whenever the user hovers a different body. */}
       <DeepFactsDisclosure key={info.name} deep={info.deep} variant="panel" />
+
+      {/* Orbital elements — surfaced for comets, asteroids, spacecraft,
+          dwarfs. Fully describes the 3D orbit (i / e / Ω / ω) for the
+          curious; planets use the deep facts disclosure above instead. */}
+      <OrbitalElements orbital={info.orbital} variant="panel" />
 
       {info.followable && (
         <div className="mt-3 inline-flex items-center gap-2 font-mono text-[9px] tracking-[0.25em] uppercase text-foreground/60">
