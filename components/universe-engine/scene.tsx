@@ -2379,22 +2379,27 @@ function GalaxyDetail({
 /**
  * BlackHoleDetail
  *
- * The iconic Gargantua / EHT visualisation that everyone knows from the
- * Interstellar still or the 2019 M87* image:
- *   - opaque event-horizon sphere at the centre,
- *   - a bright thin photon ring tight against the shadow,
- *   - an edge-on accretion disk that wraps around the sphere,
+ * Strict Gargantua / Interstellar recreation, used for every black hole
+ * in the scene (Sgr A*, M87*, Cygnus X-1, TON 618, V404 Cygni, …). The
+ * structure is:
+ *   - opaque shadow sphere at the centre, sized to the apparent shadow
+ *     (~2.6 × event-horizon radius for Schwarzschild),
+ *   - a bright thin photon ring tight against the shadow's edge —
+ *     visually the brightest element, the Einstein-ring sliver,
+ *   - an edge-on accretion disk that wraps around the sphere as four
+ *     concentric belts from white-hot inner edge to warm-golden outer,
  *   - two arcs over the top and under the bottom — the disk's far side
- *     gravitationally lensed up and over the black hole, which is what
- *     gives Gargantua its "halo" silhouette.
+ *     gravitationally lensed up and over the BH, which is what gives
+ *     Gargantua its iconic "halo" silhouette.
  *
  * Real lensing is a ray-trace problem; we fake it by rendering the
- * lensed top/bottom as perpendicular half-rings. The result reads as
- * Gargantua even though no light is actually being bent.
+ * lensed top/bottom as half-rings rotated 180° apart. Per Nolan's
+ * directive (Kip Thorne, 2015), Doppler beaming is suppressed for
+ * cinematic legibility — both halo arcs render at identical brightness.
  *
- * Doppler beaming: the approaching side of the disk is brighter than
- * the receding side. We approximate this by making one half-arc warmer +
- * more opaque than the other.
+ * All other bodies (planets, Sun, moons, comets, asteroids, nebulae,
+ * galaxies) follow NASA / catalog astronomical data, not Nolan's
+ * stylisation. The Gargantua look is intentionally scoped to BHs.
  */
 /**
  * Physics-driven proportions for the black hole detail.
@@ -2426,10 +2431,21 @@ function computeBlackHoleProportions(massSolar: number, spin: number, baseScale:
   const visualMultiplier = 0.75 + Math.max(0, Math.min(1, (logRs - 5) / 8)) * 0.7
   const detailScale = baseScale * 4.0 * visualMultiplier
 
-  // Scene-unit radii. Sized so the photon halo hugs the horizon tightly
-  // (Gargantua silhouette) and the disk extends far outward with fade.
-  // Horizon size shrinks slightly for high-spin Kerr BHs.
+  // Scene-unit radii — Gargantua-style proportions.
+  //
+  // Two distinct things here: the *horizon* (actual event horizon — the
+  // boundary of no return) and the *shadow* (what you SEE — a darker,
+  // larger region because photons in the photon sphere's catchment area
+  // are all bent into the horizon). For Schwarzschild the shadow is
+  // 3√3/2 ≈ 2.598 × the horizon radius; for max-spin Kerr it shrinks
+  // slightly and becomes asymmetric. We interpolate linearly with spin.
+  //
+  // Everything visible (the black silhouette, the photon ring, the
+  // lensed halo, the disk) is scaled off `shadowR`, not `horizonR` —
+  // that's what makes the proportions read as Interstellar's Gargantua.
   const horizonR = detailScale * 0.22 * (rPlusMeters / rsMeters)
+  const shadowFactor = 2.598 - 0.55 * Math.min(spin, 1)
+  const shadowR = horizonR * shadowFactor
   return {
     rsMeters,
     rPlusMeters,
@@ -2438,26 +2454,30 @@ function computeBlackHoleProportions(massSolar: number, spin: number, baseScale:
     outerMeters,
     iscoFactor,
     horizonR,
-    // Photon ring — saturated thin band right at the horizon (1.05 - 1.18 × rh)
-    photonInner: horizonR * 1.02,
-    photonOuter: horizonR * 1.18,
-    // Lensed halo — tight white band wrapping over + under the BH.
-    // 1.0 → 1.55 × horizon, brighter than the disk so it reads as photon-sphere lensed light.
-    haloInner:   horizonR * 1.00,
-    haloOuter:   horizonR * 1.55,
-    // Accretion disk layers — three concentric belts going outward.
-    // Inner (white hot) — sits just outside the ISCO.
-    diskInner1:  horizonR * 1.80,
-    diskOuter1:  horizonR * 3.20,
-    // Mid (white, slight warm) — bulk of the visible disk.
-    diskInner2:  horizonR * 3.20,
-    diskOuter2:  horizonR * 5.60,
-    // Outer (warm fade) — sells the dramatic dust extending into space.
-    diskInner3:  horizonR * 5.60,
-    diskOuter3:  horizonR * 9.00,
-    // Far-outer dust trail.
-    diskInner4:  horizonR * 9.00,
-    diskOuter4:  horizonR * 12.5,
+    shadowR,
+    // Photon ring — thin Einstein-ring sliver sitting right at the edge
+    // of the shadow. In Interstellar this is the brightest thing on
+    // screen and the single most recognisable element.
+    photonInner: shadowR * 0.97,
+    photonOuter: shadowR * 1.03,
+    // Lensed halo — the secondary image of the disk's far side, bent
+    // gravitationally over the top and under the bottom of the shadow.
+    // This is the iconic "ring above + below the BH" that makes the
+    // Interstellar still look the way it does.
+    haloInner:   shadowR * 1.03,
+    haloOuter:   shadowR * 1.35,
+    // Primary accretion disk — four concentric belts from white-hot
+    // inner edge to warm-golden outer. Extent kept compact (~6 ×
+    // shadow) so the disk reads as a defined ring around the BH
+    // instead of sprawling into the rest of the scene.
+    diskInner1:  shadowR * 1.18,
+    diskOuter1:  shadowR * 2.00,
+    diskInner2:  shadowR * 2.00,
+    diskOuter2:  shadowR * 3.20,
+    diskInner3:  shadowR * 3.20,
+    diskOuter3:  shadowR * 4.50,
+    diskInner4:  shadowR * 4.50,
+    diskOuter4:  shadowR * 6.20,
     detailScale,
   }
 }
@@ -2469,7 +2489,6 @@ function BlackHoleDetail({
   massSolar,
   spin,
   name,
-  pointId,
 }: {
   size: number
   hovered: boolean
@@ -2480,27 +2499,10 @@ function BlackHoleDetail({
   spin?: number
   /** Display name for the data readout. */
   name?: string
-  /** Sky-point id — used to gate the M87* real photograph overlay. */
-  pointId?: string
 }) {
   const rootRef = useRef<Group>(null)
   const spinRef = useRef<Group>(null)
   const matRefs = useRef<Array<import("three").MeshBasicMaterial | null>>([])
-  const photoMatRef = useRef<import("three").MeshBasicMaterial>(null)
-  const [m87Texture, setM87Texture] = useState<Texture | null>(null)
-  // M87* gets the real EHT photograph as a textured plane that fades in
-  // on focus. It's the first ever direct image of a black hole — strict
-  // recreation, not stylisation. Lazy-loaded so it doesn't bloat first paint.
-  const isM87 = pointId === "m87-star"
-  useEffect(() => {
-    if (!isM87 || !hovered || m87Texture) return
-    const loader = new TextureLoader()
-    loader.load("/textures/m87-eht.jpg", (tex) => {
-      tex.colorSpace = SRGBColorSpace
-      tex.anisotropy = 8
-      setM87Texture(tex)
-    })
-  }, [isM87, hovered, m87Texture])
 
   // Default to a generic supermassive value if mass wasn't declared on
   // the sky-point — keeps the renderer working even if someone adds a
@@ -2519,19 +2521,22 @@ function BlackHoleDetail({
   const isStellarMass = M < 1000
   const diskBoost = isStellarMass ? 1.25 : 1.0
 
-  // Palette — Interstellar/Gargantua look: the accretion disk plasma is
-  // so hot (~10⁹ K near the inner edge) that it radiates close to white
-  // not orange. Warm tones reserved for the outer fade where the disk
-  // cools and the dust trail extends into space.
+  // Palette — strict Gargantua. Christopher Nolan's directive (per Kip
+  // Thorne's paper) was to render the disk as Nolan saw it: warm golden,
+  // symmetric, with no Doppler asymmetry. The plasma is hot enough that
+  // the inner edge radiates near white; the outer reaches cool toward
+  // amber as the temperature drops. Both lensed arcs share the same
+  // luminosity (`haloMain`) — there is no "hot side / cold side"
+  // because Nolan deliberately suppressed the Doppler beaming for
+  // cinematic legibility.
   const palette = {
-    horizon:   "#000000",
+    shadow:    "#000000",
     photon:    invert ? "#1a0d06" : "#ffffff",
-    haloHot:   invert ? "#1a0d06" : "#ffffff",
-    haloCold:  invert ? "#2a1810" : "#fff5e8",
+    haloMain:  invert ? "#1a0d06" : "#fff7df",
     diskCore:  invert ? "#1a0d06" : "#ffffff",
-    diskMid:   invert ? "#2a1810" : "#fff0d8",
+    diskMid:   invert ? "#2a1810" : "#fff0c8",
     diskOuter: invert ? "#3a2014" : "#ffc878",
-    diskFar:   invert ? "#4a2810" : "#cd6614",
+    diskFar:   invert ? "#4a2810" : "#c87a28",
   }
 
   useFrame((_, delta) => {
@@ -2555,13 +2560,6 @@ function BlackHoleDetail({
       const visible = target * opacityFactor
       m.opacity += (visible - m.opacity) * k
     })
-    // M87* EHT photograph overlay — fades to ~0.92 on focus so the
-    // procedural Gargantua structure underneath still adds depth via
-    // the lensed arcs.
-    if (photoMatRef.current && isM87) {
-      const target = hovered && m87Texture ? 0.92 : 0
-      photoMatRef.current.opacity += (target - photoMatRef.current.opacity) * k
-    }
   })
 
   const registerMat = (i: number, targetOpacity: number) =>
@@ -2635,25 +2633,28 @@ function BlackHoleDetail({
 
       {/* === Event horizon — opaque black sphere. Renders AFTER the
           disk's far side (which it occludes behind itself) but BEFORE
-          the lensed halo (which sits on top of the horizon silhouette). === */}
+          the lensed halo (which sits on top of the shadow silhouette).
+          Sized to the *shadow* radius (~2.6 × horizon for Schwarzschild),
+          not the bare event horizon — that's the dark region you actually
+          see because every photon in the photon-sphere catchment is
+          deflected into the horizon. === */}
       <mesh>
-        <sphereGeometry args={[props.horizonR, 64, 64]} />
-        <meshBasicMaterial color={palette.horizon} />
+        <sphereGeometry args={[props.shadowR, 64, 64]} />
+        <meshBasicMaterial color={palette.shadow} />
       </mesh>
 
-      {/* === Lensed halo — the iconic "halo above and below the horizon"
-          you see in Interstellar's Gargantua. This is the gravitationally
-          lensed image of the disk's far side wrapping over the top + under
-          the bottom of the BH. Rendered as two perpendicular half-rings
-          that together form a tight ring around the silhouette. === */}
-
-      {/* Upper halo arc — saturated white. Slightly thicker than the lower
-          to fake Doppler beaming (approaching side brightens). */}
+      {/* === Lensed halo — the secondary image of the disk's far side,
+          gravitationally bent up over the top and down under the bottom
+          of the shadow. This is the single most recognisable element of
+          Gargantua's silhouette in Interstellar; rendered as two
+          half-rings that together close into one continuous loop around
+          the shadow. Both arcs share identical brightness — Nolan's
+          directive was no Doppler asymmetry, so neither side is dimmed. === */}
       <mesh>
         <ringGeometry args={[props.haloInner, props.haloOuter, 96, 1, 0, Math.PI]} />
         <meshBasicMaterial
-          ref={registerMat(4, (invert ? 0.85 : 1.0) * diskBoost)}
-          color={palette.haloHot}
+          ref={registerMat(4, (invert ? 0.90 : 1.10) * diskBoost)}
+          color={palette.haloMain}
           transparent
           opacity={0}
           side={DoubleSide}
@@ -2661,13 +2662,11 @@ function BlackHoleDetail({
           depthWrite={false}
         />
       </mesh>
-
-      {/* Lower halo arc — slightly thinner + dimmer (Doppler receding). */}
       <mesh rotation={[0, 0, Math.PI]}>
-        <ringGeometry args={[props.haloInner, props.haloOuter * 0.94, 96, 1, 0, Math.PI]} />
+        <ringGeometry args={[props.haloInner, props.haloOuter, 96, 1, 0, Math.PI]} />
         <meshBasicMaterial
-          ref={registerMat(5, (invert ? 0.65 : 0.82) * diskBoost)}
-          color={palette.haloCold}
+          ref={registerMat(5, (invert ? 0.90 : 1.10) * diskBoost)}
+          color={palette.haloMain}
           transparent
           opacity={0}
           side={DoubleSide}
@@ -2676,14 +2675,16 @@ function BlackHoleDetail({
         />
       </mesh>
 
-      {/* === Photon ring — innermost saturated white sliver, hugging the
-          event horizon. This is the actual photon sphere (1.5 × rs).
-          Rendered tilted in step with the disk so it reads as the bright
-          inner rim of the lensed light path, not a flat halo. === */}
+      {/* === Photon ring — the Einstein-ring sliver at the photon
+          sphere, sitting right at the shadow's edge. Visually the
+          brightest thing on screen — it traces where light from the
+          disk has been bent into a near-circular orbit before escaping
+          to the camera. Tilted in step with the disk so it reads as
+          the disk's bright inner rim seen edge-on. === */}
       <mesh rotation={[Math.PI / 2 - 0.18, 0, 0]}>
         <ringGeometry args={[props.photonInner, props.photonOuter, 128]} />
         <meshBasicMaterial
-          ref={registerMat(6, (invert ? 0.95 : 1.0) * diskBoost)}
+          ref={registerMat(6, (invert ? 1.00 : 1.20) * diskBoost)}
           color={palette.photon}
           transparent
           opacity={0}
@@ -2692,54 +2693,6 @@ function BlackHoleDetail({
           depthWrite={false}
         />
       </mesh>
-
-      {/* M87* — the actual EHT photograph. The first ever direct image
-          of a black hole, captured April 2019, released to public domain
-          by the EHT collaboration. Renders as a textured plane sized to
-          the procedural disk so the photo composites cleanly on top.
-          Only mounts when the M87* texture has loaded (lazy on first focus). */}
-      {isM87 && m87Texture && (
-        <mesh position={[0, 0, props.detailScale * 0.05]}>
-          <planeGeometry args={[props.detailScale * 2.2, props.detailScale * 2.2]} />
-          <meshBasicMaterial
-            ref={photoMatRef as React.Ref<import("three").MeshBasicMaterial>}
-            map={m87Texture}
-            transparent
-            opacity={0}
-            side={DoubleSide}
-            depthWrite={false}
-          />
-        </mesh>
-      )}
-
-      {/* "Actual photograph" caption for M87* — fades in with the photo
-          to make explicit this is the real EHT image, not a procedural
-          rendering. Anchored below the BH so it doesn't sit on the shadow. */}
-      {isM87 && hovered && (
-        <Html
-          position={[0, -props.detailScale * 1.5, 0]}
-          center
-          distanceFactor={6}
-          zIndexRange={[10, 0]}
-          style={{ pointerEvents: "none" }}
-        >
-          <div
-            className={`
-              select-none pointer-events-none whitespace-nowrap
-              font-mono text-[9px] tracking-[0.22em] uppercase
-              px-3 py-1.5 rounded-full backdrop-blur-sm
-              ${
-                invert
-                  ? "bg-white/85 border border-foreground/25 text-foreground"
-                  : "bg-black/65 border border-white/20 text-white"
-              }
-            `}
-            style={{ animation: "ue-label-in 240ms ease-out both" }}
-          >
-            EHT · April 2019 · first direct image
-          </div>
-        </Html>
-      )}
 
       {/* Physics data overlay — fades in on hover. Mass, Schwarzschild
           radius, photon-sphere radius, ISCO factor. Anchored to the side
@@ -3130,7 +3083,6 @@ function SkyPointMesh({
           massSolar={point.massSolar}
           spin={point.spin}
           name={point.name}
-          pointId={point.id}
         />
       )}
       {/* Cluster spray — for star clusters, add a handful of bright pinpoints
