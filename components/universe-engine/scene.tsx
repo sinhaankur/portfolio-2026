@@ -1609,16 +1609,26 @@ function PlanetBody({
     if (orbitRef.current) orbitRef.current.rotation.y = planet.raw.startPhase
   }, [planet.raw.startPhase])
 
+  // rotHours in the data uses the signed convention (negative = retrograde),
+  // but for planets like Venus (177°), Uranus (98°), and Pluto (123°) the
+  // axial tilt > 90° ALSO encodes the retrograde flip. Using both at once
+  // cancels back to prograde. When the tilt does the work, we use only the
+  // magnitude of the spin so the visible rotation matches reality.
+  const tiltEncodesRetrograde = Math.abs(planet.axialTilt) > Math.PI / 2
+  const visibleRotSpeed = tiltEncodesRetrograde
+    ? Math.abs(planet.rotSpeedRadPerSec)
+    : planet.rotSpeedRadPerSec
+
   useFrame((_, delta) => {
     const tw = timeWarpRef.current
     if (orbitRef.current) orbitRef.current.rotation.y += delta * planet.orbitalSpeedRadPerSec * tw
-    if (meshRef.current) meshRef.current.rotation.y += delta * planet.rotSpeedRadPerSec * tw
+    if (meshRef.current) meshRef.current.rotation.y += delta * visibleRotSpeed * tw
 
     // Textured sphere rotates in lockstep with the grey one underneath so
     // surface features (Earth's continents, Jupiter's bands, Saturn's
     // stripes) drift naturally as time advances.
     if (texMeshRef.current) {
-      texMeshRef.current.rotation.y += delta * planet.rotSpeedRadPerSec * tw
+      texMeshRef.current.rotation.y += delta * visibleRotSpeed * tw
     }
     // Lerp the textured material's opacity to full as soon as the JPEG lands —
     // the photo-real globe is the default state now, not a hover reveal.
@@ -2183,7 +2193,11 @@ function NamedBodyMesh({
     const period = isFinite(body.periodYears)
       ? body.periodYears * 365.25 / TIME_WARP_DAYS_PER_SEC
       : 120 // ~2 minutes of scene time end-to-end for interstellars
-    const angularSpeed = (2 * Math.PI) / period
+    // Inclinations > 90° encode retrograde orbits (Halley at 162°, etc.) —
+    // we reverse the phase increment so the body actually marches backward
+    // along the ellipse, not just on a tilted prograde plane.
+    const direction = body.inclDeg > 90 ? -1 : 1
+    const angularSpeed = direction * (2 * Math.PI) / period
     const phase = body.startPhase * Math.PI * 2
 
     // Default colours by kind. Comets: warm ice-blue (gas+dust coma).
