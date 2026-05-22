@@ -1261,51 +1261,93 @@ function SaturnRings({
 }) {
   // Rings sit in Saturn's equatorial plane. The parent group applies the
   // 26.73° axial tilt, so rings inherit it naturally.
-  const ringColor = invert ? "#1a1208" : "#ffffff"
-  const innerMatRef = useRef<import("three").MeshBasicMaterial>(null)
-  const outerMatRef = useRef<import("three").MeshBasicMaterial>(null)
+  //
+  // Real ring structure, in Saturn-radii (used here verbatim):
+  //   C ring  1.24 - 1.53  faint, thin
+  //   B ring  1.53 - 1.95  brightest, densest
+  //   Cassini gap 1.95 - 2.03  (drawn implicitly — no mesh in that range)
+  //   A ring  2.03 - 2.27  medium-bright
+  //   F ring  ~2.32        thin sliver outside A
+  // The Cassini Division is what your eye picks out at first glance, so
+  // we draw B and A as separate meshes and let the gap between them do
+  // the work — no manual "draw a dark band" trick required.
+  const cIdle  = invert ? 0.18 : 0.10
+  const bIdle  = invert ? 0.62 : 0.42
+  const aIdle  = invert ? 0.48 : 0.30
+  const fIdle  = invert ? 0.35 : 0.20
+  const cHover = invert ? 0.32 : 0.20
+  const bHover = invert ? 0.90 : 0.72
+  const aHover = invert ? 0.78 : 0.58
+  const fHover = invert ? 0.55 : 0.38
 
-  const innerIdle = invert ? 0.55 : 0.35
-  const outerIdle = invert ? 0.42 : 0.28
-  const innerHover = invert ? 0.85 : 0.65
-  const outerHover = invert ? 0.7 : 0.55
+  const cRef = useRef<import("three").MeshBasicMaterial>(null)
+  const bRef = useRef<import("three").MeshBasicMaterial>(null)
+  const aRef = useRef<import("three").MeshBasicMaterial>(null)
+  const fRef = useRef<import("three").MeshBasicMaterial>(null)
 
-  // Lerp ring opacity toward the hover target each frame — rings become
-  // markedly more present when Saturn is hovered, signalling "this is the
-  // body you're inspecting" alongside the texture morph on the planet.
+  // Lerp ring opacity toward the hover target each frame. All four bands
+  // brighten together so the Cassini Division stays visually prominent.
   useFrame((_, delta) => {
     const k = 1 - Math.exp(-delta * 8)
-    if (innerMatRef.current) {
-      const target = highlighted ? innerHover : innerIdle
-      innerMatRef.current.opacity += (target - innerMatRef.current.opacity) * k
+    const apply = (
+      mat: import("three").MeshBasicMaterial | null,
+      idle: number,
+      hover: number,
+    ) => {
+      if (!mat) return
+      const target = highlighted ? hover : idle
+      mat.opacity += (target - mat.opacity) * k
     }
-    if (outerMatRef.current) {
-      const target = highlighted ? outerHover : outerIdle
-      outerMatRef.current.opacity += (target - outerMatRef.current.opacity) * k
-    }
+    apply(cRef.current, cIdle, cHover)
+    apply(bRef.current, bIdle, bHover)
+    apply(aRef.current, aIdle, aHover)
+    apply(fRef.current, fIdle, fHover)
   })
+
+  // Faint warm tint on the bright theme — pure white looks plasticky. The
+  // ink theme keeps a near-black so the rings stay readable on cream.
+  const cColor = invert ? "#1a1208" : "#e7d6b3"
+  const bColor = invert ? "#1a1208" : "#fff2d4"
+  const aColor = invert ? "#1a1208" : "#f3e4c4"
+  const fColor = invert ? "#1a1208" : "#ffe9b8"
+
+  const ringMat = (
+    ref: React.Ref<import("three").MeshBasicMaterial>,
+    color: string,
+    idle: number,
+  ) => (
+    <meshBasicMaterial
+      ref={ref}
+      color={color}
+      transparent
+      opacity={idle}
+      side={DoubleSide}
+      depthWrite={false}
+    />
+  )
 
   return (
     <group rotation={[Math.PI / 2, 0, 0]}>
+      {/* C ring — faint inner band. */}
       <mesh>
-        <ringGeometry args={[planetRadius * 1.45, planetRadius * 1.78, 96]} />
-        <meshBasicMaterial
-          ref={innerMatRef as React.Ref<import("three").MeshBasicMaterial>}
-          color={ringColor}
-          transparent
-          opacity={innerIdle}
-          side={DoubleSide}
-        />
+        <ringGeometry args={[planetRadius * 1.24, planetRadius * 1.53, 128]} />
+        {ringMat(cRef as React.Ref<import("three").MeshBasicMaterial>, cColor, cIdle)}
       </mesh>
+      {/* B ring — densest, brightest. */}
       <mesh>
-        <ringGeometry args={[planetRadius * 1.85, planetRadius * 2.10, 96]} />
-        <meshBasicMaterial
-          ref={outerMatRef as React.Ref<import("three").MeshBasicMaterial>}
-          color={ringColor}
-          transparent
-          opacity={outerIdle}
-          side={DoubleSide}
-        />
+        <ringGeometry args={[planetRadius * 1.53, planetRadius * 1.95, 128]} />
+        {ringMat(bRef as React.Ref<import("three").MeshBasicMaterial>, bColor, bIdle)}
+      </mesh>
+      {/* (Cassini Division 1.95 → 2.03 — no mesh, that's the visible gap.) */}
+      {/* A ring — outer wide band. */}
+      <mesh>
+        <ringGeometry args={[planetRadius * 2.03, planetRadius * 2.27, 128]} />
+        {ringMat(aRef as React.Ref<import("three").MeshBasicMaterial>, aColor, aIdle)}
+      </mesh>
+      {/* F ring — thin sliver outside A. */}
+      <mesh>
+        <ringGeometry args={[planetRadius * 2.315, planetRadius * 2.34, 128]} />
+        {ringMat(fRef as React.Ref<import("three").MeshBasicMaterial>, fColor, fIdle)}
       </mesh>
     </group>
   )
