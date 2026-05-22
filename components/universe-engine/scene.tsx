@@ -2297,6 +2297,7 @@ function NamedBodyMesh({
   interactive?: boolean
 }) {
   const groupRef = useRef<Group>(null)
+  const [isHovered, setIsHovered] = useState(false)
 
   // Pre-compute everything time-independent: orbital scale, tilt, base colour.
   const config = useMemo(() => {
@@ -2429,6 +2430,7 @@ function NamedBodyMesh({
         <mesh
           onPointerOver={(e) => {
             e.stopPropagation()
+            setIsHovered(true)
             onHover({
               name: body.name,
               classification:
@@ -2450,7 +2452,10 @@ function NamedBodyMesh({
               },
             })
           }}
-          onPointerOut={() => onHover(null)}
+          onPointerOut={() => {
+            setIsHovered(false)
+            onHover(null)
+          }}
           // Single click engages follow mode — the camera locks onto this
           // body and tracks it as it sweeps its orbit. A plain fly-to would
           // leave fast movers (comets at perihelion, the ISS, interstellar
@@ -2500,6 +2505,34 @@ function NamedBodyMesh({
           <sphereGeometry args={[hitRadius, 12, 12]} />
           <meshBasicMaterial transparent opacity={0} depthWrite={false} />
         </mesh>
+        {/* Hover label — matches the planet hover-label pattern so comets,
+            asteroids, spacecraft, and dwarfs all get the same floating-name
+            affordance. Desktop only; mobile uses the bottom sheet. */}
+        {isHovered && (
+          <Html
+            position={[0, Math.max(config.visualRadius * 3.5, 0.35), 0]}
+            center
+            distanceFactor={8}
+            zIndexRange={[10, 0]}
+            style={{ pointerEvents: "none" }}
+          >
+            <div
+              className={`
+                whitespace-nowrap select-none pointer-events-none
+                font-mono text-[10px] tracking-[0.3em] uppercase
+                px-2 py-1 rounded-full backdrop-blur-sm
+                ${
+                  invert
+                    ? "bg-white/85 border border-foreground/25 text-foreground"
+                    : "bg-black/55 border border-white/20 text-white"
+                }
+              `}
+              style={{ animation: "ue-label-in 220ms ease-out both" }}
+            >
+              {body.name}
+            </div>
+          </Html>
+        )}
       </group>
     </group>
   )
