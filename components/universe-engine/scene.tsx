@@ -136,19 +136,25 @@ const DAY_NIGHT_FRAGMENT_SHADER = `
   uniform vec3 uSunDir;
   uniform float uOpacity;
   uniform float uNightStrength;
+  uniform float uHasNight;       // 1 = blend night map, 0 = night side goes to ambient
+  uniform float uTerminatorSoftness; // 0.18 for Earth, ~0.04 for airless bodies
   varying vec2 vUv;
   varying vec3 vWorldNormal;
   void main() {
     float NdotL = dot(normalize(vWorldNormal), normalize(uSunDir));
-    // Smoothstep across the terminator — atmospheric scattering on the real
-    // Earth softens the day/night boundary over ~5°. Our 0.18 ramp here
-    // approximates that without needing a Rayleigh-scattering shader.
-    float dayMix = smoothstep(-0.08, 0.18, NdotL);
+    // Smoothstep across the terminator — atmospheric scattering on Earth
+    // softens the day/night boundary over ~5°. Airless bodies (Moon,
+    // Mercury) have a razor-sharp terminator instead; uTerminatorSoftness
+    // controls how wide the blend zone is.
+    float dayMix = smoothstep(-uTerminatorSoftness * 0.4, uTerminatorSoftness, NdotL);
     vec3 dayColor = texture2D(tDay, vUv).rgb;
-    vec3 nightColor = texture2D(tNight, vUv).rgb;
-    // Night-side emission boost so the city lights read bright against
-    // an otherwise black hemisphere.
-    vec3 color = mix(nightColor * uNightStrength, dayColor, dayMix);
+    // Night-side colour: either the night map (Earth's city lights) or
+    // just an ambient-dimmed version of the day colour (Moon: shadow
+    // side still has some earthshine; we approximate as 4% ambient).
+    vec3 nightColor = uHasNight > 0.5
+      ? texture2D(tNight, vUv).rgb * uNightStrength
+      : dayColor * 0.04;
+    vec3 color = mix(nightColor, dayColor, dayMix);
     gl_FragColor = vec4(color, uOpacity);
   }
 `
@@ -700,8 +706,29 @@ function MoonBody({
   const bodyRef = useRef<Mesh>(null)
   const haloRef = useRef<Mesh>(null)
   const haloMatRef = useRef<import("three").MeshBasicMaterial>(null)
-  const texMatRef = useRef<import("three").MeshStandardMaterial>(null)
+  /** Mesh ref on the textured moon surface — needed to read world position
+   *  for the day/night shader's sun-direction uniform. */
+  const texMeshRef = useRef<Mesh>(null)
+  /** Day/night shader for tidally-locked moons with a real surface texture
+   *  (just Luna today). Drives the lunar-phase visual: as the moon orbits
+   *  the planet, the lit hemisphere rotates relative to it = phases. */
+  const dayNightMatRef = useRef<ShaderMaterial>(null)
   const [texture, setTexture] = useState<Texture | null>(null)
+  const dayNightUniforms = useMemo(
+    () => ({
+      tDay:                 { value: null as Texture | null },
+      tNight:               { value: null as Texture | null },
+      uSunDir:              { value: new Vector3(1, 0, 0) },
+      uOpacity:             { value: 0 },
+      uNightStrength:       { value: 0 },
+      uHasNight:            { value: 0 },     // airless body
+      uTerminatorSoftness:  { value: 0.04 },  // razor-sharp lunar terminator
+    }),
+    [],
+  )
+  useEffect(() => {
+    if (texture) dayNightUniforms.tDay.value = texture
+  }, [texture, dayNightUniforms])
 
   const speedRadPerSec = useMemo(
     () => (2 * Math.PI) / (moon.periodDays / TIME_WARP_DAYS_PER_SEC),
@@ -754,11 +781,18 @@ function MoonBody({
       const opacityTarget = highlighted ? 0.18 : 0
       haloMatRef.current.opacity += (opacityTarget - haloMatRef.current.opacity) * k
     }
-    // Texture overlay is always-on — fades in as soon as the JPEG lands so
-    // the moon reads as a real photographed surface, not a chart marker.
-    if (texMatRef.current) {
+    // Day/night path (Luna) — lerp opacity AND update sun direction so
+    // the moon's lit hemisphere shifts with its orbital phase. Real
+    // lunar phases come out of this without any per-phase keyframes.
+    // (The old meshStandardMaterial-based texture overlay was replaced
+    // when the shader took over — no parallel opacity lerp needed.)
+    if (texMeshRef.current && textureUrl) {
       const target = texture ? 1 : 0
-      texMatRef.current.opacity += (target - texMatRef.current.opacity) * k
+      dayNightUniforms.uOpacity.value += (target - dayNightUniforms.uOpacity.value) * k
+      texMeshRef.current.getWorldPosition(_earthWorldPos)
+      _sunWorldPos.set(SUN_OFFSET_SCENE, 0, 0)
+      _sunDirTmp.copy(_sunWorldPos).sub(_earthWorldPos).normalize()
+      dayNightUniforms.uSunDir.value.copy(_sunDirTmp)
     }
   })
 
@@ -782,18 +816,19 @@ function MoonBody({
         <sphereGeometry args={[moon.visualRadius, 24, 24]} />
         <meshStandardMaterial color={moon.shade} roughness={0.95} />
         {/* Textured-globe overlay — currently only Luna ships a real surface
-            map. Slightly larger to z-fight-cleanly above the grey marker,
-            and lerps in only when the parent planet is highlighted. */}
+            map. Uses the day/night shader so the moon shows real lunar
+            phases as it orbits its parent (the lit hemisphere rotates
+            relative to the Sun's fixed position). Razor-sharp terminator
+            because the Moon has no atmosphere. */}
         {textureUrl && texture && (
-          <mesh>
+          <mesh ref={texMeshRef}>
             <sphereGeometry args={[moon.visualRadius * 1.01, 48, 48]} />
-            <meshStandardMaterial
-              ref={texMatRef as React.Ref<import("three").MeshStandardMaterial>}
-              map={texture}
-              roughness={0.95}
-              metalness={0.0}
+            <shaderMaterial
+              ref={dayNightMatRef as React.Ref<ShaderMaterial>}
+              vertexShader={DAY_NIGHT_VERTEX_SHADER}
+              fragmentShader={DAY_NIGHT_FRAGMENT_SHADER}
+              uniforms={dayNightUniforms}
               transparent
-              opacity={0}
               depthWrite={false}
             />
           </mesh>
@@ -1799,15 +1834,17 @@ function PlanetBody({
 
   // Day/night shader uniforms — stable object so the shader sees the same
   // reference across re-renders. Textures + sun direction are mutated in
-  // place after the uniforms are wired up. Only used for planets that
-  // ship both day + night textures (just Earth today).
+  // place after the uniforms are wired up. Earth uses this with both
+  // textures + a soft Earth-atmosphere terminator.
   const dayNightUniforms = useMemo(
     () => ({
-      tDay:           { value: null as Texture | null },
-      tNight:         { value: null as Texture | null },
-      uSunDir:        { value: new Vector3(1, 0, 0) },
-      uOpacity:       { value: 0 },
-      uNightStrength: { value: 1.8 },
+      tDay:                 { value: null as Texture | null },
+      tNight:               { value: null as Texture | null },
+      uSunDir:              { value: new Vector3(1, 0, 0) },
+      uOpacity:             { value: 0 },
+      uNightStrength:       { value: 1.8 },
+      uHasNight:            { value: 1.0 },
+      uTerminatorSoftness:  { value: 0.18 },
     }),
     [],
   )
