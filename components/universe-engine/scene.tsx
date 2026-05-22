@@ -2239,6 +2239,52 @@ function SolarSystem({
  * 17.8 AU sits at the right radial distance relative to Saturn/Uranus.
  * ============================================================ */
 
+/**
+ * Convert orbital elements at true anomaly t to a Cartesian (x, y, z)
+ * position in the solar-system frame. Standard orbital-mechanics sequence:
+ *   1. Position in orbital plane with perihelion at +x_orbital
+ *   2. Rotate by argument of periapsis (ω) around plane normal
+ *   3. Tilt by inclination (i) around line of nodes
+ *   4. Rotate by longitude of ascending node (Ω) around y-axis
+ *
+ * With Ω = 0 and ω = 0 this reduces to the simpler "tilt-only" math we
+ * used before — backwards-compatible for bodies that don't specify them.
+ *
+ * The solar-system frame's +x aligns with vernal equinox (RA = 0), +y is
+ * the ecliptic pole, +z is RA = 6h — same convention `raDecToScenePos`
+ * uses for the sky shell, so escape directions line up with constellations.
+ */
+function orbitalElementsToCartesian(
+  a: number,
+  e: number,
+  trueAnomaly: number,
+  inclination: number,
+  longNode: number,
+  argPeri: number,
+): [number, number, number] {
+  const r = (a * (1 - e * e)) / (1 + e * Math.cos(trueAnomaly))
+  // Step 1: position in orbital plane, perihelion at +x_orbital.
+  let xp = r * Math.cos(trueAnomaly)
+  let zp = r * Math.sin(trueAnomaly)
+  // Step 2: rotate by ω around the plane normal (y in orbital frame).
+  if (argPeri !== 0) {
+    const cw = Math.cos(argPeri)
+    const sw = Math.sin(argPeri)
+    const xRot = xp * cw - zp * sw
+    const zRot = xp * sw + zp * cw
+    xp = xRot
+    zp = zRot
+  }
+  // Step 3: tilt by inclination around the line of nodes (x-axis when Ω=0).
+  const yi = zp * Math.sin(inclination)
+  const zi = zp * Math.cos(inclination)
+  // Step 4: rotate by Ω around y (ecliptic pole).
+  if (longNode === 0) return [xp, yi, zi]
+  const cO = Math.cos(longNode)
+  const sO = Math.sin(longNode)
+  return [xp * cO - zi * sO, yi, xp * sO + zi * cO]
+}
+
 function NamedBodyMesh({
   body,
   onHover,
@@ -2270,6 +2316,12 @@ function NamedBodyMesh({
     const direction = body.inclDeg > 90 ? -1 : 1
     const angularSpeed = direction * (2 * Math.PI) / period
     const phase = body.startPhase * Math.PI * 2
+    // Orientation of the orbital plane in 3D — without these the orbit is
+    // correctly tilted but oriented arbitrarily, so Voyager 1's escape
+    // doesn't point toward Ophiuchus and Voyager 2's toward Telescopium.
+    // Default 0 for bodies where the exact sky direction isn't called out.
+    const longNode = (body.longNodeDeg ?? 0) * DEG
+    const argPeri = (body.argPeriDeg ?? 0) * DEG
 
     // Default colours by kind. Comets: warm ice-blue (gas+dust coma).
     // Asteroids: dusty grey-brown. Interstellars: warm accent for the
@@ -2285,25 +2337,24 @@ function NamedBodyMesh({
       /* interstellar */              "#ffd66b"
     const shade = body.shade ?? defaultShade
 
-    return { a, e, inclination, visualRadius, angularSpeed, phase, shade, isLoop: isFinite(body.periodYears) }
+    return { a, e, inclination, longNode, argPeri, visualRadius, angularSpeed, phase, shade, isLoop: isFinite(body.periodYears) }
   }, [body])
 
   // Pre-compute a thin trail of orbit positions so each body draws a
-  // dotted ellipse behind it, hinting at the path.
+  // dotted ellipse behind it, hinting at the path. Uses the same full
+  // orbital-element transform as the per-frame position below, so the
+  // body always sits on its trail.
   const trailGeometry = useMemo(() => {
     const STEPS = config.isLoop ? 90 : 60
     const positions = new Float32Array(STEPS * 3)
     for (let i = 0; i < STEPS; i++) {
       const t = (i / STEPS) * Math.PI * 2
-      // Kepler ellipse with the Sun at one focus.
-      const r = config.a * (1 - config.e * config.e) / (1 + config.e * Math.cos(t))
-      const x = r * Math.cos(t)
-      const z = r * Math.sin(t)
-      const y = z * Math.sin(config.inclination)
-      const z2 = z * Math.cos(config.inclination)
-      positions[i * 3]     = x
-      positions[i * 3 + 1] = y
-      positions[i * 3 + 2] = z2
+      const pos = orbitalElementsToCartesian(
+        config.a, config.e, t, config.inclination, config.longNode, config.argPeri,
+      )
+      positions[i * 3]     = pos[0]
+      positions[i * 3 + 1] = pos[1]
+      positions[i * 3 + 2] = pos[2]
     }
     const geo = new BufferGeometry()
     geo.setAttribute("position", new BufferAttribute(positions, 3))
@@ -2328,12 +2379,10 @@ function NamedBodyMesh({
     }
 
     const t = config.phase
-    const r = config.a * (1 - config.e * config.e) / (1 + config.e * Math.cos(t))
-    const x = r * Math.cos(t)
-    const z = r * Math.sin(t)
-    const y = z * Math.sin(config.inclination)
-    const z2 = z * Math.cos(config.inclination)
-    groupRef.current.position.set(x, y, z2)
+    const [px, py, pz] = orbitalElementsToCartesian(
+      config.a, config.e, t, config.inclination, config.longNode, config.argPeri,
+    )
+    groupRef.current.position.set(px, py, pz)
   })
 
   // Hit-zone radius — never smaller than 0.16 so even tiny bodies are
