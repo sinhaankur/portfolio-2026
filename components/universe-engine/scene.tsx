@@ -570,11 +570,14 @@ function MoonBody({
   moon,
   onHover,
   highlighted = false,
+  interactive = false,
 }: {
   moon: MoonData
   onHover: HoverHandler
   /** Set by the parent planet's hover state — gives the moon a coordinated scale-up + halo. */
   highlighted?: boolean
+  /** When true, clicks engage follow mode on the moon. Same gesture as planets + comets. */
+  interactive?: boolean
 }) {
   const orbitRef = useRef<Group>(null)
   const bodyRef = useRef<Mesh>(null)
@@ -689,11 +692,56 @@ function MoonBody({
             classification: `Moon of ${moon.parent}`,
             periodDays: moon.periodDays,
             fact: moon.fact,
+            followable: interactive,
           })
         }}
         onPointerOut={() => {
           onHover(null)
         }}
+        // Click engages follow on the moon — same gesture pattern as
+        // planets, comets, and spacecraft. The getter reads the moon
+        // body's live world position each frame so the camera stays
+        // glued to it as it orbits the parent planet (which is itself
+        // orbiting the Sun). Distance scales with the moon's visual
+        // radius so Phobos at 0.025 and Titan at 0.08 both frame
+        // sensibly. The hit-mesh `e.object` is positioned inside the
+        // orbit-rotated group, so its world position is always current.
+        onClick={
+          interactive
+            ? (e) => {
+                e.stopPropagation()
+                const followDistance = Math.max(moon.visualRadius * 6, 0.18)
+                const obj = e.object
+                requestFollow(
+                  () => {
+                    const v = new Vector3()
+                    obj.getWorldPosition(v)
+                    return { x: v.x, y: v.y, z: v.z }
+                  },
+                  followDistance,
+                  moon.name,
+                )
+              }
+            : undefined
+        }
+        onDoubleClick={
+          interactive
+            ? (e) => {
+                e.stopPropagation()
+                const followDistance = Math.max(moon.visualRadius * 6, 0.18)
+                const obj = e.object
+                requestFollow(
+                  () => {
+                    const v = new Vector3()
+                    obj.getWorldPosition(v)
+                    return { x: v.x, y: v.y, z: v.z }
+                  },
+                  followDistance,
+                  moon.name,
+                )
+              }
+            : undefined
+        }
       >
         <sphereGeometry args={[hitRadius, 16, 16]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
@@ -1611,18 +1659,18 @@ function PlanetBody({
               onPointerOver={(e) => {
                 e.stopPropagation()
                 setIsHovered(true)
-                onHover(planetToInfo(planet.raw))
+                onHover({ ...planetToInfo(planet.raw), followable: interactive })
               }}
               onPointerOut={() => {
                 setIsHovered(false)
                 onHover(null)
               }}
-              // Click flies the camera to the planet's current world position
-              // AND marks it as the focused body so the texture + atmosphere
-              // persist after arrival (without focus, hovering away would
-              // collapse the bloom mid-flight). Distance scales with the
-              // planet's visual radius so Mercury and Jupiter both end up
-              // framed sensibly. Saturn gets extra room for the rings.
+              // Click engages follow mode on the planet — the camera locks
+              // onto its current world position and tracks as it orbits.
+              // Same gesture as comets + spacecraft: a plain fly-to would
+              // leave Mercury or Earth drifting out of frame seconds after
+              // arrival. The focused flag stays set so the texture +
+              // atmosphere bloom persist while we're tracking.
               onClick={
                 interactive
                   ? (e) => {
@@ -1633,19 +1681,54 @@ function PlanetBody({
                           detail: { pointId: `planet:${planet.raw.name}` },
                         }),
                       )
-                      const world = new Vector3()
-                      e.object.getWorldPosition(world)
-                      // Land close enough for a real surface read — Earth ends
-                      // up at ~0.7 units (planet fills ~⅓ of the view), Jupiter
-                      // at ~2.3 (banding readable), Saturn at ~3 (rings frame).
-                      // Users can then scroll further in to minDistance=0.2.
-                      const flyDistance = Math.max(
+                      // Land close enough for a real surface read — Earth
+                      // ends up at ~0.7 units (planet fills ~⅓ of the view),
+                      // Jupiter at ~2.3 (banding readable), Saturn at ~3
+                      // (rings frame). Users can scroll deeper to 0.2.
+                      const followDistance = Math.max(
                         planet.visualRadius * (planet.raw.hasRings ? 5 : 3.5),
                         0.5,
                       )
-                      requestFlyTo(
-                        { x: world.x, y: world.y, z: world.z },
-                        flyDistance,
+                      // The getter captures e.object (the hit-mesh inside
+                      // the orbit-rotated group) — its world position
+                      // updates each frame as the planet orbits.
+                      const obj = e.object
+                      requestFollow(
+                        () => {
+                          const v = new Vector3()
+                          obj.getWorldPosition(v)
+                          return { x: v.x, y: v.y, z: v.z }
+                        },
+                        followDistance,
+                        planet.raw.name,
+                      )
+                    }
+                  : undefined
+              }
+              onDoubleClick={
+                interactive
+                  ? (e) => {
+                      // Discoverability fallback — double-click runs the
+                      // same follow as single click.
+                      e.stopPropagation()
+                      setFocused(true)
+                      window.dispatchEvent(
+                        new CustomEvent("universe:sky-focus", {
+                          detail: { pointId: `planet:${planet.raw.name}` },
+                        }),
+                      )
+                      const followDistance = Math.max(
+                        planet.visualRadius * (planet.raw.hasRings ? 5 : 3.5),
+                        0.5,
+                      )
+                      const obj = e.object
+                      requestFollow(
+                        () => {
+                          const v = new Vector3()
+                          obj.getWorldPosition(v)
+                          return { x: v.x, y: v.y, z: v.z }
+                        },
+                        followDistance,
                         planet.raw.name,
                       )
                     }
@@ -1670,6 +1753,7 @@ function PlanetBody({
               moon={m}
               onHover={onHover}
               highlighted={moonsHighlighted}
+              interactive={interactive}
             />
           ))}
         </group>
