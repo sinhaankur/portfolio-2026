@@ -357,6 +357,6 @@ export const SPACECRAFT_SHAPES: Record<string, ShapeEntry> = {
   "Voyager 1":                    { render: (p) => <VoyagerShape {...p} />,      scale: 5.0 },
   "Voyager 2":                    { render: (p) => <VoyagerShape {...p} />,      scale: 5.0 },
   "New Horizons":                 { render: (p) => <NewHorizonsShape {...p} />,  scale: 4.5 },
-  "James Webb Space Telescope":   { render: (p) => <JWSTShape {...p} />,         scale: 5.5 },
+  "James Webb Space Telescope":   { render: (p) => <JWSTShape {...p} />,         scale: 3.0 },
   "Parker Solar Probe":           { render: (p) => <ParkerShape {...p} />,       scale: 4.0 },
 }
