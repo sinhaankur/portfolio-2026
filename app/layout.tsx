@@ -6,10 +6,16 @@
 
 import type React from "react"
 import type { Metadata, Viewport } from "next"
+import Script from "next/script"
 import { Inter, Instrument_Serif, JetBrains_Mono, Fraunces } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
 import { DisplayPrefsProvider } from "@/components/display-prefs"
 import "./globals.css"
+
+// Google Tag Manager container — feeds GA4 + any future marketing tags from
+// one place so we don't have to touch the codebase for every analytics change.
+// Tags themselves (GA4 config, custom events) are configured in the GTM UI.
+const GTM_ID = "GTM-N6T2NFT3"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -167,8 +173,32 @@ export default function RootLayout({
         <link rel="preconnect" href="https://w.soundcloud.com" />
         <link rel="preconnect" href="https://api.soundcloud.com" />
         <link rel="dns-prefetch" href="https://api-widget.soundcloud.com" />
+        {/* Preconnect to GTM so the container fetch isn't gated on a fresh
+            DNS + TLS handshake. */}
+        <link rel="preconnect" href="https://www.googletagmanager.com" />
+        {/* GTM container init — loads the container script async via
+            next/script so it doesn't block first paint. Tags fire client-side
+            from inside the GTM dashboard once configured (GA4, etc.). */}
+        <Script id="gtm-init" strategy="afterInteractive">
+          {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','${GTM_ID}');`}
+        </Script>
       </head>
       <body className="font-sans antialiased overflow-x-hidden bg-background text-foreground">
+        {/* GTM noscript fallback — fires the container for visitors with
+            JS disabled so basic page-view counts still land. */}
+        <noscript>
+          <iframe
+            src={`https://www.googletagmanager.com/ns.html?id=${GTM_ID}`}
+            height="0"
+            width="0"
+            style={{ display: "none", visibility: "hidden" }}
+            title="Google Tag Manager"
+          />
+        </noscript>
         {/* JSON-LD Person schema — feeds Google knowledge panel + rich previews. */}
         <script
           type="application/ld+json"
