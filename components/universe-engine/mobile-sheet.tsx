@@ -15,6 +15,7 @@
 
 import { motion, AnimatePresence, type PanInfo } from "framer-motion"
 import type { BodyInfo } from "./types"
+import { DeepFactsDisclosure } from "./hud"
 
 export function MobileBodySheet({
   body,
@@ -173,6 +174,10 @@ function BodyStats({ body }: { body: BodyInfo }) {
           {body.fact}
         </div>
       )}
+      {/* Deeper NASA Planetary Fact Sheet data — collapsed by default so the
+          sheet stays scannable; tap to expand. Keyed on name to reset when
+          the user opens a different body. */}
+      <DeepFactsDisclosure key={body.name} deep={body.deep} variant="sheet" />
     </dl>
   )
 }
