@@ -1566,15 +1566,25 @@ function PlanetBody({
   // first paint isn't blocked: the grey markers render immediately and the
   // photographic surfaces fade in as each JPEG (NASA Blue Marble for Earth,
   // Solar System Scope CC BY for the rest) lands.
+  //
+  // Mobile-first: outer planets (Jupiter + beyond) get a 500ms delay so the
+  // inner-system textures (which are smaller in scene size + closer to the
+  // camera on default load) win the browser's first round of fetch slots.
+  // Total bandwidth is unchanged; first-paint quality improves on phones.
   useEffect(() => {
     if (!textureUrl || texture) return
-    const loader = new TextureLoader()
-    loader.load(textureUrl, (tex) => {
-      tex.colorSpace = SRGBColorSpace
-      tex.anisotropy = 8
-      setTexture(tex)
-    })
-  }, [textureUrl, texture])
+    const isOuterPlanet = planet.raw.aAU > 4
+    const delay = isOuterPlanet ? 500 : 0
+    const timer = setTimeout(() => {
+      const loader = new TextureLoader()
+      loader.load(textureUrl, (tex) => {
+        tex.colorSpace = SRGBColorSpace
+        tex.anisotropy = 8
+        setTexture(tex)
+      })
+    }, delay)
+    return () => clearTimeout(timer)
+  }, [textureUrl, texture, planet.raw.aAU])
 
   useEffect(() => {
     if (orbitRef.current) orbitRef.current.rotation.y = planet.raw.startPhase
