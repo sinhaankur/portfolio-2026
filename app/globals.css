@@ -420,3 +420,35 @@ html.cursor-system,
 html.cursor-system body {
   cursor: auto !important;
 }
+
+/* Reading mode — for long-form sit-down reads. The editorial default uses
+   text-foreground/85 et al. for restraint; reading mode trades that for
+   maximum contrast + wider line-height. Scoped via `main` so the navbar,
+   footer, and floating chrome keep their normal contrast. */
+html.reading-mode main p,
+html.reading-mode main li,
+html.reading-mode main blockquote,
+html.reading-mode main dd,
+html.reading-mode main figcaption {
+  color: var(--foreground);
+  line-height: 1.8;
+}
+html.reading-mode .prose-case-study {
+  font-size: 1.125rem;
+  line-height: 1.85;
+  color: var(--foreground);
+}
+html.reading-mode .prose-case-study * {
+  color: var(--foreground);
+}
+/* Links stay accent-coloured — full-contrast prose without losing the
+   underline-by-color affordance that makes them findable. */
+html.reading-mode .prose-case-study a,
+html.reading-mode main a {
+  color: var(--accent);
+}
+/* Italics keep the serif character but rejoin the prose contrast level. */
+html.reading-mode .prose-case-study em,
+html.reading-mode main em {
+  color: var(--foreground);
+}

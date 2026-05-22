@@ -3,21 +3,29 @@
 /**
  * On long-form prose pages, the dark theme can fight the reader after a few
  * paragraphs — `text-foreground/85` over a deep-ink background is editorial
- * but not always comfortable for a full sit-down read. This nudge offers a
- * one-click switch to light mode, surfacing only after the reader has
- * committed (scrolled past the hero) and never again once dismissed.
+ * but not always comfortable for a full sit-down read. This nudge surfaces
+ * two options once the reader has committed (scrolled past the hero):
+ *
+ *   Reader → keeps dark theme but bumps prose to full contrast + wider
+ *            line-height. Persists via DisplayPrefs so it sticks across pages.
+ *   Light  → flips the whole site to light theme.
+ *
+ * Either choice dismisses the nudge for good. Hidden if the user is already
+ * in light mode or already has reading-mode on.
  */
 
 import { useEffect, useState } from "react"
 import { useTheme } from "next-themes"
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
-import { Sun, X } from "lucide-react"
+import { BookOpen, Sun, X } from "lucide-react"
+import { useDisplayPrefs } from "./display-prefs"
 
 const STORAGE_KEY = "readability-nudge-dismissed-v1"
 const SCROLL_THRESHOLD = 600
 
 export function ReadabilityNudge() {
   const { resolvedTheme, setTheme } = useTheme()
+  const { readingMode, setPref } = useDisplayPrefs()
   const prefersReducedMotion = useReducedMotion()
   const [mounted, setMounted] = useState(false)
   const [dismissed, setDismissed] = useState(true)
@@ -54,14 +62,20 @@ export function ReadabilityNudge() {
     }
   }
 
-  const handleSwitch = () => {
+  const handleReader = () => {
+    setPref("readingMode", true)
+    persistDismissed()
+  }
+
+  const handleLight = () => {
     setTheme("light")
     persistDismissed()
   }
 
   if (!mounted) return null
   const isDark = resolvedTheme === "dark"
-  const show = isDark && !dismissed && scrolledEnough
+  // Don't pester users who've already opted into either fix.
+  const show = isDark && !readingMode && !dismissed && scrolledEnough
 
   return (
     <AnimatePresence>
@@ -84,27 +98,49 @@ export function ReadabilityNudge() {
             shadow-[0_10px_30px_-12px_rgba(0,0,0,0.6)]
           "
         >
-          <Sun className="w-3.5 h-3.5 text-accent shrink-0" aria-hidden="true" />
+          <BookOpen className="w-3.5 h-3.5 text-accent shrink-0" aria-hidden="true" />
           <span className="flex-1 md:flex-none font-sans text-xs md:text-sm text-foreground/85 leading-tight">
-            Easier to read in light mode.
+            <span className="hidden sm:inline">Easier on the eyes for a long read?</span>
+            <span className="sm:hidden">Easier read?</span>
           </span>
           <button
             type="button"
-            onClick={handleSwitch}
+            onClick={handleReader}
             data-cursor-hover
+            title="Bump contrast for prose"
             className="
-              ml-1
+              inline-flex items-center gap-1
               font-mono text-[10px] tracking-widest uppercase
               text-accent hover:text-foreground
               border border-accent/60 hover:border-foreground
-              rounded-full px-3 py-1.5
+              rounded-full px-2.5 md:px-3 py-1.5
               transition-colors duration-300
               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
               focus-visible:ring-offset-2 focus-visible:ring-offset-background
               min-h-9
             "
           >
-            Switch
+            Reader
+          </button>
+          <button
+            type="button"
+            onClick={handleLight}
+            data-cursor-hover
+            title="Switch to light theme"
+            className="
+              inline-flex items-center gap-1
+              font-mono text-[10px] tracking-widest uppercase
+              text-foreground/85 hover:text-foreground
+              border border-border hover:border-foreground
+              rounded-full px-2.5 md:px-3 py-1.5
+              transition-colors duration-300
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+              focus-visible:ring-offset-2 focus-visible:ring-offset-background
+              min-h-9
+            "
+          >
+            <Sun className="w-3 h-3" aria-hidden="true" />
+            Light
           </button>
           <button
             type="button"

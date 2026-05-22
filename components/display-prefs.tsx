@@ -3,12 +3,13 @@
 /**
  * Display preferences — user-facing overrides for accessibility and chrome.
  *
- * Three toggles, persisted in localStorage, applied as classes on <html>
+ * Four toggles, persisted in localStorage, applied as classes on <html>
  * so the rest of the app can react via CSS without prop-drilling:
  *
  *   reduceMotion → html.motion-reduced  (kills animations and marquees)
  *   largeText    → html.text-larger     (bumps the rem base by ~12%)
  *   systemCursor → html.cursor-system   (disables the custom reticle cursor)
+ *   readingMode  → html.reading-mode    (bumps prose contrast + line-height for long-form reading)
  *
  * The values default to OFF (browser/OS state wins). When a user opts in,
  * their choice persists across reloads and overrides the OS — e.g. someone
@@ -29,12 +30,14 @@ export type DisplayPrefs = {
   reduceMotion: boolean
   largeText: boolean
   systemCursor: boolean
+  readingMode: boolean
 }
 
 const DEFAULT_PREFS: DisplayPrefs = {
   reduceMotion: false,
   largeText: false,
   systemCursor: false,
+  readingMode: false,
 }
 
 const STORAGE_KEY = "display-prefs-v1"
@@ -65,7 +68,8 @@ export function DisplayPrefsProvider({ children }: { children: ReactNode }) {
     root.classList.toggle("motion-reduced", prefs.reduceMotion)
     root.classList.toggle("text-larger", prefs.largeText)
     root.classList.toggle("cursor-system", prefs.systemCursor)
-  }, [prefs.reduceMotion, prefs.largeText, prefs.systemCursor])
+    root.classList.toggle("reading-mode", prefs.readingMode)
+  }, [prefs.reduceMotion, prefs.largeText, prefs.systemCursor, prefs.readingMode])
 
   const setPref = useCallback(
     <K extends keyof DisplayPrefs>(key: K, value: DisplayPrefs[K]) => {
