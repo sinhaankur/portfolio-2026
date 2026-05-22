@@ -2421,6 +2421,11 @@ function NamedBodyMesh({
    *  always streams away from the Sun (origin), matching real solar-wind
    *  physics. Only used when body.kind === "comet" (or Comet Borisov). */
   const tailRef = useRef<Group>(null)
+  /** Comet-tail mesh — position + scale updated each frame so the tail
+   *  length tracks distance from Sun (long at perihelion, faint at aphelion),
+   *  matching real solar-wind sublimation. */
+  const tailMeshRef = useRef<Mesh>(null)
+  const tailMatRef = useRef<import("three").MeshBasicMaterial>(null)
   /** Trail material — opacity lerps with hover state so the static orbit
    *  paths don't pile up at crossings (the no-collisions rule). */
   const trailMatRef = useRef<import("three").PointsMaterial>(null)
@@ -2524,6 +2529,22 @@ function NamedBodyMesh({
       _tailFrom.set(0, 1, 0)
       _tailTo.set(px / len, py / len, pz / len)
       tailRef.current.quaternion.setFromUnitVectors(_tailFrom, _tailTo)
+
+      // Tail length + opacity track distance from the Sun — real comet
+      // tails are blown bright + long when volatiles sublimate near the
+      // Sun (under ~3 AU), then fade as the comet retreats to aphelion.
+      // Linear ramp in scene-units: full tail inside 5u, fading to 0
+      // by 18u. So Halley flares dramatically each time it swings inside
+      // Mars's orbit, then trails off as it heads back to Pluto-distance.
+      if (tailMeshRef.current && tailMatRef.current) {
+        const r = len
+        const t = Math.max(0, Math.min(1, (18 - r) / 13))
+        const baseHalf = config.visualRadius * 4.5
+        tailMeshRef.current.position.y = baseHalf * t
+        tailMeshRef.current.scale.y = t
+        const peakOpacity = invert ? 0.55 : 0.45
+        tailMatRef.current.opacity = t * peakOpacity
+      }
     }
 
     // Trail opacity lerps with hover state — addresses the no-collisions
@@ -2599,17 +2620,21 @@ function NamedBodyMesh({
               />
             </mesh>
             {/* Tail — narrow cone tapering away from the Sun. Base sits at
-                the nucleus, tip extends ~8× radius outward. The wrapping
-                group's quaternion is updated each frame to keep the tail
-                anti-radial regardless of where the comet is on its orbit. */}
+                the nucleus, tip extends ~9× radius outward at perihelion.
+                The wrapping group's quaternion is updated each frame to
+                keep the tail anti-radial; the mesh's scale.y + position.y
+                are also updated to shrink the tail when the comet retreats
+                from the Sun (Halley flares only when it swings inside ~5
+                AU, fades to nothing by Pluto-distance). */}
             <group ref={tailRef}>
-              <mesh position={[0, config.visualRadius * 4.5, 0]}>
+              <mesh ref={tailMeshRef} position={[0, config.visualRadius * 4.5, 0]}>
                 <coneGeometry args={[
                   config.visualRadius * 0.9,    // base radius (near nucleus)
-                  config.visualRadius * 9,      // length
+                  config.visualRadius * 9,      // length at full perihelion
                   14, 1, true,
                 ]} />
                 <meshBasicMaterial
+                  ref={tailMatRef as React.Ref<import("three").MeshBasicMaterial>}
                   color={config.shade}
                   transparent
                   opacity={invert ? 0.55 : 0.45}
