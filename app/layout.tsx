@@ -17,6 +17,13 @@ import "./globals.css"
 // Tags themselves (GA4 config, custom events) are configured in the GTM UI.
 const GTM_ID = "GTM-N6T2NFT3"
 
+// GA4 Measurement ID — loaded both via GTM (which fires its own gtag.js
+// internally for this ID) AND directly via the gtag.js snippet below.
+// This is intentional belt-and-suspenders; expect each page view to fire
+// twice in GA4 reporting. Drop one path if accurate metrics matter more
+// than redundancy.
+const GA4_ID = "G-BHWHS9S8Q8"
+
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
@@ -185,6 +192,21 @@ new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
 j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
 })(window,document,'script','dataLayer','${GTM_ID}');`}
+        </Script>
+        {/* Direct GA4 (gtag.js) — runs in parallel with GTM. Both paths fire
+            the same Measurement ID, so each pageview is recorded twice in GA4
+            reporting. Kept by choice for redundancy; drop one if accuracy
+            matters more than the safety net. */}
+        <Script
+          id="gtag-src"
+          src={`https://www.googletagmanager.com/gtag/js?id=${GA4_ID}`}
+          strategy="afterInteractive"
+        />
+        <Script id="gtag-init" strategy="afterInteractive">
+          {`window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', '${GA4_ID}');`}
         </Script>
       </head>
       <body className="font-sans antialiased overflow-x-hidden bg-background text-foreground">
