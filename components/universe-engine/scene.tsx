@@ -1869,7 +1869,14 @@ function PlanetBody({
     if (nightTexture) dayNightUniforms.tNight.value = nightTexture
   }, [texture, nightTexture, dayNightUniforms])
 
+  // Mean anomaly accumulator for proper Kepler's-2nd-law motion. Phase
+  // accumulates uniformly here; orbitRef.rotation.y is set to TRUE anomaly
+  // each frame so eccentric planets (Pluto e=0.244, Mercury e=0.206) move
+  // visibly faster near perihelion and slower at aphelion.
+  const meanAnomalyRef = useRef(planet.raw.startPhase)
+
   useEffect(() => {
+    meanAnomalyRef.current = planet.raw.startPhase
     if (orbitRef.current) orbitRef.current.rotation.y = planet.raw.startPhase
   }, [planet.raw.startPhase])
 
@@ -1888,20 +1895,24 @@ function PlanetBody({
 
   useFrame((_, delta) => {
     const tw = timeWarpRef.current
-    if (orbitRef.current) orbitRef.current.rotation.y += delta * planet.orbitalSpeedRadPerSec * tw
+    meanAnomalyRef.current += delta * planet.orbitalSpeedRadPerSec * tw
     if (meshRef.current) meshRef.current.rotation.y += delta * visibleRotSpeed * tw
 
-    // Eccentric-orbit planets (Pluto e=0.244, Mercury e=0.206) vary their
-    // orbital distance with current phase to follow the elliptical ring.
-    // Uses true-anomaly polar form r(θ) = a(1-e²)/(1+e·cosθ) — same shape
-    // the OrbitRing renders, so body and path stay aligned. Kepler's 2nd
-    // law (faster at perihelion) is approximated by uniform progression in
-    // true anomaly; visually correct for our time-warp range.
+    // Kepler's 2nd law in action: solve E - e·sin E = M for the eccentric
+    // anomaly, convert to true anomaly, then set BOTH the orbit rotation
+    // AND the radial distance from those values. Bodies on eccentric
+    // orbits sweep equal areas in equal times — fast at perihelion,
+    // slow at aphelion — matching the textbook Keplerian behaviour.
     if (useEllipticalOrbit && positionRef.current && orbitRef.current) {
-      const theta = orbitRef.current.rotation.y
+      const E = solveKepler(meanAnomalyRef.current, eccentricity)
+      const trueAnom = eccentricToTrue(E, eccentricity)
       const r = (planet.orbitRadius * (1 - eccentricity * eccentricity)) /
-                (1 + eccentricity * Math.cos(theta))
+                (1 + eccentricity * Math.cos(trueAnom))
+      orbitRef.current.rotation.y = trueAnom
       positionRef.current.position.x = r
+    } else if (orbitRef.current) {
+      // Circular orbit (or near-circular): true anomaly == mean anomaly.
+      orbitRef.current.rotation.y = meanAnomalyRef.current
     }
 
     // Textured sphere rotates in lockstep with the grey one underneath so
