@@ -211,4 +211,29 @@ export type SkyPoint = {
    * when omitted; supermassive BHs are typically near-extremal (~0.9).
    */
   spin?: number
+  /**
+   * Bipolar relativistic jet config. Many real black holes (M87*, Cygnus X-1,
+   * Sgr A*, AGN cores) eject collimated jets perpendicular to their accretion
+   * disk along the spin axis. Setting this renders two emissive cones from
+   * the horizon outward inside <BlackHoleDetail>.
+   */
+  jet?: {
+    /**
+     * Local axis (in the rendered model's own frame) the jet emerges along.
+     * Default "y" because the Sketchfab mesh's disk sits in xz with y up.
+     * If the visual ends up sideways after first deploy, flip to "x" or "z".
+     */
+    axis?: "x" | "y" | "z"
+    /**
+     * Length factor relative to the BH's computed detailScale. ~12 puts the
+     * jet tip well beyond the disk's visible extent.
+     */
+    lengthFactor?: number
+    /** Bright side opacity 0–1 (Doppler-beamed near side). Default 0.55. */
+    brightness?: number
+    /** Asymmetry 0–1: 0 = symmetric, 1 = far side fully suppressed. Default 0.6. */
+    asymmetry?: number
+    /** CSS hex colour for the jet. Default `#bcd9ff` (synchrotron blue-white). */
+    color?: string
+  }
 }

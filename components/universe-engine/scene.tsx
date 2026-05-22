@@ -2647,6 +2647,88 @@ function computeBlackHoleProportions(massSolar: number, spin: number, baseScale:
   }
 }
 
+/**
+ * Bipolar relativistic jet — two emissive cones extending from the horizon
+ * along the BH's spin axis. Real black holes (M87*, Sgr A*, Cygnus X-1)
+ * eject these as the byproduct of accretion + frame-dragging; visually
+ * they sit perpendicular to the disk.
+ *
+ * The jet axis defaults to local "y" because that's where the Sketchfab
+ * model's disk normal lands; if a future model imports the disk in a
+ * different orientation, flip `jet.axis` on the SkyPoint to "x" or "z".
+ *
+ * Both jets share geometry but the far-side opacity is dimmed to suggest
+ * Doppler beaming — the approaching side appears brighter in real radio
+ * observations.
+ */
+function BlackHoleJets({
+  jet,
+  detailScale,
+  invert,
+}: {
+  jet: NonNullable<SkyPoint["jet"]>
+  detailScale: number
+  invert: boolean
+}) {
+  const axis = jet.axis ?? "y"
+  const lengthFactor = jet.lengthFactor ?? 12
+  const brightness = jet.brightness ?? 0.55
+  const asymmetry = Math.max(0, Math.min(1, jet.asymmetry ?? 0.6))
+  const color = jet.color ?? "#bcd9ff"
+
+  // Geometry sized in rootRef-local frame, which the hover scale lerp will
+  // grow from 0.001 → 1.0. detailScale here is the BH's per-instance size
+  // factor, so jets scale with the BH naturally.
+  const length = detailScale * lengthFactor * 0.06
+  const radiusBase = detailScale * 0.012
+  const radiusTip = detailScale * 0.038
+
+  // Rotate the whole jet pair so the cylinders' local +y axis lines up with
+  // the chosen world axis. Cylinder geometry defaults to extending along y.
+  const rotation: [number, number, number] =
+    axis === "x" ? [0, 0, -Math.PI / 2] :
+    axis === "z" ? [Math.PI / 2, 0, 0] :
+    [0, 0, 0]
+
+  const farOpacity = brightness * (1 - asymmetry)
+  // Light-mode pass: jets fight a bright background, so dial them back and
+  // switch to normal blending — additive on cream looks washed out.
+  const blendMode = invert ? NormalBlending : AdditiveBlending
+  const nearAlpha = invert ? brightness * 0.55 : brightness
+  const farAlpha = invert ? farOpacity * 0.55 : farOpacity
+
+  return (
+    <group rotation={rotation}>
+      {/* Bright (near) jet — radius narrows at base, widens slightly at tip
+          to read as a collimated outflow that broadens with distance. */}
+      <mesh position={[0, length / 2, 0]}>
+        <cylinderGeometry args={[radiusTip, radiusBase, length, 18, 1, true]} />
+        <meshBasicMaterial
+          color={color}
+          transparent
+          opacity={nearAlpha}
+          blending={blendMode}
+          depthWrite={false}
+          side={DoubleSide}
+        />
+      </mesh>
+      {/* Far (dim) jet — mirrored across the BH centre. Lower opacity sells
+          the Doppler asymmetry without needing per-pixel beaming math. */}
+      <mesh position={[0, -length / 2, 0]} rotation={[Math.PI, 0, 0]}>
+        <cylinderGeometry args={[radiusTip, radiusBase, length, 18, 1, true]} />
+        <meshBasicMaterial
+          color={color}
+          transparent
+          opacity={farAlpha}
+          blending={blendMode}
+          depthWrite={false}
+          side={DoubleSide}
+        />
+      </mesh>
+    </group>
+  )
+}
+
 function BlackHoleDetail({
   size,
   hovered,
@@ -2654,6 +2736,7 @@ function BlackHoleDetail({
   massSolar,
   spin,
   name,
+  jet,
 }: {
   size: number
   hovered: boolean
@@ -2664,6 +2747,8 @@ function BlackHoleDetail({
   spin?: number
   /** Display name for the data readout. */
   name?: string
+  /** Optional bipolar relativistic jet config — see SkyPoint["jet"]. */
+  jet?: SkyPoint["jet"]
 }) {
   const rootRef = useRef<Group>(null)
   const spinRef = useRef<Group>(null)
@@ -2716,6 +2801,12 @@ function BlackHoleDetail({
       <group ref={spinRef} scale={meshScale}>
         <Clone object={bhScene} />
       </group>
+
+      {/* Bipolar relativistic jets — perpendicular to the accretion disk
+          along the spin axis. M87, Sgr A*, and Cygnus X-1 all have
+          observed jets in reality; this renders them additively over the
+          model so the GLB's existing lensed look stays untouched. */}
+      {jet && <BlackHoleJets jet={jet} detailScale={props.detailScale} invert={invert} />}
 
       {/* Physics data overlay — fades in on hover. Mass, Schwarzschild
           radius, photon-sphere radius, ISCO factor. Anchored to the side
@@ -3117,6 +3208,7 @@ function SkyPointMesh({
             massSolar={point.massSolar}
             spin={point.spin}
             name={point.name}
+            jet={point.jet}
           />
         </Suspense>
       )}
