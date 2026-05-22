@@ -568,9 +568,27 @@ function MilkyWay({
         />
       </points>
 
-      {/* Sgr A* hit-target (invisible). Clickable in explore mode — flies the
-          camera to the galactic centre. Distance picked so the silhouette
-          reads against the warm accretion-disc halo. */}
+      {/* Sgr A* — the Milky Way's 4.15 million-M☉ supermassive black hole.
+          Visible mark: a tiny black dot (the horizon shadow) wrapped in a
+          warm amber halo (the accretion glow). Smaller than the bulge's
+          bright star field so it doesn't dominate, but distinct enough that
+          a user scanning the galactic centre can spot it. */}
+      <mesh position={[0, 0, 0]}>
+        <sphereGeometry args={[0.9, 32, 32]} />
+        <meshBasicMaterial color="#000000" />
+      </mesh>
+      <mesh position={[0, 0, 0]}>
+        <sphereGeometry args={[2.4, 24, 24]} />
+        <meshBasicMaterial
+          color={invert ? "#5a2818" : "#ffb878"}
+          transparent
+          opacity={invert ? 0.20 : 0.30}
+          blending={invert ? NormalBlending : AdditiveBlending}
+          depthWrite={false}
+        />
+      </mesh>
+      {/* Hit-target — larger sphere so the BH is easy to hover/click against
+          the dense star backdrop. Invisible material. */}
       <mesh
         position={[0, 0, 0]}
         onPointerOver={(e) => {
