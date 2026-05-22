@@ -174,6 +174,68 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(personSchema) }}
         />
+        {/* No-JS fallback — the site is a heavy R3F/SPA experience, so without
+            JS the viewport would otherwise be blank. This gives crawlers,
+            text browsers, and JS-disabled visitors a real page: name, role,
+            short bio, and direct links to the case studies + contact. */}
+        <noscript>
+          <div className="fixed inset-0 z-50 overflow-auto bg-background text-foreground px-6 py-16 md:py-24">
+            <div className="max-w-2xl mx-auto">
+              <p className="font-mono text-[11px] tracking-[0.3em] uppercase text-foreground/55 mb-3">
+                Ankur Sinha
+              </p>
+              <h1 className="font-serif text-3xl md:text-5xl leading-tight mb-6">
+                Principal UX Designer · Human–AI Interaction
+              </h1>
+              <p className="text-base md:text-lg leading-relaxed text-foreground/85 mb-8">
+                Engineer-turned-designer in Toronto. Currently Principal UX at
+                Oracle on OCI Database Tools, and building Unhosted — frontier
+                AI inference on hardware you own — on evenings and weekends.
+              </p>
+              <p className="text-sm leading-relaxed text-foreground/70 mb-8">
+                This site is an interactive 3D portfolio (R3F + Next.js).
+                You're seeing the JavaScript-disabled fallback. Enable
+                JavaScript to load the universe engine and the live case
+                studies, or use the direct links below.
+              </p>
+              <ul className="space-y-3 font-mono text-xs tracking-[0.18em] uppercase text-foreground/85">
+                <li>
+                  <a className="underline underline-offset-4" href="/works/oracle">Oracle · Database Tools</a>
+                </li>
+                <li>
+                  <a className="underline underline-offset-4" href="/works/deloitte">Deloitte</a>
+                </li>
+                <li>
+                  <a className="underline underline-offset-4" href="/works/snowtint">Snowtint</a>
+                </li>
+                <li>
+                  <a className="underline underline-offset-4" href="/works/rage">RAGE</a>
+                </li>
+                <li>
+                  <a className="underline underline-offset-4" href="/lab/unhosted">Unhosted</a>
+                </li>
+                <li>
+                  <a className="underline underline-offset-4" href="/lab/usability-engine">Usability Engine</a>
+                </li>
+                <li>
+                  <a className="underline underline-offset-4" href="/usability">Usability guide</a>
+                </li>
+                <li>
+                  <a className="underline underline-offset-4" href="/skills">Skills matrix</a>
+                </li>
+                <li>
+                  <a className="underline underline-offset-4" href="/ankur-sinha-resume.pdf">Résumé (PDF)</a>
+                </li>
+                <li>
+                  <a className="underline underline-offset-4" href="mailto:h99311@gmail.com">Contact · h99311@gmail.com</a>
+                </li>
+                <li>
+                  <a className="underline underline-offset-4" href="https://github.com/sinhaankur" rel="noopener">GitHub</a>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </noscript>
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"
