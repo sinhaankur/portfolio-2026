@@ -1721,6 +1721,11 @@ export const skyPoints: SkyPoint[] = [
     distance: "4.24 ly",
     fact: "Closest known star to the Sun. Hosts Proxima Centauri b — an Earth-mass planet in the habitable zone, discovered 2016. The closest potentially-habitable world we know of, and the likely first target for any future interstellar probe.",
     visualSize: 0.6,
+    planets: [
+      { name: "Proxima d", aAU: 0.029, radiusEarth: 0.81, periodDays: 5.12, type: "Sub-Earth, hot",                                  fact: "Recently confirmed (2022). Smallest known exoplanet around Proxima — ~0.26 Earth-mass, orbiting inside the habitable zone but probably too irradiated for liquid water." },
+      { name: "Proxima b", aAU: 0.0485, radiusEarth: 1.07, periodDays: 11.19, type: "Earth-mass, habitable zone", habitableZone: true, fact: "Closest potentially-habitable exoplanet to Earth. Discovered 2016. Tidally locked; flare bursts from the red dwarf may strip its atmosphere, but a thick CO₂ layer could still allow liquid water on the day side." },
+      { name: "Proxima c", aAU: 1.489, radiusEarth: 2.0, periodDays: 1928, type: "Cold super-Earth",                                 fact: "Discovered 2019. Super-Earth on a 5.3-year orbit, far outside the habitable zone (-235 °C). One of the targets where direct imaging may eventually be feasible." },
+    ],
   },
   {
     id: "51-peg",
@@ -1733,6 +1738,9 @@ export const skyPoints: SkyPoint[] = [
     distance: "50.5 ly",
     fact: "Host of 51 Pegasi b (1995) — the first exoplanet ever discovered around a Sun-like star. Triggered the Nobel Prize in Physics 2019 and the entire exoplanet revolution. The planet orbits in just 4.2 days.",
     visualSize: 0.5,
+    planets: [
+      { name: "51 Pegasi b", aAU: 0.0527, radiusEarth: 13.7, periodDays: 4.23, type: "Hot Jupiter",                                  fact: "Dimidium — the first exoplanet ever discovered around a Sun-like star (Mayor & Queloz, 1995). Hot Jupiter at 0.053 AU; its existence broke every textbook model of where gas giants could form. Won the 2019 Nobel Prize in Physics." },
+    ],
   },
   {
     id: "trappist-1",
@@ -1769,6 +1777,13 @@ export const skyPoints: SkyPoint[] = [
     distance: "557 ly",
     fact: "Host of Kepler-186f (2014) — the first Earth-sized planet discovered in the habitable zone of another star. Orbits a cool red dwarf in 130 days.",
     visualSize: 0.45,
+    planets: [
+      { name: "Kepler-186 b", aAU: 0.034, radiusEarth: 1.07, periodDays: 3.89,  type: "Rocky, hot",                                fact: "Innermost — far too hot for liquid water." },
+      { name: "Kepler-186 c", aAU: 0.045, radiusEarth: 1.25, periodDays: 7.27,  type: "Rocky, hot",                                fact: "Hot rocky world, Venus-like environment." },
+      { name: "Kepler-186 d", aAU: 0.078, radiusEarth: 1.40, periodDays: 13.34, type: "Rocky, warm",                               fact: "Warm super-Earth just inside the habitable zone." },
+      { name: "Kepler-186 e", aAU: 0.110, radiusEarth: 1.27, periodDays: 22.41, type: "Rocky, edge of habitable zone",             fact: "Near the inner edge of the habitable zone." },
+      { name: "Kepler-186 f", aAU: 0.432, radiusEarth: 1.17, periodDays: 129.95, type: "Rocky, habitable zone", habitableZone: true, fact: "First Earth-sized planet ever found in another star's habitable zone (2014). 1.17× Earth's radius, 130-day year around a red dwarf." },
+    ],
   },
   {
     id: "tau-ceti",
@@ -1805,6 +1820,12 @@ export const skyPoints: SkyPoint[] = [
     distance: "133 ly",
     fact: "First exoplanetary system ever directly imaged (2008) — four massive gas giants visible against the parent star. Subsequent observations have actually shown the planets moving along their orbits in time-lapse, the first photograph of another solar system in motion.",
     visualSize: 0.55,
+    planets: [
+      { name: "HR 8799 e", aAU: 14.5, radiusEarth: 12.0, periodDays: 17600,  type: "Gas giant (directly imaged)", fact: "Innermost directly-imaged planet. 5–7 Jupiter masses, ~1000 K — hot and young (~30 million years old)." },
+      { name: "HR 8799 d", aAU: 24.0, radiusEarth: 12.4, periodDays: 39000,  type: "Gas giant (directly imaged)", fact: "~7 Jupiter-masses. Part of the four-planet directly-imaged system." },
+      { name: "HR 8799 c", aAU: 38.0, radiusEarth: 12.5, periodDays: 79000,  type: "Gas giant (directly imaged)", fact: "~7 Jupiter-masses; methane and water detected in its atmosphere via direct spectroscopy." },
+      { name: "HR 8799 b", aAU: 68.0, radiusEarth: 12.0, periodDays: 175000, type: "Gas giant (directly imaged)", fact: "Outermost. ~5 Jupiter-masses. Orbits beyond Pluto-distance from its star — first planet of the system directly imaged." },
+    ],
   },
   {
     id: "55-cancri",
@@ -1829,6 +1850,10 @@ export const skyPoints: SkyPoint[] = [
     distance: "124 ly",
     fact: "Red dwarf hosting K2-18 b — a sub-Neptune in the habitable zone whose atmosphere JWST detected methane + carbon dioxide in (2023). Hint of dimethyl sulphide (a possible biosignature on Earth) tentatively reported — being followed up. One of the most intensely-studied potentially-habitable exoplanets right now.",
     visualSize: 0.5,
+    planets: [
+      { name: "K2-18 c", aAU: 0.0598, radiusEarth: 0.74, periodDays: 9.0,    type: "Sub-Earth, hot",                                fact: "Inner companion to K2-18 b. Too hot for liquid water on the surface." },
+      { name: "K2-18 b", aAU: 0.143, radiusEarth: 2.61, periodDays: 32.94,   type: "Sub-Neptune, habitable zone", habitableZone: true, fact: "JWST detected methane + CO₂ in its atmosphere (Sep 2023) with a tentative hint of dimethyl sulphide — a possible biosignature on Earth. May be a 'Hycean' world with a hydrogen atmosphere over a liquid-water ocean." },
+    ],
   },
   {
     id: "wasp-12",
