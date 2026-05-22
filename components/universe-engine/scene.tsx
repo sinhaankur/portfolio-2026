@@ -3867,6 +3867,71 @@ function NebulaDetail({
   )
 }
 
+/**
+ * Exoplanet system — child worlds rendered orbiting an exoplanet-host
+ * star when focused. Visualisation is scene-compressed: real systems
+ * like TRAPPIST-1 cluster within 0.062 AU of the star (closer than
+ * Mercury to our Sun), so faithful absolute scaling would be invisible.
+ * Compress aAU to scene-units via a log curve so all planets read as
+ * distinct concentric rings; periods drive animated motion.
+ */
+function ExoplanetSystem({
+  planets,
+  invert,
+}: {
+  planets: NonNullable<SkyPoint["planets"]>
+  invert: boolean
+}) {
+  const groupRefs = useRef<Array<Group | null>>([])
+  useFrame((_, delta) => {
+    const tw = timeWarpRef.current
+    planets.forEach((p, i) => {
+      const g = groupRefs.current[i]
+      if (!g) return
+      // Period in seconds at default warp — compressed so even fast
+      // inner-system orbits are watchable rather than blink-fast.
+      const periodSec = Math.max(1.2, p.periodDays * 0.6)
+      const speed = (2 * Math.PI) / periodSec
+      g.rotation.y += delta * speed * tw
+    })
+  })
+  return (
+    <group>
+      {planets.map((p, i) => {
+        // Compressed radius: each planet sits at a distinct scene-distance
+        // from the host. log-scaled so TRAPPIST-1's 7 planets between 0.01
+        // and 0.06 AU all separate visibly.
+        const orbitRadius = 1.0 + Math.log10(1 + p.aAU * 200) * 0.9
+        const planetVisualRadius = Math.max(0.045, p.radiusEarth * 0.06)
+        const dotColor = p.habitableZone
+          ? (invert ? "#1f6f3f" : "#7dffaf")
+          : (invert ? "#7a5028" : "#f0c890")
+        return (
+          <group key={p.name}>
+            {/* Faint orbit ring */}
+            <mesh rotation={[Math.PI / 2, 0, 0]}>
+              <ringGeometry args={[orbitRadius - 0.003, orbitRadius + 0.003, 64]} />
+              <meshBasicMaterial color={invert ? "#1a1208" : "#ffffff"} transparent opacity={0.20} side={DoubleSide} depthWrite={false} />
+            </mesh>
+            <group ref={(g) => { groupRefs.current[i] = g }} rotation={[0, (i / planets.length) * Math.PI * 2, 0]}>
+              <mesh position={[orbitRadius, 0, 0]}>
+                <sphereGeometry args={[planetVisualRadius, 14, 14]} />
+                <meshBasicMaterial color={dotColor} />
+              </mesh>
+              {p.habitableZone && (
+                <mesh position={[orbitRadius, 0, 0]}>
+                  <sphereGeometry args={[planetVisualRadius * 1.8, 14, 14]} />
+                  <meshBasicMaterial color={dotColor} transparent opacity={0.18} blending={invert ? NormalBlending : AdditiveBlending} depthWrite={false} />
+                </mesh>
+              )}
+            </group>
+          </group>
+        )
+      })}
+    </group>
+  )
+}
+
 function SkyPointMesh({
   point,
   onHover,
@@ -3998,6 +4063,14 @@ function SkyPointMesh({
           Uses `detailActive` so the bloom persists after a click → fly-to lands. */}
       {point.kind === "nebula" && (
         <NebulaDetail pointId={point.id} size={visualSize} hovered={detailActive} invert={invert} />
+      )}
+      {/* Exoplanet system — child planets rendered orbiting the host star
+          when the host is focused. Only TRAPPIST-1 carries this data today.
+          The orbits are heavily scene-compressed — real TRAPPIST-1 planets
+          are all within 0.062 AU of their star, so faithfully rendering at
+          our scale would cluster them invisibly tight. */}
+      {point.kind === "exoplanet-host" && point.planets && detailActive && (
+        <ExoplanetSystem planets={point.planets} invert={invert} />
       )}
       {/* Galaxy hover detail — currently Andromeda only. Spiral arm point
           cloud + bulge + dust lane + companions M32 / M110 bloom in. */}

@@ -298,6 +298,27 @@ export type SkyPoint = {
    */
   shade?: string
   /**
+   * Optional exoplanet system — child worlds rendered around an
+   * exoplanet-host star when focused. Each one is a tiny dot at its
+   * orbital distance (heavily scene-scale-compressed). Real orbital
+   * periods drive animation; real lit/shadow if the host has a Sun.
+   */
+  planets?: Array<{
+    name: string
+    /** Orbit semi-major axis in AU. */
+    aAU: number
+    /** Planet radius in Earth-radii. Drives the rendered dot size. */
+    radiusEarth: number
+    /** Orbital period in Earth days. */
+    periodDays: number
+    /** Surface description: rocky / gas / ice etc. Shows in tooltip. */
+    type: string
+    /** Whether the planet lies in the host's habitable zone. */
+    habitableZone?: boolean
+    /** Short fact for the tooltip. */
+    fact: string
+  }>
+  /**
    * Bipolar relativistic jet config. Many real black holes (M87*, Cygnus X-1,
    * Sgr A*, AGN cores) eject collimated jets perpendicular to their accretion
    * disk along the spin axis. Setting this renders two emissive cones from
