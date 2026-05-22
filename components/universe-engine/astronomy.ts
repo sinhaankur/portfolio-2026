@@ -827,8 +827,10 @@ export const namedBodies: NamedBody[] = [
     designation: "JWST · NASA / ESA / CSA · 2021",
     kind: "spacecraft",
     aAU: 1.01,              // ~1 AU + 1.5M km (Sun-Earth L2)
-    eccentricity: 0.0167,
+    eccentricity: 0.0167,    // tracks Earth's heliocentric ellipse
     inclDeg: 0.0,
+    longNodeDeg: 0.0,
+    argPeriDeg: 283.0,       // matches Earth's perihelion direction
     periodYears: 1.0,
     startPhase: 0.65,
     fact: "Orbits the Sun-Earth L2 Lagrange point, 1.5 million km beyond Earth on the night side, kept cold by a tennis-court-sized sun shield. Looking deeper into the universe than any telescope before — first light January 2022.",
@@ -844,6 +846,8 @@ export const namedBodies: NamedBody[] = [
     aAU: 0.39,              // semi-major axis
     eccentricity: 0.881,     // closest approach ~0.046 AU, just 9.86 solar radii
     inclDeg: 3.4,
+    longNodeDeg: 151.0,      // post-2024 Venus assist
+    argPeriDeg: 89.0,
     periodYears: 0.25,
     startPhase: 0.45,
     fact: "Closest object ever to the Sun — perihelion of 0.046 AU (6.9 million km / 9.86 solar radii) in December 2024, dipping inside the corona at 690,000 km/h. Carbon-composite heat shield protects the cold side from 1,400 °C.",
@@ -856,6 +860,8 @@ export const namedBodies: NamedBody[] = [
     aAU: 1.30,               // post-Ryugu extended-mission heliocentric orbit
     eccentricity: 0.18,
     inclDeg: 5.9,
+    longNodeDeg: 251.0,
+    argPeriDeg: 171.0,
     periodYears: 1.48,
     startPhase: 0.78,
     fact: "Returned asteroid Ryugu samples to Earth in December 2020 — second-ever asteroid sample return, after the original Hayabusa. Now on an 11-year extended cruise toward asteroid 1998 KY26 (rendezvous July 2031) with a 2026 Earth flyby and a 2027 flyby of asteroid 2001 CC21.",
@@ -872,6 +878,8 @@ export const namedBodies: NamedBody[] = [
     aAU: 1.14,               // post-Bennu trajectory toward Apophis
     eccentricity: 0.20,
     inclDeg: 6.0,
+    longNodeDeg: 78.0,
+    argPeriDeg: 88.0,
     periodYears: 1.22,
     startPhase: 0.85,
     fact: "Originally OSIRIS-REx — flew to asteroid Bennu and dropped the sample capsule on Utah in September 2023, then was redirected as OSIRIS-APEX to rendezvous with near-Earth asteroid 99942 Apophis on April 13, 2029, the day Apophis makes its closest flyby of Earth (~32,000 km).",
@@ -884,6 +892,8 @@ export const namedBodies: NamedBody[] = [
     aAU: 3.31,               // main-belt cruise toward Trojans
     eccentricity: 0.46,
     inclDeg: 2.7,
+    longNodeDeg: 121.0,
+    argPeriDeg: 84.0,
     periodYears: 6.0,
     startPhase: 0.20,
     fact: "First mission to the Jupiter Trojans — the two clouds of asteroids that share Jupiter's orbit, 60° ahead and behind it. Eleven-year tour visiting eight asteroids between 2025 and 2033, including Donaldjohanson (April 2025) and Eurybates with its tiny moon Queta.",
@@ -896,10 +906,44 @@ export const namedBodies: NamedBody[] = [
     aAU: 0.65,               // cruising toward Mercury orbit insertion
     eccentricity: 0.24,
     inclDeg: 5.0,
+    longNodeDeg: 87.0,
+    argPeriDeg: 273.0,
     periodYears: 0.53,
     startPhase: 0.92,
     fact: "Joint ESA / JAXA Mercury mission — completing nine planetary flybys (Earth × 1, Venus × 2, Mercury × 6) before braking into Mercury orbit in November 2026. Two orbiters then separate: one mapping the surface, one studying the magnetosphere.",
     visualRadius: 0.018,
+  },
+  // ----- Dormant interstellar probes — still on their escape trajectories
+  // even though communications ended decades ago. Worth carrying for
+  // completeness: they're the only human-made objects on hyperbolic
+  // paths besides the Voyagers + New Horizons. -----
+  {
+    name: "Pioneer 10",
+    designation: "Pioneer 10 · NASA · 1972",
+    kind: "spacecraft",
+    aAU: 134,                // estimated current heliocentric distance
+    eccentricity: 1.00001,
+    inclDeg: 26.2,           // post-Jupiter flyby
+    longNodeDeg: 6.0,
+    argPeriDeg: 161.0,
+    periodYears: Infinity,
+    startPhase: 0.15,
+    fact: "First spacecraft to cross the asteroid belt and the first to fly by Jupiter (December 1973). Last signal received January 2003 at 12.05 billion km. Coasting on toward the red giant star Aldebaran in Taurus — a 2-million-year journey.",
+    visualRadius: 0.04,
+  },
+  {
+    name: "Pioneer 11",
+    designation: "Pioneer 11 · NASA · 1973",
+    kind: "spacecraft",
+    aAU: 113,
+    eccentricity: 1.00001,
+    inclDeg: 16.5,
+    longNodeDeg: 326.0,
+    argPeriDeg: 30.0,
+    periodYears: Infinity,
+    startPhase: 0.45,
+    fact: "First spacecraft to fly past Saturn (September 1979), using Jupiter's gravity to whip up to the ringed planet. Last contact November 1995. Heading toward the constellation Scutum / Aquila area; will pass within ~4 light years of a star in Sagittarius in ~4 million years.",
+    visualRadius: 0.04,
   },
 ]
 
