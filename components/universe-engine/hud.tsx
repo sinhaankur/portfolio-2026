@@ -10,8 +10,110 @@
  */
 
 import { useEffect, useState } from "react"
-import type { BodyInfo } from "./types"
+import type { BodyDeepFacts, BodyInfo } from "./types"
 import { simTimeRef, timeWarpRef } from "./astronomy"
+
+/** Format a mass given in Earth-masses into a readable string.
+ *  Small bodies (< 0.01 Earth) get scientific notation; Earth-and-up
+ *  get a clean decimal. */
+function formatMassEarth(m: number): string {
+  if (m < 0.01) return `${m.toExponential(2)} × Earth`
+  if (m < 1) return `${m.toFixed(3)} × Earth`
+  if (m < 10) return `${m.toFixed(2)} × Earth`
+  return `${m.toFixed(1)} × Earth`
+}
+
+/** Shared disclosure used by both the desktop InfoPanel and the mobile
+ *  bottom sheet. Surfaces NASA Planetary Fact Sheet data behind a small
+ *  "More" toggle so the default panel stays light. Reset via React key
+ *  when the user moves to a different body. */
+export function DeepFactsDisclosure({
+  deep,
+  variant = "panel",
+}: {
+  deep?: BodyDeepFacts
+  /** "panel" (compact, mono) for the desktop hover panel; "sheet" (larger,
+   *  more breathing room) for the mobile bottom sheet. */
+  variant?: "panel" | "sheet"
+}) {
+  const [open, setOpen] = useState(false)
+  if (!deep) return null
+  const hasAny =
+    deep.massEarth !== undefined ||
+    deep.densityGcc !== undefined ||
+    deep.gravity !== undefined ||
+    deep.escapeVelocityKms !== undefined ||
+    deep.eccentricity !== undefined ||
+    deep.discoveredYear !== undefined
+  if (!hasAny) return null
+
+  const isSheet = variant === "sheet"
+  const toggleClass = isSheet
+    ? "font-mono text-[10px] tracking-[0.25em] uppercase text-foreground/65 hover:text-foreground transition-colors min-h-9 inline-flex items-center"
+    : "font-mono text-[9px] tracking-[0.25em] uppercase text-foreground/55 hover:text-foreground transition-colors"
+  const rowLabel = isSheet ? "text-foreground/55 shrink-0" : "text-foreground/55"
+  const rowValue = isSheet ? "text-foreground/85 tabular-nums" : "text-foreground/85 tabular-nums"
+  const gridClass = isSheet
+    ? "mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 font-mono text-xs"
+    : "mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 font-sans text-[10px]"
+
+  return (
+    <div className={isSheet ? "mt-4 pt-3 border-t border-border" : "mt-3 pointer-events-auto"}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className={toggleClass}
+      >
+        {open ? "− Less" : "+ More"}
+      </button>
+
+      {open && (
+        <dl className={gridClass}>
+          {deep.massEarth !== undefined && (
+            <>
+              <dt className={rowLabel}>Mass</dt>
+              <dd className={rowValue}>{formatMassEarth(deep.massEarth)}</dd>
+            </>
+          )}
+          {deep.densityGcc !== undefined && (
+            <>
+              <dt className={rowLabel}>Density</dt>
+              <dd className={rowValue}>{deep.densityGcc.toFixed(2)} g/cm³</dd>
+            </>
+          )}
+          {deep.gravity !== undefined && (
+            <>
+              <dt className={rowLabel}>Gravity</dt>
+              <dd className={rowValue}>{deep.gravity.toFixed(2)} m/s²</dd>
+            </>
+          )}
+          {deep.escapeVelocityKms !== undefined && (
+            <>
+              <dt className={rowLabel}>Escape vel.</dt>
+              <dd className={rowValue}>{deep.escapeVelocityKms.toFixed(2)} km/s</dd>
+            </>
+          )}
+          {deep.eccentricity !== undefined && (
+            <>
+              <dt className={rowLabel}>Eccentricity</dt>
+              <dd className={rowValue}>{deep.eccentricity.toFixed(3)}</dd>
+            </>
+          )}
+          {deep.discoveredYear !== undefined && (
+            <>
+              <dt className={rowLabel}>Discovered</dt>
+              <dd className={rowValue}>
+                {deep.discoveredYear}
+                {deep.discoveredBy ? ` · ${deep.discoveredBy}` : ""}
+              </dd>
+            </>
+          )}
+        </dl>
+      )}
+    </div>
+  )
+}
 
 export function InfoPanel({ info }: { info: BodyInfo | null }) {
   if (!info) {
@@ -90,6 +192,11 @@ export function InfoPanel({ info }: { info: BodyInfo | null }) {
           {info.fact}
         </div>
       )}
+
+      {/* Deeper NASA Planetary Fact Sheet data — hidden by default so the
+          panel stays glanceable. Keyed on name so the disclosure resets
+          collapsed whenever the user hovers a different body. */}
+      <DeepFactsDisclosure key={info.name} deep={info.deep} variant="panel" />
 
       {info.followable && (
         <div className="mt-3 inline-flex items-center gap-2 font-mono text-[9px] tracking-[0.25em] uppercase text-foreground/60">

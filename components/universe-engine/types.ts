@@ -6,6 +6,27 @@
  * also live here so the data + scene files stay decoupled.
  */
 
+/** Deeper per-body data sourced from NASA Planetary Fact Sheet. Surfaced
+ *  via the InfoPanel's "More" disclosure so the default panel stays light
+ *  but curious readers can pull up mass / density / gravity / etc. */
+export type BodyDeepFacts = {
+  /** Mass expressed in Earth-masses (Earth = 1). */
+  massEarth?: number
+  /** Mean density in g/cm³. */
+  densityGcc?: number
+  /** Surface (or 1-bar level, for gas giants) gravity in m/s². */
+  gravity?: number
+  /** Escape velocity in km/s. */
+  escapeVelocityKms?: number
+  /** Orbital eccentricity (0 = circle, 1 = parabola). */
+  eccentricity?: number
+  /** Year of formal discovery — present for outer planets + dwarf planets;
+   *  omitted for the inner planets known since prehistory. */
+  discoveredYear?: number
+  /** Discoverer credit (e.g. "Herschel, 1781") — short label, not a full citation. */
+  discoveredBy?: string
+}
+
 export type BodyInfo = {
   name: string
   classification: string
@@ -18,6 +39,8 @@ export type BodyInfo = {
   radiusEarth?: number
   moons?: number
   fact?: string
+  /** Deeper NASA-sourced facts — surfaced behind a "More" disclosure. */
+  deep?: BodyDeepFacts
   /** True if the body responds to a click (e.g. Polaris resets the view). */
   clickable?: boolean
   /** True if clicking the body engages follow mode (camera tracks it along
@@ -46,6 +69,8 @@ export type Planet = {
   /** Optional equirectangular surface texture URL — when set, the planet
    *  morphs from its abstract grey shade to the photographic globe on hover. */
   textureUrl?: string
+  /** Deeper NASA Planetary Fact Sheet data — surfaced via InfoPanel disclosure. */
+  deep?: BodyDeepFacts
 }
 
 export type ScenePlanet = {
