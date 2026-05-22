@@ -1,4 +1,8 @@
 /**
+ * Copyright (c) 2026 Ankur Sinha. All rights reserved.
+ * Part of the Universe Engine — see ./index.tsx for the full notice.
+ * https://github.com/sinhaankur/Portfolio/blob/main/LICENSE
+ *
  * Universe Engine — GLSL shaders.
  *
  * The galaxy backdrop renders ~25k points with a custom shader so each star

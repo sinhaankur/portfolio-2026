@@ -1,6 +1,10 @@
 "use client"
 
 /**
+ * Copyright (c) 2026 Ankur Sinha. All rights reserved.
+ * Part of the Universe Engine — see ./index.tsx for the full notice.
+ * https://github.com/sinhaankur/Portfolio/blob/main/LICENSE
+ *
  * Universe Engine — R3F scene graph.
  *
  * Every rendered body lives here. Public composition is <SceneContents />,
@@ -579,20 +583,20 @@ function MilkyWay({
       </points>
 
       {/* Sgr A* — the Milky Way's 4.15 million-M☉ supermassive black hole.
-          Visible mark: a tiny black dot (the horizon shadow) wrapped in a
-          warm amber halo (the accretion glow). Smaller than the bulge's
-          bright star field so it doesn't dominate, but distinct enough that
-          a user scanning the galactic centre can spot it. */}
+          Visible mark sized to be a small accent inside the bulge, not a
+          dominant feature. (Earlier 0.9 / 2.4 was wildly too large — looked
+          like a marble swallowing the core.) Real Sgr A* would be invisibly
+          small at this scale; this is just a "you are here" mark. */}
       <mesh position={[0, 0, 0]}>
-        <sphereGeometry args={[0.9, 32, 32]} />
+        <sphereGeometry args={[0.12, 24, 24]} />
         <meshBasicMaterial color="#000000" />
       </mesh>
       <mesh position={[0, 0, 0]}>
-        <sphereGeometry args={[2.4, 24, 24]} />
+        <sphereGeometry args={[0.35, 20, 20]} />
         <meshBasicMaterial
           color={invert ? "#5a2818" : "#ffb878"}
           transparent
-          opacity={invert ? 0.20 : 0.30}
+          opacity={invert ? 0.30 : 0.45}
           blending={invert ? NormalBlending : AdditiveBlending}
           depthWrite={false}
         />
