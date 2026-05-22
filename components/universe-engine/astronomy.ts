@@ -665,6 +665,48 @@ export const namedBodies: NamedBody[] = [
     visualRadius: 0.06,
   },
   {
+    name: "Comet Hyakutake",
+    designation: "C/1996 B2 (Hyakutake)",
+    kind: "comet",
+    aAU: 1705,                // (0.23 + 3410)/2
+    eccentricity: 0.9999,
+    inclDeg: 124.92,          // retrograde
+    longNodeDeg: 188.0,
+    argPeriDeg: 130.2,
+    periodYears: 70000,
+    startPhase: 0.42,
+    fact: "The 'Great Comet of 1996.' Famously passed just 0.10 AU from Earth (~15 million km, ~40× the Moon's distance) on March 25, 1996 — a once-in-200-years close approach. The Ulysses spacecraft flew through its 570-million-km tail by accident, the longest comet tail ever directly measured. Won't return for 70,000 years.",
+    visualRadius: 0.075,
+  },
+  {
+    name: "Comet Tsuchinshan-ATLAS",
+    designation: "C/2023 A3 (Tsuchinshan–ATLAS)",
+    kind: "comet",
+    aAU: 1750,                // (0.39 + 3500)/2
+    eccentricity: 0.9999,
+    inclDeg: 139.1,
+    longNodeDeg: 21.6,
+    argPeriDeg: 308.5,
+    periodYears: 80000,
+    startPhase: 0.48,
+    fact: "Late 2024's spectacular naked-eye comet — discovered by China's Tsuchinshan Observatory + NASA's ATLAS survey in early 2023. Crossed the inner solar system in October 2024 with a remarkable anti-tail visible against perihelion glow. Won't return for ~80,000 years.",
+    visualRadius: 0.075,
+  },
+  {
+    name: "Comet Ikeya-Seki",
+    designation: "C/1965 S1 (Ikeya–Seki) · Kreutz sungrazer",
+    kind: "comet",
+    aAU: 91.6,                // (0.0078 + 183.2)/2
+    eccentricity: 0.9999,
+    inclDeg: 141.86,          // retrograde, Kreutz group
+    longNodeDeg: 346.3,
+    argPeriDeg: 69.0,
+    periodYears: 880,
+    startPhase: 0.81,
+    fact: "Most famous Kreutz sungrazer of the 20th century. Passed just 450,000 km above the Sun's photosphere on October 21, 1965 — bright enough to see in broad daylight. Split into three pieces during the close pass from solar tidal forces. Returns ~2845 CE.",
+    visualRadius: 0.06,
+  },
+  {
     name: "Comet NEOWISE",
     designation: "C/2020 F3 (NEOWISE)",
     kind: "comet",
@@ -973,28 +1015,30 @@ export const namedBodies: NamedBody[] = [
     name: "Voyager 1",
     designation: "Voyager 1 · NASA · 1977",
     kind: "spacecraft",
-    aAU: 166,              // current heliocentric distance (mid-2025)
+    aAU: 161,              // ~24 billion km / 1 AU ≈ 160 AU as of mid-2025
     eccentricity: 1.00001,  // escape trajectory
     inclDeg: 35.7,
     longNodeDeg: 178.9,    // post-Saturn-flyby ascending node
     argPeriDeg: 338.2,     // perihelion direction inside the orbital plane
+    elementsEpoch: "2025-01",
     periodYears: Infinity,
     startPhase: 0.0,
-    fact: "Furthest human-made object — outside the heliopause as of August 2012. Still transmitting from ~166 AU on a 22.6-watt signal that takes 23 hours to reach Earth. Carrying the Golden Record toward Gliese 445 (encounter in ~40,000 years). Escape direction roughly RA 17h Dec +12° (Ophiuchus / Hercules border).",
+    fact: "Furthest human-made object — over 24 billion km (~161 AU) from Earth, beyond the heliopause since August 2012. Travelling at ~17 km/s (38,000 mph / 61,000 km/h) through the interstellar medium. Still transmitting on a 22.6-watt signal that takes 22+ hours to reach us. Carrying the Golden Record toward Gliese 445 (encounter in ~40,000 years). Escape direction roughly RA 17h Dec +12° (Ophiuchus / Hercules border).",
     visualRadius: 0.05,
   },
   {
     name: "Voyager 2",
     designation: "Voyager 2 · NASA · 1977",
     kind: "spacecraft",
-    aAU: 138,
+    aAU: 143,              // 21+ billion km / 1 AU ≈ 143 AU as of mid-2025
     eccentricity: 1.00001,
     inclDeg: 78.8,         // post-Neptune flyby — dove south steeply
     longNodeDeg: 101.7,
     argPeriDeg: 130.0,
+    elementsEpoch: "2025-01",
     periodYears: Infinity,
     startPhase: 0.3,
-    fact: "Only spacecraft to have flown by all four giant planets — Jupiter, Saturn, Uranus, Neptune. Crossed the heliopause November 2018, six years after Voyager 1, on the opposite side of the Sun. Escape direction roughly RA 20h Dec -57° (Telescopium / Pavo).",
+    fact: "Only spacecraft to have flown by all four giant planets — Jupiter, Saturn, Uranus, Neptune. Crossed the heliopause November 5, 2018, six years after Voyager 1, on the opposite side of the Sun. Now over 21 billion km (143+ AU) from Earth, travelling at 15.3 km/s into the interstellar medium. Escape direction roughly RA 20h Dec -57° (Telescopium / Pavo).",
     visualRadius: 0.05,
   },
   {
