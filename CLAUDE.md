@@ -53,8 +53,10 @@ App-router routes under [`app/`](./app):
 - `/` — home (Hero galaxy + About + Works + Lab + Usability summary + Stack & Beliefs + Footer).
 - `/works/oracle`, `/works/deloitte`, `/works/snowtint`, `/works/rage` — company case studies.
 - `/lab/unhosted` — Unhosted (flagship open-source project case study).
+- `/lab/usability-engine` — Usability Engine case study (design rationale +
+  checkability framework; the live engine itself remains at `/usability`).
 - `/skills` — skills matrix with category + project filters.
-- `/usability` — long-form usability guide.
+- `/usability` — long-form usability guide (hosts the interactive engine).
 - `/upcoming` — roadmap.
 - `/games/Gamelist.html` — retro neobrutalism mini-games index, served from
   `public/games/` (preserved from the previous build as a separate visual language).
