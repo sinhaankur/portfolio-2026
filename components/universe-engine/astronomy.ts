@@ -58,6 +58,89 @@ export const timeWarpRef = { current: 1.0 }
 export const DEG = Math.PI / 180
 
 /* --------------------------------------------------------------------------
+ * Black-hole physics
+ *
+ * The Schwarzschild radius is the radius at which an object's escape
+ * velocity equals the speed of light — i.e. the size of the event
+ * horizon for a non-rotating black hole.
+ *
+ *     rs = 2 G M / c²
+ *
+ * For a Kerr (rotating) black hole the event-horizon radius shrinks
+ * with spin: r₊ = (M + √(M² - a²M²)) · G/c²
+ * where 'a' is the dimensionless spin parameter (0 to 1).
+ *
+ * Real-world reference points:
+ *   - Earth   (5.97e24 kg)              rs ≈ 8.87 mm
+ *   - Sun     (1 M☉)                    rs ≈ 2.95 km
+ *   - Sgr A*  (4.15e6 M☉)               rs ≈ 12.3 million km
+ *   - M87*    (6.5e9 M☉)                rs ≈ 1.92e10 km ≈ 128 AU
+ *   - TON 618 (66e9 M☉)                 rs ≈ 1.95e11 km ≈ 1,304 AU
+ *
+ * The visualisation uses a sqrt-of-log scaling so all three black holes
+ * in the catalog read as distinct sizes without the supermassive ones
+ * dwarfing Cygnus X-1 by a factor of 10⁹.
+ * ------------------------------------------------------------------------ */
+
+/** Gravitational constant (m³·kg⁻¹·s⁻²). */
+export const G_NEWTON = 6.674e-11
+/** Speed of light (m/s). */
+export const C_LIGHT = 299_792_458
+/** Solar mass (kg). */
+export const SOLAR_MASS_KG = 1.98892e30
+/** Astronomical unit (m). */
+export const AU_METERS = 1.495978707e11
+
+/**
+ * Schwarzschild radius in metres, given mass in solar masses (M☉).
+ * Pure form of `rs = 2GM / c²`.
+ */
+export function schwarzschildRadiusMeters(massSolar: number): number {
+  const massKg = massSolar * SOLAR_MASS_KG
+  return (2 * G_NEWTON * massKg) / (C_LIGHT * C_LIGHT)
+}
+
+/**
+ * Kerr event-horizon radius for a rotating BH. Reduces to rs at spin=0;
+ * gives M·G/c² (half of rs) at spin=1 (maximal Kerr). Returns metres.
+ */
+export function kerrHorizonRadiusMeters(massSolar: number, spin: number): number {
+  const rs = schwarzschildRadiusMeters(massSolar)
+  // r₊ = (M + √(M² − a²M²)) · G/c² = (rs/2) · (1 + √(1 − a²))
+  const a = Math.min(Math.max(spin, 0), 0.9999)
+  return (rs / 2) * (1 + Math.sqrt(1 - a * a))
+}
+
+/**
+ * Pretty-print a length for the BH data overlay. Picks the most
+ * legible unit per order of magnitude:
+ *   < 1 km     → metres
+ *   < 1 AU     → kilometres (with comma grouping)
+ *   < 1 ly     → AU
+ *   otherwise  → light-years
+ */
+export function formatLength(metres: number): string {
+  const km = metres / 1000
+  const au = metres / AU_METERS
+  const ly = metres / 9.461e15
+  if (metres < 1000) return `${metres.toFixed(2)} m`
+  if (au < 1) return `${Math.round(km).toLocaleString()} km`
+  if (ly < 1) {
+    if (au < 100) return `${au.toFixed(2)} AU`
+    return `${Math.round(au).toLocaleString()} AU`
+  }
+  return `${ly.toFixed(2)} ly`
+}
+
+/** Format a mass in solar masses for the overlay. */
+export function formatSolarMass(m: number): string {
+  if (m < 1000) return `${m.toLocaleString()} M☉`
+  if (m < 1e6) return `${(m / 1000).toFixed(1)} × 10³ M☉`
+  if (m < 1e9) return `${(m / 1e6).toFixed(1)} × 10⁶ M☉`
+  return `${(m / 1e9).toFixed(1)} × 10⁹ M☉`
+}
+
+/* --------------------------------------------------------------------------
  * Fly-to controller
  *
  * Module-scoped target that the in-scene FlyToController reads in useFrame.
@@ -1087,8 +1170,10 @@ export const skyPoints: SkyPoint[] = [
     raHours: 12.514,
     decDeg: 12.39,
     distance: "53.5 million ly",
-    fact: "First black hole ever imaged — the Event Horizon Telescope unveiled it in April 2019, showing the iconic glowing donut around a dark shadow. Sits at the heart of galaxy Messier 87. Mass: 6.5 billion times the Sun.",
+    fact: "First black hole ever imaged — the Event Horizon Telescope unveiled it in April 2019, showing the iconic glowing donut around a dark shadow. Sits at the heart of galaxy Messier 87.",
     visualSize: 1.8,
+    massSolar: 6.5e9,
+    spin: 0.9,
   },
   {
     id: "ton-618",
@@ -1098,8 +1183,10 @@ export const skyPoints: SkyPoint[] = [
     raHours: 12.494,
     decDeg: 31.74,
     distance: "10.4 billion ly",
-    fact: "Among the most massive black holes known — 66 billion times the Sun. The event horizon alone is ~1,300 AU across, far wider than the Sun's heliosphere. Powers a hyperluminous quasar visible from a third of the way across the observable universe.",
+    fact: "Among the most massive black holes known. The event horizon alone is ~1,300 AU across, far wider than the Sun's heliosphere. Powers a hyperluminous quasar visible from a third of the way across the observable universe.",
     visualSize: 2.2,
+    massSolar: 6.6e10,
+    spin: 0.9,
   },
   {
     id: "cygnus-x1",
@@ -1112,5 +1199,7 @@ export const skyPoints: SkyPoint[] = [
     distance: "7,200 ly",
     fact: "First object widely accepted as a black hole (1971) — an X-ray binary in which a 21-solar-mass black hole accretes from a blue supergiant companion. Subject of the 1974 Hawking-Thorne wager — Hawking conceded in 1990.",
     visualSize: 1.2,
+    massSolar: 21,
+    spin: 0.95,
   },
 ]

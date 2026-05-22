@@ -50,7 +50,10 @@ import {
   constellations,
   flyToRef,
   followRef,
+  formatLength,
+  formatSolarMass,
   gauss,
+  kerrHorizonRadiusMeters,
   magToVisualRadius,
   moons,
   namedBodies,
@@ -58,6 +61,7 @@ import {
   raDecToScenePos,
   requestFlyTo,
   requestFollow,
+  schwarzschildRadiusMeters,
   skyPoints,
   timeWarpRef,
 } from "./astronomy"
@@ -2116,21 +2120,96 @@ function GalaxyDetail({
  * the receding side. We approximate this by making one half-arc warmer +
  * more opaque than the other.
  */
+/**
+ * Physics-driven proportions for the black hole detail.
+ *
+ *   horizon       — Kerr event-horizon (Schwarzschild collapses to this when spin=0)
+ *   photon ring   — 1.5 × rs (photon sphere for a non-rotating BH)
+ *   ISCO disk     — 6 × rs for Schwarzschild prograde; collapses to ~rs for max Kerr
+ *   outer disk    — ~15 × rs (typical observed extent)
+ *
+ * Real Schwarzschild radii vary from ~62 km (Cygnus X-1) to ~1300 AU
+ * (TON 618) — a 10⁹ ratio. We use a log-scale to map that to a visible
+ * scene-unit range so all three black holes read as distinct sizes
+ * without the stellar-mass one becoming a single pixel.
+ */
+function computeBlackHoleProportions(massSolar: number, spin: number, baseScale: number) {
+  const rsMeters = schwarzschildRadiusMeters(massSolar)
+  const rPlusMeters = kerrHorizonRadiusMeters(massSolar, spin)
+  const photonMeters = rsMeters * 1.5
+  // ISCO (innermost stable circular orbit) — Schwarzschild = 6 rs;
+  // maximal Kerr prograde collapses to ~1 rs. Smooth interp by spin.
+  const iscoFactor = 6 - 5 * Math.min(spin, 1)
+  const iscoMeters = rsMeters * iscoFactor
+  const outerMeters = rsMeters * 15
+  // Log-scale visualisation: maps Cygnus X-1's ~60 km up to TON 618's
+  // ~10¹¹ km onto a roughly 1× → 1.4× scene-scale ratio. Math.log10(rs)
+  // would give ~5 → ~14 (range ~9); we normalise to a tighter band.
+  const logRs = Math.log10(rsMeters)
+  // Stellar mass ~ 5, supermassive ~ 13. Map [5, 13] → [0.75, 1.45].
+  const visualMultiplier = 0.75 + Math.max(0, Math.min(1, (logRs - 5) / 8)) * 0.7
+  const detailScale = baseScale * 4.0 * visualMultiplier
+
+  return {
+    rsMeters,
+    rPlusMeters,
+    photonMeters,
+    iscoMeters,
+    outerMeters,
+    iscoFactor,
+    // Scene-unit radii — these set the actual rendered geometry sizes
+    horizonR:  detailScale * 0.30 * (rPlusMeters / rsMeters), // ≤ 0.30, smaller for Kerr
+    photonR:   detailScale * 0.40,                            // ~ 1.5 × horizon (for spin=0)
+    iscoInner: detailScale * 0.42,
+    iscoOuter: detailScale * 0.75,
+    outerInner: detailScale * 0.75,
+    outerOuter: detailScale * 1.20,
+    lensInner:  detailScale * 0.42,
+    lensOuter:  detailScale * 0.80,
+    detailScale,
+  }
+}
+
 function BlackHoleDetail({
   size,
   hovered,
   invert,
+  massSolar,
+  spin,
+  name,
 }: {
   size: number
   hovered: boolean
   invert: boolean
+  /** Mass in solar masses — drives Schwarzschild radius. */
+  massSolar?: number
+  /** Kerr spin parameter (0–1). Defaults to 0 (Schwarzschild). */
+  spin?: number
+  /** Display name for the data readout. */
+  name?: string
 }) {
   const rootRef = useRef<Group>(null)
   const spinRef = useRef<Group>(null)
   const matRefs = useRef<Array<import("three").MeshBasicMaterial | null>>([])
 
-  // Palette — invert mode tones it down to ink-on-cream (which loses some
-  // of the Interstellar fire, but stays on-theme for chart mode).
+  // Default to a generic supermassive value if mass wasn't declared on
+  // the sky-point — keeps the renderer working even if someone adds a
+  // BH without populating the physics data.
+  const M = massSolar ?? 1e8
+  const a = spin ?? 0
+
+  const props = useMemo(
+    () => computeBlackHoleProportions(M, a, size),
+    [M, a, size],
+  )
+
+  // Stellar-mass black holes (X-ray binaries) have brighter, hotter disks
+  // relative to their horizon than supermassive ones. We push more
+  // luminosity into the inner disk when mass is small.
+  const isStellarMass = M < 1000
+  const diskBoost = isStellarMass ? 1.25 : 1.0
+
+  // Palette — invert mode tones it down to ink-on-cream.
   const palette = {
     horizon: "#000000",
     photon:  invert ? "#b34a13" : "#fff5d0",
@@ -2143,22 +2222,18 @@ function BlackHoleDetail({
 
   useFrame((_, delta) => {
     const k = 1 - Math.exp(-delta * 6)
-    // The black hole is always visible — Interstellar/Gargantua at all
-    // distances. Idle is a smaller scale (~0.35) so it doesn't dominate
-    // the sky-shell; hovered/focused blooms to full size for the close-up.
     if (rootRef.current) {
       const target = hovered ? 1.0 : 0.35
       const s = rootRef.current.scale.x
       const next = s + (target - s) * k
       rootRef.current.scale.set(next, next, next)
     }
-    // Slow rotation in the disk plane — even when idle, sells the spinning
-    // accretion disk. Faster while hovered to read as "powered up."
+    // Stellar-mass BHs spin faster (smaller systems, higher angular
+    // frequency at ISCO). Disk visual rotation reflects that.
+    const baseSpin = isStellarMass ? 0.14 : 0.06
     if (spinRef.current) {
-      spinRef.current.rotation.y += delta * (hovered ? 0.08 : 0.035)
+      spinRef.current.rotation.y += delta * (hovered ? baseSpin : baseSpin * 0.4)
     }
-    // Lerp each layer's opacity to its target. Idle dims to 55% of full
-    // target so the BH reads as present-but-distant; hovered hits full.
     const opacityFactor = hovered ? 1.0 : 0.55
     matRefs.current.forEach((m) => {
       if (!m) return
@@ -2168,11 +2243,6 @@ function BlackHoleDetail({
     })
   })
 
-  const detailScale = size * 4.0
-
-  // Helper to register a material ref + carry its hover-target opacity.
-  // We stash the target on userData so a single useFrame loop can lerp
-  // every layer without holding a refs array indexed by name.
   const registerMat = (i: number, targetOpacity: number) =>
     (m: import("three").MeshBasicMaterial | null) => {
       matRefs.current[i] = m
@@ -2181,17 +2251,16 @@ function BlackHoleDetail({
 
   return (
     <group ref={rootRef} scale={0.001}>
-      {/* Event horizon — opaque black sphere. Always visible (no fade)
-          so the silhouette punches a hole through the additive layers. */}
+      {/* Event horizon — opaque black sphere sized by Kerr r₊.
+          Punches a hole through the additive disk layers. */}
       <mesh>
-        <sphereGeometry args={[detailScale * 0.32, 32, 32]} />
+        <sphereGeometry args={[props.horizonR, 32, 32]} />
         <meshBasicMaterial color={palette.horizon} />
       </mesh>
 
-      {/* Photon ring — thin bright ring tight against the horizon. This
-          is what the EHT M87* image actually photographed. */}
+      {/* Photon ring — at 1.5 × rs. The EHT M87* image is this ring. */}
       <mesh rotation={[Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[detailScale * 0.34, detailScale * 0.38, 96]} />
+        <ringGeometry args={[props.photonR * 0.97, props.photonR, 96]} />
         <meshBasicMaterial
           ref={registerMat(0, invert ? 0.85 : 1.0)}
           color={palette.photon}
@@ -2203,15 +2272,13 @@ function BlackHoleDetail({
         />
       </mesh>
 
-      {/* Main accretion disk — three concentric rings forming the orange
-          glow that surrounds the shadow. Tilted ~17° from edge-on so the
-          ellipse reads as a disc rather than a circle. */}
+      {/* Accretion disk — tilted ~17° from edge-on. Two-layer structure
+          (hot inner, cool outer). Inner edge starts at ISCO. */}
       <group ref={spinRef} rotation={[Math.PI / 2 - 0.30, 0, 0]}>
-        {/* Inner hot ring — bright white-yellow */}
         <mesh>
-          <ringGeometry args={[detailScale * 0.40, detailScale * 0.65, 96]} />
+          <ringGeometry args={[props.iscoInner, props.iscoOuter, 96]} />
           <meshBasicMaterial
-            ref={registerMat(1, invert ? 0.55 : 0.85)}
+            ref={registerMat(1, (invert ? 0.55 : 0.85) * diskBoost)}
             color={palette.diskHot}
             transparent
             opacity={0}
@@ -2220,24 +2287,10 @@ function BlackHoleDetail({
             depthWrite={false}
           />
         </mesh>
-        {/* Middle ring — full orange */}
         <mesh>
-          <ringGeometry args={[detailScale * 0.65, detailScale * 0.95, 96]} />
+          <ringGeometry args={[props.outerInner, props.outerOuter, 96]} />
           <meshBasicMaterial
-            ref={registerMat(2, invert ? 0.45 : 0.75)}
-            color={palette.diskMid}
-            transparent
-            opacity={0}
-            side={DoubleSide}
-            blending={invert ? NormalBlending : AdditiveBlending}
-            depthWrite={false}
-          />
-        </mesh>
-        {/* Outer ring — cooler, more transparent */}
-        <mesh>
-          <ringGeometry args={[detailScale * 0.95, detailScale * 1.25, 96]} />
-          <meshBasicMaterial
-            ref={registerMat(3, invert ? 0.30 : 0.50)}
+            ref={registerMat(2, (invert ? 0.35 : 0.55) * diskBoost)}
             color={palette.diskCold}
             transparent
             opacity={0}
@@ -2248,13 +2301,12 @@ function BlackHoleDetail({
         </mesh>
       </group>
 
-      {/* Lensed top arc — the disk's far side, gravitationally bent up
-          and over the black hole. Rendered as a perpendicular half-ring
-          (thetaStart=0, thetaLength=π) so only the top half is drawn. */}
+      {/* Lensed top arc — disk's far side bent up and over the BH.
+          Doppler-beamed bright (approaching the observer). */}
       <mesh rotation={[0, 0, 0]}>
-        <ringGeometry args={[detailScale * 0.42, detailScale * 0.78, 64, 1, 0, Math.PI]} />
+        <ringGeometry args={[props.lensInner, props.lensOuter, 64, 1, 0, Math.PI]} />
         <meshBasicMaterial
-          ref={registerMat(4, invert ? 0.55 : 0.85)}
+          ref={registerMat(3, (invert ? 0.55 : 0.85) * diskBoost)}
           color={palette.lensHot}
           transparent
           opacity={0}
@@ -2264,12 +2316,11 @@ function BlackHoleDetail({
         />
       </mesh>
 
-      {/* Lensed bottom arc — the receding side; dimmer than the approaching
-          top arc to fake Doppler beaming. */}
+      {/* Lensed bottom arc — receding side, dimmer. */}
       <mesh rotation={[0, 0, Math.PI]}>
-        <ringGeometry args={[detailScale * 0.42, detailScale * 0.72, 64, 1, 0, Math.PI]} />
+        <ringGeometry args={[props.lensInner, props.lensOuter * 0.92, 64, 1, 0, Math.PI]} />
         <meshBasicMaterial
-          ref={registerMat(5, invert ? 0.35 : 0.55)}
+          ref={registerMat(4, (invert ? 0.35 : 0.55) * diskBoost)}
           color={palette.lensCold}
           transparent
           opacity={0}
@@ -2278,6 +2329,54 @@ function BlackHoleDetail({
           depthWrite={false}
         />
       </mesh>
+
+      {/* Physics data overlay — fades in on hover. Mass, Schwarzschild
+          radius, photon-sphere radius, ISCO factor. Anchored to the side
+          of the BH so it doesn't sit on top of the shadow. */}
+      {hovered && (
+        <Html
+          position={[props.detailScale * 1.5, 0, 0]}
+          distanceFactor={6}
+          zIndexRange={[10, 0]}
+          style={{ pointerEvents: "none" }}
+        >
+          <div
+            className={`
+              select-none pointer-events-none whitespace-nowrap
+              font-mono text-[10px] tracking-[0.12em] uppercase
+              px-3 py-2 rounded-md backdrop-blur-sm
+              ${
+                invert
+                  ? "bg-white/85 border border-foreground/25 text-foreground"
+                  : "bg-black/65 border border-white/20 text-white"
+              }
+            `}
+            style={{ animation: "ue-label-in 240ms ease-out both", minWidth: "11rem" }}
+          >
+            {name && (
+              <div className="text-[11px] tracking-[0.22em] mb-1.5 opacity-80">
+                {name}
+              </div>
+            )}
+            <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-[9px] normal-case tracking-normal font-sans">
+              <span className="opacity-55">Mass</span>
+              <span className="text-right tabular-nums">{formatSolarMass(M)}</span>
+              <span className="opacity-55">rₛ</span>
+              <span className="text-right tabular-nums">{formatLength(props.rsMeters)}</span>
+              <span className="opacity-55">photon sphere</span>
+              <span className="text-right tabular-nums">{formatLength(props.photonMeters)}</span>
+              <span className="opacity-55">ISCO</span>
+              <span className="text-right tabular-nums">{props.iscoFactor.toFixed(1)} rₛ</span>
+              {a > 0 && (
+                <>
+                  <span className="opacity-55">spin a</span>
+                  <span className="text-right tabular-nums">{a.toFixed(2)}</span>
+                </>
+              )}
+            </div>
+          </div>
+        </Html>
+      )}
     </group>
   )
 }
@@ -2609,9 +2708,18 @@ function SkyPointMesh({
       )}
       {/* Black-hole hover detail — Gargantua/M87*-style accretion disk with
           gravitationally-lensed top + bottom arcs over the event horizon.
-          Replaces the simple halo on focus with the iconic Interstellar look. */}
+          Proportions driven by the BH's actual Schwarzschild radius (mass
+          + spin); a data overlay surfaces the calculated rs / photon sphere
+          / ISCO when focused. */}
       {point.kind === "black-hole" && (
-        <BlackHoleDetail size={visualSize} hovered={detailActive} invert={invert} />
+        <BlackHoleDetail
+          size={visualSize}
+          hovered={detailActive}
+          invert={invert}
+          massSolar={point.massSolar}
+          spin={point.spin}
+          name={point.name}
+        />
       )}
       {/* Cluster spray — for star clusters, add a handful of bright pinpoints
           around the core to suggest individual stars. */}
