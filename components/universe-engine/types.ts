@@ -268,7 +268,7 @@ export type SkyPoint = {
   id: string
   name: string
   designation: string
-  kind: "galaxy" | "nebula" | "cluster" | "exoplanet-host" | "black-hole"
+  kind: "galaxy" | "nebula" | "cluster" | "exoplanet-host" | "black-hole" | "star"
   raHours: number
   decDeg: number
   /** Distance from Earth as a human-readable string (e.g. "2.5 million ly"). */
@@ -291,6 +291,12 @@ export type SkyPoint = {
    * when omitted; supermassive BHs are typically near-extremal (~0.9).
    */
   spin?: number
+  /**
+   * Optional colour override (hex). Currently used for individual stars
+   * so spectral class drives the visible colour (blue O/B, white A,
+   * yellow F/G, orange K, red M).
+   */
+  shade?: string
   /**
    * Bipolar relativistic jet config. Many real black holes (M87*, Cygnus X-1,
    * Sgr A*, AGN cores) eject collimated jets perpendicular to their accretion

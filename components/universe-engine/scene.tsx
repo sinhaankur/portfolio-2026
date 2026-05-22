@@ -3905,11 +3905,14 @@ function SkyPointMesh({
     point.kind === "nebula"           ? 2.5 :
     point.kind === "cluster"          ? 2 :
     point.kind === "black-hole"       ? 1.5 :
+    point.kind === "star"             ? 0.7 :
     /* exoplanet-host */                  0.5
   )
 
   // Per-kind colour palettes. Chart mode (invert) flips to ink-on-cream
-  // accents so the halos stay readable.
+  // accents so the halos stay readable. Individual stars override the
+  // default palette via their `shade` field — driven by spectral class
+  // (blue O/B, white A, yellow F/G, orange K, red M).
   const palette = useMemo(() => {
     switch (point.kind) {
       case "galaxy":
@@ -3935,6 +3938,12 @@ function SkyPointMesh({
           core: "#000000",
           halo: invert ? "#b34a13" : "#ff7a1a",
         }
+      case "star": {
+        // Star shade comes from the data (spectral class colour). Fallback
+        // is white if unspecified. Halo lifts toward warmer for chart mode.
+        const shade = point.shade ?? "#ffffff"
+        return { core: shade, halo: invert ? "#5a4a18" : shade }
+      }
       case "exoplanet-host":
       default:
         return {
@@ -3942,7 +3951,7 @@ function SkyPointMesh({
           halo: invert ? "#7a3a16" : "#ffb84d",
         }
     }
-  }, [point.kind, invert])
+  }, [point.kind, invert, point.shade])
 
   // Hit-zone scales with the visual so even tiny exoplanet dots are findable.
   // Nebulae get a wider zone so the on-hover bloom doesn't fall outside the
@@ -3951,36 +3960,34 @@ function SkyPointMesh({
 
   return (
     <group position={position}>
-      {/* Diffuse halo — galaxies and nebulae get a soft warm halo. Black
-          holes deliberately skip this because BlackHoleDetail renders the
-          full Interstellar/Gargantua visualisation always (idle or
-          hovered), and a simple halo would muddy it. */}
-      {(point.kind === "galaxy" || point.kind === "nebula") && (
+      {/* Diffuse halo — galaxies, nebulae, and bright stars get a soft halo.
+          Black holes skip this (BlackHoleDetail handles its own visual). */}
+      {(point.kind === "galaxy" || point.kind === "nebula" || point.kind === "star") && (
         <mesh>
-          <sphereGeometry args={[visualSize, 16, 16]} />
+          <sphereGeometry args={[visualSize * (point.kind === "star" ? 0.7 : 1.0), 16, 16]} />
           <meshBasicMaterial
             color={palette.halo}
             transparent
-            opacity={invert ? 0.18 : 0.22}
+            opacity={point.kind === "star" ? (invert ? 0.30 : 0.38) : (invert ? 0.18 : 0.22)}
             blending={invert ? NormalBlending : AdditiveBlending}
             depthWrite={false}
           />
         </mesh>
       )}
-      {/* Core — additive glow for galaxies/nebulae/clusters, opaque dot
+      {/* Core — additive glow for galaxies/nebulae/clusters/stars, opaque dot
           for exoplanet hosts. Black holes use the dedicated detail
           component so their horizon shadow is built into that. */}
       {point.kind !== "black-hole" && (
         <mesh>
           <sphereGeometry args={[
-            visualSize * (point.kind === "exoplanet-host" ? 1.0 : 0.45),
+            visualSize * (point.kind === "exoplanet-host" ? 1.0 : point.kind === "star" ? 0.30 : 0.45),
             14,
             14,
           ]} />
           <meshBasicMaterial
             color={palette.core}
             transparent
-            opacity={point.kind === "exoplanet-host" ? 1 : (invert ? 0.55 : 0.55)}
+            opacity={point.kind === "exoplanet-host" ? 1 : point.kind === "star" ? 1 : (invert ? 0.55 : 0.55)}
             blending={invert ? NormalBlending : AdditiveBlending}
             depthWrite={false}
           />
@@ -4060,6 +4067,7 @@ function SkyPointMesh({
             point.kind === "nebula"     ? "Nebula" :
             point.kind === "cluster"    ? "Star cluster" :
             point.kind === "black-hole" ? "Black hole" :
+            point.kind === "star"       ? "Star" :
                                           "Exoplanet host star"
           const factWithDistance = point.distance
             ? `${point.fact} Distance · ${point.distance}.`
@@ -4091,7 +4099,7 @@ function SkyPointMesh({
                 e.object.getWorldPosition(world)
                 requestFlyTo(
                   { x: world.x, y: world.y, z: world.z },
-                  point.kind === "exoplanet-host" ? 4 : Math.max(visualSize * 3.5, 9),
+                  point.kind === "exoplanet-host" || point.kind === "star" ? 4 : Math.max(visualSize * 3.5, 9),
                   point.name,
                 )
               }
