@@ -2828,17 +2828,17 @@ function BlackHoleDetail({
           full model (event horizon + accretion disk + lensed skins) as
           a unit; per-BH scale stays driven by computeBlackHoleProportions
           so Cygnus X-1 and TON 618 still read as distinct sizes. */}
-      {/* Faint findability halo — gives the BH a soft glow large enough to
-          spot from sky-shell distance (~150 u away). The GLB mesh itself
-          is compact; without this halo a BH reads as a single dark dot
-          against the starfield until you fly close. Stays subtle so it
-          doesn't muddy the silhouette on approach. */}
+      {/* Findability halo — soft glow so the BH spots from sky-shell distance
+          (~150 u away) without users having to scan blindly. Sized at 0.5 ×
+          detailScale (was 0.9 — bigger halo collided with adjacent sky-points
+          like the M87 / TON 618 pair in Virgo). Brightness bumped to keep it
+          findable at the smaller radius — favour brightness over girth. */}
       <mesh>
-        <sphereGeometry args={[props.detailScale * 0.9, 24, 24]} />
+        <sphereGeometry args={[props.detailScale * 0.5, 24, 24]} />
         <meshBasicMaterial
           color={invert ? "#3a2418" : "#ffd6a8"}
           transparent
-          opacity={hovered ? (invert ? 0.16 : 0.22) : (invert ? 0.10 : 0.14)}
+          opacity={hovered ? (invert ? 0.22 : 0.32) : (invert ? 0.14 : 0.22)}
           blending={invert ? NormalBlending : AdditiveBlending}
           depthWrite={false}
         />
