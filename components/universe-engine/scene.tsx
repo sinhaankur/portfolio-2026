@@ -1286,25 +1286,44 @@ function PlanetBody({
   const orbitRef = useRef<Group>(null)
   const texMeshRef = useRef<Mesh>(null)
   const texMatRef = useRef<import("three").MeshStandardMaterial>(null)
+  const atmosMatRef = useRef<import("three").MeshBasicMaterial>(null)
   const [isHovered, setIsHovered] = useState(false)
+  // `focused` persists after a click → fly-to so the planet's texture +
+  // atmosphere bloom stay visible after arrival, even when the cursor
+  // moves off the hit zone. Cleared by Reset or by focusing a different
+  // body (same machinery the sky-points use).
+  const [focused, setFocused] = useState(false)
   const [texture, setTexture] = useState<Texture | null>(null)
+  const detailActive = isHovered || focused
+
+  // Listen for a global focus-clear (e.g. Reset) so the planet collapses
+  // back to its idle chart-marker appearance.
+  useEffect(() => {
+    const onSkyFocus = (e: Event) => {
+      const id = (e as CustomEvent<{ pointId: string | null }>).detail?.pointId
+      if (id !== `planet:${planet.raw.name}`) setFocused(false)
+    }
+    window.addEventListener("universe:sky-focus", onSkyFocus)
+    return () => window.removeEventListener("universe:sky-focus", onSkyFocus)
+  }, [planet.raw.name])
 
   const textureUrl = planet.raw.textureUrl
   const hasTexture = Boolean(textureUrl)
 
   // Lazy-load the planet's equirectangular surface texture on demand —
-  // only once the planet is hovered for the first time, so the assets
-  // (NASA Blue Marble for Earth, Solar System Scope CC BY for Jupiter +
-  // Saturn) never enter the critical path for visitors who don't explore.
+  // triggers on either hover OR focus (click → fly-to), so a user who flies
+  // straight to Earth still sees continents on arrival. Assets (NASA Blue
+  // Marble for Earth at 2K, Solar System Scope CC BY for Jupiter + Saturn)
+  // stay out of the critical path for visitors who never explore.
   useEffect(() => {
-    if (!textureUrl || !isHovered || texture) return
+    if (!textureUrl || !detailActive || texture) return
     const loader = new TextureLoader()
     loader.load(textureUrl, (tex) => {
       tex.colorSpace = SRGBColorSpace
-      tex.anisotropy = 4
+      tex.anisotropy = 8
       setTexture(tex)
     })
-  }, [textureUrl, isHovered, texture])
+  }, [textureUrl, detailActive, texture])
 
   useEffect(() => {
     if (orbitRef.current) orbitRef.current.rotation.y = planet.raw.startPhase
@@ -1321,21 +1340,31 @@ function PlanetBody({
     if (texMeshRef.current) {
       texMeshRef.current.rotation.y += delta * planet.rotSpeedRadPerSec * tw
     }
-    // Lerp the textured material's opacity toward the hover target — the
+    // Lerp the textured material's opacity toward the hover/focus target — the
     // morph between abstract chart-marker and photographic globe stays smooth.
     if (texMatRef.current) {
       const k = 1 - Math.exp(-delta * 8)
-      const target = isHovered && texture ? 1 : 0
+      const target = detailActive && texture ? 1 : 0
       texMatRef.current.opacity += (target - texMatRef.current.opacity) * k
+    }
+    // Earth's atmosphere glow — soft cyan halo that fades in when the
+    // planet is hovered or focused. Sells the "look closer" moment when
+    // the user flies in. Lives on a separate slightly-larger sphere.
+    if (atmosMatRef.current) {
+      const k = 1 - Math.exp(-delta * 8)
+      const target = detailActive ? (invert ? 0.18 : 0.28) : 0
+      atmosMatRef.current.opacity += (target - atmosMatRef.current.opacity) * k
     }
   })
 
   const hitRadius = Math.max(planet.visualRadius * 2.2, 0.18)
   const childMoons = moons.filter((m) => m.parent === planet.raw.name)
-  // Whichever planet's hovered: its moons brighten + scale up. Earth's
-  // Luna, Jupiter's Galilean four, Saturn's Titan, Neptune's Triton,
-  // Pluto's Charon — all coordinated to the parent's hover state.
-  const moonsHighlighted = isHovered
+  // Whichever planet's hovered or focused: its moons brighten + scale up.
+  // Earth's Luna, Jupiter's Galilean four, Saturn's Titan, Neptune's Triton,
+  // Pluto's Charon — all coordinated to the parent's interactive state.
+  const moonsHighlighted = detailActive
+  // Earth gets an atmosphere glow on focus — visible while flying in close.
+  const hasAtmosphere = planet.raw.name === "Earth"
 
   return (
     <group rotation={[planet.inclination, 0, 0]}>
@@ -1354,14 +1383,16 @@ function PlanetBody({
             </mesh>
 
             {/* Textured-globe overlay — stacked on top of the grey sphere for
-                any planet with a textureUrl (Earth, Jupiter, Saturn). Material
-                opacity lerps in/out via useFrame so the swap reads as a smooth
-                morph from chart-marker to photographic globe. The textured
-                sphere is fractionally larger so it doesn't z-fight with the
-                grey one underneath. */}
+                any planet with a textureUrl. Higher segment count on Earth
+                so deep-zoom inspection doesn't reveal facets. Opacity lerps
+                in on hover OR focus. */}
             {hasTexture && texture && (
               <mesh ref={texMeshRef}>
-                <sphereGeometry args={[planet.visualRadius * 1.005, 64, 64]} />
+                <sphereGeometry args={[
+                  planet.visualRadius * 1.005,
+                  planet.raw.name === "Earth" ? 96 : 64,
+                  planet.raw.name === "Earth" ? 96 : 64,
+                ]} />
                 <meshStandardMaterial
                   ref={texMatRef as React.Ref<import("three").MeshStandardMaterial>}
                   map={texture}
@@ -1370,6 +1401,24 @@ function PlanetBody({
                   transparent
                   opacity={0}
                   depthWrite={false}
+                />
+              </mesh>
+            )}
+
+            {/* Earth atmosphere — soft cyan halo that fades in on hover/focus.
+                A slightly larger sphere with additive blending; the limb
+                reads as the iconic atmosphere glow you see in Blue Marble. */}
+            {hasAtmosphere && (
+              <mesh>
+                <sphereGeometry args={[planet.visualRadius * 1.045, 64, 64]} />
+                <meshBasicMaterial
+                  ref={atmosMatRef as React.Ref<import("three").MeshBasicMaterial>}
+                  color={invert ? "#3a5a7a" : "#7ec8ff"}
+                  transparent
+                  opacity={0}
+                  blending={invert ? NormalBlending : AdditiveBlending}
+                  depthWrite={false}
+                  side={DoubleSide}
                 />
               </mesh>
             )}
@@ -1384,15 +1433,40 @@ function PlanetBody({
                 setIsHovered(false)
                 onHover(null)
               }}
-              // Click flies the camera to the planet's current world position.
-              // Distance scales with the planet's visual radius so Mercury and
-              // Jupiter both end up framed sensibly. Saturn gets extra room
-              // because the rings extend ~2.1× the body radius.
-              onClick={makeFocusHandler(
-                interactive,
-                Math.max(planet.visualRadius * (planet.raw.hasRings ? 9 : 7), 1.0),
-                planet.raw.name,
-              )}
+              // Click flies the camera to the planet's current world position
+              // AND marks it as the focused body so the texture + atmosphere
+              // persist after arrival (without focus, hovering away would
+              // collapse the bloom mid-flight). Distance scales with the
+              // planet's visual radius so Mercury and Jupiter both end up
+              // framed sensibly. Saturn gets extra room for the rings.
+              onClick={
+                interactive
+                  ? (e) => {
+                      e.stopPropagation()
+                      setFocused(true)
+                      window.dispatchEvent(
+                        new CustomEvent("universe:sky-focus", {
+                          detail: { pointId: `planet:${planet.raw.name}` },
+                        }),
+                      )
+                      const world = new Vector3()
+                      e.object.getWorldPosition(world)
+                      // Land close enough for a real surface read — Earth ends
+                      // up at ~0.7 units (planet fills ~⅓ of the view), Jupiter
+                      // at ~2.3 (banding readable), Saturn at ~3 (rings frame).
+                      // Users can then scroll further in to minDistance=0.2.
+                      const flyDistance = Math.max(
+                        planet.visualRadius * (planet.raw.hasRings ? 5 : 3.5),
+                        0.5,
+                      )
+                      requestFlyTo(
+                        { x: world.x, y: world.y, z: world.z },
+                        flyDistance,
+                        planet.raw.name,
+                      )
+                    }
+                  : undefined
+              }
             >
               <sphereGeometry args={[hitRadius, 24, 24]} />
               <meshBasicMaterial transparent opacity={0} depthWrite={false} />
@@ -2177,6 +2251,7 @@ function BlackHoleDetail({
   massSolar,
   spin,
   name,
+  pointId,
 }: {
   size: number
   hovered: boolean
@@ -2187,10 +2262,27 @@ function BlackHoleDetail({
   spin?: number
   /** Display name for the data readout. */
   name?: string
+  /** Sky-point id — used to gate the M87* real photograph overlay. */
+  pointId?: string
 }) {
   const rootRef = useRef<Group>(null)
   const spinRef = useRef<Group>(null)
   const matRefs = useRef<Array<import("three").MeshBasicMaterial | null>>([])
+  const photoMatRef = useRef<import("three").MeshBasicMaterial>(null)
+  const [m87Texture, setM87Texture] = useState<Texture | null>(null)
+  // M87* gets the real EHT photograph as a textured plane that fades in
+  // on focus. It's the first ever direct image of a black hole — strict
+  // recreation, not stylisation. Lazy-loaded so it doesn't bloat first paint.
+  const isM87 = pointId === "m87-star"
+  useEffect(() => {
+    if (!isM87 || !hovered || m87Texture) return
+    const loader = new TextureLoader()
+    loader.load("/textures/m87-eht.jpg", (tex) => {
+      tex.colorSpace = SRGBColorSpace
+      tex.anisotropy = 8
+      setM87Texture(tex)
+    })
+  }, [isM87, hovered, m87Texture])
 
   // Default to a generic supermassive value if mass wasn't declared on
   // the sky-point — keeps the renderer working even if someone adds a
@@ -2241,6 +2333,13 @@ function BlackHoleDetail({
       const visible = target * opacityFactor
       m.opacity += (visible - m.opacity) * k
     })
+    // M87* EHT photograph overlay — fades to ~0.92 on focus so the
+    // procedural Gargantua structure underneath still adds depth via
+    // the lensed arcs.
+    if (photoMatRef.current && isM87) {
+      const target = hovered && m87Texture ? 0.92 : 0
+      photoMatRef.current.opacity += (target - photoMatRef.current.opacity) * k
+    }
   })
 
   const registerMat = (i: number, targetOpacity: number) =>
@@ -2329,6 +2428,54 @@ function BlackHoleDetail({
           depthWrite={false}
         />
       </mesh>
+
+      {/* M87* — the actual EHT photograph. The first ever direct image
+          of a black hole, captured April 2019, released to public domain
+          by the EHT collaboration. Renders as a textured plane sized to
+          the procedural disk so the photo composites cleanly on top.
+          Only mounts when the M87* texture has loaded (lazy on first focus). */}
+      {isM87 && m87Texture && (
+        <mesh position={[0, 0, props.detailScale * 0.05]}>
+          <planeGeometry args={[props.detailScale * 2.2, props.detailScale * 2.2]} />
+          <meshBasicMaterial
+            ref={photoMatRef as React.Ref<import("three").MeshBasicMaterial>}
+            map={m87Texture}
+            transparent
+            opacity={0}
+            side={DoubleSide}
+            depthWrite={false}
+          />
+        </mesh>
+      )}
+
+      {/* "Actual photograph" caption for M87* — fades in with the photo
+          to make explicit this is the real EHT image, not a procedural
+          rendering. Anchored below the BH so it doesn't sit on the shadow. */}
+      {isM87 && hovered && (
+        <Html
+          position={[0, -props.detailScale * 1.5, 0]}
+          center
+          distanceFactor={6}
+          zIndexRange={[10, 0]}
+          style={{ pointerEvents: "none" }}
+        >
+          <div
+            className={`
+              select-none pointer-events-none whitespace-nowrap
+              font-mono text-[9px] tracking-[0.22em] uppercase
+              px-3 py-1.5 rounded-full backdrop-blur-sm
+              ${
+                invert
+                  ? "bg-white/85 border border-foreground/25 text-foreground"
+                  : "bg-black/65 border border-white/20 text-white"
+              }
+            `}
+            style={{ animation: "ue-label-in 240ms ease-out both" }}
+          >
+            EHT · April 2019 · first direct image
+          </div>
+        </Html>
+      )}
 
       {/* Physics data overlay — fades in on hover. Mass, Schwarzschild
           radius, photon-sphere radius, ISCO factor. Anchored to the side
@@ -2719,6 +2866,7 @@ function SkyPointMesh({
           massSolar={point.massSolar}
           spin={point.spin}
           name={point.name}
+          pointId={point.id}
         />
       )}
       {/* Cluster spray — for star clusters, add a handful of bright pinpoints

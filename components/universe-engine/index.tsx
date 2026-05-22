@@ -228,9 +228,11 @@ export function UniverseEngine({
           keyPanSpeed={8}
           enableDamping
           dampingFactor={0.08}
-          // minDistance lowered from 3 to 1 so users can actually inspect a
-          // small body (Mercury, Pluto, Charon) close up after click-to-focus.
-          minDistance={1}
+          // minDistance lowered to 0.2 so users can zoom deep into Earth /
+          // Jupiter / the Sun — close enough to see the texture detail, not
+          // just the silhouette. Smaller bodies (moons, comets) also benefit
+          // since users follow-mode to them.
+          minDistance={0.2}
           maxDistance={260}
           autoRotate={!reducedMotion}
           autoRotateSpeed={0.15}
