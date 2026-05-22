@@ -1625,20 +1625,33 @@ function RoverPin({
   const y = r * Math.sin(latRad)
   const z = r * Math.cos(latRad) * Math.sin(lonRad)
 
-  const pinRadius = planetRadius * 0.025
+  const isNatural = feature.status === "natural"
+  const pinRadius = planetRadius * (isNatural ? 0.055 : 0.025)
   const hitRadius = Math.max(planetRadius * 0.12, 0.05)
-  // Status colour: active = green, completed = warm amber, lost = muted red.
+  // Status colour: active = green, completed = warm amber, lost = muted red,
+  // natural = warm tan ring (geographic landmark, not a mission target).
   const color =
     feature.status === "active"    ? (invert ? "#1f6f3f" : "#7dffaf") :
     feature.status === "completed" ? (invert ? "#7a4a14" : "#ffc878") :
-    /* lost */                       (invert ? "#7a2828" : "#ff8888")
+    feature.status === "lost"      ? (invert ? "#7a2828" : "#ff8888") :
+    /* natural */                    (invert ? "#7a5028" : "#f0c890")
 
   return (
     <group position={[x, y, z]}>
-      <mesh>
-        <sphereGeometry args={[pinRadius, 10, 10]} />
-        <meshBasicMaterial color={color} />
-      </mesh>
+      {/* Naturals render as a thin outline ring instead of a solid dot —
+          they represent extended regions (volcanoes, canyons, basins),
+          not point landing sites. Mission pins keep the solid sphere. */}
+      {isNatural ? (
+        <mesh>
+          <torusGeometry args={[pinRadius, pinRadius * 0.15, 8, 24]} />
+          <meshBasicMaterial color={color} transparent opacity={0.85} />
+        </mesh>
+      ) : (
+        <mesh>
+          <sphereGeometry args={[pinRadius, 10, 10]} />
+          <meshBasicMaterial color={color} />
+        </mesh>
+      )}
       {/* Touch-friendly hit zone — invisible sphere larger than the visible
           pin so a finger or cursor can land on the landing site without
           surgical precision. */}
