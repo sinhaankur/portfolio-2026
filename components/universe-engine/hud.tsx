@@ -89,6 +89,13 @@ export function InfoPanel({ info }: { info: BodyInfo | null }) {
           {info.fact}
         </div>
       )}
+
+      {info.followable && (
+        <div className="mt-3 inline-flex items-center gap-2 font-mono text-[9px] tracking-[0.25em] uppercase text-foreground/60">
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-foreground/55" />
+          Click to track its orbit
+        </div>
+      )}
     </div>
   )
 }
