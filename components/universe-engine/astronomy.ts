@@ -617,6 +617,34 @@ export const namedBodies: NamedBody[] = [
     fact: "Parent of the Draconids meteor shower (peaks October 8). Visited by the ICE spacecraft in 1985 — the first ever direct flyby of a comet's tail.",
     visualRadius: 0.05,
   },
+  {
+    name: "Comet Hale-Bopp",
+    designation: "C/1995 O1 (Hale–Bopp)",
+    kind: "comet",
+    aAU: 186,
+    eccentricity: 0.995,
+    inclDeg: 89.4,           // almost perpendicular to the ecliptic
+    longNodeDeg: 282.9,
+    argPeriDeg: 130.6,
+    periodYears: 2533,       // returns ~4385 CE
+    startPhase: 0.30,
+    fact: "The Great Comet of 1997 — visible to the naked eye for 18 months, the longest period of unaided visibility of any comet in modern history. Bright enough to see from city centres. Won't return until around the year 4385.",
+    visualRadius: 0.075,
+  },
+  {
+    name: "Comet NEOWISE",
+    designation: "C/2020 F3 (NEOWISE)",
+    kind: "comet",
+    aAU: 358,
+    eccentricity: 0.999,     // essentially parabolic
+    inclDeg: 128.9,          // retrograde — handled by inclination > 90 rule
+    longNodeDeg: 61.0,
+    argPeriDeg: 37.3,
+    periodYears: 6800,
+    startPhase: 0.55,
+    fact: "The brightest naked-eye comet in the northern hemisphere since Hale-Bopp 23 years earlier. Discovered by the NEOWISE space telescope on March 27, 2020 and visible to millions during the early COVID lockdowns. Won't return for nearly seven millennia.",
+    visualRadius: 0.07,
+  },
   // ----- Named near-Earth + main-belt asteroids -----
   {
     name: "Apophis",
