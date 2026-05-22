@@ -3,3 +3,13 @@
 # next/image — even with images.unoptimized: true — emits a warning at build.
 allowBuilds:
   sharp: true
+
+# Dependency overrides — pnpm 10+ reads these from the workspace file, not
+# package.json. Forces transitive deps to safer versions when an upstream
+# pin has an unpatched advisory.
+#
+# postcss: next 16.2.6 ships an exact pin on postcss 8.4.31, which is below
+# the patched threshold for GHSA-qx2v-qp2m-jg93 (XSS via CSS stringify).
+# We override to 8.5.15+ so the entire graph uses the patched version.
+overrides:
+  postcss: ^8.5.15
