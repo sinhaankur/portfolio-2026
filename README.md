@@ -62,23 +62,6 @@ Repository layout:
 
 ---
 
-## Local development
-
-```bash
-pnpm install
-pnpm dev          # http://localhost:3000
-```
-
-Other scripts:
-
-- `pnpm build` — production build (used by the GitHub Pages workflow).
-- `pnpm start` — serve the production build.
-- `pnpm lint` — Next.js's built-in checks.
-
-No test suite. No separate lint pipeline.
-
----
-
 ## Deployment
 
 Deployed via **GitHub Pages** with a custom Actions workflow
