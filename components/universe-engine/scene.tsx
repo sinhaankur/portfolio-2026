@@ -3746,6 +3746,35 @@ function SkyPointMesh({
         <sphereGeometry args={[hitRadius, 10, 10]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
+      {/* Hover label — completes the parity pattern: planets, named bodies,
+          and sky-points (galaxies, nebulae, clusters, exoplanet hosts) all
+          surface a floating name on cursor hover. BHs skip this — their
+          existing physics overlay already shows the name. */}
+      {hovered && point.kind !== "black-hole" && (
+        <Html
+          position={[0, Math.max(visualSize * 1.2, 1.5), 0]}
+          center
+          distanceFactor={28}
+          zIndexRange={[10, 0]}
+          style={{ pointerEvents: "none" }}
+        >
+          <div
+            className={`
+              whitespace-nowrap select-none pointer-events-none
+              font-mono text-[10px] tracking-[0.3em] uppercase
+              px-2 py-1 rounded-full backdrop-blur-sm
+              ${
+                invert
+                  ? "bg-white/85 border border-foreground/25 text-foreground"
+                  : "bg-black/55 border border-white/20 text-white"
+              }
+            `}
+            style={{ animation: "ue-label-in 220ms ease-out both" }}
+          >
+            {point.name}
+          </div>
+        </Html>
+      )}
     </group>
   )
 }
