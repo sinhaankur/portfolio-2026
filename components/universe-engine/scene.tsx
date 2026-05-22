@@ -49,6 +49,7 @@ import {
   buildScenePlanets,
   constellations,
   flyToRef,
+  followRef,
   gauss,
   magToVisualRadius,
   moons,
@@ -56,10 +57,13 @@ import {
   planetToInfo,
   raDecToScenePos,
   requestFlyTo,
+  requestFollow,
   skyPoints,
   timeWarpRef,
 } from "./astronomy"
 import { GALAXY_FRAGMENT_SHADER, GALAXY_VERTEX_SHADER } from "./shaders"
+import { CONSTELLATION_FIGURES } from "./constellation-figures"
+import { SPACECRAFT_SHAPES } from "./spacecraft-shapes"
 import type {
   Constellation,
   ConstellationId,
@@ -100,9 +104,42 @@ function FlyToController({ interactive }: { interactive: boolean }) {
   }
 
   useFrame((_, delta) => {
+    if (!controls) return
+
+    const follow = followRef.current
+    // Follow mode wins over fly mode if both somehow set (requestFlyTo and
+    // requestFollow both clear the other ref, but defending the order
+    // here keeps the controller predictable).
+    if (follow) {
+      const pos = follow.getter()
+      if (!pos) {
+        // Follower vanished (e.g. unmounted) — drop follow and let the
+        // user take over.
+        followRef.current = null
+        return
+      }
+      // Follow mode uses a slightly tighter lerp so the camera stays glued
+      // to the body even when it's moving along its orbit each frame.
+      const k = 1 - Math.exp(-delta * 4.0)
+      _flyTargetVec.set(pos.x, pos.y, pos.z)
+      controls.target.lerp(_flyTargetVec, k)
+
+      _flyCamDir.copy(camera.position).sub(controls.target)
+      const currentDist = _flyCamDir.length()
+      if (currentDist < 1e-4) {
+        _flyCamDir.set(0.6, 0.4, 1).normalize()
+      } else {
+        _flyCamDir.normalize()
+      }
+      const nextDist = currentDist + (follow.distance - currentDist) * k
+      _flyDesiredCamPos.copy(controls.target).addScaledVector(_flyCamDir, nextDist)
+      camera.position.copy(_flyDesiredCamPos)
+      controls.update()
+      return
+    }
+
     const state = flyToRef.current
     if (!state.active) return
-    if (!controls) return
 
     // Smoothing factor — `delta * 3` gives a ~0.6s feel that's snappy
     // enough to read as "the camera moved" but slow enough to track.
@@ -789,6 +826,37 @@ function ConstellationGroup({
         active={active}
         invert={invert}
       />
+
+      {/* Mythological figure overlay — Hevelius / Bayer celestial-atlas
+          tradition. Renders the constellation's classical figure as a
+          thin-line SVG over the stars when the constellation is active.
+          Five constellations carry figures (Orion, Leo, Cygnus, Lyra,
+          Cassiopeia); Big Dipper + Polaris stay as-is. Catalog of figures
+          lives in constellation-figures.tsx so adding more is a one-file edit. */}
+      {active && CONSTELLATION_FIGURES[constellation.id] && (
+        <Html
+          position={centroid}
+          center
+          distanceFactor={CONSTELLATION_FIGURES[constellation.id]!.sizeFactor}
+          zIndexRange={[5, 0]}
+          style={{ pointerEvents: "none" }}
+        >
+          <div
+            className={`
+              select-none pointer-events-none
+              ${invert ? "text-foreground" : "text-white"}
+            `}
+            style={{
+              width: 200,
+              height: 200,
+              opacity: CONSTELLATION_FIGURES[constellation.id]!.opacityTarget,
+              animation: "ue-label-in 360ms ease-out both",
+            }}
+          >
+            {CONSTELLATION_FIGURES[constellation.id]!.render()}
+          </div>
+        </Html>
+      )}
 
       {/* Hover label — fades in when the constellation is active.
           Lives outside the 3D point cloud as an HTML overlay so it stays crisp
@@ -1712,17 +1780,27 @@ function NamedBodyMesh({
         />
       </points>
 
-      {/* The body itself — moved each frame to its current orbit position. */}
+      {/* The body itself — moved each frame to its current orbit position.
+          Spacecraft with a registered procedural shape (Voyager, JWST,
+          Parker, New Horizons) render their actual silhouette instead of a
+          generic sphere. Everything else (comets, asteroids, dwarf planets,
+          interstellars) stays as the standard glowing sphere. */}
       <group ref={groupRef}>
-        <mesh>
-          <sphereGeometry args={[config.visualRadius, 16, 16]} />
-          <meshStandardMaterial
-            color={config.shade}
-            emissive={config.shade}
-            emissiveIntensity={invert ? 0.0 : 0.6}
-            roughness={0.7}
-          />
-        </mesh>
+        {body.kind === "spacecraft" && SPACECRAFT_SHAPES[body.name] ? (
+          <group scale={config.visualRadius * SPACECRAFT_SHAPES[body.name].scale}>
+            {SPACECRAFT_SHAPES[body.name].render({ invert })}
+          </group>
+        ) : (
+          <mesh>
+            <sphereGeometry args={[config.visualRadius, 16, 16]} />
+            <meshStandardMaterial
+              color={config.shade}
+              emissive={config.shade}
+              emissiveIntensity={invert ? 0.0 : 0.6}
+              roughness={0.7}
+            />
+          </mesh>
+        )}
         <mesh
           onPointerOver={(e) => {
             e.stopPropagation()
@@ -1740,14 +1818,39 @@ function NamedBodyMesh({
             })
           }}
           onPointerOut={() => onHover(null)}
-          // Click flies to the body's current world position. Dwarf planets
-          // get a wider distance because their orbits put them well past
-          // Neptune; comets get a tight one so the user can see the body.
+          // Single click flies the camera to the body's current world position.
+          // Dwarf planets get a wider distance because their orbits put them
+          // well past Neptune; comets get a tight one so the user can see the body.
           onClick={makeFocusHandler(
             interactive,
             body.kind === "dwarf" ? 2.4 : 1.6,
             body.name,
           )}
+          // Double click engages follow mode — the camera locks onto this body
+          // and tracks it as it moves along its orbit. Lets the user watch a
+          // comet sweep through perihelion or an interstellar pass through.
+          // Available for all named bodies, not just comets, since the same
+          // motion-tracking behaviour is useful for asteroids + spacecraft too.
+          onDoubleClick={
+            interactive
+              ? (e) => {
+                  e.stopPropagation()
+                  // The getter captures groupRef.current — read fresh each
+                  // frame so we always see the body's current orbital phase.
+                  requestFollow(
+                    () => {
+                      const g = groupRef.current
+                      if (!g) return null
+                      const v = new Vector3()
+                      g.getWorldPosition(v)
+                      return { x: v.x, y: v.y, z: v.z }
+                    },
+                    body.kind === "dwarf" ? 2.4 : 1.6,
+                    body.name,
+                  )
+                }
+              : undefined
+          }
         >
           <sphereGeometry args={[hitRadius, 12, 12]} />
           <meshBasicMaterial transparent opacity={0} depthWrite={false} />
@@ -1796,6 +1899,388 @@ function NamedBodies({
  * All four kinds share the same hover-info pipeline so the cursor
  * label + InfoPanel + mobile sheet all light up the same way.
  * ============================================================ */
+
+/**
+ * GalaxyDetail
+ *
+ * Mounted under a galaxy sky-point. The idle visual is the regular warm
+ * halo (handled by the parent). On hover/focus, a tilted spiral disc with
+ * a bright central bulge fades in, along with companion galaxies where
+ * known (M32 + M110 for Andromeda). Currently only Andromeda gets the
+ * full treatment — Triangulum/LMC/SMC keep the existing halo.
+ *
+ * The arm point cloud is built once at mount with a small particle count
+ * (~1500), so even multiple galaxies in view don't dominate the GPU.
+ * Scale lerps from 0 → 1 on hover so the structure blooms in rather
+ * than appearing all at once.
+ */
+function GalaxyDetail({
+  pointId,
+  size,
+  hovered,
+  invert,
+}: {
+  pointId: string
+  size: number
+  hovered: boolean
+  invert: boolean
+}) {
+  const rootRef = useRef<Group>(null)
+  const spinRef = useRef<Group>(null)
+  const armsMatRef = useRef<import("three").PointsMaterial>(null)
+  const bulgeMatRef = useRef<import("three").MeshBasicMaterial>(null)
+  const dustMatRef = useRef<import("three").MeshBasicMaterial>(null)
+  const companionMatRefs = useRef<Array<import("three").MeshBasicMaterial | null>>([])
+
+  // Only Andromeda for now — the others kind: "galaxy" stays as the
+  // existing diffuse halo. Adding Triangulum is a one-rotation change.
+  const isAndromeda = pointId === "m31"
+
+  // Pre-built spiral arm point cloud, sized normalized so the outer
+  // group's scale controls absolute size in scene units.
+  const armsGeometry = useMemo(() => {
+    const count = 1500
+    const positions = new Float32Array(count * 3)
+    const arms = 2
+    const spin = 1.6
+    const radius = 1.0
+    for (let i = 0; i < count; i++) {
+      const r = Math.pow(Math.random(), 1.4) * radius
+      const armAngle = ((i % arms) / arms) * Math.PI * 2
+      const spinAngle = r * spin * 1.2
+      const randomness = 0.20
+      const rx = Math.pow(Math.random(), 2.6) * (Math.random() < 0.5 ? 1 : -1) * randomness * r
+      const ry = Math.pow(Math.random(), 2.6) * (Math.random() < 0.5 ? 1 : -1) * randomness * r * 0.10
+      const rz = Math.pow(Math.random(), 2.6) * (Math.random() < 0.5 ? 1 : -1) * randomness * r
+      const i3 = i * 3
+      positions[i3]     = Math.cos(armAngle + spinAngle) * r + rx
+      positions[i3 + 1] = ry
+      positions[i3 + 2] = Math.sin(armAngle + spinAngle) * r + rz
+    }
+    const geo = new BufferGeometry()
+    geo.setAttribute("position", new BufferAttribute(positions, 3))
+    return geo
+  }, [])
+
+  // Companion galaxy positions (Andromeda only — M32 + M110).
+  // M32 sits south of the disc, M110 north-west; both are dwarf ellipticals.
+  const companions = useMemo(
+    () => [
+      { offset: [0.55, -0.65, 0.05] as [number, number, number], radius: 0.08 }, // M32
+      { offset: [-0.75, 0.50, -0.10] as [number, number, number], radius: 0.13 }, // M110
+    ],
+    [],
+  )
+
+  useFrame((_, delta) => {
+    const k = 1 - Math.exp(-delta * 6)
+    // Whole-group scale lerp — bloom in from 0
+    if (rootRef.current) {
+      const target = hovered ? 1.0 : 0.001
+      const s = rootRef.current.scale.x
+      const next = s + (target - s) * k
+      rootRef.current.scale.set(next, next, next)
+    }
+    // Slow rotation around the disc normal while hovered, like the real
+    // galaxy rotating in place. Subtle so it doesn't feel like a spinner.
+    if (spinRef.current && hovered) {
+      spinRef.current.rotation.y += delta * 0.02
+    }
+
+    const armTarget = hovered ? (invert ? 0.45 : 0.55) : 0
+    if (armsMatRef.current) {
+      armsMatRef.current.opacity += (armTarget - armsMatRef.current.opacity) * k
+    }
+    const bulgeTarget = hovered ? (invert ? 0.55 : 0.75) : 0
+    if (bulgeMatRef.current) {
+      bulgeMatRef.current.opacity += (bulgeTarget - bulgeMatRef.current.opacity) * k
+    }
+    const dustTarget = hovered ? (invert ? 0.5 : 0.55) : 0
+    if (dustMatRef.current) {
+      dustMatRef.current.opacity += (dustTarget - dustMatRef.current.opacity) * k
+    }
+    const companionTarget = hovered ? (invert ? 0.4 : 0.55) : 0
+    companionMatRefs.current.forEach((m) => {
+      if (!m) return
+      m.opacity += (companionTarget - m.opacity) * k
+    })
+  })
+
+  if (!isAndromeda) return null
+
+  // Andromeda's apparent inclination is ~77° from face-on. Use that to
+  // tilt the disc — almost edge-on but enough to see arms.
+  const ANDROMEDA_TILT = 77 * DEG
+  // Scene-units scale: idle halo is `size` (=5 for Andromeda); detail
+  // blooms to ~3× so the spiral structure reads.
+  const detailScale = size * 2.4
+
+  // Arm palette — Andromeda's outer disc skews blue (young stars), inner
+  // tilts warmer toward the bulge.
+  const armColor = invert ? "#3a1a14" : "#a8c8ff"
+  const bulgeColor = invert ? "#5a3416" : "#ffd9b0"
+  // Dust lane — a dark band across the disc. We render this as a tilted
+  // ring in normalBlending so it actually subtracts visual brightness
+  // from the disc behind it. On invert it lifts darker; on dark it
+  // creates a brown smudge that reads as dust silhouette.
+  const dustColor = invert ? "#0a0a0a" : "#1a0a04"
+  const companionColor = invert ? "#3a1d12" : "#ffd9c2"
+
+  return (
+    <group ref={rootRef} scale={0.001}>
+      {/* Disc — tilted to apparent inclination so the spiral reads as a
+          near-edge-on ellipse with a bright bulge. */}
+      <group rotation={[ANDROMEDA_TILT, 0, 0]}>
+        <group ref={spinRef}>
+          {/* Spiral arms point cloud */}
+          <points geometry={armsGeometry} scale={detailScale}>
+            <pointsMaterial
+              ref={armsMatRef as React.Ref<import("three").PointsMaterial>}
+              size={detailScale * 0.06}
+              sizeAttenuation
+              color={armColor}
+              transparent
+              opacity={0}
+              blending={invert ? NormalBlending : AdditiveBlending}
+              depthWrite={false}
+            />
+          </points>
+          {/* Bright central bulge — large warm sphere */}
+          <mesh>
+            <sphereGeometry args={[detailScale * 0.28, 24, 24]} />
+            <meshBasicMaterial
+              ref={bulgeMatRef as React.Ref<import("three").MeshBasicMaterial>}
+              color={bulgeColor}
+              transparent
+              opacity={0}
+              blending={invert ? NormalBlending : AdditiveBlending}
+              depthWrite={false}
+            />
+          </mesh>
+          {/* Dust lane — a thin ring across the disc plane that suggests
+              the iconic dark band Andromeda is famous for. */}
+          <mesh rotation={[Math.PI / 2, 0, 0]}>
+            <ringGeometry args={[detailScale * 0.45, detailScale * 0.58, 48]} />
+            <meshBasicMaterial
+              ref={dustMatRef as React.Ref<import("three").MeshBasicMaterial>}
+              color={dustColor}
+              transparent
+              opacity={0}
+              side={DoubleSide}
+              depthWrite={false}
+            />
+          </mesh>
+        </group>
+      </group>
+
+      {/* Companion galaxies — M32 + M110 — sit beside the main disc.
+          They're rendered without tilt so they read as small ellipticals
+          at their own apparent positions. */}
+      {companions.map((c, i) => (
+        <mesh
+          key={i}
+          position={[c.offset[0] * detailScale, c.offset[1] * detailScale, c.offset[2] * detailScale]}
+        >
+          <sphereGeometry args={[detailScale * c.radius, 16, 16]} />
+          <meshBasicMaterial
+            ref={(m) => { companionMatRefs.current[i] = m }}
+            color={companionColor}
+            transparent
+            opacity={0}
+            blending={invert ? NormalBlending : AdditiveBlending}
+            depthWrite={false}
+          />
+        </mesh>
+      ))}
+    </group>
+  )
+}
+
+/**
+ * BlackHoleDetail
+ *
+ * The iconic Gargantua / EHT visualisation that everyone knows from the
+ * Interstellar still or the 2019 M87* image:
+ *   - opaque event-horizon sphere at the centre,
+ *   - a bright thin photon ring tight against the shadow,
+ *   - an edge-on accretion disk that wraps around the sphere,
+ *   - two arcs over the top and under the bottom — the disk's far side
+ *     gravitationally lensed up and over the black hole, which is what
+ *     gives Gargantua its "halo" silhouette.
+ *
+ * Real lensing is a ray-trace problem; we fake it by rendering the
+ * lensed top/bottom as perpendicular half-rings. The result reads as
+ * Gargantua even though no light is actually being bent.
+ *
+ * Doppler beaming: the approaching side of the disk is brighter than
+ * the receding side. We approximate this by making one half-arc warmer +
+ * more opaque than the other.
+ */
+function BlackHoleDetail({
+  size,
+  hovered,
+  invert,
+}: {
+  size: number
+  hovered: boolean
+  invert: boolean
+}) {
+  const rootRef = useRef<Group>(null)
+  const spinRef = useRef<Group>(null)
+  const matRefs = useRef<Array<import("three").MeshBasicMaterial | null>>([])
+
+  // Palette — invert mode tones it down to ink-on-cream (which loses some
+  // of the Interstellar fire, but stays on-theme for chart mode).
+  const palette = {
+    horizon: "#000000",
+    photon:  invert ? "#b34a13" : "#fff5d0",
+    diskHot: invert ? "#b34a13" : "#ffd089",
+    diskMid: invert ? "#7a3a16" : "#ff9c43",
+    diskCold: invert ? "#5a2a10" : "#e26a1f",
+    lensHot: invert ? "#b34a13" : "#ffc77a",
+    lensCold: invert ? "#5a2a10" : "#c25315",
+  }
+
+  useFrame((_, delta) => {
+    const k = 1 - Math.exp(-delta * 6)
+    // The black hole is always visible — Interstellar/Gargantua at all
+    // distances. Idle is a smaller scale (~0.35) so it doesn't dominate
+    // the sky-shell; hovered/focused blooms to full size for the close-up.
+    if (rootRef.current) {
+      const target = hovered ? 1.0 : 0.35
+      const s = rootRef.current.scale.x
+      const next = s + (target - s) * k
+      rootRef.current.scale.set(next, next, next)
+    }
+    // Slow rotation in the disk plane — even when idle, sells the spinning
+    // accretion disk. Faster while hovered to read as "powered up."
+    if (spinRef.current) {
+      spinRef.current.rotation.y += delta * (hovered ? 0.08 : 0.035)
+    }
+    // Lerp each layer's opacity to its target. Idle dims to 55% of full
+    // target so the BH reads as present-but-distant; hovered hits full.
+    const opacityFactor = hovered ? 1.0 : 0.55
+    matRefs.current.forEach((m) => {
+      if (!m) return
+      const target = parseFloat((m.userData?.targetOpacity as string) ?? "0")
+      const visible = target * opacityFactor
+      m.opacity += (visible - m.opacity) * k
+    })
+  })
+
+  const detailScale = size * 4.0
+
+  // Helper to register a material ref + carry its hover-target opacity.
+  // We stash the target on userData so a single useFrame loop can lerp
+  // every layer without holding a refs array indexed by name.
+  const registerMat = (i: number, targetOpacity: number) =>
+    (m: import("three").MeshBasicMaterial | null) => {
+      matRefs.current[i] = m
+      if (m) m.userData = { targetOpacity }
+    }
+
+  return (
+    <group ref={rootRef} scale={0.001}>
+      {/* Event horizon — opaque black sphere. Always visible (no fade)
+          so the silhouette punches a hole through the additive layers. */}
+      <mesh>
+        <sphereGeometry args={[detailScale * 0.32, 32, 32]} />
+        <meshBasicMaterial color={palette.horizon} />
+      </mesh>
+
+      {/* Photon ring — thin bright ring tight against the horizon. This
+          is what the EHT M87* image actually photographed. */}
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[detailScale * 0.34, detailScale * 0.38, 96]} />
+        <meshBasicMaterial
+          ref={registerMat(0, invert ? 0.85 : 1.0)}
+          color={palette.photon}
+          transparent
+          opacity={0}
+          side={DoubleSide}
+          blending={invert ? NormalBlending : AdditiveBlending}
+          depthWrite={false}
+        />
+      </mesh>
+
+      {/* Main accretion disk — three concentric rings forming the orange
+          glow that surrounds the shadow. Tilted ~17° from edge-on so the
+          ellipse reads as a disc rather than a circle. */}
+      <group ref={spinRef} rotation={[Math.PI / 2 - 0.30, 0, 0]}>
+        {/* Inner hot ring — bright white-yellow */}
+        <mesh>
+          <ringGeometry args={[detailScale * 0.40, detailScale * 0.65, 96]} />
+          <meshBasicMaterial
+            ref={registerMat(1, invert ? 0.55 : 0.85)}
+            color={palette.diskHot}
+            transparent
+            opacity={0}
+            side={DoubleSide}
+            blending={invert ? NormalBlending : AdditiveBlending}
+            depthWrite={false}
+          />
+        </mesh>
+        {/* Middle ring — full orange */}
+        <mesh>
+          <ringGeometry args={[detailScale * 0.65, detailScale * 0.95, 96]} />
+          <meshBasicMaterial
+            ref={registerMat(2, invert ? 0.45 : 0.75)}
+            color={palette.diskMid}
+            transparent
+            opacity={0}
+            side={DoubleSide}
+            blending={invert ? NormalBlending : AdditiveBlending}
+            depthWrite={false}
+          />
+        </mesh>
+        {/* Outer ring — cooler, more transparent */}
+        <mesh>
+          <ringGeometry args={[detailScale * 0.95, detailScale * 1.25, 96]} />
+          <meshBasicMaterial
+            ref={registerMat(3, invert ? 0.30 : 0.50)}
+            color={palette.diskCold}
+            transparent
+            opacity={0}
+            side={DoubleSide}
+            blending={invert ? NormalBlending : AdditiveBlending}
+            depthWrite={false}
+          />
+        </mesh>
+      </group>
+
+      {/* Lensed top arc — the disk's far side, gravitationally bent up
+          and over the black hole. Rendered as a perpendicular half-ring
+          (thetaStart=0, thetaLength=π) so only the top half is drawn. */}
+      <mesh rotation={[0, 0, 0]}>
+        <ringGeometry args={[detailScale * 0.42, detailScale * 0.78, 64, 1, 0, Math.PI]} />
+        <meshBasicMaterial
+          ref={registerMat(4, invert ? 0.55 : 0.85)}
+          color={palette.lensHot}
+          transparent
+          opacity={0}
+          side={DoubleSide}
+          blending={invert ? NormalBlending : AdditiveBlending}
+          depthWrite={false}
+        />
+      </mesh>
+
+      {/* Lensed bottom arc — the receding side; dimmer than the approaching
+          top arc to fake Doppler beaming. */}
+      <mesh rotation={[0, 0, Math.PI]}>
+        <ringGeometry args={[detailScale * 0.42, detailScale * 0.72, 64, 1, 0, Math.PI]} />
+        <meshBasicMaterial
+          ref={registerMat(5, invert ? 0.35 : 0.55)}
+          color={palette.lensCold}
+          transparent
+          opacity={0}
+          side={DoubleSide}
+          blending={invert ? NormalBlending : AdditiveBlending}
+          depthWrite={false}
+        />
+      </mesh>
+    </group>
+  )
+}
 
 /**
  * NebulaDetail
@@ -2004,6 +2489,22 @@ function SkyPointMesh({
   interactive?: boolean
 }) {
   const [hovered, setHovered] = useState(false)
+  // `focused` is set on click (in interactive mode) and stays true until
+  // the user resets or focuses a different sky-point. This makes the rich
+  // detail (galaxy spiral, nebula bloom) stay visible after the camera
+  // has flown there — without it, the detail would collapse the moment
+  // the cursor leaves the (now-closer) hit zone.
+  const [focused, setFocused] = useState(false)
+  useEffect(() => {
+    const onSkyFocus = (e: Event) => {
+      const id = (e as CustomEvent<{ pointId: string | null }>).detail?.pointId
+      // Clear focus on any other point's click or on global reset (id===null).
+      if (id !== point.id) setFocused(false)
+    }
+    window.addEventListener("universe:sky-focus", onSkyFocus)
+    return () => window.removeEventListener("universe:sky-focus", onSkyFocus)
+  }, [point.id])
+  const detailActive = hovered || focused
   const position = useMemo(
     () => raDecToScenePos(point.raHours, point.decDeg, SKY_SHELL_DISTANCE),
     [point.raHours, point.decDeg],
@@ -2060,44 +2561,57 @@ function SkyPointMesh({
 
   return (
     <group position={position}>
-      {/* Diffuse halo — bigger and softer for galaxies/nebulae/black-holes,
-          tight for clusters/hosts. The black-hole halo is the accretion disk. */}
-      {(point.kind === "galaxy" || point.kind === "nebula" || point.kind === "black-hole") && (
+      {/* Diffuse halo — galaxies and nebulae get a soft warm halo. Black
+          holes deliberately skip this because BlackHoleDetail renders the
+          full Interstellar/Gargantua visualisation always (idle or
+          hovered), and a simple halo would muddy it. */}
+      {(point.kind === "galaxy" || point.kind === "nebula") && (
         <mesh>
           <sphereGeometry args={[visualSize, 16, 16]} />
           <meshBasicMaterial
             color={palette.halo}
             transparent
-            opacity={point.kind === "black-hole" ? (invert ? 0.45 : 0.55) : (invert ? 0.18 : 0.22)}
+            opacity={invert ? 0.18 : 0.22}
             blending={invert ? NormalBlending : AdditiveBlending}
             depthWrite={false}
           />
         </mesh>
       )}
-      {/* Core — opaque for black holes (the event-horizon shadow needs to read
-          as a hole punched out of the halo), additive-glow for everything else. */}
-      <mesh>
-        <sphereGeometry args={[
-          visualSize * (point.kind === "exoplanet-host" ? 1.0 : point.kind === "black-hole" ? 0.55 : 0.45),
-          14,
-          14,
-        ]} />
-        <meshBasicMaterial
-          color={palette.core}
-          transparent={point.kind !== "black-hole"}
-          opacity={
-            point.kind === "exoplanet-host" ? 1 :
-            point.kind === "black-hole"     ? 1 :
-                                              (invert ? 0.55 : 0.55)
-          }
-          blending={point.kind === "black-hole" ? NormalBlending : (invert ? NormalBlending : AdditiveBlending)}
-          depthWrite={false}
-        />
-      </mesh>
+      {/* Core — additive glow for galaxies/nebulae/clusters, opaque dot
+          for exoplanet hosts. Black holes use the dedicated detail
+          component so their horizon shadow is built into that. */}
+      {point.kind !== "black-hole" && (
+        <mesh>
+          <sphereGeometry args={[
+            visualSize * (point.kind === "exoplanet-host" ? 1.0 : 0.45),
+            14,
+            14,
+          ]} />
+          <meshBasicMaterial
+            color={palette.core}
+            transparent
+            opacity={point.kind === "exoplanet-host" ? 1 : (invert ? 0.55 : 0.55)}
+            blending={invert ? NormalBlending : AdditiveBlending}
+            depthWrite={false}
+          />
+        </mesh>
+      )}
       {/* Nebula hover detail — layered emission cloudlets that bloom in on hover,
-          plus the Trapezium for Orion. Idle cost is ~3 inert meshes at scale 0. */}
+          plus the Trapezium for Orion. Idle cost is ~3 inert meshes at scale 0.
+          Uses `detailActive` so the bloom persists after a click → fly-to lands. */}
       {point.kind === "nebula" && (
-        <NebulaDetail pointId={point.id} size={visualSize} hovered={hovered} invert={invert} />
+        <NebulaDetail pointId={point.id} size={visualSize} hovered={detailActive} invert={invert} />
+      )}
+      {/* Galaxy hover detail — currently Andromeda only. Spiral arm point
+          cloud + bulge + dust lane + companions M32 / M110 bloom in. */}
+      {point.kind === "galaxy" && (
+        <GalaxyDetail pointId={point.id} size={visualSize} hovered={detailActive} invert={invert} />
+      )}
+      {/* Black-hole hover detail — Gargantua/M87*-style accretion disk with
+          gravitationally-lensed top + bottom arcs over the event horizon.
+          Replaces the simple halo on focus with the iconic Interstellar look. */}
+      {point.kind === "black-hole" && (
+        <BlackHoleDetail size={visualSize} hovered={detailActive} invert={invert} />
       )}
       {/* Cluster spray — for star clusters, add a handful of bright pinpoints
           around the core to suggest individual stars. */}
@@ -2151,14 +2665,29 @@ function SkyPointMesh({
           setHovered(false)
           onHover(null)
         }}
-        // Click flies to the sky point. Distance scales with the visual so
-        // nebulae get framed wide enough to see the on-hover detail bloom,
-        // exoplanet hosts get framed tight so the single accent dot is centred.
-        onClick={makeFocusHandler(
-          interactive,
-          point.kind === "exoplanet-host" ? 4 : Math.max(visualSize * 3.5, 9),
-          point.name,
-        )}
+        // Click flies to the sky point AND marks this one as the focused
+        // sky-point so the detail bloom persists after arrival (without
+        // this, hovering away would collapse the spiral / nebula reveal).
+        // Distance scales with the visual so nebulae get framed wide enough
+        // to see the detail, exoplanet hosts get framed tight.
+        onClick={
+          interactive
+            ? (e) => {
+                e.stopPropagation()
+                setFocused(true)
+                window.dispatchEvent(
+                  new CustomEvent("universe:sky-focus", { detail: { pointId: point.id } }),
+                )
+                const world = new Vector3()
+                e.object.getWorldPosition(world)
+                requestFlyTo(
+                  { x: world.x, y: world.y, z: world.z },
+                  point.kind === "exoplanet-host" ? 4 : Math.max(visualSize * 3.5, 9),
+                  point.name,
+                )
+              }
+            : undefined
+        }
       >
         <sphereGeometry args={[hitRadius, 10, 10]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
