@@ -1836,25 +1836,54 @@ function PlanetBody({
 function OrbitRing({
   radius,
   inclination,
+  eccentricity = 0,
   invert = false,
 }: {
   radius: number
   inclination: number
+  /** Optional orbital eccentricity. When > 0, draws a polar-form ellipse with
+   *  the Sun at one focus (the astronomically correct shape). 0 = circle. */
+  eccentricity?: number
   invert?: boolean
 }) {
   const geometry = useMemo(() => {
     const segments = 192
     const arr = new Float32Array((segments + 1) * 3)
-    for (let i = 0; i <= segments; i++) {
-      const angle = (i / segments) * Math.PI * 2
-      arr[i * 3] = Math.cos(angle) * radius
-      arr[i * 3 + 1] = 0
-      arr[i * 3 + 2] = Math.sin(angle) * radius
+    if (eccentricity > 0.01) {
+      // Polar-form ellipse with focus at origin: r(θ) = a(1-e²) / (1 + e·cos θ)
+      // This is the correct orbital shape for any e > 0; for low-e planets
+      // it's visually indistinguishable from a circle, but for Pluto (e=0.244)
+      // the perihelion visibly dips inside Neptune's circle — making the
+      // real astronomical crossing legible rather than a render glitch.
+      const a = radius
+      const oneMinusESq = 1 - eccentricity * eccentricity
+      for (let i = 0; i <= segments; i++) {
+        const theta = (i / segments) * Math.PI * 2
+        const r = (a * oneMinusESq) / (1 + eccentricity * Math.cos(theta))
+        arr[i * 3] = r * Math.cos(theta)
+        arr[i * 3 + 1] = 0
+        arr[i * 3 + 2] = r * Math.sin(theta)
+      }
+    } else {
+      // Circle in xz plane.
+      for (let i = 0; i <= segments; i++) {
+        const angle = (i / segments) * Math.PI * 2
+        arr[i * 3] = Math.cos(angle) * radius
+        arr[i * 3 + 1] = 0
+        arr[i * 3 + 2] = Math.sin(angle) * radius
+      }
     }
     const geo = new BufferGeometry()
     geo.setAttribute("position", new BufferAttribute(arr, 3))
     return geo
-  }, [radius])
+  }, [radius, eccentricity])
+
+  // Eccentric orbits get a softer line — the ellipse crosses neighbouring
+  // circular orbits (Pluto / Neptune most notably), and a fainter stroke
+  // keeps the crossing from reading as a render collision.
+  const isEccentric = eccentricity > 0.15
+  const baseOpacity = invert ? 0.42 : 0.08
+  const opacity = isEccentric ? baseOpacity * 0.55 : baseOpacity
 
   return (
     <group rotation={[inclination, 0, 0]}>
@@ -1864,7 +1893,7 @@ function OrbitRing({
           // read at the same value as white-on-black.
           color={invert ? "#0a0a0a" : "#ffffff"}
           transparent
-          opacity={invert ? 0.42 : 0.08}
+          opacity={opacity}
         />
       </line>
     </group>
@@ -2065,6 +2094,7 @@ function SolarSystem({
           key={`orbit-${p.raw.name}`}
           radius={p.orbitRadius}
           inclination={p.inclination}
+          eccentricity={p.raw.deep?.eccentricity ?? 0}
           invert={invert}
         />
       ))}
