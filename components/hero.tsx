@@ -108,11 +108,12 @@ export function Hero() {
 
       {/* Explore-mode hint — phrasing flips by input modality so the verbs
           match what the user actually does (pinch on touch, scroll on a
-          trackpad / mouse wheel). */}
+          trackpad / mouse wheel). Click-to-focus + Destinations menu give
+          users a way to actually fly to bodies. */}
       {interactive && (
         <p className="absolute bottom-36 md:bottom-24 left-1/2 -translate-x-1/2 z-20 font-mono text-[10px] tracking-[0.25em] uppercase text-foreground/55 pointer-events-none whitespace-nowrap">
-          <span className="md:hidden">Drag to look · pinch to zoom</span>
-          <span className="hidden md:inline">Drag to look · scroll to zoom from solar system to galaxy</span>
+          <span className="md:hidden">Drag · pinch · tap a body to fly</span>
+          <span className="hidden md:inline">Drag · scroll · click a body to fly · arrows to pan</span>
         </p>
       )}
 

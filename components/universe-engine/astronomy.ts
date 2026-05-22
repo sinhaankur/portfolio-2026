@@ -58,6 +58,120 @@ export const timeWarpRef = { current: 1.0 }
 export const DEG = Math.PI / 180
 
 /* --------------------------------------------------------------------------
+ * Fly-to controller
+ *
+ * Module-scoped target that the in-scene FlyToController reads in useFrame.
+ * Body click handlers + the destinations menu both write into this ref; the
+ * controller animates the OrbitControls target + camera distance toward it.
+ *
+ * Same trade-off as timeWarpRef: only one engine per page (we share one ref).
+ *
+ * Vector3 lives here as a plain { x, y, z } so this file stays React/R3F-free.
+ * The controller copies it into a real Three.Vector3 before lerping.
+ * ------------------------------------------------------------------------ */
+
+export type FlyToTarget = {
+  /** World-space focal point in scene units. */
+  target: { x: number; y: number; z: number }
+  /** Desired camera distance from the target after the fly. */
+  distance: number
+  /** Set true to ask the controller to animate; controller clears it on arrival. */
+  active: boolean
+  /** Optional human-readable name — purely for telemetry / debugging. */
+  label?: string
+}
+
+export const flyToRef: { current: FlyToTarget } = {
+  current: {
+    target: { x: SUN_OFFSET_SCENE, y: 0, z: 0 },
+    distance: 13,
+    active: false,
+  },
+}
+
+/** Request a fly-to. Body click handlers + the HUD destinations menu both call this. */
+export function requestFlyTo(
+  target: { x: number; y: number; z: number },
+  distance: number,
+  label?: string,
+) {
+  flyToRef.current.target.x = target.x
+  flyToRef.current.target.y = target.y
+  flyToRef.current.target.z = target.z
+  flyToRef.current.distance = distance
+  flyToRef.current.active = true
+  flyToRef.current.label = label
+}
+
+/**
+ * Canonical destinations — surfaced in the HUD as quick-jump shortcuts. Each
+ * entry resolves to a fixed scene-space target (no time-warp tracking for
+ * orbiting bodies; we snap to a stationary point near the body's average
+ * position so the user lands somewhere sensible regardless of phase).
+ */
+export type Destination = {
+  id: string
+  label: string
+  hint: string
+  target: { x: number; y: number; z: number }
+  distance: number
+}
+
+export const DESTINATIONS: Destination[] = [
+  // The default-view homecoming. Mirrors the initial camera framing.
+  {
+    id: "home",
+    label: "Default view",
+    hint: "Reset to the opening framing",
+    target: { x: SUN_OFFSET_SCENE, y: 0, z: 0 },
+    distance: 13,
+  },
+  {
+    id: "sun",
+    label: "The Sun",
+    hint: "Solar surface · corona",
+    target: { x: SUN_OFFSET_SCENE, y: 0, z: 0 },
+    distance: 3.2,
+  },
+  // Saturn — the showpiece. Park ~7 AU from the Sun (scene units = sqrt(9.537)*3 ≈ 9.27)
+  // and a little above the ecliptic so the rings catch light.
+  {
+    id: "saturn",
+    label: "Saturn",
+    hint: "Rings + Titan",
+    target: { x: SUN_OFFSET_SCENE + 9.27, y: 0.35, z: 0 },
+    distance: 1.8,
+  },
+  // Sgr A* — galactic centre. Lives at origin of the MilkyWay group, which
+  // sits inside a 60.2° X-axis rotation. Sample point matches.
+  {
+    id: "sgr-a",
+    label: "Sagittarius A*",
+    hint: "Galactic centre",
+    target: { x: 0, y: 0, z: 0 },
+    distance: 38,
+  },
+  // Andromeda Galaxy — projected onto the sky-shell around the Sun.
+  // raHours 0.712, decDeg 41.27. Pre-computed here so the HUD doesn't have
+  // to pull raDecToScenePos.
+  {
+    id: "m31",
+    label: "Andromeda",
+    hint: "M31 · 2.5 Mly away",
+    target: { x: SUN_OFFSET_SCENE + 102.2, y: 99.0, z: 16.9 },
+    distance: 22,
+  },
+  // Orion Nebula. raHours 5.588, decDeg -5.39 → projected onto sky shell.
+  {
+    id: "m42",
+    label: "Orion Nebula",
+    hint: "M42 · Trapezium reveal on focus",
+    target: { x: SUN_OFFSET_SCENE - 53.1, y: -14.1, z: -138.5 },
+    distance: 14,
+  },
+]
+
+/* --------------------------------------------------------------------------
  * Info records — surface on hover
  * ------------------------------------------------------------------------ */
 

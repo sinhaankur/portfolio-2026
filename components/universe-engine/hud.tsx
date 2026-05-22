@@ -9,8 +9,9 @@
  * if a consumer wraps it in a light scope.
  */
 
+import { useState } from "react"
 import type { BodyInfo } from "./types"
-import { timeWarpRef } from "./astronomy"
+import { DESTINATIONS, requestFlyTo, timeWarpRef } from "./astronomy"
 
 export function InfoPanel({ info }: { info: BodyInfo | null }) {
   if (!info) {
@@ -123,6 +124,89 @@ export function TimeWarpSlider({
         {value === 0 ? "PAUSED" : `${value.toFixed(2)}×`}
       </span>
     </label>
+  )
+}
+
+/**
+ * Destinations dropdown — bottom-left HUD cluster, surfaced only in explore
+ * mode. Lets the user fly the camera to canonical sights (Sun, Saturn,
+ * Sgr A*, Andromeda, Orion Nebula) without having to find them in the
+ * crowded sky-shell first. Closes itself on selection.
+ */
+export function DestinationsMenu() {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-haspopup="menu"
+        aria-label="Fly to a destination"
+        className="
+          inline-flex items-center gap-2 px-3.5 py-2
+          border border-foreground/25 rounded-full
+          bg-background/55 backdrop-blur-sm
+          font-mono text-[10px] tracking-[0.25em] uppercase
+          text-foreground/85 hover:text-foreground hover:border-accent/60
+          transition-colors duration-300
+          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+          focus-visible:ring-offset-2 focus-visible:ring-offset-background
+          min-h-9
+        "
+      >
+        <span aria-hidden="true" className="text-accent text-sm leading-none">✺</span>
+        Destinations
+        <span aria-hidden="true" className={`transition-transform duration-300 ${open ? "rotate-180" : ""}`}>
+          ▾
+        </span>
+      </button>
+
+      {open && (
+        <ul
+          role="menu"
+          className="
+            absolute left-0 bottom-12 z-40
+            min-w-56 max-w-72
+            border border-foreground/20 rounded-xl
+            bg-background/90 backdrop-blur-md
+            p-1.5 shadow-lg
+          "
+          style={{
+            animation: "ue-label-in 180ms ease-out both",
+          }}
+        >
+          {DESTINATIONS.map((d) => (
+            <li key={d.id} role="none">
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  requestFlyTo(d.target, d.distance, d.label)
+                  setOpen(false)
+                }}
+                className="
+                  w-full text-left
+                  px-3 py-2 rounded-md
+                  hover:bg-foreground/5
+                  focus-visible:outline-none focus-visible:bg-foreground/5
+                  transition-colors
+                  flex flex-col gap-0.5
+                "
+              >
+                <span className="font-mono text-[11px] tracking-[0.18em] uppercase text-foreground">
+                  {d.label}
+                </span>
+                <span className="font-sans text-[11px] text-foreground/60 leading-snug">
+                  {d.hint}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   )
 }
 

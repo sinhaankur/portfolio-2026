@@ -29,8 +29,10 @@ import {
   ShaderMaterial,
   SRGBColorSpace,
   TextureLoader,
+  Vector3,
   type Texture,
 } from "three"
+import type { OrbitControls as OrbitControlsImpl } from "three-stdlib"
 
 import {
   ASTEROID_BELT_INFO,
@@ -46,12 +48,14 @@ import {
   TIME_WARP_DAYS_PER_SEC,
   buildScenePlanets,
   constellations,
+  flyToRef,
   gauss,
   magToVisualRadius,
   moons,
   namedBodies,
   planetToInfo,
   raDecToScenePos,
+  requestFlyTo,
   skyPoints,
   timeWarpRef,
 } from "./astronomy"
@@ -68,6 +72,100 @@ import type {
 } from "./types"
 
 /* ============================================================
+ * Fly-to controller
+ *
+ * Reads the module-scoped flyToRef each frame. When `active` is set
+ * (either by a body click in explore mode, or by the destinations
+ * HUD menu), this controller lerps:
+ *   - the OrbitControls target toward the requested world point
+ *   - the camera distance toward the requested value
+ *
+ * When the target + distance have arrived within tolerance, it
+ * clears the active flag. The user can drag/zoom mid-fly to take
+ * over — any pointer-down on the controls would cancel by setting
+ * a state flag, but for now we let the lerp finish.
+ *
+ * The autoRotate continues during the fly; that gives the camera a
+ * gentle swing around the new target on arrival without extra code.
+ * ============================================================ */
+
+const _flyCamDir = new Vector3()
+const _flyTargetVec = new Vector3()
+const _flyDesiredCamPos = new Vector3()
+
+function FlyToController({ interactive }: { interactive: boolean }) {
+  const { camera, controls } = useThree() as unknown as {
+    camera: import("three").PerspectiveCamera
+    controls: OrbitControlsImpl | null
+  }
+
+  useFrame((_, delta) => {
+    const state = flyToRef.current
+    if (!state.active) return
+    if (!controls) return
+
+    // Smoothing factor — `delta * 3` gives a ~0.6s feel that's snappy
+    // enough to read as "the camera moved" but slow enough to track.
+    // Faster pace when explore mode is off (passive transitions on
+    // load) so it doesn't visibly drift behind page paint.
+    const k = 1 - Math.exp(-delta * (interactive ? 3.2 : 5.0))
+
+    _flyTargetVec.set(state.target.x, state.target.y, state.target.z)
+    controls.target.lerp(_flyTargetVec, k)
+
+    // Move the camera along the existing target→camera ray so the user's
+    // viewing angle is preserved — only distance changes during a fly.
+    _flyCamDir.copy(camera.position).sub(controls.target)
+    const currentDist = _flyCamDir.length()
+    if (currentDist < 1e-4) {
+      // Degenerate case (camera on top of target) — pick a default look-up.
+      _flyCamDir.set(0.6, 0.4, 1).normalize()
+    } else {
+      _flyCamDir.normalize()
+    }
+    const nextDist = currentDist + (state.distance - currentDist) * k
+    _flyDesiredCamPos.copy(controls.target).addScaledVector(_flyCamDir, nextDist)
+    camera.position.copy(_flyDesiredCamPos)
+
+    controls.update()
+
+    // Arrival check — both target and distance within tolerance.
+    const targetErr = controls.target.distanceTo(_flyTargetVec)
+    const distErr = Math.abs(nextDist - state.distance) / Math.max(state.distance, 0.001)
+    if (targetErr < 0.08 && distErr < 0.04) {
+      controls.target.copy(_flyTargetVec)
+      state.active = false
+    }
+  })
+
+  return null
+}
+
+/**
+ * Build an onClick handler that asks the controller to fly to the body's
+ * current world position. Used by every interactive body (planet, sun,
+ * sky point, named body, Sgr A*).
+ *
+ * `interactive` gates the click — outside explore mode, clicks shouldn't
+ * hijack the scene, since the canvas is below the typography + scrolls
+ * with the page. When passive, this returns undefined so React doesn't
+ * register a handler at all.
+ */
+function makeFocusHandler(
+  interactive: boolean,
+  desiredDistance: number,
+  label?: string,
+) {
+  if (!interactive) return undefined
+  return (e: { stopPropagation: () => void; object: import("three").Object3D }) => {
+    e.stopPropagation()
+    const world = new Vector3()
+    e.object.getWorldPosition(world)
+    requestFlyTo({ x: world.x, y: world.y, z: world.z }, desiredDistance, label)
+  }
+}
+
+/* ============================================================
  * Milky Way backdrop — 4 spiral arms + bulge, with hover hit-zones
  * for Sgr A* (galactic centre) and the galaxy itself.
  * ============================================================ */
@@ -76,30 +174,58 @@ function MilkyWay({
   onHover,
   mobile = false,
   invert = false,
+  interactive = false,
 }: {
   onHover: HoverHandler
   mobile?: boolean
   invert?: boolean
+  interactive?: boolean
 }) {
   const pointsRef = useRef<Points>(null)
   const matRef = useRef<ShaderMaterial>(null)
   const { gl } = useThree()
 
   const geometry = useMemo(() => {
-    // Halved counts on mobile to keep the GPU breathing.
-    const armCount = mobile ? 6000 : 14000
-    const bulgeCount = mobile ? 1800 : 4000
-    const total = armCount + bulgeCount
+    // Mobile counts run ~40% of desktop to keep the GPU breathing. The
+    // shader is single-draw, so per-star count is the dominant cost.
+    const armCount    = mobile ? 7200  : 18000
+    const bulgeCount  = mobile ? 2200  : 5200
+    const barCount    = mobile ? 900   : 2200
+    // HII regions are distributed across a number of anchor clumps so they
+    // read as discrete pink star-forming knots tracing the arms, not a haze.
+    const hiiClumps   = mobile ? 16    : 38
+    const hiiPerClump = 22
+    const hiiCount    = hiiClumps * hiiPerClump
+    // Globular cluster halo — sparse bright dots in a sphere around the disc.
+    const haloCount   = mobile ? 50    : 110
+
+    const total = armCount + bulgeCount + barCount + hiiCount + haloCount
     const positions = new Float32Array(total * 3)
-    const sizes = new Float32Array(total)
-    const alphas = new Float32Array(total)
+    const sizes     = new Float32Array(total)
+    const alphas    = new Float32Array(total)
+    const colors    = new Float32Array(total * 3)
 
     const radius = 130
     const branches = 4
     const spin = 1.3
 
+    // Chart-mode (invert) suppresses per-star colour — every star multiplies
+    // through the dark uStarColor uniform, so we want a flat 1,1,1 here.
+    // Dark-mode lets the palette through.
+    const writeColor = (idx: number, r: number, g: number, b: number) => {
+      const i3 = idx * 3
+      if (invert) {
+        colors[i3] = 1; colors[i3 + 1] = 1; colors[i3 + 2] = 1
+      } else {
+        colors[i3] = r; colors[i3 + 1] = g; colors[i3 + 2] = b
+      }
+    }
+
+    // -- Arm stars: young blue O/B stars dominate the outer arms, white
+    //    main-sequence stars in the mid arms, warmer yellows shading toward
+    //    the bulge. This is what gives the spiral structure a real palette
+    //    instead of a flat white wash.
     for (let i = 0; i < armCount; i++) {
-      const i3 = i * 3
       const r = Math.pow(Math.random(), 1.6) * radius
       const branchAngle = ((i % branches) / branches) * Math.PI * 2
       const spinAngle = r * spin * 0.04
@@ -109,6 +235,7 @@ function MilkyWay({
       const ry = Math.pow(Math.random(), 2.6) * (Math.random() < 0.5 ? 1 : -1) * randomness * r * 0.12
       const rz = Math.pow(Math.random(), 2.6) * (Math.random() < 0.5 ? 1 : -1) * randomness * r
 
+      const i3 = i * 3
       positions[i3]     = Math.cos(branchAngle + spinAngle) * r + rx
       positions[i3 + 1] = ry
       positions[i3 + 2] = Math.sin(branchAngle + spinAngle) * r + rz
@@ -117,8 +244,27 @@ function MilkyWay({
       sizes[i] = 1.0 + sizeRoll * 5
       const normR = r / radius
       alphas[i] = (0.08 + (1 - normR) * 0.25) * (0.5 + Math.random() * 0.5)
+
+      // Color: bias warmer toward the centre, bluer toward the outskirts.
+      const cRoll = Math.random()
+      const blueBias = 0.18 + normR * 0.32 // 18% inner → 50% outer chance of a blue/white star
+      if (cRoll < blueBias) {
+        // Hot young blue-white star (O/B class)
+        writeColor(i, 0.74 + Math.random() * 0.10, 0.82 + Math.random() * 0.08, 1.0)
+      } else if (cRoll < blueBias + 0.30) {
+        // White main-sequence
+        const j = 0.95 + Math.random() * 0.05
+        writeColor(i, j, j, j)
+      } else if (cRoll < blueBias + 0.72) {
+        // Warm yellow (sun-like)
+        writeColor(i, 1.0, 0.93 + Math.random() * 0.04, 0.72 + Math.random() * 0.06)
+      } else {
+        // Cool orange / red giant
+        writeColor(i, 1.0, 0.78 + Math.random() * 0.05, 0.58 + Math.random() * 0.06)
+      }
     }
 
+    // -- Bulge: older Population II — predominantly warm yellows and oranges.
     for (let i = 0; i < bulgeCount; i++) {
       const idx = armCount + i
       const i3 = idx * 3
@@ -133,14 +279,106 @@ function MilkyWay({
       const sizeRoll = Math.pow(Math.random(), 3)
       sizes[idx] = 2 + sizeRoll * 8
       alphas[idx] = 0.3 + Math.random() * 0.2
+
+      // Warm bulge palette — amber-cream with the occasional red giant.
+      if (Math.random() < 0.75) {
+        writeColor(idx, 1.0, 0.90 + Math.random() * 0.05, 0.68 + Math.random() * 0.07)
+      } else {
+        writeColor(idx, 1.0, 0.74 + Math.random() * 0.06, 0.50 + Math.random() * 0.06)
+      }
+    }
+
+    // -- Central bar: the Milky Way is SBbc — an elongated stellar bar
+    //    runs through the bulge along a fixed axis. ~7000 ly half-length
+    //    in real units → ~18 scene units half-length. Aligned along X
+    //    so the disc rotation carries it naturally.
+    const barHalfLength = radius * 0.21
+    const barHalfWidth  = radius * 0.045
+    const barHalfHeight = radius * 0.020
+    for (let i = 0; i < barCount; i++) {
+      const idx = armCount + bulgeCount + i
+      const i3 = idx * 3
+      // Concentrate stars toward the bar's long axis: cube the random
+      // for length (mild tapering toward the ends) and gauss-fall for
+      // width/height (thin in cross-section).
+      const u = (Math.random() * 2 - 1) // -1..1 along the bar
+      const along = Math.sign(u) * Math.pow(Math.abs(u), 0.9) * barHalfLength
+      const across = gauss() * barHalfWidth * 0.55
+      const vert   = gauss() * barHalfHeight * 0.55
+
+      positions[i3]     = along
+      positions[i3 + 1] = vert
+      positions[i3 + 2] = across
+
+      sizes[idx] = 2 + Math.pow(Math.random(), 2.5) * 6
+      alphas[idx] = 0.32 + Math.random() * 0.22
+
+      // Bar shares the bulge's old-population palette.
+      writeColor(idx, 1.0, 0.88 + Math.random() * 0.05, 0.62 + Math.random() * 0.07)
+    }
+
+    // -- HII star-forming regions: pinkish/magenta clumps tracing the
+    //    arms (Hα emission from ionised hydrogen around young hot stars).
+    //    Each clump anchors on a spiral-arm position, then sprays a few
+    //    points around it for a soft nebular cluster look.
+    for (let c = 0; c < hiiClumps; c++) {
+      const armR = (0.18 + Math.random() * 0.72) * radius
+      const armBranch = Math.floor(Math.random() * branches)
+      const branchAngle = (armBranch / branches) * Math.PI * 2
+      const spinAngle = armR * spin * 0.04
+      const armX = Math.cos(branchAngle + spinAngle) * armR
+      const armZ = Math.sin(branchAngle + spinAngle) * armR
+
+      const clumpScatter = 1.6 + Math.random() * 2.2
+      for (let k = 0; k < hiiPerClump; k++) {
+        const idx = armCount + bulgeCount + barCount + c * hiiPerClump + k
+        const i3 = idx * 3
+        const dx = gauss() * clumpScatter
+        const dy = gauss() * 0.5
+        const dz = gauss() * clumpScatter
+        positions[i3]     = armX + dx
+        positions[i3 + 1] = dy
+        positions[i3 + 2] = armZ + dz
+
+        sizes[idx]  = 3 + Math.random() * 4
+        alphas[idx] = 0.35 + Math.random() * 0.35
+        // Pink Hα emission with a touch of magenta variation. Hot blue stars
+        // sometimes peek through as bluer cores — vary slightly per point.
+        if (Math.random() < 0.18) {
+          writeColor(idx, 0.78, 0.86, 1.0)
+        } else {
+          writeColor(idx, 1.0, 0.46 + Math.random() * 0.08, 0.70 + Math.random() * 0.10)
+        }
+      }
+    }
+
+    // -- Globular cluster halo: a sparse sphere of bright old clusters
+    //    surrounding the disc. Spread well above and below the plane to
+    //    sell the 3D structure of the galaxy.
+    for (let i = 0; i < haloCount; i++) {
+      const idx = armCount + bulgeCount + barCount + hiiCount + i
+      const i3 = idx * 3
+      // Spherical distribution biased outside the disc.
+      const haloR = radius * (0.45 + Math.pow(Math.random(), 1.4) * 0.85)
+      const theta = Math.random() * Math.PI * 2
+      const phi = Math.acos(2 * Math.random() - 1)
+      positions[i3]     = haloR * Math.sin(phi) * Math.cos(theta)
+      positions[i3 + 1] = haloR * Math.cos(phi) * 0.85
+      positions[i3 + 2] = haloR * Math.sin(phi) * Math.sin(theta)
+
+      sizes[idx] = 4 + Math.random() * 4
+      alphas[idx] = 0.55 + Math.random() * 0.25
+      // Warm old-cluster colour.
+      writeColor(idx, 1.0, 0.86 + Math.random() * 0.05, 0.62 + Math.random() * 0.08)
     }
 
     const geo = new BufferGeometry()
     geo.setAttribute("position", new BufferAttribute(positions, 3))
     geo.setAttribute("aSize", new BufferAttribute(sizes, 1))
     geo.setAttribute("aAlpha", new BufferAttribute(alphas, 1))
+    geo.setAttribute("aColor", new BufferAttribute(colors, 3))
     return geo
-  }, [mobile])
+  }, [mobile, invert])
 
   const uniforms = useMemo(
     () => ({
@@ -174,7 +412,9 @@ function MilkyWay({
         />
       </points>
 
-      {/* Sgr A* hit-target (invisible) */}
+      {/* Sgr A* hit-target (invisible). Clickable in explore mode — flies the
+          camera to the galactic centre. Distance picked so the silhouette
+          reads against the warm accretion-disc halo. */}
       <mesh
         position={[0, 0, 0]}
         onPointerOver={(e) => {
@@ -184,6 +424,7 @@ function MilkyWay({
         onPointerOut={() => {
           onHover(null)
         }}
+        onClick={makeFocusHandler(interactive, 38, "Sagittarius A*")}
       >
         <sphereGeometry args={[6, 24, 24]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
@@ -962,10 +1203,12 @@ function PlanetBody({
   planet,
   onHover,
   invert = false,
+  interactive = false,
 }: {
   planet: ScenePlanet
   onHover: HoverHandler
   invert?: boolean
+  interactive?: boolean
 }) {
   const meshRef = useRef<Mesh>(null)
   const orbitRef = useRef<Group>(null)
@@ -1069,6 +1312,15 @@ function PlanetBody({
                 setIsHovered(false)
                 onHover(null)
               }}
+              // Click flies the camera to the planet's current world position.
+              // Distance scales with the planet's visual radius so Mercury and
+              // Jupiter both end up framed sensibly. Saturn gets extra room
+              // because the rings extend ~2.1× the body radius.
+              onClick={makeFocusHandler(
+                interactive,
+                Math.max(planet.visualRadius * (planet.raw.hasRings ? 9 : 7), 1.0),
+                planet.raw.name,
+              )}
             >
               <sphereGeometry args={[hitRadius, 24, 24]} />
               <meshBasicMaterial transparent opacity={0} depthWrite={false} />
@@ -1137,9 +1389,11 @@ function OrbitRing({
 function SolarSystem({
   onHover,
   invert = false,
+  interactive = false,
 }: {
   onHover: HoverHandler
   invert?: boolean
+  interactive?: boolean
 }) {
   const sunRef = useRef<Mesh>(null)
   const coronaRef = useRef<Mesh>(null)
@@ -1268,6 +1522,9 @@ function SolarSystem({
           setSunHovered(false)
           onHover(null)
         }}
+        // Click flies the camera to the Sun. Distance ~3.2 frames the sphere
+        // + corona without losing the inner planets at the edges.
+        onClick={makeFocusHandler(interactive, 3.2, "Sun")}
       >
         <sphereGeometry args={[0.9, 32, 32]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
@@ -1284,7 +1541,13 @@ function SolarSystem({
       ))}
 
       {scenePlanets.map((p) => (
-        <PlanetBody key={p.raw.name} planet={p} onHover={onHover} invert={invert} />
+        <PlanetBody
+          key={p.raw.name}
+          planet={p}
+          onHover={onHover}
+          invert={invert}
+          interactive={interactive}
+        />
       ))}
 
       {/* Asteroid Belt — 2.2–3.2 AU → sqrt × 3 → 4.45–5.37 scene units */}
@@ -1340,10 +1603,12 @@ function NamedBodyMesh({
   body,
   onHover,
   invert = false,
+  interactive = false,
 }: {
   body: NamedBody
   onHover: HoverHandler
   invert?: boolean
+  interactive?: boolean
 }) {
   const groupRef = useRef<Group>(null)
 
@@ -1475,6 +1740,14 @@ function NamedBodyMesh({
             })
           }}
           onPointerOut={() => onHover(null)}
+          // Click flies to the body's current world position. Dwarf planets
+          // get a wider distance because their orbits put them well past
+          // Neptune; comets get a tight one so the user can see the body.
+          onClick={makeFocusHandler(
+            interactive,
+            body.kind === "dwarf" ? 2.4 : 1.6,
+            body.name,
+          )}
         >
           <sphereGeometry args={[hitRadius, 12, 12]} />
           <meshBasicMaterial transparent opacity={0} depthWrite={false} />
@@ -1487,14 +1760,22 @@ function NamedBodyMesh({
 function NamedBodies({
   onHover,
   invert = false,
+  interactive = false,
 }: {
   onHover: HoverHandler
   invert?: boolean
+  interactive?: boolean
 }) {
   return (
     <group>
       {namedBodies.map((body) => (
-        <NamedBodyMesh key={body.designation} body={body} onHover={onHover} invert={invert} />
+        <NamedBodyMesh
+          key={body.designation}
+          body={body}
+          onHover={onHover}
+          invert={invert}
+          interactive={interactive}
+        />
       ))}
     </group>
   )
@@ -1516,15 +1797,213 @@ function NamedBodies({
  * label + InfoPanel + mobile sheet all light up the same way.
  * ============================================================ */
 
+/**
+ * NebulaDetail
+ *
+ * Mounted under a nebula sky-point. The idle visual is just the regular halo
+ * (handled by the parent). On hover, this group lerps in three offset emission
+ * cloudlets (Hα + OIII palette, additive blend) and — for Orion specifically —
+ * the four Trapezium stars at the core. Ring (M57) gets a thin annulus instead
+ * of cloudlets; Crab (M1) shifts to a magenta + cyan filament palette.
+ *
+ * Everything inside this group lives at scale 0 until hovered, so the cost
+ * for non-hovered nebulae is just a few inert meshes per nebula.
+ */
+function NebulaDetail({
+  pointId,
+  size,
+  hovered,
+  invert,
+}: {
+  pointId: string
+  size: number
+  hovered: boolean
+  invert: boolean
+}) {
+  const rootRef = useRef<Group>(null)
+  const swirlRef = useRef<Group>(null)
+  const cloudMatRefs = useRef<Array<import("three").MeshBasicMaterial | null>>([])
+  const ringMatRef = useRef<import("three").MeshBasicMaterial>(null)
+  const trapeziumMatRefs = useRef<Array<import("three").MeshBasicMaterial | null>>([])
+
+  // Per-nebula palette + layout. Color choices match what astrophotos actually
+  // show: Orion = pink Hα core + teal OIII wisps; Ring = teal annulus + warm
+  // white-dwarf core; Crab = magenta + cyan filaments.
+  const config = useMemo(() => {
+    if (pointId === "m57") {
+      return {
+        variant: "ring" as const,
+        ringColor: invert ? "#1e3a3a" : "#7adfd2",
+        coreColor: invert ? "#5a2412" : "#ffe9b8",
+        clouds: [] as Array<{ color: string; offset: [number, number, number]; scale: number }>,
+      }
+    }
+    if (pointId === "m1") {
+      return {
+        variant: "filaments" as const,
+        ringColor: "",
+        coreColor: invert ? "#3a1530" : "#ff8acf",
+        clouds: [
+          { color: invert ? "#5a1c4a" : "#ff7ab8", offset: [0.4, 0.2, 0],    scale: 1.6 },
+          { color: invert ? "#243a5a" : "#7ec8ff", offset: [-0.5, -0.3, 0.2], scale: 1.3 },
+          { color: invert ? "#3a1530" : "#ffb38a", offset: [0.1, -0.4, -0.2], scale: 1.0 },
+        ],
+      }
+    }
+    // Default / Orion-style emission nebula.
+    return {
+      variant: pointId === "m42" ? "orion" : ("clouds" as const),
+      ringColor: "",
+      coreColor: invert ? "#5a2436" : "#ffb6c9",
+      clouds: [
+        { color: invert ? "#5a2436" : "#ff8fae", offset: [0.45, 0.15, 0.1],   scale: 1.7 }, // Hα pink
+        { color: invert ? "#1f3a4a" : "#7fd6e8", offset: [-0.4, -0.2, 0.15],  scale: 1.4 }, // OIII teal
+        { color: invert ? "#3a1f4a" : "#c19bff", offset: [0.05, 0.35, -0.3],  scale: 1.2 }, // dust-glow violet
+      ],
+    }
+  }, [pointId, invert])
+
+  // Trapezium positions — the four bright young O-class stars at the heart of
+  // Orion. Approximate relative layout, scaled into the local frame.
+  const trapezium = useMemo<Array<[number, number, number]>>(
+    () => [
+      [-0.12,  0.05, 0],
+      [ 0.10,  0.08, 0],
+      [-0.04, -0.10, 0],
+      [ 0.14, -0.04, 0],
+    ],
+    [],
+  )
+
+  useFrame((_, delta) => {
+    const k = 1 - Math.exp(-delta * 6)
+
+    // Lerp the whole detail group's scale toward the hover target so the
+    // reveal feels like a soft bloom, not a snap.
+    if (rootRef.current) {
+      const target = hovered ? 1.0 : 0.001
+      const s = rootRef.current.scale.x
+      const next = s + (target - s) * k
+      rootRef.current.scale.set(next, next, next)
+    }
+
+    // Slow swirl on the cloud group — readable rotation without strobing.
+    if (swirlRef.current && hovered) {
+      swirlRef.current.rotation.z += delta * 0.05
+    }
+
+    const cloudTarget = hovered ? (invert ? 0.55 : 0.62) : 0
+    cloudMatRefs.current.forEach((m) => {
+      if (!m) return
+      m.opacity += (cloudTarget - m.opacity) * k
+    })
+
+    if (ringMatRef.current) {
+      const ringTarget = hovered ? (invert ? 0.8 : 0.85) : 0
+      ringMatRef.current.opacity += (ringTarget - ringMatRef.current.opacity) * k
+    }
+
+    const trapeziumTarget = hovered ? 1 : 0
+    trapeziumMatRefs.current.forEach((m) => {
+      if (!m) return
+      m.opacity += (trapeziumTarget - m.opacity) * k
+    })
+  })
+
+  const blending = invert ? NormalBlending : AdditiveBlending
+  // Detail scale: the cloud structure should bloom out well past the idle halo
+  // so the hover state reads as a real reveal, not a subtle tint.
+  const detailScale = size * 2.4
+
+  return (
+    <group ref={rootRef} scale={0.001}>
+      {config.variant === "ring" ? (
+        // Planetary-nebula ring (M57). Sits perpendicular to the line of sight
+        // so the annulus reads as a flat ring, not a sphere.
+        <>
+          <mesh rotation={[Math.PI / 2, 0, 0]}>
+            <ringGeometry args={[detailScale * 0.42, detailScale * 0.58, 64]} />
+            <meshBasicMaterial
+              ref={ringMatRef as React.Ref<import("three").MeshBasicMaterial>}
+              color={config.ringColor}
+              transparent
+              opacity={0}
+              side={DoubleSide}
+              blending={blending}
+              depthWrite={false}
+            />
+          </mesh>
+          {/* White-dwarf core — the dying star at the ring's centre. */}
+          <mesh>
+            <sphereGeometry args={[detailScale * 0.06, 12, 12]} />
+            <meshBasicMaterial
+              ref={(m) => { trapeziumMatRefs.current[0] = m }}
+              color={config.coreColor}
+              transparent
+              opacity={0}
+              blending={blending}
+              depthWrite={false}
+            />
+          </mesh>
+        </>
+      ) : (
+        // Cloud variant — three offset emission billows.
+        <group ref={swirlRef}>
+          {config.clouds.map((c, i) => (
+            <mesh
+              key={i}
+              position={[
+                c.offset[0] * detailScale,
+                c.offset[1] * detailScale,
+                c.offset[2] * detailScale,
+              ]}
+            >
+              <sphereGeometry args={[detailScale * 0.55 * c.scale, 24, 24]} />
+              <meshBasicMaterial
+                ref={(m) => { cloudMatRefs.current[i] = m }}
+                color={c.color}
+                transparent
+                opacity={0}
+                blending={blending}
+                depthWrite={false}
+              />
+            </mesh>
+          ))}
+        </group>
+      )}
+
+      {/* Trapezium — Orion only. Four bright young O-stars at the core,
+          arranged in the trademark quadrilateral. */}
+      {config.variant === "orion" &&
+        trapezium.map((pos, i) => (
+          <mesh key={i} position={[pos[0] * detailScale, pos[1] * detailScale, pos[2] * detailScale]}>
+            <sphereGeometry args={[detailScale * 0.04, 12, 12]} />
+            <meshBasicMaterial
+              ref={(m) => { trapeziumMatRefs.current[i] = m }}
+              color={invert ? "#0a0a0a" : "#ffffff"}
+              transparent
+              opacity={0}
+              blending={blending}
+              depthWrite={false}
+            />
+          </mesh>
+        ))}
+    </group>
+  )
+}
+
 function SkyPointMesh({
   point,
   onHover,
   invert = false,
+  interactive = false,
 }: {
   point: SkyPoint
   onHover: HoverHandler
   invert?: boolean
+  interactive?: boolean
 }) {
+  const [hovered, setHovered] = useState(false)
   const position = useMemo(
     () => raDecToScenePos(point.raHours, point.decDeg, SKY_SHELL_DISTANCE),
     [point.raHours, point.decDeg],
@@ -1575,7 +2054,9 @@ function SkyPointMesh({
   }, [point.kind, invert])
 
   // Hit-zone scales with the visual so even tiny exoplanet dots are findable.
-  const hitRadius = Math.max(1, visualSize * 1.4)
+  // Nebulae get a wider zone so the on-hover bloom doesn't fall outside the
+  // tracked area and cause flicker as the cursor explores the expanded detail.
+  const hitRadius = Math.max(1, visualSize * (point.kind === "nebula" ? 2.6 : 1.4))
 
   return (
     <group position={position}>
@@ -1613,6 +2094,11 @@ function SkyPointMesh({
           depthWrite={false}
         />
       </mesh>
+      {/* Nebula hover detail — layered emission cloudlets that bloom in on hover,
+          plus the Trapezium for Orion. Idle cost is ~3 inert meshes at scale 0. */}
+      {point.kind === "nebula" && (
+        <NebulaDetail pointId={point.id} size={visualSize} hovered={hovered} invert={invert} />
+      )}
       {/* Cluster spray — for star clusters, add a handful of bright pinpoints
           around the core to suggest individual stars. */}
       {point.kind === "cluster" && (
@@ -1639,10 +2125,13 @@ function SkyPointMesh({
           ))}
         </group>
       )}
-      {/* Hover hit-zone — invisible, scaled up so small dots are tappable. */}
+      {/* Hover hit-zone — invisible, scaled up so small dots are tappable.
+          For nebulae we grow the zone further so the on-hover detail bloom has
+          room to be entered/exited cleanly without flickering. */}
       <mesh
         onPointerOver={(e) => {
           e.stopPropagation()
+          setHovered(true)
           const classBase =
             point.kind === "galaxy"     ? "Galaxy" :
             point.kind === "nebula"     ? "Nebula" :
@@ -1658,7 +2147,18 @@ function SkyPointMesh({
             fact: factWithDistance,
           })
         }}
-        onPointerOut={() => onHover(null)}
+        onPointerOut={() => {
+          setHovered(false)
+          onHover(null)
+        }}
+        // Click flies to the sky point. Distance scales with the visual so
+        // nebulae get framed wide enough to see the on-hover detail bloom,
+        // exoplanet hosts get framed tight so the single accent dot is centred.
+        onClick={makeFocusHandler(
+          interactive,
+          point.kind === "exoplanet-host" ? 4 : Math.max(visualSize * 3.5, 9),
+          point.name,
+        )}
       >
         <sphereGeometry args={[hitRadius, 10, 10]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
@@ -1670,14 +2170,22 @@ function SkyPointMesh({
 function SkyPoints({
   onHover,
   invert = false,
+  interactive = false,
 }: {
   onHover: HoverHandler
   invert?: boolean
+  interactive?: boolean
 }) {
   return (
     <group>
       {skyPoints.map((p) => (
-        <SkyPointMesh key={p.id} point={p} onHover={onHover} invert={invert} />
+        <SkyPointMesh
+          key={p.id}
+          point={p}
+          onHover={onHover}
+          invert={invert}
+          interactive={interactive}
+        />
       ))}
     </group>
   )
@@ -1693,12 +2201,15 @@ export function SceneContents({
   onResetView,
   mobile = false,
   invert = false,
+  interactive = false,
 }: {
   enableMotion: boolean
   onHover: HoverHandler
   onResetView: () => void
   mobile?: boolean
   invert?: boolean
+  /** When true, body clicks fly the camera to that body. Off in passive mode. */
+  interactive?: boolean
 }) {
   const { scene } = useThree()
   useEffect(() => {
@@ -1710,6 +2221,7 @@ export function SceneContents({
 
   return (
     <>
+      <FlyToController interactive={interactive} />
       {/* drei <Stars> is white-only / additive. Drop it in inverted mode and
           let the MilkyWay points carry the field as ink-on-paper instead. */}
       {!invert && (
@@ -1724,17 +2236,17 @@ export function SceneContents({
         />
       )}
       <group rotation={[GALACTIC_PLANE_TILT_RAD, 0, 0]}>
-        <MilkyWay onHover={onHover} mobile={mobile} invert={invert} />
+        <MilkyWay onHover={onHover} mobile={mobile} invert={invert} interactive={interactive} />
       </group>
       <group position={SOLAR_SYSTEM_POSITION}>
-        <SolarSystem onHover={onHover} invert={invert} />
+        <SolarSystem onHover={onHover} invert={invert} interactive={interactive} />
         {/* Comets, asteroids, interstellars — share the SolarSystem origin
             so their orbits sit around the same Sun the planets do. */}
-        <NamedBodies onHover={onHover} invert={invert} />
+        <NamedBodies onHover={onHover} invert={invert} interactive={interactive} />
       </group>
       <Constellations onHover={onHover} onResetView={onResetView} invert={invert} />
       {/* Deep-sky targets + exoplanet hosts — share the sky-shell with constellations. */}
-      <SkyPoints onHover={onHover} invert={invert} />
+      <SkyPoints onHover={onHover} invert={invert} interactive={interactive} />
       {enableMotion && <ShootingStars count={mobile ? 3 : 6} invert={invert} />}
       <ambientLight intensity={invert ? 0.55 : 0.18} />
     </>
