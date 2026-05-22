@@ -352,6 +352,147 @@ function ParkerShape({ invert }: ShapeProps) {
  * get the full silhouette.
  * ============================================================ */
 
+/* ============================================================
+ * Lucy
+ *
+ * Silhouette: two enormous circular solar arrays (7.3 m diameter each
+ * in reality) sticking out from a small central bus — the largest
+ * deployable circular arrays ever flown. They are the identifier. The
+ * bus itself is almost invisible between them.
+ * ============================================================ */
+function LucyShape({ invert }: ShapeProps) {
+  const c = palette(invert)
+  return (
+    <group>
+      {/* Central bus — small octagonal prism */}
+      <mesh>
+        <cylinderGeometry args={[0.08, 0.08, 0.18, 8]} />
+        <meshStandardMaterial color={c.body} metalness={0.4} roughness={0.6} />
+      </mesh>
+      {/* Twin circular solar arrays — Lucy's signature, equator-mounted
+          on opposite sides. Sized way larger than the bus on purpose. */}
+      {[-1, 1].map((side) => (
+        <group key={side} position={[side * 0.5, 0, 0]} rotation={[Math.PI / 2, 0, 0]}>
+          <mesh>
+            <cylinderGeometry args={[0.42, 0.42, 0.015, 36]} />
+            <meshStandardMaterial color={c.panel} metalness={0.7} roughness={0.3} />
+          </mesh>
+          {/* Concentric ring detail so the arrays read as the segmented
+              fan-petal pattern Lucy actually uses (UltraFlex design). */}
+          <mesh position={[0, 0.009, 0]}>
+            <cylinderGeometry args={[0.42, 0.42, 0.001, 36, 1, true]} />
+            <meshBasicMaterial color={c.panelGlint} side={DoubleSide} />
+          </mesh>
+          <mesh position={[0, 0.009, 0]}>
+            <cylinderGeometry args={[0.21, 0.21, 0.002, 24, 1, true]} />
+            <meshBasicMaterial color={c.panelGlint} side={DoubleSide} />
+          </mesh>
+        </group>
+      ))}
+      {/* High-gain antenna dish on top */}
+      <mesh position={[0, 0.18, 0]} rotation={[Math.PI, 0, 0]}>
+        <coneGeometry args={[0.12, 0.06, 16, 1, true]} />
+        <meshStandardMaterial color={c.dish} side={DoubleSide} roughness={0.4} />
+      </mesh>
+    </group>
+  )
+}
+
+/* ============================================================
+ * Hayabusa2 / OSIRIS-APEX — flat-paneled inner-system probes
+ *
+ * Both share the asteroid-rendezvous spacecraft form: rectangular box
+ * bus with TWO flat solar wings deployed sideways, and a sample / arm
+ * apparatus extending downward (Hayabusa's horn-shaped sampler vs
+ * OSIRIS's TAGSAM arm). Compact shape factory shared by both with a
+ * small variant flag.
+ * ============================================================ */
+function AsteroidProbeShape({ invert, variant }: ShapeProps & { variant: "hayabusa" | "osiris" }) {
+  const c = palette(invert)
+  return (
+    <group>
+      {/* Box bus */}
+      <mesh>
+        <boxGeometry args={[0.22, 0.18, 0.22]} />
+        <meshStandardMaterial color={c.body} metalness={0.5} roughness={0.4} />
+      </mesh>
+      {/* Twin flat solar panels — long rectangles either side */}
+      {[-1, 1].map((side) => (
+        <mesh key={side} position={[side * 0.42, 0, 0]}>
+          <boxGeometry args={[0.55, 0.005, 0.20]} />
+          <meshStandardMaterial color={c.panel} metalness={0.6} roughness={0.3} />
+        </mesh>
+      ))}
+      {/* Hayabusa's sample horn (centered tube) vs OSIRIS's TAGSAM arm
+          (offset, longer reach). Both extend downward from the bus. */}
+      {variant === "hayabusa" ? (
+        <mesh position={[0, -0.18, 0]}>
+          <cylinderGeometry args={[0.025, 0.04, 0.18, 12]} />
+          <meshStandardMaterial color={c.boom} roughness={0.6} />
+        </mesh>
+      ) : (
+        <group position={[0.05, -0.18, 0]} rotation={[0, 0, -0.3]}>
+          <mesh>
+            <cylinderGeometry args={[0.012, 0.012, 0.28, 8]} />
+            <meshStandardMaterial color={c.boom} roughness={0.6} />
+          </mesh>
+          <mesh position={[0, -0.15, 0]}>
+            <cylinderGeometry args={[0.06, 0.06, 0.025, 16]} />
+            <meshStandardMaterial color={c.body} metalness={0.5} roughness={0.4} />
+          </mesh>
+        </group>
+      )}
+      {/* High-gain antenna dish on top */}
+      <mesh position={[0, 0.13, 0]} rotation={[Math.PI, 0, 0]}>
+        <coneGeometry args={[0.09, 0.05, 12, 1, true]} />
+        <meshStandardMaterial color={c.dish} side={DoubleSide} roughness={0.4} />
+      </mesh>
+    </group>
+  )
+}
+
+/* ============================================================
+ * BepiColombo
+ *
+ * Silhouette: stacked composite — Mercury Transfer Module (with its
+ * giant solar wings) on bottom, the two orbiters (MPO + MIO) stacked
+ * on top. The arrays are angled differently from Earth probes because
+ * they're managing extreme heat near Mercury.
+ * ============================================================ */
+function BepiColomboShape({ invert }: ShapeProps) {
+  const c = palette(invert)
+  return (
+    <group>
+      {/* Mercury Transfer Module (bottom) — with twin angled solar wings */}
+      <mesh position={[0, -0.18, 0]}>
+        <boxGeometry args={[0.22, 0.10, 0.22]} />
+        <meshStandardMaterial color={c.body} metalness={0.45} roughness={0.5} />
+      </mesh>
+      {[-1, 1].map((side) => (
+        <mesh key={side} position={[side * 0.5, -0.18, 0]} rotation={[0, 0, side * 0.25]}>
+          <boxGeometry args={[0.6, 0.005, 0.18]} />
+          <meshStandardMaterial color={c.panel} metalness={0.6} roughness={0.3} />
+        </mesh>
+      ))}
+      {/* MPO — Mercury Planetary Orbiter (middle box) */}
+      <mesh position={[0, -0.05, 0]}>
+        <boxGeometry args={[0.18, 0.14, 0.18]} />
+        <meshStandardMaterial color={c.shield} roughness={0.55} />
+      </mesh>
+      {/* MIO — Mercury Magnetospheric Orbiter (octagonal top) */}
+      <mesh position={[0, 0.08, 0]}>
+        <cylinderGeometry args={[0.10, 0.10, 0.10, 8]} />
+        <meshStandardMaterial color={c.body} metalness={0.45} roughness={0.5} />
+      </mesh>
+      {/* High-gain antenna */}
+      <mesh position={[0, 0.18, 0]} rotation={[Math.PI, 0, 0]}>
+        <coneGeometry args={[0.08, 0.05, 12, 1, true]} />
+        <meshStandardMaterial color={c.dish} side={DoubleSide} roughness={0.4} />
+      </mesh>
+    </group>
+  )
+}
+
 type ShapeEntry = {
   render: (props: ShapeProps) => React.ReactNode
   scale: number
@@ -368,4 +509,10 @@ export const SPACECRAFT_SHAPES: Record<string, ShapeEntry> = {
   // duplicate. Different mission, same silhouette family.
   "Pioneer 10":                   { render: (p) => <VoyagerShape {...p} />,      scale: 4.5 },
   "Pioneer 11":                   { render: (p) => <VoyagerShape {...p} />,      scale: 4.5 },
+  // Inner-system probes — distinctive silhouettes per craft so the four
+  // active missions stop looking identical at the eyepiece.
+  "Lucy":                         { render: (p) => <LucyShape {...p} />,         scale: 5.0 },
+  "Hayabusa2":                    { render: (p) => <AsteroidProbeShape {...p} variant="hayabusa" />, scale: 4.0 },
+  "OSIRIS-APEX":                  { render: (p) => <AsteroidProbeShape {...p} variant="osiris" />,   scale: 4.0 },
+  "BepiColombo":                  { render: (p) => <BepiColomboShape {...p} />,  scale: 4.2 },
 }
