@@ -45,6 +45,15 @@ export type BodyInfo = {
   fact?: string
   /** Deeper NASA-sourced facts — surfaced behind a "More" disclosure. */
   deep?: BodyDeepFacts
+  /** Orbital elements for spacecraft / comets / asteroids — surfaced in
+   *  the InfoPanel when present. Lets curious users see the actual
+   *  inclination / eccentricity / Ω / ω that drive the trajectory. */
+  orbital?: {
+    eccentricity?: number
+    inclDeg?: number
+    longNodeDeg?: number
+    argPeriDeg?: number
+  }
   /** True if the body responds to a click (e.g. Polaris resets the view). */
   clickable?: boolean
   /** True if clicking the body engages follow mode (camera tracks it along
