@@ -1722,6 +1722,114 @@ export const skyPoints: SkyPoint[] = [
     fact: "Famous for unprecedented and unexplained dimming events — drops of up to 22% over irregular intervals. Briefly suggested as a candidate for alien megastructures (a Dyson swarm); now most likely caused by an uneven dust ring or planetary debris. Still not fully understood.",
     visualSize: 0.5,
   },
+  // ----- Famous individual stars — bright enough to be naked-eye
+  // recognised, placed at real J2000 coordinates. Colours encode
+  // spectral class (B blue, A white, F/G yellow, K orange, M red).
+  // -----
+  {
+    id: "sirius",
+    name: "Sirius",
+    designation: "α Canis Majoris · brightest star in the night sky",
+    kind: "star",
+    raHours: 6.752,
+    decDeg: -16.72,
+    magnitude: -1.46,
+    distance: "8.6 ly",
+    fact: "Brightest star in Earth's night sky. A1V main-sequence star with a white-dwarf companion (Sirius B) discovered in 1862. Ancient Egyptians timed the Nile flood by Sirius's heliacal rising; the Romans called the hot late summer 'dog days' after it.",
+    visualSize: 1.1,
+    shade: "#e8f0ff",     // A-class blue-white
+  },
+  {
+    id: "betelgeuse",
+    name: "Betelgeuse",
+    designation: "α Orionis · M-class red supergiant",
+    kind: "star",
+    raHours: 5.919,
+    decDeg: 7.41,
+    magnitude: 0.50,
+    distance: "640 ly",
+    fact: "Red supergiant in Orion. Pulsates between magnitude 0.0 and 1.6; dimmed dramatically in 2019–2020 (the 'Great Dimming') triggering supernova speculation. Will end its life as a supernova within ~100,000 years — close enough to outshine the full Moon when it does.",
+    visualSize: 1.0,
+    shade: "#ff7a3c",     // M-class red-orange
+  },
+  {
+    id: "rigel",
+    name: "Rigel",
+    designation: "β Orionis · B-class blue supergiant",
+    kind: "star",
+    raHours: 5.242,
+    decDeg: -8.20,
+    magnitude: 0.13,
+    distance: "860 ly",
+    fact: "Brightest star in Orion (despite the β designation). Blue supergiant 120,000× more luminous than the Sun; will end as either a neutron star or a supernova. Part of a quadruple system — three of its companions are also blue stars.",
+    visualSize: 0.95,
+    shade: "#a8c8ff",     // B-class blue-white
+  },
+  {
+    id: "vega",
+    name: "Vega",
+    designation: "α Lyrae · Summer Triangle anchor",
+    kind: "star",
+    raHours: 18.616,
+    decDeg: 38.78,
+    magnitude: 0.03,
+    distance: "25 ly",
+    fact: "Fifth-brightest star in the night sky. A0V main-sequence — the original photometric standard star (defined as magnitude 0 by definition until 1980). Surrounded by a debris disc that may host planets. Was the pole star ~12,000 BC and will be again ~13,727 AD.",
+    visualSize: 1.0,
+    shade: "#f0f4ff",     // A-class white
+  },
+  {
+    id: "antares",
+    name: "Antares",
+    designation: "α Scorpii · heart of the Scorpion",
+    kind: "star",
+    raHours: 16.490,
+    decDeg: -26.43,
+    magnitude: 1.06,
+    distance: "550 ly",
+    fact: "Red supergiant ~700× the Sun's radius — if placed at the Sun's position, its surface would extend past Mars. Name means 'rival of Mars' in Greek; its colour is almost identical to the Red Planet's. Will go supernova within the next million years.",
+    visualSize: 0.95,
+    shade: "#ff6633",     // M-class red-orange
+  },
+  {
+    id: "aldebaran",
+    name: "Aldebaran",
+    designation: "α Tauri · eye of the bull",
+    kind: "star",
+    raHours: 4.599,
+    decDeg: 16.51,
+    magnitude: 0.86,
+    distance: "65 ly",
+    fact: "Orange giant marking the eye of Taurus. Roughly 44× the Sun's radius. Pioneer 10, launched 1972, is heading toward Aldebaran's neighbourhood — flyby in ~2 million years.",
+    visualSize: 0.85,
+    shade: "#ff9d4a",     // K-class orange
+  },
+  {
+    id: "vy-cma",
+    name: "VY Canis Majoris",
+    designation: "VY CMa · M-class hypergiant, one of the largest known stars",
+    kind: "star",
+    raHours: 7.380,
+    decDeg: -25.77,
+    magnitude: 8.0,
+    distance: "3,820 ly",
+    fact: "One of the largest known stars — ~1,420× the Sun's radius. If placed where the Sun is, it would extend past Saturn's orbit. Variable red hypergiant in its death throes; expected to collapse directly to a black hole rather than supernova within a few hundred thousand years.",
+    visualSize: 0.8,
+    shade: "#e85522",     // M-class deep red
+  },
+  {
+    id: "eta-carinae",
+    name: "Eta Carinae",
+    designation: "η Car · luminous blue variable, supernova candidate",
+    kind: "star",
+    raHours: 10.751,
+    decDeg: -59.69,
+    magnitude: 4.5,
+    distance: "7,500 ly",
+    fact: "Massive binary system with the primary star ~100× the Sun's mass. Underwent the 'Great Eruption' in 1843 — briefly the second-brightest star in the sky despite its distance, ejecting the bipolar Homunculus Nebula seen around it today. Considered the closest plausible supernova candidate in the next million years.",
+    visualSize: 0.9,
+    shade: "#b0c8ff",     // luminous blue
+  },
   // ----- Black holes -----
   {
     id: "m87-star",
