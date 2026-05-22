@@ -546,7 +546,15 @@ function MilkyWay({
   )
 
   useFrame((_, delta) => {
-    if (pointsRef.current) pointsRef.current.rotation.y += delta * 0.008
+    // Galactic rotation — real Milky Way takes ~225 million years per
+    // rotation at the Sun's distance from the core. Even at our maximum
+    // time warp that resolves to imperceptible drift, so we keep a small
+    // base drift scaled to time warp: feels alive at idle, speeds up
+    // noticeably when the user pushes the warp slider. Was a flat 0.008
+    // rad/s — ~75,000× too fast and read as a carousel spin.
+    if (pointsRef.current) {
+      pointsRef.current.rotation.y += delta * 0.0004 * (1 + timeWarpRef.current * 0.05)
+    }
     if (matRef.current) {
       ;(matRef.current.uniforms.uTime as { value: number }).value += delta
     }
@@ -1555,6 +1563,10 @@ function PlanetBody({
   const texMeshRef = useRef<Mesh>(null)
   const texMatRef = useRef<import("three").MeshStandardMaterial>(null)
   const atmosMatRef = useRef<import("three").MeshBasicMaterial>(null)
+  /** Ref on the position group so eccentric orbits (Pluto) can have their
+   *  orbital distance vary with current orbit angle, matching the elliptical
+   *  ring rendered by OrbitRing. */
+  const positionRef = useRef<Group>(null)
   const [isHovered, setIsHovered] = useState(false)
   // `focused` persists after a click → fly-to so the planet's texture +
   // atmosphere bloom stay visible after arrival, even when the cursor
@@ -1619,10 +1631,26 @@ function PlanetBody({
     ? Math.abs(planet.rotSpeedRadPerSec)
     : planet.rotSpeedRadPerSec
 
+  const eccentricity = planet.raw.deep?.eccentricity ?? 0
+  const useEllipticalOrbit = eccentricity > 0.01
+
   useFrame((_, delta) => {
     const tw = timeWarpRef.current
     if (orbitRef.current) orbitRef.current.rotation.y += delta * planet.orbitalSpeedRadPerSec * tw
     if (meshRef.current) meshRef.current.rotation.y += delta * visibleRotSpeed * tw
+
+    // Eccentric-orbit planets (Pluto e=0.244, Mercury e=0.206) vary their
+    // orbital distance with current phase to follow the elliptical ring.
+    // Uses true-anomaly polar form r(θ) = a(1-e²)/(1+e·cosθ) — same shape
+    // the OrbitRing renders, so body and path stay aligned. Kepler's 2nd
+    // law (faster at perihelion) is approximated by uniform progression in
+    // true anomaly; visually correct for our time-warp range.
+    if (useEllipticalOrbit && positionRef.current && orbitRef.current) {
+      const theta = orbitRef.current.rotation.y
+      const r = (planet.orbitRadius * (1 - eccentricity * eccentricity)) /
+                (1 + eccentricity * Math.cos(theta))
+      positionRef.current.position.x = r
+    }
 
     // Textured sphere rotates in lockstep with the grey one underneath so
     // surface features (Earth's continents, Jupiter's bands, Saturn's
@@ -1681,7 +1709,7 @@ function PlanetBody({
   return (
     <group rotation={[planet.inclination, 0, 0]}>
       <group ref={orbitRef}>
-        <group position={[planet.orbitRadius, 0, 0]}>
+        <group ref={positionRef} position={[planet.orbitRadius, 0, 0]}>
           <group rotation={[planet.axialTilt, 0, 0]}>
             <mesh ref={meshRef}>
               <sphereGeometry args={[planet.visualRadius, 48, 48]} />
