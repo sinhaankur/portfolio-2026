@@ -164,6 +164,16 @@ export type NamedBody = {
   eccentricity: number
   /** Orbital inclination relative to the ecliptic, in degrees. */
   inclDeg: number
+  /** Longitude of ascending node (Ω), degrees, measured from vernal equinox.
+   *  Together with inclDeg, fully orients the orbital plane in 3D space.
+   *  Without it, the body's escape direction (Voyagers etc.) doesn't point
+   *  toward the right constellation. Default 0 for bodies where we don't
+   *  care about exact sky direction (most comets / asteroids). */
+  longNodeDeg?: number
+  /** Argument of periapsis (ω), degrees, measured in the orbital plane from
+   *  the ascending node to the perihelion. Sets which direction perihelion
+   *  points within the orbital plane. Default 0. */
+  argPeriDeg?: number
   /** Period in Earth years. Use Infinity for interstellar visitors. */
   periodYears: number
   /** 0–1 phase along the orbit at scene start (jitters body positions). */

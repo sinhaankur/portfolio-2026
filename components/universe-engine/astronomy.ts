@@ -776,6 +776,10 @@ export const namedBodies: NamedBody[] = [
   // Orbital values here are conceptual approximations; spacecraft are
   // rendered as gently drifting points so the user can find each one even
   // though their real trajectories don't loop.
+  // Orbital elements for escape trajectories: longNodeDeg + argPeriDeg
+  // orient the orbital plane in 3D so the spacecraft's outbound direction
+  // points toward its real-world target constellation. Without these the
+  // direction would be arbitrary (just inclination, no rotation about Ω).
   {
     name: "Voyager 1",
     designation: "Voyager 1 · NASA · 1977",
@@ -783,9 +787,11 @@ export const namedBodies: NamedBody[] = [
     aAU: 166,              // current heliocentric distance (mid-2025)
     eccentricity: 1.00001,  // escape trajectory
     inclDeg: 35.7,
+    longNodeDeg: 178.9,    // post-Saturn-flyby ascending node
+    argPeriDeg: 338.2,     // perihelion direction inside the orbital plane
     periodYears: Infinity,
     startPhase: 0.0,
-    fact: "Furthest human-made object — outside the heliopause as of August 2012. Still transmitting from ~166 AU on a 22.6-watt signal that takes 23 hours to reach Earth. Carrying the Golden Record toward Gliese 445 (encounter in ~40,000 years).",
+    fact: "Furthest human-made object — outside the heliopause as of August 2012. Still transmitting from ~166 AU on a 22.6-watt signal that takes 23 hours to reach Earth. Carrying the Golden Record toward Gliese 445 (encounter in ~40,000 years). Escape direction roughly RA 17h Dec +12° (Ophiuchus / Hercules border).",
     visualRadius: 0.05,
   },
   {
@@ -794,10 +800,12 @@ export const namedBodies: NamedBody[] = [
     kind: "spacecraft",
     aAU: 138,
     eccentricity: 1.00001,
-    inclDeg: -78.8,         // dove south after Neptune flyby
+    inclDeg: 78.8,         // post-Neptune flyby — dove south steeply
+    longNodeDeg: 101.7,
+    argPeriDeg: 130.0,
     periodYears: Infinity,
     startPhase: 0.3,
-    fact: "Only spacecraft to have flown by all four giant planets — Jupiter, Saturn, Uranus, Neptune. Crossed the heliopause November 2018, six years after Voyager 1, on the opposite side of the Sun.",
+    fact: "Only spacecraft to have flown by all four giant planets — Jupiter, Saturn, Uranus, Neptune. Crossed the heliopause November 2018, six years after Voyager 1, on the opposite side of the Sun. Escape direction roughly RA 20h Dec -57° (Telescopium / Pavo).",
     visualRadius: 0.05,
   },
   {
@@ -807,9 +815,11 @@ export const namedBodies: NamedBody[] = [
     aAU: 62,
     eccentricity: 1.00001,
     inclDeg: 2.3,
+    longNodeDeg: 224.9,
+    argPeriDeg: 104.0,
     periodYears: Infinity,
     startPhase: 0.55,
-    fact: "Flew past Pluto in July 2015 — first close-up images of the dwarf planet ever taken. In 2019 it flew past Arrokoth, the most distant object ever visited (44 AU). Now drifting outward at 14 km/s toward the heliopause.",
+    fact: "Flew past Pluto in July 2015 — first close-up images of the dwarf planet ever taken. In 2019 it flew past Arrokoth, the most distant object ever visited (44 AU). Now drifting outward at 14 km/s toward the heliopause, heading roughly toward Sagittarius (RA 19h Dec -23°).",
     visualRadius: 0.045,
   },
   {
