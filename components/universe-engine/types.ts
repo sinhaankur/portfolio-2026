@@ -166,4 +166,16 @@ export type SkyPoint = {
   visualSize?: number
   /** Short fact shown in the info panel. */
   fact: string
+  /**
+   * Mass in solar masses (M☉). Currently only used by black-hole points —
+   * feeds the Schwarzschild-radius calculation that drives the per-BH
+   * visualisation scale + the physics readout overlay.
+   */
+  massSolar?: number
+  /**
+   * Optional spin parameter (Kerr `a`, dimensionless, 0–1). Affects ISCO
+   * for the accretion disk's inner edge. Defaults to 0 (Schwarzschild)
+   * when omitted; supermassive BHs are typically near-extremal (~0.9).
+   */
+  spin?: number
 }
