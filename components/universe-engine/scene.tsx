@@ -157,9 +157,19 @@ function FlyToController({ interactive }: { interactive: boolean }) {
       _flyTargetVec.set(pos.x, pos.y, pos.z)
 
       if (!follow.arrived) {
-        // Fly-in phase — lerp BOTH the controls.target AND the camera
-        // distance toward the body. This is the initial swoop in.
-        controls.target.lerp(_flyTargetVec, k)
+        // Fly-in phase. Two important details:
+        //
+        // 1. Target JUMPS to the body each frame (no lerp). Earlier
+        //    versions lerped the target and the body would drift out
+        //    from under it for fast inner planets — Mercury orbits in
+        //    ~6 seconds of real time at default warp, faster than a
+        //    13%/frame lerp can chase. With the jump, look-at is
+        //    locked on the body from frame 1 and the camera can
+        //    dolly in cinematically.
+        //
+        // 2. Camera position is the only thing lerped here — it
+        //    glides toward `follow.distance` from the body.
+        controls.target.copy(_flyTargetVec)
         _flyCamDir.copy(camera.position).sub(controls.target)
         const currentDist = _flyCamDir.length()
         if (currentDist < 1e-4) {
@@ -171,27 +181,26 @@ function FlyToController({ interactive }: { interactive: boolean }) {
         _flyDesiredCamPos.copy(controls.target).addScaledVector(_flyCamDir, nextDist)
         camera.position.copy(_flyDesiredCamPos)
 
-        // Mark arrival when the camera distance has settled within
-        // ~6% of the target. After this, the controller stops fighting
-        // user input — drag rotates, scroll zooms, autoRotate is
-        // already paused at the OrbitControls layer. Only the target
-        // keeps tracking the body's world position.
+        // Arrival = camera-to-body distance within ~8% of target. This
+        // is independent of how fast the body is moving, so Mercury
+        // (whirling around the Sun at 88-day period) arrives as
+        // reliably as Pluto. Once arrived, the controller stops
+        // overriding camera position entirely — pinch/scroll zooms
+        // and drag-rotate respond normally.
         const distErr = Math.abs(currentDist - follow.distance) / Math.max(follow.distance, 0.001)
-        if (distErr < 0.06 && controls.target.distanceTo(_flyTargetVec) < 0.08) {
+        if (distErr < 0.08) {
           follow.arrived = true
         }
       } else {
         // Arrived — track the moving target without overriding camera
-        // position. OrbitControls preserves the user's offset from the
-        // target, so as the body orbits the camera slides along with
-        // it while drag/zoom respond normally. The target jump (not
-        // lerp) here means zero lag between body position and look-at,
-        // so the body never drifts off-centre.
+        // distance. OrbitControls preserves the user's spherical
+        // offset (radius + angles), so as the body sweeps through
+        // space the camera slides along with it while drag/zoom
+        // respond to input normally. We move target + camera by the
+        // same per-frame delta so the *offset* OrbitControls reads
+        // stays unchanged frame to frame.
         const targetDelta = _flyTargetVec.clone().sub(controls.target)
         controls.target.copy(_flyTargetVec)
-        // Move the camera by the same delta so the user's view angle
-        // and distance to the body are preserved frame-to-frame as
-        // the body sweeps through space.
         camera.position.add(targetDelta)
       }
 
