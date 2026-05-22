@@ -11,19 +11,21 @@
  */
 
 /** A landing site or named feature pinned to a planet's surface — e.g.
- *  Mars rover landing sites. Pinned at real lat / lon, rotates with the
- *  planet so the pin stays attached to the right spot. */
+ *  Mars rover landing sites or major geographic landmarks. Pinned at real
+ *  lat / lon, rotates with the planet so the pin stays attached to the
+ *  right spot. */
 export type SurfaceFeature = {
   name: string
   /** Latitude in degrees, -90 (south pole) to +90 (north pole). */
   lat: number
   /** Longitude in degrees, 0–360 east-positive (planetographic convention). */
   lon: number
-  /** Landing date or mission start. Free-form short string. */
+  /** Mission date or "—" / "natural" for geographic features. */
   date: string
-  /** Mission status — drives the pin colour. */
-  status: "active" | "completed" | "lost"
-  /** Agency / nation, e.g. "NASA", "ESA / Roscosmos", "CNSA". */
+  /** For missions: mission status. For naturals: always "natural" — drives
+   *  pin colour + visual treatment (dot vs outline ring). */
+  status: "active" | "completed" | "lost" | "natural"
+  /** Agency / nation for missions; "—" for naturals. */
   agency: string
   /** Short fact for the hover label tooltip. */
   fact: string
