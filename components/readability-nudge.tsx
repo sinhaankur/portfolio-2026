@@ -74,17 +74,18 @@ export function ReadabilityNudge() {
           exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 16 }}
           transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
           className="
-            fixed bottom-6 left-6 z-30
-            inline-flex items-center gap-2 md:gap-3
+            fixed z-30
+            bottom-24 left-4 right-4
+            md:bottom-6 md:left-6 md:right-auto
+            flex items-center gap-2 md:gap-3
             rounded-full border border-border
             bg-background/75 backdrop-blur-md
             pl-3 md:pl-4 pr-1.5 py-1.5
             shadow-[0_10px_30px_-12px_rgba(0,0,0,0.6)]
-            max-w-[calc(100vw-3rem)]
           "
         >
           <Sun className="w-3.5 h-3.5 text-accent shrink-0" aria-hidden="true" />
-          <span className="font-sans text-xs md:text-sm text-foreground/85 leading-tight">
+          <span className="flex-1 md:flex-none font-sans text-xs md:text-sm text-foreground/85 leading-tight">
             Easier to read in light mode.
           </span>
           <button
