@@ -808,7 +808,10 @@ export const namedBodies: NamedBody[] = [
     periodYears: 1.0,
     startPhase: 0.65,
     fact: "Orbits the Sun-Earth L2 Lagrange point, 1.5 million km beyond Earth on the night side, kept cold by a tennis-court-sized sun shield. Looking deeper into the universe than any telescope before — first light January 2022.",
-    visualRadius: 0.045,
+    // Visual radius kept tiny — JWST is washing-machine-sized in reality.
+    // At its true L2 position (~0.01 AU past Earth) the inflated render
+    // would otherwise visually clash with Earth on any close zoom.
+    visualRadius: 0.022,
   },
   {
     name: "Parker Solar Probe",
@@ -832,7 +835,11 @@ export const namedBodies: NamedBody[] = [
     periodYears: 1.48,
     startPhase: 0.78,
     fact: "Returned asteroid Ryugu samples to Earth in December 2020 — second-ever asteroid sample return, after the original Hayabusa. Now on an 11-year extended cruise toward asteroid 1998 KY26 (rendezvous July 2031) with a 2026 Earth flyby and a 2027 flyby of asteroid 2001 CC21.",
-    visualRadius: 0.04,
+    // Inner-system spacecraft (sub-2-AU) get a smaller visualRadius so
+    // they read as probes, not planets, when they happen to cluster
+    // near Earth at the current sim time. Real orbital positions are
+    // preserved — only the render size shrinks.
+    visualRadius: 0.018,
   },
   {
     name: "OSIRIS-APEX",
@@ -844,7 +851,7 @@ export const namedBodies: NamedBody[] = [
     periodYears: 1.22,
     startPhase: 0.85,
     fact: "Originally OSIRIS-REx — flew to asteroid Bennu and dropped the sample capsule on Utah in September 2023, then was redirected as OSIRIS-APEX to rendezvous with near-Earth asteroid 99942 Apophis on April 13, 2029, the day Apophis makes its closest flyby of Earth (~32,000 km).",
-    visualRadius: 0.04,
+    visualRadius: 0.018,
   },
   {
     name: "Lucy",
@@ -856,7 +863,7 @@ export const namedBodies: NamedBody[] = [
     periodYears: 6.0,
     startPhase: 0.20,
     fact: "First mission to the Jupiter Trojans — the two clouds of asteroids that share Jupiter's orbit, 60° ahead and behind it. Eleven-year tour visiting eight asteroids between 2025 and 2033, including Donaldjohanson (April 2025) and Eurybates with its tiny moon Queta.",
-    visualRadius: 0.04,
+    visualRadius: 0.018,
   },
   {
     name: "BepiColombo",
@@ -868,7 +875,7 @@ export const namedBodies: NamedBody[] = [
     periodYears: 0.53,
     startPhase: 0.92,
     fact: "Joint ESA / JAXA Mercury mission — completing nine planetary flybys (Earth × 1, Venus × 2, Mercury × 6) before braking into Mercury orbit in November 2026. Two orbiters then separate: one mapping the surface, one studying the magnetosphere.",
-    visualRadius: 0.04,
+    visualRadius: 0.018,
   },
 ]
 

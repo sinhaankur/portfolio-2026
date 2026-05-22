@@ -620,13 +620,19 @@ function MoonBody({
       bodyRef.current.scale.set(next, next, next)
     }
     if (haloRef.current) {
-      const haloTarget = highlighted ? 2.6 : 0.001
+      // Halo size tuned tight (1.5×) so the moon is findable from far
+      // away without the halo punching through the parent planet's
+      // atmosphere on close zoom. Pre-tuning was 2.6× and blew out
+      // Earth's atmosphere halo whenever Earth + Moon shared screen.
+      const haloTarget = highlighted ? 1.5 : 0.001
       const s = haloRef.current.scale.x
       const next = s + (haloTarget - s) * k
       haloRef.current.scale.set(next, next, next)
     }
     if (haloMatRef.current) {
-      const opacityTarget = highlighted ? 0.35 : 0
+      // Halo opacity dropped from 0.35 → 0.18 for the same reason — the
+      // additive blend at 0.35 dominated whatever was behind it.
+      const opacityTarget = highlighted ? 0.18 : 0
       haloMatRef.current.opacity += (opacityTarget - haloMatRef.current.opacity) * k
     }
     // Texture overlay fades in only when the parent planet is highlighted —
