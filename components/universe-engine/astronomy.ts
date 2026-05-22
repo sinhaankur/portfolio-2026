@@ -1745,6 +1745,18 @@ export const skyPoints: SkyPoint[] = [
     distance: "40.7 ly",
     fact: "Ultra-cool dwarf star hosting seven Earth-sized rocky planets, three or four in the habitable zone. Most planet-rich nearby system known. JWST observations are searching for atmospheres on TRAPPIST-1 b, c, d, e.",
     visualSize: 0.5,
+    // Seven Earth-sized planets — actual orbital data. b/c are too hot,
+    // e/f/g are in the habitable zone, h is too cold. All in a 1:2:4:8
+    // mean-motion resonance chain.
+    planets: [
+      { name: "TRAPPIST-1 b", aAU: 0.0115, radiusEarth: 1.116, periodDays: 1.51,  type: "Rocky, hot",                                              fact: "Hottest of the seven; tidally locked, possibly bare rock. JWST 2023 found no thick atmosphere." },
+      { name: "TRAPPIST-1 c", aAU: 0.0158, radiusEarth: 1.097, periodDays: 2.42,  type: "Rocky, hot",                                              fact: "Earth-sized, Venus-like surface temperature. JWST detected little atmosphere." },
+      { name: "TRAPPIST-1 d", aAU: 0.0223, radiusEarth: 0.788, periodDays: 4.05,  type: "Rocky, warm",                                             fact: "Smallest of the seven; just inside the habitable zone's inner edge." },
+      { name: "TRAPPIST-1 e", aAU: 0.0293, radiusEarth: 0.920, periodDays: 6.10,  type: "Rocky, habitable zone", habitableZone: true,             fact: "Strongest candidate for habitability — Earth-sized, in the heart of the liquid-water zone, density consistent with a rocky world." },
+      { name: "TRAPPIST-1 f", aAU: 0.0385, radiusEarth: 1.045, periodDays: 9.21,  type: "Rocky, habitable zone", habitableZone: true,             fact: "Earth-sized, in the habitable zone, possibly with a water-rich composition." },
+      { name: "TRAPPIST-1 g", aAU: 0.0469, radiusEarth: 1.129, periodDays: 12.35, type: "Rocky, habitable zone", habitableZone: true,             fact: "Largest of the seven, outer edge of the habitable zone — likely an icy or volatile-rich world." },
+      { name: "TRAPPIST-1 h", aAU: 0.0619, radiusEarth: 0.755, periodDays: 18.77, type: "Rocky, cold",                                            fact: "Outermost known planet — surface temperatures of a 'snowball' world, but possibly with subsurface ocean under ice." },
+    ],
   },
   {
     id: "kepler-186",
