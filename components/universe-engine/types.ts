@@ -62,6 +62,10 @@ export type MoonData = {
   periodDays: number
   shade: string
   fact: string
+  /** Optional equirectangular surface texture URL — used for Luna so the
+   *  tidally-locked near-side reads on Earth deep-zoom. Loaded lazily when
+   *  the parent planet enters its focused/hovered state. */
+  textureUrl?: string
 }
 
 export type ConstellationStar = {

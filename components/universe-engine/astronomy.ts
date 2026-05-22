@@ -390,7 +390,7 @@ export function planetToInfo(p: Planet): BodyInfo {
  * ------------------------------------------------------------------------ */
 
 export const moons: MoonData[] = [
-  { name: "Moon (Luna)",     parent: "Earth",   visualRadius: 0.05,  orbitRadius: 0.42, periodDays: 27.32,  shade: "#bdbdbd", fact: "Earth's only natural satellite. Surface temp −173 to +127 °C. Tidally locked — same face always toward Earth." },
+  { name: "Moon (Luna)",     parent: "Earth",   visualRadius: 0.05,  orbitRadius: 0.42, periodDays: 27.32,  shade: "#bdbdbd", fact: "Earth's only natural satellite. Surface temp −173 to +127 °C. Tidally locked — same face always toward Earth.", textureUrl: "/textures/moon.jpg" },
   // Mars's two tiny moons — both probably captured asteroids
   { name: "Phobos",          parent: "Mars",    visualRadius: 0.025, orbitRadius: 0.38, periodDays: 0.319,  shade: "#9a8b78", fact: "Closer to its planet than any other moon in the solar system — orbits Mars in just 7.6 hours. Spirals inward by ~1.8 m per century; will eventually crash or shatter into a ring." },
   { name: "Deimos",          parent: "Mars",    visualRadius: 0.020, orbitRadius: 0.55, periodDays: 1.263,  shade: "#a89a85", fact: "Smaller of Mars's two moons — only 12 km across. From the Martian surface, Deimos would look like a slightly brighter star, not a disc." },

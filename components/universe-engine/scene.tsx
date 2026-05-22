@@ -507,12 +507,29 @@ function MoonBody({
   const bodyRef = useRef<Mesh>(null)
   const haloRef = useRef<Mesh>(null)
   const haloMatRef = useRef<import("three").MeshBasicMaterial>(null)
+  const texMatRef = useRef<import("three").MeshStandardMaterial>(null)
+  const [texture, setTexture] = useState<Texture | null>(null)
 
   const speedRadPerSec = useMemo(
     () => (2 * Math.PI) / (moon.periodDays / TIME_WARP_DAYS_PER_SEC),
     [moon.periodDays],
   )
   const startPhase = useMemo(() => Math.random() * Math.PI * 2, [])
+
+  // Lazy-load the moon's surface texture (Luna is the only one with one
+  // today) the first time the parent planet is highlighted. Keeps the
+  // ~1 MB JPEG out of first paint while still feeling instant — Earth
+  // bloom hits before the user can deep-zoom in to read the surface.
+  const textureUrl = moon.textureUrl
+  useEffect(() => {
+    if (!textureUrl || !highlighted || texture) return
+    const loader = new TextureLoader()
+    loader.load(textureUrl, (tex) => {
+      tex.colorSpace = SRGBColorSpace
+      tex.anisotropy = 8
+      setTexture(tex)
+    })
+  }, [textureUrl, highlighted, texture])
 
   useEffect(() => {
     if (orbitRef.current) orbitRef.current.rotation.y = startPhase
@@ -539,6 +556,12 @@ function MoonBody({
       const opacityTarget = highlighted ? 0.35 : 0
       haloMatRef.current.opacity += (opacityTarget - haloMatRef.current.opacity) * k
     }
+    // Texture overlay fades in only when the parent planet is highlighted —
+    // matches the planet's chart-marker → photo-real morph beat.
+    if (texMatRef.current) {
+      const target = highlighted && texture ? 1 : 0
+      texMatRef.current.opacity += (target - texMatRef.current.opacity) * k
+    }
   })
 
   const hitRadius = Math.max(moon.visualRadius * 3, 0.12)
@@ -560,6 +583,23 @@ function MoonBody({
       <mesh ref={bodyRef} position={[moon.orbitRadius, 0, 0]}>
         <sphereGeometry args={[moon.visualRadius, 24, 24]} />
         <meshStandardMaterial color={moon.shade} roughness={0.95} />
+        {/* Textured-globe overlay — currently only Luna ships a real surface
+            map. Slightly larger to z-fight-cleanly above the grey marker,
+            and lerps in only when the parent planet is highlighted. */}
+        {textureUrl && texture && (
+          <mesh>
+            <sphereGeometry args={[moon.visualRadius * 1.01, 48, 48]} />
+            <meshStandardMaterial
+              ref={texMatRef as React.Ref<import("three").MeshStandardMaterial>}
+              map={texture}
+              roughness={0.95}
+              metalness={0.0}
+              transparent
+              opacity={0}
+              depthWrite={false}
+            />
+          </mesh>
+        )}
       </mesh>
       <mesh
         position={[moon.orbitRadius, 0, 0]}
@@ -1347,12 +1387,19 @@ function PlanetBody({
       const target = detailActive && texture ? 1 : 0
       texMatRef.current.opacity += (target - texMatRef.current.opacity) * k
     }
-    // Earth's atmosphere glow — soft cyan halo that fades in when the
-    // planet is hovered or focused. Sells the "look closer" moment when
-    // the user flies in. Lives on a separate slightly-larger sphere.
+    // Rocky-planet atmosphere glow — soft halo that fades in when the
+    // planet is hovered or focused. Sells the "look closer" moment.
+    // Per-planet intensity matches the actual atmospheric depth: Venus
+    // is dense + reflective (you see the cloud deck, not the surface),
+    // Earth's is iconic but thinner, Mars's is almost transparent.
     if (atmosMatRef.current) {
       const k = 1 - Math.exp(-delta * 8)
-      const target = detailActive ? (invert ? 0.18 : 0.28) : 0
+      const peakOpacity =
+        planet.raw.name === "Venus" ? (invert ? 0.32 : 0.50) :
+        planet.raw.name === "Earth" ? (invert ? 0.18 : 0.30) :
+        planet.raw.name === "Mars"  ? (invert ? 0.10 : 0.16) :
+        0.28
+      const target = detailActive ? peakOpacity : 0
       atmosMatRef.current.opacity += (target - atmosMatRef.current.opacity) * k
     }
   })
@@ -1363,8 +1410,23 @@ function PlanetBody({
   // Earth's Luna, Jupiter's Galilean four, Saturn's Titan, Neptune's Triton,
   // Pluto's Charon — all coordinated to the parent's interactive state.
   const moonsHighlighted = detailActive
-  // Earth gets an atmosphere glow on focus — visible while flying in close.
-  const hasAtmosphere = planet.raw.name === "Earth"
+  // Rocky planets with real atmospheres get a limb-glow halo on focus.
+  // Colour matches each atmosphere's actual scattering — cyan-blue for
+  // Earth, pale cream for Venus's sulfuric clouds, faint salmon for
+  // Mars's thin CO₂ dust. Shell size scales with actual atmospheric
+  // depth: Venus's dense deck bloats noticeably, Mars's barely halos.
+  // Gas giants are skipped because the visible planet *is* its atmosphere.
+  const atmosphereColor =
+    planet.raw.name === "Earth" ? (invert ? "#3a5a7a" : "#7ec8ff") :
+    planet.raw.name === "Venus" ? (invert ? "#5a4828" : "#fff0b8") :
+    planet.raw.name === "Mars"  ? (invert ? "#4a2018" : "#ffa284") :
+    null
+  const hasAtmosphere = atmosphereColor !== null
+  const atmosphereScale =
+    planet.raw.name === "Venus" ? 1.060 :
+    planet.raw.name === "Earth" ? 1.045 :
+    planet.raw.name === "Mars"  ? 1.025 :
+    1.045
 
   return (
     <group rotation={[planet.inclination, 0, 0]}>
@@ -1405,15 +1467,16 @@ function PlanetBody({
               </mesh>
             )}
 
-            {/* Earth atmosphere — soft cyan halo that fades in on hover/focus.
-                A slightly larger sphere with additive blending; the limb
-                reads as the iconic atmosphere glow you see in Blue Marble. */}
-            {hasAtmosphere && (
+            {/* Rocky-planet atmosphere halo — Earth's cyan, Venus's pale
+                yellow, Mars's faint salmon. Slightly larger sphere with
+                additive blending; the limb glow reads as the planet's
+                actual atmospheric scattering on approach. */}
+            {hasAtmosphere && atmosphereColor && (
               <mesh>
-                <sphereGeometry args={[planet.visualRadius * 1.045, 64, 64]} />
+                <sphereGeometry args={[planet.visualRadius * atmosphereScale, 64, 64]} />
                 <meshBasicMaterial
                   ref={atmosMatRef as React.Ref<import("three").MeshBasicMaterial>}
-                  color={invert ? "#3a5a7a" : "#7ec8ff"}
+                  color={atmosphereColor}
                   transparent
                   opacity={0}
                   blending={invert ? NormalBlending : AdditiveBlending}
@@ -2224,6 +2287,10 @@ function computeBlackHoleProportions(massSolar: number, spin: number, baseScale:
   const visualMultiplier = 0.75 + Math.max(0, Math.min(1, (logRs - 5) / 8)) * 0.7
   const detailScale = baseScale * 4.0 * visualMultiplier
 
+  // Scene-unit radii. Sized so the photon halo hugs the horizon tightly
+  // (Gargantua silhouette) and the disk extends far outward with fade.
+  // Horizon size shrinks slightly for high-spin Kerr BHs.
+  const horizonR = detailScale * 0.22 * (rPlusMeters / rsMeters)
   return {
     rsMeters,
     rPlusMeters,
@@ -2231,15 +2298,27 @@ function computeBlackHoleProportions(massSolar: number, spin: number, baseScale:
     iscoMeters,
     outerMeters,
     iscoFactor,
-    // Scene-unit radii — these set the actual rendered geometry sizes
-    horizonR:  detailScale * 0.30 * (rPlusMeters / rsMeters), // ≤ 0.30, smaller for Kerr
-    photonR:   detailScale * 0.40,                            // ~ 1.5 × horizon (for spin=0)
-    iscoInner: detailScale * 0.42,
-    iscoOuter: detailScale * 0.75,
-    outerInner: detailScale * 0.75,
-    outerOuter: detailScale * 1.20,
-    lensInner:  detailScale * 0.42,
-    lensOuter:  detailScale * 0.80,
+    horizonR,
+    // Photon ring — saturated thin band right at the horizon (1.05 - 1.18 × rh)
+    photonInner: horizonR * 1.02,
+    photonOuter: horizonR * 1.18,
+    // Lensed halo — tight white band wrapping over + under the BH.
+    // 1.0 → 1.55 × horizon, brighter than the disk so it reads as photon-sphere lensed light.
+    haloInner:   horizonR * 1.00,
+    haloOuter:   horizonR * 1.55,
+    // Accretion disk layers — three concentric belts going outward.
+    // Inner (white hot) — sits just outside the ISCO.
+    diskInner1:  horizonR * 1.80,
+    diskOuter1:  horizonR * 3.20,
+    // Mid (white, slight warm) — bulk of the visible disk.
+    diskInner2:  horizonR * 3.20,
+    diskOuter2:  horizonR * 5.60,
+    // Outer (warm fade) — sells the dramatic dust extending into space.
+    diskInner3:  horizonR * 5.60,
+    diskOuter3:  horizonR * 9.00,
+    // Far-outer dust trail.
+    diskInner4:  horizonR * 9.00,
+    diskOuter4:  horizonR * 12.5,
     detailScale,
   }
 }
@@ -2301,15 +2380,19 @@ function BlackHoleDetail({
   const isStellarMass = M < 1000
   const diskBoost = isStellarMass ? 1.25 : 1.0
 
-  // Palette — invert mode tones it down to ink-on-cream.
+  // Palette — Interstellar/Gargantua look: the accretion disk plasma is
+  // so hot (~10⁹ K near the inner edge) that it radiates close to white
+  // not orange. Warm tones reserved for the outer fade where the disk
+  // cools and the dust trail extends into space.
   const palette = {
-    horizon: "#000000",
-    photon:  invert ? "#b34a13" : "#fff5d0",
-    diskHot: invert ? "#b34a13" : "#ffd089",
-    diskMid: invert ? "#7a3a16" : "#ff9c43",
-    diskCold: invert ? "#5a2a10" : "#e26a1f",
-    lensHot: invert ? "#b34a13" : "#ffc77a",
-    lensCold: invert ? "#5a2a10" : "#c25315",
+    horizon:   "#000000",
+    photon:    invert ? "#1a0d06" : "#ffffff",
+    haloHot:   invert ? "#1a0d06" : "#ffffff",
+    haloCold:  invert ? "#2a1810" : "#fff5e8",
+    diskCore:  invert ? "#1a0d06" : "#ffffff",
+    diskMid:   invert ? "#2a1810" : "#fff0d8",
+    diskOuter: invert ? "#3a2014" : "#ffc878",
+    diskFar:   invert ? "#4a2810" : "#cd6614",
   }
 
   useFrame((_, delta) => {
@@ -2350,35 +2433,18 @@ function BlackHoleDetail({
 
   return (
     <group ref={rootRef} scale={0.001}>
-      {/* Event horizon — opaque black sphere sized by Kerr r₊.
-          Punches a hole through the additive disk layers. */}
-      <mesh>
-        <sphereGeometry args={[props.horizonR, 32, 32]} />
-        <meshBasicMaterial color={palette.horizon} />
-      </mesh>
-
-      {/* Photon ring — at 1.5 × rs. The EHT M87* image is this ring. */}
-      <mesh rotation={[Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[props.photonR * 0.97, props.photonR, 96]} />
-        <meshBasicMaterial
-          ref={registerMat(0, invert ? 0.85 : 1.0)}
-          color={palette.photon}
-          transparent
-          opacity={0}
-          side={DoubleSide}
-          blending={invert ? NormalBlending : AdditiveBlending}
-          depthWrite={false}
-        />
-      </mesh>
-
-      {/* Accretion disk — tilted ~17° from edge-on. Two-layer structure
-          (hot inner, cool outer). Inner edge starts at ISCO. */}
-      <group ref={spinRef} rotation={[Math.PI / 2 - 0.30, 0, 0]}>
+      {/* === Accretion disk — four concentric belts, tilted ~10° from
+          edge-on so the elliptical shape reads but the disk still
+          appears nearly side-on. Layers go from white-hot at the inner
+          edge to warm orange dust at the outer reach. === */}
+      <group ref={spinRef} rotation={[Math.PI / 2 - 0.18, 0, 0]}>
+        {/* Far dust trail — warm orange, low opacity. The dramatic
+            "extending into space" trail you see in Gargantua. */}
         <mesh>
-          <ringGeometry args={[props.iscoInner, props.iscoOuter, 96]} />
+          <ringGeometry args={[props.diskInner4, props.diskOuter4, 128]} />
           <meshBasicMaterial
-            ref={registerMat(1, (invert ? 0.55 : 0.85) * diskBoost)}
-            color={palette.diskHot}
+            ref={registerMat(0, (invert ? 0.25 : 0.45) * diskBoost)}
+            color={palette.diskFar}
             transparent
             opacity={0}
             side={DoubleSide}
@@ -2386,11 +2452,39 @@ function BlackHoleDetail({
             depthWrite={false}
           />
         </mesh>
+        {/* Outer disk — warm/orange transition. */}
         <mesh>
-          <ringGeometry args={[props.outerInner, props.outerOuter, 96]} />
+          <ringGeometry args={[props.diskInner3, props.diskOuter3, 128]} />
           <meshBasicMaterial
-            ref={registerMat(2, (invert ? 0.35 : 0.55) * diskBoost)}
-            color={palette.diskCold}
+            ref={registerMat(1, (invert ? 0.4 : 0.65) * diskBoost)}
+            color={palette.diskOuter}
+            transparent
+            opacity={0}
+            side={DoubleSide}
+            blending={invert ? NormalBlending : AdditiveBlending}
+            depthWrite={false}
+          />
+        </mesh>
+        {/* Mid disk — bulk of the visible glow. Off-white. */}
+        <mesh>
+          <ringGeometry args={[props.diskInner2, props.diskOuter2, 128]} />
+          <meshBasicMaterial
+            ref={registerMat(2, (invert ? 0.55 : 0.85) * diskBoost)}
+            color={palette.diskMid}
+            transparent
+            opacity={0}
+            side={DoubleSide}
+            blending={invert ? NormalBlending : AdditiveBlending}
+            depthWrite={false}
+          />
+        </mesh>
+        {/* Inner disk — white hot, just outside the ISCO. The brightest
+            part of the visible disk. */}
+        <mesh>
+          <ringGeometry args={[props.diskInner1, props.diskOuter1, 128]} />
+          <meshBasicMaterial
+            ref={registerMat(3, (invert ? 0.85 : 1.0) * diskBoost)}
+            color={palette.diskCore}
             transparent
             opacity={0}
             side={DoubleSide}
@@ -2400,13 +2494,27 @@ function BlackHoleDetail({
         </mesh>
       </group>
 
-      {/* Lensed top arc — disk's far side bent up and over the BH.
-          Doppler-beamed bright (approaching the observer). */}
-      <mesh rotation={[0, 0, 0]}>
-        <ringGeometry args={[props.lensInner, props.lensOuter, 64, 1, 0, Math.PI]} />
+      {/* === Event horizon — opaque black sphere. Renders AFTER the
+          disk's far side (which it occludes behind itself) but BEFORE
+          the lensed halo (which sits on top of the horizon silhouette). === */}
+      <mesh>
+        <sphereGeometry args={[props.horizonR, 64, 64]} />
+        <meshBasicMaterial color={palette.horizon} />
+      </mesh>
+
+      {/* === Lensed halo — the iconic "halo above and below the horizon"
+          you see in Interstellar's Gargantua. This is the gravitationally
+          lensed image of the disk's far side wrapping over the top + under
+          the bottom of the BH. Rendered as two perpendicular half-rings
+          that together form a tight ring around the silhouette. === */}
+
+      {/* Upper halo arc — saturated white. Slightly thicker than the lower
+          to fake Doppler beaming (approaching side brightens). */}
+      <mesh>
+        <ringGeometry args={[props.haloInner, props.haloOuter, 96, 1, 0, Math.PI]} />
         <meshBasicMaterial
-          ref={registerMat(3, (invert ? 0.55 : 0.85) * diskBoost)}
-          color={palette.lensHot}
+          ref={registerMat(4, (invert ? 0.85 : 1.0) * diskBoost)}
+          color={palette.haloHot}
           transparent
           opacity={0}
           side={DoubleSide}
@@ -2415,12 +2523,29 @@ function BlackHoleDetail({
         />
       </mesh>
 
-      {/* Lensed bottom arc — receding side, dimmer. */}
+      {/* Lower halo arc — slightly thinner + dimmer (Doppler receding). */}
       <mesh rotation={[0, 0, Math.PI]}>
-        <ringGeometry args={[props.lensInner, props.lensOuter * 0.92, 64, 1, 0, Math.PI]} />
+        <ringGeometry args={[props.haloInner, props.haloOuter * 0.94, 96, 1, 0, Math.PI]} />
         <meshBasicMaterial
-          ref={registerMat(4, (invert ? 0.35 : 0.55) * diskBoost)}
-          color={palette.lensCold}
+          ref={registerMat(5, (invert ? 0.65 : 0.82) * diskBoost)}
+          color={palette.haloCold}
+          transparent
+          opacity={0}
+          side={DoubleSide}
+          blending={invert ? NormalBlending : AdditiveBlending}
+          depthWrite={false}
+        />
+      </mesh>
+
+      {/* === Photon ring — innermost saturated white sliver, hugging the
+          event horizon. This is the actual photon sphere (1.5 × rs).
+          Rendered tilted in step with the disk so it reads as the bright
+          inner rim of the lensed light path, not a flat halo. === */}
+      <mesh rotation={[Math.PI / 2 - 0.18, 0, 0]}>
+        <ringGeometry args={[props.photonInner, props.photonOuter, 128]} />
+        <meshBasicMaterial
+          ref={registerMat(6, (invert ? 0.95 : 1.0) * diskBoost)}
+          color={palette.photon}
           transparent
           opacity={0}
           side={DoubleSide}
