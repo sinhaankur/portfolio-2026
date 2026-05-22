@@ -2421,6 +2421,9 @@ function NamedBodyMesh({
    *  always streams away from the Sun (origin), matching real solar-wind
    *  physics. Only used when body.kind === "comet" (or Comet Borisov). */
   const tailRef = useRef<Group>(null)
+  /** Trail material — opacity lerps with hover state so the static orbit
+   *  paths don't pile up at crossings (the no-collisions rule). */
+  const trailMatRef = useRef<import("three").PointsMaterial>(null)
   const [isHovered, setIsHovered] = useState(false)
 
   // Pre-compute everything time-independent: orbital scale, tilt, base colour.
@@ -2522,6 +2525,20 @@ function NamedBodyMesh({
       _tailTo.set(px / len, py / len, pz / len)
       tailRef.current.quaternion.setFromUnitVectors(_tailFrom, _tailTo)
     }
+
+    // Trail opacity lerps with hover state — addresses the no-collisions
+    // rule for orbit paths. With ~20 named bodies all drawing static
+    // trails (comets cross every inner-planet ring, asteroids cross each
+    // other), the screen was a tangle. Hovered body brightens, others
+    // stay at a faint baseline so crossings read as ghostly rather than
+    // colliding.
+    if (trailMatRef.current) {
+      const baseIdle = config.isLoop ? (invert ? 0.18 : 0.10) : (invert ? 0.14 : 0.08)
+      const baseHover = config.isLoop ? (invert ? 0.65 : 0.50) : (invert ? 0.55 : 0.42)
+      const target = isHovered ? baseHover : baseIdle
+      const k = 1 - Math.exp(-delta * 8)
+      trailMatRef.current.opacity += (target - trailMatRef.current.opacity) * k
+    }
   })
 
   // Hit-zone radius — never smaller than 0.16 so even tiny bodies are
@@ -2532,14 +2549,19 @@ function NamedBodyMesh({
     // Both the trail (anchored at the Sun) and the moving body live in the
     // same parent so they share the SolarSystem's coordinate frame.
     <group>
-      {/* Orbit trail — thin dotted ellipse traced once at mount, never updated. */}
+      {/* Orbit trail — thin dotted ellipse traced once at mount, never updated.
+          Opacity is driven by the useFrame above so the hovered body's path
+          brightens and the rest stay faint — keeps crossings (Halley over
+          every inner-planet ring, asteroid trails over each other) from
+          piling up into visual noise. */}
       <points geometry={trailGeometry}>
         <pointsMaterial
+          ref={trailMatRef as React.Ref<import("three").PointsMaterial>}
           size={invert ? 0.024 : 0.020}
           sizeAttenuation
           color={invert ? "#1a1208" : config.shade}
           transparent
-          opacity={config.isLoop ? (invert ? 0.4 : 0.25) : (invert ? 0.3 : 0.18)}
+          opacity={config.isLoop ? (invert ? 0.18 : 0.10) : (invert ? 0.14 : 0.08)}
           depthWrite={false}
         />
       </points>
