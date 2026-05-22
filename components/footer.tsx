@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from "react"
 import { motion, useReducedMotion } from "framer-motion"
-import { ArrowUpRight } from "lucide-react"
+import { ArrowUpRight, Download } from "lucide-react"
 
-const socials = [
+const socials: Array<{ label: string; href: string; download?: boolean }> = [
   { label: "Email", href: "mailto:sinhaankur@ymail.com" },
   { label: "LinkedIn", href: "https://linkedin.com/in/sinhaankur27" },
   { label: "GitHub", href: "https://github.com/sinhaankur" },
+  { label: "Resume", href: "/ankur-sinha-resume.pdf", download: true },
 ]
 
 export function Footer() {
@@ -55,40 +56,65 @@ export function Footer() {
             </p>
           </div>
 
-          <motion.a
-            href="mailto:sinhaankur@ymail.com?subject=Let%27s%20collaborate"
-            aria-label="Email Ankur Sinha to collaborate"
-            data-cursor-hover
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
-            onFocus={() => setIsHovered(true)}
-            onBlur={() => setIsHovered(false)}
-            whileHover={prefersReducedMotion ? undefined : { x: 4 }}
-            transition={{ type: "spring", stiffness: 300, damping: 20 }}
-            className="
-              group inline-flex items-center gap-3 self-start md:self-end shrink-0
-              px-6 py-3.5 border border-border rounded-full
-              font-mono text-xs tracking-[0.25em] uppercase
-              bg-background text-foreground
-              hover:bg-accent hover:text-accent-foreground hover:border-accent
-              transition-colors duration-300
-              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
-              focus-visible:ring-offset-4 focus-visible:ring-offset-background
-              min-h-11
-            "
-          >
-            Email me
-            <motion.span
-              aria-hidden="true"
-              animate={
-                prefersReducedMotion ? undefined : { rotate: isHovered ? 45 : 0 }
-              }
-              transition={{ duration: 0.3 }}
-              className="inline-flex"
+          <div className="flex flex-wrap items-center gap-3 self-start md:self-end shrink-0">
+            <motion.a
+              href="mailto:sinhaankur@ymail.com?subject=Let%27s%20collaborate"
+              aria-label="Email Ankur Sinha to collaborate"
+              data-cursor-hover
+              onMouseEnter={() => setIsHovered(true)}
+              onMouseLeave={() => setIsHovered(false)}
+              onFocus={() => setIsHovered(true)}
+              onBlur={() => setIsHovered(false)}
+              whileHover={prefersReducedMotion ? undefined : { x: 4 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              className="
+                group inline-flex items-center gap-3
+                px-6 py-3.5 border border-border rounded-full
+                font-mono text-xs tracking-[0.25em] uppercase
+                bg-background text-foreground
+                hover:bg-accent hover:text-accent-foreground hover:border-accent
+                transition-colors duration-300
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+                focus-visible:ring-offset-4 focus-visible:ring-offset-background
+                min-h-11
+              "
             >
-              <ArrowUpRight className="w-4 h-4" />
-            </motion.span>
-          </motion.a>
+              Email me
+              <motion.span
+                aria-hidden="true"
+                animate={
+                  prefersReducedMotion ? undefined : { rotate: isHovered ? 45 : 0 }
+                }
+                transition={{ duration: 0.3 }}
+                className="inline-flex"
+              >
+                <ArrowUpRight className="w-4 h-4" />
+              </motion.span>
+            </motion.a>
+
+            {/* Secondary action — résumé download. Quieter (no fill on hover,
+                muted border) so it doesn't compete with the primary email CTA. */}
+            <a
+              href="/ankur-sinha-resume.pdf"
+              download
+              data-cursor-hover
+              aria-label="Download résumé (PDF)"
+              className="
+                group inline-flex items-center gap-3
+                px-6 py-3.5 border border-border/70 rounded-full
+                font-mono text-xs tracking-[0.25em] uppercase
+                bg-transparent text-foreground/80
+                hover:text-foreground hover:border-foreground/60
+                transition-colors duration-300
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+                focus-visible:ring-offset-4 focus-visible:ring-offset-background
+                min-h-11
+              "
+            >
+              Résumé
+              <Download className="w-4 h-4" aria-hidden="true" />
+            </a>
+          </div>
         </div>
       </section>
 
