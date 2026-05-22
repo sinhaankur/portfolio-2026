@@ -41,7 +41,7 @@ import { useTheme } from "next-themes"
 
 import { SOLAR_SYSTEM_POSITION, SUN_OFFSET_SCENE, timeWarpRef } from "./astronomy"
 import { SceneContents } from "./scene"
-import { InfoPanel, ResetViewButton, TimeWarpSlider } from "./hud"
+import { DestinationsMenu, InfoPanel, ResetViewButton, TimeWarpSlider } from "./hud"
 import { MobileBodySheet } from "./mobile-sheet"
 import { GalaxyMusic } from "../galaxy-music"
 import type { BodyInfo, HoverHandler } from "./types"
@@ -146,15 +146,23 @@ export function UniverseEngine({
           onResetView={handleReset}
           mobile={mobile}
           invert={invert}
+          interactive={interactive}
         />
 
         <OrbitControls
           ref={orbitRef as React.Ref<OrbitControlsImpl>}
           enabled={interactive}
-          enablePan={false}
+          // Pan available in explore mode so keyboard arrows + right-click drag
+          // let users drift past the default radius around the Sun. Screen-space
+          // panning keeps the gesture predictable across viewing angles.
+          enablePan={interactive}
+          screenSpacePanning
+          keyPanSpeed={8}
           enableDamping
           dampingFactor={0.08}
-          minDistance={3}
+          // minDistance lowered from 3 to 1 so users can actually inspect a
+          // small body (Mercury, Pluto, Charon) close up after click-to-focus.
+          minDistance={1}
           maxDistance={260}
           autoRotate={!reducedMotion}
           autoRotateSpeed={0.15}
@@ -190,6 +198,16 @@ export function UniverseEngine({
           </div>
 
           {interactive && <ResetViewButton onClick={handleReset} />}
+
+          {/* Destinations dropdown — bottom-left, explore-mode only. Mobile
+              sits above the Enter Work CTA (bottom-12 left-8) and below the
+              typography wrapper (pb-44). Desktop sits between Enter Work
+              (bottom-20) and the InfoPanel slot (bottom-52). */}
+          {interactive && (
+            <div className="absolute bottom-32 left-6 md:bottom-32 md:left-12 z-30 pointer-events-auto">
+              <DestinationsMenu />
+            </div>
+          )}
 
           {mobile && (
             <MobileBodySheet
