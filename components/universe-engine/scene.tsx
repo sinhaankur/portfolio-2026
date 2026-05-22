@@ -66,6 +66,36 @@ import {
   timeWarpRef,
 } from "./astronomy"
 import { GALAXY_FRAGMENT_SHADER, GALAXY_VERTEX_SHADER } from "./shaders"
+
+/* ============================================================
+ * Corona shader — Fresnel-style limb glow used by the Sun's
+ * two concentric corona shells. Without this, each shell renders
+ * as a uniform-alpha sphere → reads as a flat grey disc, not a
+ * halo. The Fresnel pass brightens fragments at the silhouette
+ * edge (where the normal is perpendicular to the view) and fades
+ * toward the center, giving a real "wrap-around" glow.
+ * ============================================================ */
+const CORONA_VERTEX_SHADER = `
+  varying vec3 vWorldNormal;
+  varying vec3 vViewDir;
+  void main() {
+    vec4 worldPos = modelMatrix * vec4(position, 1.0);
+    vWorldNormal = normalize(mat3(modelMatrix) * normal);
+    vViewDir = normalize(cameraPosition - worldPos.xyz);
+    gl_Position = projectionMatrix * viewMatrix * worldPos;
+  }
+`
+const CORONA_FRAGMENT_SHADER = `
+  varying vec3 vWorldNormal;
+  varying vec3 vViewDir;
+  uniform vec3 uColor;
+  uniform float uIntensity;
+  uniform float uPower;
+  void main() {
+    float fres = pow(1.0 - clamp(abs(dot(vWorldNormal, vViewDir)), 0.0, 1.0), uPower);
+    gl_FragColor = vec4(uColor, fres * uIntensity);
+  }
+`
 import { CONSTELLATION_FIGURES } from "./constellation-figures"
 import { SPACECRAFT_SHAPES } from "./spacecraft-shapes"
 import type {
@@ -145,13 +175,26 @@ function FlyToController({ interactive }: { interactive: boolean }) {
     const state = flyToRef.current
     if (!state.active) return
 
-    // Smoothing factor — `delta * 3` gives a ~0.6s feel that's snappy
-    // enough to read as "the camera moved" but slow enough to track.
-    // Faster pace when explore mode is off (passive transitions on
-    // load) so it doesn't visibly drift behind page paint.
-    const k = 1 - Math.exp(-delta * (interactive ? 3.2 : 5.0))
-
+    // Smoothing factor — auto-journey (passive) wants a slow, cinematic
+    // pan in/out so the camera feels like it's traversing a scene rather
+    // than snapping between waypoints. Explore-mode clicks stay faster
+    // because the user expects the camera to respond to their input.
+    //
+    // The exponent-of-time form gives a natural ease-out: fast at the
+    // start of a transition (covering distance) and slow on arrival
+    // (settling into the frame). For passive mode we also ease the very
+    // start by stretching the early-distance portion of the curve —
+    // when targetErr is large we ramp k up gradually instead of jumping.
     _flyTargetVec.set(state.target.x, state.target.y, state.target.z)
+    const baseRate = interactive ? 3.2 : 1.6
+    // Pre-lerp distance to the waypoint — used to ease the early segment
+    // so far-away targets don't snap fast then crawl. Proximity goes 0
+    // when far → 1 when close, so the effective rate ramps up gradually
+    // toward the destination instead of front-loading the motion.
+    const preLerpDistance = controls.target.distanceTo(_flyTargetVec)
+    const proximity = interactive ? 1 : Math.min(1, 1 / (1 + preLerpDistance * 0.06))
+    const k = 1 - Math.exp(-delta * baseRate * (interactive ? 1 : 0.5 + 0.7 * proximity))
+
     controls.target.lerp(_flyTargetVec, k)
 
     // Move the camera along the existing target→camera ray so the user's
@@ -1650,8 +1693,8 @@ function SolarSystem({
   const coronaRef = useRef<Mesh>(null)
   const sunTexMeshRef = useRef<Mesh>(null)
   const sunTexMatRef = useRef<import("three").MeshStandardMaterial>(null)
-  const coronaInnerMatRef = useRef<import("three").MeshBasicMaterial>(null)
-  const coronaOuterMatRef = useRef<import("three").MeshBasicMaterial>(null)
+  const coronaInnerMatRef = useRef<ShaderMaterial>(null)
+  const coronaOuterMatRef = useRef<ShaderMaterial>(null)
   const [sunHovered, setSunHovered] = useState(false)
   const [sunTexture, setSunTexture] = useState<Texture | null>(null)
   const scenePlanets = useMemo(buildScenePlanets, [])
@@ -1687,15 +1730,19 @@ function SolarSystem({
     }
     const flareBoost = sunHovered ? 1 : 0
     const k = 1 - Math.exp(-delta * 6)
+    // The corona's intensity rides on a shader uniform now — the Fresnel
+    // pass already shapes the radial falloff, we just lerp peak brightness.
     if (coronaInnerMatRef.current) {
-      const baseOpacity = invert ? 0.32 : 0.22
-      const targetOpacity = baseOpacity + flareBoost * (invert ? 0.25 : 0.35)
-      coronaInnerMatRef.current.opacity += (targetOpacity - coronaInnerMatRef.current.opacity) * k
+      const baseOpacity = invert ? 0.55 : 0.50
+      const targetOpacity = baseOpacity + flareBoost * (invert ? 0.40 : 0.55)
+      const u = coronaInnerMatRef.current.uniforms.uIntensity
+      u.value += (targetOpacity - u.value) * k
     }
     if (coronaOuterMatRef.current) {
-      const baseOpacity = invert ? 0.14 : 0.08
-      const targetOpacity = baseOpacity + flareBoost * (invert ? 0.18 : 0.25)
-      coronaOuterMatRef.current.opacity += (targetOpacity - coronaOuterMatRef.current.opacity) * k
+      const baseOpacity = invert ? 0.30 : 0.22
+      const targetOpacity = baseOpacity + flareBoost * (invert ? 0.30 : 0.42)
+      const u = coronaOuterMatRef.current.uniforms.uIntensity
+      u.value += (targetOpacity - u.value) * k
     }
   })
 
@@ -1707,9 +1754,38 @@ function SolarSystem({
   const sunEmissive = invert ? "#7a3a16" : "#ffffff"
   const sunEmissiveIntensity = invert ? 0.0 : 1.6
   const coronaBlending = invert ? NormalBlending : AdditiveBlending
-  const coronaInnerOpacity = invert ? 0.32 : 0.22
-  const coronaOuterOpacity = invert ? 0.14 : 0.08
+  // Peak Fresnel intensities — the shader bakes in radial falloff, so
+  // these are the *limb-edge* brightness ceilings, not flat-disc opacities.
+  // Bumped from the pre-Fresnel values because most of the sphere now
+  // contributes near-zero alpha; only the silhouette edge glows.
+  const coronaInnerOpacity = invert ? 0.55 : 0.50
+  const coronaOuterOpacity = invert ? 0.30 : 0.22
   const pointLightIntensity = invert ? 0.5 : 3.5
+
+  const coronaInnerUniforms = useMemo(
+    () => ({
+      uColor: { value: new Color(invert ? "#c95824" : "#ffffff") },
+      uIntensity: { value: coronaInnerOpacity },
+      uPower: { value: 3.0 },
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  )
+  const coronaOuterUniforms = useMemo(
+    () => ({
+      uColor: { value: new Color(invert ? "#e5a878" : "#ffffff") },
+      uIntensity: { value: coronaOuterOpacity },
+      uPower: { value: 1.5 },
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  )
+  // Keep uniform colour in sync with theme changes without recreating the
+  // uniforms object (which would break the animated intensity lerp).
+  useEffect(() => {
+    coronaInnerUniforms.uColor.value.set(invert ? "#c95824" : "#ffffff")
+    coronaOuterUniforms.uColor.value.set(invert ? "#e5a878" : "#ffffff")
+  }, [invert, coronaInnerUniforms, coronaOuterUniforms])
 
   return (
     <group>
@@ -1741,24 +1817,32 @@ function SolarSystem({
           />
         </mesh>
       )}
+      {/* Inner corona — tight bright limb glow. Power 3.0 keeps the
+          alpha concentrated near the silhouette so it reads as a
+          chromosphere-style halo wrapping the Sun. */}
       <mesh ref={coronaRef}>
         <sphereGeometry args={[0.92, 48, 48]} />
-        <meshBasicMaterial
-          ref={coronaInnerMatRef as React.Ref<import("three").MeshBasicMaterial>}
-          color={invert ? "#c95824" : "#ffffff"}
+        <shaderMaterial
+          ref={coronaInnerMatRef as React.Ref<ShaderMaterial>}
+          vertexShader={CORONA_VERTEX_SHADER}
+          fragmentShader={CORONA_FRAGMENT_SHADER}
+          uniforms={coronaInnerUniforms}
           transparent
-          opacity={coronaInnerOpacity}
           blending={coronaBlending}
           depthWrite={false}
         />
       </mesh>
+      {/* Outer corona — wide soft falloff. Power 1.5 spreads the glow
+          much further from the limb, giving the diffuse atmospheric
+          halo you see in real solar imagery. */}
       <mesh>
         <sphereGeometry args={[1.3, 48, 48]} />
-        <meshBasicMaterial
-          ref={coronaOuterMatRef as React.Ref<import("three").MeshBasicMaterial>}
-          color={invert ? "#e5a878" : "#ffffff"}
+        <shaderMaterial
+          ref={coronaOuterMatRef as React.Ref<ShaderMaterial>}
+          vertexShader={CORONA_VERTEX_SHADER}
+          fragmentShader={CORONA_FRAGMENT_SHADER}
+          uniforms={coronaOuterUniforms}
           transparent
-          opacity={coronaOuterOpacity}
           blending={coronaBlending}
           depthWrite={false}
         />
@@ -1998,28 +2082,41 @@ function NamedBodyMesh({
               aAU: body.aAU,
               periodDays: isFinite(body.periodYears) ? body.periodYears * 365.25 : undefined,
               fact: body.fact,
+              followable: interactive,
             })
           }}
           onPointerOut={() => onHover(null)}
-          // Single click flies the camera to the body's current world position.
-          // Dwarf planets get a wider distance because their orbits put them
-          // well past Neptune; comets get a tight one so the user can see the body.
-          onClick={makeFocusHandler(
-            interactive,
-            body.kind === "dwarf" ? 2.4 : 1.6,
-            body.name,
-          )}
-          // Double click engages follow mode — the camera locks onto this body
-          // and tracks it as it moves along its orbit. Lets the user watch a
-          // comet sweep through perihelion or an interstellar pass through.
-          // Available for all named bodies, not just comets, since the same
-          // motion-tracking behaviour is useful for asteroids + spacecraft too.
-          onDoubleClick={
+          // Single click engages follow mode — the camera locks onto this
+          // body and tracks it as it sweeps its orbit. A plain fly-to would
+          // leave fast movers (comets at perihelion, the ISS, interstellar
+          // visitors) drifting out of frame, so follow is the default for
+          // every named body. Double-click is wired to the same handler as
+          // a discoverability fallback for users who instinctively
+          // double-click a moving target.
+          onClick={
             interactive
               ? (e) => {
                   e.stopPropagation()
                   // The getter captures groupRef.current — read fresh each
                   // frame so we always see the body's current orbital phase.
+                  requestFollow(
+                    () => {
+                      const g = groupRef.current
+                      if (!g) return null
+                      const v = new Vector3()
+                      g.getWorldPosition(v)
+                      return { x: v.x, y: v.y, z: v.z }
+                    },
+                    body.kind === "dwarf" ? 2.4 : 1.6,
+                    body.name,
+                  )
+                }
+              : undefined
+          }
+          onDoubleClick={
+            interactive
+              ? (e) => {
+                  e.stopPropagation()
                   requestFollow(
                     () => {
                       const g = groupRef.current

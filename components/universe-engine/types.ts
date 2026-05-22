@@ -20,6 +20,10 @@ export type BodyInfo = {
   fact?: string
   /** True if the body responds to a click (e.g. Polaris resets the view). */
   clickable?: boolean
+  /** True if clicking the body engages follow mode (camera tracks it along
+   *  its orbit). Surfaces a hint in the InfoPanel so the gesture is
+   *  discoverable for fast-moving bodies like comets + spacecraft. */
+  followable?: boolean
 }
 
 export type HoverHandler = (info: BodyInfo | null) => void
