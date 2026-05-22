@@ -2772,8 +2772,10 @@ function BlackHoleDetail({
   // Sketchfab "Blackhole" by rubykamen (CC-BY-4.0). The model's natural
   // extent runs roughly ±5 units around origin; this factor brings it
   // into our scene-scale alongside the physics-driven detailScale.
+  // 0.22 ≈ the visible footprint the old procedural disk used to have —
+  // anything smaller turns into a pinprick at sky-shell distance (150 u).
   const { scene: bhScene } = useGLTF("/models/blackhole.glb")
-  const meshScale = props.detailScale * 0.08
+  const meshScale = props.detailScale * 0.22
 
   useFrame((_, delta) => {
     const k = 1 - Math.exp(-delta * 6)
@@ -2798,6 +2800,22 @@ function BlackHoleDetail({
           full model (event horizon + accretion disk + lensed skins) as
           a unit; per-BH scale stays driven by computeBlackHoleProportions
           so Cygnus X-1 and TON 618 still read as distinct sizes. */}
+      {/* Faint findability halo — gives the BH a soft glow large enough to
+          spot from sky-shell distance (~150 u away). The GLB mesh itself
+          is compact; without this halo a BH reads as a single dark dot
+          against the starfield until you fly close. Stays subtle so it
+          doesn't muddy the silhouette on approach. */}
+      <mesh>
+        <sphereGeometry args={[props.detailScale * 0.9, 24, 24]} />
+        <meshBasicMaterial
+          color={invert ? "#3a2418" : "#ffd6a8"}
+          transparent
+          opacity={hovered ? (invert ? 0.16 : 0.22) : (invert ? 0.10 : 0.14)}
+          blending={invert ? NormalBlending : AdditiveBlending}
+          depthWrite={false}
+        />
+      </mesh>
+
       <group ref={spinRef} scale={meshScale}>
         <Clone object={bhScene} />
       </group>
