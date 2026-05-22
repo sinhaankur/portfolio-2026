@@ -112,6 +112,16 @@ export type Planet = {
    *  shadow side, with a smoothed terminator. Currently only Earth uses
    *  this (Black Marble night-lights composite). */
   nightTextureUrl?: string
+  /** When true, the planet uses the day/night shader even without a
+   *  night texture — the shadow side falls to ambient dark. Lets
+   *  airless / thin-atmosphere bodies (Mercury, Mars) show a real
+   *  terminator instead of soft PBR ambient. Width of the terminator
+   *  blend is controlled by terminatorSoftness. */
+  useDayNight?: boolean
+  /** Terminator width: 0.04 for airless bodies (Mercury, Moon), 0.1 for
+   *  thin atmospheres (Mars), 0.18 for thick atmospheres (Earth, Venus).
+   *  Only used when nightTextureUrl or useDayNight is set. */
+  terminatorSoftness?: number
   /** Override the formula-derived visual radius. Useful for dwarf planets
    *  whose real radius (Pluto = 0.186 Earth-radii) would render as a
    *  pinprick that's impossible to find from the inner-system view. */
@@ -133,6 +143,8 @@ export type ScenePlanet = {
   inclination: number
 }
 
+/** Same data structure as planetary moons — separated only so the renderer
+ *  knows which parent body each one orbits. */
 export type MoonData = {
   name: string
   parent: "Earth" | "Mars" | "Jupiter" | "Saturn" | "Uranus" | "Neptune" | "Pluto"
@@ -145,6 +157,9 @@ export type MoonData = {
    *  tidally-locked near-side reads on Earth deep-zoom. Loaded lazily when
    *  the parent planet enters its focused/hovered state. */
   textureUrl?: string
+  /** Surface landing sites / named features — same shape as planet
+   *  features so the Moon can carry Apollo landing sites etc. */
+  surfaceFeatures?: SurfaceFeature[]
 }
 
 export type ConstellationStar = {

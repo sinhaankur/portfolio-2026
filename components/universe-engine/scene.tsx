@@ -833,6 +833,18 @@ function MoonBody({
             />
           </mesh>
         )}
+        {/* Surface landing-site pins — Apollo 11-17, Luna 9, Chang'e 4
+            on the Moon. Uses the same RoverPin component as Mars; pins
+            are children of bodyRef so they ride with the tidally-locked
+            face that the Moon's body presents to its parent planet. */}
+        {moon.surfaceFeatures && highlighted && moon.surfaceFeatures.map((feature) => (
+          <RoverPin
+            key={feature.name}
+            feature={feature}
+            planetRadius={moon.visualRadius}
+            invert={invert}
+          />
+        ))}
       </mesh>
       <mesh
         position={[moon.orbitRadius, 0, 0]}
@@ -1835,24 +1847,27 @@ function PlanetBody({
   // Day/night shader uniforms — stable object so the shader sees the same
   // reference across re-renders. Textures + sun direction are mutated in
   // place after the uniforms are wired up. Earth uses this with both
-  // textures + a soft Earth-atmosphere terminator.
+  // textures + a soft Earth-atmosphere terminator; Mercury / Mars use it
+  // without a night texture (shadow side falls to ambient dark) with a
+  // sharper terminator matching their atmospheres.
+  const useDayNightShader = Boolean(nightTextureUrl) || Boolean(planet.raw.useDayNight)
   const dayNightUniforms = useMemo(
     () => ({
       tDay:                 { value: null as Texture | null },
       tNight:               { value: null as Texture | null },
       uSunDir:              { value: new Vector3(1, 0, 0) },
       uOpacity:             { value: 0 },
-      uNightStrength:       { value: 1.8 },
-      uHasNight:            { value: 1.0 },
-      uTerminatorSoftness:  { value: 0.18 },
+      uNightStrength:       { value: nightTextureUrl ? 1.8 : 0 },
+      uHasNight:            { value: nightTextureUrl ? 1.0 : 0.0 },
+      uTerminatorSoftness:  { value: planet.raw.terminatorSoftness ?? 0.18 },
     }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   )
   useEffect(() => {
     if (texture) dayNightUniforms.tDay.value = texture
     if (nightTexture) dayNightUniforms.tNight.value = nightTexture
   }, [texture, nightTexture, dayNightUniforms])
-  const useDayNightShader = Boolean(nightTextureUrl)
 
   useEffect(() => {
     if (orbitRef.current) orbitRef.current.rotation.y = planet.raw.startPhase
@@ -1984,9 +1999,9 @@ function PlanetBody({
                 Earth takes the day/night shader path (lit + city-lights
                 hemispheres separated by a smoothed terminator); everyone
                 else uses the standard PBR sphere lit by the Sun point light. */}
-            {hasTexture && useDayNightShader && texture && nightTexture && (
+            {hasTexture && useDayNightShader && texture && (!nightTextureUrl || nightTexture) && (
               <mesh ref={texMeshRef}>
-                <sphereGeometry args={[planet.visualRadius * 1.005, 96, 96]} />
+                <sphereGeometry args={[planet.visualRadius * 1.005, planet.raw.name === "Earth" ? 96 : 64, planet.raw.name === "Earth" ? 96 : 64]} />
                 <shaderMaterial
                   ref={dayNightMatRef as React.Ref<ShaderMaterial>}
                   vertexShader={DAY_NIGHT_VERTEX_SHADER}
