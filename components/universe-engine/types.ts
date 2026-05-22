@@ -53,6 +53,9 @@ export type BodyInfo = {
     inclDeg?: number
     longNodeDeg?: number
     argPeriDeg?: number
+    /** Snapshot date for the orbital elements (active spacecraft drift
+     *  with every maneuver). Format "YYYY-MM" or similar. */
+    elementsEpoch?: string
   }
   /** True if the body responds to a click (e.g. Polaris resets the view). */
   clickable?: boolean
@@ -82,6 +85,10 @@ export type Planet = {
   /** Optional equirectangular surface texture URL — when set, the planet
    *  morphs from its abstract grey shade to the photographic globe on hover. */
   textureUrl?: string
+  /** Override the formula-derived visual radius. Useful for dwarf planets
+   *  whose real radius (Pluto = 0.186 Earth-radii) would render as a
+   *  pinprick that's impossible to find from the inner-system view. */
+  visualRadiusOverride?: number
   /** Deeper NASA Planetary Fact Sheet data — surfaced via InfoPanel disclosure. */
   deep?: BodyDeepFacts
 }
@@ -183,6 +190,11 @@ export type NamedBody = {
    *  the ascending node to the perihelion. Sets which direction perihelion
    *  points within the orbital plane. Default 0. */
   argPeriDeg?: number
+  /** Snapshot date for the orbital elements above, when they drift with
+   *  every maneuver (active spacecraft cruising with gravity assists).
+   *  Format "YYYY-MM" or similar. Omit for stable trajectories (planets,
+   *  long-period comets, escape-trajectory probes). */
+  elementsEpoch?: string
   /** Period in Earth years. Use Infinity for interstellar visitors. */
   periodYears: number
   /** 0–1 phase along the orbit at scene start (jitters body positions). */
