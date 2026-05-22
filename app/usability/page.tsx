@@ -3,6 +3,7 @@ import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { CustomCursor } from "@/components/custom-cursor"
 import { UpcomingBadge } from "@/components/upcoming-badge"
+import { ReadabilityNudge } from "@/components/readability-nudge"
 import { Container } from "@/components/container"
 import { UsabilityEngine } from "@/components/usability-engine"
 
@@ -99,6 +100,7 @@ export default function UsabilityPage() {
 
       <Footer />
       <UpcomingBadge href="/upcoming" label="Upcoming" />
+      <ReadabilityNudge />
     </>
   )
 }

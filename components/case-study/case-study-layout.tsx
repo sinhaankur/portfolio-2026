@@ -8,6 +8,7 @@ import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { CustomCursor } from "@/components/custom-cursor"
 import { UpcomingBadge } from "@/components/upcoming-badge"
+import { ReadabilityNudge } from "@/components/readability-nudge"
 import { Container } from "@/components/container"
 import { ScrollProgress } from "@/components/case-study/scroll-progress"
 import { CaseStudyToc } from "@/components/case-study/case-study-toc"
@@ -144,6 +145,7 @@ export function CaseStudyLayout({
 
       <Footer />
       <UpcomingBadge href="/upcoming" label="Upcoming" />
+      <ReadabilityNudge />
     </>
   )
 }
