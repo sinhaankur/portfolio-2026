@@ -48,9 +48,10 @@ export function DeepFactsDisclosure({
   if (!hasAny) return null
 
   const isSheet = variant === "sheet"
+  const focusClass = "rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
   const toggleClass = isSheet
-    ? "font-mono text-[10px] tracking-[0.25em] uppercase text-foreground/65 hover:text-foreground transition-colors min-h-9 inline-flex items-center"
-    : "font-mono text-[9px] tracking-[0.25em] uppercase text-foreground/55 hover:text-foreground transition-colors"
+    ? `font-mono text-[10px] tracking-[0.25em] uppercase text-foreground/65 hover:text-foreground transition-colors min-h-9 inline-flex items-center px-2 -mx-2 ${focusClass}`
+    : `font-mono text-[9px] tracking-[0.25em] uppercase text-foreground/55 hover:text-foreground transition-colors px-1.5 -mx-1.5 py-1 -my-1 ${focusClass}`
   const rowLabel = isSheet ? "text-foreground/55 shrink-0" : "text-foreground/55"
   const rowValue = isSheet ? "text-foreground/85 tabular-nums" : "text-foreground/85 tabular-nums"
   const gridClass = isSheet
@@ -232,7 +233,13 @@ export function TimeWarpSlider({
           timeWarpRef.current = v
         }}
         aria-label="Adjust simulation speed"
-        className="w-32 md:w-40 accent-accent cursor-ew-resize"
+        aria-valuetext={value === 0 ? "Paused" : `${value.toFixed(2)} times normal speed`}
+        className="
+          w-32 md:w-40 accent-accent cursor-ew-resize
+          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+          focus-visible:ring-offset-2 focus-visible:ring-offset-background
+          rounded
+        "
       />
       <span className="font-mono text-[10px] tracking-widest text-foreground/85 tabular-nums w-10 text-right">
         {value === 0 ? "PAUSED" : `${value.toFixed(2)}×`}

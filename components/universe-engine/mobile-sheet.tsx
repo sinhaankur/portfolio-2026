@@ -118,11 +118,14 @@ export function MobileBodySheet({
                   onAction()
                   onDismiss()
                 }}
+                aria-label="Reset camera view"
                 className="
                   mt-5 w-full inline-flex items-center justify-center gap-2 px-4 py-3
                   rounded-full border border-accent text-accent
                   hover:bg-accent hover:text-accent-foreground transition-colors
                   font-mono text-xs tracking-[0.25em] uppercase
+                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+                  focus-visible:ring-offset-2 focus-visible:ring-offset-background
                 "
               >
                 ↺ Reset view
