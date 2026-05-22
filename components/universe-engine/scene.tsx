@@ -2557,6 +2557,40 @@ const _earthWorldPos = new Vector3()
 const _sunWorldPos = new Vector3()
 const _sunDirTmp = new Vector3()
 
+/**
+ * Solve Kepler's equation M = E - e·sin(E) for the eccentric anomaly E.
+ * Used to make orbital motion honour Kepler's 2nd law — bodies move
+ * faster at perihelion, slower at aphelion. Newton-Raphson, typically
+ * converges in 4–6 iterations even for e ~ 0.97 (Halley's eccentricity).
+ *
+ * Returns mean anomaly directly for hyperbolic orbits (e >= 1) — solving
+ * the hyperbolic-Kepler analog is a separate equation we don't need at
+ * scene scale, and our hyperbolic bodies (Voyagers, 'Oumuamua etc.)
+ * already use a phase-wrap loop rather than real Kepler motion.
+ */
+function solveKepler(meanAnomaly: number, e: number): number {
+  if (e >= 1) return meanAnomaly
+  let E = meanAnomaly + e * Math.sin(meanAnomaly)
+  for (let i = 0; i < 8; i++) {
+    const f = E - e * Math.sin(E) - meanAnomaly
+    const fp = 1 - e * Math.cos(E)
+    const dE = f / fp
+    E -= dE
+    if (Math.abs(dE) < 1e-8) break
+  }
+  return E
+}
+
+/**
+ * Eccentric anomaly → true anomaly. For elliptical orbits.
+ */
+function eccentricToTrue(E: number, e: number): number {
+  return 2 * Math.atan2(
+    Math.sqrt(1 + e) * Math.sin(E / 2),
+    Math.sqrt(1 - e) * Math.cos(E / 2),
+  )
+}
+
 function orbitalElementsToCartesian(
   a: number,
   e: number,
@@ -2707,8 +2741,30 @@ function NamedBodyMesh({
   // dotted ellipse behind it, hinting at the path. Uses the same full
   // orbital-element transform as the per-frame position below, so the
   // body always sits on its trail.
+  //
+  // Hyperbolic bodies (Voyagers, escape trajectories) get a STRAIGHT
+  // outward line from the Sun instead of an ellipse — they don't loop
+  // and the polar-form r blows up for e > 1.
   const trailGeometry = useMemo(() => {
-    const STEPS = config.isLoop ? 90 : 60
+    if (config.e >= 1) {
+      // Straight outbound line from the Sun to ~1.2× the body's
+      // current heliocentric distance along the escape direction.
+      const STEPS = 24
+      const positions = new Float32Array(STEPS * 3)
+      const endPos = orbitalElementsToCartesian(
+        config.a * 1.2, 0, 0, config.inclination, config.longNode, config.argPeri,
+      )
+      for (let i = 0; i < STEPS; i++) {
+        const f = i / (STEPS - 1)
+        positions[i * 3]     = endPos[0] * f
+        positions[i * 3 + 1] = endPos[1] * f
+        positions[i * 3 + 2] = endPos[2] * f
+      }
+      const geo = new BufferGeometry()
+      geo.setAttribute("position", new BufferAttribute(positions, 3))
+      return geo
+    }
+    const STEPS = 90
     const positions = new Float32Array(STEPS * 3)
     for (let i = 0; i < STEPS; i++) {
       const t = (i / STEPS) * Math.PI * 2
@@ -2741,10 +2797,32 @@ function NamedBodyMesh({
       }
     }
 
-    const t = config.phase
-    const [px, py, pz] = orbitalElementsToCartesian(
-      config.a, config.e, t, config.inclination, config.longNode, config.argPeri,
-    )
+    let px: number, py: number, pz: number
+    if (config.e >= 1) {
+      // Hyperbolic / escape trajectory (Voyagers, Pioneers, NH,
+      // interstellars). The elliptical polar-form r = a(1-e²)/(1+e·cosθ)
+      // produces negative or near-zero r for e > 1, which was placing
+      // these bodies inside the Sun. Instead we pin them at their
+      // current aAU heliocentric distance along the escape direction
+      // (which is what Ω/ω/i are set up to orient toward). Motion
+      // through the interstellar medium at 15–17 km/s is effectively
+      // invisible at our scene scale anyway — visitors see their
+      // current real-world position rather than a fake loop.
+      ;[px, py, pz] = orbitalElementsToCartesian(
+        config.a, 0, 0, config.inclination, config.longNode, config.argPeri,
+      )
+    } else {
+      // Elliptical orbit — solve Kepler's equation so the body actually
+      // obeys the 2nd law (sweeps equal areas in equal times, i.e. moves
+      // fast at perihelion + slow at aphelion). Phase accumulates as
+      // MEAN anomaly; we solve for true anomaly each frame.
+      const M = config.phase
+      const E = solveKepler(M, config.e)
+      const trueAnom = eccentricToTrue(E, config.e)
+      ;[px, py, pz] = orbitalElementsToCartesian(
+        config.a, config.e, trueAnom, config.inclination, config.longNode, config.argPeri,
+      )
+    }
     groupRef.current.position.set(px, py, pz)
 
     // Comet tail orientation — the tail group's local +y axis is rotated
