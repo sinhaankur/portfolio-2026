@@ -2369,6 +2369,11 @@ function SolarSystem({
  * the ecliptic pole, +z is RA = 6h — same convention `raDecToScenePos`
  * uses for the sky shell, so escape directions line up with constellations.
  */
+// Reusable vectors for per-frame comet tail orientation — avoid allocating
+// fresh Vector3s every frame for every comet.
+const _tailFrom = new Vector3()
+const _tailTo = new Vector3()
+
 function orbitalElementsToCartesian(
   a: number,
   e: number,
@@ -2412,6 +2417,10 @@ function NamedBodyMesh({
   interactive?: boolean
 }) {
   const groupRef = useRef<Group>(null)
+  /** Comet-tail orientation — quaternion-rotated each frame so the tail
+   *  always streams away from the Sun (origin), matching real solar-wind
+   *  physics. Only used when body.kind === "comet" (or Comet Borisov). */
+  const tailRef = useRef<Group>(null)
   const [isHovered, setIsHovered] = useState(false)
 
   // Pre-compute everything time-independent: orbital scale, tilt, base colour.
@@ -2453,7 +2462,10 @@ function NamedBodyMesh({
       /* interstellar */              "#ffd66b"
     const shade = body.shade ?? defaultShade
 
-    return { a, e, inclination, longNode, argPeri, visualRadius, angularSpeed, phase, shade, isLoop: isFinite(body.periodYears) }
+    // Tail flag — comets get coma + tail. Borisov was interstellar but
+    // clearly a comet by appearance (visible coma + tail), so flag it too.
+    const hasTail = body.kind === "comet" || body.name === "Comet Borisov"
+    return { a, e, inclination, longNode, argPeri, visualRadius, angularSpeed, phase, shade, isLoop: isFinite(body.periodYears), hasTail }
   }, [body])
 
   // Pre-compute a thin trail of orbit positions so each body draws a
@@ -2499,6 +2511,17 @@ function NamedBodyMesh({
       config.a, config.e, t, config.inclination, config.longNode, config.argPeri,
     )
     groupRef.current.position.set(px, py, pz)
+
+    // Comet tail orientation — the tail group's local +y axis is rotated
+    // each frame to point away from the Sun (origin). Solar wind blows
+    // gas + dust radially outward, so this matches real comet visuals
+    // independent of the body's velocity direction.
+    if (tailRef.current && config.hasTail) {
+      const len = Math.sqrt(px * px + py * py + pz * pz) || 1
+      _tailFrom.set(0, 1, 0)
+      _tailTo.set(px / len, py / len, pz / len)
+      tailRef.current.quaternion.setFromUnitVectors(_tailFrom, _tailTo)
+    }
   })
 
   // Hit-zone radius — never smaller than 0.16 so even tiny bodies are
@@ -2531,6 +2554,50 @@ function NamedBodyMesh({
           <group scale={config.visualRadius * SPACECRAFT_SHAPES[body.name].scale}>
             {SPACECRAFT_SHAPES[body.name].render({ invert })}
           </group>
+        ) : config.hasTail ? (
+          // Comet visual: a bright nucleus, a diffuse coma surrounding it,
+          // and a tail that streams away from the Sun (orientation set in
+          // useFrame above so it tracks the body's current radial vector).
+          <>
+            {/* Nucleus — small, sharp, fully opaque core */}
+            <mesh>
+              <sphereGeometry args={[config.visualRadius * 0.45, 12, 12]} />
+              <meshBasicMaterial color={invert ? "#1a1a2a" : "#ffffff"} />
+            </mesh>
+            {/* Coma — diffuse halo, additive in dark mode so it reads as
+                a soft glow rather than a hard sphere. */}
+            <mesh>
+              <sphereGeometry args={[config.visualRadius * 1.6, 16, 16]} />
+              <meshBasicMaterial
+                color={config.shade}
+                transparent
+                opacity={invert ? 0.45 : 0.40}
+                blending={invert ? NormalBlending : AdditiveBlending}
+                depthWrite={false}
+              />
+            </mesh>
+            {/* Tail — narrow cone tapering away from the Sun. Base sits at
+                the nucleus, tip extends ~8× radius outward. The wrapping
+                group's quaternion is updated each frame to keep the tail
+                anti-radial regardless of where the comet is on its orbit. */}
+            <group ref={tailRef}>
+              <mesh position={[0, config.visualRadius * 4.5, 0]}>
+                <coneGeometry args={[
+                  config.visualRadius * 0.9,    // base radius (near nucleus)
+                  config.visualRadius * 9,      // length
+                  14, 1, true,
+                ]} />
+                <meshBasicMaterial
+                  color={config.shade}
+                  transparent
+                  opacity={invert ? 0.55 : 0.45}
+                  blending={invert ? NormalBlending : AdditiveBlending}
+                  depthWrite={false}
+                  side={DoubleSide}
+                />
+              </mesh>
+            </group>
+          </>
         ) : (
           <mesh>
             <sphereGeometry args={[config.visualRadius, 16, 16]} />
