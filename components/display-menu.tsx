@@ -17,7 +17,7 @@ import { useDisplayPrefs, type DisplayPrefs } from "./display-prefs"
 
 export function DisplayMenu() {
   const [open, setOpen] = useState(false)
-  const { reduceMotion, largeText, systemCursor, setPref, reset } = useDisplayPrefs()
+  const { reduceMotion, largeText, systemCursor, readingMode, setPref, reset } = useDisplayPrefs()
   const wrapRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -40,7 +40,7 @@ export function DisplayMenu() {
     }
   }, [open])
 
-  const anyEnabled = reduceMotion || largeText || systemCursor
+  const anyEnabled = reduceMotion || largeText || systemCursor || readingMode
 
   return (
     <div ref={wrapRef} className="relative">
@@ -104,6 +104,12 @@ export function DisplayMenu() {
             </div>
 
             <ul className="space-y-1">
+              <ToggleRow
+                label="Reading mode"
+                description="Full-contrast prose and wider line-height for long-form pages"
+                checked={readingMode}
+                onChange={(v) => setPref("readingMode", v)}
+              />
               <ToggleRow
                 label="Reduce motion"
                 description="Disable animations and transitions"
