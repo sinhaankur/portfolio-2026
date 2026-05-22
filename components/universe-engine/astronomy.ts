@@ -419,10 +419,10 @@ export const KUIPER_BELT_INFO: BodyInfo = {
  * ------------------------------------------------------------------------ */
 
 export const planetsData: Planet[] = [
-  { name: "Mercury", aAU: 0.387, radiusEarth: 0.383, periodDays: 87.97,   tiltDeg: 0.03,   rotHours: 1407.6, inclDeg: 7.005, startPhase: 0.0, shade: "#7a7a7a", surfaceTempK: { min: 100, mean: 440, max: 700 }, classification: "Terrestrial planet", moons: 0, fact: "No atmosphere. Day side 700 K, night side 100 K — biggest swing in the solar system. A year on Mercury is just 88 Earth days; a single day is 176 Earth days. Two years pass for every day.", textureUrl: "/textures/mercury.webp", deep: { massEarth: 0.0553, densityGcc: 5.43, gravity: 3.70, escapeVelocityKms: 4.30, eccentricity: 0.206 } },
+  { name: "Mercury", aAU: 0.387, radiusEarth: 0.383, periodDays: 87.97,   tiltDeg: 0.03,   rotHours: 1407.6, inclDeg: 7.005, startPhase: 0.0, shade: "#7a7a7a", surfaceTempK: { min: 100, mean: 440, max: 700 }, classification: "Terrestrial planet", moons: 0, fact: "No atmosphere. Day side 700 K, night side 100 K — biggest swing in the solar system. A year on Mercury is just 88 Earth days; a single day is 176 Earth days. Two years pass for every day.", textureUrl: "/textures/mercury.webp", useDayNight: true, terminatorSoftness: 0.04, deep: { massEarth: 0.0553, densityGcc: 5.43, gravity: 3.70, escapeVelocityKms: 4.30, eccentricity: 0.206 } },
   { name: "Venus",   aAU: 0.723, radiusEarth: 0.949, periodDays: 224.70,  tiltDeg: 177.4,  rotHours: -5832.5, inclDeg: 3.395, startPhase: 2.1, shade: "#bdbdbd", surfaceTempK: { mean: 737 }, classification: "Terrestrial planet (retrograde)", moons: 0, fact: "Hottest surface — 737 K — runaway CO₂ greenhouse. Rotates backwards on a 243-day day. The 177° axial tilt means Venus is technically upside-down relative to the rest of the planets.", textureUrl: "/textures/venus.webp", deep: { massEarth: 0.815, densityGcc: 5.24, gravity: 8.87, escapeVelocityKms: 10.36, eccentricity: 0.007 } },
   { name: "Earth",   aAU: 1.000, radiusEarth: 1.000, periodDays: 365.25,  tiltDeg: 23.44,  rotHours: 23.93,  inclDeg: 0.000, startPhase: 4.5, shade: "#dcdcdc", surfaceTempK: { min: 184, mean: 288, max: 330 }, classification: "Terrestrial planet — life", moons: 1, fact: "Mean surface 288 K. Only known planet with liquid water and life.", textureUrl: "/textures/earth.webp", nightTextureUrl: "/textures/earth-night.webp", deep: { massEarth: 1.000, densityGcc: 5.51, gravity: 9.81, escapeVelocityKms: 11.19, eccentricity: 0.017 } },
-  { name: "Mars",    aAU: 1.524, radiusEarth: 0.532, periodDays: 686.97,  tiltDeg: 25.19,  rotHours: 24.62,  inclDeg: 1.850, startPhase: 1.3, shade: "#c1623a", surfaceTempK: { min: 130, mean: 210, max: 308 }, classification: "Terrestrial planet", moons: 2, fact: "Thin CO₂ atmosphere, polar ice caps, evidence of ancient liquid water. Hosts the solar system's tallest mountain (Olympus Mons, 22 km) and longest canyon (Valles Marineris, 4,000 km). The 25° axial tilt gives Mars Earth-like seasons.", textureUrl: "/textures/mars.webp", deep: { massEarth: 0.107, densityGcc: 3.93, gravity: 3.71, escapeVelocityKms: 5.03, eccentricity: 0.094 }, surfaceFeatures: [
+  { name: "Mars",    aAU: 1.524, radiusEarth: 0.532, periodDays: 686.97,  tiltDeg: 25.19,  rotHours: 24.62,  inclDeg: 1.850, startPhase: 1.3, shade: "#c1623a", surfaceTempK: { min: 130, mean: 210, max: 308 }, classification: "Terrestrial planet", moons: 2, fact: "Thin CO₂ atmosphere, polar ice caps, evidence of ancient liquid water. Hosts the solar system's tallest mountain (Olympus Mons, 22 km) and longest canyon (Valles Marineris, 4,000 km). The 25° axial tilt gives Mars Earth-like seasons.", textureUrl: "/textures/mars.webp", useDayNight: true, terminatorSoftness: 0.10, deep: { massEarth: 0.107, densityGcc: 3.93, gravity: 3.71, escapeVelocityKms: 5.03, eccentricity: 0.094 }, surfaceFeatures: [
     { name: "Perseverance", lat: 18.44, lon: 77.45, date: "2021-02-18", status: "active", agency: "NASA", fact: "Mars 2020 mission — exploring Jezero Crater, an ancient river delta. Caching samples for future return to Earth. Carries the Ingenuity helicopter, first powered flight on another world." },
     { name: "Curiosity", lat: -4.59, lon: 137.44, date: "2012-08-06", status: "active", agency: "NASA", fact: "Mars Science Laboratory rover. Climbing Mount Sharp inside Gale Crater since 2014, drilling layered sedimentary rocks that recorded Mars's transition from wet to dry." },
     { name: "InSight", lat: 4.50, lon: 135.62, date: "2018-11-26", status: "completed", agency: "NASA", fact: "Stationary lander on Elysium Planitia. Recorded 1,300+ marsquakes with the SEIS seismometer before dust on its solar panels ended the mission in December 2022. Mapped the interior structure of a planet other than Earth for the first time." },
@@ -493,7 +493,20 @@ export function planetToInfo(p: Planet): BodyInfo {
  * ------------------------------------------------------------------------ */
 
 export const moons: MoonData[] = [
-  { name: "Moon (Luna)",     parent: "Earth",   visualRadius: 0.05,  orbitRadius: 0.42, periodDays: 27.32,  shade: "#bdbdbd", fact: "Earth's only natural satellite. Surface temp −173 to +127 °C. Tidally locked — same face always toward Earth.", textureUrl: "/textures/moon.webp" },
+  { name: "Moon (Luna)",     parent: "Earth",   visualRadius: 0.05,  orbitRadius: 0.42, periodDays: 27.32,  shade: "#bdbdbd", fact: "Earth's only natural satellite. Surface temp −173 to +127 °C. Tidally locked — same face always toward Earth.", textureUrl: "/textures/moon.webp", surfaceFeatures: [
+    // Apollo crewed landings (1969–1972) — the only human boot-prints
+    // off Earth. All six landed on the near side (so Earth was visible
+    // from the surface) within ±5° of the lunar equator.
+    { name: "Apollo 11", lat: 0.67, lon: 23.47, date: "1969-07-20", status: "completed", agency: "NASA", fact: "First crewed Moon landing. Neil Armstrong + Buzz Aldrin, Sea of Tranquility. 21.5 hours on the surface; brought back 21.5 kg of lunar material. \"That's one small step for [a] man, one giant leap for mankind.\"" },
+    { name: "Apollo 12", lat: -3.01, lon: 336.58, date: "1969-11-19", status: "completed", agency: "NASA", fact: "Second crewed landing. Pete Conrad + Alan Bean, Ocean of Storms. Landed within 200 m of the Surveyor 3 probe (sent 1967), and returned pieces of it to Earth." },
+    { name: "Apollo 14", lat: -3.65, lon: 342.53, date: "1971-02-05", status: "completed", agency: "NASA", fact: "Alan Shepard + Edgar Mitchell, Fra Mauro highlands. Shepard hit two golf balls on the surface; one travelled an estimated ~37 m." },
+    { name: "Apollo 15", lat: 26.13, lon: 3.63, date: "1971-07-30", status: "completed", agency: "NASA", fact: "David Scott + James Irwin, Hadley Rille. First mission to use the Lunar Roving Vehicle — drove 27.9 km across the Apennine mountains." },
+    { name: "Apollo 16", lat: -8.97, lon: 15.50, date: "1972-04-21", status: "completed", agency: "NASA", fact: "John Young + Charlie Duke, Descartes highlands. Only mission to explore the lunar highlands; collected 95 kg of samples." },
+    { name: "Apollo 17", lat: 20.19, lon: 30.77, date: "1972-12-11", status: "completed", agency: "NASA", fact: "Eugene Cernan + Harrison Schmitt, Taurus-Littrow. Last crewed Moon landing — no human has been further than low Earth orbit since. Schmitt was the only geologist to walk on the Moon." },
+    // Notable robotic landings
+    { name: "Luna 9", lat: 7.13, lon: -64.37, date: "1966-02-03", status: "completed", agency: "USSR", fact: "First spacecraft to make a survivable soft landing on any extraterrestrial body, in Oceanus Procellarum. Beamed back the first photographs ever taken from the surface of the Moon." },
+    { name: "Chang'e 4", lat: -45.5, lon: 177.6, date: "2019-01-03", status: "active", agency: "CNSA", fact: "First soft landing on the lunar far side, in Von Kármán crater. The Yutu-2 rover continues exploring — relays signals to Earth via the Queqiao satellite at L2 since the Moon itself blocks direct line of sight." },
+  ] },
   // Mars's two tiny moons — both probably captured asteroids
   { name: "Phobos",          parent: "Mars",    visualRadius: 0.025, orbitRadius: 0.38, periodDays: 0.319,  shade: "#9a8b78", fact: "Closer to its planet than any other moon in the solar system — orbits Mars in just 7.6 hours. Spirals inward by ~1.8 m per century; will eventually crash or shatter into a ring." },
   { name: "Deimos",          parent: "Mars",    visualRadius: 0.020, orbitRadius: 0.55, periodDays: 1.263,  shade: "#a89a85", fact: "Smaller of Mars's two moons — only 12 km across. From the Martian surface, Deimos would look like a slightly brighter star, not a disc." },
@@ -636,6 +649,20 @@ export const namedBodies: NamedBody[] = [
     startPhase: 0.30,
     fact: "The Great Comet of 1997 — visible to the naked eye for 18 months, the longest period of unaided visibility of any comet in modern history. Bright enough to see from city centres. Won't return until around the year 4385.",
     visualRadius: 0.075,
+  },
+  {
+    name: "Comet 67P",
+    designation: "67P/Churyumov–Gerasimenko · Rosetta target",
+    kind: "comet",
+    aAU: 3.46,
+    eccentricity: 0.641,
+    inclDeg: 7.04,
+    longNodeDeg: 50.1,
+    argPeriDeg: 12.8,
+    periodYears: 6.44,
+    startPhase: 0.65,
+    fact: "Famous as the first comet humanity ever landed on — ESA's Philae touched down on 67P's surface November 12, 2014. Rubber-duck shaped (two lobes fused), only 4.3 × 4.1 km. Mother ship Rosetta tracked it through perihelion in August 2015, watching jets of gas erupt as the comet warmed.",
+    visualRadius: 0.06,
   },
   {
     name: "Comet NEOWISE",
@@ -1022,6 +1049,102 @@ export const namedBodies: NamedBody[] = [
     periodYears: 0.53,
     startPhase: 0.92,
     fact: "Joint ESA / JAXA Mercury mission — completing nine planetary flybys (Earth × 1, Venus × 2, Mercury × 6) before braking into Mercury orbit in November 2026. Two orbiters then separate: one mapping the surface, one studying the magnetosphere.",
+    visualRadius: 0.028,
+  },
+  // ----- Recent / in-flight outer-solar-system missions -----
+  {
+    name: "Europa Clipper",
+    designation: "Europa Clipper · NASA · 2024",
+    kind: "spacecraft",
+    aAU: 3.2,                // mid-cruise toward Jupiter (snapshot)
+    eccentricity: 0.55,
+    inclDeg: 4.0,
+    longNodeDeg: 30.0,
+    argPeriDeg: 184.0,
+    elementsEpoch: "2025-01",
+    periodYears: 5.5,
+    startPhase: 0.62,
+    fact: "Largest planetary spacecraft NASA has ever built — launched October 14, 2024. Will arrive at Jupiter April 2030, then make ~49 close flybys of Europa to study its subsurface ocean, the most promising place in the solar system to look for present-day life beyond Earth.",
+    visualRadius: 0.032,
+  },
+  {
+    name: "JUICE",
+    designation: "JUICE · ESA · 2023",
+    kind: "spacecraft",
+    aAU: 2.6,                // cruise + flybys toward Jupiter
+    eccentricity: 0.42,
+    inclDeg: 3.6,
+    longNodeDeg: 88.0,
+    argPeriDeg: 215.0,
+    elementsEpoch: "2025-01",
+    periodYears: 4.5,
+    startPhase: 0.40,
+    fact: "ESA's Jupiter Icy Moons Explorer — launched April 14, 2023, arrives at Jupiter July 2031. Will study Ganymede, Callisto, and Europa over four years, then enter orbit around Ganymede in 2034 — the first time any spacecraft will orbit a moon other than Earth's.",
+    visualRadius: 0.030,
+  },
+  {
+    name: "Psyche",
+    designation: "Psyche · NASA · 2023",
+    kind: "spacecraft",
+    aAU: 2.4,                // cruise toward asteroid 16 Psyche
+    eccentricity: 0.30,
+    inclDeg: 7.0,
+    longNodeDeg: 162.0,
+    argPeriDeg: 41.0,
+    elementsEpoch: "2025-01",
+    periodYears: 3.9,
+    startPhase: 0.18,
+    fact: "First mission to a metal-rich M-type asteroid — launched October 13, 2023, arrives at 16 Psyche in August 2029. The asteroid may be an exposed planetary core from the early solar system, giving the first direct look at what the cores of Mercury, Venus, Earth and Mars are made of.",
+    visualRadius: 0.030,
+  },
+  {
+    name: "Solar Orbiter",
+    designation: "Solar Orbiter · ESA / NASA · 2020",
+    kind: "spacecraft",
+    aAU: 0.72,
+    eccentricity: 0.293,
+    inclDeg: 17.0,           // tilting steeper with each Venus flyby
+    longNodeDeg: 142.0,
+    argPeriDeg: 28.0,
+    elementsEpoch: "2025-01",
+    periodYears: 0.61,
+    startPhase: 0.34,
+    fact: "Returned the first ever direct images of the Sun's poles in 2024 — impossible from Earth's near-ecliptic vantage. Uses Venus gravity assists to climb out of the ecliptic, eventually reaching ~33° solar latitude.",
+    visualRadius: 0.030,
+  },
+  // ----- Historical / mission-completed legacy spacecraft. Frozen at
+  // last known position so users can find them and read their stories.
+  // Marked elementsEpoch with the mission-end year for honesty. -----
+  {
+    name: "Cassini",
+    designation: "Cassini · NASA / ESA / ASI · 1997–2017",
+    kind: "spacecraft",
+    aAU: 9.537,              // frozen in Saturn orbit at mission end
+    eccentricity: 0.0,        // approximating final Saturn-orbit position
+    inclDeg: 2.485,
+    longNodeDeg: 113.6,
+    argPeriDeg: 339.4,
+    elementsEpoch: "2017-09",
+    periodYears: 29.46,       // Saturn's orbital period — we render it
+                              //  co-orbiting at Saturn's heliocentric path
+    startPhase: 0.50,
+    fact: "Studied Saturn for 13 years (2004–2017) — discovered Enceladus's water-ice plumes, mapped Titan's methane lakes, watched a hurricane churn in Saturn's north-polar hexagon. Deliberately deorbited into Saturn's atmosphere on September 15, 2017 to protect any possible Enceladus / Titan life from contamination.",
+    visualRadius: 0.035,
+  },
+  {
+    name: "Rosetta",
+    designation: "Rosetta · ESA · 2004–2016",
+    kind: "spacecraft",
+    aAU: 3.46,                // 67P's semi-major axis — Rosetta tracked
+                              //  the comet through its perihelion + back
+    eccentricity: 0.641,
+    inclDeg: 7.0,
+    longNodeDeg: 50.1,
+    argPeriDeg: 12.8,
+    elementsEpoch: "2016-09",
+    periodYears: 6.45,
+    startPhase: 0.65,
+    fact: "First spacecraft to orbit a comet (67P/Churyumov-Gerasimenko, 2014–2016) and the first to soft-land on one (the Philae lander, November 2014). Returned the most detailed comet science in history — water-vapour isotopes, organic molecules on the surface. Ended September 30, 2016 with a controlled descent onto 67P itself.",
     visualRadius: 0.028,
   },
   // ----- Dormant interstellar probes — still on their escape trajectories
