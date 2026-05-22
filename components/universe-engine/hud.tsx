@@ -1,6 +1,10 @@
 "use client"
 
 /**
+ * Copyright (c) 2026 Ankur Sinha. All rights reserved.
+ * Part of the Universe Engine — see ./index.tsx for the full notice.
+ * https://github.com/sinhaankur/Portfolio/blob/main/LICENSE
+ *
  * Universe Engine — HUD overlays.
  *
  * Plain DOM elements that sit on top of the R3F <Canvas>. Token-driven
@@ -119,8 +123,14 @@ export function DeepFactsDisclosure({
 export function InfoPanel({ info }: { info: BodyInfo | null }) {
   if (!info) {
     return (
-      <div className="font-mono text-[10px] tracking-[0.25em] uppercase text-foreground/45 pointer-events-none">
-        Hover any body for data
+      <div className="font-mono text-[10px] tracking-[0.25em] uppercase text-foreground/45 pointer-events-none space-y-2">
+        <div>Hover any body for data</div>
+        {/* Idle-state credit — visible to anyone exploring the engine but
+            tucked under the prompt so it never crowds the data panel.
+            Disappears the moment a body is hovered. */}
+        <div className="text-[9px] tracking-[0.2em] text-foreground/30">
+          Universe Engine · © Ankur Sinha 2026
+        </div>
       </div>
     )
   }

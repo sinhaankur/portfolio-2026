@@ -1,4 +1,8 @@
 /**
+ * Copyright (c) 2026 Ankur Sinha. All rights reserved.
+ * Part of the Universe Engine — see ./index.tsx for the full notice.
+ * https://github.com/sinhaankur/Portfolio/blob/main/LICENSE
+ *
  * Universe Engine — astronomy data + helpers.
  *
  * Everything in this file is pure data or pure math: no React, no R3F.
@@ -1352,5 +1356,47 @@ export const skyPoints: SkyPoint[] = [
     // from the accreting stellar-mass BH. Shorter and dimmer than the
     // supermassive AGN jets above, in keeping with its scale.
     jet: { axis: "y", lengthFactor: 9, brightness: 0.5, asymmetry: 0.4, color: "#a8c5ff" },
+  },
+  {
+    id: "v404-cygni",
+    name: "V404 Cygni",
+    designation: "V404 Cygni · 9 M☉ · X-ray nova",
+    kind: "black-hole",
+    raHours: 20.408,
+    decDeg: 33.87,
+    distance: "8,000 ly",
+    fact: "A stellar-mass black hole in a binary system, also in Cygnus. Erupted into a bright X-ray nova in 1989 and again in 2015 — the 2015 outburst was bright enough to study the accretion physics in real time. 9 solar-mass BH accreting from a K-class companion.",
+    visualSize: 1.0,
+    massSolar: 9,
+    spin: 0.92,
+    jet: { axis: "y", lengthFactor: 7, brightness: 0.45, asymmetry: 0.35, color: "#a8c5ff" },
+  },
+  {
+    id: "ngc1277-bh",
+    name: "NGC 1277 BH",
+    designation: "NGC 1277 · 17 billion M☉ · Overmassive",
+    kind: "black-hole",
+    raHours: 3.319,
+    decDeg: 41.57,
+    distance: "220 million ly",
+    fact: "An overmassive black hole — 14% of its host galaxy's mass when most galaxies host BHs at 0.1%. The galaxy NGC 1277 is a relic galaxy that stopped forming stars 12 billion years ago. Suggests BH growth may decouple from galaxy growth.",
+    visualSize: 1.6,
+    massSolar: 1.7e10,
+    spin: 0.85,
+    jet: { axis: "y", lengthFactor: 13, brightness: 0.6, asymmetry: 0.55, color: "#c8defe" },
+  },
+  {
+    id: "gw150914",
+    name: "GW150914",
+    designation: "GW150914 · 62 M☉ · LIGO merger remnant",
+    kind: "black-hole",
+    raHours: 6.7,
+    decDeg: -70.0,
+    distance: "1.3 billion ly",
+    fact: "The remnant of the first directly detected gravitational-wave event (LIGO, September 14, 2015) — a merger of two black holes (~36 + ~29 M☉) into a single ~62 M☉ BH. The chirp was heard before any electromagnetic signal; localisation is approximate (a wide southern-sky banana).",
+    visualSize: 1.0,
+    massSolar: 62,
+    spin: 0.67,
+    jet: { axis: "y", lengthFactor: 8, brightness: 0.4, asymmetry: 0.3, color: "#b8d0ff" },
   },
 ]

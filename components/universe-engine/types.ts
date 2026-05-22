@@ -1,4 +1,8 @@
 /**
+ * Copyright (c) 2026 Ankur Sinha. All rights reserved.
+ * Part of the Universe Engine — see ./index.tsx for the full notice.
+ * https://github.com/sinhaankur/Portfolio/blob/main/LICENSE
+ *
  * Universe Engine — public types.
  *
  * Anything a consumer of <UniverseEngine /> might need to read or pass through

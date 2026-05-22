@@ -1,6 +1,10 @@
 "use client"
 
 /**
+ * Copyright (c) 2026 Ankur Sinha. All rights reserved.
+ * Part of the Universe Engine — see ./index.tsx for the full notice.
+ * https://github.com/sinhaankur/Portfolio/blob/main/LICENSE
+ *
  * Mobile body sheet.
  *
  * Replaces the corner InfoPanel on touch devices. When a body is tapped,

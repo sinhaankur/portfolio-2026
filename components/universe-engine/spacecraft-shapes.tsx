@@ -1,6 +1,10 @@
 "use client"
 
 /**
+ * Copyright (c) 2026 Ankur Sinha. All rights reserved.
+ * Part of the Universe Engine — see ./index.tsx for the full notice.
+ * https://github.com/sinhaankur/Portfolio/blob/main/LICENSE
+ *
  * Universe Engine — spacecraft shapes.
  *
  * Procedural illustrations for each named spacecraft. Each silhouette is
