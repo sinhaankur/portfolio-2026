@@ -55,6 +55,31 @@ export const TIME_WARP_DAYS_PER_SEC = BASE_TIME_WARP_DAYS_PER_SEC
 
 export const timeWarpRef = { current: 1.0 }
 
+/* --------------------------------------------------------------------------
+ * Simulation clock
+ *
+ * Tracks how much simulated time has advanced since the page loaded, so
+ * the HUD can surface a real calendar date and waypoints can eventually
+ * scrub to specific dates (Halley's perihelion, the next eclipse, your
+ * birthday). The accumulator is advanced by the SceneClock component
+ * each frame using `delta × TIME_WARP_DAYS_PER_SEC × timeWarpRef.current`,
+ * which is the exact same scaling every orbiting body uses — so the
+ * displayed date stays in lockstep with where the planets visibly are.
+ *
+ * `epochMs` is captured at module load on the client (Date.now()); the
+ * displayed date is `epochMs + days × 86_400_000`. Pausing the time-warp
+ * slider freezes both the bodies and the date.
+ * ------------------------------------------------------------------------ */
+
+export const simTimeRef = {
+  current: {
+    /** Days elapsed in simulation since page load. */
+    days: 0,
+    /** Real-world epoch the simulation started from. Set on first read. */
+    epochMs: typeof Date !== "undefined" ? Date.now() : 0,
+  },
+}
+
 export const DEG = Math.PI / 180
 
 /* --------------------------------------------------------------------------
@@ -162,6 +187,15 @@ export type FlyToTarget = {
   active: boolean
   /** Optional human-readable name — purely for telemetry / debugging. */
   label?: string
+  /** Optional fixed camera position. When non-null, the controller drives
+   *  the camera toward this specific point instead of moving it along
+   *  the existing target→camera ray. Used for narrative beats (e.g. the
+   *  Pale Blue Dot vantage) where *where you look from* is the story. */
+  cameraPos: { x: number; y: number; z: number } | null
+  /** Optional caption text shown by the HUD while this fly is active. */
+  caption: string | null
+  /** Optional caption attribution rendered under the caption. */
+  captionSource: string | null
 }
 
 export const flyToRef: { current: FlyToTarget } = {
@@ -169,6 +203,9 @@ export const flyToRef: { current: FlyToTarget } = {
     target: { x: SUN_OFFSET_SCENE, y: 0, z: 0 },
     distance: 13,
     active: false,
+    cameraPos: null,
+    caption: null,
+    captionSource: null,
   },
 }
 
@@ -177,6 +214,11 @@ export function requestFlyTo(
   target: { x: number; y: number; z: number },
   distance: number,
   label?: string,
+  options?: {
+    cameraPos?: { x: number; y: number; z: number }
+    caption?: string
+    captionSource?: string
+  },
 ) {
   // Any new fly-to cancels an active follow — they're mutually exclusive
   // modes. The follow stays sticky until the user takes a deliberate
@@ -188,6 +230,9 @@ export function requestFlyTo(
   flyToRef.current.distance = distance
   flyToRef.current.active = true
   flyToRef.current.label = label
+  flyToRef.current.cameraPos = options?.cameraPos ?? null
+  flyToRef.current.caption = options?.caption ?? null
+  flyToRef.current.captionSource = options?.captionSource ?? null
 }
 
 /* --------------------------------------------------------------------------
@@ -250,6 +295,17 @@ export type JourneyWaypoint = {
   label?: string
   /** ms to linger before flying to the next waypoint. */
   linger: number
+  /** Optional fixed camera position. When set, overrides the usual
+   *  "preserve viewing direction" behaviour so the camera ends up at a
+   *  specific point instead of `distance` units away along the existing
+   *  ray. Used for narrative beats (Pale Blue Dot) where the *vantage
+   *  point* is the story, not just the subject. */
+  cameraPos?: { x: number; y: number; z: number }
+  /** Optional caption rendered while this waypoint is active. Pure text;
+   *  long-form captions are wrapped at narrow widths in the HUD. */
+  caption?: string
+  /** Optional attribution shown under the caption (smaller, dimmer). */
+  captionSource?: string
 }
 
 export const DEFAULT_JOURNEY: JourneyWaypoint[] = [
@@ -266,6 +322,23 @@ export const DEFAULT_JOURNEY: JourneyWaypoint[] = [
     distance: 2.2,
     label: "Saturn",
     linger: 6500,
+  },
+  {
+    // Pale Blue Dot — Voyager 1's vantage on Valentine's Day 1990.
+    // Target is Earth (≈ 3 scene units from the Sun, on its start-phase
+    // position); camera is fixed ~46 scene units out, high above the
+    // ecliptic to mimic Voyager 1's actual heliocentric position
+    // (35.7° inclination, ~166 AU today). The fixed camera position is
+    // what makes the *vantage* the story — Earth shows up as a single
+    // sub-pixel speck against the void, exactly as Sagan described it.
+    target: { x: SUN_OFFSET_SCENE - 0.63, y: 0, z: 2.93 },
+    cameraPos: { x: SUN_OFFSET_SCENE - 28, y: 22, z: 30 },
+    distance: 46,
+    label: "Pale Blue Dot",
+    caption:
+      "Look again at that dot. That's here. That's home. That's us. On it, everyone you love, everyone you know, everyone you ever heard of, every human being who ever was, lived out their lives.",
+    captionSource: "Carl Sagan · Pale Blue Dot · 1994",
+    linger: 11000,
   },
   {
     // Galactic centre (Sgr A*) — origin of the MilkyWay group.
@@ -748,6 +821,54 @@ export const namedBodies: NamedBody[] = [
     startPhase: 0.45,
     fact: "Closest object ever to the Sun — perihelion of 0.046 AU (6.9 million km / 9.86 solar radii) in December 2024, dipping inside the corona at 690,000 km/h. Carbon-composite heat shield protects the cold side from 1,400 °C.",
     visualRadius: 0.045,
+  },
+  {
+    name: "Hayabusa2",
+    designation: "Hayabusa2 · JAXA · 2014",
+    kind: "spacecraft",
+    aAU: 1.30,               // post-Ryugu extended-mission heliocentric orbit
+    eccentricity: 0.18,
+    inclDeg: 5.9,
+    periodYears: 1.48,
+    startPhase: 0.78,
+    fact: "Returned asteroid Ryugu samples to Earth in December 2020 — second-ever asteroid sample return, after the original Hayabusa. Now on an 11-year extended cruise toward asteroid 1998 KY26 (rendezvous July 2031) with a 2026 Earth flyby and a 2027 flyby of asteroid 2001 CC21.",
+    visualRadius: 0.04,
+  },
+  {
+    name: "OSIRIS-APEX",
+    designation: "OSIRIS-APEX · NASA · 2016",
+    kind: "spacecraft",
+    aAU: 1.14,               // post-Bennu trajectory toward Apophis
+    eccentricity: 0.20,
+    inclDeg: 6.0,
+    periodYears: 1.22,
+    startPhase: 0.85,
+    fact: "Originally OSIRIS-REx — flew to asteroid Bennu and dropped the sample capsule on Utah in September 2023, then was redirected as OSIRIS-APEX to rendezvous with near-Earth asteroid 99942 Apophis on April 13, 2029, the day Apophis makes its closest flyby of Earth (~32,000 km).",
+    visualRadius: 0.04,
+  },
+  {
+    name: "Lucy",
+    designation: "Lucy · NASA · 2021",
+    kind: "spacecraft",
+    aAU: 3.31,               // main-belt cruise toward Trojans
+    eccentricity: 0.46,
+    inclDeg: 2.7,
+    periodYears: 6.0,
+    startPhase: 0.20,
+    fact: "First mission to the Jupiter Trojans — the two clouds of asteroids that share Jupiter's orbit, 60° ahead and behind it. Eleven-year tour visiting eight asteroids between 2025 and 2033, including Donaldjohanson (April 2025) and Eurybates with its tiny moon Queta.",
+    visualRadius: 0.04,
+  },
+  {
+    name: "BepiColombo",
+    designation: "BepiColombo · ESA / JAXA · 2018",
+    kind: "spacecraft",
+    aAU: 0.65,               // cruising toward Mercury orbit insertion
+    eccentricity: 0.24,
+    inclDeg: 5.0,
+    periodYears: 0.53,
+    startPhase: 0.92,
+    fact: "Joint ESA / JAXA Mercury mission — completing nine planetary flybys (Earth × 1, Venus × 2, Mercury × 6) before braking into Mercury orbit in November 2026. Two orbiters then separate: one mapping the surface, one studying the magnetosphere.",
+    visualRadius: 0.04,
   },
 ]
 

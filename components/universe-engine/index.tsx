@@ -45,12 +45,13 @@ import {
   SUN_OFFSET_SCENE,
   cancelFlyTo,
   cancelFollow,
+  flyToRef,
   followRef,
   requestFlyTo,
   timeWarpRef,
 } from "./astronomy"
 import { SceneContents } from "./scene"
-import { InfoPanel, ResetViewButton, TimeWarpSlider } from "./hud"
+import { DateReadout, InfoPanel, ResetViewButton, TimeWarpSlider } from "./hud"
 import { MobileBodySheet } from "./mobile-sheet"
 import { GalaxyMusic } from "../galaxy-music"
 import type { BodyInfo, HoverHandler } from "./types"
@@ -150,6 +151,24 @@ export function UniverseEngine({
     const id = setInterval(tick, 200)
     return () => clearInterval(id)
   }, [])
+
+  // Narrative caption from the active journey waypoint (Pale Blue Dot,
+  // etc.). Same 200ms-poll pattern as followingLabel. Null when the
+  // current waypoint doesn't carry a caption, which is most of them.
+  const [caption, setCaption] = useState<{
+    text: string
+    source: string | null
+  } | null>(null)
+  useEffect(() => {
+    const tick = () => {
+      const f = flyToRef.current
+      const text = f.active ? f.caption : null
+      setCaption(text ? { text, source: f.captionSource ?? null } : null)
+    }
+    tick()
+    const id = setInterval(tick, 200)
+    return () => clearInterval(id)
+  }, [])
   const stopFollowing = useCallback(() => {
     cancelFollow()
     setFollowingLabel(null)
@@ -173,7 +192,11 @@ export function UniverseEngine({
     const tick = () => {
       if (cancelled) return
       const wp = DEFAULT_JOURNEY[i]
-      requestFlyTo(wp.target, wp.distance, wp.label)
+      requestFlyTo(wp.target, wp.distance, wp.label, {
+        cameraPos: wp.cameraPos,
+        caption: wp.caption,
+        captionSource: wp.captionSource,
+      })
       i = (i + 1) % DEFAULT_JOURNEY.length
       timer = setTimeout(tick, wp.linger)
     }
@@ -197,7 +220,7 @@ export function UniverseEngine({
   }
 
   return (
-    <div className="relative w-full h-full">
+    <div className="relative w-full h-full ue-engine-fade-in">
       <Canvas
         // Camera default: close to the solar system on the Orion Arm.
         camera={{ position: [SUN_OFFSET_SCENE + 4, 6, 13], fov: 50, near: 0.1, far: 1000 }}
@@ -261,10 +284,11 @@ export function UniverseEngine({
               on the same baseline as UPCOMING keeps the chip out of the
               typography zone entirely, with a horizontal gap to UPCOMING. */}
           <div className="absolute bottom-6 right-44 md:right-56 z-30 pointer-events-auto flex flex-row items-center gap-2">
-            {/* Time-warp slider stays desktop-only — the pill is too wide on
-                phones, it would push the cluster into UPCOMING. Touch users
-                still get pinch-zoom + drag + tap-to-explore. */}
-            <div className="hidden md:block">
+            {/* Date + time-warp cluster stay desktop-only — the pills are
+                too wide on phones, they would push the cluster into UPCOMING.
+                Touch users still get pinch-zoom + drag + tap-to-explore. */}
+            <div className="hidden md:flex items-center gap-2">
+              <DateReadout />
               <TimeWarpSlider value={timeWarpDisplay} onChange={setTimeWarpDisplay} />
             </div>
             {showMusic && <GalaxyMusic />}
@@ -307,6 +331,31 @@ export function UniverseEngine({
               onDismiss={dismissSheet}
               onAction={handleReset}
             />
+          )}
+
+          {/* Narrative caption — only renders during journey waypoints that
+              carry text (currently just the Pale Blue Dot beat). Centered
+              and held within a narrow column so the Sagan passage reads
+              cinematically rather than dashed across the viewport. */}
+          {caption && (
+            <div
+              key={caption.text}
+              className="
+                pointer-events-none
+                absolute top-32 md:top-40 left-1/2 -translate-x-1/2
+                z-20 max-w-md md:max-w-lg px-6 text-center
+              "
+              style={{ animation: "ue-label-in 700ms ease-out both" }}
+            >
+              <p className="font-serif italic text-foreground/85 text-base md:text-[18px] leading-relaxed">
+                {caption.text}
+              </p>
+              {caption.source && (
+                <p className="mt-3 font-mono text-[9px] tracking-[0.25em] uppercase text-foreground/55">
+                  {caption.source}
+                </p>
+              )}
+            </div>
           )}
         </>
       )}
