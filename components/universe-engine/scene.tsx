@@ -153,22 +153,48 @@ function FlyToController({ interactive }: { interactive: boolean }) {
         followRef.current = null
         return
       }
-      // Follow mode uses a slightly tighter lerp so the camera stays glued
-      // to the body even when it's moving along its orbit each frame.
       const k = 1 - Math.exp(-delta * 4.0)
       _flyTargetVec.set(pos.x, pos.y, pos.z)
-      controls.target.lerp(_flyTargetVec, k)
 
-      _flyCamDir.copy(camera.position).sub(controls.target)
-      const currentDist = _flyCamDir.length()
-      if (currentDist < 1e-4) {
-        _flyCamDir.set(0.6, 0.4, 1).normalize()
+      if (!follow.arrived) {
+        // Fly-in phase — lerp BOTH the controls.target AND the camera
+        // distance toward the body. This is the initial swoop in.
+        controls.target.lerp(_flyTargetVec, k)
+        _flyCamDir.copy(camera.position).sub(controls.target)
+        const currentDist = _flyCamDir.length()
+        if (currentDist < 1e-4) {
+          _flyCamDir.set(0.6, 0.4, 1).normalize()
+        } else {
+          _flyCamDir.normalize()
+        }
+        const nextDist = currentDist + (follow.distance - currentDist) * k
+        _flyDesiredCamPos.copy(controls.target).addScaledVector(_flyCamDir, nextDist)
+        camera.position.copy(_flyDesiredCamPos)
+
+        // Mark arrival when the camera distance has settled within
+        // ~6% of the target. After this, the controller stops fighting
+        // user input — drag rotates, scroll zooms, autoRotate is
+        // already paused at the OrbitControls layer. Only the target
+        // keeps tracking the body's world position.
+        const distErr = Math.abs(currentDist - follow.distance) / Math.max(follow.distance, 0.001)
+        if (distErr < 0.06 && controls.target.distanceTo(_flyTargetVec) < 0.08) {
+          follow.arrived = true
+        }
       } else {
-        _flyCamDir.normalize()
+        // Arrived — track the moving target without overriding camera
+        // position. OrbitControls preserves the user's offset from the
+        // target, so as the body orbits the camera slides along with
+        // it while drag/zoom respond normally. The target jump (not
+        // lerp) here means zero lag between body position and look-at,
+        // so the body never drifts off-centre.
+        const targetDelta = _flyTargetVec.clone().sub(controls.target)
+        controls.target.copy(_flyTargetVec)
+        // Move the camera by the same delta so the user's view angle
+        // and distance to the body are preserved frame-to-frame as
+        // the body sweeps through space.
+        camera.position.add(targetDelta)
       }
-      const nextDist = currentDist + (follow.distance - currentDist) * k
-      _flyDesiredCamPos.copy(controls.target).addScaledVector(_flyCamDir, nextDist)
-      camera.position.copy(_flyDesiredCamPos)
+
       controls.update()
       return
     }
