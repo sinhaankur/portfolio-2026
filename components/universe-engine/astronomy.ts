@@ -1312,6 +1312,11 @@ export const skyPoints: SkyPoint[] = [
     visualSize: 1.8,
     massSolar: 6.5e9,
     spin: 0.9,
+    // M87 is the textbook jet AGN — Hubble's 5,000-light-year jet is one
+    // of the most-photographed structures in extragalactic astronomy.
+    // Strong asymmetry: real radio imaging shows the approaching jet
+    // ~10× brighter than the receding side.
+    jet: { axis: "y", lengthFactor: 14, brightness: 0.7, asymmetry: 0.75, color: "#bcd9ff" },
   },
   {
     id: "ton-618",
@@ -1325,6 +1330,10 @@ export const skyPoints: SkyPoint[] = [
     visualSize: 2.2,
     massSolar: 6.6e10,
     spin: 0.9,
+    // TON 618 powers a hyperluminous quasar — radio-loud, observed jets,
+    // even more massive than M87. Slightly longer + brighter than M87's
+    // for visual differentiation between the two supermassive bodies.
+    jet: { axis: "y", lengthFactor: 16, brightness: 0.65, asymmetry: 0.55, color: "#d8e6ff" },
   },
   {
     id: "cygnus-x1",
@@ -1339,5 +1348,9 @@ export const skyPoints: SkyPoint[] = [
     visualSize: 1.2,
     massSolar: 21,
     spin: 0.95,
+    // Cygnus X-1 is a microquasar — compact relativistic jets ejected
+    // from the accreting stellar-mass BH. Shorter and dimmer than the
+    // supermassive AGN jets above, in keeping with its scale.
+    jet: { axis: "y", lengthFactor: 9, brightness: 0.5, asymmetry: 0.4, color: "#a8c5ff" },
   },
 ]
