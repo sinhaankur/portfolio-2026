@@ -503,9 +503,21 @@ export const moons: MoonData[] = [
   // Uranus's notable moon
   { name: "Miranda",         parent: "Uranus",  visualRadius: 0.035, orbitRadius: 0.70, periodDays: 1.413,  shade: "#bcb8b0", fact: "The most geologically bizarre body in the solar system — sheer cliffs 20 km tall (taller than Everest), chevron-shaped features, and patchwork terrain that looks like the moon was smashed apart and put back together." },
   { name: "Triton",          parent: "Neptune", visualRadius: 0.055, orbitRadius: 0.95, periodDays: -5.88,  shade: "#d8c6b8", fact: "Neptune's largest moon. Orbits BACKWARDS (retrograde) — likely a captured Kuiper Belt object." },
-  // Charon — Pluto's largest moon. Tidally locked in a mutual rotation
-  // (Pluto-Charon are double-tidally-locked: both faces stay turned to each other).
-  { name: "Charon",          parent: "Pluto",   visualRadius: 0.04,  orbitRadius: 0.22, periodDays: 6.39,   shade: "#9e958a", fact: "Half the diameter of Pluto. Mutually tidally locked — the two bodies present the same face to each other forever. Discovered in 1978 from a smudge on a photographic plate." },
+  // Charon — Pluto's largest moon. Real diameter is 53% of Pluto's, so
+  // visualRadius scales accordingly (Pluto 0.26 × 0.53 ≈ 0.14). The
+  // Pluto-Charon system is the only true binary planet-system: their
+  // mutual barycenter sits ~960 km outside Pluto's surface, and both
+  // bodies are tidally locked to each other.
+  { name: "Charon",          parent: "Pluto",   visualRadius: 0.14,  orbitRadius: 0.95,  periodDays: 6.39,   shade: "#9e958a", fact: "Half the diameter of Pluto and 12% of its mass — the largest moon relative to its parent in the solar system. Mutually tidally locked: the two bodies present the same face to each other forever. Their barycenter sits outside Pluto's surface, so they technically orbit each other rather than Pluto being stationary. Discovered in 1978 from a smudge on a photographic plate." },
+  // Pluto's four small outer moons — Styx, Nix, Kerberos, Hydra, all
+  // discovered by Hubble between 2005 and 2012. Irregular, captured
+  // remnants of the original Pluto-Charon-forming collision. Tiny
+  // relative to Charon (radii under 25 km) so they render as small
+  // accents at increasing distances from the barycenter.
+  { name: "Styx",            parent: "Pluto",   visualRadius: 0.018, orbitRadius: 1.40,  periodDays: 20.16,  shade: "#a59b8f", fact: "Discovered 2012. ~16 km × 9 km, the smallest known moon of Pluto. Orbits between Charon and Nix; chaotic rotation, like all four small Pluto moons." },
+  { name: "Nix",             parent: "Pluto",   visualRadius: 0.024, orbitRadius: 1.65,  periodDays: 24.85,  shade: "#bcb1a4", fact: "Discovered 2005 by Hubble. ~50 km long, irregular shape. Named for the Greek goddess of darkness, mother of Charon." },
+  { name: "Kerberos",        parent: "Pluto",   visualRadius: 0.020, orbitRadius: 1.95,  periodDays: 32.17,  shade: "#a89c8e", fact: "Discovered 2011. ~19 km × 10 km, the second-darkest body in the Pluto system. Bilobed peanut shape — two lumps fused together." },
+  { name: "Hydra",           parent: "Pluto",   visualRadius: 0.026, orbitRadius: 2.30,  periodDays: 38.20,  shade: "#c9bcab", fact: "Discovered 2005 alongside Nix. ~50 km × 30 km, the outermost confirmed Pluto moon. Bright water-ice surface — most reflective body in the system after Charon." },
 ]
 
 /* --------------------------------------------------------------------------
