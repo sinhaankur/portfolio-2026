@@ -2446,6 +2446,7 @@ function NamedBodyMesh({
                 inclDeg: body.inclDeg,
                 longNodeDeg: body.longNodeDeg,
                 argPeriDeg: body.argPeriDeg,
+                elementsEpoch: body.elementsEpoch,
               },
             })
           }}

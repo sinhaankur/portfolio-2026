@@ -92,6 +92,12 @@ export function OrbitalElements({
           <dd className={valueClass}>{orbital.argPeriDeg.toFixed(1)}°</dd>
         </>
       )}
+      {orbital.elementsEpoch && (
+        <>
+          <dt className={`${labelClass} italic`}>snapshot</dt>
+          <dd className={`${valueClass} opacity-70`}>{orbital.elementsEpoch}</dd>
+        </>
+      )}
     </dl>
   )
 }

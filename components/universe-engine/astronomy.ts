@@ -430,7 +430,7 @@ export const planetsData: Planet[] = [
   // Pluto — reclassified to dwarf planet in 2006 but still part of the family.
   // 17.16° inclination really does tilt its ring above the ecliptic — Pluto
   // crosses inside Neptune's orbit for ~20 years every 248-year orbit.
-  { name: "Pluto",   aAU: 39.48, radiusEarth: 0.186, periodDays: 90560.00,tiltDeg: 122.5,  rotHours: -153.3, inclDeg: 17.16, startPhase: 4.1, shade: "#a07b54", surfaceTempK: { min: 33, mean: 44, max: 55 }, classification: "Dwarf planet · Kuiper Belt", moons: 5, fact: "Reclassified from planet to dwarf planet in 2006. 17° orbital inclination lifts it above the ecliptic. Charon is so massive (12% of Pluto's mass) they orbit a barycentre outside Pluto's surface — effectively a binary system. The famous heart-shaped Tombaugh Regio was photographed by New Horizons in 2015.", deep: { massEarth: 0.00220, densityGcc: 1.86, gravity: 0.62, escapeVelocityKms: 1.21, eccentricity: 0.244, discoveredYear: 1930, discoveredBy: "Clyde Tombaugh" } },
+  { name: "Pluto",   aAU: 39.48, radiusEarth: 0.186, periodDays: 90560.00,tiltDeg: 122.5,  rotHours: -153.3, inclDeg: 17.16, startPhase: 4.1, shade: "#c8a378", visualRadiusOverride: 0.26, surfaceTempK: { min: 33, mean: 44, max: 55 }, classification: "Dwarf planet · Kuiper Belt", moons: 5, fact: "Reclassified from planet to dwarf planet in 2006. 17° orbital inclination lifts it above the ecliptic. Charon is so massive (12% of Pluto's mass) they orbit a barycentre outside Pluto's surface — effectively a binary system. The famous heart-shaped Tombaugh Regio was photographed by New Horizons in 2015.", deep: { massEarth: 0.00220, densityGcc: 1.86, gravity: 0.62, escapeVelocityKms: 1.21, eccentricity: 0.244, discoveredYear: 1930, discoveredBy: "Clyde Tombaugh" } },
 ]
 
 export function buildScenePlanets(): ScenePlanet[] {
@@ -439,8 +439,11 @@ export function buildScenePlanets(): ScenePlanet[] {
     // Visual size is sqrt-scaled from real Earth-radii so the giants don't
     // visually dwarf the inner planets, then floored at 0.13 scene units so
     // tiny bodies like Pluto stay findable on their orbit ring instead of
-    // shrinking to a pinprick.
-    const visualRadius = Math.max(0.13, Math.sqrt(p.radiusEarth) * 0.2)
+    // shrinking to a pinprick. An explicit `visualRadiusOverride` wins —
+    // useful for dwarf planets where even the floor lands too small to
+    // spot from the inner-system view.
+    const computedRadius = Math.max(0.13, Math.sqrt(p.radiusEarth) * 0.2)
+    const visualRadius = p.visualRadiusOverride ?? computedRadius
     const orbitalSpeedRadPerSec = (2 * Math.PI) / (p.periodDays / TIME_WARP_DAYS_PER_SEC)
     const rotSpeedRadPerSec = (2 * Math.PI) / ((p.rotHours / 24) / TIME_WARP_DAYS_PER_SEC)
     return {
@@ -848,6 +851,7 @@ export const namedBodies: NamedBody[] = [
     inclDeg: 3.4,
     longNodeDeg: 151.0,      // post-2024 Venus assist
     argPeriDeg: 89.0,
+    elementsEpoch: "2025-01",
     periodYears: 0.25,
     startPhase: 0.45,
     fact: "Closest object ever to the Sun — perihelion of 0.046 AU (6.9 million km / 9.86 solar radii) in December 2024, dipping inside the corona at 690,000 km/h. Carbon-composite heat shield protects the cold side from 1,400 °C.",
@@ -862,6 +866,7 @@ export const namedBodies: NamedBody[] = [
     inclDeg: 5.9,
     longNodeDeg: 251.0,
     argPeriDeg: 171.0,
+    elementsEpoch: "2025-01",
     periodYears: 1.48,
     startPhase: 0.78,
     fact: "Returned asteroid Ryugu samples to Earth in December 2020 — second-ever asteroid sample return, after the original Hayabusa. Now on an 11-year extended cruise toward asteroid 1998 KY26 (rendezvous July 2031) with a 2026 Earth flyby and a 2027 flyby of asteroid 2001 CC21.",
@@ -880,6 +885,7 @@ export const namedBodies: NamedBody[] = [
     inclDeg: 6.0,
     longNodeDeg: 78.0,
     argPeriDeg: 88.0,
+    elementsEpoch: "2025-01",
     periodYears: 1.22,
     startPhase: 0.85,
     fact: "Originally OSIRIS-REx — flew to asteroid Bennu and dropped the sample capsule on Utah in September 2023, then was redirected as OSIRIS-APEX to rendezvous with near-Earth asteroid 99942 Apophis on April 13, 2029, the day Apophis makes its closest flyby of Earth (~32,000 km).",
@@ -894,6 +900,7 @@ export const namedBodies: NamedBody[] = [
     inclDeg: 2.7,
     longNodeDeg: 121.0,
     argPeriDeg: 84.0,
+    elementsEpoch: "2025-01",
     periodYears: 6.0,
     startPhase: 0.20,
     fact: "First mission to the Jupiter Trojans — the two clouds of asteroids that share Jupiter's orbit, 60° ahead and behind it. Eleven-year tour visiting eight asteroids between 2025 and 2033, including Donaldjohanson (April 2025) and Eurybates with its tiny moon Queta.",
@@ -908,6 +915,7 @@ export const namedBodies: NamedBody[] = [
     inclDeg: 5.0,
     longNodeDeg: 87.0,
     argPeriDeg: 273.0,
+    elementsEpoch: "2025-01",
     periodYears: 0.53,
     startPhase: 0.92,
     fact: "Joint ESA / JAXA Mercury mission — completing nine planetary flybys (Earth × 1, Venus × 2, Mercury × 6) before braking into Mercury orbit in November 2026. Two orbiters then separate: one mapping the surface, one studying the magnetosphere.",
