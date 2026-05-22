@@ -2649,11 +2649,16 @@ function NamedBodyMesh({
    *  always streams away from the Sun (origin), matching real solar-wind
    *  physics. Only used when body.kind === "comet" (or Comet Borisov). */
   const tailRef = useRef<Group>(null)
-  /** Comet-tail mesh — position + scale updated each frame so the tail
-   *  length tracks distance from Sun (long at perihelion, faint at aphelion),
-   *  matching real solar-wind sublimation. */
+  /** Comet ion-tail mesh — position + scale updated each frame so the
+   *  tail length tracks distance from Sun (long at perihelion, faint at
+   *  aphelion), matching real solar-wind sublimation. */
   const tailMeshRef = useRef<Mesh>(null)
   const tailMatRef = useRef<import("three").MeshBasicMaterial>(null)
+  /** Comet dust-tail mesh — second tail rendered in warm gold, offset
+   *  from the ion tail by ~15° to fake the curve produced by radiation
+   *  pressure pushing dust out slower than solar wind ions. */
+  const dustTailMeshRef = useRef<Mesh>(null)
+  const dustTailMatRef = useRef<import("three").MeshBasicMaterial>(null)
   /** Motion trail — ring buffer of recent positions rendered as fading
    *  particles behind the body. Makes orbital movement legible at any
    *  time-warp (the body itself moves slowly in any given second; the
@@ -2893,6 +2898,17 @@ function NamedBodyMesh({
         const peakOpacity = invert ? 0.55 : 0.45
         tailMatRef.current.opacity = t * peakOpacity
       }
+      // Dust tail — slightly longer (radiation pressure spreads dust
+      // further) and dimmer than the ion tail. Same perihelion ramp.
+      if (dustTailMeshRef.current && dustTailMatRef.current) {
+        const r = len
+        const t = Math.max(0, Math.min(1, (18 - r) / 13))
+        const dustBaseHalf = config.visualRadius * 5.2
+        dustTailMeshRef.current.position.y = dustBaseHalf * t
+        dustTailMeshRef.current.scale.y = t
+        const peakOpacity = invert ? 0.45 : 0.38
+        dustTailMatRef.current.opacity = t * peakOpacity
+      }
     }
 
     // Trail opacity lerps with hover state — addresses the no-collisions
@@ -2987,25 +3003,54 @@ function NamedBodyMesh({
                 depthWrite={false}
               />
             </mesh>
-            {/* Tail — narrow cone tapering away from the Sun. Base sits at
-                the nucleus, tip extends ~9× radius outward at perihelion.
-                The wrapping group's quaternion is updated each frame to
-                keep the tail anti-radial; the mesh's scale.y + position.y
-                are also updated to shrink the tail when the comet retreats
-                from the Sun (Halley flares only when it swings inside ~5
-                AU, fades to nothing by Pluto-distance). */}
+            {/* Two-tail comet anatomy:
+                ION tail — straight, blue/white, points exactly anti-radial
+                  (solar wind blows the ionised gas straight outward).
+                DUST tail — offset ~15° from anti-radial, warm gold, slightly
+                  longer + wider. Radiation pressure pushes dust grains
+                  outward slower than the ion wind, so dust lags behind
+                  and curves toward the orbital-trailing direction. The
+                  visual offset captures the iconic "double tail" of real
+                  great comets (Hale-Bopp's twin tails are the textbook
+                  example).
+                Wrapping group's quaternion keeps both tails anti-radial
+                each frame; the dust tail's own local-z rotation provides
+                the offset. */}
             <group ref={tailRef}>
+              {/* Ion tail */}
               <mesh ref={tailMeshRef} position={[0, config.visualRadius * 4.5, 0]}>
                 <coneGeometry args={[
-                  config.visualRadius * 0.9,    // base radius (near nucleus)
-                  config.visualRadius * 9,      // length at full perihelion
+                  config.visualRadius * 0.65,
+                  config.visualRadius * 9,
                   14, 1, true,
                 ]} />
                 <meshBasicMaterial
                   ref={tailMatRef as React.Ref<import("three").MeshBasicMaterial>}
-                  color={config.shade}
+                  color={invert ? "#1a4080" : "#9ed0ff"}
                   transparent
                   opacity={invert ? 0.55 : 0.45}
+                  blending={invert ? NormalBlending : AdditiveBlending}
+                  depthWrite={false}
+                  side={DoubleSide}
+                />
+              </mesh>
+              {/* Dust tail — offset 14° around local z so it splays
+                  out from the ion tail. Slightly longer + wider. */}
+              <mesh
+                ref={dustTailMeshRef}
+                position={[0, config.visualRadius * 5.2, 0]}
+                rotation={[0, 0, 0.24]}
+              >
+                <coneGeometry args={[
+                  config.visualRadius * 1.0,
+                  config.visualRadius * 10.4,
+                  14, 1, true,
+                ]} />
+                <meshBasicMaterial
+                  ref={dustTailMatRef as React.Ref<import("three").MeshBasicMaterial>}
+                  color={invert ? "#7a4818" : "#ffd28a"}
+                  transparent
+                  opacity={invert ? 0.45 : 0.38}
                   blending={invert ? NormalBlending : AdditiveBlending}
                   depthWrite={false}
                   side={DoubleSide}
