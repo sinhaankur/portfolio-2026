@@ -257,7 +257,11 @@ export function UniverseEngine({
           // since users follow-mode to them.
           minDistance={0.2}
           maxDistance={260}
-          autoRotate={!reducedMotion}
+          // Pause autoRotate while in follow mode — otherwise the
+          // contemplative spin fights the user's drag and the camera
+          // feels "stuck." Resumes the moment follow is cleared (via
+          // Reset or by switching to a new body's fly-to).
+          autoRotate={!reducedMotion && !followingLabel}
           autoRotateSpeed={0.15}
           rotateSpeed={0.5}
           zoomSpeed={0.7}

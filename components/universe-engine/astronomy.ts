@@ -256,13 +256,22 @@ export function requestFlyTo(
 export type FollowGetter = () => { x: number; y: number; z: number } | null
 
 export const followRef: {
-  current: { getter: FollowGetter; distance: number; label?: string } | null
+  current: {
+    getter: FollowGetter
+    distance: number
+    label?: string
+    /** Set true by the FlyToController once the initial fly-in has
+     *  arrived at the target. After that, the camera-distance lerp
+     *  stops fighting user input — drag rotates, scroll zooms, and
+     *  the controller only keeps the *target* tracking the body. */
+    arrived: boolean
+  } | null
 } = { current: null }
 
 /** Request follow mode. Cancels any in-flight fly-to. */
 export function requestFollow(getter: FollowGetter, distance: number, label?: string) {
   flyToRef.current.active = false
-  followRef.current = { getter, distance, label }
+  followRef.current = { getter, distance, label, arrived: false }
 }
 
 /** Cancel follow mode (called by reset, by a new fly, by Esc / explore toggle). */
