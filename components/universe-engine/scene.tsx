@@ -26,6 +26,7 @@ import {
   AdditiveBlending,
   BufferAttribute,
   BufferGeometry,
+  ClampToEdgeWrapping,
   Color,
   DoubleSide,
   FogExp2,
@@ -33,6 +34,7 @@ import {
   Mesh,
   NormalBlending,
   Points,
+  RepeatWrapping,
   ShaderMaterial,
   SRGBColorSpace,
   TextureLoader,
@@ -1444,6 +1446,38 @@ function Belt({
  * Planets + Sun + Orbit Rings
  * ============================================================ */
 
+/**
+ * Build a ring geometry with proper radial UVs — `u` runs from 0 (inner
+ * radius) to 1 (outer radius), `v` wraps 0→1 around the circumference.
+ * Three.js's built-in RingGeometry uses an annular-projection UV layout
+ * that doesn't let us cleanly map a horizontal strip texture.
+ */
+function radialUVRingGeometry(innerR: number, outerR: number, segments: number) {
+  const verts: number[] = []
+  const uvs: number[] = []
+  const indices: number[] = []
+  for (let i = 0; i <= segments; i++) {
+    const theta = (i / segments) * Math.PI * 2
+    const cosT = Math.cos(theta)
+    const sinT = Math.sin(theta)
+    verts.push(cosT * innerR, sinT * innerR, 0)
+    uvs.push(0, i / segments)
+    verts.push(cosT * outerR, sinT * outerR, 0)
+    uvs.push(1, i / segments)
+  }
+  for (let i = 0; i < segments; i++) {
+    const a = i * 2
+    indices.push(a, a + 2, a + 1)
+    indices.push(a + 2, a + 3, a + 1)
+  }
+  const geo = new BufferGeometry()
+  geo.setAttribute("position", new BufferAttribute(new Float32Array(verts), 3))
+  geo.setAttribute("uv", new BufferAttribute(new Float32Array(uvs), 2))
+  geo.setIndex(indices)
+  geo.computeVertexNormals()
+  return geo
+}
+
 function SaturnRings({
   planetRadius,
   invert = false,
@@ -1456,92 +1490,65 @@ function SaturnRings({
   // Rings sit in Saturn's equatorial plane. The parent group applies the
   // 26.73° axial tilt, so rings inherit it naturally.
   //
-  // Real ring structure, in Saturn-radii (used here verbatim):
-  //   C ring  1.24 - 1.53  faint, thin
-  //   B ring  1.53 - 1.95  brightest, densest
-  //   Cassini gap 1.95 - 2.03  (drawn implicitly — no mesh in that range)
-  //   A ring  2.03 - 2.27  medium-bright
-  //   F ring  ~2.32        thin sliver outside A
-  // The Cassini Division is what your eye picks out at first glance, so
-  // we draw B and A as separate meshes and let the gap between them do
-  // the work — no manual "draw a dark band" trick required.
-  const cIdle  = invert ? 0.18 : 0.10
-  const bIdle  = invert ? 0.62 : 0.42
-  const aIdle  = invert ? 0.48 : 0.30
-  const fIdle  = invert ? 0.35 : 0.20
-  const cHover = invert ? 0.32 : 0.20
-  const bHover = invert ? 0.90 : 0.72
-  const aHover = invert ? 0.78 : 0.58
-  const fHover = invert ? 0.55 : 0.38
+  // Real ring structure, in Saturn-radii — encoded into the texture's alpha
+  // channel by Solar System Scope (CC BY 4.0, same source as the planet
+  // surfaces). Span runs the C ring's inner edge (1.24×) through the F
+  // ring's outer edge (2.34×). The Cassini Division shows up naturally as
+  // the texture's transparent band — no manual gap modelling needed.
+  const matRef = useRef<import("three").MeshBasicMaterial>(null)
+  const [texture, setTexture] = useState<Texture | null>(null)
 
-  const cRef = useRef<import("three").MeshBasicMaterial>(null)
-  const bRef = useRef<import("three").MeshBasicMaterial>(null)
-  const aRef = useRef<import("three").MeshBasicMaterial>(null)
-  const fRef = useRef<import("three").MeshBasicMaterial>(null)
-
-  // Lerp ring opacity toward the hover target each frame. All four bands
-  // brighten together so the Cassini Division stays visually prominent.
-  useFrame((_, delta) => {
-    const k = 1 - Math.exp(-delta * 8)
-    const apply = (
-      mat: import("three").MeshBasicMaterial | null,
-      idle: number,
-      hover: number,
-    ) => {
-      if (!mat) return
-      const target = highlighted ? hover : idle
-      mat.opacity += (target - mat.opacity) * k
-    }
-    apply(cRef.current, cIdle, cHover)
-    apply(bRef.current, bIdle, bHover)
-    apply(aRef.current, aIdle, aHover)
-    apply(fRef.current, fIdle, fHover)
-  })
-
-  // Faint warm tint on the bright theme — pure white looks plasticky. The
-  // ink theme keeps a near-black so the rings stay readable on cream.
-  const cColor = invert ? "#1a1208" : "#e7d6b3"
-  const bColor = invert ? "#1a1208" : "#fff2d4"
-  const aColor = invert ? "#1a1208" : "#f3e4c4"
-  const fColor = invert ? "#1a1208" : "#ffe9b8"
-
-  const ringMat = (
-    ref: React.Ref<import("three").MeshBasicMaterial>,
-    color: string,
-    idle: number,
-  ) => (
-    <meshBasicMaterial
-      ref={ref}
-      color={color}
-      transparent
-      opacity={idle}
-      side={DoubleSide}
-      depthWrite={false}
-    />
+  // Custom geometry: u is radial (0 = C ring inner, 1 = F ring outer),
+  // v wraps around the circle. Lets the horizontal-strip ring texture
+  // map cleanly across the ring system.
+  const ringGeometry = useMemo(
+    () => radialUVRingGeometry(planetRadius * 1.24, planetRadius * 2.34, 192),
+    [planetRadius],
   )
+
+  // Eagerly load the ring texture — Saturn is a common stop, the asset is
+  // tiny (~6 KB WebP with alpha), and the band detail makes the planet
+  // read as "the one with the rings" rather than "an orange ball with
+  // bands". Same always-on treatment we applied to the planet surfaces.
+  useEffect(() => {
+    if (texture) return
+    const loader = new TextureLoader()
+    loader.load("/textures/saturn-ring.webp", (tex) => {
+      tex.colorSpace = SRGBColorSpace
+      tex.anisotropy = 8
+      tex.wrapS = ClampToEdgeWrapping
+      tex.wrapT = RepeatWrapping
+      setTexture(tex)
+    })
+  }, [texture])
+
+  const idleOpacity = invert ? 0.78 : 0.62
+  const hoverOpacity = invert ? 1.0 : 0.95
+
+  // Lerp ring opacity toward the hover target each frame. The whole strip
+  // brightens together — its band structure (C / B / Cassini / A / F)
+  // is baked into the texture itself.
+  useFrame((_, delta) => {
+    if (!matRef.current) return
+    const k = 1 - Math.exp(-delta * 8)
+    const target = highlighted ? hoverOpacity : idleOpacity
+    matRef.current.opacity += (target - matRef.current.opacity) * k
+  })
 
   return (
     <group rotation={[Math.PI / 2, 0, 0]}>
-      {/* C ring — faint inner band. */}
-      <mesh>
-        <ringGeometry args={[planetRadius * 1.24, planetRadius * 1.53, 128]} />
-        {ringMat(cRef as React.Ref<import("three").MeshBasicMaterial>, cColor, cIdle)}
-      </mesh>
-      {/* B ring — densest, brightest. */}
-      <mesh>
-        <ringGeometry args={[planetRadius * 1.53, planetRadius * 1.95, 128]} />
-        {ringMat(bRef as React.Ref<import("three").MeshBasicMaterial>, bColor, bIdle)}
-      </mesh>
-      {/* (Cassini Division 1.95 → 2.03 — no mesh, that's the visible gap.) */}
-      {/* A ring — outer wide band. */}
-      <mesh>
-        <ringGeometry args={[planetRadius * 2.03, planetRadius * 2.27, 128]} />
-        {ringMat(aRef as React.Ref<import("three").MeshBasicMaterial>, aColor, aIdle)}
-      </mesh>
-      {/* F ring — thin sliver outside A. */}
-      <mesh>
-        <ringGeometry args={[planetRadius * 2.315, planetRadius * 2.34, 128]} />
-        {ringMat(fRef as React.Ref<import("three").MeshBasicMaterial>, fColor, fIdle)}
+      <mesh geometry={ringGeometry}>
+        <meshBasicMaterial
+          ref={matRef as React.Ref<import("three").MeshBasicMaterial>}
+          map={texture}
+          // Tint goes dark on cream so the rings read as ink-on-paper;
+          // on dark theme the texture's natural amber dominates.
+          color={invert ? "#1a1208" : "#ffffff"}
+          transparent
+          opacity={0}
+          side={DoubleSide}
+          depthWrite={false}
+        />
       </mesh>
     </group>
   )
@@ -1855,6 +1862,38 @@ function PlanetBody({
               />
             )}
           </group>
+
+          {/* Hover-label — small floating name above the planet, helping
+              discoverability without forcing users to wait for the corner
+              InfoPanel to update. Stays outside the axial-tilt group so
+              the label points "up" in the orbit frame, not down through
+              Venus's flipped pole. Hover only — mobile uses the bottom
+              sheet (which already shows the name) so no double-up there. */}
+          {isHovered && (
+            <Html
+              position={[0, Math.max(planet.visualRadius * 2.4, 0.28), 0]}
+              center
+              distanceFactor={8}
+              zIndexRange={[10, 0]}
+              style={{ pointerEvents: "none" }}
+            >
+              <div
+                className={`
+                  whitespace-nowrap select-none pointer-events-none
+                  font-mono text-[10px] tracking-[0.3em] uppercase
+                  px-2 py-1 rounded-full backdrop-blur-sm
+                  ${
+                    invert
+                      ? "bg-white/85 border border-foreground/25 text-foreground"
+                      : "bg-black/55 border border-white/20 text-white"
+                  }
+                `}
+                style={{ animation: "ue-label-in 220ms ease-out both" }}
+              >
+                {planet.raw.name}
+              </div>
+            </Html>
+          )}
 
           {childMoons.map((m) => (
             <MoonBody
