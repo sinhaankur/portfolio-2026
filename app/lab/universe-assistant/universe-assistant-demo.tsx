@@ -26,11 +26,18 @@ export function UniverseAssistantDemo() {
         rounded-lg overflow-hidden
       "
     >
-      {/* Engine viewport. Fixed aspect on small screens; tall on desktop
-          so the inner system is legible. */}
+      {/* Engine viewport.
+          Mobile: 4:5 ratio — taller than wide, gives the inner solar
+            system enough vertical space to be legible on a 375px-wide
+            phone. 16:10 (the old default) made it too flat to see Mars
+            properly when stacked above the assistant.
+          Tablet (sm+): 16:10 — landscape-leaning, fits the typical
+            tablet-portrait viewport without overwhelming.
+          Desktop (lg+): fills the available column height (≥ 560px). */}
       <div
         className="
-          relative aspect-[16/10] lg:aspect-auto lg:min-h-[560px]
+          relative
+          aspect-4/5 sm:aspect-16/10 lg:aspect-auto lg:min-h-140
           rounded-lg overflow-hidden
           border border-border
           bg-background
@@ -39,9 +46,12 @@ export function UniverseAssistantDemo() {
         <UniverseEngine interactive showHud showMusic={false} />
       </div>
 
-      {/* Assistant — full-height column on desktop, sits below the engine
-          on small screens. */}
-      <div className="lg:min-h-[560px]">
+      {/* Assistant.
+          Mobile: at least 520px tall so the chat history has room
+            before the visitor scrolls — without this it'd collapse
+            to ~340px of empty state + composer and feel like a widget.
+          Desktop: matches the engine's column height. */}
+      <div className="min-h-130 lg:min-h-140">
         <AssistantPanel />
       </div>
     </div>
