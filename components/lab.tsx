@@ -218,6 +218,65 @@ export function Lab() {
           </Link>
         </motion.div>
 
+        {/* Universe Engine Assistant — AI lab entry. Frames the engine
+            as a canvas and the assistant as the new piece. The engine
+            itself is already the hero, so this card is about the LLM
+            front-end, not the renderer. */}
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
+          className="mb-14 md:mb-16"
+        >
+          <Link
+            href="/lab/universe-assistant"
+            data-cursor-hover
+            aria-label="Universe Engine Assistant — read the case study"
+            className="
+              group relative block
+              border border-border rounded-2xl
+              bg-card hover:border-accent/60 transition-colors duration-300
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+              focus-visible:ring-offset-4 focus-visible:ring-offset-background
+              p-7 md:p-10 lg:p-12
+            "
+          >
+            <div className="flex flex-wrap items-center gap-2 mb-6">
+              <span className="font-mono text-[10px] tracking-[0.25em] uppercase px-2.5 py-1 border border-border text-foreground/85 rounded-full">
+                AI · Live demo
+              </span>
+              <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 border border-border text-foreground/75 rounded-full">
+                Claude · Tool use
+              </span>
+            </div>
+
+            <h3 className="font-display text-3xl md:text-4xl lg:text-5xl font-light tracking-[-0.02em] leading-[1.05] text-foreground">
+              Universe Engine Assistant — <span className="italic">talk to the sky.</span>
+            </h3>
+
+            <p className="mt-5 max-w-2xl font-sans text-base md:text-lg text-foreground/80 leading-relaxed">
+              Natural-language queries against the same 3D scene from the
+              hero. Thirteen tools — eight read the dataset, five steer the
+              camera and time. Browser-direct Anthropic streaming, prompt
+              caching on a 30&nbsp;KB injected dataset, BYO-key static-site
+              setup. No backend.
+            </p>
+
+            <div className="mt-7 inline-flex items-center gap-2 font-mono text-[10px] tracking-[0.25em] uppercase text-foreground/85 group-hover:text-accent transition-colors">
+              Try it + read the case study
+              <motion.span
+                aria-hidden="true"
+                whileHover={prefersReducedMotion ? undefined : { rotate: 45 }}
+                transition={{ duration: 0.3 }}
+                className="inline-flex"
+              >
+                <ArrowUpRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+              </motion.span>
+            </div>
+          </Link>
+        </motion.div>
+
         {/* Supporting open-source products — single eyebrow lifted from
             each card to the section level. Cards are now leaner: name,
             tagline, blurb, optional highlight, stack tags. No per-card

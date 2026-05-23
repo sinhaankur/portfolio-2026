@@ -19,6 +19,29 @@ const nextConfig = {
     // skip optimization. All <img> usage in this app is already plain <img> tags.
     unoptimized: true,
   },
+
+  // Turbopack alias map — stubs the Node-only `node:fs/promises` and
+  // `node:path` imports that the Anthropic SDK pulls in transitively via
+  // its managed-agents environment-worker namespace. The browser never
+  // executes that code path (it's for self-hosted agent workers), but
+  // the static import chain reaches it through the SDK's `Anthropic`
+  // class constructor, and Turbopack's client bundle can't resolve a
+  // bare `node:` scheme. Aliasing both to an empty module keeps the
+  // bundle happy without losing any feature we actually use.
+  turbopack: {
+    resolveAlias: {
+      "node:fs/promises": "./lib/empty.ts",
+      "node:fs": "./lib/empty.ts",
+      "node:path": "./lib/empty.ts",
+      "node:os": "./lib/empty.ts",
+      "node:child_process": "./lib/empty.ts",
+      "node:stream": "./lib/empty.ts",
+      "node:stream/promises": "./lib/empty.ts",
+      "node:crypto": "./lib/empty.ts",
+      "node:util": "./lib/empty.ts",
+      "node:readline": "./lib/empty.ts",
+    },
+  },
 }
 
 export default nextConfig

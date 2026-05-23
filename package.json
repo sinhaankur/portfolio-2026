@@ -6,9 +6,11 @@
     "build": "next build",
     "dev": "next dev",
     "lint": "eslint .",
-    "start": "next start"
+    "start": "next start",
+    "data:stars": "node scripts/fetch-bright-stars.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.98.0",
     "@emotion/is-prop-valid": "latest",
     "@hookform/resolvers": "^3.10.0",
     "@nuxt/kit": "latest",
