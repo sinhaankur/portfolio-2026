@@ -130,7 +130,7 @@ export function SettingsDrawer({
             transition={{ type: "spring", stiffness: 280, damping: 30 }}
             className="
               fixed top-0 right-0 bottom-0 z-50
-              w-full sm:w-[420px] max-w-full
+              w-full sm:w-105 max-w-full
               bg-card border-l border-border
               flex flex-col
               overflow-hidden
@@ -182,12 +182,16 @@ export function SettingsDrawer({
                       placeholder="sk-ant-..."
                       autoComplete="off"
                       spellCheck={false}
+                      /* font-size 16px (text-base) on mobile is the
+                         iOS Safari threshold below which focus
+                         triggers an auto-zoom. Drop to text-sm at md+. */
                       className="
                         w-full bg-transparent border border-border rounded-md
-                        px-3 py-2.5 pr-10 font-mono text-sm text-foreground
+                        px-3 py-3 pr-11 font-mono text-base md:text-sm text-foreground
                         placeholder:text-muted-foreground/50
                         focus:outline-none focus:border-accent
                         transition-colors
+                        min-h-11
                       "
                     />
                     <button
@@ -195,12 +199,12 @@ export function SettingsDrawer({
                       onClick={() => setShowKey((s) => !s)}
                       aria-label={showKey ? "Hide key" : "Show key"}
                       className="
-                        absolute right-2 top-1/2 -translate-y-1/2
-                        w-7 h-7 inline-flex items-center justify-center
+                        absolute right-1 top-1/2 -translate-y-1/2
+                        w-9 h-9 inline-flex items-center justify-center
                         text-muted-foreground hover:text-foreground rounded
                       "
                     >
-                      {showKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
                 </label>
@@ -210,12 +214,12 @@ export function SettingsDrawer({
                     onClick={handleSave}
                     disabled={status === "validating"}
                     className="
-                      px-4 py-2 rounded-full
+                      px-5 py-2.5 rounded-full
                       font-mono text-[11px] tracking-[0.2em] uppercase
                       bg-foreground text-background
                       hover:bg-accent hover:text-accent-foreground
                       disabled:opacity-40
-                      transition-colors min-h-10
+                      transition-colors min-h-11
                     "
                   >
                     {status === "validating" ? "Validating…" : "Save"}
@@ -224,10 +228,10 @@ export function SettingsDrawer({
                     <button
                       onClick={handleClear}
                       className="
-                        px-4 py-2 rounded-full border border-border
+                        px-5 py-2.5 rounded-full border border-border
                         font-mono text-[11px] tracking-[0.2em] uppercase
                         text-muted-foreground hover:text-foreground
-                        transition-colors min-h-10
+                        transition-colors min-h-11
                       "
                     >
                       Clear

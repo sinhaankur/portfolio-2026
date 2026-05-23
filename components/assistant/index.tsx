@@ -286,7 +286,7 @@ export function AssistantPanel() {
       {/* Chat scroll */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto px-4 py-4 space-y-4 min-h-[280px]"
+        className="flex-1 overflow-y-auto px-4 py-4 space-y-4 min-h-70"
       >
         {messages.length === 0 && (
           <EmptyState
@@ -369,17 +369,18 @@ function EmptyState({
       </p>
 
       {hasKey ? (
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           {SUGGESTED_PROMPTS.map((prompt) => (
             <button
               key={prompt}
               onClick={() => onSuggestionClick(prompt)}
               className="
-                w-full text-left px-3 py-2 rounded-md
+                w-full text-left px-3.5 py-3 rounded-md
                 border border-border/70 hover:border-accent hover:bg-accent/5
                 text-sm text-foreground/85 hover:text-foreground
                 transition-colors
                 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+                min-h-11
               "
             >
               {prompt}
@@ -397,10 +398,10 @@ function EmptyState({
             onClick={onOpenSettings}
             className="
               inline-flex items-center gap-2
-              px-4 py-2 rounded-full
+              px-4 py-2.5 rounded-full
               font-mono text-[11px] tracking-[0.2em] uppercase
               bg-foreground text-background hover:bg-accent hover:text-accent-foreground
-              transition-colors min-h-10
+              transition-colors min-h-11
             "
           >
             Set up assistant
@@ -540,6 +541,8 @@ function Composer({
     const ta = textareaRef.current
     if (!ta) return
     ta.style.height = "auto"
+    // 140px max — matches the textarea's max-h-35 (35 × 4 = 140px)
+    // so the auto-resize never overshoots the CSS-imposed ceiling.
     ta.style.height = `${Math.min(ta.scrollHeight, 140)}px`
   }, [value])
 
@@ -560,13 +563,17 @@ function Composer({
           }
           rows={1}
           disabled={disabled || thinking}
+          /* font-size: 16px (text-base) on mobile is the iOS Safari
+             threshold below which focusing an input triggers an
+             auto-zoom. Stay at 16px+ on mobile, drop to text-sm on
+             ≥md where the form-factor doesn't have that quirk. */
           className="
             flex-1 resize-none bg-transparent border-0
-            px-2 py-2 font-sans text-sm text-foreground
+            px-2 py-2 font-sans text-base md:text-sm text-foreground
             placeholder:text-muted-foreground/60
             focus:outline-none
             disabled:cursor-not-allowed
-            min-h-9 max-h-[140px]
+            min-h-11 max-h-35
           "
         />
         {disabled ? (
@@ -574,10 +581,10 @@ function Composer({
             onClick={onConfigureKey}
             className="
               shrink-0 inline-flex items-center justify-center gap-2
-              px-3.5 py-2 rounded-full
-              font-mono text-[10px] tracking-[0.2em] uppercase
+              px-4 py-2.5 rounded-full
+              font-mono text-[11px] tracking-[0.2em] uppercase
               bg-foreground text-background hover:bg-accent hover:text-accent-foreground
-              transition-colors min-h-9
+              transition-colors min-h-11
             "
           >
             Set up
@@ -588,12 +595,12 @@ function Composer({
             aria-label="Abort response"
             className="
               shrink-0 inline-flex items-center justify-center
-              w-9 h-9 rounded-full
+              w-11 h-11 rounded-full
               bg-secondary text-muted-foreground hover:text-foreground hover:bg-secondary/80
               transition-colors
             "
           >
-            <span className="inline-block w-2.5 h-2.5 bg-current rounded-sm" aria-hidden="true" />
+            <span className="inline-block w-3 h-3 bg-current rounded-sm" aria-hidden="true" />
           </button>
         ) : (
           <button
@@ -602,7 +609,7 @@ function Composer({
             aria-label="Send message"
             className="
               shrink-0 inline-flex items-center justify-center
-              w-9 h-9 rounded-full
+              w-11 h-11 rounded-full
               bg-foreground text-background
               disabled:opacity-30 disabled:cursor-not-allowed
               hover:bg-accent hover:text-accent-foreground
@@ -610,7 +617,7 @@ function Composer({
               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
             "
           >
-            <Send className="w-3.5 h-3.5" />
+            <Send className="w-4 h-4" />
           </button>
         )}
       </div>
