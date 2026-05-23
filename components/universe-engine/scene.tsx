@@ -18,7 +18,8 @@
 
 import { Suspense, useRef, useMemo, useEffect, useState } from "react"
 import { useFrame, useThree } from "@react-three/fiber"
-import { Clone, Html, Stars, useGLTF } from "@react-three/drei"
+import { Clone, Html, useGLTF } from "@react-three/drei"
+import { BrightStarField } from "./bright-star-field"
 
 // Preload the black-hole mesh at module init so it's ready by the time a
 // user explores far enough to focus a sky-point BH. 8.4 MB asset — single
@@ -4805,19 +4806,12 @@ export function SceneContents({
     <>
       <FlyToController interactive={interactive} />
       <SceneClock />
-      {/* drei <Stars> is white-only / additive. Drop it in inverted mode and
-          let the MilkyWay points carry the field as ink-on-paper instead. */}
-      {!invert && (
-        <Stars
-          radius={400}
-          depth={100}
-          count={mobile ? 1100 : 2200}
-          factor={4}
-          saturation={0}
-          fade
-          speed={enableMotion ? 0.2 : 0}
-        />
-      )}
+      {/* Real-position naked-eye star field from HYG v4.1 (8,920 stars
+          at mag ≤ 6.5, mobile gets the brightest ~1,600). Constellations
+          form naturally from the data — the hand-drawn constellation
+          line figures just trace what's already there. Skipped in
+          invert/chart mode, matching the previous drei <Stars> behaviour. */}
+      <BrightStarField invert={invert} mobile={mobile} enableMotion={enableMotion} />
       <group rotation={[GALACTIC_PLANE_TILT_RAD, 0, 0]}>
         <MilkyWay onHover={onHover} mobile={mobile} invert={invert} interactive={interactive} />
       </group>
