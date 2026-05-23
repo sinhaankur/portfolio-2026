@@ -31,6 +31,10 @@ import {
   timeWarpRef,
 } from "@/components/universe-engine/astronomy"
 import type { NamedBody, Planet } from "@/components/universe-engine/types"
+import {
+  EXOPLANET_HOSTS_NEARBY,
+  type ExoplanetHost,
+} from "@/lib/data/exoplanet-hosts"
 
 /* ------------------------------------------------------------------
  * Tool definitions — sent to Claude in `tools`.
@@ -118,7 +122,7 @@ export const ASSISTANT_TOOLS: Tool[] = [
   {
     name: "listExoplanetHosts",
     description:
-      "List stars in the dataset that host known exoplanets. Returns name, designation, distance, and a brief fact. Use for 'which exoplanet systems are in the engine' or 'closest exoplanet host star'.",
+      "List stars in the dataset that host confirmed exoplanets. Combines the engine's hand-curated set (Proxima Centauri, TRAPPIST-1, 51 Peg, etc. with rich per-planet detail) with the NASA Exoplanet Archive's broader catalog of hosts within ~50 ly (Kepler-186, K2-18, GJ 1214, WASP-12, etc.). Each entry returns name, designation, distance, fact. Use for 'closest exoplanet host', 'which habitable-zone systems', 'tell me about WASP-12', etc.",
     input_schema: { type: "object", properties: {} },
   },
   {
@@ -228,6 +232,30 @@ function findPlanet(name: string): Planet | undefined {
   if (!name) return undefined
   const lower = name.toLowerCase().trim()
   return planetsData.find((p) => p.name.toLowerCase() === lower)
+}
+
+function findExoplanetHost(name: string): ExoplanetHost | undefined {
+  if (!name) return undefined
+  const lower = name.toLowerCase().trim()
+  return (
+    EXOPLANET_HOSTS_NEARBY.find((h) => h.name.toLowerCase() === lower) ??
+    EXOPLANET_HOSTS_NEARBY.find((h) => h.name.toLowerCase().includes(lower))
+  )
+}
+
+/** Project a host's RA/Dec onto the engine's sky shell. Matches
+ *  raDecToScenePos in the engine: spherical → Cartesian with radius
+ *  150 (SKY_SHELL_DISTANCE). */
+function exoplanetHostScenePos(host: ExoplanetHost): { x: number; y: number; z: number } {
+  const SKY_SHELL = 150
+  const raRad = (host.raHours / 24) * 2 * Math.PI
+  const decRad = (host.decDeg / 180) * Math.PI
+  const cosDec = Math.cos(decRad)
+  return {
+    x: SKY_SHELL * cosDec * Math.cos(raRad),
+    y: SKY_SHELL * Math.sin(decRad),
+    z: SKY_SHELL * cosDec * Math.sin(raRad),
+  }
 }
 
 /** Solve Kepler's equation for elliptical orbits — same approach the
@@ -376,6 +404,44 @@ function runTool(toolName: string, input: ToolInput): unknown {
           fact: planet.fact,
         }
       }
+      // Curated sky points (galaxies, nebulae, exoplanet hosts with
+      // rich per-planet detail). These take precedence over the
+      // fetched catalog because the curated entries carry hand-written
+      // facts the fetched ones don't.
+      const skyPoint = skyPoints.find(
+        (s) => s.name.toLowerCase() === name.toLowerCase().trim(),
+      )
+      if (skyPoint) {
+        return {
+          name: skyPoint.name,
+          designation: skyPoint.designation,
+          kind: skyPoint.kind,
+          raHours: skyPoint.raHours,
+          decDeg: skyPoint.decDeg,
+          distance: skyPoint.distance,
+          magnitude: skyPoint.magnitude,
+          fact: skyPoint.fact,
+        }
+      }
+      // Fetched exoplanet hosts (NASA Exoplanet Archive). Surfaced for
+      // catalog-name queries like "WASP-12", "Kepler-186", "GJ 1214".
+      const exoHost = findExoplanetHost(name)
+      if (exoHost) {
+        return {
+          name: exoHost.name,
+          designation: exoHost.designation,
+          kind: exoHost.kind,
+          raHours: exoHost.raHours,
+          decDeg: exoHost.decDeg,
+          distance: exoHost.distance,
+          magnitude: exoHost.magnitude,
+          knownPlanets: exoHost.knownPlanets,
+          firstDiscoveryYear: exoHost.firstDiscoveryYear,
+          spectralType: exoHost.spectralType,
+          hasHabitableCandidate: exoHost.hasHabitableCandidate,
+          fact: exoHost.fact,
+        }
+      }
       return { error: `No body matching "${name}" in the dataset.` }
     }
 
@@ -442,14 +508,33 @@ function runTool(toolName: string, input: ToolInput): unknown {
     }
 
     case "listExoplanetHosts": {
-      return skyPoints
+      // Merge curated (rich per-planet facts) + fetched (NASA Exoplanet
+      // Archive, ≤ 50 ly). Curated take precedence by name so the
+      // model sees the richer entry for Proxima Centauri, TRAPPIST-1,
+      // 51 Peg etc. while still getting Kepler-186, K2-18, GJ 1214,
+      // WASP-12, and the rest of the neighbourhood.
+      const curated = skyPoints
         .filter((s) => s.kind === "exoplanet-host")
         .map((s) => ({
           name: s.name,
           designation: s.designation,
           distance: s.distance,
           fact: s.fact?.split(". ")[0],
+          source: "curated" as const,
         }))
+      const curatedNames = new Set(curated.map((c) => c.name.toLowerCase()))
+      const fetched = EXOPLANET_HOSTS_NEARBY
+        .filter((h) => !curatedNames.has(h.name.toLowerCase()))
+        .map((h) => ({
+          name: h.name,
+          designation: h.designation,
+          distance: h.distance,
+          fact: h.fact,
+          knownPlanets: h.knownPlanets,
+          hasHabitableCandidate: h.hasHabitableCandidate,
+          source: "nasa-exoplanet-archive" as const,
+        }))
+      return [...curated, ...fetched]
     }
 
     case "listConstellations": {
@@ -493,18 +578,39 @@ function runTool(toolName: string, input: ToolInput): unknown {
         requestFlyTo({ x: 0, y: 0, z: 0 }, 3.2, "Sun")
         return "Flying to the Sun."
       }
+      // Curated sky points — project to the engine's sky shell at
+      // SKY_SHELL_DISTANCE (150). Same math the engine itself uses in
+      // raDecToScenePos, just inlined so the tool doesn't need a
+      // dependency on R3F components.
       const skyPoint = skyPoints.find(
-        (s) => s.name.toLowerCase() === name.toLowerCase(),
+        (s) => s.name.toLowerCase() === name.toLowerCase().trim(),
       )
       if (skyPoint) {
-        // SkyPoints are projected onto a fixed-distance sky shell; we
-        // hand the engine a label and let it look up the actual position
-        // through the existing fly-to handler attached to that body's mesh.
-        // (For the no-server case we approximate: aim for the body's
-        // direction at sky-shell distance.)
-        return `Sky-point lookup not directly available — use the on-screen click for ${skyPoint.name}.`
+        const SKY_SHELL = 150
+        const raRad = (skyPoint.raHours / 24) * 2 * Math.PI
+        const decRad = (skyPoint.decDeg / 180) * Math.PI
+        const cosDec = Math.cos(decRad)
+        requestFlyTo(
+          {
+            x: SKY_SHELL * cosDec * Math.cos(raRad),
+            y: SKY_SHELL * Math.sin(decRad),
+            z: SKY_SHELL * cosDec * Math.sin(raRad),
+          },
+          12, // back off so a far-field sky point frames in view
+          skyPoint.name,
+        )
+        return `Flying to ${skyPoint.name}.`
       }
-      return `Body "${name}" not found. Use listBodies to see what's available.`
+      // Fetched exoplanet hosts (NASA Exoplanet Archive). Same sky-shell
+      // projection as curated sky points; the only difference is the
+      // dataset they came from.
+      const exoHost = findExoplanetHost(name)
+      if (exoHost) {
+        const pos = exoplanetHostScenePos(exoHost)
+        requestFlyTo(pos, 12, exoHost.name)
+        return `Flying to ${exoHost.name}.`
+      }
+      return `Body "${name}" not found. Use listBodies or listExoplanetHosts to see what's available.`
     }
 
     case "followBody": {

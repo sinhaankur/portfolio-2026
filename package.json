@@ -7,7 +7,8 @@
     "dev": "next dev",
     "lint": "eslint .",
     "start": "next start",
-    "data:stars": "node scripts/fetch-bright-stars.mjs"
+    "data:stars": "node scripts/fetch-bright-stars.mjs",
+    "data:exoplanets": "node scripts/fetch-exoplanet-hosts.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",

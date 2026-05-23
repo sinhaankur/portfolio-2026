@@ -1,0 +1,187 @@
+#!/usr/bin/env node
+/**
+ * fetch-exoplanet-hosts.mjs
+ *
+ * Queries the NASA Exoplanet Archive TAP service for confirmed
+ * exoplanet host stars within ~50 light-years and writes them to
+ * lib/data/exoplanet-hosts.ts as a SkyPoint-shaped array ready to
+ * merge with the engine's existing skyPoints catalog.
+ *
+ * Why this distance cut: the engine's sky shell is "objects you can
+ * point a finger at from Earth". Hosts within 50 ly are our cosmic
+ * neighbourhood — close enough that their position on the sky is
+ * stable and meaningful, and few enough to render legibly (~150
+ * hosts vs the full 5,500+ catalog).
+ *
+ * Re-run: pnpm data:exoplanets
+ */
+
+import { promises as fs } from "node:fs"
+import path from "node:path"
+import { fileURLToPath } from "node:url"
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const ROOT = path.resolve(__dirname, "..")
+const OUT_FILE = path.join(ROOT, "lib", "data", "exoplanet-hosts.ts")
+
+// Distance cutoff: 50 ly = 15.34 parsecs. The TAP query rejects rows
+// with null distance, so this also implicitly filters out hosts with
+// unmeasured parallax (typically very distant systems we'd want to
+// exclude anyway).
+const DIST_LY_LIMIT = 50
+const PC_LIMIT = DIST_LY_LIMIT / 3.2615638
+
+// pscomppars: "planetary systems composite parameters" — one row per
+// planet, with all the headline values. We group by host to get one
+// row per system.
+//
+// Using `top 500` as a safety cap. At <= 50 ly, expecting ~150 hosts.
+const TAP_URL = "https://exoplanetarchive.ipac.caltech.edu/TAP/sync"
+const QUERY = `
+  select top 500
+    hostname,
+    max(ra) as ra,
+    max(dec) as dec,
+    max(sy_dist) as sy_dist,
+    max(sy_vmag) as sy_vmag,
+    max(sy_pnum) as sy_pnum,
+    max(st_spectype) as st_spectype,
+    min(disc_year) as first_disc,
+    count(distinct pl_name) as known_planets,
+    max(case when pl_eqt is not null and pl_eqt between 200 and 350 then 1 else 0 end) as has_habitable
+  from pscomppars
+  where sy_dist <= ${PC_LIMIT}
+    and ra is not null
+    and dec is not null
+    and sy_dist is not null
+  group by hostname
+  order by sy_dist
+`.trim()
+
+async function fetchHosts() {
+  const url = `${TAP_URL}?query=${encodeURIComponent(QUERY)}&format=json`
+  console.log(`Querying NASA Exoplanet Archive TAP for hosts ≤ ${DIST_LY_LIMIT} ly…`)
+  const res = await fetch(url)
+  if (!res.ok) {
+    const body = await res.text()
+    throw new Error(`TAP query failed: ${res.status} ${res.statusText}\n${body.slice(0, 600)}`)
+  }
+  const rows = await res.json()
+  if (!Array.isArray(rows)) {
+    throw new Error(`Unexpected TAP response shape: ${typeof rows}`)
+  }
+  console.log(`  Hosts returned: ${rows.length}`)
+  return rows
+}
+
+/** Convert degrees of RA → hours (for the engine's raDecToScenePos). */
+function raDegToHours(raDeg) {
+  return raDeg / 15
+}
+
+/** Build a short, model-friendly fact from the row data. The assistant
+ *  reads these inline from the dataset — keep them factual + terse. */
+function buildFact(row) {
+  const n = row.known_planets
+  const planets = n === 1 ? "1 confirmed planet" : `${n} confirmed planets`
+  const distLy = (row.sy_dist * 3.2615638).toFixed(1)
+  const spec = row.st_spectype ? `${row.st_spectype.trim()} star` : "host star"
+  const disc = row.first_disc ? `, first detected ${row.first_disc}` : ""
+  const hab = row.has_habitable ? ", at least one in the temperate / habitable zone" : ""
+  return `${planets} around a ${spec} at ${distLy} ly${disc}${hab}.`
+}
+
+/** Some host names are catalog IDs only ("Kepler-1234"); keep the
+ *  raw hostname, but format common designations more nicely. */
+function tidyName(host) {
+  return host.trim()
+}
+
+async function main() {
+  const rows = await fetchHosts()
+  const points = []
+  for (const r of rows) {
+    const ra = Number(r.ra)
+    const dec = Number(r.dec)
+    const dist = Number(r.sy_dist)
+    if (!Number.isFinite(ra) || !Number.isFinite(dec) || !Number.isFinite(dist)) continue
+    const name = tidyName(r.hostname)
+    const distLy = dist * 3.2615638
+    points.push({
+      id: `exo-${name.toLowerCase().replace(/[^a-z0-9]/g, "-")}`,
+      name,
+      designation: r.st_spectype ? `${name} · ${r.st_spectype.trim()}` : name,
+      kind: "exoplanet-host",
+      raHours: Number(raDegToHours(ra).toFixed(4)),
+      decDeg: Number(dec.toFixed(4)),
+      distance: `${distLy.toFixed(1)} ly`,
+      magnitude: r.sy_vmag != null ? Number(Number(r.sy_vmag).toFixed(2)) : null,
+      knownPlanets: Number(r.known_planets),
+      firstDiscoveryYear: r.first_disc ? Number(r.first_disc) : null,
+      spectralType: r.st_spectype ? r.st_spectype.trim() : null,
+      hasHabitableCandidate: Boolean(r.has_habitable),
+      fact: buildFact(r),
+    })
+  }
+  console.log(`  Kept ${points.length} host stars with usable coords + distance`)
+
+  // Sort by distance for stable diffing across re-fetches.
+  points.sort((a, b) => parseFloat(a.distance) - parseFloat(b.distance))
+
+  const out = `// AUTO-GENERATED by scripts/fetch-exoplanet-hosts.mjs. Do not edit by hand.
+// Source: NASA Exoplanet Archive (pscomppars table), confirmed hosts ≤ ${DIST_LY_LIMIT} ly.
+// Re-generate: pnpm data:exoplanets
+
+/**
+ * Confirmed exoplanet host stars in the cosmic neighbourhood.
+ *
+ * Each entry carries the same coordinate fields as the engine's
+ * curated \`skyPoints\` catalog (raHours / decDeg projected onto the
+ * sky shell) plus a few extras useful to the Universe Engine
+ * Assistant:
+ *
+ *   knownPlanets        — confirmed planet count for this host
+ *   firstDiscoveryYear  — earliest detection in the system
+ *   spectralType        — Morgan–Keenan classification, raw from MAST
+ *   hasHabitableCandidate — at least one planet with equilibrium
+ *                          temperature 200–350 K (rough liquid-water
+ *                          band; cheap heuristic, not a habitability
+ *                          claim)
+ *
+ * The renderer treats these the same as a manually-curated SkyPoint
+ * with kind="exoplanet-host". The assistant's condensed dataset
+ * surfaces every field so it can answer "what's the closest
+ * habitable-zone host?" with real data.
+ */
+
+export type ExoplanetHost = {
+  id: string
+  name: string
+  designation: string
+  kind: "exoplanet-host"
+  raHours: number
+  decDeg: number
+  distance: string
+  magnitude: number | null
+  knownPlanets: number
+  firstDiscoveryYear: number | null
+  spectralType: string | null
+  hasHabitableCandidate: boolean
+  fact: string
+}
+
+export const EXOPLANET_HOSTS_NEARBY: ExoplanetHost[] = ${JSON.stringify(points, null, 2)}
+`
+
+  await fs.mkdir(path.dirname(OUT_FILE), { recursive: true })
+  await fs.writeFile(OUT_FILE, out, "utf8")
+  const stat = await fs.stat(OUT_FILE)
+  console.log(
+    `Wrote ${path.relative(ROOT, OUT_FILE)} — ${(stat.size / 1024).toFixed(1)} KB`,
+  )
+}
+
+main().catch((err) => {
+  console.error(err)
+  process.exit(1)
+})
