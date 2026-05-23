@@ -1,8 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { motion, useReducedMotion } from "framer-motion"
-import { ArrowUpRight, Download } from "lucide-react"
+import { Download } from "lucide-react"
+import { SignalTuner } from "./signal-tuner"
 
 const socials: Array<{ label: string; href: string; download?: boolean }> = [
   { label: "Email", href: "mailto:sinhaankur@ymail.com" },
@@ -12,9 +12,7 @@ const socials: Array<{ label: string; href: string; download?: boolean }> = [
 ]
 
 export function Footer() {
-  const prefersReducedMotion = useReducedMotion()
   const [time, setTime] = useState("")
-  const [isHovered, setIsHovered] = useState(false)
 
   useEffect(() => {
     const updateTime = () => {
@@ -33,108 +31,76 @@ export function Footer() {
 
   return (
     <footer id="contact" className="relative">
-      {/* Contact CTA — quiet section, single button */}
+      {/* Contact section — split row on desktop, stacked on mobile.
+          Left: eyebrow + headline + intro copy.
+          Right: the SignalTuner panel (the new primary action).
+          Below: a quieter Résumé download for visitors who'd rather
+          read the PDF than open a mail client. */}
       <section
         aria-labelledby="contact-heading"
         className="relative px-6 md:px-12 py-20 md:py-28 border-t border-border"
       >
-        <div className="mx-auto max-w-6xl flex flex-col md:flex-row md:items-end md:justify-between gap-8">
-          <div className="max-w-2xl">
-            <p className="font-mono text-xs tracking-[0.3em] text-muted-foreground mb-4">
-              08 — CONTACT
-            </p>
-            {/* Small celestial-atlas line-art mark — a paper plane arcing
-                across a horizon line. Encodes "outgoing message" + ties
-                back to the universe engine's line-art hand. */}
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 80 40"
-              className="mb-6 w-16 h-8 text-accent/70"
-              stroke="currentColor"
-              strokeWidth="1.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              fill="none"
-            >
-              {/* Horizon — a thin baseline */}
-              <line x1="2" y1="34" x2="78" y2="34" strokeDasharray="1.5 2.5" />
-              {/* Paper plane — folded triangle with a fold-crease */}
-              <polygon points="32,8 60,22 38,26" />
-              <line x1="32" y1="8" x2="38" y2="26" />
-              {/* Arc trailing behind the plane */}
-              <path d="M 8 30 Q 18 24 30 22" strokeDasharray="2 2.5" />
-            </svg>
-            <h2
-              id="contact-heading"
-              className="font-display text-3xl md:text-5xl lg:text-6xl font-light tracking-[-0.01em] text-foreground"
-            >
-              Let's <span className="italic">collaborate</span>.
-            </h2>
-            <p className="mt-4 font-sans text-base md:text-lg text-foreground/75 leading-relaxed">
-              Working on a hard human–AI surface, a console for operators, or
-              an open-source tool that needs a designer who writes their own
-              code? Drop a line.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3 self-start md:self-end shrink-0">
-            <motion.a
-              href="mailto:sinhaankur@ymail.com?subject=Let%27s%20collaborate"
-              aria-label="Email Ankur Sinha to collaborate"
-              data-cursor-hover
-              onMouseEnter={() => setIsHovered(true)}
-              onMouseLeave={() => setIsHovered(false)}
-              onFocus={() => setIsHovered(true)}
-              onBlur={() => setIsHovered(false)}
-              whileHover={prefersReducedMotion ? undefined : { x: 4 }}
-              transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="
-                group inline-flex items-center gap-3
-                px-6 py-3.5 border border-border rounded-full
-                font-mono text-xs tracking-[0.25em] uppercase
-                bg-background text-foreground
-                hover:bg-accent hover:text-accent-foreground hover:border-accent
-                transition-colors duration-300
-                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
-                focus-visible:ring-offset-4 focus-visible:ring-offset-background
-                min-h-11
-              "
-            >
-              Email me
-              <motion.span
+        <div className="mx-auto max-w-6xl">
+          <div className="grid gap-10 md:gap-12 lg:gap-16 md:grid-cols-2 md:items-start">
+            <div className="max-w-2xl">
+              <p className="font-mono text-xs tracking-[0.3em] text-muted-foreground mb-4">
+                08 — CONTACT
+              </p>
+              {/* Small celestial-atlas line-art mark — a paper plane
+                  arcing across a horizon line. Encodes "outgoing
+                  message" + ties back to the universe engine. */}
+              <svg
                 aria-hidden="true"
-                animate={
-                  prefersReducedMotion ? undefined : { rotate: isHovered ? 45 : 0 }
-                }
-                transition={{ duration: 0.3 }}
-                className="inline-flex"
+                viewBox="0 0 80 40"
+                className="mb-6 w-16 h-8 text-accent/70"
+                stroke="currentColor"
+                strokeWidth="1.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                fill="none"
               >
-                <ArrowUpRight className="w-4 h-4" />
-              </motion.span>
-            </motion.a>
+                <line x1="2" y1="34" x2="78" y2="34" strokeDasharray="1.5 2.5" />
+                <polygon points="32,8 60,22 38,26" />
+                <line x1="32" y1="8" x2="38" y2="26" />
+                <path d="M 8 30 Q 18 24 30 22" strokeDasharray="2 2.5" />
+              </svg>
+              <h2
+                id="contact-heading"
+                className="font-display text-3xl md:text-5xl lg:text-6xl font-light tracking-[-0.01em] text-foreground"
+              >
+                Let's <span className="italic">collaborate</span>.
+              </h2>
+              <p className="mt-4 font-sans text-base md:text-lg text-foreground/75 leading-relaxed">
+                Working on a hard human–AI surface, a console for operators, or
+                an open-source tool that needs a designer who writes their own
+                code? Open a channel.
+              </p>
 
-            {/* Secondary action — résumé download. Quieter (no fill on hover,
-                muted border) so it doesn't compete with the primary email CTA. */}
-            <a
-              href="/ankur-sinha-resume.pdf"
-              download
-              data-cursor-hover
-              aria-label="Download résumé (PDF)"
-              className="
-                group inline-flex items-center gap-3
-                px-6 py-3.5 border border-border/70 rounded-full
-                font-mono text-xs tracking-[0.25em] uppercase
-                bg-transparent text-foreground/80
-                hover:text-foreground hover:border-foreground/60
-                transition-colors duration-300
-                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
-                focus-visible:ring-offset-4 focus-visible:ring-offset-background
-                min-h-11
-              "
-            >
-              Résumé
-              <Download className="w-4 h-4" aria-hidden="true" />
-            </a>
+              {/* Résumé link — quieter sibling. Below the intro so it
+                  doesn't compete with the tuner, but still discoverable. */}
+              <a
+                href="/ankur-sinha-resume.pdf"
+                download
+                data-cursor-hover
+                aria-label="Download résumé (PDF)"
+                className="
+                  mt-8 inline-flex items-center gap-2.5
+                  font-mono text-[11px] tracking-[0.25em] uppercase
+                  text-muted-foreground hover:text-foreground
+                  transition-colors duration-300
+                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+                  focus-visible:ring-offset-2 focus-visible:ring-offset-background
+                  rounded
+                "
+              >
+                <Download className="w-3.5 h-3.5" aria-hidden="true" />
+                Résumé · PDF
+              </a>
+            </div>
+
+            <div className="md:pt-2">
+              <SignalTuner to="sinhaankur@ymail.com" defaultSubject="Transmission" />
+            </div>
           </div>
         </div>
       </section>
