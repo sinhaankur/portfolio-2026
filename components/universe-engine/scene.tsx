@@ -20,6 +20,7 @@ import { Suspense, useRef, useMemo, useEffect, useState } from "react"
 import { useFrame, useThree } from "@react-three/fiber"
 import { Clone, Html, useGLTF } from "@react-three/drei"
 import { BrightStarField } from "./bright-star-field"
+import { NamedStarHoverLayer } from "./named-star-hover-layer"
 
 // Preload the black-hole mesh at module init so it's ready by the time a
 // user explores far enough to focus a sky-point BH. 8.4 MB asset — single
@@ -4812,6 +4813,12 @@ export function SceneContents({
           line figures just trace what's already there. Skipped in
           invert/chart mode, matching the previous drei <Stars> behaviour. */}
       <BrightStarField invert={invert} mobile={mobile} enableMotion={enableMotion} />
+
+      {/* Hover layer for the 358 stars with proper names (Sirius, Vega,
+          Betelgeuse, Polaris…). Invisible pointer-eventable spheres
+          sized by magnitude; hover lights up the existing InfoPanel
+          with apparent mag, distance, spectral type, catalog IDs. */}
+      <NamedStarHoverLayer onHover={onHover} invert={invert} />
       <group rotation={[GALACTIC_PLANE_TILT_RAD, 0, 0]}>
         <MilkyWay onHover={onHover} mobile={mobile} invert={invert} interactive={interactive} />
       </group>
