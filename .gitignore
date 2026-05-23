@@ -41,3 +41,6 @@ next-env.d.ts
 /Blackhole.usdz
 /blackhole/
 /blackhole-2/
+# Data-fetch script cache (raw CSVs the build scripts download).
+# The trimmed output goes to lib/data/ and IS committed.
+scripts/.cache/
