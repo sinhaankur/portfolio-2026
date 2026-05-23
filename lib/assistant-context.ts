@@ -19,6 +19,7 @@ import {
   planetsData,
   skyPoints,
 } from "@/components/universe-engine/astronomy"
+import { EXOPLANET_HOSTS_NEARBY } from "@/lib/data/exoplanet-hosts"
 
 /* ------------------------------------------------------------------
  * Condensed body shapes — what we send to the model.
@@ -61,6 +62,17 @@ type CondensedSkyPoint = {
   fact?: string
 }
 
+type CondensedExoplanetHost = {
+  name: string
+  spectralType: string | null
+  distance: string
+  magnitude: number | null
+  knownPlanets: number
+  firstDiscoveryYear: number | null
+  hasHabitableCandidate: boolean
+  fact: string
+}
+
 type CondensedConstellation = {
   id: string
   name: string
@@ -74,6 +86,13 @@ export type CondensedDataset = {
   namedBodies: CondensedNamedBody[]
   skyPoints: CondensedSkyPoint[]
   constellations: CondensedConstellation[]
+  /** Confirmed exoplanet host stars within 50 ly (NASA Exoplanet
+   *  Archive). Surfaced to the assistant so it can answer about
+   *  WASP-12, GJ 1214, K2-18, Trappist-1 etc. without needing the
+   *  visitor to know the catalog name in advance. Not all of these
+   *  are rendered on the sky shell — the curated `skyPoints` subset
+   *  is the visual layer; this list is the lookup table. */
+  nearbyExoplanetHosts: CondensedExoplanetHost[]
 }
 
 /**
@@ -120,11 +139,35 @@ export function buildDataset(): CondensedDataset {
     fact: c.fact,
   }))
 
+  // Exoplanet hosts: deduped against the curated `skyPoints` entries
+  // (where curated lookalikes carry richer per-planet fact text). We
+  // keep the fetched list small + scoped to the unique-to-fetch
+  // entries plus full coverage of catalog IDs the curated set may
+  // not include (Kepler-* numerics, K2-*, TOI-*, etc.).
+  const curatedHostNames = new Set(
+    skyPoints
+      .filter((s) => s.kind === "exoplanet-host")
+      .map((s) => s.name.toLowerCase().trim()),
+  )
+  const nearbyExoplanetHosts: CondensedExoplanetHost[] = EXOPLANET_HOSTS_NEARBY
+    .filter((h) => !curatedHostNames.has(h.name.toLowerCase().trim()))
+    .map((h) => ({
+      name: h.name,
+      spectralType: h.spectralType,
+      distance: h.distance,
+      magnitude: h.magnitude,
+      knownPlanets: h.knownPlanets,
+      firstDiscoveryYear: h.firstDiscoveryYear,
+      hasHabitableCandidate: h.hasHabitableCandidate,
+      fact: h.fact,
+    }))
+
   return {
     planets,
     namedBodies: namedBodyList,
     skyPoints: skyPointList,
     constellations: constellationList,
+    nearbyExoplanetHosts,
   }
 }
 
@@ -141,6 +184,14 @@ export function buildDataset(): CondensedDataset {
  * ------------------------------------------------------------------ */
 
 const SYSTEM_PROMPT_HEADER = `You are the Universe Engine Assistant — a natural-language guide to a real-astronomy 3D solar system simulation built by Ankur Sinha. Visitors explore the engine through conversation with you.
+
+## What you know about
+
+- 30+ named small bodies (comets, asteroids, spacecraft, interstellars, dwarf planets) — Kepler orbits, real elements
+- 8 planets + the Sun
+- 7 hand-curated constellations projected from real J2000 coordinates
+- ~60 hand-curated deep-sky objects (galaxies, nebulae, exoplanet hosts, stars) with rich per-body facts
+- 100+ additional confirmed exoplanet host stars within 50 light-years from the NASA Exoplanet Archive — Kepler-*, K2-*, TOI-*, GJ *, HD *, WASP-*, all addressable by name via getBodyDetails or flyToBody
 
 ## Your stance
 
