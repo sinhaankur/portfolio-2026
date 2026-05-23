@@ -158,6 +158,102 @@ const DAY_NIGHT_FRAGMENT_SHADER = `
     gl_FragColor = vec4(color, uOpacity);
   }
 `
+
+/* ============================================================
+ * Comet-tail shader.
+ *
+ * A real plasma/dust tail is a sparse plume — densest at the
+ * coma, fading to nothing where the solar wind disperses it.
+ * The earlier solid-cone meshBasicMaterial read like a plastic
+ * cone, not vapour. This shader:
+ *  - fades alpha along local +Y (base near nucleus → tip far),
+ *    with a power curve so the head reads punchy and the tip
+ *    feathers gently to zero
+ *  - adds a slight radial soft edge using the cone's UV.x
+ *    angular coordinate isn't useful, but we approximate a
+ *    central spine by sampling distance-from-axis derived
+ *    from local x/z position
+ *  - introduces a low-frequency time-varying flicker (knots in
+ *    the ion tail; real plasma tails knot and pulse as solar
+ *    magnetic sectors push through them)
+ * ============================================================ */
+const COMET_TAIL_VERTEX_SHADER = `
+  varying vec2 vUv;
+  varying float vAxialT;    // 0 at base, 1 at tip — for alpha falloff
+  varying float vRadial;    // 0 at axis, 1 at rim — for spine highlight
+  uniform float uHalfHeight;
+  void main() {
+    // ConeGeometry: base at y = -h/2, apex at y = +h/2.
+    vAxialT = clamp((position.y + uHalfHeight) / (2.0 * uHalfHeight), 0.0, 1.0);
+    // Radial distance from the cone's axis, normalised by the
+    // local radius at this slice. At the apex (vAxialT=1) the
+    // local radius collapses to ~0; clamp the divisor so we
+    // don't blow up.
+    float localR = mix(1.0, 0.01, vAxialT);
+    vRadial = clamp(length(position.xz) / localR, 0.0, 1.0);
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`
+const COMET_TAIL_FRAGMENT_SHADER = `
+  varying vec2 vUv;
+  varying float vAxialT;
+  varying float vRadial;
+  uniform vec3  uColorHead;    // bright colour at the coma end
+  uniform vec3  uColorTail;    // cooler/dimmer colour out at the tip
+  uniform float uOpacity;
+  uniform float uTime;
+  uniform float uKnotStrength; // 0 for dust tail (smooth), ~0.35 for ion tail
+  void main() {
+    // Axial falloff — fast bright lobe near the head, long feather to the tip.
+    float axial = pow(1.0 - vAxialT, 1.7);
+    // Radial spine — bright down the centre, soft on the edges.
+    float spine = pow(1.0 - vRadial, 1.2);
+    // Plasma knots — low-freq sin in axial direction, time-varying.
+    // Strength controlled per-tail (ion: knotty, dust: smooth).
+    float knots = 1.0 + uKnotStrength * sin(vAxialT * 18.0 - uTime * 1.8);
+    float a = axial * spine * knots * uOpacity;
+    // Colour gradient along the tail length.
+    vec3 col = mix(uColorHead, uColorTail, vAxialT);
+    gl_FragColor = vec4(col, clamp(a, 0.0, 1.0));
+  }
+`
+
+/* ============================================================
+ * Comet sunward-envelope shader.
+ *
+ * The bright, parabolic dust hood that hangs on the sun-facing
+ * side of an active comet — where outflowing gas meets the
+ * inward radiation pressure and piles up in a curved sheath.
+ * This shader gives a half-sphere a bright leading rim that
+ * fades toward the equator (where it meets the tail) and
+ * toward the inside of the cap.
+ * ============================================================ */
+const COMET_ENVELOPE_VERTEX_SHADER = `
+  varying vec3 vLocalNormal;
+  varying vec3 vLocalPos;
+  void main() {
+    vLocalNormal = normalize(normal);
+    vLocalPos = position;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`
+const COMET_ENVELOPE_FRAGMENT_SHADER = `
+  varying vec3 vLocalNormal;
+  varying vec3 vLocalPos;
+  uniform vec3  uColor;
+  uniform float uOpacity;
+  void main() {
+    // Brightest at the apex (local -y, the sunward tip) and
+    // fades toward the open rim (local y → 0). Local sphere
+    // is constructed sunward-facing so -y is the sub-solar
+    // point; tweak the sign if the model orientation flips.
+    float sunward = clamp(-vLocalNormal.y, 0.0, 1.0);
+    float falloff = pow(sunward, 1.4);
+    gl_FragColor = vec4(uColor, falloff * uOpacity);
+  }
+`
+
 import { CONSTELLATION_FIGURES } from "./constellation-figures"
 import { SPACECRAFT_SHAPES } from "./spacecraft-shapes"
 import type {
@@ -1455,6 +1551,8 @@ function ShootingStars({ count = 6, invert = false }: { count?: number; invert?:
   )
 }
 
+
+
 /* ============================================================
  * Belts (asteroid + Kuiper)
  * ============================================================ */
@@ -1914,6 +2012,7 @@ function PlanetBody({
       // Circular orbit (or near-circular): true anomaly == mean anomaly.
       orbitRef.current.rotation.y = meanAnomalyRef.current
     }
+
 
     // Textured sphere rotates in lockstep with the grey one underneath so
     // surface features (Earth's continents, Jupiter's bands, Saturn's
@@ -2602,15 +2701,56 @@ function eccentricToTrue(E: number, e: number): number {
   )
 }
 
+/**
+ * Scene-scale compression curve.
+ *
+ * The solar system spans five orders of magnitude (Mercury 0.39 AU →
+ * Voyager 1 ~160 AU). Linear scaling would either make the inner
+ * planets invisibly small or push the outer ones off-screen, so we
+ * compress radii with sqrt() — the same trick stellar charts use.
+ *
+ * The earlier implementation applied sqrt() to the semi-major axis
+ * (`a`) and then plugged that into the Keplerian polar form
+ * r = a(1-e²)/(1+e·cosθ). That's mathematically inconsistent: for
+ * an eccentric orbit the perihelion ends up at sqrt(a)·(1-e), which
+ * is much closer to the Sun than the consistent sqrt(a·(1-e)). Parker
+ * Solar Probe (a=0.39, e=0.881, perihelion 0.046 AU) plunged INSIDE
+ * the rendered Sun every quarter-year, and sungrazers (Ikeya-Seki,
+ * perihelion 0.008 AU) effectively disappeared into the corona.
+ *
+ * Fix: compute r in real AU using the actual elements, then apply
+ * sqrt-compression to r — not to a. Now scene perihelion =
+ * sqrt(a·(1-e))·3, which faithfully scales to real perihelia.
+ * Parker comes out at sqrt(0.046)·3 ≈ 0.64 scene units (well outside
+ * the 0.9-unit Sun mesh), and the full orbit lives in scene space
+ * where every body sits at sqrt(real_distance_AU)·3 from origin.
+ *
+ * Side effect: the orbit shape in scene space is no longer a perfect
+ * ellipse — it's a sqrt-compressed ellipse, which looks slightly
+ * less dramatic at high eccentricity. We accept that. The trade is
+ * visual consistency with the rest of the scene (planets, moons,
+ * named-body distances all live in the same sqrt(AU)·3 frame).
+ */
+const SCENE_SCALE = 3 // scene units per sqrt(AU)
+function compressRadius(rAU: number): number {
+  return Math.sqrt(Math.max(rAU, 0)) * SCENE_SCALE
+}
+
 function orbitalElementsToCartesian(
-  a: number,
+  aAU: number,
   e: number,
   trueAnomaly: number,
   inclination: number,
   longNode: number,
   argPeri: number,
 ): [number, number, number] {
-  const r = (a * (1 - e * e)) / (1 + e * Math.cos(trueAnomaly))
+  // Polar form of the conic — r in REAL AU.
+  // For hyperbolic orbits (e ≥ 1) the caller passes e=0, so this still
+  // returns a finite r = aAU; callers using actual e ≥ 1 should pin
+  // the body separately (see the e >= 1 branch in NamedBodyMesh).
+  const rAU = (aAU * (1 - e * e)) / (1 + e * Math.cos(trueAnomaly))
+  // Compress to scene units consistently with planet/moon scaling.
+  const r = compressRadius(rAU)
   // Step 1: position in orbital plane, perihelion at +x_orbital.
   let xp = r * Math.cos(trueAnomaly)
   let zp = r * Math.sin(trueAnomaly)
@@ -2645,20 +2785,45 @@ function NamedBodyMesh({
   interactive?: boolean
 }) {
   const groupRef = useRef<Group>(null)
+  /** Comet nucleus mesh — rotated slowly each frame so the surface
+   *  appears to spin like a real cometary nucleus (67P rotates every
+   *  ~12.4 hours; jets pulse on and off as active areas swing into the
+   *  sunlight). The rotation here is decorative, not period-accurate. */
+  const nucleusRef = useRef<Mesh>(null)
   /** Comet-tail orientation — quaternion-rotated each frame so the tail
    *  always streams away from the Sun (origin), matching real solar-wind
    *  physics. Only used when body.kind === "comet" (or Comet Borisov). */
   const tailRef = useRef<Group>(null)
+  /** Sunward parabolic envelope — bright dust hood that hangs on the
+   *  Sun-facing side of an active comet. Opacity fades with heliocentric
+   *  distance the same way the tails do. Lives inside tailRef so it
+   *  stays oriented correctly without per-frame quaternion work. */
+  const envelopeMatRef = useRef<ShaderMaterial>(null)
+  /** Jet streamers group — three thin plumes shooting from the nucleus
+   *  on the sunward hemisphere. Rotated slowly to simulate the nucleus
+   *  spinning, so active spots periodically turn into and out of the
+   *  Sun like real cometary jets. */
+  const jetsRef = useRef<Group>(null)
+  const jetMatRef = useRef<ShaderMaterial>(null)
   /** Comet ion-tail mesh — position + scale updated each frame so the
    *  tail length tracks distance from Sun (long at perihelion, faint at
-   *  aphelion), matching real solar-wind sublimation. */
+   *  aphelion), matching real solar-wind sublimation. Uses a custom
+   *  shader so the tail fades along its length (vapour, not plastic). */
   const tailMeshRef = useRef<Mesh>(null)
-  const tailMatRef = useRef<import("three").MeshBasicMaterial>(null)
+  const tailMatRef = useRef<ShaderMaterial>(null)
   /** Comet dust-tail mesh — second tail rendered in warm gold, offset
    *  from the ion tail by ~15° to fake the curve produced by radiation
    *  pressure pushing dust out slower than solar wind ions. */
   const dustTailMeshRef = useRef<Mesh>(null)
-  const dustTailMatRef = useRef<import("three").MeshBasicMaterial>(null)
+  const dustTailMatRef = useRef<ShaderMaterial>(null)
+  /** Anti-tail spike — a short, sunward-pointing dust spike visible
+   *  only for certain great comets at specific viewing geometries
+   *  (Tsuchinshan–ATLAS 2024 is the textbook recent example). Not a
+   *  real third tail — a projection artefact of dust spread along the
+   *  orbital plane seen edge-on. Rendered as a thin cone pointing
+   *  toward the Sun, only fading in close to perihelion. */
+  const antiTailMeshRef = useRef<Mesh>(null)
+  const antiTailMatRef = useRef<ShaderMaterial>(null)
   /** Motion trail — ring buffer of recent positions rendered as fading
    *  particles behind the body. Makes orbital movement legible at any
    *  time-warp (the body itself moves slowly in any given second; the
@@ -2677,7 +2842,12 @@ function NamedBodyMesh({
 
   // Pre-compute everything time-independent: orbital scale, tilt, base colour.
   const config = useMemo(() => {
-    const a = Math.sqrt(body.aAU) * 3 // scene-scale semi-major axis
+    // `a` is the REAL semi-major axis in AU. Scene-space compression is
+    // applied inside orbitalElementsToCartesian (sqrt(r)·3) so the
+    // perihelion + aphelion of every eccentric orbit scale consistently
+    // with planet distances — Parker, Ikeya-Seki etc. no longer plunge
+    // through the Sun mesh.
+    const a = body.aAU
     const e = body.eccentricity
     const inclination = body.inclDeg * DEG
     const visualRadius = body.visualRadius ?? 0.05
@@ -2726,7 +2896,26 @@ function NamedBodyMesh({
         b: parseInt(hex.slice(4, 6), 16) / 255,
       }
     })()
-    return { a, e, inclination, longNode, argPeri, visualRadius, angularSpeed, phase, shade, shadeRgb, isLoop: isFinite(body.periodYears), hasTail }
+    // Famous "great comets" — visible to the naked eye, long iconic
+    // tails. We stretch their tails ~50% longer than the routine periodic
+    // comets so Hale-Bopp's signature plume actually reads at scene scale.
+    // Hyakutake had the longest measured tail in history (570 Mkm); we
+    // can't show that to scale without breaking the scene, but we lean
+    // into it. Sungrazers (Ikeya-Seki) also get the boost — their tails
+    // are spectacular because perihelion is so close.
+    const GREAT_COMETS = new Set([
+      "Comet Hale-Bopp",
+      "Comet Hyakutake",
+      "Comet NEOWISE",
+      "Comet Tsuchinshan-ATLAS",
+      "Comet Ikeya-Seki",
+    ])
+    const tailLengthFactor = GREAT_COMETS.has(body.name) ? 1.55 : 1.0
+    // The anti-tail is a real visible feature for a few specific comets
+    // (Arend-Roland 1957, Tsuchinshan-ATLAS 2024). Of the catalog, only
+    // Tsuchinshan-ATLAS qualifies — its fact text already calls it out.
+    const hasAntiTail = body.name === "Comet Tsuchinshan-ATLAS"
+    return { a, e, inclination, longNode, argPeri, visualRadius, angularSpeed, phase, shade, shadeRgb, isLoop: isFinite(body.periodYears), hasTail, tailLengthFactor, hasAntiTail }
   }, [body])
 
   // Initialise the motion-trail ring buffer for comets / interstellars /
@@ -2795,6 +2984,52 @@ function NamedBodyMesh({
     geo.setAttribute("position", new BufferAttribute(positions, 3))
     return geo
   }, [config])
+
+  // Shader uniforms for the comet's plume meshes — built once per
+  // component instance so each comet animates independently. Per-frame
+  // updates (uOpacity, uTime) mutate these in useFrame above.
+  // Colours are tuned to real comet spectroscopy:
+  //   - Ion tail: cyan/electric blue from CO+ and H2O+ fluorescence
+  //   - Dust tail: warm cream/gold from sun-reflected silicates
+  //   - Envelope: pale cyan, brighter than the surrounding coma
+  //   - Jets: white-cyan to read against the green inner coma
+  //   - Anti-tail: warm cream, matches dust-tail palette
+  const ionTailUniforms = useMemo(() => ({
+    uColorHead:    { value: new Color(invert ? "#1a4080" : "#bfe4ff") },
+    uColorTail:    { value: new Color(invert ? "#3060a0" : "#5a8fd0") },
+    uOpacity:      { value: 0 },
+    uTime:         { value: 0 },
+    uHalfHeight:   { value: config.visualRadius * 7.0 * config.tailLengthFactor },
+    uKnotStrength: { value: 0.32 },
+  }), [invert, config.visualRadius, config.tailLengthFactor])
+  const dustTailUniforms = useMemo(() => ({
+    uColorHead:    { value: new Color(invert ? "#7a4818" : "#ffd590") },
+    uColorTail:    { value: new Color(invert ? "#a06840" : "#d8a865") },
+    uOpacity:      { value: 0 },
+    uTime:         { value: 0 },
+    uHalfHeight:   { value: config.visualRadius * 8.0 * config.tailLengthFactor },
+    uKnotStrength: { value: 0.0 },
+  }), [invert, config.visualRadius, config.tailLengthFactor])
+  const envelopeUniforms = useMemo(() => ({
+    uColor:        { value: new Color(invert ? "#3a5a90" : "#cfeaff") },
+    uOpacity:      { value: 0 },
+  }), [invert])
+  const jetUniforms = useMemo(() => ({
+    uColorHead:    { value: new Color(invert ? "#3060a0" : "#e6f4ff") },
+    uColorTail:    { value: new Color(invert ? "#5080b0" : "#88c4f0") },
+    uOpacity:      { value: 0 },
+    uTime:         { value: 0 },
+    uHalfHeight:   { value: config.visualRadius * 0.85 },
+    uKnotStrength: { value: 0.55 },
+  }), [invert, config.visualRadius])
+  const antiTailUniforms = useMemo(() => ({
+    uColorHead:    { value: new Color(invert ? "#8a5828" : "#fff0c8") },
+    uColorTail:    { value: new Color(invert ? "#a87848" : "#dcc090") },
+    uOpacity:      { value: 0 },
+    uTime:         { value: 0 },
+    uHalfHeight:   { value: config.visualRadius * 1.4 },
+    uKnotStrength: { value: 0.0 },
+  }), [invert, config.visualRadius])
 
   useFrame((_, delta) => {
     const tw = timeWarpRef.current
@@ -2889,26 +3124,65 @@ function NamedBodyMesh({
       // Linear ramp in scene-units: full tail inside 5u, fading to 0
       // by 18u. So Halley flares dramatically each time it swings inside
       // Mars's orbit, then trails off as it heads back to Pluto-distance.
+      const t = Math.max(0, Math.min(1, (18 - len) / 13))
+      // Ion tail — straight, electric-blue, points exactly anti-radial.
       if (tailMeshRef.current && tailMatRef.current) {
-        const r = len
-        const t = Math.max(0, Math.min(1, (18 - r) / 13))
-        const baseHalf = config.visualRadius * 4.5
+        const baseHalf = config.visualRadius * 7.0 * config.tailLengthFactor
         tailMeshRef.current.position.y = baseHalf * t
         tailMeshRef.current.scale.y = t
-        const peakOpacity = invert ? 0.55 : 0.45
-        tailMatRef.current.opacity = t * peakOpacity
+        const peakOpacity = invert ? 0.65 : 0.55
+        tailMatRef.current.uniforms.uOpacity.value = t * peakOpacity
+        tailMatRef.current.uniforms.uTime.value += delta
       }
-      // Dust tail — slightly longer (radiation pressure spreads dust
-      // further) and dimmer than the ion tail. Same perihelion ramp.
+      // Dust tail — broader, warm, slightly longer. Radiation pressure
+      // pushes dust outward slower than the solar wind pushes ions, so
+      // dust lags behind into a fan; the offset rotation in JSX captures
+      // that curve. Smooth (no plasma knots).
       if (dustTailMeshRef.current && dustTailMatRef.current) {
-        const r = len
-        const t = Math.max(0, Math.min(1, (18 - r) / 13))
-        const dustBaseHalf = config.visualRadius * 5.2
-        dustTailMeshRef.current.position.y = dustBaseHalf * t
+        const baseHalf = config.visualRadius * 8.0 * config.tailLengthFactor
+        dustTailMeshRef.current.position.y = baseHalf * t
         dustTailMeshRef.current.scale.y = t
-        const peakOpacity = invert ? 0.45 : 0.38
-        dustTailMatRef.current.opacity = t * peakOpacity
+        const peakOpacity = invert ? 0.55 : 0.48
+        dustTailMatRef.current.uniforms.uOpacity.value = t * peakOpacity
       }
+      // Sunward envelope — the bright dust hood pressed against the
+      // Sun-facing side of an active comet. Same perihelion ramp; the
+      // shader gradient handles the parabolic falloff toward the rim.
+      if (envelopeMatRef.current) {
+        const peakOpacity = invert ? 0.50 : 0.45
+        envelopeMatRef.current.uniforms.uOpacity.value = t * peakOpacity
+      }
+      // Jet streamers — only really fire close to the Sun. Tighter ramp
+      // than the tails (gone by 8u, full inside 3u). The group rotates
+      // slowly so individual jets sweep into and out of view — the
+      // signature pulsing you see in Rosetta's footage of 67P.
+      if (jetsRef.current) {
+        jetsRef.current.rotation.y += delta * 0.55
+      }
+      if (jetMatRef.current) {
+        const jetT = Math.max(0, Math.min(1, (8 - len) / 5))
+        const peakOpacity = invert ? 0.70 : 0.60
+        jetMatRef.current.uniforms.uOpacity.value = jetT * peakOpacity
+        jetMatRef.current.uniforms.uTime.value += delta * 2.2
+      }
+      // Anti-tail — short sunward spike, visible only inside ~4u and
+      // only for the one comet (Tsuchinshan–ATLAS) that famously
+      // showed it in 2024. Even tighter window than the jets.
+      if (config.hasAntiTail && antiTailMeshRef.current && antiTailMatRef.current) {
+        const atT = Math.max(0, Math.min(1, (4 - len) / 2))
+        const peakOpacity = invert ? 0.55 : 0.45
+        antiTailMatRef.current.uniforms.uOpacity.value = atT * peakOpacity
+        antiTailMeshRef.current.scale.y = 0.3 + 0.7 * atT
+      }
+    }
+
+    // Nucleus rotation — slow tumble on two axes so the irregular
+    // facets read as a real spinning body. Independent of the perihelion
+    // ramp (real nuclei rotate everywhere along the orbit, they just
+    // aren't visible from Earth until the coma lights them up).
+    if (nucleusRef.current) {
+      nucleusRef.current.rotation.y += delta * 0.35
+      nucleusRef.current.rotation.x += delta * 0.12
     }
 
     // Trail opacity lerps with hover state — addresses the no-collisions
@@ -2982,80 +3256,206 @@ function NamedBodyMesh({
             {SPACECRAFT_SHAPES[body.name].render({ invert })}
           </group>
         ) : config.hasTail ? (
-          // Comet visual: a bright nucleus, a diffuse coma surrounding it,
-          // and a tail that streams away from the Sun (orientation set in
-          // useFrame above so it tracks the body's current radial vector).
+          // Comet anatomy, built up in layers:
+          //   1. Nucleus — dark, irregular, slowly rotating. Real cometary
+          //      surfaces (Halley, 67P) are blacker than asphalt; we keep
+          //      it faceted (icosahedron) so its silhouette feels like a
+          //      lump of rock, not a polished ball.
+          //   2. Inner coma — tight greenish glow (C2 / CN fluorescence).
+          //   3. Mid coma — wider cyan halo (water photodissociation).
+          //   4. Outer coma — faint diffuse envelope, fades into space.
+          //   5. Sunward envelope — bright parabolic dust hood pressed
+          //      against the sub-solar side by radiation pressure.
+          //   6. Jets — 3 narrow plumes from active spots on the nucleus,
+          //      rotating with it so they sweep into / out of view.
+          //   7. Ion tail — straight, electric-blue, plasma knots, points
+          //      directly anti-solar (solar wind blows it straight out).
+          //   8. Dust tail — warm cream, broader, slightly longer, offset
+          //      ~14° from the ion tail (radiation pressure pushes dust
+          //      out slower than ions, so it curves orbit-trailing).
+          //   9. Anti-tail — for Tsuchinshan–ATLAS only — short sunward
+          //      spike, fades in near perihelion.
           <>
-            {/* Nucleus — small, sharp, fully opaque core */}
-            <mesh>
-              <sphereGeometry args={[config.visualRadius * 0.45, 12, 12]} />
-              <meshBasicMaterial color={invert ? "#1a1a2a" : "#ffffff"} />
+            {/* 1. Nucleus — irregular, dark, tumbling. */}
+            <mesh ref={nucleusRef}>
+              <icosahedronGeometry args={[config.visualRadius * 0.42, 0]} />
+              <meshBasicMaterial color={invert ? "#0a0a14" : "#6a6258"} />
             </mesh>
-            {/* Coma — diffuse halo, additive in dark mode so it reads as
-                a soft glow rather than a hard sphere. */}
+
+            {/* 2. Inner coma — C2/CN green close to the nucleus.
+                Real Halley and Hale-Bopp comae show this clearly through
+                a small telescope: a green core fading to cyan further out. */}
             <mesh>
-              <sphereGeometry args={[config.visualRadius * 1.6, 16, 16]} />
+              <sphereGeometry args={[config.visualRadius * 0.85, 18, 14]} />
               <meshBasicMaterial
-                color={config.shade}
+                color={invert ? "#4d8478" : "#b8ffd4"}
                 transparent
-                opacity={invert ? 0.45 : 0.40}
+                opacity={invert ? 0.55 : 0.55}
                 blending={invert ? NormalBlending : AdditiveBlending}
                 depthWrite={false}
               />
             </mesh>
-            {/* Two-tail comet anatomy:
-                ION tail — straight, blue/white, points exactly anti-radial
-                  (solar wind blows the ionised gas straight outward).
-                DUST tail — offset ~15° from anti-radial, warm gold, slightly
-                  longer + wider. Radiation pressure pushes dust grains
-                  outward slower than the ion wind, so dust lags behind
-                  and curves toward the orbital-trailing direction. The
-                  visual offset captures the iconic "double tail" of real
-                  great comets (Hale-Bopp's twin tails are the textbook
-                  example).
-                Wrapping group's quaternion keeps both tails anti-radial
-                each frame; the dust tail's own local-z rotation provides
-                the offset. */}
+
+            {/* 3. Mid coma — cyan halo, the layer the eye reads as "the comet". */}
+            <mesh>
+              <sphereGeometry args={[config.visualRadius * 1.55, 20, 16]} />
+              <meshBasicMaterial
+                color={config.shade}
+                transparent
+                opacity={invert ? 0.45 : 0.42}
+                blending={invert ? NormalBlending : AdditiveBlending}
+                depthWrite={false}
+              />
+            </mesh>
+
+            {/* 4. Outer coma — very faint diffuse glow, fades into space.
+                Suggests the immense hydrogen envelope without making
+                the comet look bloated. */}
+            <mesh>
+              <sphereGeometry args={[config.visualRadius * 2.5, 20, 16]} />
+              <meshBasicMaterial
+                color={config.shade}
+                transparent
+                opacity={invert ? 0.22 : 0.16}
+                blending={invert ? NormalBlending : AdditiveBlending}
+                depthWrite={false}
+              />
+            </mesh>
+
+            {/* 5–9 all live inside tailRef so they share the
+                "y-axis points anti-solar" orientation set per-frame. */}
             <group ref={tailRef}>
-              {/* Ion tail */}
-              <mesh ref={tailMeshRef} position={[0, config.visualRadius * 4.5, 0]}>
-                <coneGeometry args={[
-                  config.visualRadius * 0.65,
-                  config.visualRadius * 9,
-                  14, 1, true,
+              {/* 5. Sunward envelope — bright dust hood on the Sun-facing
+                  side. Half-sphere at the -y pole (sunward); shader makes
+                  the apex brightest, fading to the rim. */}
+              <mesh>
+                <sphereGeometry args={[
+                  config.visualRadius * 1.4,
+                  20, 12,
+                  0, Math.PI * 2,
+                  Math.PI * 0.42, Math.PI * 0.58,
                 ]} />
-                <meshBasicMaterial
-                  ref={tailMatRef as React.Ref<import("three").MeshBasicMaterial>}
-                  color={invert ? "#1a4080" : "#9ed0ff"}
+                <shaderMaterial
+                  ref={envelopeMatRef}
+                  vertexShader={COMET_ENVELOPE_VERTEX_SHADER}
+                  fragmentShader={COMET_ENVELOPE_FRAGMENT_SHADER}
+                  uniforms={envelopeUniforms}
                   transparent
-                  opacity={invert ? 0.55 : 0.45}
                   blending={invert ? NormalBlending : AdditiveBlending}
                   depthWrite={false}
                   side={DoubleSide}
                 />
               </mesh>
-              {/* Dust tail — offset 14° around local z so it splays
-                  out from the ion tail. Slightly longer + wider. */}
+
+              {/* 6. Jets — three thin plumes biased toward the sunward
+                  hemisphere. Rotate slowly via jetsRef so each jet
+                  swings in and out of view, faking the rotation of the
+                  underlying nucleus (the signature pulsing in Rosetta
+                  footage of 67P's coma). All three share one shader
+                  material so the per-frame uniform update is cheap. */}
+              <group ref={jetsRef}>
+                {[
+                  { tiltX: Math.PI - 0.15, tiltZ:  0.0,  yaw: 0.0 },
+                  { tiltX: Math.PI - 0.30, tiltZ:  0.55, yaw: 2.1 },
+                  { tiltX: Math.PI - 0.12, tiltZ: -0.45, yaw: 4.0 },
+                ].map((j, i) => (
+                  <mesh
+                    key={i}
+                    rotation={[j.tiltX, j.yaw, j.tiltZ]}
+                  >
+                    <coneGeometry args={[
+                      config.visualRadius * 0.10,
+                      config.visualRadius * 1.7,
+                      10, 1, true,
+                    ]} />
+                    <shaderMaterial
+                      ref={i === 0 ? jetMatRef : undefined}
+                      vertexShader={COMET_TAIL_VERTEX_SHADER}
+                      fragmentShader={COMET_TAIL_FRAGMENT_SHADER}
+                      uniforms={jetUniforms}
+                      transparent
+                      blending={invert ? NormalBlending : AdditiveBlending}
+                      depthWrite={false}
+                      side={DoubleSide}
+                    />
+                  </mesh>
+                ))}
+              </group>
+
+              {/* 7. Ion tail — straight, anti-radial. Knotted plasma
+                  flicker driven by the shader's uTime + uKnotStrength. */}
+              <mesh
+                ref={tailMeshRef}
+                position={[0, config.visualRadius * 7.0 * config.tailLengthFactor, 0]}
+              >
+                <coneGeometry args={[
+                  config.visualRadius * 0.55,
+                  config.visualRadius * 14 * config.tailLengthFactor,
+                  16, 1, true,
+                ]} />
+                <shaderMaterial
+                  ref={tailMatRef}
+                  vertexShader={COMET_TAIL_VERTEX_SHADER}
+                  fragmentShader={COMET_TAIL_FRAGMENT_SHADER}
+                  uniforms={ionTailUniforms}
+                  transparent
+                  blending={invert ? NormalBlending : AdditiveBlending}
+                  depthWrite={false}
+                  side={DoubleSide}
+                />
+              </mesh>
+
+              {/* 8. Dust tail — broader, warmer, slightly longer; offset
+                  14° around local z so it visibly splays from the ion
+                  tail. Smooth (no plasma knots). */}
               <mesh
                 ref={dustTailMeshRef}
-                position={[0, config.visualRadius * 5.2, 0]}
+                position={[0, config.visualRadius * 8.0 * config.tailLengthFactor, 0]}
                 rotation={[0, 0, 0.24]}
               >
                 <coneGeometry args={[
-                  config.visualRadius * 1.0,
-                  config.visualRadius * 10.4,
-                  14, 1, true,
+                  config.visualRadius * 0.95,
+                  config.visualRadius * 16 * config.tailLengthFactor,
+                  16, 1, true,
                 ]} />
-                <meshBasicMaterial
-                  ref={dustTailMatRef as React.Ref<import("three").MeshBasicMaterial>}
-                  color={invert ? "#7a4818" : "#ffd28a"}
+                <shaderMaterial
+                  ref={dustTailMatRef}
+                  vertexShader={COMET_TAIL_VERTEX_SHADER}
+                  fragmentShader={COMET_TAIL_FRAGMENT_SHADER}
+                  uniforms={dustTailUniforms}
                   transparent
-                  opacity={invert ? 0.45 : 0.38}
                   blending={invert ? NormalBlending : AdditiveBlending}
                   depthWrite={false}
                   side={DoubleSide}
                 />
               </mesh>
+
+              {/* 9. Anti-tail — only built for the one comet that famously
+                  showed one. Points sunward (rotation flips the cone so
+                  apex is at -y). Fades in tightly around perihelion. */}
+              {config.hasAntiTail && (
+                <mesh
+                  ref={antiTailMeshRef}
+                  position={[0, -config.visualRadius * 1.4, 0]}
+                  rotation={[Math.PI, 0, 0]}
+                >
+                  <coneGeometry args={[
+                    config.visualRadius * 0.30,
+                    config.visualRadius * 2.8,
+                    12, 1, true,
+                  ]} />
+                  <shaderMaterial
+                    ref={antiTailMatRef}
+                    vertexShader={COMET_TAIL_VERTEX_SHADER}
+                    fragmentShader={COMET_TAIL_FRAGMENT_SHADER}
+                    uniforms={antiTailUniforms}
+                    transparent
+                    blending={invert ? NormalBlending : AdditiveBlending}
+                    depthWrite={false}
+                    side={DoubleSide}
+                  />
+                </mesh>
+              )}
             </group>
           </>
         ) : (

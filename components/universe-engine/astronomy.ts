@@ -720,6 +720,36 @@ export const namedBodies: NamedBody[] = [
     fact: "The brightest naked-eye comet in the northern hemisphere since Hale-Bopp 23 years earlier. Discovered by the NEOWISE space telescope on March 27, 2020 and visible to millions during the early COVID lockdowns. Won't return for nearly seven millennia.",
     visualRadius: 0.07,
   },
+  {
+    name: "Comet Tempel 2",
+    designation: "10P/Tempel 2",
+    kind: "comet",
+    aAU: 3.052,
+    eccentricity: 0.537,
+    inclDeg: 12.0,
+    longNodeDeg: 117.8,
+    argPeriDeg: 195.7,
+    elementsEpoch: "2025-01",
+    periodYears: 5.33,
+    startPhase: 0.92,         // approaching perihelion in 2026
+    fact: "Short-period Jupiter-family comet — orbits the Sun every 5.3 years on a tight ellipse that wraps the inner planets. Currently accelerating toward perihelion. Nucleus ~10.6 km across, one of the largest short-period nuclei known. Discovered by Wilhelm Tempel in 1873.",
+    visualRadius: 0.05,
+  },
+  {
+    name: "Comet PanSTARRS R3",
+    designation: "C/2025 R3 (PanSTARRS)",
+    kind: "comet",
+    aAU: 720,                 // long-period, very loose ellipse
+    eccentricity: 0.9991,
+    inclDeg: 76.4,
+    longNodeDeg: 248.5,
+    argPeriDeg: 92.0,
+    elementsEpoch: "2025-09",
+    periodYears: 19300,
+    startPhase: 0.56,         // post-perihelion, now outbound
+    fact: "Long-period comet that swept safely through the inner solar system in spring 2025 and is now tracking a massive elongated ellipse back into deep space. Discovered by the Pan-STARRS survey in Hawaii. Won't return for nearly 20 millennia.",
+    visualRadius: 0.06,
+  },
   // ----- Named near-Earth + main-belt asteroids -----
   {
     name: "Apophis",
@@ -917,6 +947,21 @@ export const namedBodies: NamedBody[] = [
     startPhase: 0.5,
     fact: "Second known interstellar visitor (August 2019). Unlike 'Oumuamua, Borisov was clearly a comet — visible coma and tail. Spectroscopy showed exotic chemistry hinting at an origin around a cool red-dwarf star.",
     visualRadius: 0.04,
+  },
+  {
+    name: "3I/ATLAS",
+    designation: "3I/2025 N1 (ATLAS)",
+    kind: "interstellar",
+    aAU: 1.36,             // perihelion ~1.36 AU (inside Mars's orbit)
+    eccentricity: 6.14,     // strongly hyperbolic — fastest interstellar yet
+    inclDeg: 175.1,         // near-retrograde, nearly anti-aligned with ecliptic
+    longNodeDeg: 322.2,
+    argPeriDeg: 127.3,
+    elementsEpoch: "2025-09",
+    periodYears: Infinity,
+    startPhase: 0.5,
+    fact: "Third confirmed interstellar object ever (discovered July 1 2025 by ATLAS Chile). The fastest known interstellar visitor at ~58 km/s relative to the Sun. Perihelion in late October 2025 inside Mars's orbit; now outbound, fading as it passes Jupiter's distance back toward deep space. A clear comet with a visible coma — spectra hint it's older than our solar system.",
+    visualRadius: 0.045,
   },
   // ----- Trans-Neptunian dwarf planets — Pluto's distant cousins -----
   {
