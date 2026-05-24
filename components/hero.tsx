@@ -130,6 +130,14 @@ export function Hero() {
             </>
           )}
         </button>
+        <div className="mt-3 hidden md:block max-w-[20rem] rounded-2xl border border-foreground/15 bg-background/45 px-4 py-3 backdrop-blur-sm">
+          <p className="font-mono text-[10px] tracking-[0.24em] uppercase text-foreground/65">
+            Home Hero · UX Scale
+          </p>
+          <p className="mt-1 text-[11px] leading-relaxed text-foreground/70">
+            Distances and body sizes are perceptually compressed here for readability, motion, and exploration.
+          </p>
+        </div>
       </div>
 
       {/* Explore-mode hint — phrasing flips by input modality so the verbs
