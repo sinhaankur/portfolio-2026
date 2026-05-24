@@ -20,14 +20,6 @@ export class GameLoop {
     this.gameState = initialState;
   }
 
-  /**
-   * Keep simulation state aligned with external UI state transitions.
-   * This prevents the loop from running on a stale snapshot when React
-   * has already moved phases (e.g. briefing -> ignition).
-   */
-  setState(nextState: GameState) {
-    this.gameState = nextState;
-  }
 
   /**
    * Main update loop: call once per frame from useFrame.
@@ -469,8 +461,8 @@ export class GameLoop {
   /**
    * Set state (for React binding).
    */
-  setState(state: Partial<GameState>) {
-    Object.assign(this.gameState, state);
+  setState(state: GameState) {
+    this.gameState = state;
   }
 }
 

@@ -431,8 +431,10 @@ function GameScene({
       gameState.playerEntity.rotation.y += yawDelta;
       gameState.playerEntity.rotation.z += rollDelta;
 
-      // Forward thrust with W or Up arrow (continuous)
-      const thrustSpeed = keysPressed.current.has('KeyW') || keysPressed.current.has('ArrowUp') ? 20 : 0;
+      // Travel-first controls: keep a gentle cruise speed so motion is always visible.
+      let thrustSpeed = 8;
+      if (keysPressed.current.has('KeyW') || keysPressed.current.has('ArrowUp')) thrustSpeed = 20;
+      if (keysPressed.current.has('KeyS') || keysPressed.current.has('ArrowDown')) thrustSpeed = -10;
 
       // Boost with Shift
       const boostMultiplier = keysPressed.current.has('ShiftLeft') || keysPressed.current.has('ShiftRight') ? 1.8 : 1.0;
@@ -472,6 +474,15 @@ function GameRenderer() {
   const keysPressed = useRef<Set<string>>(new Set());
   const mouseRotationRef = useRef({ pitch: 0, yaw: 0 });
   const deviceOrientationRef = useRef({ alpha: 0, beta: 0, gamma: 0 });
+
+  // Guardrail: if ignition timer completes but phase did not flip for any reason,
+  // force transition to combat so it never appears frozen on countdown.
+  useEffect(() => {
+    if (gameState.phase !== 'ignition') return;
+    const elapsed = gameState.simTime - (gameState.ignitionStartTime ?? 0);
+    if (elapsed <= 3.6) return;
+    setGameState((s) => (s.phase === 'ignition' ? startCombat(s) : s));
+  }, [gameState.phase, gameState.simTime, gameState.ignitionStartTime]);
 
   // Multi-input flight controls: keyboard, mouse, device orientation
   useEffect(() => {
