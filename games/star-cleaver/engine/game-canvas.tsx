@@ -99,8 +99,8 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
     [thrusterPreset]
   );
   const initialPlumeLength = 1.05;
-  const initialThrusterCenterZ = thrusterPreset.nozzleZ - 0.9 * initialPlumeLength;
-  const initialOuterCenterZ = thrusterPreset.outerNozzleZ - 1.2 * initialPlumeLength * 1.22;
+  const initialThrusterCenterZ = thrusterPreset.nozzleZ + 0.9 * initialPlumeLength;
+  const initialOuterCenterZ = thrusterPreset.outerNozzleZ + 1.2 * initialPlumeLength * 1.22;
 
   // Update engine trail, visual banking, and responsive glow
   useFrame((state, delta) => {
@@ -156,15 +156,15 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
       if (!ref.current) return;
       ref.current.scale.set(plumeRadius, plumeLength, plumeRadius);
       (ref.current.material as THREE.MeshBasicMaterial).opacity = plumeOpacity;
-      // Keep nozzle-end fixed at the engine rear and push the cone backward as it scales.
-      ref.current.position.z = rearNozzleZ - thrusterHalfLength;
+      // Keep the cone base fixed at the rear nozzle and extend plume rearward as it scales.
+      ref.current.position.z = rearNozzleZ + thrusterHalfLength;
     });
 
     outerPlumeRefs.forEach(ref => {
       if (!ref.current) return;
       ref.current.scale.set(plumeRadius * 1.5, plumeLength * 1.22, plumeRadius * 1.5);
       (ref.current.material as THREE.MeshBasicMaterial).opacity = outerPlumeOpacity;
-      ref.current.position.z = rearOuterNozzleZ - outerHalfLength;
+      ref.current.position.z = rearOuterNozzleZ + outerHalfLength;
     });
 
     // RCS maneuvering thrusters for orientation/position hold.
