@@ -26,6 +26,7 @@ import type {
   SkyPoint,
 } from "./types"
 import { IAU_CONSTELLATIONS_GENERATED } from "@/lib/data/constellations-iau"
+import { DEEP_SKY_CATALOG, DEEP_SKY_COUNT } from "@/lib/data/deep-sky"
 
 /* --------------------------------------------------------------------------
  * Scene-scale constants
@@ -525,6 +526,12 @@ export const planetsData: Planet[] = [
     { name: "Olympus Mons", lat: 18.65, lon: 226.20, date: "natural", status: "natural", agency: "—", fact: "Tallest volcano in the solar system — ~22 km high (~2.5× Mount Everest) and 600 km wide at the base, the size of France. Shield volcano formed by lava flows over billions of years on a non-moving crust (Mars has no plate tectonics, so the magma plume just kept building up the same mountain)." },
     { name: "Valles Marineris", lat: -13.9, lon: 301.50, date: "natural", status: "natural", agency: "—", fact: "Largest canyon system in the solar system. 4,000 km long (roughly Los Angeles to New York), up to 200 km wide, and 7 km deep — dwarfing the Grand Canyon. Not carved by water but cracked open by tectonic stress as the Tharsis bulge formed nearby." },
     { name: "Hellas Planitia", lat: -42.4, lon: 70.0, date: "natural", status: "natural", agency: "—", fact: "The largest visible impact crater in the solar system. 2,300 km wide and 7 km deep — so low that atmospheric pressure at its floor is ~89% higher than the planetary average, the only place on Mars where liquid water could briefly exist on the surface today." },
+    // IAU planetary nomenclature additions — major geographic features beyond Hellas + Olympus + Marineris.
+    { name: "Tharsis Montes", lat: 0.0, lon: 247.0, date: "natural", status: "natural", agency: "—", fact: "Continent-sized volcanic bulge that hosts Olympus Mons and three smaller giants in a perfect line: Arsia, Pavonis, and Ascraeus Mons. Loading the crust here may have helped split open Valles Marineris next door." },
+    { name: "Elysium Mons", lat: 25.0, lon: 147.0, date: "natural", status: "natural", agency: "—", fact: "Second-largest volcanic province after Tharsis. 14 km tall shield volcano. Some lava flows here are only a few million years old — geologically yesterday — hinting that Mars may still be marginally volcanically active." },
+    { name: "Utopia Planitia", lat: 49.7, lon: 118.0, date: "natural", status: "natural", agency: "—", fact: "Largest recognised impact basin on Mars (and possibly in the solar system if confirmed at ~3,300 km wide). Radar from MRO found a massive deposit of buried water ice equivalent to Lake Superior just beneath the surface." },
+    { name: "Chryse Planitia", lat: 22.5, lon: 310.5, date: "natural", status: "natural", agency: "—", fact: "Vast plain at the mouth of a Hesperian-era flood channel system. Where the first successful Mars lander — Viking 1, July 20, 1976 — touched down, and where Pathfinder + Sojourner followed in 1997." },
+    { name: "Vastitas Borealis", lat: 68.2, lon: 234.3, date: "natural", status: "natural", agency: "—", fact: "Vast northern lowland plains. Where Phoenix landed in May 2008 and scooped water ice within centimetres of the surface — direct confirmation that the polar plains are an ice cap covered by a thin dust veneer." },
   ] },
   { name: "Jupiter", aAU: 5.203, radiusEarth: 11.21, periodDays: 4332.59, tiltDeg: 3.13,   rotHours: 9.92,   inclDeg: 1.303, startPhase: 5.8, shade: "#cfcfcf", surfaceTempK: { mean: 165 }, classification: "Gas giant", moons: 95, fact: "Largest planet. 10-hour day. Great Red Spot is a storm wider than Earth.", textureUrl: "/textures/jupiter.webp", deep: { massEarth: 317.8, densityGcc: 1.33, gravity: 24.79, escapeVelocityKms: 59.5, eccentricity: 0.049 } },
   { name: "Saturn",  aAU: 9.537, radiusEarth: 9.449, periodDays: 10759.22,tiltDeg: 26.73,  rotHours: 10.66,  inclDeg: 2.485, startPhase: 3.2, shade: "#bababa", surfaceTempK: { mean: 134 }, classification: "Gas giant", moons: 146, fact: "Ring system spans 282,000 km but is only ~10 m thick.", hasRings: true, textureUrl: "/textures/saturn.webp", deep: { massEarth: 95.16, densityGcc: 0.69, gravity: 10.44, escapeVelocityKms: 35.5, eccentricity: 0.057 } },
@@ -596,6 +603,17 @@ export const moons: MoonData[] = [
     // Notable robotic landings
     { name: "Luna 9", lat: 7.13, lon: -64.37, date: "1966-02-03", status: "completed", agency: "USSR", fact: "First spacecraft to make a survivable soft landing on any extraterrestrial body, in Oceanus Procellarum. Beamed back the first photographs ever taken from the surface of the Moon." },
     { name: "Chang'e 4", lat: -45.5, lon: 177.6, date: "2019-01-03", status: "active", agency: "CNSA", fact: "First soft landing on the lunar far side, in Von Kármán crater. The Yutu-2 rover continues exploring — relays signals to Earth via the Queqiao satellite at L2 since the Moon itself blocks direct line of sight." },
+    // IAU planetary nomenclature additions — the iconic maria, rayed
+    // craters, and Artemis-era poles that define the visible lunar disk.
+    { name: "Tycho", lat: -43.31, lon: 348.64, date: "natural", status: "natural", agency: "—", fact: "108 million years old — the youngest large crater on the near side. Bright impact rays extend up to 1,500 km. Visible to the naked eye at full Moon as a sharp white dot in the southern highlands." },
+    { name: "Copernicus", lat: 9.62, lon: 340.0, date: "natural", status: "natural", agency: "—", fact: "93-km rayed crater, 800 million years old. Terraced walls + central peak from the rebound of the impact. Its formation defines the start of the Copernican geologic period — anything younger than this crater." },
+    { name: "Aristarchus", lat: 23.7, lon: 312.5, date: "natural", status: "natural", agency: "—", fact: "Brightest spot on the Moon at full phase. Source of repeated 'transient lunar phenomena' — flashes and glows reported by observers for centuries; cause still debated (gas release? sun-glint? observer artefacts?)." },
+    { name: "Tsiolkovskiy", lat: -20.4, lon: 129.1, date: "natural", status: "natural", agency: "—", fact: "Far-side crater, 184 km across — invisible from Earth. One of the few far-side craters with a dark basalt floor (most far-side terrain is bright highland material). Named for Konstantin Tsiolkovsky, who derived the rocket equation in 1903." },
+    { name: "Mare Tranquillitatis", lat: 8.0, lon: 31.0, date: "natural", status: "natural", agency: "—", fact: "Sea of Tranquillity. Where Apollo 11 landed. Solidified basalt flood from volcanism ~3.6 Gyr ago. The dark patches that make up the 'face' of the man in the moon are mostly maria like this one." },
+    { name: "Mare Imbrium", lat: 32.8, lon: 344.4, date: "natural", status: "natural", agency: "—", fact: "Second-largest mare. Excavated by a ~250 km wide impactor ~3.9 Gyr ago. The Imbrium impact deposited debris that covers a fifth of the near side and dominates the Moon's chemistry signature." },
+    { name: "Mare Serenitatis", lat: 28.0, lon: 17.5, date: "natural", status: "natural", agency: "—", fact: "Apollo 17 sampled this mare's edge. Basalts here are 3.7–3.8 Gyr old. Connected to Mare Tranquillitatis via a narrow strait that runs through Apollo 17's landing region." },
+    { name: "Mare Crisium", lat: 17.0, lon: 59.1, date: "natural", status: "natural", agency: "—", fact: "Eastern near side — the lone mare entirely surrounded by highlands. The Soviet Luna 24 sample-return mission landed here in 1976 and brought back ~170 g of regolith." },
+    { name: "South Pole (Artemis target)", lat: -89.5, lon: 0.0, date: "future", status: "active", agency: "NASA", fact: "NASA's Artemis programme targets this region for crewed return. Craters here (Shackleton, Cabeus, others) hold permanently-shadowed deposits of water ice — a critical in-situ resource for any sustained human presence." },
   ] },
   // Mars's two tiny moons — both probably captured asteroids
   { name: "Phobos",          parent: "Mars",    visualRadius: 0.025, orbitRadius: 0.38, periodDays: 0.319,  shade: "#9a8b78", fact: "Closer to its planet than any other moon in the solar system — orbits Mars in just 7.6 hours. Spirals inward by ~1.8 m per century; will eventually crash or shatter into a ring." },
@@ -1721,7 +1739,21 @@ export function magToVisualRadius(mag: number): number {
  * Data Engine has one place to grow.
  * ------------------------------------------------------------------------ */
 
-export const skyPoints: SkyPoint[] = [
+/**
+ * Curated SkyPoints — hand-written entries with editorial `fact`
+ * copy, headline distances, JWST/Hubble references, etc. These get
+ * concatenated with the auto-generated Messier/Caldwell catalog
+ * (DEEP_SKY_CATALOG) into the exported `skyPoints` array below.
+ *
+ * Why curated AND catalog: the 8 Messier objects with hand-written
+ * editorial copy (M1, M13, M16, M31, M33, M42, M45, M57) are
+ * intentionally excluded from the auto-generated catalog so the
+ * curated copy wins. The remaining 200+ Messier/Caldwell objects
+ * come in as plain catalog entries with terse "Galaxy in Lyra,
+ * apparent magnitude 8.4" facts — clickable, identifiable, but
+ * editorial-free.
+ */
+const skyPointsCurated: SkyPoint[] = [
   // ----- Galaxies (Local Group + neighbours) -----
   {
     id: "m31",
@@ -2486,3 +2518,23 @@ export const skyPoints: SkyPoint[] = [
     jet: { axis: "y", lengthFactor: 8, brightness: 0.4, asymmetry: 0.3, color: "#b8d0ff" },
   },
 ]
+
+/**
+ * Combined sky catalog — curated headline objects + the full
+ * Messier/Caldwell auto-generated catalog from OpenNGC.
+ *
+ * Order matters: curated entries first so the InfoPanel + assistant
+ * tools naturally surface the hand-written copy when an ID collides.
+ * The auto-generated catalog has been pre-filtered to skip those
+ * 8 Messier IDs (see scripts/fetch-deep-sky.mjs).
+ */
+export const skyPoints: SkyPoint[] = [
+  ...skyPointsCurated,
+  ...DEEP_SKY_CATALOG,
+]
+
+/** Total catalog size — curated + auto-generated. */
+export const SKY_POINT_COUNT = skyPoints.length
+
+/** Count of just the auto-generated additions (re-exported for HUD copy). */
+export { DEEP_SKY_COUNT }

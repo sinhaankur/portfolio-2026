@@ -9,7 +9,8 @@
     "start": "next start",
     "data:stars": "node scripts/fetch-bright-stars.mjs",
     "data:exoplanets": "node scripts/fetch-exoplanet-hosts.mjs",
-    "data:constellations": "node scripts/fetch-constellations.mjs"
+    "data:constellations": "node scripts/fetch-constellations.mjs",
+    "data:deepsky": "node scripts/fetch-deep-sky.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",
