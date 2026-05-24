@@ -34,18 +34,14 @@ import type { MessageParam } from "@anthropic-ai/sdk/resources/messages"
 import { motion, useReducedMotion } from "framer-motion"
 import { Send, Settings, Sparkles, Loader2, AlertTriangle } from "lucide-react"
 import {
-  type AssistantModel,
-  DEFAULT_MODEL,
   ZERO_USAGE,
   type AssistantUsage,
   addUsage,
   estimateCostUSD,
-  readStoredApiKey,
-  readStoredModel,
-  runAssistantTurn,
-  writeStoredApiKey,
-  writeStoredModel,
-} from "@/lib/anthropic-client"
+  readActiveConfig,
+  runAssistantConversationTurn,
+} from "@/lib/assistant-runtime"
+import type { ProviderConfig } from "@/lib/llm-provider"
 import { SUGGESTED_PROMPTS, getDatasetCounts } from "@/lib/assistant-context"
 import { TOOL_LABELS } from "@/lib/assistant-tools"
 import { SettingsDrawer } from "./settings-drawer"
@@ -54,8 +50,11 @@ import { type UIMessage, type AssistantUIBlock, newId } from "./types"
 export function AssistantPanel() {
   const prefersReducedMotion = useReducedMotion()
 
-  const [apiKey, setApiKey] = useState<string | null>(null)
-  const [model, setModel] = useState<AssistantModel>(DEFAULT_MODEL)
+  /** Resolved provider config (Anthropic key + model, or local
+   *  baseUrl + model). Null = no provider configured yet, chat is
+   *  locked. Re-read from localStorage on mount and after the
+   *  settings drawer saves. */
+  const [providerConfig, setProviderConfig] = useState<ProviderConfig | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
 
   const [messages, setMessages] = useState<UIMessage[]>([])
@@ -70,29 +69,27 @@ export function AssistantPanel() {
   const [sessionUsage, setSessionUsage] = useState<AssistantUsage>(ZERO_USAGE)
   const abortRef = useRef<AbortController | null>(null)
 
-  // Hydrate from localStorage on mount.
-  useEffect(() => {
-    setApiKey(readStoredApiKey())
-    setModel(readStoredModel())
+  // Re-read provider config from localStorage. Called on mount and
+  // any time the settings drawer reports a save — keeps the UI lock
+  // state in sync with localStorage without prop-drilling.
+  const refreshProviderConfig = useCallback(() => {
+    setProviderConfig(readActiveConfig())
   }, [])
 
-  // Auto-open settings if we don't have a key. Defer one tick so the
-  // initial render isn't dominated by the modal.
   useEffect(() => {
-    if (apiKey === null) return
-    if (apiKey === "") setSettingsOpen(true)
-  }, [apiKey])
+    refreshProviderConfig()
+  }, [refreshProviderConfig])
 
-  // Save handlers persist to localStorage too.
-  const handleSaveKey = useCallback(async (key: string | null) => {
-    writeStoredApiKey(key)
-    setApiKey(key)
-    if (key) setSettingsOpen(false)
-  }, [])
-  const handleModelChange = useCallback((m: AssistantModel) => {
-    writeStoredModel(m)
-    setModel(m)
-  }, [])
+  // Auto-open settings on first load if nothing is configured.
+  useEffect(() => {
+    if (providerConfig === null) {
+      // No-op if drawer is already open; otherwise prompt the visitor.
+      setSettingsOpen((cur) => (cur ? cur : true))
+    }
+    // Intentional: only react to "is config present" transitions, not
+    // every field change.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [providerConfig === null])
 
   // Mutate one assistant message's blocks in place.
   const updateAssistantBlocks = useCallback(
@@ -128,7 +125,7 @@ export function AssistantPanel() {
     async (rawText: string) => {
       const text = rawText.trim()
       if (!text || isThinking) return
-      if (!apiKey) {
+      if (!providerConfig) {
         setSettingsOpen(true)
         return
       }
@@ -157,9 +154,8 @@ export function AssistantPanel() {
       abortRef.current = controller
 
       try {
-        const result = await runAssistantTurn({
-          apiKey,
-          model,
+        const result = await runAssistantConversationTurn({
+          config: providerConfig,
           history: updatedHistory,
           signal: controller.signal,
           onTextDelta: (delta) => {
@@ -229,7 +225,7 @@ export function AssistantPanel() {
         abortRef.current = null
       }
     },
-    [apiKey, model, isThinking, updateAssistantBlocks, setAssistantPending],
+    [providerConfig, isThinking, updateAssistantBlocks, setAssistantPending],
   )
 
   const handleAbort = useCallback(() => {
@@ -237,10 +233,13 @@ export function AssistantPanel() {
   }, [])
 
   const counts = useMemo(() => getDatasetCounts(), [])
-  const sessionCost = useMemo(
-    () => estimateCostUSD(sessionUsage, model),
-    [sessionUsage, model],
-  )
+  // Cost is only meaningful for Anthropic — local providers cost
+  // nothing per token (electricity + GPU only). Default to 0 for
+  // local; estimate from usage + model rate when on Anthropic.
+  const sessionCost = useMemo(() => {
+    if (providerConfig?.provider !== "anthropic") return 0
+    return estimateCostUSD(sessionUsage, providerConfig.model)
+  }, [sessionUsage, providerConfig])
   const sessionTokens = useMemo(
     () => ({
       input: sessionUsage.input_tokens,
@@ -291,7 +290,7 @@ export function AssistantPanel() {
         {messages.length === 0 && (
           <EmptyState
             datasetCounts={counts}
-            hasKey={!!apiKey}
+            hasConfig={!!providerConfig}
             onSuggestionClick={(prompt) => handleSubmit(prompt)}
             onOpenSettings={() => setSettingsOpen(true)}
           />
@@ -322,18 +321,27 @@ export function AssistantPanel() {
         onChange={setComposerValue}
         onSubmit={handleSubmit}
         onAbort={handleAbort}
-        disabled={!apiKey}
+        disabled={!providerConfig}
         thinking={isThinking}
         onConfigureKey={() => setSettingsOpen(true)}
       />
 
       <SettingsDrawer
         open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-        apiKey={apiKey}
-        onSaveKey={handleSaveKey}
-        model={model}
-        onModelChange={handleModelChange}
+        onClose={() => {
+          setSettingsOpen(false)
+          // Drawer might have edited config in localStorage without
+          // calling onConfigChange (e.g. backed-out provider switch);
+          // re-read once on close to stay consistent.
+          refreshProviderConfig()
+        }}
+        onConfigChange={() => {
+          refreshProviderConfig()
+          // Successful config save → close the drawer so the visitor
+          // returns to the chat. The drawer's own "Saved" toast already
+          // gave the confirmation feedback.
+          setSettingsOpen(false)
+        }}
         sessionCostUSD={sessionCost}
         sessionTokens={sessionTokens}
       />
@@ -347,12 +355,12 @@ export function AssistantPanel() {
 
 function EmptyState({
   datasetCounts,
-  hasKey,
+  hasConfig,
   onSuggestionClick,
   onOpenSettings,
 }: {
   datasetCounts: { namedBodies: number; skyPoints: number; constellations: number }
-  hasKey: boolean
+  hasConfig: boolean
   onSuggestionClick: (prompt: string) => void
   onOpenSettings: () => void
 }) {
@@ -368,7 +376,7 @@ function EmptyState({
         tell me where to fly the camera.
       </p>
 
-      {hasKey ? (
+      {hasConfig ? (
         <div className="space-y-2">
           {SUGGESTED_PROMPTS.map((prompt) => (
             <button
@@ -390,9 +398,8 @@ function EmptyState({
       ) : (
         <div className="rounded-md border border-border/70 bg-secondary/30 p-4">
           <p className="text-sm text-foreground mb-3">
-            Bring your own Anthropic API key to chat live with the assistant.
-            Your key stays in this browser — direct browser-to-Anthropic calls,
-            no server.
+            Pick a provider to chat with the assistant. <strong className="font-medium text-foreground">Cloud:</strong> bring your own Anthropic API key.{" "}
+            <strong className="font-medium text-foreground">Local:</strong> point at LM Studio or Ollama running on your machine — no key, no cloud cost.
           </p>
           <button
             onClick={onOpenSettings}
@@ -556,7 +563,7 @@ function Composer({
           onKeyDown={handleKeyDown}
           placeholder={
             disabled
-              ? "Add an Anthropic API key to chat…"
+              ? "Pick a provider in settings to chat…"
               : thinking
               ? "Assistant is responding…"
               : "Ask about a body, fly the camera, jump in time…"
