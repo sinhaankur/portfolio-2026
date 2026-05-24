@@ -1,8 +1,8 @@
 'use client';
 
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { useGLTF } from '@react-three/drei';
-import { useEffect, useRef, useState, useMemo } from 'react';
+import { useGLTF, Preload } from '@react-three/drei';
+import { useEffect, useRef, useState, useMemo, Suspense } from 'react';
 import * as THREE from 'three';
 
 import {
@@ -127,8 +127,8 @@ function PlayerShipGroup({ gameState }: { gameState: GameState }) {
           <primitive object={shipModel} />
         ) : (
           <mesh>
-            <coneGeometry args={[0.8, 3, 8]} />
-            <meshStandardMaterial color={0x6600ff} emissive={0x3300ff} emissiveIntensity={0.3} />
+            <coneGeometry args={[2, 4, 8]} />
+            <meshStandardMaterial color={0xff00ff} emissive={0xff00ff} emissiveIntensity={1} />
           </mesh>
         )}
 
