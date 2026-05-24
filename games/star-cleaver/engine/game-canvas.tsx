@@ -43,6 +43,19 @@ const GAS_CLOUD_FIELDS = [
   { position: [-420, -120, -1320] as [number, number, number], radius: 300, density: 0.44, color: 0x7ab5ff },
 ];
 
+const SHIP_THRUSTER_PRESETS: Record<SelectedShip, {
+  lateral: number;
+  vertical: number;
+  coreZ: number;
+  nozzleZ: number;
+  outerNozzleZ: number;
+}> = {
+  'default-xwing': { lateral: 1.24, vertical: 0.58, coreZ: 2.65, nozzleZ: 2.95, outerNozzleZ: 3.02 },
+  'alliance-xwing': { lateral: 1.3, vertical: 0.6, coreZ: 2.78, nozzleZ: 3.08, outerNozzleZ: 3.16 },
+  't70-xwing': { lateral: 1.36, vertical: 0.64, coreZ: 2.95, nozzleZ: 3.27, outerNozzleZ: 3.35 },
+  'x-blade': { lateral: 1.44, vertical: 0.7, coreZ: 3.08, nozzleZ: 3.42, outerNozzleZ: 3.5 },
+};
+
 /**
  * Player ship component: X-wing with enhanced visuals.
  */
@@ -75,6 +88,19 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
   const thrusterRefs = useMemo(() => [thrusterCone1Ref, thrusterCone2Ref, thrusterCone3Ref, thrusterCone4Ref], []);
   const outerPlumeRefs = useMemo(() => [outerPlume1Ref, outerPlume2Ref, outerPlume3Ref, outerPlume4Ref], []);
   const selectedShip = (gameState.selectedShip || 'default-xwing') as SelectedShip;
+  const thrusterPreset = SHIP_THRUSTER_PRESETS[selectedShip] ?? SHIP_THRUSTER_PRESETS['default-xwing'];
+  const engineMounts = useMemo(
+    () => [
+      [-thrusterPreset.lateral, thrusterPreset.vertical, thrusterPreset.coreZ] as [number, number, number],
+      [-thrusterPreset.lateral, -thrusterPreset.vertical, thrusterPreset.coreZ] as [number, number, number],
+      [thrusterPreset.lateral, thrusterPreset.vertical, thrusterPreset.coreZ] as [number, number, number],
+      [thrusterPreset.lateral, -thrusterPreset.vertical, thrusterPreset.coreZ] as [number, number, number],
+    ],
+    [thrusterPreset]
+  );
+  const initialPlumeLength = 1.05;
+  const initialThrusterCenterZ = thrusterPreset.nozzleZ - 0.9 * initialPlumeLength;
+  const initialOuterCenterZ = thrusterPreset.outerNozzleZ - 1.2 * initialPlumeLength * 1.22;
 
   // Update engine trail, visual banking, and responsive glow
   useFrame((state, delta) => {
@@ -123,8 +149,8 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
     const outerPlumeOpacity = (0.08 + driveSignal * (boostActive ? 0.42 : 0.26)) * flicker;
     const thrusterHalfLength = 0.9 * plumeLength;
     const outerHalfLength = 1.2 * plumeLength * 1.22;
-    const rearNozzleZ = -2.95;
-    const rearOuterNozzleZ = -3.02;
+    const rearNozzleZ = thrusterPreset.nozzleZ;
+    const rearOuterNozzleZ = thrusterPreset.outerNozzleZ;
 
     thrusterRefs.forEach(ref => {
       if (!ref.current) return;
@@ -189,70 +215,70 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
         </mesh>
 
         {/* Four-engine glow (rear) - blue plasma signature */}
-        <mesh ref={engineCore1Ref} position={[-1.24, 0.58, -2.65]}>
+        <mesh ref={engineCore1Ref} position={engineMounts[0]}>
           <sphereGeometry args={[0.18, 12, 12]} />
           <meshBasicMaterial color={0xfff4d2} transparent opacity={0.72} blending={THREE.AdditiveBlending} toneMapped={false} />
         </mesh>
-        <mesh ref={engineGlow1Ref} position={[-1.24, 0.58, -2.65]}>
+        <mesh ref={engineGlow1Ref} position={engineMounts[0]}>
           <sphereGeometry args={[0.55, 8, 8]} />
           <meshBasicMaterial color={0x6ecbff} transparent opacity={0.2} blending={THREE.AdditiveBlending} toneMapped={false} />
         </mesh>
-        <mesh ref={thrusterCone1Ref} position={[-1.24, 0.58, -3.5]} rotation={[-Math.PI / 2, 0, 0]}>
+        <mesh ref={thrusterCone1Ref} position={[engineMounts[0][0], engineMounts[0][1], initialThrusterCenterZ]} rotation={[-Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.18, 1.8, 14, 1, true]} />
           <meshBasicMaterial color={0x8fdbff} transparent opacity={0.36} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
         </mesh>
-        <mesh ref={outerPlume1Ref} position={[-1.24, 0.58, -3.62]} rotation={[-Math.PI / 2, 0, 0]}>
+        <mesh ref={outerPlume1Ref} position={[engineMounts[0][0], engineMounts[0][1], initialOuterCenterZ]} rotation={[-Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.28, 2.4, 14, 1, true]} />
           <meshBasicMaterial color={0x4c9dff} transparent opacity={0.2} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
         </mesh>
 
-        <mesh ref={engineCore2Ref} position={[-1.24, -0.58, -2.65]}>
+        <mesh ref={engineCore2Ref} position={engineMounts[1]}>
           <sphereGeometry args={[0.18, 12, 12]} />
           <meshBasicMaterial color={0xfff4d2} transparent opacity={0.72} blending={THREE.AdditiveBlending} toneMapped={false} />
         </mesh>
-        <mesh ref={engineGlow2Ref} position={[-1.24, -0.58, -2.65]}>
+        <mesh ref={engineGlow2Ref} position={engineMounts[1]}>
           <sphereGeometry args={[0.55, 8, 8]} />
           <meshBasicMaterial color={0x6ecbff} transparent opacity={0.2} blending={THREE.AdditiveBlending} toneMapped={false} />
         </mesh>
-        <mesh ref={thrusterCone2Ref} position={[-1.24, -0.58, -3.5]} rotation={[-Math.PI / 2, 0, 0]}>
+        <mesh ref={thrusterCone2Ref} position={[engineMounts[1][0], engineMounts[1][1], initialThrusterCenterZ]} rotation={[-Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.18, 1.8, 14, 1, true]} />
           <meshBasicMaterial color={0x8fdbff} transparent opacity={0.36} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
         </mesh>
-        <mesh ref={outerPlume2Ref} position={[-1.24, -0.58, -3.62]} rotation={[-Math.PI / 2, 0, 0]}>
+        <mesh ref={outerPlume2Ref} position={[engineMounts[1][0], engineMounts[1][1], initialOuterCenterZ]} rotation={[-Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.28, 2.4, 14, 1, true]} />
           <meshBasicMaterial color={0x4c9dff} transparent opacity={0.2} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
         </mesh>
 
-        <mesh ref={engineCore3Ref} position={[1.24, 0.58, -2.65]}>
+        <mesh ref={engineCore3Ref} position={engineMounts[2]}>
           <sphereGeometry args={[0.18, 12, 12]} />
           <meshBasicMaterial color={0xfff4d2} transparent opacity={0.72} blending={THREE.AdditiveBlending} toneMapped={false} />
         </mesh>
-        <mesh ref={engineGlow3Ref} position={[1.24, 0.58, -2.65]}>
+        <mesh ref={engineGlow3Ref} position={engineMounts[2]}>
           <sphereGeometry args={[0.55, 8, 8]} />
           <meshBasicMaterial color={0x6ecbff} transparent opacity={0.2} blending={THREE.AdditiveBlending} toneMapped={false} />
         </mesh>
-        <mesh ref={thrusterCone3Ref} position={[1.24, 0.58, -3.5]} rotation={[-Math.PI / 2, 0, 0]}>
+        <mesh ref={thrusterCone3Ref} position={[engineMounts[2][0], engineMounts[2][1], initialThrusterCenterZ]} rotation={[-Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.18, 1.8, 14, 1, true]} />
           <meshBasicMaterial color={0x8fdbff} transparent opacity={0.36} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
         </mesh>
-        <mesh ref={outerPlume3Ref} position={[1.24, 0.58, -3.62]} rotation={[-Math.PI / 2, 0, 0]}>
+        <mesh ref={outerPlume3Ref} position={[engineMounts[2][0], engineMounts[2][1], initialOuterCenterZ]} rotation={[-Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.28, 2.4, 14, 1, true]} />
           <meshBasicMaterial color={0x4c9dff} transparent opacity={0.2} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
         </mesh>
 
-        <mesh ref={engineCore4Ref} position={[1.24, -0.58, -2.65]}>
+        <mesh ref={engineCore4Ref} position={engineMounts[3]}>
           <sphereGeometry args={[0.18, 12, 12]} />
           <meshBasicMaterial color={0xfff4d2} transparent opacity={0.72} blending={THREE.AdditiveBlending} toneMapped={false} />
         </mesh>
-        <mesh ref={engineGlow4Ref} position={[1.24, -0.58, -2.65]}>
+        <mesh ref={engineGlow4Ref} position={engineMounts[3]}>
           <sphereGeometry args={[0.55, 8, 8]} />
           <meshBasicMaterial color={0x6ecbff} transparent opacity={0.2} blending={THREE.AdditiveBlending} toneMapped={false} />
         </mesh>
-        <mesh ref={thrusterCone4Ref} position={[1.24, -0.58, -3.5]} rotation={[-Math.PI / 2, 0, 0]}>
+        <mesh ref={thrusterCone4Ref} position={[engineMounts[3][0], engineMounts[3][1], initialThrusterCenterZ]} rotation={[-Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.18, 1.8, 14, 1, true]} />
           <meshBasicMaterial color={0x8fdbff} transparent opacity={0.36} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
         </mesh>
-        <mesh ref={outerPlume4Ref} position={[1.24, -0.58, -3.62]} rotation={[-Math.PI / 2, 0, 0]}>
+        <mesh ref={outerPlume4Ref} position={[engineMounts[3][0], engineMounts[3][1], initialOuterCenterZ]} rotation={[-Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.28, 2.4, 14, 1, true]} />
           <meshBasicMaterial color={0x4c9dff} transparent opacity={0.2} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
         </mesh>
