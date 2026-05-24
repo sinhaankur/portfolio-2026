@@ -144,54 +144,54 @@ function PlayerShipGroup({ gameState }: { gameState: GameState }) {
         </mesh>
 
         {/* Four-engine glow (rear) - blue plasma signature */}
-        <mesh position={[-0.55, 0.18, 2.8]}>
+        <mesh position={[-0.55, 0.18, -2.8]}>
           <sphereGeometry args={[0.29, 10, 10]} />
           <meshBasicMaterial color={0x8fe6ff} transparent opacity={0.74} />
         </mesh>
-        <mesh ref={engineGlow1Ref} position={[-0.55, 0.18, 2.8]}>
+        <mesh ref={engineGlow1Ref} position={[-0.55, 0.18, -2.8]}>
           <sphereGeometry args={[0.55, 8, 8]} />
           <meshBasicMaterial color={0x3ea8ff} transparent opacity={0.2} />
         </mesh>
-        <mesh ref={thrusterCone1Ref} position={[-0.55, 0.18, 3.5]} rotation={[Math.PI / 2, 0, 0]}>
+        <mesh ref={thrusterCone1Ref} position={[-0.55, 0.18, -3.5]} rotation={[Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.24, 1.5, 12, 1, true]} />
           <meshBasicMaterial color={0x6ccfff} transparent opacity={0.36} side={THREE.DoubleSide} depthWrite={false} />
         </mesh>
 
-        <mesh position={[-0.55, -0.18, 2.8]}>
+        <mesh position={[-0.55, -0.18, -2.8]}>
           <sphereGeometry args={[0.29, 10, 10]} />
           <meshBasicMaterial color={0x8fe6ff} transparent opacity={0.74} />
         </mesh>
-        <mesh ref={engineGlow2Ref} position={[-0.55, -0.18, 2.8]}>
+        <mesh ref={engineGlow2Ref} position={[-0.55, -0.18, -2.8]}>
           <sphereGeometry args={[0.55, 8, 8]} />
           <meshBasicMaterial color={0x3ea8ff} transparent opacity={0.2} />
         </mesh>
-        <mesh ref={thrusterCone2Ref} position={[-0.55, -0.18, 3.5]} rotation={[Math.PI / 2, 0, 0]}>
+        <mesh ref={thrusterCone2Ref} position={[-0.55, -0.18, -3.5]} rotation={[Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.24, 1.5, 12, 1, true]} />
           <meshBasicMaterial color={0x6ccfff} transparent opacity={0.36} side={THREE.DoubleSide} depthWrite={false} />
         </mesh>
 
-        <mesh position={[0.55, 0.18, 2.8]}>
+        <mesh position={[0.55, 0.18, -2.8]}>
           <sphereGeometry args={[0.29, 10, 10]} />
           <meshBasicMaterial color={0x8fe6ff} transparent opacity={0.74} />
         </mesh>
-        <mesh ref={engineGlow3Ref} position={[0.55, 0.18, 2.8]}>
+        <mesh ref={engineGlow3Ref} position={[0.55, 0.18, -2.8]}>
           <sphereGeometry args={[0.55, 8, 8]} />
           <meshBasicMaterial color={0x3ea8ff} transparent opacity={0.2} />
         </mesh>
-        <mesh ref={thrusterCone3Ref} position={[0.55, 0.18, 3.5]} rotation={[Math.PI / 2, 0, 0]}>
+        <mesh ref={thrusterCone3Ref} position={[0.55, 0.18, -3.5]} rotation={[Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.24, 1.5, 12, 1, true]} />
           <meshBasicMaterial color={0x6ccfff} transparent opacity={0.36} side={THREE.DoubleSide} depthWrite={false} />
         </mesh>
 
-        <mesh position={[0.55, -0.18, 2.8]}>
+        <mesh position={[0.55, -0.18, -2.8]}>
           <sphereGeometry args={[0.29, 10, 10]} />
           <meshBasicMaterial color={0x8fe6ff} transparent opacity={0.74} />
         </mesh>
-        <mesh ref={engineGlow4Ref} position={[0.55, -0.18, 2.8]}>
+        <mesh ref={engineGlow4Ref} position={[0.55, -0.18, -2.8]}>
           <sphereGeometry args={[0.55, 8, 8]} />
           <meshBasicMaterial color={0x3ea8ff} transparent opacity={0.2} />
         </mesh>
-        <mesh ref={thrusterCone4Ref} position={[0.55, -0.18, 3.5]} rotation={[Math.PI / 2, 0, 0]}>
+        <mesh ref={thrusterCone4Ref} position={[0.55, -0.18, -3.5]} rotation={[Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.24, 1.5, 12, 1, true]} />
           <meshBasicMaterial color={0x6ccfff} transparent opacity={0.36} side={THREE.DoubleSide} depthWrite={false} />
         </mesh>
@@ -641,7 +641,7 @@ function GameRenderer() {
         <>
         <div ref={canvasRef} style={{ width: '100%', height: '100%', position: 'relative' }}>
           <Canvas
-        camera={{ fov: 55, near: 0.1, far: 2000, position: [0, 8, 25] }}
+        camera={{ fov: 55, near: 0.1, far: 6000, position: [0, 8, 25] }}
         gl={{
           antialias: true,
           alpha: true,
@@ -649,7 +649,7 @@ function GameRenderer() {
         }}
       >
         <color attach="background" args={['#040816']} />
-        <fog attach="fog" args={['#040816', 900, 2200]} />
+        <fog attach="fog" args={['#040816', 1800, 5400]} />
 
         {/* Starfield backdrop for universe exploration feeling */}
         <Starfield />

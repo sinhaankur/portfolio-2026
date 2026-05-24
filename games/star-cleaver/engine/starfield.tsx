@@ -10,6 +10,7 @@ import * as THREE from 'three';
  */
 export function Starfield() {
   const starsRef = useRef<Array<THREE.Points | null>>([]);
+  const solarSystemRef = useRef<THREE.Group>(null);
 
   // Generate layered starfield + subtle galactic band for depth readability.
   const layers = useMemo(() => {
@@ -56,10 +57,10 @@ export function Starfield() {
     };
 
     return [
-      makeLayer(1800, 2600, 0.36, 0.55, 'sphere'),
-      makeLayer(2600, 1700, 0.56, 0.72, 'sphere'),
-      makeLayer(2200, 1200, 0.72, 0.95, 'sphere'),
-      makeLayer(3200, 1800, 0.24, 0.48, 'disk'),
+      makeLayer(2200, 3200, 0.42, 0.62, 'sphere'),
+      makeLayer(3200, 2200, 0.62, 0.82, 'sphere'),
+      makeLayer(2600, 1500, 0.8, 1.05, 'sphere'),
+      makeLayer(3800, 2500, 0.3, 0.52, 'disk'),
     ];
   }, []);
 
@@ -70,6 +71,10 @@ export function Starfield() {
       points.rotation.y += delta * rate;
       points.rotation.z += delta * rate * 0.35;
     });
+
+    if (solarSystemRef.current) {
+      solarSystemRef.current.rotation.y += delta * 0.02;
+    }
   });
 
   return (
@@ -104,6 +109,52 @@ export function Starfield() {
         <sphereGeometry args={[620, 24, 24]} />
         <meshBasicMaterial color={0x2a4b9f} transparent opacity={0.06} side={THREE.BackSide} depthWrite={false} />
       </mesh>
+
+      {/* Distant solar-system landmark cluster for navigation context. */}
+      <group ref={solarSystemRef} position={[260, 90, -640]}>
+        <mesh>
+          <sphereGeometry args={[18, 24, 24]} />
+          <meshBasicMaterial color={0xffcf74} toneMapped={false} />
+        </mesh>
+        <mesh>
+          <sphereGeometry args={[28, 24, 24]} />
+          <meshBasicMaterial color={0xffa84a} transparent opacity={0.16} toneMapped={false} />
+        </mesh>
+
+        <mesh position={[46, 0, 0]}>
+          <sphereGeometry args={[2.6, 14, 14]} />
+          <meshBasicMaterial color={0xa7c8ff} toneMapped={false} />
+        </mesh>
+        <mesh position={[72, 0, -6]}>
+          <sphereGeometry args={[3.5, 14, 14]} />
+          <meshBasicMaterial color={0xd8b27f} toneMapped={false} />
+        </mesh>
+        <mesh position={[102, 0, 10]}>
+          <sphereGeometry args={[3.8, 14, 14]} />
+          <meshBasicMaterial color={0x5ea0ff} toneMapped={false} />
+        </mesh>
+        <mesh position={[136, 0, -8]}>
+          <sphereGeometry args={[4.6, 14, 14]} />
+          <meshBasicMaterial color={0xcf8565} toneMapped={false} />
+        </mesh>
+
+        <mesh rotation={[Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[44.5, 45.2, 96]} />
+          <meshBasicMaterial color={0x4f6ca3} transparent opacity={0.18} side={THREE.DoubleSide} depthWrite={false} toneMapped={false} />
+        </mesh>
+        <mesh rotation={[Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[70.5, 71.2, 96]} />
+          <meshBasicMaterial color={0x6587bf} transparent opacity={0.16} side={THREE.DoubleSide} depthWrite={false} toneMapped={false} />
+        </mesh>
+        <mesh rotation={[Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[100.5, 101.2, 96]} />
+          <meshBasicMaterial color={0x7da1da} transparent opacity={0.14} side={THREE.DoubleSide} depthWrite={false} toneMapped={false} />
+        </mesh>
+        <mesh rotation={[Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[134.5, 135.2, 96]} />
+          <meshBasicMaterial color={0x90b6ef} transparent opacity={0.12} side={THREE.DoubleSide} depthWrite={false} toneMapped={false} />
+        </mesh>
+      </group>
     </>
   );
 }
