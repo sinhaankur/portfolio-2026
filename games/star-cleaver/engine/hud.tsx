@@ -7,6 +7,7 @@ import { SHIP_CONFIGS, type SelectedShip, getAvailableShips } from './ship-selec
 
 interface HUDProps {
   gameState: GameState;
+  showForwardDebug?: boolean;
   onShipSelect?: (shipId: SelectedShip) => void;
 }
 
@@ -14,7 +15,7 @@ interface HUDProps {
  * HUD: Desktop-first heads-up display for Star Cleaver.
  * Matches universe-engine/hud.tsx design language: font-mono, tracking-wide, backdrop-blur-sm.
  */
-export function HUD({ gameState, onShipSelect }: HUDProps) {
+export function HUD({ gameState, showForwardDebug = false, onShipSelect }: HUDProps) {
   const healthPercent = (gameState.playerEntity.health / gameState.playerMaxHealth) * 100;
   const planetHealthPercent = gameState.defendingPlanetHealth * 100;
   const chargePercent = (gameState.chargeLevel / gameState.maxCharge) * 100;
@@ -304,7 +305,10 @@ export function HUD({ gameState, onShipSelect }: HUDProps) {
               : '↑↓←→ ROTATE · W ACCELERATE · S BRAKE · SHIFT BOOST · Q/E ROLL · X FOILS'}
           </div>
           <div className="font-mono text-[8px] sm:text-[9px] tracking-[0.08em] sm:tracking-[0.15em] text-foreground/50">
-            EXPLORATION · FOILS {attackMode ? 'ATTACK' : 'CRUISE'} · BOOST {boostActive ? 'ON' : 'OFF'} · SCORE {formatScore(gameState.score)}
+            EXPLORATION · FOILS {attackMode ? 'ATTACK' : 'CRUISE'} · BOOST {boostActive ? 'ON' : 'OFF'} · SCORE {formatScore(gameState.score)} · FWD DBG {showForwardDebug ? 'ON' : 'OFF'}
+          </div>
+          <div className="font-mono text-[8px] tracking-widest text-foreground/40 uppercase mt-1">
+            V toggles nose marker
           </div>
         </div>
       )}
