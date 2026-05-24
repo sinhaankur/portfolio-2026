@@ -86,6 +86,7 @@ export interface GameState {
   simTime: number; // cumulative seconds since game start
   waveStartTime: number;
   ignitionStartTime?: number; // when ignition sequence began (for timing animation)
+  selectedShip?: 'default-xwing' | 't70-xwing'; // currently selected ship variant
 
   playerEntity: GameEntity;
   playerMaxHealth: number;

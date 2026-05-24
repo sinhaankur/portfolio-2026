@@ -27,7 +27,7 @@ export const SHIP_CONFIGS: Record<string, ShipConfig> = {
   't70-xwing': {
     id: 't70-xwing',
     name: 'T-70 X-Wing',
-    description: 'Modern variant with improved agility',
+    description: 'Modern variant. Faster, more agile.',
     stats: {
       speed: 4,
       armor: 2,
@@ -35,6 +35,8 @@ export const SHIP_CONFIGS: Record<string, ShipConfig> = {
     },
   },
 };
+
+export type SelectedShip = 'default-xwing' | 't70-xwing';
 
 interface ShipSelectorProps {
   gameState: GameState;

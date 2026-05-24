@@ -17,6 +17,7 @@ export function createInitialGameState(): GameState {
     comboMultiplier: 1,
     simTime: 0,
     waveStartTime: 0,
+    selectedShip: 'default-xwing', // default to classic X-wing
 
     playerEntity: {
       id: 'player_ship',
