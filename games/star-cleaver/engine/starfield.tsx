@@ -8,7 +8,14 @@ import * as THREE from 'three';
  * Dynamic starfield that surrounds the player.
  * Creates layers of stars at different depths for parallax effect.
  */
-export function Starfield() {
+interface GasCloudField {
+  position: [number, number, number];
+  radius: number;
+  density: number;
+  color: number;
+}
+
+export function Starfield({ gasClouds = [] }: { gasClouds?: GasCloudField[] }) {
   const starsRef = useRef<Array<THREE.Points | null>>([]);
   const solarSystemRef = useRef<THREE.Group>(null);
 
@@ -155,6 +162,45 @@ export function Starfield() {
           <meshBasicMaterial color={0x90b6ef} transparent opacity={0.12} side={THREE.DoubleSide} depthWrite={false} toneMapped={false} />
         </mesh>
       </group>
+
+      {/* Volumetric gas clouds: visible traversal zones that affect ship feel. */}
+      {gasClouds.map((cloud, idx) => (
+        <group key={`gas-cloud-${idx}`} position={cloud.position}>
+          <mesh>
+            <sphereGeometry args={[cloud.radius * 0.62, 24, 24]} />
+            <meshBasicMaterial
+              color={cloud.color}
+              transparent
+              opacity={0.06 + cloud.density * 0.08}
+              side={THREE.DoubleSide}
+              depthWrite={false}
+              toneMapped={false}
+            />
+          </mesh>
+          <mesh>
+            <sphereGeometry args={[cloud.radius * 0.88, 24, 24]} />
+            <meshBasicMaterial
+              color={cloud.color}
+              transparent
+              opacity={0.03 + cloud.density * 0.05}
+              side={THREE.DoubleSide}
+              depthWrite={false}
+              toneMapped={false}
+            />
+          </mesh>
+          <mesh>
+            <sphereGeometry args={[cloud.radius, 20, 20]} />
+            <meshBasicMaterial
+              color={cloud.color}
+              transparent
+              opacity={0.02 + cloud.density * 0.04}
+              side={THREE.DoubleSide}
+              depthWrite={false}
+              toneMapped={false}
+            />
+          </mesh>
+        </group>
+      ))}
     </>
   );
 }
