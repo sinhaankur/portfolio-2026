@@ -1,8 +1,7 @@
 'use client';
 
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { useGLTF, Preload } from '@react-three/drei';
-import { useEffect, useRef, useState, useMemo, Suspense } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import * as THREE from 'three';
 
 import {
@@ -38,7 +37,6 @@ interface GameCanvasProps {
  * Player ship component: X-wing with enhanced visuals.
  */
 function PlayerShipGroup({ gameState }: { gameState: GameState }) {
-  const gltf = useGLTF('/models/rebels_x-wing_starfighter.glb');
   const trailRef = useRef<THREE.Line>(null);
   const trailPointsRef = useRef<THREE.Vector3[]>([]);
   const innerGroupRef = useRef<THREE.Group>(null);
@@ -47,23 +45,17 @@ function PlayerShipGroup({ gameState }: { gameState: GameState }) {
   const cockpitGlowRef = useRef<THREE.Mesh>(null);
   const visualBankRef = useRef(0);
 
-  // Create a memoized clone with basic setup
+  // Generate procedural player ship (fast, no large model download)
   const shipModel = useMemo(() => {
-    if (!gltf.scene) return null;
-    const clone = gltf.scene.clone(true);
-    clone.scale.set(2, 2, 2);
-    clone.rotateZ(Math.PI / 2);
-
-    // Basic setup: enable shadows, don't modify materials to avoid shader issues
-    clone.traverse((child: any) => {
-      if (child.isMesh) {
-        child.castShadow = true;
-        child.receiveShadow = true;
-      }
+    return generateShip({
+      faction: 'player',
+      class: 'fighter',
+      seed: 42, // consistent player ship
+      scale: 3,
+      color1: { r: 0.2, g: 0.8, b: 1 },    // cyan primary
+      color2: { r: 0.5, g: 1, b: 1 },      // bright cyan secondary
     });
-
-    return clone;
-  }, [gltf.scene]);
+  }, []);
 
   // Update engine trail, visual banking, and responsive glow
   useFrame((state, delta) => {
@@ -210,16 +202,22 @@ function PlayerShipGroup({ gameState }: { gameState: GameState }) {
  * Enemy ship component: procedurally generated with engine glow.
  */
 function EnemyShipGroup({ enemy }: { enemy: GameEntity }) {
-  const faction = (enemy.metadata?.class ?? 'fighter') as any;
+  const factionClass = (enemy.metadata?.class ?? 'fighter') as any;
   const shipGroup = useMemo(() => {
+    let shipFaction: 'player' | 'alien_basic' | 'alien_sniper' | 'alien_swarm' | 'boss' = 'alien_basic';
+    if (factionClass === 'sniper') shipFaction = 'alien_sniper';
+    else if (factionClass === 'swarm') shipFaction = 'alien_swarm';
+    else if (factionClass === 'boss') shipFaction = 'boss';
+
     return generateShip({
-      faction: faction === 'ship' ? 'alien_basic' : `alien_${faction}`,
+      faction: shipFaction,
+      class: factionClass === 'boss' ? 'destroyer' : 'fighter',
       seed: parseInt(enemy.id.replace(/\D/g, '')) || Math.random() * 1000,
       scale: enemy.radius / 0.8,
-      color1: faction === 'boss' ? { r: 0.6, g: 0.2, b: 0.1 } : { r: 0.5, g: 0.1, b: 0.1 },
-      color2: faction === 'boss' ? { r: 1, g: 0.3, b: 0.1 } : { r: 0.9, g: 0.2, b: 0.2 },
+      color1: factionClass === 'boss' ? { r: 0.6, g: 0.2, b: 0.1 } : { r: 0.5, g: 0.1, b: 0.1 },
+      color2: factionClass === 'boss' ? { r: 1, g: 0.3, b: 0.1 } : { r: 0.9, g: 0.2, b: 0.2 },
     });
-  }, [enemy.id, faction]);
+  }, [enemy.id, factionClass]);
 
   // Calculate movement speed for glow intensity
   const speed = Math.sqrt(enemy.velocity.x ** 2 + enemy.velocity.y ** 2 + enemy.velocity.z ** 2);
@@ -236,7 +234,7 @@ function EnemyShipGroup({ enemy }: { enemy: GameEntity }) {
       <mesh position={[0, 0, -2]}>
         <sphereGeometry args={[0.4, 6, 6]} />
         <meshBasicMaterial
-          color={faction === 'boss' ? 0xff6600 : 0xff3333}
+          color={factionClass === 'boss' ? 0xff6600 : 0xff3333}
           transparent
           opacity={0.3 + glowIntensity}
         />
