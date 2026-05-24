@@ -36,6 +36,13 @@ interface GameCanvasProps {
   onPhaseChange?: (phase: GameState['phase']) => void;
 }
 
+const GAS_CLOUD_FIELDS = [
+  { position: [-260, 70, -520] as [number, number, number], radius: 170, density: 0.62, color: 0x6a96ff },
+  { position: [320, -40, -780] as [number, number, number], radius: 220, density: 0.58, color: 0x87b7ff },
+  { position: [40, 120, -1050] as [number, number, number], radius: 260, density: 0.5, color: 0x5a88db },
+  { position: [-420, -120, -1320] as [number, number, number], radius: 300, density: 0.44, color: 0x7ab5ff },
+];
+
 /**
  * Player ship component: X-wing with enhanced visuals.
  */
@@ -322,11 +329,12 @@ function EnemyShipGroup({ enemy }: { enemy: GameEntity }) {
 function CameraFollowController({ gameState }: { gameState: GameState }) {
   const { camera } = useThree();
   const smoothPosRef = useRef(camera.position.clone());
+  const smoothLookRef = useRef(new THREE.Vector3());
 
   // Dynamic offset based on phase: flight cam behind ship during ignition/combat, wide during briefing
   const isFlightPhase = gameState.phase === 'ignition' || gameState.phase === 'combat';
-  const offsetDistance = isFlightPhase ? 8 : 20;
-  const offsetHeight = isFlightPhase ? 2.5 : 9;
+  const baseOffsetDistance = isFlightPhase ? 8 : 20;
+  const baseOffsetHeight = isFlightPhase ? 2.5 : 9;
 
   useFrame((state, delta) => {
     const playerPos = new THREE.Vector3(
@@ -334,9 +342,24 @@ function CameraFollowController({ gameState }: { gameState: GameState }) {
       gameState.playerEntity.position.y,
       gameState.playerEntity.position.z
     );
+    const speed = Math.sqrt(
+      gameState.playerEntity.velocity.x ** 2 +
+      gameState.playerEntity.velocity.y ** 2 +
+      gameState.playerEntity.velocity.z ** 2
+    );
+    const boostSpool = Number(gameState.playerEntity.metadata?.boostSpool ?? 0);
+    const cloudDensity = Number(gameState.playerEntity.metadata?.gasCloudDensity ?? 0);
+    const accelKick = Number(gameState.playerEntity.metadata?.accelKick ?? 0);
+    const travelStretch = Math.min(speed / 50, 1.1);
+
+    const offsetDistance = baseOffsetDistance + travelStretch * 2.8 + boostSpool * 2.4 + accelKick * 1.1;
+    const offsetHeight = baseOffsetHeight + travelStretch * 0.35;
 
     // Calculate desired camera position (behind and above player for exploration view)
-    const cameraOffset = new THREE.Vector3(0, offsetHeight, offsetDistance);
+    const cloudShake = cloudDensity * (0.12 + boostSpool * 0.12);
+    const turbulenceX = Math.sin(state.clock.elapsedTime * 3.4) * cloudShake;
+    const turbulenceY = Math.sin(state.clock.elapsedTime * 5.1 + 1.7) * cloudShake * 0.6;
+    const cameraOffset = new THREE.Vector3(turbulenceX, offsetHeight + turbulenceY, offsetDistance);
     const desiredCameraPos = playerPos.clone().add(cameraOffset);
 
     // Ultra-smooth exponential follow: k = 1 - exp(-delta * rate)
@@ -361,19 +384,21 @@ function CameraFollowController({ gameState }: { gameState: GameState }) {
         gameState.playerEntity.velocity.y,
         gameState.playerEntity.velocity.z
       ).normalize();
-      lookTarget.add(velocityDir.multiplyScalar(lookAheadDistance));
+      lookTarget.add(velocityDir.multiplyScalar(lookAheadDistance + boostSpool * 1.4));
     }
 
-    camera.lookAt(lookTarget);
+    const lookK = 1 - Math.exp(-delta * 8.0);
+    smoothLookRef.current.lerp(lookTarget, lookK);
+    camera.lookAt(smoothLookRef.current);
 
     // Dynamic FOV gives a clear sensation of acceleration and boost.
-    const speed = Math.sqrt(
-      gameState.playerEntity.velocity.x ** 2 +
-      gameState.playerEntity.velocity.y ** 2 +
-      gameState.playerEntity.velocity.z ** 2
-    );
     const boostActive = Boolean(gameState.playerEntity.metadata?.boostActive);
-    const targetFov = 55 + Math.min(speed / 7, 6) + (boostActive ? 6 : 0);
+    const targetFov =
+      55 +
+      Math.min(speed / 5.6, 10) +
+      boostSpool * 5.5 +
+      (boostActive ? 1.5 : 0) +
+      cloudDensity * 1.25;
     const currentFov = (camera as THREE.PerspectiveCamera).fov ?? 55;
     const fovK = 1 - Math.exp(-delta * 4.5);
     const nextFov = currentFov + (targetFov - currentFov) * fovK;
@@ -409,6 +434,7 @@ function GameScene({
   const forwardSpeedRef = useRef(14);
   const throttleRef = useRef(0.34);
   const boostSpoolRef = useRef(0);
+  const prevForwardSpeedRef = useRef(14);
 
   // Initialize game systems on mount
   useEffect(() => {
@@ -492,6 +518,21 @@ function GameScene({
       const isBraking = keysPressed.current.has('KeyS') || keysPressed.current.has('ArrowDown');
       const isBoosting = keysPressed.current.has('ShiftLeft') || keysPressed.current.has('ShiftRight');
 
+      const px = gameState.playerEntity.position.x;
+      const py = gameState.playerEntity.position.y;
+      const pz = gameState.playerEntity.position.z;
+      let gasCloudDensity = 0;
+      GAS_CLOUD_FIELDS.forEach((cloud) => {
+        const dx = px - cloud.position[0];
+        const dy = py - cloud.position[1];
+        const dz = pz - cloud.position[2];
+        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (dist >= cloud.radius) return;
+        const normalized = 1 - dist / cloud.radius;
+        gasCloudDensity += normalized * normalized * cloud.density;
+      });
+      gasCloudDensity = Math.min(1, gasCloudDensity);
+
       // Analog throttle model: engines spool up/down instead of instant speed snapping.
       const cruiseThrottle = attackMode ? 0.26 : 0.34;
       let targetThrottle = cruiseThrottle;
@@ -519,13 +560,15 @@ function GameScene({
           ? cruiseSpeed + throttleRef.current * (maxForwardSpeed - cruiseSpeed)
           : throttleRef.current * Math.abs(maxReverseSpeed);
       const boostSpeedBonus = boostSpoolRef.current * (attackMode ? 16 : 24);
-      const targetSpeed = throttleSpeed + (throttleRef.current > 0 ? boostSpeedBonus : 0);
+      const cloudSpeedPenalty = gasCloudDensity * (attackMode ? 5.5 : 8.5);
+      const targetSpeed =
+        throttleSpeed + (throttleRef.current > 0 ? boostSpeedBonus : 0) - (throttleRef.current > 0 ? cloudSpeedPenalty : 0);
 
       if (!Number.isFinite(forwardSpeedRef.current)) {
         forwardSpeedRef.current = cruiseSpeed;
       }
 
-      const accelLimit = (attackMode ? 34 : 48) + boostSpoolRef.current * (attackMode ? 22 : 34);
+      const accelLimit = ((attackMode ? 34 : 48) + boostSpoolRef.current * (attackMode ? 22 : 34)) * (1 - gasCloudDensity * 0.28);
       const decelLimit = isBraking ? (attackMode ? 78 : 94) : attackMode ? 42 : 56;
       const speedDelta = targetSpeed - forwardSpeedRef.current;
       const maxUpStep = accelLimit * clampedDelta;
@@ -544,6 +587,17 @@ function GameScene({
       gameState.playerEntity.velocity.y = forwardLocal.y * forwardSpeedRef.current;
       gameState.playerEntity.velocity.z = forwardLocal.z * forwardSpeedRef.current;
 
+      if (gasCloudDensity > 0.02) {
+        const localRight = new THREE.Vector3(1, 0, 0).applyQuaternion(playerQuat);
+        const localUp = new THREE.Vector3(0, 1, 0).applyQuaternion(playerQuat);
+        const turbulence = gasCloudDensity * (attackMode ? 0.8 : 1.15);
+        const wobbleA = Math.sin(state.clock.elapsedTime * 2.6 + px * 0.0023) * turbulence;
+        const wobbleB = Math.sin(state.clock.elapsedTime * 4.1 + pz * 0.0017) * turbulence;
+        gameState.playerEntity.velocity.x += (localRight.x * wobbleA + localUp.x * wobbleB) * clampedDelta * 6;
+        gameState.playerEntity.velocity.y += (localRight.y * wobbleA + localUp.y * wobbleB) * clampedDelta * 6;
+        gameState.playerEntity.velocity.z += (localRight.z * wobbleA + localUp.z * wobbleB) * clampedDelta * 6;
+      }
+
       if (!gameState.playerEntity.metadata) {
         gameState.playerEntity.metadata = {};
       }
@@ -552,6 +606,12 @@ function GameScene({
         Math.max(0, throttleRef.current) * 0.75 + Math.max(0, boostSpoolRef.current) * 0.25
       );
       gameState.playerEntity.metadata.boostActive = boostSpoolRef.current > 0.12;
+      gameState.playerEntity.metadata.boostSpool = boostSpoolRef.current;
+      gameState.playerEntity.metadata.throttle = throttleRef.current;
+      gameState.playerEntity.metadata.gasCloudDensity = gasCloudDensity;
+      const accelKick = Math.max(0, forwardSpeedRef.current - prevForwardSpeedRef.current) / Math.max(0.0001, clampedDelta * 42);
+      gameState.playerEntity.metadata.accelKick = Math.min(1, accelKick);
+      prevForwardSpeedRef.current = forwardSpeedRef.current;
       gameState.playerEntity.metadata.attackMode = attackMode;
       gameState.playerEntity.metadata.rcsYaw = yawDelta;
       gameState.playerEntity.metadata.rcsPitch = pitchDelta;
@@ -731,7 +791,7 @@ function GameRenderer() {
         <fog attach="fog" args={['#040816', 1800, 5400]} />
 
         {/* Starfield backdrop for universe exploration feeling */}
-        <Starfield />
+        <Starfield gasClouds={GAS_CLOUD_FIELDS} />
 
         {/* Scene lighting: cinematic + directional for exploring universe */}
         <ambientLight intensity={0.4} color={0xffffff} />
