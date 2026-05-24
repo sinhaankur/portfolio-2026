@@ -34,19 +34,30 @@ interface GameCanvasProps {
 }
 
 /**
- * Player ship component: X-wing model with engine trail.
+ * Player ship component: X-wing with enhanced visuals.
  */
 function PlayerShipGroup({ gameState }: { gameState: GameState }) {
   const gltf = useGLTF('/models/rebels_x-wing_starfighter.glb');
   const trailRef = useRef<THREE.Line>(null);
   const trailPointsRef = useRef<THREE.Vector3[]>([]);
 
-  // Create a memoized clone that persists across renders
+  // Create a memoized clone with enhanced materials
   const shipModel = useMemo(() => {
     if (!gltf.scene) return null;
     const clone = gltf.scene.clone(true);
     clone.scale.set(2, 2, 2);
     clone.rotateZ(Math.PI / 2);
+
+    // Enhance all materials with better metallic properties
+    clone.traverse((child: any) => {
+      if (child.isMesh && child.material) {
+        child.material.metalness = Math.max(child.material.metalness ?? 0.5, 0.6);
+        child.material.roughness = Math.min(child.material.roughness ?? 0.5, 0.4);
+        child.castShadow = true;
+        child.receiveShadow = true;
+      }
+    });
+
     return clone;
   }, [gltf.scene]);
 
@@ -93,16 +104,42 @@ function PlayerShipGroup({ gameState }: { gameState: GameState }) {
         </mesh>
       )}
 
+      {/* Cockpit glow */}
+      <mesh position={[0, 0.3, 1.2]}>
+        <sphereGeometry args={[0.3, 8, 8]} />
+        <meshBasicMaterial color={0x00ff88} emissive={0x00ff88} toneMapped={false} />
+      </mesh>
+
+      {/* Weapon pod highlights */}
+      <mesh position={[-0.8, 0, 0.5]}>
+        <sphereGeometry args={[0.15, 6, 6]} />
+        <meshBasicMaterial color={0xffaa00} emissive={0xff8800} opacity={0.7} transparent toneMapped={false} />
+      </mesh>
+      <mesh position={[0.8, 0, 0.5]}>
+        <sphereGeometry args={[0.15, 6, 6]} />
+        <meshBasicMaterial color={0xffaa00} emissive={0xff8800} opacity={0.7} transparent toneMapped={false} />
+      </mesh>
+
       {/* Engine thrust trail */}
       <line ref={trailRef}>
         <bufferGeometry />
-        <lineBasicMaterial color={0x00ffff} linewidth={2} transparent opacity={0.6} />
+        <lineBasicMaterial color={0x00ffff} linewidth={2} transparent opacity={0.7} />
       </line>
 
-      {/* Engine glow (rear) */}
-      <mesh position={[0, 0, -2.5]}>
-        <sphereGeometry args={[0.6, 8, 8]} />
-        <meshBasicMaterial color={0x00ffff} transparent opacity={0.4} />
+      {/* Dual engine glow (rear) */}
+      <mesh position={[-0.4, 0, -2.8]}>
+        <sphereGeometry args={[0.5, 8, 8]} />
+        <meshBasicMaterial color={0x00ffff} transparent opacity={0.5} toneMapped={false} />
+      </mesh>
+      <mesh position={[0.4, 0, -2.8]}>
+        <sphereGeometry args={[0.5, 8, 8]} />
+        <meshBasicMaterial color={0x00ffff} transparent opacity={0.5} toneMapped={false} />
+      </mesh>
+
+      {/* Energy shield pulse */}
+      <mesh position={[0, 0, 0]} scale={[1 + Math.sin(gameState.simTime * 3) * 0.1, 1 + Math.sin(gameState.simTime * 3) * 0.1, 1 + Math.sin(gameState.simTime * 3) * 0.1]}>
+        <icosahedronGeometry args={[2.5, 1]} />
+        <meshBasicMaterial color={0x0099ff} wireframe transparent opacity={0.15} toneMapped={false} />
       </mesh>
     </group>
   );
