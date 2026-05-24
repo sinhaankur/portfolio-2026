@@ -327,6 +327,7 @@ export function AssistantPanel() {
       />
 
       <SettingsDrawer
+        heading="Assistant · settings"
         open={settingsOpen}
         onClose={() => {
           setSettingsOpen(false)

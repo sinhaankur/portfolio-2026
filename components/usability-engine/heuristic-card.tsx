@@ -14,6 +14,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { ChevronDown, Terminal } from "lucide-react"
 import type { AuditVerdict, Checkability, Heuristic } from "./types"
 import { demoRegistry } from "./demos/registry"
+import { AuditRunner } from "./audit-runner"
 
 const SEVERITY_TONE: Record<Heuristic["severity"], { dot: string; label: string }> = {
   blocker: { dot: "bg-red-500",     label: "Blocker" },
@@ -45,6 +46,8 @@ export function HeuristicCard({
   verdict = null,
   onVerdict,
   auditActive = false,
+  auditTarget = "",
+  onOpenProviderSettings,
 }: {
   heuristic: Heuristic
   index: number
@@ -54,6 +57,11 @@ export function HeuristicCard({
   onVerdict?: (v: AuditVerdict) => void
   /** True when audit-mode is on. Drives whether vote controls render. */
   auditActive?: boolean
+  /** What to audit — typically pasted HTML, copy, or a screenshot
+   *  description. Collected once at the engine level + passed down. */
+  auditTarget?: string
+  /** Called when the audit runner's "Set up LLM" CTA is clicked. */
+  onOpenProviderSettings?: () => void
 }) {
   // Default-open the fix when the user marks the heuristic as failing,
   // since that's the moment they need to read what to do next.
@@ -233,25 +241,11 @@ export function HeuristicCard({
                         {CHECKABILITY_HELP[heuristic.checkability]}
                       </p>
                       {(heuristic.checkability === "llm" || heuristic.checkability === "hybrid") && (
-                        <div className="mt-4 rounded-md bg-foreground/5 border border-border p-3">
-                          <p className="font-mono text-[10px] tracking-widest uppercase text-foreground/65 mb-2 inline-flex items-center gap-2">
-                            <span aria-hidden="true" className="block w-1.5 h-1.5 rounded-full bg-accent" />
-                            Run it yourself · Ollama
-                          </p>
-                          <p className="font-mono text-[11px] text-foreground/85 leading-relaxed mb-3">
-                            Install Ollama and pull a model, then paste the page HTML
-                            (or a screenshot, with a vision model) into a prompt that
-                            asks for this specific check:
-                          </p>
-                          <pre className="bg-background border border-border rounded p-3 font-mono text-[10.5px] text-foreground/85 leading-snug whitespace-pre-wrap overflow-x-auto">
-{`# in a terminal
-brew install ollama        # or download: https://ollama.com
-ollama pull llama3.2
-
-# in a separate shell
-ollama run llama3.2 "${heuristic.automationSpec.replace(/"/g, '\\"').slice(0, 240)}..."`}
-                          </pre>
-                        </div>
+                        <AuditRunner
+                          heuristic={heuristic}
+                          target={auditTarget}
+                          onOpenProviderSettings={onOpenProviderSettings ?? (() => {})}
+                        />
                       )}
                     </div>
                   </div>
