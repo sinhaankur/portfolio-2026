@@ -41,6 +41,9 @@ export class GameLoop {
       case 'ignition':
         this.updateIgnition(deltaTime);
         break;
+      case 'exploration':
+        this.updateCombat(deltaTime, updateAI);
+        break;
       case 'combat':
         this.updateCombat(deltaTime, updateAI);
         break;
@@ -88,15 +91,15 @@ export class GameLoop {
     // Allow player to practice flight controls during ignition
     this.updateEntity(this.gameState.playerEntity, deltaTime);
 
-    // Auto-transition to combat when ignition completes
+    // Auto-transition to exploration when ignition completes
     if (elapsed > ignitionDuration) {
-      this.gameState.phase = 'combat';
+      this.gameState.phase = 'exploration';
       this.gameState.waveStartTime = this.gameState.simTime;
     }
   }
 
   /**
-   * Combat phase is currently used as travel mode.
+  * Exploration/combat movement simulation.
    */
   private updateCombat(deltaTime: number, updateAI?: any) {
     // Update player position/velocity
@@ -128,10 +131,10 @@ export class GameLoop {
    * Firing phase: beam is visible, resolving hits.
    */
   private updateFiring(deltaTime: number) {
-    // Beam duration is 220ms; once it expires, back to combat
+    // Beam duration is 220ms; once it expires, back to exploration
     const firingDuration = 0.22;
     if (this.gameState.simTime - (this.gameState.waveStartTime || 0) > firingDuration) {
-      this.gameState.phase = 'combat';
+      this.gameState.phase = 'exploration';
       this.gameState.chargeLevel = 0;
     }
   }

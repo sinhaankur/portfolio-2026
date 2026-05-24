@@ -78,7 +78,7 @@ export interface MemoryBuffer {
  * Enough to serialize/deserialize for save/load.
  */
 export interface GameState {
-  phase: 'opening' | 'nexus' | 'briefing' | 'ignition' | 'combat' | 'charging' | 'firing' | 'victory' | 'defeat' | 'upgrade' | 'paused';
+  phase: 'opening' | 'nexus' | 'briefing' | 'ignition' | 'exploration' | 'combat' | 'charging' | 'firing' | 'victory' | 'defeat' | 'upgrade' | 'paused';
   worldIndex: number; // 0–6: Earth → Kepler-186f
   wave: number; // 1–4 per world
   score: number;
