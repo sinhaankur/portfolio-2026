@@ -19,7 +19,6 @@ import {
 import { generateShip } from '../../../lib/ship-generator/procedural-ships';
 import { createInitialGameState, startOpening, goToNexus, selectWorld, startIgnition, startExploration } from './game-state';
 import { HUD } from './hud';
-import { Starfield } from './starfield';
 import { TestingConsole } from './testing-console';
 import { OpeningSequence } from './opening-sequence';
 import { NexusStation } from './nexus-station';
