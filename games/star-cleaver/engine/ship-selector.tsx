@@ -55,9 +55,9 @@ export const SHIP_CONFIGS: Record<string, ShipConfig> = {
   'x-blade': {
     id: 'x-blade',
     name: 'X-Blade',
-    description: 'Experimental fighter. Superior in every way.',
-    visualSource: 'procedural',
-    visualNote: 'Procedural concept',
+    description: 'Experimental interceptor with aggressive strike profile.',
+    visualSource: 'glb',
+    visualNote: 'Textured GLB',
     stats: {
       speed: 5,
       armor: 4,
