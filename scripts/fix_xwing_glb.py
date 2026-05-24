@@ -60,6 +60,7 @@ class FixConfig:
     metallic_factor: float = 0.65
     roughness_factor: float = 0.45
     emissive_factor: Tuple[float, float, float] = (1.0, 0.18, 0.04)
+    force_pbr_all: bool = False
 
     dry_run: bool = False
     verbose: bool = True
@@ -258,7 +259,7 @@ def apply_fixes(gltf: Dict[str, Any], config: FixConfig) -> FixReport:
         pbr = mat.setdefault("pbrMetallicRoughness", {})
 
         # Hull-like materials: raise metallic and tune roughness.
-        if _contains_any(lower_name, config.hull_keywords) or not mat.get("name"):
+        if config.force_pbr_all or _contains_any(lower_name, config.hull_keywords) or not mat.get("name"):
             changed = False
             prev_metal = float(pbr.get("metallicFactor", 0.0))
             prev_rough = float(pbr.get("roughnessFactor", 1.0))
@@ -421,6 +422,7 @@ def parse_args() -> argparse.Namespace:
 
     p.add_argument("--metallic", type=float, default=0.65, help="Hull metallic factor")
     p.add_argument("--roughness", type=float, default=0.45, help="Hull roughness factor")
+    p.add_argument("--force-pbr-all", action="store_true", help="Apply PBR tuning to all materials")
     p.add_argument(
         "--emissive",
         type=float,
@@ -457,6 +459,7 @@ def main() -> int:
         metallic_factor=args.metallic,
         roughness_factor=args.roughness,
         emissive_factor=tuple(float(x) for x in args.emissive),
+        force_pbr_all=bool(args.force_pbr_all),
         dry_run=args.dry_run,
     )
 
