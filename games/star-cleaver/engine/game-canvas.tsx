@@ -45,6 +45,8 @@ function PlayerShipGroup({ gameState }: { gameState: GameState }) {
   const innerGroupRef = useRef<THREE.Group>(null);
   const engineGlow1Ref = useRef<THREE.Mesh>(null);
   const engineGlow2Ref = useRef<THREE.Mesh>(null);
+  const thrusterCone1Ref = useRef<THREE.Mesh>(null);
+  const thrusterCone2Ref = useRef<THREE.Mesh>(null);
   const cockpitGlowRef = useRef<THREE.Mesh>(null);
   const visualBankRef = useRef(0);
   const selectedShip = (gameState.selectedShip || 'default-xwing') as SelectedShip;
@@ -84,13 +86,21 @@ function PlayerShipGroup({ gameState }: { gameState: GameState }) {
 
     // Velocity-responsive engine glow brightness and scale
     const normalizedSpeed = Math.min(speed / 25, 1.0);
-    const engineOpacity = 0.18 + normalizedSpeed * 0.38;
-    const engineScale = 0.55 + normalizedSpeed * 0.55;
+    const engineOpacity = 0.32 + normalizedSpeed * 0.5;
+    const engineScale = 0.7 + normalizedSpeed * 0.75;
 
     [engineGlow1Ref, engineGlow2Ref].forEach(ref => {
       if (!ref.current) return;
       (ref.current.material as THREE.MeshBasicMaterial).opacity = engineOpacity;
       ref.current.scale.setScalar(engineScale);
+    });
+
+    const plumeLength = 0.9 + normalizedSpeed * 2.6;
+    const plumeOpacity = 0.2 + normalizedSpeed * 0.5;
+    [thrusterCone1Ref, thrusterCone2Ref].forEach(ref => {
+      if (!ref.current) return;
+      ref.current.scale.set(1, plumeLength, 1);
+      (ref.current.material as THREE.MeshBasicMaterial).opacity = plumeOpacity;
     });
 
     // Cockpit glow pulses faster when boosting
@@ -126,19 +136,27 @@ function PlayerShipGroup({ gameState }: { gameState: GameState }) {
         {/* Dual engine glow (rear) - cyan hot plasma */}
         <mesh position={[-0.4, 0, -2.8]}>
           <sphereGeometry args={[0.36, 10, 10]} />
-          <meshBasicMaterial color={0x66e5ff} transparent opacity={0.42} />
+          <meshBasicMaterial color={0x66e5ff} transparent opacity={0.62} />
         </mesh>
         <mesh ref={engineGlow1Ref} position={[-0.4, 0, -2.8]}>
           <sphereGeometry args={[0.65, 8, 8]} />
-          <meshBasicMaterial color={0x3bc7ff} transparent opacity={0.08} />
+          <meshBasicMaterial color={0x3bc7ff} transparent opacity={0.15} />
+        </mesh>
+        <mesh ref={thrusterCone1Ref} position={[-0.4, 0, -3.5]} rotation={[Math.PI, 0, 0]}>
+          <coneGeometry args={[0.24, 1.5, 12, 1, true]} />
+          <meshBasicMaterial color={0x8ee9ff} transparent opacity={0.32} side={THREE.DoubleSide} depthWrite={false} />
         </mesh>
         <mesh position={[0.4, 0, -2.8]}>
           <sphereGeometry args={[0.36, 10, 10]} />
-          <meshBasicMaterial color={0x66e5ff} transparent opacity={0.42} />
+          <meshBasicMaterial color={0x66e5ff} transparent opacity={0.62} />
         </mesh>
         <mesh ref={engineGlow2Ref} position={[0.4, 0, -2.8]}>
           <sphereGeometry args={[0.65, 8, 8]} />
-          <meshBasicMaterial color={0x3bc7ff} transparent opacity={0.08} />
+          <meshBasicMaterial color={0x3bc7ff} transparent opacity={0.15} />
+        </mesh>
+        <mesh ref={thrusterCone2Ref} position={[0.4, 0, -3.5]} rotation={[Math.PI, 0, 0]}>
+          <coneGeometry args={[0.24, 1.5, 12, 1, true]} />
+          <meshBasicMaterial color={0x8ee9ff} transparent opacity={0.32} side={THREE.DoubleSide} depthWrite={false} />
         </mesh>
       </group>
     </group>
@@ -364,9 +382,9 @@ function GameScene({
       gameState.playerEntity.rotation.z += rollDelta;
 
       // Travel-first controls: keep a gentle cruise speed so motion is always visible.
-      let thrustSpeed = 8;
-      if (keysPressed.current.has('KeyW') || keysPressed.current.has('ArrowUp')) thrustSpeed = 20;
-      if (keysPressed.current.has('KeyS') || keysPressed.current.has('ArrowDown')) thrustSpeed = -10;
+      let thrustSpeed = 14;
+      if (keysPressed.current.has('KeyW') || keysPressed.current.has('ArrowUp')) thrustSpeed = 34;
+      if (keysPressed.current.has('KeyS') || keysPressed.current.has('ArrowDown')) thrustSpeed = -16;
 
       // Boost with Shift
       const boostMultiplier = keysPressed.current.has('ShiftLeft') || keysPressed.current.has('ShiftRight') ? 1.8 : 1.0;
@@ -542,27 +560,7 @@ function GameRenderer() {
         <directionalLight position={[-60, 30, -40]} intensity={0.5} color={0x3b82f6} />
         <pointLight position={[0, 5, 10]} intensity={0.6} color={0xa855f7} />
 
-        {/* Defending planet (Earth as default) */}
-        <mesh position={[0, 0, -20]} castShadow receiveShadow>
-          <sphereGeometry args={[10, 128, 128]} />
-          <meshStandardMaterial
-            color={0x3b82f6}
-            emissive={0x1e40af}
-            emissiveIntensity={0.2}
-            metalness={0.0}
-            roughness={0.7}
-          />
-        </mesh>
-
-        {/* Planet atmosphere glow */}
-        <mesh position={[0, 0, -20]}>
-          <sphereGeometry args={[10.5, 32, 32]} />
-          <meshBasicMaterial
-            color={0x60a5fa}
-            transparent
-            opacity={0.1}
-          />
-        </mesh>
+        {/* Keep near-field clear in travel mode so no large blobs sit in front of the ship. */}
 
         {/* Player ship: Cleaver-class */}
         {gameState.playerEntity && (
