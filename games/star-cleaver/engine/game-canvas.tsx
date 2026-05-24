@@ -269,7 +269,19 @@ function CameraFollowController({ gameState }: { gameState: GameState }) {
   return null;
 }
 
-function GameScene({ gameState, onUpdate }: { gameState: GameState; onUpdate: (state: GameState) => void }) {
+function GameScene({
+  gameState,
+  onUpdate,
+  mousePos,
+  keysPressed,
+  canvasRef,
+}: {
+  gameState: GameState;
+  onUpdate: (state: GameState) => void;
+  mousePos: React.MutableRefObject<{ x: number; y: number }>;
+  keysPressed: React.MutableRefObject<Set<string>>;
+  canvasRef: React.MutableRefObject<HTMLDivElement | null>;
+}) {
   const { camera, scene } = useThree();
   const gameLoopRef = useRef<GameLoop | null>(null);
   const entityManagerRef = useRef<EntityManager | null>(null);
@@ -328,12 +340,61 @@ function GameScene({ gameState, onUpdate }: { gameState: GameState; onUpdate: (s
     }
   }, [gameState.phase, gameState.wave, gameState.worldIndex]);
 
-  // Main update loop
+  // Main update loop with player input
   useFrame((state, delta) => {
     if (!gameLoopRef.current || !entityManagerRef.current) return;
 
     // Cap delta at 0.1 to prevent spiral of death
     const clampedDelta = Math.min(delta, 0.1);
+
+    // --- PLAYER INPUT HANDLING ---
+    if (gameState.phase === 'combat' || gameState.phase === 'charging') {
+      // Calculate aim direction from mouse position + camera
+      const raycaster = new THREE.Raycaster();
+      const aimVector = new THREE.Vector2(mousePos.current.x, mousePos.current.y);
+      raycaster.setFromCamera(aimVector, camera);
+
+      // Get direction ray from camera through mouse point
+      const aimDir = raycaster.ray.direction.clone().normalize();
+
+      // Update player rotation to face aim direction
+      const playerPos = new THREE.Vector3(
+        gameState.playerEntity.position.x,
+        gameState.playerEntity.position.y,
+        gameState.playerEntity.position.z
+      );
+
+      // Smoothly rotate player toward aim direction
+      const targetQuat = new THREE.Quaternion();
+      targetQuat.setFromUnitVectors(new THREE.Vector3(0, 0, 1), aimDir);
+
+      const currentQuat = new THREE.Quaternion();
+      currentQuat.setFromEuler(
+        new THREE.Euler(gameState.playerEntity.rotation.x, gameState.playerEntity.rotation.y, gameState.playerEntity.rotation.z)
+      );
+
+      const rotationSpeed = 0.15; // Smooth rotation blending
+      currentQuat.slerp(targetQuat, Math.min(rotationSpeed, 1));
+
+      const newEuler = new THREE.Euler().setFromQuaternion(currentQuat);
+      gameState.playerEntity.rotation.x = newEuler.x;
+      gameState.playerEntity.rotation.y = newEuler.y;
+      gameState.playerEntity.rotation.z = newEuler.z;
+
+      // Continuous forward movement
+      const baseSpeed = 15; // units/sec
+      const moveDir = aimDir.clone();
+      gameState.playerEntity.velocity.x = moveDir.x * baseSpeed;
+      gameState.playerEntity.velocity.y = moveDir.y * baseSpeed;
+      gameState.playerEntity.velocity.z = moveDir.z * baseSpeed;
+
+      // Boost with Space key (increase speed)
+      if (keysPressed.current.has('Space')) {
+        gameState.playerEntity.velocity.x *= 1.5;
+        gameState.playerEntity.velocity.y *= 1.5;
+        gameState.playerEntity.velocity.z *= 1.5;
+      }
+    }
 
     // Update game logic
     const updatedState = gameLoopRef.current.update(clampedDelta);
@@ -361,6 +422,7 @@ function GameRenderer() {
   const containerRef = useRef<HTMLDivElement>(null);
   const mousePos = useRef({ x: 0, y: 0 });
   const canvasRef = useRef<HTMLDivElement>(null);
+  const keysPressed = useRef<Set<string>>(new Set());
 
   // Mouse aiming: convert mouse position to 3D aim direction
   useEffect(() => {
@@ -373,12 +435,17 @@ function GameRenderer() {
       };
     };
 
-    // Keyboard controls: space for boost, other keys for options
+    // Keyboard controls
     const handleKeyDown = (e: KeyboardEvent) => {
+      keysPressed.current.add(e.code);
       if (e.code === 'Space') {
         e.preventDefault();
         // TODO: Boost/afterburner effect (increase speed, visual effect)
       }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      keysPressed.current.delete(e.code);
     };
 
     // Mouse down: start charging
@@ -412,12 +479,14 @@ function GameRenderer() {
     window.addEventListener('mousedown', handleMouseDown);
     window.addEventListener('mouseup', handleMouseUp);
     window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
 
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mousedown', handleMouseDown);
       window.removeEventListener('mouseup', handleMouseUp);
       window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
     };
   }, []);
 
@@ -502,7 +571,7 @@ function GameRenderer() {
         ))}
 
         {/* Game logic integration */}
-        <GameScene gameState={gameState} onUpdate={setGameState} />
+        <GameScene gameState={gameState} onUpdate={setGameState} mousePos={mousePos} keysPressed={keysPressed} canvasRef={canvasRef} />
 
         {/* Camera follow: chase the player ship */}
         <CameraFollowController gameState={gameState} />

@@ -76,12 +76,70 @@ export class GameLoop {
     // Update player position/velocity
     this.updateEntity(this.gameState.playerEntity, deltaTime);
 
-    // Update enemies
+    // Update enemies with basic AI movement
     this.gameState.enemies.forEach((enemy) => {
+      if (!enemy.active) return;
+
+      // Basic enemy AI: move toward player or planet based on type
+      const playerPos = this.gameState.playerEntity.position;
+      const enemyPos = enemy.position;
+
+      // Calculate direction to player
+      const distToPlayer = Math.sqrt(
+        (playerPos.x - enemyPos.x) ** 2 +
+        (playerPos.y - enemyPos.y) ** 2 +
+        (playerPos.z - enemyPos.z) ** 2
+      );
+
+      // Different behaviors based on enemy type
+      const enemyType = (enemy.metadata?.type as string) || 'fighter';
+      const moveSpeed = enemy.metadata?.speed ?? 8;
+
+      if (enemyType === 'swarm') {
+        // Swarm: go straight for planet at (0, 0, -20)
+        const targetPos = { x: 0, y: 0, z: -20 };
+        const dir = this.getDirection(enemyPos, targetPos);
+        enemy.velocity.x = dir.x * moveSpeed;
+        enemy.velocity.y = dir.y * moveSpeed;
+        enemy.velocity.z = dir.z * moveSpeed;
+      } else if (enemyType === 'sniper') {
+        // Sniper: maintain distance, strafe around player
+        const targetDistance = 40;
+        const dir = this.getDirection(enemyPos, playerPos);
+        if (distToPlayer < targetDistance) {
+          // Too close, back up
+          enemy.velocity.x = -dir.x * moveSpeed * 0.7;
+          enemy.velocity.y = -dir.y * moveSpeed * 0.7;
+          enemy.velocity.z = -dir.z * moveSpeed * 0.7;
+        } else if (distToPlayer > targetDistance + 10) {
+          // Too far, move closer
+          enemy.velocity.x = dir.x * moveSpeed * 0.5;
+          enemy.velocity.y = dir.y * moveSpeed * 0.5;
+          enemy.velocity.z = dir.z * moveSpeed * 0.5;
+        } else {
+          // Strafe: move perpendicular to player
+          const rightVec = {
+            x: Math.sin((this.gameState.simTime + enemy.id.charCodeAt(0)) * 2),
+            y: 0,
+            z: Math.cos((this.gameState.simTime + enemy.id.charCodeAt(0)) * 2),
+          };
+          enemy.velocity.x = rightVec.x * moveSpeed * 0.8;
+          enemy.velocity.y = rightVec.y * moveSpeed * 0.8;
+          enemy.velocity.z = rightVec.z * moveSpeed * 0.8;
+        }
+      } else {
+        // Fighter/default: charge at player
+        const dir = this.getDirection(enemyPos, playerPos);
+        enemy.velocity.x = dir.x * moveSpeed;
+        enemy.velocity.y = dir.y * moveSpeed;
+        enemy.velocity.z = dir.z * moveSpeed;
+      }
+
+      // Update position
       this.updateEntity(enemy, deltaTime);
-      // AI decision (async, but we'll call it here for now)
+
+      // AI decision (async, deferred for later)
       if (updateAI) {
-        // In real implementation, batch these via Promise.all
         updateAI(enemy, { gameState: this.gameState, entityManager: this.entityManager });
       }
     });
@@ -165,6 +223,18 @@ export class GameLoop {
       this.gameState.wave = 1;
       this.gameState.phase = 'briefing';
     }
+  }
+
+  /**
+   * Calculate normalized direction from one position to another.
+   */
+  private getDirection(from: { x: number; y: number; z: number }, to: { x: number; y: number; z: number }) {
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    const dz = to.z - from.z;
+    const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    if (dist < 0.01) return { x: 0, y: 0, z: 0 };
+    return { x: dx / dist, y: dy / dist, z: dz / dist };
   }
 
   /**
@@ -282,14 +352,37 @@ export class GameLoop {
    * Fire action: create projectile, transition to firing phase.
    */
   fireWeapon(chargeLevel: number) {
+    // Use player's current velocity direction (aim direction) for projectile
+    const playerVelLength = Math.sqrt(
+      this.gameState.playerEntity.velocity.x ** 2 +
+      this.gameState.playerEntity.velocity.y ** 2 +
+      this.gameState.playerEntity.velocity.z ** 2
+    );
+
+    let fireDir = { x: 0, y: 0, z: 1 }; // Default: forward
+    if (playerVelLength > 0.1) {
+      // Use normalized player velocity as fire direction
+      fireDir = {
+        x: this.gameState.playerEntity.velocity.x / playerVelLength,
+        y: this.gameState.playerEntity.velocity.y / playerVelLength,
+        z: this.gameState.playerEntity.velocity.z / playerVelLength,
+      };
+    }
+
+    const projectileSpeed = 40 + chargeLevel * 20; // Speed based on charge
+
     // Create projectile entity
     const projectile: GameEntity = {
       id: `projectile_${Date.now()}`,
-      position: { ...this.gameState.playerEntity.position },
+      position: {
+        x: this.gameState.playerEntity.position.x,
+        y: this.gameState.playerEntity.position.y,
+        z: this.gameState.playerEntity.position.z,
+      },
       velocity: {
-        x: Math.cos(this.gameState.playerEntity.rotation.z) * 20,
-        y: Math.sin(this.gameState.playerEntity.rotation.z) * 20,
-        z: 0,
+        x: fireDir.x * projectileSpeed,
+        y: fireDir.y * projectileSpeed,
+        z: fireDir.z * projectileSpeed,
       },
       rotation: { x: 0, y: 0, z: 0 },
       health: 1,
