@@ -45,17 +45,22 @@ function PlayerShipGroup({ gameState }: { gameState: GameState }) {
   const cockpitGlowRef = useRef<THREE.Mesh>(null);
   const visualBankRef = useRef(0);
 
-  // Generate procedural player ship (fast, no large model download)
+  // Generate procedural player ship based on selected variant
   const shipModel = useMemo(() => {
+    const isT70 = gameState.selectedShip === 't70-xwing';
     return generateShip({
       faction: 'player',
       class: 'fighter',
-      seed: 42, // consistent player ship
-      scale: 3,
-      color1: { r: 0.2, g: 0.8, b: 1 },    // cyan primary
-      color2: { r: 0.5, g: 1, b: 1 },      // bright cyan secondary
+      seed: isT70 ? 70 : 42, // different seed for T70 variant
+      scale: isT70 ? 2.8 : 3, // slightly smaller T70
+      color1: isT70
+        ? { r: 0.3, g: 0.6, b: 1 }    // deeper blue for T70
+        : { r: 0.2, g: 0.8, b: 1 },  // cyan for classic
+      color2: isT70
+        ? { r: 0.6, g: 0.9, b: 1 }    // lighter blue secondary for T70
+        : { r: 0.5, g: 1, b: 1 },    // bright cyan secondary for classic
     });
-  }, []);
+  }, [gameState.selectedShip]);
 
   // Update engine trail, visual banking, and responsive glow
   useFrame((state, delta) => {
@@ -583,7 +588,12 @@ function GameRenderer() {
       </Canvas>
       </div>
       {/* HUD Layer */}
-      <HUD gameState={gameState} />
+      <HUD
+        gameState={gameState}
+        onShipSelect={(shipId) => {
+          setGameState((s) => ({ ...s, selectedShip: shipId }));
+        }}
+      />
     </div>
   );
 }

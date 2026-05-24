@@ -3,9 +3,11 @@
 import { useMemo } from 'react';
 import type { GameState } from '../../../lib/neural-game-engine';
 import { formatScore, getCurrentWorldName } from './game-state';
+import { SHIP_CONFIGS, type SelectedShip } from './ship-selector';
 
 interface HUDProps {
   gameState: GameState;
+  onShipSelect?: (shipId: SelectedShip) => void;
 }
 
 /**
@@ -106,21 +108,76 @@ export function HUD({ gameState }: HUDProps) {
             </div>
           )}
 
-          {/* Briefing overlay */}
+          {/* Briefing overlay with ship selector */}
           {gameState.phase === 'briefing' && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/50 backdrop-blur-sm pointer-events-auto">
-              <div className="text-center max-w-2xl px-6">
-                <div className="font-mono text-[10px] tracking-[0.25em] uppercase text-foreground/55 mb-4">
-                  INCOMING THREAT
+            <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/60 backdrop-blur-md pointer-events-auto">
+              <div className="max-w-5xl px-6 space-y-8 max-h-[90vh] overflow-y-auto">
+                {/* Mission briefing */}
+                <div className="text-center">
+                  <div className="font-mono text-[10px] tracking-[0.25em] uppercase text-foreground/55 mb-4">
+                    INCOMING THREAT
+                  </div>
+                  <h2 className="font-serif text-3xl md:text-4xl text-foreground mb-6 leading-tight italic">
+                    {worldName}
+                  </h2>
+                  <p className="text-foreground/75 font-sans text-base leading-relaxed">
+                    Wave {gameState.wave} incoming. Prepare defensive systems.
+                  </p>
                 </div>
-                <h2 className="font-serif text-3xl md:text-4xl text-foreground mb-6 leading-tight italic">
-                  {worldName}
-                </h2>
-                <p className="text-foreground/75 font-sans text-base leading-relaxed mb-8">
-                  Wave {gameState.wave} incoming. Prepare defensive systems.
-                </p>
-                <div className="font-mono text-[9px] tracking-[0.2em] uppercase text-foreground/55">
-                  PRESS SPACE TO LAUNCH
+
+                {/* Ship selector */}
+                <div className="space-y-4">
+                  <div className="text-center">
+                    <div className="font-mono text-[10px] tracking-[0.25em] uppercase text-cyan-400 mb-4">
+                      SELECT YOUR VESSEL
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {Object.values(SHIP_CONFIGS).map((ship) => (
+                      <button
+                        key={ship.id}
+                        onClick={() => onShipSelect?.(ship.id as SelectedShip)}
+                        className="group relative p-6 rounded-lg border border-foreground/20 bg-foreground/5 hover:border-cyan-400/50 hover:bg-cyan-400/10 transition-all duration-300 text-left"
+                      >
+                        <div className="absolute inset-0 rounded-lg bg-linear-to-r from-cyan-400/0 via-cyan-400/0 to-cyan-400/0 group-hover:from-cyan-400/20 group-hover:via-cyan-400/10 group-hover:to-cyan-400/0 pointer-events-none transition-all duration-300" />
+                        <div className="relative space-y-3">
+                          <h3 className="font-mono text-[11px] tracking-[0.2em] uppercase text-foreground/85">
+                            {ship.name}
+                          </h3>
+                          <p className="text-foreground/60 text-sm font-sans">
+                            {ship.description}
+                          </p>
+                          <div className="grid grid-cols-3 gap-2 pt-2 border-t border-foreground/10">
+                            {['speed', 'armor', 'weapons'].map((stat) => (
+                              <div key={stat} className="space-y-1">
+                                <div className="font-mono text-[8px] tracking-widest uppercase text-foreground/50">
+                                  {stat}
+                                </div>
+                                <div className="flex gap-0.5">
+                                  {Array.from({ length: 5 }).map((_, i) => (
+                                    <div
+                                      key={i}
+                                      className={`h-1.5 w-2 rounded-full ${
+                                        i < ship.stats[stat as keyof typeof ship.stats]
+                                          ? 'bg-cyan-400'
+                                          : 'bg-foreground/20'
+                                      }`}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="text-center">
+                  <div className="font-mono text-[9px] tracking-[0.2em] uppercase text-foreground/55">
+                    SELECT A SHIP · THEN PRESS SPACE TO LAUNCH
+                  </div>
                 </div>
               </div>
             </div>
