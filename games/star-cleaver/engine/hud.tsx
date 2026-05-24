@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import type { GameState } from '../../../lib/neural-game-engine';
 import { formatScore, getCurrentWorldName } from './game-state';
-import { SHIP_CONFIGS, type SelectedShip } from './ship-selector';
+import { SHIP_CONFIGS, type SelectedShip, getAvailableShips } from './ship-selector';
 
 interface HUDProps {
   gameState: GameState;
@@ -133,7 +133,7 @@ export function HUD({ gameState }: HUDProps) {
                     </div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {Object.values(SHIP_CONFIGS).map((ship) => (
+                    {getAvailableShips(gameState.worldsCompleted).map((ship) => (
                       <button
                         key={ship.id}
                         onClick={() => onShipSelect?.(ship.id as SelectedShip)}
