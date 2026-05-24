@@ -307,10 +307,14 @@ function GameScene({
   gameState,
   onUpdate,
   keysPressed,
+  mouseRotation,
+  deviceOrientation,
 }: {
   gameState: GameState;
   onUpdate: (state: GameState) => void;
   keysPressed: React.MutableRefObject<Set<string>>;
+  mouseRotation: React.MutableRefObject<{ pitch: number; yaw: number }>;
+  deviceOrientation: React.MutableRefObject<{ alpha: number; beta: number; gamma: number }>;
 }) {
   const { camera, scene } = useThree();
   const gameLoopRef = useRef<GameLoop | null>(null);
@@ -400,30 +404,45 @@ function GameScene({
       const upLocal = new THREE.Vector3(0, 1, 0);
       upLocal.applyQuaternion(playerQuat);
 
-      // Arrow key rotation
-      const rotationSpeed = 2.0; // radians/sec
+      // Multi-input rotation: keyboard + mouse + device orientation
       const arrowSensitivity = 0.05;
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-      if (keysPressed.current.has('ArrowUp')) {
-        gameState.playerEntity.rotation.x += arrowSensitivity;
-      }
-      if (keysPressed.current.has('ArrowDown')) {
-        gameState.playerEntity.rotation.x -= arrowSensitivity;
-      }
-      if (keysPressed.current.has('ArrowLeft')) {
-        gameState.playerEntity.rotation.y += arrowSensitivity;
-      }
-      if (keysPressed.current.has('ArrowRight')) {
-        gameState.playerEntity.rotation.y -= arrowSensitivity;
+      let pitchDelta = 0;
+      let yawDelta = 0;
+      let rollDelta = 0;
+
+      // Keyboard input (arrow keys)
+      if (keysPressed.current.has('ArrowUp')) pitchDelta += arrowSensitivity;
+      if (keysPressed.current.has('ArrowDown')) pitchDelta -= arrowSensitivity;
+      if (keysPressed.current.has('ArrowLeft')) yawDelta += arrowSensitivity;
+      if (keysPressed.current.has('ArrowRight')) yawDelta -= arrowSensitivity;
+      if (keysPressed.current.has('KeyQ')) rollDelta += arrowSensitivity;
+      if (keysPressed.current.has('KeyE')) rollDelta -= arrowSensitivity;
+
+      // Mouse input (desktop): map mouse position to pitch/yaw
+      if (!isMobile) {
+        // Smooth mouse aiming for desktop
+        const mouseSensitivity = 0.015;
+        pitchDelta += mouseRotation.current.pitch * mouseSensitivity;
+        yawDelta += mouseRotation.current.yaw * mouseSensitivity;
       }
 
-      // Roll with Q/E
-      if (keysPressed.current.has('KeyQ')) {
-        gameState.playerEntity.rotation.z += arrowSensitivity;
+      // Device orientation input (mobile): use gyroscope for flight
+      if (isMobile && deviceOrientation.current.beta !== 0) {
+        const deviceSensitivity = 0.008;
+        // Beta: tilt forward/backward (X rotation)
+        pitchDelta += (deviceOrientation.current.beta / 180) * deviceSensitivity * 2;
+        // Gamma: tilt left/right (Y rotation)
+        yawDelta -= (deviceOrientation.current.gamma / 90) * deviceSensitivity * 2;
+        // Alpha: twist (Z rotation) - optional
+        rollDelta += (deviceOrientation.current.alpha / 360) * deviceSensitivity * 0.5;
       }
-      if (keysPressed.current.has('KeyE')) {
-        gameState.playerEntity.rotation.z -= arrowSensitivity;
-      }
+
+      // Apply accumulated rotation deltas
+      gameState.playerEntity.rotation.x += pitchDelta;
+      gameState.playerEntity.rotation.y += yawDelta;
+      gameState.playerEntity.rotation.z += rollDelta;
 
       // Forward thrust with W or Up arrow (continuous)
       const thrustSpeed = keysPressed.current.has('KeyW') || keysPressed.current.has('ArrowUp') ? 20 : 0;
@@ -463,22 +482,23 @@ function GameRenderer() {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
   const keysPressed = useRef<Set<string>>(new Set());
+  const mouseRotationRef = useRef({ pitch: 0, yaw: 0 });
+  const deviceOrientationRef = useRef({ alpha: 0, beta: 0, gamma: 0 });
 
-  // Keyboard-based exploration controls
+  // Multi-input flight controls: keyboard, mouse, device orientation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       keysPressed.current.add(e.code);
-      // Start ignition on spacebar (briefing → ignition → combat)
+      // Start ignition on spacebar
       if (e.code === 'Space') {
         e.preventDefault();
         setGameState((s) => {
           if (s.phase === 'briefing') {
             return startIgnition(s);
           }
-          // Auto-transition from ignition to combat after sequence completes
           if (s.phase === 'ignition') {
             const elapsedSinceIgnition = (s.ignitionStartTime ?? 0) - s.simTime;
-            if (elapsedSinceIgnition > 3.5) { // 3.5 second ignition sequence
+            if (elapsedSinceIgnition > 3.5) {
               return startCombat(s);
             }
           }
@@ -491,12 +511,50 @@ function GameRenderer() {
       keysPressed.current.delete(e.code);
     };
 
+    // Mouse look: map mouse position to pitch/yaw for aiming
+    const handleMouseMove = (e: MouseEvent) => {
+      const centerX = window.innerWidth / 2;
+      const centerY = window.innerHeight / 2;
+      const mouseX = (e.clientX - centerX) / centerX;
+      const mouseY = (e.clientY - centerY) / centerY;
+
+      // Convert mouse position to rotation (±0.3 radians = ±17°)
+      mouseRotationRef.current.yaw = mouseX * 0.4;
+      mouseRotationRef.current.pitch = -mouseY * 0.3;
+    };
+
+    // Device orientation for mobile: use gyroscope to fly
+    const handleDeviceOrientation = (e: DeviceOrientationEvent) => {
+      if (e.alpha !== null && e.beta !== null && e.gamma !== null) {
+        deviceOrientationRef.current = {
+          alpha: e.alpha, // rotation around Z axis (0-360)
+          beta: e.beta,   // rotation around X axis (-180 to 180)
+          gamma: e.gamma, // rotation around Y axis (-90 to 90)
+        };
+      }
+    };
+
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('deviceorientation', handleDeviceOrientation);
+
+    // Request permission for iOS 13+
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
+      (DeviceOrientationEvent as any).requestPermission()
+        .then((permission: string) => {
+          if (permission === 'granted') {
+            window.addEventListener('deviceorientation', handleDeviceOrientation);
+          }
+        })
+        .catch(() => console.log('Device orientation permission denied'));
+    }
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('deviceorientation', handleDeviceOrientation);
     };
   }, []);
 
@@ -581,7 +639,13 @@ function GameRenderer() {
         ))}
 
         {/* Game logic integration */}
-        <GameScene gameState={gameState} onUpdate={setGameState} keysPressed={keysPressed} />
+        <GameScene
+          gameState={gameState}
+          onUpdate={setGameState}
+          keysPressed={keysPressed}
+          mouseRotation={mouseRotationRef}
+          deviceOrientation={deviceOrientationRef}
+        />
 
         {/* Camera follow: chase the player ship */}
         <CameraFollowController gameState={gameState} />
