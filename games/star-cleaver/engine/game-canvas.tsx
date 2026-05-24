@@ -50,10 +50,10 @@ const SHIP_THRUSTER_PRESETS: Record<SelectedShip, {
   nozzleZ: number;
   outerNozzleZ: number;
 }> = {
-  'default-xwing': { lateral: 1.24, vertical: 0.58, coreZ: 2.65, nozzleZ: 2.95, outerNozzleZ: 3.02 },
-  'alliance-xwing': { lateral: 1.3, vertical: 0.6, coreZ: 2.78, nozzleZ: 3.08, outerNozzleZ: 3.16 },
-  't70-xwing': { lateral: 1.36, vertical: 0.64, coreZ: 2.95, nozzleZ: 3.27, outerNozzleZ: 3.35 },
-  'x-blade': { lateral: 1.44, vertical: 0.7, coreZ: 3.08, nozzleZ: 3.42, outerNozzleZ: 3.5 },
+  'default-xwing': { lateral: 1.24, vertical: 0.58, coreZ: -2.65, nozzleZ: -2.95, outerNozzleZ: -3.02 },
+  'alliance-xwing': { lateral: 1.3, vertical: 0.6, coreZ: -2.78, nozzleZ: -3.08, outerNozzleZ: -3.16 },
+  't70-xwing': { lateral: 1.36, vertical: 0.64, coreZ: -2.95, nozzleZ: -3.27, outerNozzleZ: -3.35 },
+  'x-blade': { lateral: 1.44, vertical: 0.7, coreZ: -3.08, nozzleZ: -3.42, outerNozzleZ: -3.5 },
 };
 
 /**
