@@ -88,7 +88,7 @@ export function Hero() {
           Passive backdrop by default so page scroll works; explore mode flips it interactive. */}
       <div className="absolute inset-0" aria-hidden="true">
         <UniverseRuntimeFallback>
-          <UniverseEngine interactive={interactive} />
+          <UniverseEngine interactive={interactive} showMusic={false} />
         </UniverseRuntimeFallback>
       </div>
 
