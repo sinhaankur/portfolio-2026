@@ -2,12 +2,18 @@
 
 import dynamic from 'next/dynamic';
 import { useState } from 'react';
+import { StaticStarfield } from '@/components/universe-engine/static-starfield';
 
 const UniverseEngine = dynamic(() => import('@/components/universe-engine').then((mod) => mod.UniverseEngine), {
   ssr: false,
   loading: () => (
-    <div style={{ width: '100vw', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#000' }}>
-      <p style={{ color: '#fff' }}>Loading Universe...</p>
+    <div style={{ width: '100vw', height: '100vh', position: 'relative', background: '#000' }}>
+      <StaticStarfield />
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <p style={{ color: 'rgba(255, 255, 255, 0.82)', fontFamily: 'monospace', fontSize: '12px', letterSpacing: '0.18em', textTransform: 'uppercase' }}>
+          Loading Universe
+        </p>
+      </div>
     </div>
   ),
 });
@@ -55,7 +61,7 @@ export default function StarCleaverExperience() {
 
   return (
     <div style={{ width: '100vw', height: '100vh', overflow: 'hidden', margin: 0, padding: 0 }}>
-      <UniverseEngine interactive showHud showMusic invert />
+      <UniverseEngine interactive showHud showMusic />
       <div
         style={{
           position: 'fixed',
