@@ -22,6 +22,7 @@ import { createEnemy } from './enemies';
 import { createInitialGameState, setWorld, startCombat, fireWeapon as fireWeaponState } from './game-state';
 import { defendedWorlds, getWaveConfig } from './worlds';
 import { HUD } from './hud';
+import { Starfield } from './starfield';
 
 /**
  * Game Canvas: Main React component for Star Cleaver gameplay.
@@ -104,43 +105,76 @@ function PlayerShipGroup({ gameState }: { gameState: GameState }) {
         </mesh>
       )}
 
-      {/* Cockpit glow */}
+      {/* Cockpit glow - bright green-cyan */}
       <mesh position={[0, 0.3, 1.2]}>
-        <sphereGeometry args={[0.3, 8, 8]} />
-        <meshBasicMaterial color={0x00ff88} emissive={0x00ff88} toneMapped={false} />
+        <sphereGeometry args={[0.4, 12, 12]} />
+        <meshBasicMaterial color={0x00ff99} emissive={0x00ff99} toneMapped={false} />
+      </mesh>
+      <mesh position={[0, 0.3, 1.2]}>
+        <sphereGeometry args={[0.65, 8, 8]} />
+        <meshBasicMaterial color={0x00ff99} transparent opacity={0.2} toneMapped={false} />
       </mesh>
 
-      {/* Weapon pod highlights */}
+      {/* Weapon pod highlights - orange hot glow */}
       <mesh position={[-0.8, 0, 0.5]}>
-        <sphereGeometry args={[0.15, 6, 6]} />
-        <meshBasicMaterial color={0xffaa00} emissive={0xff8800} opacity={0.7} transparent toneMapped={false} />
+        <sphereGeometry args={[0.2, 8, 8]} />
+        <meshBasicMaterial color={0xff6600} emissive={0xff5500} toneMapped={false} />
+      </mesh>
+      <mesh position={[-0.8, 0, 0.5]}>
+        <sphereGeometry args={[0.4, 6, 6]} />
+        <meshBasicMaterial color={0xff8833} transparent opacity={0.25} toneMapped={false} />
       </mesh>
       <mesh position={[0.8, 0, 0.5]}>
-        <sphereGeometry args={[0.15, 6, 6]} />
-        <meshBasicMaterial color={0xffaa00} emissive={0xff8800} opacity={0.7} transparent toneMapped={false} />
+        <sphereGeometry args={[0.2, 8, 8]} />
+        <meshBasicMaterial color={0xff6600} emissive={0xff5500} toneMapped={false} />
+      </mesh>
+      <mesh position={[0.8, 0, 0.5]}>
+        <sphereGeometry args={[0.4, 6, 6]} />
+        <meshBasicMaterial color={0xff8833} transparent opacity={0.25} toneMapped={false} />
       </mesh>
 
       {/* Engine thrust trail */}
       <line ref={trailRef}>
         <bufferGeometry />
-        <lineBasicMaterial color={0x00ffff} linewidth={2} transparent opacity={0.7} />
+        <lineBasicMaterial color={0x00ffff} linewidth={3} transparent opacity={0.8} />
       </line>
 
-      {/* Dual engine glow (rear) */}
+      {/* Dual engine glow (rear) - cyan hot plasma */}
       <mesh position={[-0.4, 0, -2.8]}>
-        <sphereGeometry args={[0.5, 8, 8]} />
-        <meshBasicMaterial color={0x00ffff} transparent opacity={0.5} toneMapped={false} />
+        <sphereGeometry args={[0.6, 10, 10]} />
+        <meshBasicMaterial color={0x00ffff} transparent opacity={0.6} toneMapped={false} />
+      </mesh>
+      <mesh position={[-0.4, 0, -2.8]}>
+        <sphereGeometry args={[1.0, 6, 6]} />
+        <meshBasicMaterial color={0x00ccff} transparent opacity={0.15} toneMapped={false} />
       </mesh>
       <mesh position={[0.4, 0, -2.8]}>
-        <sphereGeometry args={[0.5, 8, 8]} />
-        <meshBasicMaterial color={0x00ffff} transparent opacity={0.5} toneMapped={false} />
+        <sphereGeometry args={[0.6, 10, 10]} />
+        <meshBasicMaterial color={0x00ffff} transparent opacity={0.6} toneMapped={false} />
+      </mesh>
+      <mesh position={[0.4, 0, -2.8]}>
+        <sphereGeometry args={[1.0, 6, 6]} />
+        <meshBasicMaterial color={0x00ccff} transparent opacity={0.15} toneMapped={false} />
       </mesh>
 
-      {/* Energy shield pulse */}
-      <mesh position={[0, 0, 0]} scale={[1 + Math.sin(gameState.simTime * 3) * 0.1, 1 + Math.sin(gameState.simTime * 3) * 0.1, 1 + Math.sin(gameState.simTime * 3) * 0.1]}>
-        <icosahedronGeometry args={[2.5, 1]} />
-        <meshBasicMaterial color={0x0099ff} wireframe transparent opacity={0.15} toneMapped={false} />
+      {/* Energy shield: pulsing geometric field */}
+      <mesh position={[0, 0, 0]} scale={[1 + Math.sin(gameState.simTime * 2.5) * 0.08, 1 + Math.sin(gameState.simTime * 2.5) * 0.08, 1 + Math.sin(gameState.simTime * 2.5) * 0.08]}>
+        <icosahedronGeometry args={[3.0, 1]} />
+        <meshBasicMaterial color={0x00aaff} wireframe transparent opacity={0.12} toneMapped={false} />
       </mesh>
+
+      {/* Additional charge indicator aura when charging */}
+      {gameState.phase === 'charging' && (
+        <mesh position={[0, 0, 0]} scale={[0.8 + gameState.chargeLevel * 0.4, 0.8 + gameState.chargeLevel * 0.4, 0.8 + gameState.chargeLevel * 0.4]}>
+          <sphereGeometry args={[2.2, 16, 16]} />
+          <meshBasicMaterial
+            color={0xff00ff}
+            transparent
+            opacity={0.08 + gameState.chargeLevel * 0.1}
+            toneMapped={false}
+          />
+        </mesh>
+      )}
     </group>
   );
 }
@@ -186,15 +220,15 @@ function EnemyShipGroup({ enemy }: { enemy: GameEntity }) {
 
 /**
  * Camera follow controller: smooth chase cam like following a comet in Universe Engine.
+ * Uses exponential smoothing for silk-smooth, responsive flight feel.
  */
 function CameraFollowController({ gameState }: { gameState: GameState }) {
   const { camera } = useThree();
-  const cameraVelRef = useRef(new THREE.Vector3());
-  const lookVelRef = useRef(new THREE.Vector3());
+  const smoothPosRef = useRef(camera.position.clone());
 
-  // Dynamic offset based on phase (closer during combat, further during briefing)
-  const offsetDistance = gameState.phase === 'combat' ? 12 : 18;
-  const offsetHeight = gameState.phase === 'combat' ? 6 : 8;
+  // Dynamic offset based on phase: tighter during combat, wider during exploration
+  const offsetDistance = gameState.phase === 'combat' ? 14 : 20;
+  const offsetHeight = gameState.phase === 'combat' ? 7 : 9;
 
   useFrame((state, delta) => {
     const playerPos = new THREE.Vector3(
@@ -203,28 +237,36 @@ function CameraFollowController({ gameState }: { gameState: GameState }) {
       gameState.playerEntity.position.z
     );
 
-    // Calculate desired camera position (behind and above player)
+    // Calculate desired camera position (behind and above player for exploration view)
     const cameraOffset = new THREE.Vector3(0, offsetHeight, offsetDistance);
     const desiredCameraPos = playerPos.clone().add(cameraOffset);
 
-    // Smooth velocity-based following (more natural than direct lerp)
-    const cameraToTarget = desiredCameraPos.clone().sub(camera.position);
-    const distance = cameraToTarget.length();
+    // Ultra-smooth exponential follow: k = 1 - exp(-delta * rate)
+    // Matches Universe Engine's comet-following smoothness
+    const followRate = gameState.phase === 'combat' ? 3.5 : 2.8;
+    const k = 1 - Math.exp(-delta * followRate);
 
-    if (distance > 0.01) {
-      // Exponential smoothing for silky motion
-      const followSpeed = Math.min(distance * delta * 3, distance);
-      camera.position.add(cameraToTarget.normalize().multiplyScalar(followSpeed));
+    smoothPosRef.current.lerp(desiredCameraPos, k);
+    camera.position.copy(smoothPosRef.current);
+
+    // Look slightly ahead of player for better anticipation
+    const lookAheadDistance = Math.sqrt(
+      gameState.playerEntity.velocity.x ** 2 +
+      gameState.playerEntity.velocity.y ** 2 +
+      gameState.playerEntity.velocity.z ** 2
+    ) * 0.1;
+
+    const lookTarget = playerPos.clone();
+    if (lookAheadDistance > 0.1) {
+      const velocityDir = new THREE.Vector3(
+        gameState.playerEntity.velocity.x,
+        gameState.playerEntity.velocity.y,
+        gameState.playerEntity.velocity.z
+      ).normalize();
+      lookTarget.add(velocityDir.multiplyScalar(lookAheadDistance));
     }
 
-    // Smooth look-at with slight lag for elegance
-    const lookTarget = playerPos.clone();
-    const lookOffset = lookTarget.clone().sub(camera.position);
-    const currentForward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-    const blend = Math.min(delta * 2, 1);
-
-    camera.position.add(lookOffset.clone().multiplyScalar((1 - blend) * delta * 0.5));
-    camera.lookAt(playerPos);
+    camera.lookAt(lookTarget);
   });
 
   return null;
@@ -334,6 +376,14 @@ function GameRenderer() {
       };
     };
 
+    // Keyboard controls: space for boost, other keys for options
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        // TODO: Boost/afterburner effect (increase speed, visual effect)
+      }
+    };
+
     // Mouse down: start charging
     const handleMouseDown = (e: MouseEvent) => {
       if (e.button === 0) {
@@ -364,11 +414,13 @@ function GameRenderer() {
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mousedown', handleMouseDown);
     window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener('keydown', handleKeyDown);
 
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mousedown', handleMouseDown);
       window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
 
@@ -384,24 +436,38 @@ function GameRenderer() {
           toneMappingExposure: 1.0,
         }}
       >
-        <color attach="background" args={['#000000']} />
-        <fog attach="fog" args={['#000000', 200, 500]} />
+        <color attach="background" args={['#0a0e27']} />
+        <fog attach="fog" args={['#0a0e27', 400, 1000]} />
 
-        {/* Scene lighting */}
-        <ambientLight intensity={0.3} />
-        <directionalLight position={[60, 40, 50]} intensity={0.8} />
-        <directionalLight position={[-40, 20, -30]} intensity={0.4} color={0x2563eb} />
-        <pointLight position={[0, 5, 10]} intensity={0.4} color={0x9933ff} />
+        {/* Starfield backdrop for universe exploration feeling */}
+        <Starfield />
+
+        {/* Scene lighting: cinematic + directional for exploring universe */}
+        <ambientLight intensity={0.4} color={0xffffff} />
+        <directionalLight position={[80, 50, 60]} intensity={1.0} color={0xffffff} castShadow />
+        <directionalLight position={[-60, 30, -40]} intensity={0.5} color={0x3b82f6} />
+        <pointLight position={[0, 5, 10]} intensity={0.6} color={0xa855f7} />
 
         {/* Defending planet (Earth as default) */}
-        <mesh position={[0, 0, -20]}>
-          <sphereGeometry args={[10, 64, 64]} />
+        <mesh position={[0, 0, -20]} castShadow receiveShadow>
+          <sphereGeometry args={[10, 128, 128]} />
           <meshStandardMaterial
-            color={0x2563eb}
+            color={0x3b82f6}
             emissive={0x1e40af}
-            emissiveIntensity={0.1}
-            metalness={0.1}
-            roughness={0.8}
+            emissiveIntensity={0.2}
+            metalness={0.0}
+            roughness={0.7}
+          />
+        </mesh>
+
+        {/* Planet atmosphere glow */}
+        <mesh position={[0, 0, -20]}>
+          <sphereGeometry args={[10.5, 32, 32]} />
+          <meshBasicMaterial
+            color={0x60a5fa}
+            transparent
+            opacity={0.1}
+            toneMapped={false}
           />
         </mesh>
 
@@ -415,19 +481,26 @@ function GameRenderer() {
           <EnemyShipGroup key={enemy.id} enemy={enemy} />
         ))}
 
-        {/* Projectiles */}
+        {/* Projectiles: high-energy plasma bolts */}
         {gameState.projectiles.map((proj) => (
           <group
             key={proj.id}
             position={[proj.position.x, proj.position.y, proj.position.z]}
           >
+            {/* Core bolt */}
             <mesh>
-              <sphereGeometry args={[0.3, 12, 12]} />
-              <meshBasicMaterial color={0xffff00} toneMapped={false} />
+              <sphereGeometry args={[0.25, 12, 12]} />
+              <meshBasicMaterial color={0xffff00} emissive={0xffff00} toneMapped={false} />
             </mesh>
+            {/* Energy halo */}
             <mesh>
-              <sphereGeometry args={[0.6, 8, 8]} />
-              <meshBasicMaterial color={0xffff00} transparent opacity={0.2} toneMapped={false} />
+              <sphereGeometry args={[0.5, 8, 8]} />
+              <meshBasicMaterial color={0xffcc00} transparent opacity={0.4} toneMapped={false} />
+            </mesh>
+            {/* Outer glow */}
+            <mesh>
+              <sphereGeometry args={[0.9, 6, 6]} />
+              <meshBasicMaterial color={0xffaa00} transparent opacity={0.15} toneMapped={false} />
             </mesh>
           </group>
         ))}
