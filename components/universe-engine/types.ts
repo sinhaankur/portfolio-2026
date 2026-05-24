@@ -170,19 +170,16 @@ export type ConstellationStar = {
   magnitude: number
 }
 
-export type ConstellationId =
-  | "ursa-major"
-  | "polaris"
-  | "orion"
-  | "cassiopeia"
-  | "leo"
-  | "lyra"
-  | "cygnus"
-  | "scorpius"
-  | "crux"
-  | "centaurus"
-  | "sagittarius"
-  | "pegasus"
+/**
+ * Constellation ID — was a closed union of the 7 originally
+ * hand-curated entries. Widened to `string` so the engine can
+ * carry all 88 IAU constellations generated from
+ * lib/data/constellations-iau.ts (`pnpm data:constellations`).
+ * The hand-curated subset still uses the same kebab-case form
+ * ("ursa-major", "orion", etc.); generated entries use the
+ * lowercase 3-letter IAU code ("and", "lyr", "uma", …).
+ */
+export type ConstellationId = string
 
 export type Constellation = {
   id: ConstellationId

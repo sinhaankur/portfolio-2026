@@ -25,6 +25,7 @@ import type {
   ScenePlanet,
   SkyPoint,
 } from "./types"
+import { IAU_CONSTELLATIONS_GENERATED } from "@/lib/data/constellations-iau"
 
 /* --------------------------------------------------------------------------
  * Scene-scale constants
@@ -1469,7 +1470,7 @@ export const namedBodies: NamedBody[] = [
  * edge as a line segment and highlights the whole constellation on hover.
  * ------------------------------------------------------------------------ */
 
-export const constellations: Constellation[] = [
+const curatedConstellations: Constellation[] = [
   {
     id: "ursa-major",
     name: "Big Dipper",
@@ -1653,6 +1654,29 @@ export const constellations: Constellation[] = [
     // Great Square: Markab-Scheat-Alpheratz-Algenib. Plus Enif extension out to the head.
     edges: [[0, 1], [1, 3], [3, 2], [2, 0], [0, 4]],
   },
+]
+
+/**
+ * IAU constellation merge.
+ *
+ * The 7 entries above are hand-curated with rich fact text + per-star
+ * magnitudes for their member stars (Sirius mag, Vega mag, etc.). The
+ * generated set imported below covers the OTHER 81 IAU constellations
+ * with line-figure geometry from d3-celestial (BSD-3 licensed) + a
+ * short blurb per constellation. Re-fetch via `pnpm data:constellations`.
+ *
+ * The IDs the curated set uses are kebab-case ("ursa-major", "leo",
+ * "lyra", …) while the generated set uses lowercase IAU 3-letter codes
+ * ("uma", "leo", "lyr", …). We dedupe by IAU code, with the curated
+ * entry winning when both exist.
+ */
+const CURATED_IAU_CODES = new Set(["uma", "umi", "ori", "cas", "leo", "lyr", "cyg"])
+
+export const constellations: Constellation[] = [
+  ...curatedConstellations,
+  ...IAU_CONSTELLATIONS_GENERATED.filter(
+    (c) => !CURATED_IAU_CODES.has(c.id.toLowerCase()),
+  ),
 ]
 
 /* --------------------------------------------------------------------------
