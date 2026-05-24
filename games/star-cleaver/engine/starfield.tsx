@@ -93,7 +93,7 @@ export function Starfield({ gasClouds = [] }: { gasClouds?: GasCloudField[] }) {
             starsRef.current[idx] = el;
           }}
         >
-          <bufferGeometry attach="geometry" {...layer.geometry} />
+          <primitive object={layer.geometry} attach="geometry" />
           <pointsMaterial
             attach="material"
             size={layer.size}

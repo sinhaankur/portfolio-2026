@@ -14,7 +14,7 @@ interface HUDProps {
  * HUD: Desktop-first heads-up display for Star Cleaver.
  * Matches universe-engine/hud.tsx design language: font-mono, tracking-wide, backdrop-blur-sm.
  */
-export function HUD({ gameState }: HUDProps) {
+export function HUD({ gameState, onShipSelect }: HUDProps) {
   const healthPercent = (gameState.playerEntity.health / gameState.playerMaxHealth) * 100;
   const planetHealthPercent = gameState.defendingPlanetHealth * 100;
   const chargePercent = (gameState.chargeLevel / gameState.maxCharge) * 100;

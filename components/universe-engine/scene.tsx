@@ -792,6 +792,7 @@ function MoonBody({
   onHover,
   highlighted = false,
   interactive = false,
+  invert = false,
 }: {
   moon: MoonData
   onHover: HoverHandler
@@ -799,6 +800,7 @@ function MoonBody({
   highlighted?: boolean
   /** When true, clicks engage follow mode on the moon. Same gesture as planets + comets. */
   interactive?: boolean
+  invert?: boolean
 }) {
   const orbitRef = useRef<Group>(null)
   const bodyRef = useRef<Mesh>(null)
