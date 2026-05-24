@@ -1,8 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { Suspense, useRef, useState } from 'react';
+import * as THREE from 'three';
 import type { GameState } from '../../../lib/neural-game-engine';
 import { WORLD_STORIES } from './narrative';
+import { PlayerShipModel, ProceduralPlayerShipModel } from './player-ship-model';
 import { getAvailableShips, type SelectedShip } from './ship-selector';
 
 interface NexusStationProps {
@@ -10,11 +13,66 @@ interface NexusStationProps {
   onLaunchMission: (worldIndex: number, shipId: SelectedShip) => void;
 }
 
+function ShipPreviewModel({ shipId }: { shipId: SelectedShip }) {
+  const groupRef = useRef<THREE.Group>(null);
+
+  useFrame((state, delta) => {
+    if (!groupRef.current) return;
+    groupRef.current.rotation.y += delta * 0.55;
+    groupRef.current.rotation.x = -0.18 + Math.sin(state.clock.elapsedTime * 0.9) * 0.05;
+  });
+
+  return (
+    <group ref={groupRef} position={[0, -0.15, 0]} rotation={[-0.16, 0.6, 0]}>
+      <Suspense fallback={<ProceduralPlayerShipModel shipId={shipId} mode="preview" />}>
+        <PlayerShipModel shipId={shipId} mode="preview" />
+      </Suspense>
+    </group>
+  );
+}
+
+function ShipPreviewPanel({ shipId, shipName }: { shipId: SelectedShip; shipName: string }) {
+  return (
+    <div className="rounded-2xl border border-cyan-400/20 bg-linear-to-b from-cyan-400/8 via-background/90 to-background/95 p-4 md:p-5">
+      <div className="flex items-center justify-between gap-3 pb-3">
+        <div>
+          <div className="font-mono text-[9px] tracking-[0.22em] uppercase text-cyan-400/80">
+            Live 3D Preview
+          </div>
+          <div className="font-mono text-[11px] tracking-[0.18em] uppercase text-foreground/85 mt-1">
+            {shipName}
+          </div>
+        </div>
+        <div className="font-mono text-[8px] tracking-[0.18em] uppercase text-foreground/45">
+          Combat-ready silhouette
+        </div>
+      </div>
+
+      <div className="relative h-64 overflow-hidden rounded-xl border border-foreground/10 bg-[radial-gradient(circle_at_50%_35%,rgba(96,165,250,0.18)_0%,rgba(8,11,18,0.92)_58%,rgba(3,5,9,1)_100%)] md:h-72">
+        <div className="absolute inset-x-0 top-0 h-20 bg-linear-to-b from-cyan-300/10 to-transparent pointer-events-none" />
+        <div className="absolute inset-x-8 bottom-6 h-px bg-linear-to-r from-transparent via-cyan-400/35 to-transparent pointer-events-none" />
+        <Canvas camera={{ position: [0, 1.1, 8.2], fov: 34 }} dpr={[1, 1.5]}>
+          <ambientLight intensity={1.35} />
+          <directionalLight position={[5, 4, 6]} intensity={1.8} color="#d8f3ff" />
+          <directionalLight position={[-4, -2, -5]} intensity={0.8} color="#8b5cf6" />
+          <pointLight position={[0, 0, 4]} intensity={1.4} color="#22d3ee" />
+          <ShipPreviewModel shipId={shipId} />
+        </Canvas>
+      </div>
+
+      <p className="pt-3 font-mono text-[8px] tracking-[0.18em] uppercase text-foreground/45">
+        Auto-rotating model uses the same procedural fighter variant you launch in-game.
+      </p>
+    </div>
+  );
+}
+
 export function NexusStation({ gameState, onLaunchMission }: NexusStationProps) {
   const [selectedWorld, setSelectedWorld] = useState<number>(0);
   const [selectedShip, setSelectedShip] = useState<SelectedShip>(gameState.selectedShip as SelectedShip);
   const worldStory = WORLD_STORIES[selectedWorld];
   const availableShips = getAvailableShips(gameState.worldsCompleted);
+  const selectedShipConfig = availableShips.find((ship) => ship.id === selectedShip) ?? availableShips[0];
 
   return (
     <div className="fixed inset-0 z-50 bg-background pointer-events-auto overflow-y-auto">
@@ -124,50 +182,63 @@ export function NexusStation({ gameState, onLaunchMission }: NexusStationProps) 
                     Select Vessel
                   </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {availableShips.map((ship) => (
-                    <button
-                      key={ship.id}
-                      onClick={() => setSelectedShip(ship.id as SelectedShip)}
-                      className={`group relative p-5 rounded-lg border transition-all duration-300 text-left ${
-                        selectedShip === ship.id
-                          ? 'border-cyan-400/60 bg-cyan-400/10'
-                          : 'border-foreground/20 bg-foreground/5 hover:border-cyan-400/40 hover:bg-cyan-400/8'
-                      }`}
-                    >
-                      <div className="relative space-y-3">
-                        <div>
-                          <h3 className="font-mono text-[11px] tracking-[0.2em] uppercase text-foreground/85 mb-2">
-                            {ship.name}
-                          </h3>
-                          <p className="text-foreground/60 text-sm font-sans">
-                            {ship.description}
-                          </p>
-                        </div>
-                        <div className="grid grid-cols-3 gap-2 pt-2 border-t border-foreground/10">
-                          {['speed', 'armor', 'weapons'].map((stat) => (
-                            <div key={stat} className="space-y-1">
-                              <div className="font-mono text-[8px] tracking-widest uppercase text-foreground/50">
-                                {stat}
-                              </div>
-                              <div className="flex gap-0.5">
-                                {Array.from({ length: 5 }).map((_, i) => (
-                                  <div
-                                    key={i}
-                                    className={`h-1.5 w-2 rounded-full ${
-                                      i < ship.stats[stat as keyof typeof ship.stats]
-                                        ? 'bg-cyan-400'
-                                        : 'bg-foreground/20'
-                                    }`}
-                                  />
-                                ))}
-                              </div>
+                <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,18rem)_minmax(0,1fr)] gap-5 items-start">
+                  <ShipPreviewPanel shipId={selectedShip} shipName={selectedShipConfig.name} />
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {availableShips.map((ship) => (
+                      <button
+                        key={ship.id}
+                        onClick={() => setSelectedShip(ship.id as SelectedShip)}
+                        className={`group relative p-5 rounded-lg border transition-all duration-300 text-left ${
+                          selectedShip === ship.id
+                            ? 'border-cyan-400/60 bg-cyan-400/10 shadow-[0_0_0_1px_rgba(34,211,238,0.08),0_18px_50px_rgba(8,145,178,0.12)]'
+                            : 'border-foreground/20 bg-foreground/5 hover:border-cyan-400/40 hover:bg-cyan-400/8'
+                        }`}
+                      >
+                        <div className="relative space-y-3">
+                          <div>
+                            <div className="mb-2 flex items-center gap-2">
+                              <span className={`rounded-full border px-2 py-1 font-mono text-[8px] uppercase tracking-[0.2em] ${
+                                ship.visualSource === 'glb'
+                                  ? 'border-cyan-400/35 bg-cyan-400/10 text-cyan-300'
+                                  : 'border-foreground/20 bg-foreground/5 text-foreground/55'
+                              }`}>
+                                {ship.visualNote}
+                              </span>
                             </div>
-                          ))}
+                            <h3 className="font-mono text-[11px] tracking-[0.2em] uppercase text-foreground/85 mb-2">
+                              {ship.name}
+                            </h3>
+                            <p className="text-foreground/60 text-sm font-sans">
+                              {ship.description}
+                            </p>
+                          </div>
+                          <div className="grid grid-cols-3 gap-2 pt-2 border-t border-foreground/10">
+                            {['speed', 'armor', 'weapons'].map((stat) => (
+                              <div key={stat} className="space-y-1">
+                                <div className="font-mono text-[8px] tracking-widest uppercase text-foreground/50">
+                                  {stat}
+                                </div>
+                                <div className="flex gap-0.5">
+                                  {Array.from({ length: 5 }).map((_, i) => (
+                                    <div
+                                      key={i}
+                                      className={`h-1.5 w-2 rounded-full ${
+                                        i < ship.stats[stat as keyof typeof ship.stats]
+                                          ? 'bg-cyan-400'
+                                          : 'bg-foreground/20'
+                                      }`}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    </button>
-                  ))}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
