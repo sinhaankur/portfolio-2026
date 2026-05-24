@@ -46,7 +46,7 @@ const GAS_CLOUD_FIELDS = [
 /**
  * Player ship component: X-wing with enhanced visuals.
  */
-function PlayerShipGroup({ gameState }: { gameState: GameState }) {
+function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState; showForwardDebug: boolean }) {
   const innerGroupRef = useRef<THREE.Group>(null);
   const engineGlow1Ref = useRef<THREE.Mesh>(null);
   const engineGlow2Ref = useRef<THREE.Mesh>(null);
@@ -272,6 +272,14 @@ function PlayerShipGroup({ gameState }: { gameState: GameState }) {
           <sphereGeometry args={[0.09, 8, 8]} />
           <meshBasicMaterial color={0xb7e9ff} transparent opacity={0.04} depthWrite={false} />
         </mesh>
+
+        {/* Optional forward debug marker (nose direction). Toggle with V. */}
+        {showForwardDebug && (
+          <mesh position={[0, 0.06, -3.25]} rotation={[-Math.PI / 2, 0, 0]}>
+            <coneGeometry args={[0.12, 0.42, 12]} />
+            <meshBasicMaterial color={0x34d399} transparent opacity={0.9} depthWrite={false} />
+          </mesh>
+        )}
       </group>
     </group>
   );
@@ -645,6 +653,7 @@ function GameScene({
 function GameRenderer() {
   const [gameState, setGameState] = useState<GameState>(createInitialGameState());
   const [showTestConsole, setShowTestConsole] = useState(false);
+  const [showForwardDebug, setShowForwardDebug] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
   const keysPressed = useRef<Set<string>>(new Set());
@@ -678,6 +687,10 @@ function GameRenderer() {
             },
           };
         });
+      }
+      if (e.code === 'KeyV') {
+        e.preventDefault();
+        setShowForwardDebug((v) => !v);
       }
       // Start ignition on spacebar
       if (e.code === 'Space') {
@@ -805,7 +818,7 @@ function GameRenderer() {
 
         {/* Player ship: Cleaver-class */}
         {gameState.playerEntity && (
-          <PlayerShipGroup gameState={gameState} />
+          <PlayerShipGroup gameState={gameState} showForwardDebug={showForwardDebug} />
         )}
 
         {/* Enemy ships */}
@@ -854,6 +867,7 @@ function GameRenderer() {
         {/* HUD Layer */}
         <HUD
           gameState={gameState}
+          showForwardDebug={showForwardDebug}
           onShipSelect={(shipId) => {
             setGameState((s) => ({ ...s, selectedShip: shipId }));
           }}
