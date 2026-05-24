@@ -7,11 +7,19 @@ import { generateShip } from '../../../lib/ship-generator/procedural-ships';
 import type { SelectedShip } from './ship-selector';
 
 const CLASSIC_XWING_MODEL_PATH = '/models/rebels_x-wing_starfighter.glb';
-const ALLIANCE_XWING_MODEL_PATH = '/models/xwing.glb';
+const ALLIANCE_XWING_MODEL_PATH = '/models/vedic-space-craft-inspired-xwing.glb';
 const T70_XWING_MODEL_PATH = '/models/poes_xwing.glb';
 const XBLADE_MODEL_PATH = '/models/x-blade.glb';
 
 type PlayerShipMode = 'game' | 'preview';
+type ShipVariant = 'default-xwing' | 'alliance-xwing' | 't70-xwing' | 'x-blade';
+
+const VARIANT_ACCENTS: Record<ShipVariant, THREE.ColorRepresentation> = {
+	'default-xwing': '#6ec8ff',
+	'alliance-xwing': '#d7b98a',
+	't70-xwing': '#8dd7ff',
+	'x-blade': '#ff7a59',
+};
 
 function createProceduralPlayerShip(shipId: SelectedShip, mode: PlayerShipMode): THREE.Group {
 	const isT70 = shipId === 't70-xwing';
@@ -36,12 +44,69 @@ function createProceduralPlayerShip(shipId: SelectedShip, mode: PlayerShipMode):
 	});
 }
 
-function cloneShipModel(scene: THREE.Object3D) {
+function enhanceMaterial(
+	material: THREE.Material,
+	accent: THREE.Color,
+	partIndex: number,
+	partCount: number
+) {
+	const ratio = partCount > 1 ? partIndex / (partCount - 1) : 0;
+	const panelShade = 0.9 + ratio * 0.16;
+
+	if (material instanceof THREE.MeshStandardMaterial || material instanceof THREE.MeshPhysicalMaterial) {
+		material.color = material.color.clone().multiplyScalar(panelShade);
+		material.roughness = Math.max(0.18, Math.min(0.72, material.roughness * 0.78 + 0.08 + ratio * 0.06));
+		material.metalness = Math.max(0.22, Math.min(0.92, material.metalness * 0.88 + 0.12));
+		material.envMapIntensity = Math.max(1.05, material.envMapIntensity || 1.25);
+		material.emissive = accent.clone().multiplyScalar(0.03 + ratio * 0.01);
+		material.emissiveIntensity = 0.26;
+
+		if (material instanceof THREE.MeshPhysicalMaterial) {
+			material.clearcoat = Math.max(material.clearcoat ?? 0, 0.35);
+			material.clearcoatRoughness = 0.28;
+			smaterialSheen(material, accent, ratio);
+		}
+
+		material.needsUpdate = true;
+	}
+}
+
+function smaterialSheen(material: THREE.MeshPhysicalMaterial, accent: THREE.Color, ratio: number) {
+	material.sheen = 0.2;
+	material.sheenRoughness = 0.55;
+	material.sheenColor = accent.clone().lerp(new THREE.Color('#d9e8ff'), 0.65 + ratio * 0.2);
+}
+
+function cloneShipModel(scene: THREE.Object3D, variant: ShipVariant) {
 	const cloned = scene.clone(true);
+	const accent = new THREE.Color(VARIANT_ACCENTS[variant]);
+	const meshList = cloned.children.length > 0
+		? cloned.children.flatMap((node) => {
+			const meshes: THREE.Mesh[] = [];
+			node.traverse((child) => {
+				if (child instanceof THREE.Mesh) meshes.push(child);
+			});
+			return meshes;
+		})
+		: [];
+	const partCount = Math.max(meshList.length, 1);
+
 	cloned.traverse((child) => {
 		if (child instanceof THREE.Mesh) {
 			child.castShadow = true;
 			child.receiveShadow = true;
+			if (Array.isArray(child.material)) {
+				child.material = child.material.map((mat, idx) => {
+					const clonedMaterial = mat.clone();
+					enhanceMaterial(clonedMaterial, accent, idx, child.material.length);
+					return clonedMaterial;
+				});
+			} else if (child.material) {
+				const partIndex = meshList.findIndex((mesh) => mesh.uuid === child.uuid);
+				const clonedMaterial = child.material.clone();
+				enhanceMaterial(clonedMaterial, accent, Math.max(partIndex, 0), partCount);
+				child.material = clonedMaterial;
+			}
 		}
 	});
 	return cloned;
@@ -59,10 +124,10 @@ export function PlayerShipModel({ shipId, mode = 'game' }: { shipId: SelectedShi
 	const xBladeGltf = useGLTF(XBLADE_MODEL_PATH);
 
 	const fallbackShip = useMemo(() => createProceduralPlayerShip(shipId, mode), [shipId, mode]);
-	const classicShip = useMemo(() => cloneShipModel(classicGltf.scene), [classicGltf.scene]);
-	const allianceShip = useMemo(() => cloneShipModel(allianceGltf.scene), [allianceGltf.scene]);
-	const t70Ship = useMemo(() => cloneShipModel(t70Gltf.scene), [t70Gltf.scene]);
-  const xBladeShip = useMemo(() => cloneShipModel(xBladeGltf.scene), [xBladeGltf.scene]);
+	const classicShip = useMemo(() => cloneShipModel(classicGltf.scene, 'default-xwing'), [classicGltf.scene]);
+	const allianceShip = useMemo(() => cloneShipModel(allianceGltf.scene, 'alliance-xwing'), [allianceGltf.scene]);
+	const t70Ship = useMemo(() => cloneShipModel(t70Gltf.scene, 't70-xwing'), [t70Gltf.scene]);
+	const xBladeShip = useMemo(() => cloneShipModel(xBladeGltf.scene, 'x-blade'), [xBladeGltf.scene]);
 
 	const isPreview = mode === 'preview';
 

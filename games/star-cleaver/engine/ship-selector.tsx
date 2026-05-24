@@ -30,8 +30,8 @@ export const SHIP_CONFIGS: Record<string, ShipConfig> = {
   },
   'alliance-xwing': {
     id: 'alliance-xwing',
-    name: 'Alliance X-Wing',
-    description: 'Weathered Red Squadron-style frame with heavier plating.',
+    name: 'Vedic Space Craft',
+    description: 'Vedic-inspired starcraft silhouette, derived from the X-Wing profile.',
     visualSource: 'glb',
     visualNote: 'Textured GLB',
     stats: {
