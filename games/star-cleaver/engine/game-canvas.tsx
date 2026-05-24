@@ -41,6 +41,11 @@ function PlayerShipGroup({ gameState }: { gameState: GameState }) {
   const gltf = useGLTF('/models/rebels_x-wing_starfighter.glb');
   const trailRef = useRef<THREE.Line>(null);
   const trailPointsRef = useRef<THREE.Vector3[]>([]);
+  const innerGroupRef = useRef<THREE.Group>(null);
+  const engineGlow1Ref = useRef<THREE.Mesh>(null);
+  const engineGlow2Ref = useRef<THREE.Mesh>(null);
+  const cockpitGlowRef = useRef<THREE.Mesh>(null);
+  const visualBankRef = useRef(0);
 
   // Create a memoized clone with basic setup
   const shipModel = useMemo(() => {
@@ -60,32 +65,55 @@ function PlayerShipGroup({ gameState }: { gameState: GameState }) {
     return clone;
   }, [gltf.scene]);
 
-  // Update engine trail
-  useFrame(() => {
-    const speed = Math.sqrt(
-      gameState.playerEntity.velocity.x ** 2 +
-      gameState.playerEntity.velocity.y ** 2 +
-      gameState.playerEntity.velocity.z ** 2
-    );
+  // Update engine trail, visual banking, and responsive glow
+  useFrame((state, delta) => {
+    const vx = gameState.playerEntity.velocity.x;
+    const vy = gameState.playerEntity.velocity.y;
+    const vz = gameState.playerEntity.velocity.z;
+    const speed = Math.sqrt(vx * vx + vy * vy + vz * vz);
 
+    // Trail animation
     if (speed > 0.5 && trailRef.current) {
-      // Add trail point
       const pos = new THREE.Vector3(
         gameState.playerEntity.position.x,
         gameState.playerEntity.position.y,
-        gameState.playerEntity.position.z - 2 // Behind ship
+        gameState.playerEntity.position.z - 2
       );
       trailPointsRef.current.push(pos);
 
-      // Keep only last 30 points
       if (trailPointsRef.current.length > 30) {
         trailPointsRef.current.shift();
       }
 
-      // Update geometry
       if (trailRef.current.geometry) {
         (trailRef.current.geometry as THREE.BufferGeometry).setFromPoints(trailPointsRef.current);
       }
+    }
+
+    // Visual banking from lateral velocity
+    const targetBank = Math.max(-0.35, Math.min(0.35, -vx * 0.018));
+    const bankK = 1 - Math.exp(-delta * 4.5);
+    visualBankRef.current += (targetBank - visualBankRef.current) * bankK;
+    if (innerGroupRef.current) {
+      innerGroupRef.current.rotation.z = visualBankRef.current;
+    }
+
+    // Velocity-responsive engine glow brightness and scale
+    const normalizedSpeed = Math.min(speed / 25, 1.0);
+    const engineOpacity = 0.3 + normalizedSpeed * 0.55;
+    const engineScale = 0.7 + normalizedSpeed * 0.9;
+
+    [engineGlow1Ref, engineGlow2Ref].forEach(ref => {
+      if (!ref.current) return;
+      (ref.current.material as THREE.MeshBasicMaterial).opacity = engineOpacity;
+      ref.current.scale.setScalar(engineScale);
+    });
+
+    // Cockpit glow pulses faster when boosting
+    if (cockpitGlowRef.current) {
+      const pulseFreq = 1.5 + normalizedSpeed * 3.0;
+      const pulseAmt = 0.85 + Math.sin(state.clock.elapsedTime * pulseFreq) * 0.15;
+      cockpitGlowRef.current.scale.setScalar(pulseAmt);
     }
   });
 
@@ -94,84 +122,86 @@ function PlayerShipGroup({ gameState }: { gameState: GameState }) {
       position={[gameState.playerEntity.position.x, gameState.playerEntity.position.y, gameState.playerEntity.position.z]}
       rotation={[gameState.playerEntity.rotation.x, gameState.playerEntity.rotation.y, gameState.playerEntity.rotation.z]}
     >
-      {shipModel ? (
-        <primitive object={shipModel} />
-      ) : (
-        <mesh>
-          <coneGeometry args={[0.8, 3, 8]} />
-          <meshStandardMaterial color={0x6600ff} emissive={0x3300ff} emissiveIntensity={0.3} />
+      <group ref={innerGroupRef}>
+        {shipModel ? (
+          <primitive object={shipModel} />
+        ) : (
+          <mesh>
+            <coneGeometry args={[0.8, 3, 8]} />
+            <meshStandardMaterial color={0x6600ff} emissive={0x3300ff} emissiveIntensity={0.3} />
+          </mesh>
+        )}
+
+        {/* Cockpit glow - bright green-cyan */}
+        <mesh position={[0, 0.3, 1.2]}>
+          <sphereGeometry args={[0.4, 12, 12]} />
+          <meshBasicMaterial color={0x00ff99} />
         </mesh>
-      )}
-
-      {/* Cockpit glow - bright green-cyan */}
-      <mesh position={[0, 0.3, 1.2]}>
-        <sphereGeometry args={[0.4, 12, 12]} />
-        <meshBasicMaterial color={0x00ff99} />
-      </mesh>
-      <mesh position={[0, 0.3, 1.2]}>
-        <sphereGeometry args={[0.65, 8, 8]} />
-        <meshBasicMaterial color={0x00ff99} transparent opacity={0.2} />
-      </mesh>
-
-      {/* Weapon pod highlights - orange hot glow */}
-      <mesh position={[-0.8, 0, 0.5]}>
-        <sphereGeometry args={[0.2, 8, 8]} />
-        <meshBasicMaterial color={0xff6600} />
-      </mesh>
-      <mesh position={[-0.8, 0, 0.5]}>
-        <sphereGeometry args={[0.4, 6, 6]} />
-        <meshBasicMaterial color={0xff8833} transparent opacity={0.25} />
-      </mesh>
-      <mesh position={[0.8, 0, 0.5]}>
-        <sphereGeometry args={[0.2, 8, 8]} />
-        <meshBasicMaterial color={0xff6600} />
-      </mesh>
-      <mesh position={[0.8, 0, 0.5]}>
-        <sphereGeometry args={[0.4, 6, 6]} />
-        <meshBasicMaterial color={0xff8833} transparent opacity={0.25} />
-      </mesh>
-
-      {/* Engine thrust trail */}
-      <line ref={trailRef}>
-        <bufferGeometry />
-        <lineBasicMaterial color={0x00ffff} linewidth={3} transparent opacity={0.8} />
-      </line>
-
-      {/* Dual engine glow (rear) - cyan hot plasma */}
-      <mesh position={[-0.4, 0, -2.8]}>
-        <sphereGeometry args={[0.6, 10, 10]} />
-        <meshBasicMaterial color={0x00ffff} transparent opacity={0.6} />
-      </mesh>
-      <mesh position={[-0.4, 0, -2.8]}>
-        <sphereGeometry args={[1.0, 6, 6]} />
-        <meshBasicMaterial color={0x00ccff} transparent opacity={0.15} />
-      </mesh>
-      <mesh position={[0.4, 0, -2.8]}>
-        <sphereGeometry args={[0.6, 10, 10]} />
-        <meshBasicMaterial color={0x00ffff} transparent opacity={0.6} />
-      </mesh>
-      <mesh position={[0.4, 0, -2.8]}>
-        <sphereGeometry args={[1.0, 6, 6]} />
-        <meshBasicMaterial color={0x00ccff} transparent opacity={0.15} />
-      </mesh>
-
-      {/* Energy shield: pulsing geometric field */}
-      <mesh position={[0, 0, 0]} scale={[1 + Math.sin(gameState.simTime * 2.5) * 0.08, 1 + Math.sin(gameState.simTime * 2.5) * 0.08, 1 + Math.sin(gameState.simTime * 2.5) * 0.08]}>
-        <icosahedronGeometry args={[3.0, 1]} />
-        <meshBasicMaterial color={0x00aaff} wireframe transparent opacity={0.12} />
-      </mesh>
-
-      {/* Additional charge indicator aura when charging */}
-      {gameState.phase === 'charging' && (
-        <mesh position={[0, 0, 0]} scale={[0.8 + gameState.chargeLevel * 0.4, 0.8 + gameState.chargeLevel * 0.4, 0.8 + gameState.chargeLevel * 0.4]}>
-          <sphereGeometry args={[2.2, 16, 16]} />
-          <meshBasicMaterial
-            color={0xff00ff}
-            transparent
-            opacity={0.08 + gameState.chargeLevel * 0.1}
-          />
+        <mesh ref={cockpitGlowRef} position={[0, 0.3, 1.2]}>
+          <sphereGeometry args={[0.65, 8, 8]} />
+          <meshBasicMaterial color={0x00ff99} transparent opacity={0.2} />
         </mesh>
-      )}
+
+        {/* Weapon pod highlights - orange hot glow */}
+        <mesh position={[-0.8, 0, 0.5]}>
+          <sphereGeometry args={[0.2, 8, 8]} />
+          <meshBasicMaterial color={0xff6600} />
+        </mesh>
+        <mesh position={[-0.8, 0, 0.5]}>
+          <sphereGeometry args={[0.4, 6, 6]} />
+          <meshBasicMaterial color={0xff8833} transparent opacity={0.25} />
+        </mesh>
+        <mesh position={[0.8, 0, 0.5]}>
+          <sphereGeometry args={[0.2, 8, 8]} />
+          <meshBasicMaterial color={0xff6600} />
+        </mesh>
+        <mesh position={[0.8, 0, 0.5]}>
+          <sphereGeometry args={[0.4, 6, 6]} />
+          <meshBasicMaterial color={0xff8833} transparent opacity={0.25} />
+        </mesh>
+
+        {/* Engine thrust trail */}
+        <line ref={trailRef}>
+          <bufferGeometry />
+          <lineBasicMaterial color={0x00ffff} linewidth={3} transparent opacity={0.8} />
+        </line>
+
+        {/* Dual engine glow (rear) - cyan hot plasma */}
+        <mesh position={[-0.4, 0, -2.8]}>
+          <sphereGeometry args={[0.6, 10, 10]} />
+          <meshBasicMaterial color={0x00ffff} transparent opacity={0.6} />
+        </mesh>
+        <mesh ref={engineGlow1Ref} position={[-0.4, 0, -2.8]}>
+          <sphereGeometry args={[1.0, 6, 6]} />
+          <meshBasicMaterial color={0x00ccff} transparent opacity={0.15} />
+        </mesh>
+        <mesh position={[0.4, 0, -2.8]}>
+          <sphereGeometry args={[0.6, 10, 10]} />
+          <meshBasicMaterial color={0x00ffff} transparent opacity={0.6} />
+        </mesh>
+        <mesh ref={engineGlow2Ref} position={[0.4, 0, -2.8]}>
+          <sphereGeometry args={[1.0, 6, 6]} />
+          <meshBasicMaterial color={0x00ccff} transparent opacity={0.15} />
+        </mesh>
+
+        {/* Energy shield: pulsing geometric field */}
+        <mesh position={[0, 0, 0]} scale={[1 + Math.sin(gameState.simTime * 2.5) * 0.08, 1 + Math.sin(gameState.simTime * 2.5) * 0.08, 1 + Math.sin(gameState.simTime * 2.5) * 0.08]}>
+          <icosahedronGeometry args={[3.0, 1]} />
+          <meshBasicMaterial color={0x00aaff} wireframe transparent opacity={0.12} />
+        </mesh>
+
+        {/* Additional charge indicator aura when charging */}
+        {gameState.phase === 'charging' && (
+          <mesh position={[0, 0, 0]} scale={[0.8 + gameState.chargeLevel * 0.4, 0.8 + gameState.chargeLevel * 0.4, 0.8 + gameState.chargeLevel * 0.4]}>
+            <sphereGeometry args={[2.2, 16, 16]} />
+            <meshBasicMaterial
+              color={0xff00ff}
+              transparent
+              opacity={0.08 + gameState.chargeLevel * 0.1}
+            />
+          </mesh>
+        )}
+      </group>
     </group>
   );
 }
