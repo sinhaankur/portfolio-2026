@@ -18,11 +18,13 @@ import {
 // import { createNeuralAgent, type NeuralAgent } from '../../../lib/neural-game-engine/ai-agent';
 import { generateShip } from '../../../lib/ship-generator/procedural-ships';
 import { createEnemy } from './enemies';
-import { createInitialGameState, setWorld, startIgnition, startCombat, fireWeapon as fireWeaponState } from './game-state';
+import { createInitialGameState, startOpening, goToNexus, selectWorld, startIgnition, startCombat } from './game-state';
 import { defendedWorlds, getWaveConfig } from './worlds';
 import { HUD } from './hud';
 import { Starfield } from './starfield';
 import { TestingConsole } from './testing-console';
+import { OpeningSequence } from './opening-sequence';
+import { NexusStation } from './nexus-station';
 
 /**
  * Game Canvas: Main React component for Star Cleaver gameplay.
@@ -580,9 +582,24 @@ function GameRenderer() {
 
   return (
     <div ref={containerRef} style={{ width: '100%', height: '100%' }}>
-      {/* Import HUD */}
-      <div ref={canvasRef} style={{ width: '100%', height: '100%', position: 'relative' }}>
-        <Canvas
+      {/* Opening Sequence */}
+      {gameState.phase === 'opening' && (
+        <OpeningSequence onComplete={() => setGameState((s) => goToNexus(s))} />
+      )}
+
+      {/* Nexus Station Command Center */}
+      {gameState.phase === 'nexus' && (
+        <NexusStation
+          gameState={gameState}
+          onWorldSelect={(worldIndex) => setGameState((s) => selectWorld(s, worldIndex))}
+        />
+      )}
+
+      {/* Game Canvas (hidden during opening/nexus) */}
+      {gameState.phase !== 'opening' && gameState.phase !== 'nexus' && (
+        <>
+        <div ref={canvasRef} style={{ width: '100%', height: '100%', position: 'relative' }}>
+          <Canvas
         camera={{ fov: 55, near: 0.1, far: 2000, position: [0, 8, 25] }}
         gl={{
           antialias: true,
@@ -670,17 +687,20 @@ function GameRenderer() {
         {/* Camera follow: chase the player ship */}
         <CameraFollowController gameState={gameState} />
       </Canvas>
-      </div>
-      {/* HUD Layer */}
-      <HUD
-        gameState={gameState}
-        onShipSelect={(shipId) => {
-          setGameState((s) => ({ ...s, selectedShip: shipId }));
-        }}
-      />
+        </div>
 
-      {/* Testing Console (Ctrl+Shift+T) */}
-      {showTestConsole && <TestingConsole gameState={gameState} onStateChange={setGameState} />}
+        {/* HUD Layer */}
+        <HUD
+          gameState={gameState}
+          onShipSelect={(shipId) => {
+            setGameState((s) => ({ ...s, selectedShip: shipId }));
+          }}
+        />
+
+        {/* Testing Console (Ctrl+Shift+T) */}
+        {showTestConsole && <TestingConsole gameState={gameState} onStateChange={setGameState} />}
+        </>
+      )}
     </div>
   );
 }
