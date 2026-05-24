@@ -203,6 +203,11 @@ async function main() {
   //
   // The Sun shows up as a row with id=0; skip it (we render the Sun
   // explicitly in the scene). Anything with no magnitude is unusable.
+  // Conversion factor: 1 milliarcsecond → radian.
+  //   1 mas = 1e-3 arcsec = 1e-3 / 3600 degree = π / (180 × 3600 × 1000) rad
+  const MAS_PER_RAD = (180 * 3600 * 1000) / Math.PI
+  const RAD_PER_MAS = 1 / MAS_PER_RAD
+
   const filtered = []
   for (const r of rows) {
     const mag = Number(r.mag)
@@ -217,6 +222,33 @@ async function main() {
     const [x, y, z] = raDecToCartesian(ra, dec, SKY_SHELL)
     const [cr, cg, cb] = bvToRgb(Number.isFinite(bv) ? bv : 0.6)
     const size = magToSize(mag)
+
+    // Proper motion → motion-per-year vector at the star's sky-shell
+    // position. HYG stores pmra/pmdec as mas/yr (already includes the
+    // cos(dec) factor on pmra so we don't double-correct).
+    //
+    // Tangent frame on the sky shell:
+    //   east  = (-sin(ra), 0, cos(ra))           — direction of +RA
+    //   north = (-sin(dec)·cos(ra), cos(dec), -sin(dec)·sin(ra))  — +Dec
+    // Motion per year (radians) along these axes:
+    //   v = east · pmra_rad + north · pmdec_rad
+    // Cartesian displacement at radius SKY_SHELL is v · SKY_SHELL,
+    // but we encode WITHOUT the radius so the shader can lift one
+    // multiplication out (uniform × pre-baked vector).
+    const pmraMas = Number(r.pmra)
+    const pmdecMas = Number(r.pmdec)
+    const pmra = Number.isFinite(pmraMas) ? pmraMas * RAD_PER_MAS : 0
+    const pmdec = Number.isFinite(pmdecMas) ? pmdecMas * RAD_PER_MAS : 0
+    const raRad = (ra / 24) * 2 * Math.PI
+    const decRad = (dec / 180) * Math.PI
+    const cosRa = Math.cos(raRad), sinRa = Math.sin(raRad)
+    const cosDec = Math.cos(decRad), sinDec = Math.sin(decRad)
+    const eastX = -sinRa, eastY = 0, eastZ = cosRa
+    const northX = -sinDec * cosRa, northY = cosDec, northZ = -sinDec * sinRa
+    const mx = eastX * pmra + northX * pmdec
+    const my = eastY * pmra + northY * pmdec
+    const mz = eastZ * pmra + northZ * pmdec
+
     filtered.push({
       raw: r,
       ra,
@@ -227,6 +259,7 @@ async function main() {
       x, y, z,
       cr, cg, cb,
       size,
+      mx, my, mz, // motion per year in radians (multiply by SKY_SHELL in shader)
     })
   }
   console.log(`  Filtered to mag ≤ ${MAG_LIMIT}: ${filtered.length.toLocaleString()} stars`)
@@ -240,6 +273,7 @@ async function main() {
   const positions = new Float32Array(n * 3)
   const colors = new Float32Array(n * 3)
   const sizes = new Float32Array(n)
+  const motionPerYear = new Float32Array(n * 3)
   for (let i = 0; i < n; i++) {
     const s = filtered[i]
     positions[i * 3] = s.x
@@ -249,6 +283,9 @@ async function main() {
     colors[i * 3 + 1] = s.cg
     colors[i * 3 + 2] = s.cb
     sizes[i] = s.size
+    motionPerYear[i * 3] = s.mx
+    motionPerYear[i * 3 + 1] = s.my
+    motionPerYear[i * 3 + 2] = s.mz
   }
 
   // ---- Per-star metadata: only the named ones to keep size sane ----
@@ -299,6 +336,20 @@ export const BRIGHT_STAR_MAG_LIMIT = ${MAG_LIMIT}
 export const BRIGHT_STAR_POSITIONS = new Float32Array(${JSON.stringify(Array.from(positions).map((v) => Number(v.toFixed(3))))})
 export const BRIGHT_STAR_COLORS = new Float32Array(${JSON.stringify(Array.from(colors).map((v) => Number(v.toFixed(3))))})
 export const BRIGHT_STAR_SIZES = new Float32Array(${JSON.stringify(Array.from(sizes).map((v) => Number(v.toFixed(2))))})
+
+/**
+ * Per-star angular motion in RADIANS PER YEAR, expressed as a 3D
+ * tangent vector at the star's sky-shell position. Multiply by the
+ * sky-shell radius (150) in the shader to get a Cartesian
+ * displacement per year. Source: HYG pmra/pmdec (mas/yr at J2000).
+ *
+ * Most stars have proper motion < 50 mas/yr — invisible at human
+ * timescales. The drama is at the extremes: Barnard's Star (~10,000
+ * mas/yr) will streak visibly across the sky as the time-warp
+ * slider advances thousands of years. Use uYearsFromEpoch in the
+ * BrightStarField shader.
+ */
+export const BRIGHT_STAR_MOTION_PER_YEAR = new Float32Array(${JSON.stringify(Array.from(motionPerYear).map((v) => Number(v.toExponential(4))))})
 
 /**
  * Per-star metadata for the ${named.length} naked-eye stars with proper
