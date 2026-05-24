@@ -1,0 +1,359 @@
+import type { GameState, GameEntity, ActionCommand, GameEvent } from './types';
+import type { EntityManager } from './entity-manager';
+import type { CollisionSystem } from './collision-system';
+
+/**
+ * Game Loop: Core simulation step for defender game.
+ * Pure TypeScript, consumed by React via hooks.
+ *
+ * Pattern: Single update function called every frame.
+ * Driven by R3F's useFrame, respects timeWarpRef.current.
+ */
+export class GameLoop {
+  private entityManager: EntityManager;
+  private collisionSystem: CollisionSystem;
+  private gameState: GameState;
+
+  constructor(entityManager: EntityManager, collisionSystem: CollisionSystem, initialState: GameState) {
+    this.entityManager = entityManager;
+    this.collisionSystem = collisionSystem;
+    this.gameState = initialState;
+  }
+
+  /**
+   * Main update loop: call once per frame from useFrame.
+   *
+   * @param deltaTime Frame delta in seconds (already scaled by time warp)
+   * @param updateAI Optional: callback to get AI actions for enemies
+   */
+  update(
+    deltaTime: number,
+    updateAI?: (
+      entity: GameEntity,
+      context: { gameState: GameState; entityManager: EntityManager }
+    ) => Promise<ActionCommand>
+  ): GameState {
+    this.gameState.simTime += deltaTime;
+
+    // --- Phase-specific logic ---
+    switch (this.gameState.phase) {
+      case 'combat':
+        this.updateCombat(deltaTime, updateAI);
+        break;
+      case 'charging':
+        this.updateCharging(deltaTime);
+        break;
+      case 'firing':
+        this.updateFiring(deltaTime);
+        break;
+      case 'victory':
+        this.updateVictory(deltaTime);
+        break;
+      case 'defeat':
+        this.updateDefeat(deltaTime);
+        break;
+      case 'briefing':
+        // Briefing is UI-only, no gameplay
+        break;
+      case 'title':
+        // Title screen, no gameplay
+        break;
+      case 'upgrade':
+        // Upgrade screen, no gameplay
+        break;
+      case 'paused':
+        // Paused, no updates
+        break;
+    }
+
+    return this.gameState;
+  }
+
+  /**
+   * Combat phase: main gameplay loop.
+   */
+  private updateCombat(deltaTime: number, updateAI?: any) {
+    // Update player position/velocity
+    this.updateEntity(this.gameState.playerEntity, deltaTime);
+
+    // Update enemies
+    this.gameState.enemies.forEach((enemy) => {
+      this.updateEntity(enemy, deltaTime);
+      // AI decision (async, but we'll call it here for now)
+      if (updateAI) {
+        // In real implementation, batch these via Promise.all
+        updateAI(enemy, { gameState: this.gameState, entityManager: this.entityManager });
+      }
+    });
+
+    // Update projectiles
+    this.gameState.projectiles.forEach((projectile) => {
+      this.updateEntity(projectile, deltaTime);
+      // Check collisions
+      this.checkProjectileCollisions(projectile);
+    });
+
+    // Update allies (if any)
+    this.gameState.allies.forEach((ally) => {
+      this.updateEntity(ally, deltaTime);
+    });
+
+    // Check leaks: enemies reaching the planet
+    this.checkLeaks();
+
+    // Check wave completion
+    this.checkWaveCompletion();
+
+    // Check defeat condition
+    if (this.gameState.defendingPlanetHealth <= 0) {
+      this.gameState.phase = 'defeat';
+    }
+  }
+
+  /**
+   * Charging phase: player is holding fire button.
+   */
+  private updateCharging(deltaTime: number) {
+    this.gameState.chargeLevel = Math.min(this.gameState.maxCharge, this.gameState.chargeLevel + deltaTime * this.gameState.chargeRate);
+  }
+
+  /**
+   * Firing phase: beam is visible, resolving hits.
+   */
+  private updateFiring(deltaTime: number) {
+    // Beam duration is 220ms; once it expires, back to combat
+    const firingDuration = 0.22;
+    if (this.gameState.simTime - (this.gameState.waveStartTime || 0) > firingDuration) {
+      this.gameState.phase = 'combat';
+      this.gameState.chargeLevel = 0;
+    }
+  }
+
+  /**
+   * Victory phase: wave cleared, advance or show upgrade screen.
+   */
+  private updateVictory(deltaTime: number) {
+    // Delay before transition (for UI show/hide)
+    const victoryDuration = 2.0;
+    if (this.gameState.simTime - (this.gameState.waveStartTime || 0) > victoryDuration) {
+      if (this.gameState.wave >= 4) {
+        // All 4 waves cleared
+        if (this.gameState.worldIndex >= 6) {
+          // Game won (all 7 worlds)
+          this.gameState.phase = 'title';
+        } else {
+          // Next world
+          this.gameState.worldIndex++;
+          this.gameState.wave = 1;
+          this.gameState.phase = 'briefing';
+        }
+      } else {
+        // Next wave
+        this.gameState.wave++;
+        this.gameState.phase = 'briefing';
+      }
+    }
+  }
+
+  /**
+   * Defeat phase: planet destroyed.
+   */
+  private updateDefeat(deltaTime: number) {
+    const defeatDuration = 3.0;
+    if (this.gameState.simTime - (this.gameState.waveStartTime || 0) > defeatDuration) {
+      // Restart world
+      this.gameState.wave = 1;
+      this.gameState.phase = 'briefing';
+    }
+  }
+
+  /**
+   * Generic entity update: position, velocity, rotation.
+   */
+  private updateEntity(entity: GameEntity, deltaTime: number) {
+    // Integrate velocity into position
+    entity.position.x += entity.velocity.x * deltaTime;
+    entity.position.y += entity.velocity.y * deltaTime;
+    entity.position.z += entity.velocity.z * deltaTime;
+
+    // Apply basic drag (optional, tunable)
+    const dragFactor = 0.98;
+    entity.velocity.x *= dragFactor;
+    entity.velocity.y *= dragFactor;
+    entity.velocity.z *= dragFactor;
+  }
+
+  /**
+   * Check if projectile hit any enemy.
+   */
+  private checkProjectileCollisions(projectile: GameEntity) {
+    // Simple sphere overlap
+    const hits = this.collisionSystem.sphereOverlap(
+      { x: projectile.position.x, y: projectile.position.y, z: projectile.position.z },
+      projectile.radius,
+      projectile.id
+    );
+
+    hits.forEach((hit) => {
+      if (hit.team === 'enemy') {
+        // Deal damage
+        const damage = projectile.metadata?.damage ?? 10;
+        hit.health -= damage;
+
+        // Record event
+        this.gameState.events.push({
+          type: 'entity_damaged',
+          source: projectile.id,
+          target: hit.id,
+          amount: damage,
+          timestamp: this.gameState.simTime,
+        });
+
+        if (hit.health <= 0) {
+          // Enemy died
+          hit.active = false;
+          const scoreReward = projectile.metadata?.scoreReward ?? 100;
+          this.gameState.score += scoreReward * this.gameState.comboMultiplier;
+
+          this.gameState.events.push({
+            type: 'entity_killed',
+            source: projectile.id,
+            target: hit.id,
+            amount: scoreReward,
+            timestamp: this.gameState.simTime,
+          });
+        }
+
+        // Projectile consumed
+        projectile.active = false;
+      }
+    });
+  }
+
+  /**
+   * Check if any enemies reached the planet.
+   */
+  private checkLeaks() {
+    // Simplified: if enemy is close to origin, it leaked
+    const leakRadius = 5; // scene units
+    const leaked = this.gameState.enemies.filter((enemy) => {
+      const dist = Math.sqrt(
+        enemy.position.x ** 2 + enemy.position.y ** 2 + enemy.position.z ** 2
+      );
+      return dist < leakRadius;
+    });
+
+    leaked.forEach((enemy) => {
+      enemy.active = false;
+      this.gameState.leaksThisWave++;
+      const DAMAGE_PER_LEAK = 0.18;
+      this.gameState.defendingPlanetHealth -= DAMAGE_PER_LEAK;
+
+      this.gameState.events.push({
+        type: 'entity_damaged',
+        target: this.gameState.defendingPlanetId,
+        amount: DAMAGE_PER_LEAK,
+        timestamp: this.gameState.simTime,
+      });
+    });
+  }
+
+  /**
+   * Check if wave is complete (all enemies destroyed or leaked).
+   */
+  private checkWaveCompletion() {
+    const allEnemiesGone = this.gameState.enemies.every((e) => !e.active);
+    if (allEnemiesGone && this.gameState.enemies.length > 0) {
+      this.gameState.phase = 'victory';
+      this.gameState.waveStartTime = this.gameState.simTime;
+
+      const waveBonus = 250 * this.gameState.comboMultiplier;
+      this.gameState.score += waveBonus;
+
+      this.gameState.events.push({
+        type: 'wave_cleared',
+        amount: waveBonus,
+        timestamp: this.gameState.simTime,
+      });
+    }
+  }
+
+  /**
+   * Fire action: create projectile, transition to firing phase.
+   */
+  fireWeapon(chargeLevel: number) {
+    // Create projectile entity
+    const projectile: GameEntity = {
+      id: `projectile_${Date.now()}`,
+      position: { ...this.gameState.playerEntity.position },
+      velocity: {
+        x: Math.cos(this.gameState.playerEntity.rotation.z) * 20,
+        y: Math.sin(this.gameState.playerEntity.rotation.z) * 20,
+        z: 0,
+      },
+      rotation: { x: 0, y: 0, z: 0 },
+      health: 1,
+      maxHealth: 1,
+      radius: 0.2,
+      team: 'player',
+      type: 'projectile',
+      active: true,
+      metadata: {
+        damage: 10 + chargeLevel * 40,
+        scoreReward: 100,
+      },
+    };
+
+    this.entityManager.register(projectile);
+    this.gameState.projectiles.push(projectile);
+    this.gameState.phase = 'firing';
+    this.gameState.waveStartTime = this.gameState.simTime;
+  }
+
+  /**
+   * Spawn enemies for current wave.
+   */
+  spawnWaveEnemies(enemyFactory: (config: any) => GameEntity) {
+    const config = this.gameState.waveConfig;
+    config.enemyTypes.forEach(({ type, count }) => {
+      for (let i = 0; i < count; i++) {
+        const enemy = enemyFactory({
+          type,
+          wave: this.gameState.wave,
+          position: {
+            x: Math.random() * 20 - 10,
+            y: Math.random() * 20 - 10,
+            z: Math.random() * 10 + 50,
+          },
+        });
+        this.entityManager.register(enemy);
+        this.gameState.enemies.push(enemy);
+      }
+    });
+  }
+
+  /**
+   * Get current state (for React binding).
+   */
+  getState(): GameState {
+    return this.gameState;
+  }
+
+  /**
+   * Set state (for React binding).
+   */
+  setState(state: Partial<GameState>) {
+    Object.assign(this.gameState, state);
+  }
+}
+
+/**
+ * Create a fresh game loop for a new session.
+ */
+export function createGameLoop(
+  entityManager: EntityManager,
+  collisionSystem: CollisionSystem,
+  initialState: GameState
+): GameLoop {
+  return new GameLoop(entityManager, collisionSystem, initialState);
+}
