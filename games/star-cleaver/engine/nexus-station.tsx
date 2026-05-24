@@ -3,15 +3,18 @@
 import { useState } from 'react';
 import type { GameState } from '../../../lib/neural-game-engine';
 import { WORLD_STORIES } from './narrative';
+import { getAvailableShips, type SelectedShip } from './ship-selector';
 
 interface NexusStationProps {
   gameState: GameState;
-  onWorldSelect: (worldIndex: number) => void;
+  onLaunchMission: (worldIndex: number, shipId: SelectedShip) => void;
 }
 
-export function NexusStation({ gameState, onWorldSelect }: NexusStationProps) {
+export function NexusStation({ gameState, onLaunchMission }: NexusStationProps) {
   const [selectedWorld, setSelectedWorld] = useState<number>(0);
+  const [selectedShip, setSelectedShip] = useState<SelectedShip>(gameState.selectedShip as SelectedShip);
   const worldStory = WORLD_STORIES[selectedWorld];
+  const availableShips = getAvailableShips(gameState.worldsCompleted);
 
   return (
     <div className="fixed inset-0 z-50 bg-background pointer-events-auto overflow-y-auto">
@@ -31,7 +34,7 @@ export function NexusStation({ gameState, onWorldSelect }: NexusStationProps) {
             Humanity Stands
           </h1>
           <p className="text-foreground/70 font-sans text-base max-w-2xl">
-            Seven worlds. One weapon. The Cleaver is ready to defend.
+            Seven worlds. One weapon. Choose the target and the fighter, then launch.
           </p>
         </div>
 
@@ -93,7 +96,7 @@ export function NexusStation({ gameState, onWorldSelect }: NexusStationProps) {
               </div>
             </div>
 
-            {/* Mission briefing */}
+            {/* Mission briefing + ship selection */}
             <div className="lg:col-span-2 space-y-6">
               <div className="space-y-4">
                 <div className="space-y-2">
@@ -115,6 +118,59 @@ export function NexusStation({ gameState, onWorldSelect }: NexusStationProps) {
                 </div>
               </div>
 
+              <div className="space-y-4 border-t border-foreground/10 pt-6">
+                <div>
+                  <div className="font-mono text-[10px] tracking-[0.25em] uppercase text-cyan-400 mb-4">
+                    Select Vessel
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {availableShips.map((ship) => (
+                    <button
+                      key={ship.id}
+                      onClick={() => setSelectedShip(ship.id as SelectedShip)}
+                      className={`group relative p-5 rounded-lg border transition-all duration-300 text-left ${
+                        selectedShip === ship.id
+                          ? 'border-cyan-400/60 bg-cyan-400/10'
+                          : 'border-foreground/20 bg-foreground/5 hover:border-cyan-400/40 hover:bg-cyan-400/8'
+                      }`}
+                    >
+                      <div className="relative space-y-3">
+                        <div>
+                          <h3 className="font-mono text-[11px] tracking-[0.2em] uppercase text-foreground/85 mb-2">
+                            {ship.name}
+                          </h3>
+                          <p className="text-foreground/60 text-sm font-sans">
+                            {ship.description}
+                          </p>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2 pt-2 border-t border-foreground/10">
+                          {['speed', 'armor', 'weapons'].map((stat) => (
+                            <div key={stat} className="space-y-1">
+                              <div className="font-mono text-[8px] tracking-widest uppercase text-foreground/50">
+                                {stat}
+                              </div>
+                              <div className="flex gap-0.5">
+                                {Array.from({ length: 5 }).map((_, i) => (
+                                  <div
+                                    key={i}
+                                    className={`h-1.5 w-2 rounded-full ${
+                                      i < ship.stats[stat as keyof typeof ship.stats]
+                                        ? 'bg-cyan-400'
+                                        : 'bg-foreground/20'
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Commander message if exists */}
               {worldStory.commanderMessage && (
                 <div className="bg-foreground/5 border border-foreground/10 rounded p-4 space-y-2">
@@ -129,10 +185,10 @@ export function NexusStation({ gameState, onWorldSelect }: NexusStationProps) {
 
               {/* Launch button */}
               <button
-                onClick={() => onWorldSelect(selectedWorld)}
+                onClick={() => onLaunchMission(selectedWorld, selectedShip)}
                 className="w-full px-6 py-3 border border-cyan-400/50 bg-cyan-400/10 text-cyan-400 font-mono text-sm tracking-widest uppercase hover:bg-cyan-400/20 transition-colors rounded"
               >
-                LAUNCH DEFENSIVE MISSION
+                LAUNCH {worldStory.name.toUpperCase()} WITH {availableShips.find((ship) => ship.id === selectedShip)?.name.toUpperCase() ?? 'CLASSIC X-WING'}
               </button>
 
               {/* Flavor status */}

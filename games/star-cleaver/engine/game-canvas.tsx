@@ -591,7 +591,10 @@ function GameRenderer() {
       {gameState.phase === 'nexus' && (
         <NexusStation
           gameState={gameState}
-          onWorldSelect={(worldIndex) => setGameState((s) => selectWorld(s, worldIndex))}
+          onLaunchMission={(worldIndex, shipId) => setGameState((s) => startIgnition({
+            ...selectWorld(s, worldIndex),
+            selectedShip: shipId,
+          }))}
         />
       )}
 

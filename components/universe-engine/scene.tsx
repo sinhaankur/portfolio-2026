@@ -1340,9 +1340,9 @@ function ConstellationGroup({
           }}
         />
       ))}
-      {constellation.stars.map((star) => (
+      {constellation.stars.map((star, index) => (
         <ConstellationStarMesh
-          key={star.name}
+          key={`${constellation.id}:${star.name || star.designation || index}`}
           star={star}
           active={active}
           isClickable={isClickable}
