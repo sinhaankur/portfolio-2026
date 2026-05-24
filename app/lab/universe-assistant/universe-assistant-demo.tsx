@@ -22,7 +22,7 @@ export function UniverseAssistantDemo() {
     <div
       className="
         grid gap-6 lg:gap-8
-        lg:grid-cols-[1.4fr_1fr]
+        lg:grid-cols-[1.75fr_1fr]
         rounded-lg overflow-hidden
       "
     >
@@ -39,7 +39,7 @@ export function UniverseAssistantDemo() {
           relative
           aspect-4/5 sm:aspect-16/10 lg:aspect-auto lg:min-h-140
           rounded-lg overflow-hidden
-          border border-border
+          ring-1 ring-white/10
           bg-background
         "
       >
@@ -51,7 +51,7 @@ export function UniverseAssistantDemo() {
             before the visitor scrolls — without this it'd collapse
             to ~340px of empty state + composer and feel like a widget.
           Desktop: matches the engine's column height. */}
-      <div className="min-h-130 lg:min-h-140">
+      <div className="flex flex-col overflow-hidden min-h-130 lg:min-h-140">
         <AssistantPanel />
       </div>
     </div>

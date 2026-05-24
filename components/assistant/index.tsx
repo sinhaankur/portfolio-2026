@@ -24,6 +24,7 @@
  */
 
 import {
+  memo,
   useCallback,
   useEffect,
   useMemo,
@@ -249,21 +250,22 @@ export function AssistantPanel() {
     [sessionUsage],
   )
 
-  // Scroll to bottom on new messages.
+  // Scroll to bottom on new messages, but only if already near the bottom.
   const scrollRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     const el = scrollRef.current
     if (!el) return
-    el.scrollTop = el.scrollHeight
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 100
+    if (nearBottom) el.scrollTop = el.scrollHeight
   }, [messages])
 
   return (
-    <div className="flex flex-col h-full rounded-lg border border-border bg-card/40 overflow-hidden">
+    <div className="flex flex-col h-full rounded-lg border border-border bg-background/60 backdrop-blur-lg overflow-hidden">
       {/* Header */}
       <header className="flex items-center justify-between gap-3 px-4 py-3 border-b border-border/70">
-        <div className="flex items-center gap-2.5 min-w-0">
+        <div className="flex items-center gap-2 min-w-0">
           <Sparkles className="w-3.5 h-3.5 text-accent" aria-hidden="true" />
-          <h2 className="font-mono text-[10px] tracking-[0.25em] uppercase text-muted-foreground truncate">
+          <h2 className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground truncate">
             Universe Engine · Assistant
           </h2>
         </div>
@@ -272,7 +274,7 @@ export function AssistantPanel() {
           aria-label="Open assistant settings"
           className="
             inline-flex items-center justify-center
-            w-9 h-9 rounded-full
+            p-2 rounded-full
             text-muted-foreground hover:text-foreground hover:bg-secondary
             transition-colors
             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
@@ -354,7 +356,7 @@ export function AssistantPanel() {
  * Subcomponents
  * ------------------------------------------------------------------ */
 
-function EmptyState({
+const EmptyState = memo(function EmptyState({
   datasetCounts,
   hasConfig,
   onSuggestionClick,
@@ -367,7 +369,7 @@ function EmptyState({
 }) {
   return (
     <div className="py-6">
-      <p className="font-display text-2xl md:text-3xl font-light text-foreground mb-3 leading-tight">
+      <p className="font-display text-xl leading-snug text-foreground mb-3">
         Ask the engine.
       </p>
       <p className="text-sm text-muted-foreground leading-relaxed mb-5">
@@ -378,13 +380,13 @@ function EmptyState({
       </p>
 
       {hasConfig ? (
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {SUGGESTED_PROMPTS.map((prompt) => (
             <button
               key={prompt}
               onClick={() => onSuggestionClick(prompt)}
               className="
-                w-full text-left px-3.5 py-3 rounded-md
+                w-full text-left px-3 py-2.5 rounded-md
                 border border-border/70 hover:border-accent hover:bg-accent/5
                 text-sm text-foreground/85 hover:text-foreground
                 transition-colors
@@ -397,10 +399,9 @@ function EmptyState({
           ))}
         </div>
       ) : (
-        <div className="rounded-md border border-border/70 bg-secondary/30 p-4">
-          <p className="text-sm text-foreground mb-3">
-            Pick a provider to chat with the assistant. <strong className="font-medium text-foreground">Cloud:</strong> bring your own Anthropic API key.{" "}
-            <strong className="font-medium text-foreground">Local:</strong> point at LM Studio or Ollama running on your machine — no key, no cloud cost.
+        <div className="space-y-3">
+          <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground">
+            — Set up a provider to chat.
           </p>
           <button
             onClick={onOpenSettings}
@@ -418,9 +419,9 @@ function EmptyState({
       )}
     </div>
   )
-}
+})
 
-function UserBubble({ text }: { text: string }) {
+const UserBubble = memo(function UserBubble({ text }: { text: string }) {
   return (
     <div className="flex justify-end">
       <div className="
@@ -433,9 +434,9 @@ function UserBubble({ text }: { text: string }) {
       </div>
     </div>
   )
-}
+})
 
-function AssistantBubble({
+const AssistantBubble = memo(function AssistantBubble({
   blocks,
   pending,
   prefersReducedMotion,
@@ -517,7 +518,7 @@ function AssistantBubble({
       </div>
     </div>
   )
-}
+})
 
 function Composer({
   value,
@@ -585,18 +586,8 @@ function Composer({
           "
         />
         {disabled ? (
-          <button
-            onClick={onConfigureKey}
-            className="
-              shrink-0 inline-flex items-center justify-center gap-2
-              px-4 py-2.5 rounded-full
-              font-mono text-[11px] tracking-[0.2em] uppercase
-              bg-foreground text-background hover:bg-accent hover:text-accent-foreground
-              transition-colors min-h-11
-            "
-          >
-            Set up
-          </button>
+          // Setup is handled in the empty state — no duplicate CTA here
+          null
         ) : thinking ? (
           <button
             onClick={onAbort}
