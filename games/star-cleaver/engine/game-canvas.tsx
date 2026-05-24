@@ -18,7 +18,7 @@ import {
 // import { createNeuralAgent, type NeuralAgent } from '../../../lib/neural-game-engine/ai-agent';
 import { generateShip } from '../../../lib/ship-generator/procedural-ships';
 import { createEnemy } from './enemies';
-import { createInitialGameState, setWorld, startCombat, fireWeapon as fireWeaponState } from './game-state';
+import { createInitialGameState, setWorld, startIgnition, startCombat, fireWeapon as fireWeaponState } from './game-state';
 import { defendedWorlds, getWaveConfig } from './worlds';
 import { HUD } from './hud';
 import { Starfield } from './starfield';
@@ -251,9 +251,10 @@ function CameraFollowController({ gameState }: { gameState: GameState }) {
   const { camera } = useThree();
   const smoothPosRef = useRef(camera.position.clone());
 
-  // Dynamic offset based on phase: tighter during combat, wider during exploration
-  const offsetDistance = gameState.phase === 'combat' ? 14 : 20;
-  const offsetHeight = gameState.phase === 'combat' ? 7 : 9;
+  // Dynamic offset based on phase: flight cam behind ship during ignition/combat, wide during briefing
+  const isFlightPhase = gameState.phase === 'ignition' || gameState.phase === 'combat';
+  const offsetDistance = isFlightPhase ? 8 : 20;
+  const offsetHeight = isFlightPhase ? 2.5 : 9;
 
   useFrame((state, delta) => {
     const playerPos = new THREE.Vector3(
@@ -267,8 +268,8 @@ function CameraFollowController({ gameState }: { gameState: GameState }) {
     const desiredCameraPos = playerPos.clone().add(cameraOffset);
 
     // Ultra-smooth exponential follow: k = 1 - exp(-delta * rate)
-    // Matches Universe Engine's comet-following smoothness
-    const followRate = gameState.phase === 'combat' ? 3.5 : 2.8;
+    // Tighter during flight phases for responsive cockpit view
+    const followRate = isFlightPhase ? 4.5 : 2.8;
     const k = 1 - Math.exp(-delta * followRate);
 
     smoothPosRef.current.lerp(desiredCameraPos, k);
@@ -371,8 +372,8 @@ function GameScene({
     // Cap delta at 0.1 to prevent spiral of death
     const clampedDelta = Math.min(delta, 0.1);
 
-    // --- EXPLORATION CONTROLS: Arrow keys for rotation, W/Up for thrust ---
-    if (gameState.phase === 'combat' || gameState.phase === 'charging' || gameState.phase === 'briefing') {
+    // --- FLIGHT CONTROLS: Arrow keys for rotation, W/Up for thrust ---
+    if (gameState.phase === 'ignition' || gameState.phase === 'combat' || gameState.phase === 'charging') {
       // Get current forward direction from player rotation
       const playerQuat = new THREE.Quaternion();
       const playerEuler = new THREE.Euler(
@@ -462,12 +463,19 @@ function GameRenderer() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       keysPressed.current.add(e.code);
-      // Start combat on spacebar (briefing → combat)
+      // Start ignition on spacebar (briefing → ignition → combat)
       if (e.code === 'Space') {
         e.preventDefault();
         setGameState((s) => {
           if (s.phase === 'briefing') {
-            return startCombat(s);
+            return startIgnition(s);
+          }
+          // Auto-transition from ignition to combat after sequence completes
+          if (s.phase === 'ignition') {
+            const elapsedSinceIgnition = (s.ignitionStartTime ?? 0) - s.simTime;
+            if (elapsedSinceIgnition > 3.5) { // 3.5 second ignition sequence
+              return startCombat(s);
+            }
           }
           return s;
         });

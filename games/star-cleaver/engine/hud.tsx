@@ -106,7 +106,7 @@ export function HUD({ gameState }: HUDProps) {
             </div>
           )}
 
-          {/* Phase overlay messages */}
+          {/* Briefing overlay */}
           {gameState.phase === 'briefing' && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/50 backdrop-blur-sm pointer-events-auto">
               <div className="text-center max-w-2xl px-6">
@@ -120,7 +120,47 @@ export function HUD({ gameState }: HUDProps) {
                   Wave {gameState.wave} incoming. Prepare defensive systems.
                 </p>
                 <div className="font-mono text-[9px] tracking-[0.2em] uppercase text-foreground/55">
-                  CLICK TO BEGIN
+                  PRESS SPACE TO LAUNCH
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Ignition sequence */}
+          {gameState.phase === 'ignition' && (
+            <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/40 backdrop-blur-sm pointer-events-none">
+              <div className="text-center space-y-8">
+                <div className="space-y-3">
+                  <div className="font-mono text-[11px] tracking-[0.3em] uppercase text-cyan-400">
+                    SYSTEMS INITIALIZING
+                  </div>
+                  <div className="h-0.5 w-32 bg-linear-to-r from-transparent via-cyan-400 to-transparent mx-auto" />
+                </div>
+
+                {/* Boot sequence stages */}
+                <div className="space-y-2 text-left">
+                  <div className="font-mono text-[9px] tracking-[0.15em] text-foreground/70">
+                    ▸ POWER CORE: <span className="text-green-400">ONLINE</span>
+                  </div>
+                  <div className="font-mono text-[9px] tracking-[0.15em] text-foreground/70">
+                    ▸ ENGINES: <span className="text-cyan-400">SPOOLING</span>
+                  </div>
+                  <div className="font-mono text-[9px] tracking-[0.15em] text-foreground/70">
+                    ▸ WEAPONS: <span className="text-yellow-400">ARMED</span>
+                  </div>
+                  <div className="font-mono text-[9px] tracking-[0.15em] text-foreground/70">
+                    ▸ SHIELDS: <span className="text-green-400">ACTIVE</span>
+                  </div>
+                </div>
+
+                {/* Launch countdown */}
+                <div className="space-y-2">
+                  <div className="font-mono text-[10px] tracking-[0.2em] uppercase text-foreground/55">
+                    LAUNCH IN
+                  </div>
+                  <div className="font-serif text-5xl text-cyan-400 font-light">
+                    {Math.max(0, Math.ceil(3.5 - ((gameState.ignitionStartTime ?? 0) - gameState.simTime)))}
+                  </div>
                 </div>
               </div>
             </div>

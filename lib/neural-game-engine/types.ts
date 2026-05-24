@@ -78,13 +78,14 @@ export interface MemoryBuffer {
  * Enough to serialize/deserialize for save/load.
  */
 export interface GameState {
-  phase: 'title' | 'briefing' | 'combat' | 'charging' | 'firing' | 'victory' | 'defeat' | 'upgrade' | 'paused';
+  phase: 'title' | 'briefing' | 'ignition' | 'combat' | 'charging' | 'firing' | 'victory' | 'defeat' | 'upgrade' | 'paused';
   worldIndex: number; // 0–6: Earth → Kepler-186f
   wave: number; // 1–4 per world
   score: number;
   comboMultiplier: number;
   simTime: number; // cumulative seconds since game start
   waveStartTime: number;
+  ignitionStartTime?: number; // when ignition sequence began (for timing animation)
 
   playerEntity: GameEntity;
   playerMaxHealth: number;

@@ -93,7 +93,18 @@ export function startBriefing(state: GameState): GameState {
 }
 
 /**
- * Transition from briefing to combat.
+ * Transition from briefing to ignition (ship startup sequence).
+ */
+export function startIgnition(state: GameState): GameState {
+  return {
+    ...state,
+    phase: 'ignition',
+    ignitionStartTime: state.simTime,
+  };
+}
+
+/**
+ * Transition from ignition to combat (after startup sequence completes).
  */
 export function startCombat(state: GameState): GameState {
   return {
@@ -101,6 +112,7 @@ export function startCombat(state: GameState): GameState {
     phase: 'combat',
     simTime: 0,
     waveStartTime: 0,
+    ignitionStartTime: undefined,
   };
 }
 
