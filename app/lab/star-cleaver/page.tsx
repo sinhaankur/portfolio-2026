@@ -56,6 +56,38 @@ export default function StarCleaverExperience() {
   return (
     <div style={{ width: '100vw', height: '100vh', overflow: 'hidden', margin: 0, padding: 0 }}>
       <UniverseEngine interactive showHud showMusic invert />
+      <div
+        style={{
+          position: 'fixed',
+          top: '16px',
+          right: '16px',
+          zIndex: 30,
+          maxWidth: '320px',
+          padding: '12px 14px',
+          background: 'rgba(0, 0, 0, 0.58)',
+          color: 'rgba(255, 255, 255, 0.92)',
+          border: '1px solid rgba(255, 255, 255, 0.16)',
+          borderRadius: '14px',
+          backdropFilter: 'blur(12px)',
+          pointerEvents: 'none',
+        }}
+      >
+        <div
+          style={{
+            fontFamily: 'monospace',
+            fontSize: '10px',
+            letterSpacing: '0.22em',
+            textTransform: 'uppercase',
+            color: 'rgba(255, 255, 255, 0.62)',
+            marginBottom: '6px',
+          }}
+        >
+          Lab Engine · Science First
+        </div>
+        <p style={{ margin: 0, fontSize: '12px', lineHeight: 1.55, color: 'rgba(255, 255, 255, 0.78)' }}>
+          This is the more detailed lab-side Universe Engine. It uses real astronomy data and stricter scale behavior than the home hero, and this is the version Star Cleaver launches from.
+        </p>
+      </div>
       {/* Overlay hint for game discovery */}
       <div
         style={{

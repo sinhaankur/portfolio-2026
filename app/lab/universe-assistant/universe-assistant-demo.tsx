@@ -44,6 +44,14 @@ export function UniverseAssistantDemo() {
         "
       >
         <UniverseEngine interactive showHud showMusic={false} />
+        <div className="pointer-events-none absolute right-4 top-4 z-20 max-w-xs rounded-2xl border border-white/12 bg-black/55 px-4 py-3 backdrop-blur-sm">
+          <p className="font-mono text-[10px] tracking-[0.24em] uppercase text-white/60">
+            Lab Engine · Science First
+          </p>
+          <p className="mt-1 text-[11px] leading-relaxed text-white/78">
+            Real astronomy data, stricter scale behavior than the home hero, and the same detailed engine used by the game-side experience.
+          </p>
+        </div>
       </div>
 
       {/* Assistant.
