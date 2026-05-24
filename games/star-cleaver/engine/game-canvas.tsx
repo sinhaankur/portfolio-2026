@@ -49,6 +49,12 @@ function PlayerShipGroup({ gameState }: { gameState: GameState }) {
   const thrusterCone2Ref = useRef<THREE.Mesh>(null);
   const thrusterCone3Ref = useRef<THREE.Mesh>(null);
   const thrusterCone4Ref = useRef<THREE.Mesh>(null);
+  const rcsNoseLeftRef = useRef<THREE.Mesh>(null);
+  const rcsNoseRightRef = useRef<THREE.Mesh>(null);
+  const rcsTopRef = useRef<THREE.Mesh>(null);
+  const rcsBottomRef = useRef<THREE.Mesh>(null);
+  const rcsWingLeftRef = useRef<THREE.Mesh>(null);
+  const rcsWingRightRef = useRef<THREE.Mesh>(null);
   const cockpitGlowRef = useRef<THREE.Mesh>(null);
   const visualBankRef = useRef(0);
   const selectedShip = (gameState.selectedShip || 'default-xwing') as SelectedShip;
@@ -90,6 +96,29 @@ function PlayerShipGroup({ gameState }: { gameState: GameState }) {
       (ref.current.material as THREE.MeshBasicMaterial).opacity = plumeOpacity;
     });
 
+    // RCS maneuvering thrusters for orientation/position hold.
+    const rcsYaw = Number(gameState.playerEntity.metadata?.rcsYaw ?? 0);
+    const rcsPitch = Number(gameState.playerEntity.metadata?.rcsPitch ?? 0);
+    const rcsRoll = Number(gameState.playerEntity.metadata?.rcsRoll ?? 0);
+    const rcsBrake = Number(gameState.playerEntity.metadata?.rcsBrake ?? 0);
+    const yawStrength = Math.min(1, Math.abs(rcsYaw) * 22);
+    const pitchStrength = Math.min(1, Math.abs(rcsPitch) * 22);
+    const rollStrength = Math.min(1, Math.abs(rcsRoll) * 22);
+
+    const noseLeftOpacity = 0.05 + (rcsYaw < 0 ? yawStrength * 0.7 : 0) + rcsBrake * 0.24;
+    const noseRightOpacity = 0.05 + (rcsYaw > 0 ? yawStrength * 0.7 : 0) + rcsBrake * 0.24;
+    const topOpacity = 0.04 + (rcsPitch < 0 ? pitchStrength * 0.78 : 0);
+    const bottomOpacity = 0.04 + (rcsPitch > 0 ? pitchStrength * 0.78 : 0);
+    const wingLeftOpacity = 0.04 + (rcsRoll > 0 ? rollStrength * 0.72 : 0);
+    const wingRightOpacity = 0.04 + (rcsRoll < 0 ? rollStrength * 0.72 : 0);
+
+    if (rcsNoseLeftRef.current) (rcsNoseLeftRef.current.material as THREE.MeshBasicMaterial).opacity = noseLeftOpacity;
+    if (rcsNoseRightRef.current) (rcsNoseRightRef.current.material as THREE.MeshBasicMaterial).opacity = noseRightOpacity;
+    if (rcsTopRef.current) (rcsTopRef.current.material as THREE.MeshBasicMaterial).opacity = topOpacity;
+    if (rcsBottomRef.current) (rcsBottomRef.current.material as THREE.MeshBasicMaterial).opacity = bottomOpacity;
+    if (rcsWingLeftRef.current) (rcsWingLeftRef.current.material as THREE.MeshBasicMaterial).opacity = wingLeftOpacity;
+    if (rcsWingRightRef.current) (rcsWingRightRef.current.material as THREE.MeshBasicMaterial).opacity = wingRightOpacity;
+
     // Cockpit glow pulses faster when boosting
     if (cockpitGlowRef.current) {
       const pulseFreq = 1.5 + driveSignal * (boostActive ? 5.0 : 3.0);
@@ -123,7 +152,7 @@ function PlayerShipGroup({ gameState }: { gameState: GameState }) {
           <sphereGeometry args={[0.55, 8, 8]} />
           <meshBasicMaterial color={0xff5f95} transparent opacity={0.2} />
         </mesh>
-        <mesh ref={thrusterCone1Ref} position={[-0.55, 0.18, -3.5]} rotation={[Math.PI, 0, 0]}>
+        <mesh ref={thrusterCone1Ref} position={[-0.55, 0.18, -3.5]} rotation={[-Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.24, 1.5, 12, 1, true]} />
           <meshBasicMaterial color={0xff8ab3} transparent opacity={0.32} side={THREE.DoubleSide} depthWrite={false} />
         </mesh>
@@ -136,7 +165,7 @@ function PlayerShipGroup({ gameState }: { gameState: GameState }) {
           <sphereGeometry args={[0.55, 8, 8]} />
           <meshBasicMaterial color={0xff5f95} transparent opacity={0.2} />
         </mesh>
-        <mesh ref={thrusterCone2Ref} position={[-0.55, -0.18, -3.5]} rotation={[Math.PI, 0, 0]}>
+        <mesh ref={thrusterCone2Ref} position={[-0.55, -0.18, -3.5]} rotation={[-Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.24, 1.5, 12, 1, true]} />
           <meshBasicMaterial color={0xff8ab3} transparent opacity={0.32} side={THREE.DoubleSide} depthWrite={false} />
         </mesh>
@@ -149,7 +178,7 @@ function PlayerShipGroup({ gameState }: { gameState: GameState }) {
           <sphereGeometry args={[0.55, 8, 8]} />
           <meshBasicMaterial color={0xff5f95} transparent opacity={0.2} />
         </mesh>
-        <mesh ref={thrusterCone3Ref} position={[0.55, 0.18, -3.5]} rotation={[Math.PI, 0, 0]}>
+        <mesh ref={thrusterCone3Ref} position={[0.55, 0.18, -3.5]} rotation={[-Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.24, 1.5, 12, 1, true]} />
           <meshBasicMaterial color={0xff8ab3} transparent opacity={0.32} side={THREE.DoubleSide} depthWrite={false} />
         </mesh>
@@ -162,9 +191,35 @@ function PlayerShipGroup({ gameState }: { gameState: GameState }) {
           <sphereGeometry args={[0.55, 8, 8]} />
           <meshBasicMaterial color={0xff5f95} transparent opacity={0.2} />
         </mesh>
-        <mesh ref={thrusterCone4Ref} position={[0.55, -0.18, -3.5]} rotation={[Math.PI, 0, 0]}>
+        <mesh ref={thrusterCone4Ref} position={[0.55, -0.18, -3.5]} rotation={[-Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.24, 1.5, 12, 1, true]} />
           <meshBasicMaterial color={0xff8ab3} transparent opacity={0.32} side={THREE.DoubleSide} depthWrite={false} />
+        </mesh>
+
+        {/* RCS maneuvering thrusters (attitude + position correction) */}
+        <mesh ref={rcsNoseLeftRef} position={[-0.95, 0.06, 1.55]}>
+          <sphereGeometry args={[0.1, 8, 8]} />
+          <meshBasicMaterial color={0x9fd8ff} transparent opacity={0.05} depthWrite={false} />
+        </mesh>
+        <mesh ref={rcsNoseRightRef} position={[0.95, 0.06, 1.55]}>
+          <sphereGeometry args={[0.1, 8, 8]} />
+          <meshBasicMaterial color={0x9fd8ff} transparent opacity={0.05} depthWrite={false} />
+        </mesh>
+        <mesh ref={rcsTopRef} position={[0, 0.56, 0.55]}>
+          <sphereGeometry args={[0.09, 8, 8]} />
+          <meshBasicMaterial color={0xaee5ff} transparent opacity={0.04} depthWrite={false} />
+        </mesh>
+        <mesh ref={rcsBottomRef} position={[0, -0.56, 0.55]}>
+          <sphereGeometry args={[0.09, 8, 8]} />
+          <meshBasicMaterial color={0xaee5ff} transparent opacity={0.04} depthWrite={false} />
+        </mesh>
+        <mesh ref={rcsWingLeftRef} position={[-1.35, 0, -0.22]}>
+          <sphereGeometry args={[0.09, 8, 8]} />
+          <meshBasicMaterial color={0xb7e9ff} transparent opacity={0.04} depthWrite={false} />
+        </mesh>
+        <mesh ref={rcsWingRightRef} position={[1.35, 0, -0.22]}>
+          <sphereGeometry args={[0.09, 8, 8]} />
+          <meshBasicMaterial color={0xb7e9ff} transparent opacity={0.04} depthWrite={false} />
         </mesh>
       </group>
     </group>
@@ -419,6 +474,10 @@ function GameScene({
       gameState.playerEntity.metadata.thrustLevel = Math.min(1, Math.abs(forwardSpeedRef.current) / 58);
       gameState.playerEntity.metadata.boostActive = isBoosting;
       gameState.playerEntity.metadata.attackMode = attackMode;
+      gameState.playerEntity.metadata.rcsYaw = yawDelta;
+      gameState.playerEntity.metadata.rcsPitch = pitchDelta;
+      gameState.playerEntity.metadata.rcsRoll = rollDelta;
+      gameState.playerEntity.metadata.rcsBrake = isBraking ? 1 : 0;
     }
 
     // Update game logic
