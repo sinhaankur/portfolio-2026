@@ -45,8 +45,12 @@ function PlayerShipGroup({ gameState }: { gameState: GameState }) {
   const innerGroupRef = useRef<THREE.Group>(null);
   const engineGlow1Ref = useRef<THREE.Mesh>(null);
   const engineGlow2Ref = useRef<THREE.Mesh>(null);
+  const engineGlow3Ref = useRef<THREE.Mesh>(null);
+  const engineGlow4Ref = useRef<THREE.Mesh>(null);
   const thrusterCone1Ref = useRef<THREE.Mesh>(null);
   const thrusterCone2Ref = useRef<THREE.Mesh>(null);
+  const thrusterCone3Ref = useRef<THREE.Mesh>(null);
+  const thrusterCone4Ref = useRef<THREE.Mesh>(null);
   const cockpitGlowRef = useRef<THREE.Mesh>(null);
   const visualBankRef = useRef(0);
   const selectedShip = (gameState.selectedShip || 'default-xwing') as SelectedShip;
@@ -92,7 +96,7 @@ function PlayerShipGroup({ gameState }: { gameState: GameState }) {
     const engineOpacity = 0.3 + driveSignal * (boostActive ? 0.68 : 0.48);
     const engineScale = 0.68 + driveSignal * (boostActive ? 1.0 : 0.72);
 
-    [engineGlow1Ref, engineGlow2Ref].forEach(ref => {
+    [engineGlow1Ref, engineGlow2Ref, engineGlow3Ref, engineGlow4Ref].forEach(ref => {
       if (!ref.current) return;
       (ref.current.material as THREE.MeshBasicMaterial).opacity = engineOpacity;
       ref.current.scale.setScalar(engineScale);
@@ -100,7 +104,7 @@ function PlayerShipGroup({ gameState }: { gameState: GameState }) {
 
     const plumeLength = 0.95 + driveSignal * (boostActive ? 4.2 : 2.7);
     const plumeOpacity = 0.25 + driveSignal * (boostActive ? 0.7 : 0.45);
-    [thrusterCone1Ref, thrusterCone2Ref].forEach(ref => {
+    [thrusterCone1Ref, thrusterCone2Ref, thrusterCone3Ref, thrusterCone4Ref].forEach(ref => {
       if (!ref.current) return;
       ref.current.scale.set(1, plumeLength, 1);
       (ref.current.material as THREE.MeshBasicMaterial).opacity = plumeOpacity;
@@ -136,30 +140,57 @@ function PlayerShipGroup({ gameState }: { gameState: GameState }) {
           <lineBasicMaterial color={0x88dfff} linewidth={2} transparent opacity={0.35} />
         </line>
 
-        {/* Dual engine glow (rear) - cyan hot plasma */}
-        <mesh position={[-0.4, 0, -2.8]}>
-          <sphereGeometry args={[0.36, 10, 10]} />
-          <meshBasicMaterial color={0x66e5ff} transparent opacity={0.62} />
+        {/* Four-engine glow (rear) - pink-red fusial signature */}
+        <mesh position={[-0.55, 0.18, -2.8]}>
+          <sphereGeometry args={[0.29, 10, 10]} />
+          <meshBasicMaterial color={0xff7aa9} transparent opacity={0.7} />
         </mesh>
-        <mesh ref={engineGlow1Ref} position={[-0.4, 0, -2.8]}>
-          <sphereGeometry args={[0.65, 8, 8]} />
-          <meshBasicMaterial color={0x3bc7ff} transparent opacity={0.15} />
+        <mesh ref={engineGlow1Ref} position={[-0.55, 0.18, -2.8]}>
+          <sphereGeometry args={[0.55, 8, 8]} />
+          <meshBasicMaterial color={0xff5f95} transparent opacity={0.2} />
         </mesh>
-        <mesh ref={thrusterCone1Ref} position={[-0.4, 0, -3.5]} rotation={[Math.PI, 0, 0]}>
+        <mesh ref={thrusterCone1Ref} position={[-0.55, 0.18, -3.5]} rotation={[Math.PI, 0, 0]}>
           <coneGeometry args={[0.24, 1.5, 12, 1, true]} />
-          <meshBasicMaterial color={0x8ee9ff} transparent opacity={0.32} side={THREE.DoubleSide} depthWrite={false} />
+          <meshBasicMaterial color={0xff8ab3} transparent opacity={0.32} side={THREE.DoubleSide} depthWrite={false} />
         </mesh>
-        <mesh position={[0.4, 0, -2.8]}>
-          <sphereGeometry args={[0.36, 10, 10]} />
-          <meshBasicMaterial color={0x66e5ff} transparent opacity={0.62} />
+
+        <mesh position={[-0.55, -0.18, -2.8]}>
+          <sphereGeometry args={[0.29, 10, 10]} />
+          <meshBasicMaterial color={0xff7aa9} transparent opacity={0.7} />
         </mesh>
-        <mesh ref={engineGlow2Ref} position={[0.4, 0, -2.8]}>
-          <sphereGeometry args={[0.65, 8, 8]} />
-          <meshBasicMaterial color={0x3bc7ff} transparent opacity={0.15} />
+        <mesh ref={engineGlow2Ref} position={[-0.55, -0.18, -2.8]}>
+          <sphereGeometry args={[0.55, 8, 8]} />
+          <meshBasicMaterial color={0xff5f95} transparent opacity={0.2} />
         </mesh>
-        <mesh ref={thrusterCone2Ref} position={[0.4, 0, -3.5]} rotation={[Math.PI, 0, 0]}>
+        <mesh ref={thrusterCone2Ref} position={[-0.55, -0.18, -3.5]} rotation={[Math.PI, 0, 0]}>
           <coneGeometry args={[0.24, 1.5, 12, 1, true]} />
-          <meshBasicMaterial color={0x8ee9ff} transparent opacity={0.32} side={THREE.DoubleSide} depthWrite={false} />
+          <meshBasicMaterial color={0xff8ab3} transparent opacity={0.32} side={THREE.DoubleSide} depthWrite={false} />
+        </mesh>
+
+        <mesh position={[0.55, 0.18, -2.8]}>
+          <sphereGeometry args={[0.29, 10, 10]} />
+          <meshBasicMaterial color={0xff7aa9} transparent opacity={0.7} />
+        </mesh>
+        <mesh ref={engineGlow3Ref} position={[0.55, 0.18, -2.8]}>
+          <sphereGeometry args={[0.55, 8, 8]} />
+          <meshBasicMaterial color={0xff5f95} transparent opacity={0.2} />
+        </mesh>
+        <mesh ref={thrusterCone3Ref} position={[0.55, 0.18, -3.5]} rotation={[Math.PI, 0, 0]}>
+          <coneGeometry args={[0.24, 1.5, 12, 1, true]} />
+          <meshBasicMaterial color={0xff8ab3} transparent opacity={0.32} side={THREE.DoubleSide} depthWrite={false} />
+        </mesh>
+
+        <mesh position={[0.55, -0.18, -2.8]}>
+          <sphereGeometry args={[0.29, 10, 10]} />
+          <meshBasicMaterial color={0xff7aa9} transparent opacity={0.7} />
+        </mesh>
+        <mesh ref={engineGlow4Ref} position={[0.55, -0.18, -2.8]}>
+          <sphereGeometry args={[0.55, 8, 8]} />
+          <meshBasicMaterial color={0xff5f95} transparent opacity={0.2} />
+        </mesh>
+        <mesh ref={thrusterCone4Ref} position={[0.55, -0.18, -3.5]} rotation={[Math.PI, 0, 0]}>
+          <coneGeometry args={[0.24, 1.5, 12, 1, true]} />
+          <meshBasicMaterial color={0xff8ab3} transparent opacity={0.32} side={THREE.DoubleSide} depthWrite={false} />
         </mesh>
       </group>
     </group>
@@ -340,7 +371,6 @@ function GameScene({
 
     // --- FLIGHT CONTROLS: Arrow keys for rotation, W/Up for thrust ---
     if (gameState.phase === 'ignition' || gameState.phase === 'combat' || gameState.phase === 'charging') {
-      // Get current forward direction from player rotation
       const playerQuat = new THREE.Quaternion();
       const playerEuler = new THREE.Euler(
         gameState.playerEntity.rotation.x,
@@ -349,27 +379,16 @@ function GameScene({
       );
       playerQuat.setFromEuler(playerEuler);
 
-      // Forward vector in local space (0, 0, 1)
-      const forwardLocal = new THREE.Vector3(0, 0, 1);
-      forwardLocal.applyQuaternion(playerQuat);
+      const forwardLocal = new THREE.Vector3(0, 0, 1).applyQuaternion(playerQuat);
 
-      // Right vector
-      const rightLocal = new THREE.Vector3(1, 0, 0);
-      rightLocal.applyQuaternion(playerQuat);
-
-      // Up vector
-      const upLocal = new THREE.Vector3(0, 1, 0);
-      upLocal.applyQuaternion(playerQuat);
-
-      // Multi-input rotation: keyboard + mouse + device orientation
-      const arrowSensitivity = 0.05;
+      const attackMode = Boolean(gameState.playerEntity.metadata?.attackMode);
+      const arrowSensitivity = attackMode ? 0.065 : 0.045;
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
       let pitchDelta = 0;
       let yawDelta = 0;
       let rollDelta = 0;
 
-      // Keyboard input (arrow keys)
       if (keysPressed.current.has('ArrowUp')) pitchDelta += arrowSensitivity;
       if (keysPressed.current.has('ArrowDown')) pitchDelta -= arrowSensitivity;
       if (keysPressed.current.has('ArrowLeft')) yawDelta += arrowSensitivity;
@@ -377,26 +396,19 @@ function GameScene({
       if (keysPressed.current.has('KeyQ')) rollDelta += arrowSensitivity;
       if (keysPressed.current.has('KeyE')) rollDelta -= arrowSensitivity;
 
-      // Mouse input (desktop): map mouse position to pitch/yaw
       if (!isMobile) {
-        // Smooth mouse aiming for desktop
-        const mouseSensitivity = 0.015;
+        const mouseSensitivity = attackMode ? 0.018 : 0.013;
         pitchDelta += mouseRotation.current.pitch * mouseSensitivity;
         yawDelta += mouseRotation.current.yaw * mouseSensitivity;
       }
 
-      // Device orientation input (mobile): use gyroscope for flight
       if (isMobile && deviceOrientation.current.beta !== 0) {
-        const deviceSensitivity = 0.008;
-        // Beta: tilt forward/backward (X rotation)
+        const deviceSensitivity = attackMode ? 0.009 : 0.007;
         pitchDelta += (deviceOrientation.current.beta / 180) * deviceSensitivity * 2;
-        // Gamma: tilt left/right (Y rotation)
         yawDelta -= (deviceOrientation.current.gamma / 90) * deviceSensitivity * 2;
-        // Alpha: twist (Z rotation) - optional
         rollDelta += (deviceOrientation.current.alpha / 360) * deviceSensitivity * 0.5;
       }
 
-      // Apply accumulated rotation deltas
       gameState.playerEntity.rotation.x += pitchDelta;
       gameState.playerEntity.rotation.y += yawDelta;
       gameState.playerEntity.rotation.z += rollDelta;
@@ -405,27 +417,25 @@ function GameScene({
       const isBraking = keysPressed.current.has('KeyS') || keysPressed.current.has('ArrowDown');
       const isBoosting = keysPressed.current.has('ShiftLeft') || keysPressed.current.has('ShiftRight');
 
-      // Inertial speed model: target speed changes by input, then eases over time.
-      let targetSpeed = 14;
-      if (isAccelerating) targetSpeed = 36;
-      if (isBraking) targetSpeed = -14;
-      if (isBoosting && targetSpeed > 0) targetSpeed *= 1.6;
+      let targetSpeed = attackMode ? 11 : 18;
+      if (isAccelerating) targetSpeed = attackMode ? 30 : 44;
+      if (isBraking) targetSpeed = attackMode ? -12 : -18;
+      if (isBoosting && targetSpeed > 0) targetSpeed *= attackMode ? 1.4 : 1.7;
 
-      const speedResponse = isBoosting ? 7.5 : 4.5;
+      const speedResponse = isBoosting ? 8.0 : attackMode ? 6.0 : 4.5;
       const speedK = 1 - Math.exp(-clampedDelta * speedResponse);
       forwardSpeedRef.current += (targetSpeed - forwardSpeedRef.current) * speedK;
 
-      // Apply velocity based on forward direction and smoothed speed.
       gameState.playerEntity.velocity.x = forwardLocal.x * forwardSpeedRef.current;
       gameState.playerEntity.velocity.y = forwardLocal.y * forwardSpeedRef.current;
       gameState.playerEntity.velocity.z = forwardLocal.z * forwardSpeedRef.current;
 
-      // Publish control state so the ship can render immediate ignition/boost feedback.
       if (!gameState.playerEntity.metadata) {
         gameState.playerEntity.metadata = {};
       }
       gameState.playerEntity.metadata.thrustLevel = Math.min(1, Math.abs(forwardSpeedRef.current) / 58);
       gameState.playerEntity.metadata.boostActive = isBoosting;
+      gameState.playerEntity.metadata.attackMode = attackMode;
     }
 
     // Update game logic
@@ -471,6 +481,21 @@ function GameRenderer() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       keysPressed.current.add(e.code);
+      if (e.code === 'KeyX') {
+        setGameState((s) => {
+          const current = Boolean(s.playerEntity.metadata?.attackMode);
+          return {
+            ...s,
+            playerEntity: {
+              ...s.playerEntity,
+              metadata: {
+                ...(s.playerEntity.metadata ?? {}),
+                attackMode: !current,
+              },
+            },
+          };
+        });
+      }
       // Start ignition on spacebar
       if (e.code === 'Space') {
         e.preventDefault();

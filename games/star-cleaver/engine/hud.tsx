@@ -29,6 +29,7 @@ export function HUD({ gameState }: HUDProps) {
   }, [gameState.playerEntity.rotation.y]);
   const cruisePercent = Math.min(100, (speed / 30) * 100);
   const boostActive = Boolean(gameState.playerEntity.metadata?.boostActive);
+  const attackMode = Boolean(gameState.playerEntity.metadata?.attackMode);
 
   // Planet health color: green → yellow → red
   const planetHealthColor = useMemo(() => {
@@ -291,10 +292,10 @@ export function HUD({ gameState }: HUDProps) {
       {gameState.phase === 'combat' && (
         <div className="fixed bottom-32 left-1/2 transform -translate-x-1/2 z-30 pointer-events-none text-center">
           <div className="font-mono text-[8px] tracking-[0.25em] uppercase text-foreground/40 mb-2">
-            ↑↓←→ ROTATE · W ACCELERATE · S BRAKE · SHIFT BOOST · Q/E ROLL
+            ↑↓←→ ROTATE · W ACCELERATE · S BRAKE · SHIFT BOOST · Q/E ROLL · X FOILS
           </div>
           <div className="font-mono text-[9px] tracking-[0.15em] text-foreground/50">
-            SHIELD: {Math.ceil((gameState.defendingPlanetHealth) * 100)}% · BOOST {boostActive ? 'ON' : 'OFF'} · SCORE {formatScore(gameState.score)}
+            FOILS: {attackMode ? 'ATTACK' : 'CRUISE'} · BOOST {boostActive ? 'ON' : 'OFF'} · SCORE {formatScore(gameState.score)}
           </div>
         </div>
       )}
