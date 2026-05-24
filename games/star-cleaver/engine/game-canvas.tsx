@@ -17,7 +17,7 @@ import {
 } from '../../../lib/neural-game-engine';
 // import { createNeuralAgent, type NeuralAgent } from '../../../lib/neural-game-engine/ai-agent';
 import { generateShip } from '../../../lib/ship-generator/procedural-ships';
-import { createInitialGameState, startOpening, goToNexus, selectWorld, startIgnition, startCombat } from './game-state';
+import { createInitialGameState, startOpening, goToNexus, selectWorld, startIgnition, startExploration } from './game-state';
 import { HUD } from './hud';
 import { Starfield } from './starfield';
 import { TestingConsole } from './testing-console';
@@ -331,8 +331,8 @@ function CameraFollowController({ gameState }: { gameState: GameState }) {
   const smoothPosRef = useRef(camera.position.clone());
   const smoothLookRef = useRef(new THREE.Vector3());
 
-  // Dynamic offset based on phase: flight cam behind ship during ignition/combat, wide during briefing
-  const isFlightPhase = gameState.phase === 'ignition' || gameState.phase === 'combat';
+  // Dynamic offset based on phase: flight cam behind ship during ignition/exploration, wide during briefing
+  const isFlightPhase = gameState.phase === 'ignition' || gameState.phase === 'exploration';
   const baseOffsetDistance = isFlightPhase ? 8 : 20;
   const baseOffsetHeight = isFlightPhase ? 2.5 : 9;
 
@@ -455,7 +455,7 @@ function GameScene({
 
   // Travel-only mode: ensure enemy list remains empty while cruising.
   useEffect(() => {
-    if (gameState.phase !== 'combat') return;
+    if (gameState.phase !== 'exploration') return;
     if (gameState.enemies.length === 0) return;
     onUpdate({ ...gameState, enemies: [] });
   }, [gameState, onUpdate]);
@@ -471,7 +471,7 @@ function GameScene({
     const clampedDelta = Math.min(delta, 0.1);
 
     // --- FLIGHT CONTROLS: Arrow keys for rotation, W/Up for thrust ---
-    if (gameState.phase === 'ignition' || gameState.phase === 'combat' || gameState.phase === 'charging') {
+    if (gameState.phase === 'ignition' || gameState.phase === 'exploration' || gameState.phase === 'charging') {
       const playerQuat = new THREE.Quaternion();
       const playerEuler = new THREE.Euler(
         gameState.playerEntity.rotation.x,
@@ -650,12 +650,12 @@ function GameRenderer() {
   const deviceOrientationRef = useRef({ alpha: 0, beta: 0, gamma: 0 });
 
   // Guardrail: if ignition timer completes but phase did not flip for any reason,
-  // force transition to combat so it never appears frozen on countdown.
+  // force transition to exploration so it never appears frozen on countdown.
   useEffect(() => {
     if (gameState.phase !== 'ignition') return;
     const elapsed = gameState.simTime - (gameState.ignitionStartTime ?? 0);
     if (elapsed <= 3.05) return;
-    setGameState((s) => (s.phase === 'ignition' ? startCombat(s) : s));
+    setGameState((s) => (s.phase === 'ignition' ? startExploration(s) : s));
   }, [gameState.phase, gameState.simTime, gameState.ignitionStartTime]);
 
   // Multi-input flight controls: keyboard, mouse, device orientation
@@ -687,7 +687,7 @@ function GameRenderer() {
           if (s.phase === 'ignition') {
             const elapsedSinceIgnition = s.simTime - (s.ignitionStartTime ?? 0);
             if (elapsedSinceIgnition > 3.0) {
-              return startCombat(s);
+              return startExploration(s);
             }
           }
           return s;

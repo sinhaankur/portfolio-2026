@@ -142,16 +142,23 @@ export function startIgnition(state: GameState): GameState {
 }
 
 /**
- * Transition from ignition to combat (after startup sequence completes).
+ * Transition from ignition to exploration (after startup sequence completes).
  */
-export function startCombat(state: GameState): GameState {
+export function startExploration(state: GameState): GameState {
   return {
     ...state,
-    phase: 'combat',
+    phase: 'exploration',
     simTime: 0,
     waveStartTime: 0,
     ignitionStartTime: undefined,
   };
+}
+
+/**
+ * Backward-compatible alias while migration away from combat naming is in progress.
+ */
+export function startCombat(state: GameState): GameState {
+  return startExploration(state);
 }
 
 /**

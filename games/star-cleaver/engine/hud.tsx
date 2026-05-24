@@ -30,6 +30,9 @@ export function HUD({ gameState }: HUDProps) {
   const cruisePercent = Math.min(100, (speed / 30) * 100);
   const boostActive = Boolean(gameState.playerEntity.metadata?.boostActive);
   const attackMode = Boolean(gameState.playerEntity.metadata?.attackMode);
+  const gasCloudDensity = Number(gameState.playerEntity.metadata?.gasCloudDensity ?? 0);
+  const isExplorationPhase =
+    gameState.phase === 'exploration' || gameState.phase === 'ignition' || gameState.phase === 'combat';
 
   // Planet health color: green → yellow → red
   const planetHealthColor = useMemo(() => {
@@ -47,7 +50,7 @@ export function HUD({ gameState }: HUDProps) {
           <div className="font-mono text-[11px] tracking-[0.25em] uppercase text-foreground/85">
             <div>{worldName}</div>
             <div className="text-foreground/55 mt-1">
-              TRAVEL MODE · WORLD {gameState.worldIndex + 1}/7
+              STAGE 1 · EXPLORATION · WORLD {gameState.worldIndex + 1}/7
             </div>
           </div>
 
@@ -86,7 +89,7 @@ export function HUD({ gameState }: HUDProps) {
       <div className="fixed bottom-0 inset-x-0 z-40 pointer-events-none">
         <div className="flex flex-col items-center gap-4 pb-6 max-w-6xl mx-auto">
           {/* Travel telemetry */}
-          {gameState.phase === 'combat' ? (
+          {isExplorationPhase ? (
             <div className="flex flex-col items-center gap-2">
               <div className="text-foreground/55 font-mono text-[9px] tracking-[0.2em] uppercase">
                 CRUISE VELOCITY
@@ -99,6 +102,9 @@ export function HUD({ gameState }: HUDProps) {
               </div>
               <div className="text-foreground/70 font-mono text-[8px] tracking-[0.16em] uppercase">
                 {Math.round(speed)} U/S · HEADING {heading}°
+              </div>
+              <div className="text-foreground/55 font-mono text-[8px] tracking-[0.14em] uppercase">
+                GAS CLOUD {Math.round(gasCloudDensity * 100)}%
               </div>
             </div>
           ) : (
@@ -289,13 +295,13 @@ export function HUD({ gameState }: HUDProps) {
       </div>
 
       {/* Control hints and flight info */}
-      {gameState.phase === 'combat' && (
+      {isExplorationPhase && (
         <div className="fixed bottom-32 left-1/2 transform -translate-x-1/2 z-30 pointer-events-none text-center">
           <div className="font-mono text-[8px] tracking-[0.25em] uppercase text-foreground/40 mb-2">
             ↑↓←→ ROTATE · W ACCELERATE · S BRAKE · SHIFT BOOST · Q/E ROLL · X FOILS
           </div>
           <div className="font-mono text-[9px] tracking-[0.15em] text-foreground/50">
-            FOILS: {attackMode ? 'ATTACK' : 'CRUISE'} · BOOST {boostActive ? 'ON' : 'OFF'} · SCORE {formatScore(gameState.score)}
+            STAGE 1 EXPLORATION · FOILS: {attackMode ? 'ATTACK' : 'CRUISE'} · BOOST {boostActive ? 'ON' : 'OFF'} · SCORE {formatScore(gameState.score)}
           </div>
         </div>
       )}
