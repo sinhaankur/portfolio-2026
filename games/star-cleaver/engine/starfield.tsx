@@ -3,6 +3,7 @@
 import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { BrightStarField } from '../../../components/universe-engine/bright-star-field';
 
 /**
  * Dynamic starfield that surrounds the player.
@@ -86,6 +87,9 @@ export function Starfield({ gasClouds = [] }: { gasClouds?: GasCloudField[] }) {
 
   return (
     <>
+      {/* Share the same bright-star dataset/shader as the Universe Engine. */}
+      <BrightStarField mobile={false} enableMotion={false} />
+
       {layers.map((layer, idx) => (
         <points
           key={`starfield-${idx}`}
@@ -110,11 +114,11 @@ export function Starfield({ gasClouds = [] }: { gasClouds?: GasCloudField[] }) {
       {/* Nebula haze for universe visibility against dark backgrounds */}
       <mesh>
         <sphereGeometry args={[900, 32, 32]} />
-        <meshBasicMaterial color={0x123a78} transparent opacity={0.08} side={THREE.BackSide} depthWrite={false} />
+        <meshBasicMaterial color={0x122a52} transparent opacity={0.035} side={THREE.BackSide} depthWrite={false} />
       </mesh>
       <mesh rotation={[0.25, 0.9, 0]}>
         <sphereGeometry args={[620, 24, 24]} />
-        <meshBasicMaterial color={0x2a4b9f} transparent opacity={0.06} side={THREE.BackSide} depthWrite={false} />
+        <meshBasicMaterial color={0x1e4a8c} transparent opacity={0.025} side={THREE.BackSide} depthWrite={false} />
       </mesh>
 
       {/* Distant solar-system landmark cluster for navigation context. */}
@@ -147,19 +151,19 @@ export function Starfield({ gasClouds = [] }: { gasClouds?: GasCloudField[] }) {
 
         <mesh rotation={[Math.PI / 2, 0, 0]}>
           <ringGeometry args={[44.5, 45.2, 96]} />
-          <meshBasicMaterial color={0x4f6ca3} transparent opacity={0.18} side={THREE.DoubleSide} depthWrite={false} toneMapped={false} />
+          <meshBasicMaterial color={0x4f6ca3} transparent opacity={0.08} side={THREE.DoubleSide} depthWrite={false} toneMapped={false} />
         </mesh>
         <mesh rotation={[Math.PI / 2, 0, 0]}>
           <ringGeometry args={[70.5, 71.2, 96]} />
-          <meshBasicMaterial color={0x6587bf} transparent opacity={0.16} side={THREE.DoubleSide} depthWrite={false} toneMapped={false} />
+          <meshBasicMaterial color={0x6587bf} transparent opacity={0.07} side={THREE.DoubleSide} depthWrite={false} toneMapped={false} />
         </mesh>
         <mesh rotation={[Math.PI / 2, 0, 0]}>
           <ringGeometry args={[100.5, 101.2, 96]} />
-          <meshBasicMaterial color={0x7da1da} transparent opacity={0.14} side={THREE.DoubleSide} depthWrite={false} toneMapped={false} />
+          <meshBasicMaterial color={0x7da1da} transparent opacity={0.06} side={THREE.DoubleSide} depthWrite={false} toneMapped={false} />
         </mesh>
         <mesh rotation={[Math.PI / 2, 0, 0]}>
           <ringGeometry args={[134.5, 135.2, 96]} />
-          <meshBasicMaterial color={0x90b6ef} transparent opacity={0.12} side={THREE.DoubleSide} depthWrite={false} toneMapped={false} />
+          <meshBasicMaterial color={0x90b6ef} transparent opacity={0.05} side={THREE.DoubleSide} depthWrite={false} toneMapped={false} />
         </mesh>
       </group>
 
