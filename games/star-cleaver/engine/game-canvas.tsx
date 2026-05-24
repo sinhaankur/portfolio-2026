@@ -480,7 +480,9 @@ function GameScene({
       );
       playerQuat.setFromEuler(playerEuler);
 
-      const forwardLocal = new THREE.Vector3(0, 0, 1).applyQuaternion(playerQuat);
+      // The imported ship mesh faces -Z in gameplay orientation.
+      // Use local -Z as thrust-forward so W moves toward the pointy nose.
+      const forwardLocal = new THREE.Vector3(0, 0, -1).applyQuaternion(playerQuat);
 
       const attackMode = Boolean(gameState.playerEntity.metadata?.attackMode);
       const arrowSensitivity = attackMode ? 0.065 : 0.045;
