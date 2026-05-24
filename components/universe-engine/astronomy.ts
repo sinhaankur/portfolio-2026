@@ -394,12 +394,17 @@ export const DEFAULT_JOURNEY: JourneyWaypoint[] = [
   },
   // 5. Sgr A* — supermassive BH at the centre of the Milky Way.
   // Origin of the MilkyWay group; closer distance frames the
-  // accretion-disc model rather than the galaxy as a whole.
+  // accretion-disc model rather than the galaxy as a whole. Caption
+  // surfaces the "you can't see it, you can only see what circles it"
+  // story that makes Sgr A* astronomically important.
   {
     target: { x: 0, y: 0, z: 0 },
     distance: 14,
     label: "Sagittarius A*",
-    linger: 6500,
+    caption:
+      "The supermassive black hole at the centre of our galaxy — 26,000 light-years away, 4 million solar masses. You can't see it directly; nothing escapes. Astronomers know it's there because stars around it move at up to 10 million mph, orbiting an invisible point.",
+    captionSource: "Galactic Centre · Sagittarius constellation",
+    linger: 9000,
   },
   // 6. M87* / Pōwehi — first black hole ever imaged (EHT, April 2019).
   // Projected onto the sky shell from its real RA/Dec.
@@ -475,7 +480,7 @@ export const SGR_A_INFO: BodyInfo = {
   name: "Sagittarius A*",
   classification: "Supermassive black hole",
   surfaceTempK: { mean: 0 },
-  fact: "Galactic centre. ~4.15 million solar masses, event horizon ~24 million km. The whole Milky Way rotates around it.",
+  fact: "Centre of the Milky Way, ~26,000 light-years from Earth. ~4 million solar masses, event horizon ~24 million km. Astronomers can't see Sgr A* directly — no light escapes — but they track its mass by watching stars whip around an invisible point at up to 10 million mph. The space immediately around it is one of the densest regions of the galaxy: thousands of stars (ancient red main-sequence + unusually hot young ones) plus rivers of molecular gas and dust. Considered 'dormant' compared to other galactic-centre BHs — it's exhausted the matter nearest to it. The brilliant glow you see toward the Sagittarius constellation isn't the black hole; it's the dense star + dust cloud surrounding it.",
 }
 
 export const SUN_INFO: BodyInfo = {
