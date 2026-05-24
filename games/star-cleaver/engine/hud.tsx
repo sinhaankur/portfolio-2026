@@ -19,6 +19,15 @@ export function HUD({ gameState }: HUDProps) {
   const planetHealthPercent = gameState.defendingPlanetHealth * 100;
   const chargePercent = (gameState.chargeLevel / gameState.maxCharge) * 100;
   const worldName = getCurrentWorldName(gameState);
+  const speed = useMemo(() => {
+    const { x, y, z } = gameState.playerEntity.velocity;
+    return Math.sqrt(x * x + y * y + z * z);
+  }, [gameState.playerEntity.velocity]);
+  const heading = useMemo(() => {
+    const deg = (gameState.playerEntity.rotation.y * 180) / Math.PI;
+    return Math.round(((deg % 360) + 360) % 360);
+  }, [gameState.playerEntity.rotation.y]);
+  const cruisePercent = Math.min(100, (speed / 30) * 100);
 
   // Planet health color: green → yellow → red
   const planetHealthColor = useMemo(() => {
@@ -71,24 +80,41 @@ export function HUD({ gameState }: HUDProps) {
         </div>
       </div>
 
-      {/* Bottom bar: Planet health + charge meter */}
+      {/* Bottom bar: travel telemetry + charge meter */}
       <div className="fixed bottom-0 inset-x-0 z-40 pointer-events-none">
         <div className="flex flex-col items-center gap-4 pb-6 max-w-6xl mx-auto">
-          {/* Planet health indicator */}
-          <div className="flex flex-col items-center gap-2">
-            <div className="text-foreground/55 font-mono text-[9px] tracking-[0.2em] uppercase">
-              PLANET SHIELD
+          {/* Travel telemetry */}
+          {gameState.phase === 'combat' ? (
+            <div className="flex flex-col items-center gap-2">
+              <div className="text-foreground/55 font-mono text-[9px] tracking-[0.2em] uppercase">
+                CRUISE VELOCITY
+              </div>
+              <div className="w-96 h-1.5 rounded-full bg-foreground/10 border border-foreground/20 overflow-hidden">
+                <div
+                  className="h-full bg-cyan-400 transition-all duration-100"
+                  style={{ width: `${cruisePercent}%` }}
+                />
+              </div>
+              <div className="text-foreground/70 font-mono text-[8px] tracking-[0.16em] uppercase">
+                {Math.round(speed)} U/S · HEADING {heading}°
+              </div>
             </div>
-            <div className="w-96 h-1.5 rounded-full bg-foreground/10 border border-foreground/20 overflow-hidden">
-              <div
-                className={`h-full transition-all duration-100 ${planetHealthColor}`}
-                style={{ width: `${planetHealthPercent}%` }}
-              />
+          ) : (
+            <div className="flex flex-col items-center gap-2">
+              <div className="text-foreground/55 font-mono text-[9px] tracking-[0.2em] uppercase">
+                PLANET SHIELD
+              </div>
+              <div className="w-96 h-1.5 rounded-full bg-foreground/10 border border-foreground/20 overflow-hidden">
+                <div
+                  className={`h-full transition-all duration-100 ${planetHealthColor}`}
+                  style={{ width: `${planetHealthPercent}%` }}
+                />
+              </div>
+              <div className="text-foreground/70 font-mono text-[8px]">
+                {Math.ceil(planetHealthPercent)}%
+              </div>
             </div>
-            <div className="text-foreground/70 font-mono text-[8px]">
-              {Math.ceil(planetHealthPercent)}%
-            </div>
-          </div>
+          )}
 
           {/* Charge meter - only visible when charging */}
           {gameState.phase === 'charging' && (
@@ -225,7 +251,7 @@ export function HUD({ gameState }: HUDProps) {
                     LAUNCH IN
                   </div>
                   <div className="font-serif text-5xl text-cyan-400 font-light">
-                    {Math.max(0, Math.ceil(3.5 - (gameState.simTime - (gameState.ignitionStartTime ?? 0))))}
+                    {Math.max(0, Math.ceil(3.0 - (gameState.simTime - (gameState.ignitionStartTime ?? 0))))}
                   </div>
                 </div>
               </div>
@@ -267,7 +293,7 @@ export function HUD({ gameState }: HUDProps) {
             ↑↓←→ ROTATE · W ACCELERATE · S BRAKE · SHIFT BOOST · Q/E ROLL
           </div>
           <div className="font-mono text-[9px] tracking-[0.15em] text-foreground/50">
-            SHIELD: {Math.ceil((gameState.defendingPlanetHealth) * 100)}% · CRUISE ACTIVE
+            SHIELD: {Math.ceil((gameState.defendingPlanetHealth) * 100)}% · CRUISE ACTIVE · SCORE {formatScore(gameState.score)}
           </div>
         </div>
       )}

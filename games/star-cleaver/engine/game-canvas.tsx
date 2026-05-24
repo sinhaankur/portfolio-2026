@@ -84,8 +84,8 @@ function PlayerShipGroup({ gameState }: { gameState: GameState }) {
 
     // Velocity-responsive engine glow brightness and scale
     const normalizedSpeed = Math.min(speed / 25, 1.0);
-    const engineOpacity = 0.3 + normalizedSpeed * 0.55;
-    const engineScale = 0.7 + normalizedSpeed * 0.9;
+    const engineOpacity = 0.18 + normalizedSpeed * 0.38;
+    const engineScale = 0.55 + normalizedSpeed * 0.55;
 
     [engineGlow1Ref, engineGlow2Ref].forEach(ref => {
       if (!ref.current) return;
@@ -111,75 +111,35 @@ function PlayerShipGroup({ gameState }: { gameState: GameState }) {
           <PlayerShipModel shipId={selectedShip} mode="game" />
         </Suspense>
 
-        {/* Cockpit glow - bright green-cyan */}
-        <mesh position={[0, 0.3, 1.2]}>
-          <sphereGeometry args={[0.4, 12, 12]} />
-          <meshBasicMaterial color={0x00ff99} />
-        </mesh>
+        {/* Cockpit glow - subtle green-cyan */}
         <mesh ref={cockpitGlowRef} position={[0, 0.3, 1.2]}>
-          <sphereGeometry args={[0.65, 8, 8]} />
-          <meshBasicMaterial color={0x00ff99} transparent opacity={0.2} />
-        </mesh>
-
-        {/* Weapon pod highlights - orange hot glow */}
-        <mesh position={[-0.8, 0, 0.5]}>
-          <sphereGeometry args={[0.2, 8, 8]} />
-          <meshBasicMaterial color={0xff6600} />
-        </mesh>
-        <mesh position={[-0.8, 0, 0.5]}>
-          <sphereGeometry args={[0.4, 6, 6]} />
-          <meshBasicMaterial color={0xff8833} transparent opacity={0.25} />
-        </mesh>
-        <mesh position={[0.8, 0, 0.5]}>
-          <sphereGeometry args={[0.2, 8, 8]} />
-          <meshBasicMaterial color={0xff6600} />
-        </mesh>
-        <mesh position={[0.8, 0, 0.5]}>
-          <sphereGeometry args={[0.4, 6, 6]} />
-          <meshBasicMaterial color={0xff8833} transparent opacity={0.25} />
+          <sphereGeometry args={[0.42, 10, 10]} />
+          <meshBasicMaterial color={0x7fffd4} transparent opacity={0.16} />
         </mesh>
 
         {/* Engine thrust trail */}
         <line ref={trailRef}>
           <bufferGeometry />
-          <lineBasicMaterial color={0x00ffff} linewidth={3} transparent opacity={0.8} />
+          <lineBasicMaterial color={0x88dfff} linewidth={2} transparent opacity={0.35} />
         </line>
 
         {/* Dual engine glow (rear) - cyan hot plasma */}
         <mesh position={[-0.4, 0, -2.8]}>
-          <sphereGeometry args={[0.6, 10, 10]} />
-          <meshBasicMaterial color={0x00ffff} transparent opacity={0.6} />
+          <sphereGeometry args={[0.36, 10, 10]} />
+          <meshBasicMaterial color={0x66e5ff} transparent opacity={0.42} />
         </mesh>
         <mesh ref={engineGlow1Ref} position={[-0.4, 0, -2.8]}>
-          <sphereGeometry args={[1.0, 6, 6]} />
-          <meshBasicMaterial color={0x00ccff} transparent opacity={0.15} />
+          <sphereGeometry args={[0.65, 8, 8]} />
+          <meshBasicMaterial color={0x3bc7ff} transparent opacity={0.08} />
         </mesh>
         <mesh position={[0.4, 0, -2.8]}>
-          <sphereGeometry args={[0.6, 10, 10]} />
-          <meshBasicMaterial color={0x00ffff} transparent opacity={0.6} />
+          <sphereGeometry args={[0.36, 10, 10]} />
+          <meshBasicMaterial color={0x66e5ff} transparent opacity={0.42} />
         </mesh>
         <mesh ref={engineGlow2Ref} position={[0.4, 0, -2.8]}>
-          <sphereGeometry args={[1.0, 6, 6]} />
-          <meshBasicMaterial color={0x00ccff} transparent opacity={0.15} />
+          <sphereGeometry args={[0.65, 8, 8]} />
+          <meshBasicMaterial color={0x3bc7ff} transparent opacity={0.08} />
         </mesh>
-
-        {/* Energy shield: pulsing geometric field */}
-        <mesh position={[0, 0, 0]} scale={[1 + Math.sin(gameState.simTime * 2.5) * 0.08, 1 + Math.sin(gameState.simTime * 2.5) * 0.08, 1 + Math.sin(gameState.simTime * 2.5) * 0.08]}>
-          <icosahedronGeometry args={[3.0, 1]} />
-          <meshBasicMaterial color={0x00aaff} wireframe transparent opacity={0.12} />
-        </mesh>
-
-        {/* Additional charge indicator aura when charging */}
-        {gameState.phase === 'charging' && (
-          <mesh position={[0, 0, 0]} scale={[0.8 + gameState.chargeLevel * 0.4, 0.8 + gameState.chargeLevel * 0.4, 0.8 + gameState.chargeLevel * 0.4]}>
-            <sphereGeometry args={[2.2, 16, 16]} />
-            <meshBasicMaterial
-              color={0xff00ff}
-              transparent
-              opacity={0.08 + gameState.chargeLevel * 0.1}
-            />
-          </mesh>
-        )}
       </group>
     </group>
   );
@@ -452,7 +412,7 @@ function GameRenderer() {
   useEffect(() => {
     if (gameState.phase !== 'ignition') return;
     const elapsed = gameState.simTime - (gameState.ignitionStartTime ?? 0);
-    if (elapsed <= 3.6) return;
+    if (elapsed <= 3.05) return;
     setGameState((s) => (s.phase === 'ignition' ? startCombat(s) : s));
   }, [gameState.phase, gameState.simTime, gameState.ignitionStartTime]);
 
@@ -469,7 +429,7 @@ function GameRenderer() {
           }
           if (s.phase === 'ignition') {
             const elapsedSinceIgnition = s.simTime - (s.ignitionStartTime ?? 0);
-            if (elapsedSinceIgnition > 3.5) {
+            if (elapsedSinceIgnition > 3.0) {
               return startCombat(s);
             }
           }

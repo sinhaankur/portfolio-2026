@@ -82,7 +82,7 @@ export class GameLoop {
    * Auto-transitions to combat after sequence completes.
    */
   private updateIgnition(deltaTime: number) {
-    const ignitionDuration = 3.5; // seconds
+    const ignitionDuration = 3.0; // seconds
     const elapsed = this.gameState.simTime - (this.gameState.ignitionStartTime ?? 0);
 
     // Allow player to practice flight controls during ignition
