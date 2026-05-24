@@ -75,10 +75,8 @@ export type SelectedShip = 'default-xwing' | 'alliance-xwing' | 't70-xwing' | 'x
  * X-Blade: unlocked after 5 worlds
  */
 export function getAvailableShips(worldsCompleted: number): ShipConfig[] {
-  const ships = [SHIP_CONFIGS['default-xwing'], SHIP_CONFIGS['alliance-xwing']];
-  if (worldsCompleted >= 2) ships.push(SHIP_CONFIGS['t70-xwing']);
-  if (worldsCompleted >= 5) ships.push(SHIP_CONFIGS['x-blade']);
-  return ships;
+  void worldsCompleted;
+  return [SHIP_CONFIGS['default-xwing']];
 }
 
 interface ShipSelectorProps {
@@ -87,6 +85,8 @@ interface ShipSelectorProps {
 }
 
 export function ShipSelector({ gameState, onSelect }: ShipSelectorProps) {
+  const availableShips = getAvailableShips(gameState.worldsCompleted);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 backdrop-blur-md pointer-events-auto">
       <div className="text-center max-w-3xl px-6 space-y-8">
@@ -101,7 +101,7 @@ export function ShipSelector({ gameState, onSelect }: ShipSelectorProps) {
 
         {/* Ship cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {Object.values(SHIP_CONFIGS).map((ship) => (
+          {availableShips.map((ship) => (
             <button
               key={ship.id}
               onClick={() => onSelect(ship.id)}
