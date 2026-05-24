@@ -28,6 +28,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(__dirname, "..")
 const CACHE_DIR = path.join(ROOT, "scripts", ".cache")
 const CACHE_FILE = path.join(CACHE_DIR, "hyg-v41.csv")
+const IAU_CACHE_FILE = path.join(CACHE_DIR, "iau-csn.txt")
 const OUT_FILE = path.join(ROOT, "lib", "data", "bright-stars.ts")
 
 // HYG v4.1 (CURRENT) — astronexus public-domain catalog. Columns
@@ -35,6 +36,15 @@ const OUT_FILE = path.join(ROOT, "lib", "data", "bright-stars.ts")
 // re-run the script (and commit the diff) when you want fresher data.
 const HYG_URL =
   "https://raw.githubusercontent.com/astronexus/HYG-Database/main/hyg/CURRENT/hygdata_v41.csv"
+
+// IAU Catalog of Star Names — the WGSN's official approved names.
+// Mamajek (WGSN Secretary) hosts the canonical text mirror at his
+// Rochester URL. Updates infrequently; CC-BY licensed.
+//
+// We merge by HIPPARCOS number first, fall back to HD. The IAU name
+// takes precedence over HYG's `proper` column when both exist — IAU
+// is the official authority.
+const IAU_URL = "https://www.pas.rochester.edu/~emamajek/WGSN/IAU-CSN.txt"
 
 // Naked-eye magnitude limit. 6.5 ≈ what a sharp eye sees from a
 // genuinely dark site. The dataset has ~9,100 stars at this cutoff.
@@ -74,6 +84,85 @@ async function downloadIfMissing() {
   const text = await res.text()
   await fs.writeFile(CACHE_FILE, text, "utf8")
   console.log(`Saved ${(text.length / 1024 / 1024).toFixed(1)} MB to ${path.relative(ROOT, CACHE_FILE)}`)
+}
+
+async function downloadIauIfMissing() {
+  try {
+    await fs.access(IAU_CACHE_FILE)
+    console.log(`Using cached IAU-CSN at ${path.relative(ROOT, IAU_CACHE_FILE)}`)
+    return
+  } catch {
+    /* not cached */
+  }
+  await ensureDir(CACHE_DIR)
+  console.log(`Downloading IAU Catalog of Star Names…`)
+  const res = await fetch(IAU_URL)
+  if (!res.ok) {
+    throw new Error(`IAU-CSN download failed: ${res.status} ${res.statusText}`)
+  }
+  const text = await res.text()
+  await fs.writeFile(IAU_CACHE_FILE, text, "utf8")
+  console.log(`Saved ${(text.length / 1024).toFixed(1)} KB to ${path.relative(ROOT, IAU_CACHE_FILE)}`)
+}
+
+/**
+ * Parse the IAU Catalog of Star Names (fixed-width text format from
+ * the WGSN). Returns lookup maps keyed by HIP and HD numbers — match
+ * against HYG by HIP first, fall back to HD.
+ *
+ * Sample row (positions are fixed):
+ *   Aldebaran   Aldebaran   HR 1457   alf   α   Tau _   04359+1631   0.87  V  21421  29139  68.980163  16.509302 2016-06-30
+ *
+ * Columns (1-indexed from spec at top of file):
+ *   ( 1) Name (also used as the IAU-approved English form)
+ *   (10) HIP number (column starts ~92)
+ *   (11) HD number  (column starts ~99)
+ *
+ * Easier than slicing: split each non-comment line on whitespace and
+ * grab fields by their stable POSITION from the end of the row,
+ * which is where the numeric values live (HIP/HD/RA/Dec/date).
+ */
+function parseIauCatalog(text) {
+  const byHip = new Map()
+  const byHd = new Map()
+  for (const rawLine of text.split(/\r?\n/)) {
+    if (!rawLine || rawLine.startsWith("#") || rawLine.startsWith("$")) continue
+    const line = rawLine.replace(/\s+$/, "")
+    if (!line) continue
+    const parts = line.trim().split(/\s+/)
+    if (parts.length < 6) continue
+    // Trailing fields: ... HIP HD RA Dec date [flags...]
+    // Find the "date" field (YYYY-MM-DD) — everything before it is data.
+    let dateIdx = -1
+    for (let i = parts.length - 1; i >= 0; i--) {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(parts[i])) {
+        dateIdx = i
+        break
+      }
+    }
+    if (dateIdx < 4) continue
+    const decStr = parts[dateIdx - 1]
+    const raStr = parts[dateIdx - 2]
+    const hdStr = parts[dateIdx - 3]
+    const hipStr = parts[dateIdx - 4]
+    const hip = Number(hipStr)
+    const hd = Number(hdStr)
+    const ra = Number(raStr)
+    const dec = Number(decStr)
+    // Name is the first whitespace-separated token.
+    const name = parts[0]
+    if (!name) continue
+    const record = {
+      name,
+      hip: Number.isFinite(hip) && hip > 0 ? hip : null,
+      hd: Number.isFinite(hd) && hd > 0 ? hd : null,
+      ra: Number.isFinite(ra) ? ra : null,
+      dec: Number.isFinite(dec) ? dec : null,
+    }
+    if (record.hip != null) byHip.set(record.hip, record)
+    if (record.hd != null) byHd.set(record.hd, record)
+  }
+  return { byHip, byHd }
 }
 
 /* ---------------------------------------------------------------- */
@@ -190,6 +279,12 @@ function parseCsvLine(line) {
 
 async function main() {
   await downloadIfMissing()
+  await downloadIauIfMissing()
+
+  console.log(`Parsing IAU Catalog of Star Names…`)
+  const iauText = await fs.readFile(IAU_CACHE_FILE, "utf8")
+  const iau = parseIauCatalog(iauText)
+  console.log(`  IAU-approved names indexed: ${iau.byHip.size} by HIP, ${iau.byHd.size} by HD`)
 
   console.log(`Parsing HYG dataset…`)
   const text = await fs.readFile(CACHE_FILE, "utf8")
@@ -288,28 +383,51 @@ async function main() {
     motionPerYear[i * 3 + 2] = s.mz
   }
 
-  // ---- Per-star metadata: only the named ones to keep size sane ----
-  // Stars with a `proper` name (Sirius, Betelgeuse, Vega…) get
-  // metadata; the rest are anonymous points. Adds ~10 KB.
+  // ---- Per-star metadata: HYG + IAU merged ----
+  //
+  // A star earns a metadata entry when either source has a name for
+  // it. HYG covers the popular ones (Sirius, Vega, Betelgeuse); the
+  // IAU Catalog of Star Names adds the official approved set
+  // (~470 entries, including many HYG misses: Sadr, Mira, Acrux,
+  // Atria, Hadar, etc.). When both have a name for the same star,
+  // IAU wins — it's the authoritative source.
+  //
+  // Tracks `nameSource` so the UI / debugging can show where each
+  // name came from. Adds ~30 KB total to the data file (up from
+  // ~10 KB at HYG-only).
   const named = []
+  let iauOnlyCount = 0
+  let iauOverrideCount = 0
   if (KEEP_METADATA) {
     for (let i = 0; i < n; i++) {
       const s = filtered[i]
       const r = s.raw
-      const propName = (r.proper || "").trim()
-      if (!propName) continue
+      const hipNum = r.hip ? Number(r.hip) : null
+      const hdNum = r.hd ? Number(r.hd) : null
+      const iauName =
+        (hipNum != null && iau.byHip.get(hipNum)?.name) ||
+        (hdNum != null && iau.byHd.get(hdNum)?.name) ||
+        null
+      const propName = (r.proper || "").trim() || null
+      const chosen = iauName ?? propName
+      if (!chosen) continue
+      if (iauName && propName && iauName !== propName) iauOverrideCount++
+      if (iauName && !propName) iauOnlyCount++
       named.push({
         i,
-        n: propName,
+        n: chosen,
         h: r.hr ? Number(r.hr) : null,
-        hd: r.hd ? Number(r.hd) : null,
+        hd: hdNum,
         m: Number(s.mag.toFixed(2)),
         d: s.distLy != null ? Number(s.distLy.toFixed(1)) : null,
         s: r.spect || null,
+        ns: iauName ? "iau" : "hyg", // name source — kept terse
       })
     }
   }
-  console.log(`  Named stars (with proper names): ${named.length}`)
+  console.log(`  Named stars (merged HYG + IAU): ${named.length}`)
+  console.log(`    of which IAU added (not in HYG): ${iauOnlyCount}`)
+  console.log(`    of which IAU overrode HYG: ${iauOverrideCount}`)
 
   // ---- Serialise ----
   // Use plain number arrays (JSON-safe). The runtime can wrap them in
@@ -362,6 +480,7 @@ export const BRIGHT_STAR_MOTION_PER_YEAR = new Float32Array(${JSON.stringify(Arr
  *   m: apparent V magnitude
  *   d: distance in light-years
  *   s: spectral type (Morgan-Keenan)
+ *  ns: name source — "iau" (IAU WGSN approved) or "hyg" (legacy proper name)
  */
 export type NamedStarMeta = {
   i: number
@@ -371,6 +490,7 @@ export type NamedStarMeta = {
   m: number
   d: number | null
   s: string | null
+  ns: "iau" | "hyg"
 }
 
 export const NAMED_STARS: NamedStarMeta[] = ${JSON.stringify(named, null, 0).replace(/\\\"/g, '"')}
