@@ -154,14 +154,23 @@ export function HUD({ gameState }: HUDProps) {
         </div>
       </div>
 
-      {/* Control hint + flight info: bottom center during combat */}
+      {/* Control hints and flight info */}
       {gameState.phase === 'combat' && (
         <div className="fixed bottom-32 left-1/2 transform -translate-x-1/2 z-30 pointer-events-none text-center">
           <div className="font-mono text-[8px] tracking-[0.25em] uppercase text-foreground/40 mb-2">
-            CLICK + DRAG TO AIM · HOLD TO CHARGE · SPACE FOR BOOST
+            ↑↓←→ ROTATE · W THRUST · SHIFT BOOST · Q/E ROLL
           </div>
           <div className="font-mono text-[9px] tracking-[0.15em] text-foreground/50">
             SHIELD: {Math.ceil((gameState.defendingPlanetHealth) * 100)}% · ENEMIES: {gameState.enemies.length}
+          </div>
+        </div>
+      )}
+
+      {/* Briefing control hint */}
+      {gameState.phase === 'briefing' && (
+        <div className="fixed bottom-12 left-1/2 transform -translate-x-1/2 z-30 pointer-events-none text-center">
+          <div className="font-mono text-[9px] tracking-[0.2em] uppercase text-foreground/55">
+            SPACE TO EXPLORE
           </div>
         </div>
       )}
