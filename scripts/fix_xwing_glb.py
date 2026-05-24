@@ -21,7 +21,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
 import shutil
 import struct
 from dataclasses import dataclass, field
@@ -321,13 +320,100 @@ def _print_report(report: FixReport) -> None:
             print(f"  - {w}")
 
 
+def _matches_any(path: Path, patterns: Sequence[str]) -> bool:
+    return any(path.match(pat) for pat in patterns)
+
+
+def _discover_input_files(
+    input_path: Path,
+    batch_mode: bool,
+    recursive: bool,
+    include: Sequence[str],
+    exclude: Sequence[str],
+) -> List[Path]:
+    if input_path.is_file():
+        files = [input_path]
+    elif input_path.is_dir() or batch_mode:
+        if not input_path.is_dir():
+            raise ValueError("Batch mode expects an input directory or a single .glb file")
+        candidates: List[Path] = []
+        walker = input_path.rglob if recursive else input_path.glob
+        for pattern in include:
+            candidates.extend([p for p in walker(pattern) if p.is_file()])
+        # Stable de-duplication.
+        files = sorted(set(candidates))
+    else:
+        files = [input_path]
+
+    files = [p for p in files if p.suffix.lower() == ".glb"]
+    if exclude:
+        files = [p for p in files if not _matches_any(p, exclude)]
+    return files
+
+
+def _build_output_path(
+    in_path: Path,
+    args: argparse.Namespace,
+    root_dir: Optional[Path],
+) -> Path:
+    if args.in_place:
+        return in_path
+
+    # Single-file explicit output has highest priority.
+    if args.output and (not args.batch) and in_path == args.input:
+        return args.output
+
+    out_dir: Optional[Path] = args.output_dir
+    if out_dir:
+        if root_dir and root_dir.is_dir():
+            rel = in_path.relative_to(root_dir)
+            return out_dir / rel.with_name(f"{rel.stem}_fixed{rel.suffix}")
+        return out_dir / f"{in_path.stem}_fixed{in_path.suffix}"
+
+    return in_path.with_name(f"{in_path.stem}_fixed{in_path.suffix}")
+
+
+def _process_one_file(
+    in_path: Path,
+    out_path: Path,
+    config: FixConfig,
+    create_backup: bool,
+) -> FixReport:
+    version, gltf, bin_chunk, other_chunks = read_glb(in_path)
+    report = apply_fixes(gltf, config)
+
+    if config.dry_run:
+        return report
+
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    if create_backup and in_path == out_path:
+        backup_path = in_path.with_suffix(in_path.suffix + ".bak")
+        shutil.copy2(in_path, backup_path)
+        print(f"Backup created: {backup_path}")
+
+    write_glb(out_path, version, gltf, bin_chunk, other_chunks)
+    return report
+
+
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Fix and tune X-wing GLB files for Star Cleaver")
-    p.add_argument("input", type=Path, help="Input GLB file path")
+    p.add_argument("input", type=Path, help="Input GLB file path or directory")
     p.add_argument("--output", type=Path, help="Output GLB file path")
+    p.add_argument("--output-dir", type=Path, help="Output directory for batch runs")
     p.add_argument("--in-place", action="store_true", help="Write changes back to the input file")
     p.add_argument("--backup", action="store_true", help="Create .bak backup when using --in-place")
     p.add_argument("--dry-run", action="store_true", help="Print changes without writing output")
+    p.add_argument("--batch", action="store_true", help="Process multiple GLB files from a directory")
+    p.add_argument("--recursive", action="store_true", help="Recursively scan input directory in batch mode")
+    p.add_argument("--include", nargs="*", default=["*.glb"], help="Glob patterns to include in batch mode")
+    p.add_argument(
+        "--exclude",
+        nargs="*",
+        default=["*_fixed.glb", "*.glb.bak", "*.bak.glb"],
+        help="Glob patterns to exclude in batch mode",
+    )
+    p.add_argument("--fail-fast", action="store_true", help="Stop batch processing on first file error")
 
     p.add_argument("--target-length", type=float, default=13.4, help="Target ship length in meters")
     p.add_argument("--source-length", type=float, default=5.02, help="Current model length in meters")
@@ -360,10 +446,9 @@ def main() -> int:
         print("Use either --in-place or --output, not both")
         return 2
 
-    if args.in_place:
-        output_path = input_path
-    else:
-        output_path = args.output or input_path.with_name(f"{input_path.stem}_fixed.glb")
+    if args.output and args.batch:
+        print("Use --output only for single-file runs. For batch mode, use --output-dir.")
+        return 2
 
     config = FixConfig(
         target_length_m=args.target_length,
@@ -376,30 +461,75 @@ def main() -> int:
     )
 
     try:
-        version, gltf, bin_chunk, other_chunks = read_glb(input_path)
-        report = apply_fixes(gltf, config)
-
-        if args.json_report:
-            print(report.to_json())
-        else:
-            _print_report(report)
-
-        if args.dry_run:
-            print("\nDry run enabled. No file written.")
-            return 0
-
-        if args.in_place and args.backup:
-            backup_path = input_path.with_suffix(input_path.suffix + ".bak")
-            shutil.copy2(input_path, backup_path)
-            print(f"Backup created: {backup_path}")
-
-        write_glb(output_path, version, gltf, bin_chunk, other_chunks)
-        print(f"\nSuccess: wrote fixed GLB to {output_path}")
-        return 0
-
-    except (GLBFormatError, ValueError) as exc:
+        files = _discover_input_files(
+            input_path=input_path,
+            batch_mode=args.batch,
+            recursive=args.recursive,
+            include=args.include,
+            exclude=args.exclude,
+        )
+    except ValueError as exc:
         print(f"Failed: {exc}")
         return 1
+
+    if not files:
+        print("No matching .glb files found for processing.")
+        return 1
+
+    root_dir = input_path if input_path.is_dir() else input_path.parent
+
+    reports: List[Tuple[Path, FixReport]] = []
+    errors: List[Tuple[Path, str]] = []
+
+    for in_file in files:
+        out_file = _build_output_path(in_file, args, root_dir)
+        print(f"\nProcessing: {in_file}")
+        try:
+            report = _process_one_file(
+                in_path=in_file,
+                out_path=out_file,
+                config=config,
+                create_backup=bool(args.in_place and args.backup),
+            )
+            reports.append((in_file, report))
+
+            if args.json_report:
+                print(
+                    json.dumps(
+                        {
+                            "input": str(in_file),
+                            "output": str(out_file),
+                            "report": json.loads(report.to_json()),
+                        },
+                        indent=2,
+                    )
+                )
+            else:
+                _print_report(report)
+                if config.dry_run:
+                    print("Dry run enabled. No file written.")
+                else:
+                    print(f"Success: wrote fixed GLB to {out_file}")
+
+        except (GLBFormatError, ValueError) as exc:
+            msg = str(exc)
+            errors.append((in_file, msg))
+            print(f"Failed: {in_file} -> {msg}")
+            if args.fail_fast:
+                break
+
+    print("\nRun summary")
+    print("-----------")
+    print(f"Total files matched: {len(files)}")
+    print(f"Processed successfully: {len(reports)}")
+    print(f"Failed: {len(errors)}")
+
+    if errors:
+        for fpath, msg in errors:
+            print(f"  - {fpath}: {msg}")
+        return 1
+
+    return 0
 
 
 if __name__ == "__main__":
