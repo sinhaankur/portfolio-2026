@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic';
 import { useState } from 'react';
 
-const UniverseEngine = dynamic(() => import('@/components/universe-engine'), {
+const UniverseEngine = dynamic(() => import('@/components/universe-engine').then((mod) => mod.UniverseEngine), {
   ssr: false,
   loading: () => (
     <div style={{ width: '100vw', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#000' }}>
@@ -127,6 +127,19 @@ export default function StarCleaverExperience() {
         >
           Launch Star Cleaver
         </button>
+        <p
+          style={{
+            margin: '10px 0 0',
+            fontSize: '11px',
+            lineHeight: 1.5,
+            color: 'rgba(255, 255, 255, 0.72)',
+            maxWidth: '320px',
+            fontFamily: 'monospace',
+            letterSpacing: '0.04em',
+          }}
+        >
+          Launch game, choose your world and ship together in Nexus, then go straight into ignition.
+        </p>
       </div>
     </div>
   );
