@@ -101,8 +101,8 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
     [thrusterPreset]
   );
   const initialPlumeLength = 1.05;
-  const initialThrusterCenterZ = thrusterPreset.nozzleZ + 0.9 * initialPlumeLength;
-  const initialOuterCenterZ = thrusterPreset.outerNozzleZ + 1.2 * initialPlumeLength * 1.22;
+  const initialThrusterCenterZ = thrusterPreset.nozzleZ - 0.9 * initialPlumeLength;
+  const initialOuterCenterZ = thrusterPreset.outerNozzleZ - 1.2 * initialPlumeLength * 1.22;
 
   // Update engine trail, visual banking, and responsive glow
   useFrame((state, delta) => {
@@ -159,14 +159,14 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
       ref.current.scale.set(plumeRadius, plumeLength, plumeRadius);
       (ref.current.material as THREE.MeshBasicMaterial).opacity = plumeOpacity;
       // Keep the cone base fixed at the rear nozzle and extend plume rearward as it scales.
-      ref.current.position.z = rearNozzleZ + thrusterHalfLength;
+      ref.current.position.z = rearNozzleZ - thrusterHalfLength;
     });
 
     outerPlumeRefs.forEach(ref => {
       if (!ref.current) return;
       ref.current.scale.set(plumeRadius * 1.5, plumeLength * 1.22, plumeRadius * 1.5);
       (ref.current.material as THREE.MeshBasicMaterial).opacity = outerPlumeOpacity;
-      ref.current.position.z = rearOuterNozzleZ + outerHalfLength;
+      ref.current.position.z = rearOuterNozzleZ - outerHalfLength;
     });
 
     // RCS maneuvering thrusters for orientation/position hold.
@@ -226,11 +226,11 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
           <sphereGeometry args={[0.55, 8, 8]} />
           <meshBasicMaterial color={0x6ecbff} transparent opacity={0.2} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
-          <mesh ref={thrusterCone1Ref} position={[engineMounts[0][0], engineMounts[0][1], initialThrusterCenterZ]} rotation={[Math.PI / 2, 0, 0]}>
+          <mesh ref={thrusterCone1Ref} position={[engineMounts[0][0], engineMounts[0][1], initialThrusterCenterZ]} rotation={[-Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.18, 1.8, 14, 1, true]} />
           <meshBasicMaterial color={0x8fdbff} transparent opacity={0.36} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
-          <mesh ref={outerPlume1Ref} position={[engineMounts[0][0], engineMounts[0][1], initialOuterCenterZ]} rotation={[Math.PI / 2, 0, 0]}>
+          <mesh ref={outerPlume1Ref} position={[engineMounts[0][0], engineMounts[0][1], initialOuterCenterZ]} rotation={[-Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.28, 2.4, 14, 1, true]} />
           <meshBasicMaterial color={0x4c9dff} transparent opacity={0.2} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
@@ -243,11 +243,11 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
           <sphereGeometry args={[0.55, 8, 8]} />
           <meshBasicMaterial color={0x6ecbff} transparent opacity={0.2} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
-          <mesh ref={thrusterCone2Ref} position={[engineMounts[1][0], engineMounts[1][1], initialThrusterCenterZ]} rotation={[Math.PI / 2, 0, 0]}>
+          <mesh ref={thrusterCone2Ref} position={[engineMounts[1][0], engineMounts[1][1], initialThrusterCenterZ]} rotation={[-Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.18, 1.8, 14, 1, true]} />
           <meshBasicMaterial color={0x8fdbff} transparent opacity={0.36} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
-          <mesh ref={outerPlume2Ref} position={[engineMounts[1][0], engineMounts[1][1], initialOuterCenterZ]} rotation={[Math.PI / 2, 0, 0]}>
+          <mesh ref={outerPlume2Ref} position={[engineMounts[1][0], engineMounts[1][1], initialOuterCenterZ]} rotation={[-Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.28, 2.4, 14, 1, true]} />
           <meshBasicMaterial color={0x4c9dff} transparent opacity={0.2} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
@@ -260,11 +260,11 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
           <sphereGeometry args={[0.55, 8, 8]} />
           <meshBasicMaterial color={0x6ecbff} transparent opacity={0.2} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
-          <mesh ref={thrusterCone3Ref} position={[engineMounts[2][0], engineMounts[2][1], initialThrusterCenterZ]} rotation={[Math.PI / 2, 0, 0]}>
+          <mesh ref={thrusterCone3Ref} position={[engineMounts[2][0], engineMounts[2][1], initialThrusterCenterZ]} rotation={[-Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.18, 1.8, 14, 1, true]} />
           <meshBasicMaterial color={0x8fdbff} transparent opacity={0.36} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
-          <mesh ref={outerPlume3Ref} position={[engineMounts[2][0], engineMounts[2][1], initialOuterCenterZ]} rotation={[Math.PI / 2, 0, 0]}>
+          <mesh ref={outerPlume3Ref} position={[engineMounts[2][0], engineMounts[2][1], initialOuterCenterZ]} rotation={[-Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.28, 2.4, 14, 1, true]} />
           <meshBasicMaterial color={0x4c9dff} transparent opacity={0.2} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
@@ -277,11 +277,11 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
           <sphereGeometry args={[0.55, 8, 8]} />
           <meshBasicMaterial color={0x6ecbff} transparent opacity={0.2} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
-          <mesh ref={thrusterCone4Ref} position={[engineMounts[3][0], engineMounts[3][1], initialThrusterCenterZ]} rotation={[Math.PI / 2, 0, 0]}>
+          <mesh ref={thrusterCone4Ref} position={[engineMounts[3][0], engineMounts[3][1], initialThrusterCenterZ]} rotation={[-Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.18, 1.8, 14, 1, true]} />
           <meshBasicMaterial color={0x8fdbff} transparent opacity={0.36} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
-          <mesh ref={outerPlume4Ref} position={[engineMounts[3][0], engineMounts[3][1], initialOuterCenterZ]} rotation={[Math.PI / 2, 0, 0]}>
+          <mesh ref={outerPlume4Ref} position={[engineMounts[3][0], engineMounts[3][1], initialOuterCenterZ]} rotation={[-Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.28, 2.4, 14, 1, true]} />
           <meshBasicMaterial color={0x4c9dff} transparent opacity={0.2} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>

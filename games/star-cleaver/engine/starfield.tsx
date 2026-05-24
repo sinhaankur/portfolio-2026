@@ -103,7 +103,7 @@ export function Starfield({ gasClouds = [] }: { gasClouds?: GasCloudField[] }) {
           }}
         >
           <primitive object={layer.geometry} attach="geometry" />
-          <pointsMaterial
+          <pointsMaterial fog={false}
             attach="material"
             size={layer.size}
             vertexColors
@@ -119,18 +119,18 @@ export function Starfield({ gasClouds = [] }: { gasClouds?: GasCloudField[] }) {
       {/* Nebula haze for universe visibility against dark backgrounds */}
       <mesh>
         <sphereGeometry args={[900, 32, 32]} />
-        <meshBasicMaterial color={0x122a52} transparent opacity={0.035} side={THREE.BackSide} depthWrite={false} />
+        <meshBasicMaterial fog={false} color={0x122a52} transparent opacity={0.035} side={THREE.BackSide} depthWrite={false} />
       </mesh>
       <mesh rotation={[0.25, 0.9, 0]}>
         <sphereGeometry args={[620, 24, 24]} />
-        <meshBasicMaterial color={0x1e4a8c} transparent opacity={0.025} side={THREE.BackSide} depthWrite={false} />
+        <meshBasicMaterial fog={false} color={0x1e4a8c} transparent opacity={0.025} side={THREE.BackSide} depthWrite={false} />
       </mesh>
 
       {/* Milky Way inspired sky band + core glow to match Universe Engine ambience. */}
       <group ref={milkyWayRef} rotation={[0.47, 0.92, 0.12]}>
         <mesh>
           <torusGeometry args={[1450, 170, 20, 180]} />
-          <meshBasicMaterial
+          <meshBasicMaterial fog={false}
             color={0x4d78d6}
             transparent
             opacity={0.07}
@@ -142,7 +142,7 @@ export function Starfield({ gasClouds = [] }: { gasClouds?: GasCloudField[] }) {
         </mesh>
         <mesh>
           <torusGeometry args={[1450, 105, 20, 180]} />
-          <meshBasicMaterial
+          <meshBasicMaterial fog={false}
             color={0x88aef8}
             transparent
             opacity={0.05}
@@ -154,7 +154,7 @@ export function Starfield({ gasClouds = [] }: { gasClouds?: GasCloudField[] }) {
         </mesh>
         <mesh position={[220, -80, -620]}>
           <sphereGeometry args={[130, 20, 20]} />
-          <meshBasicMaterial
+          <meshBasicMaterial fog={false}
             color={0x9cc0ff}
             transparent
             opacity={0.05}
@@ -170,45 +170,45 @@ export function Starfield({ gasClouds = [] }: { gasClouds?: GasCloudField[] }) {
       <group ref={solarSystemRef} position={[260, 90, -640]}>
         <mesh>
           <sphereGeometry args={[18, 24, 24]} />
-          <meshBasicMaterial color={0xffcf74} toneMapped={false} />
+          <meshBasicMaterial fog={false} color={0xffcf74} toneMapped={false} />
         </mesh>
         <mesh>
           <sphereGeometry args={[28, 24, 24]} />
-          <meshBasicMaterial color={0xffa84a} transparent opacity={0.16} toneMapped={false} />
+          <meshBasicMaterial fog={false} color={0xffa84a} transparent opacity={0.16} toneMapped={false} />
         </mesh>
 
         <mesh position={[46, 0, 0]}>
           <sphereGeometry args={[2.6, 14, 14]} />
-          <meshBasicMaterial color={0xa7c8ff} toneMapped={false} />
+          <meshBasicMaterial fog={false} color={0xa7c8ff} toneMapped={false} />
         </mesh>
         <mesh position={[72, 0, -6]}>
           <sphereGeometry args={[3.5, 14, 14]} />
-          <meshBasicMaterial color={0xd8b27f} toneMapped={false} />
+          <meshBasicMaterial fog={false} color={0xd8b27f} toneMapped={false} />
         </mesh>
         <mesh position={[102, 0, 10]}>
           <sphereGeometry args={[3.8, 14, 14]} />
-          <meshBasicMaterial color={0x5ea0ff} toneMapped={false} />
+          <meshBasicMaterial fog={false} color={0x5ea0ff} toneMapped={false} />
         </mesh>
         <mesh position={[136, 0, -8]}>
           <sphereGeometry args={[4.6, 14, 14]} />
-          <meshBasicMaterial color={0xcf8565} toneMapped={false} />
+          <meshBasicMaterial fog={false} color={0xcf8565} toneMapped={false} />
         </mesh>
 
         <mesh rotation={[Math.PI / 2, 0, 0]}>
           <ringGeometry args={[44.5, 45.2, 96]} />
-          <meshBasicMaterial color={0x4f6ca3} transparent opacity={0.08} side={THREE.DoubleSide} depthWrite={false} toneMapped={false} />
+          <meshBasicMaterial fog={false} color={0x4f6ca3} transparent opacity={0.08} side={THREE.DoubleSide} depthWrite={false} toneMapped={false} />
         </mesh>
         <mesh rotation={[Math.PI / 2, 0, 0]}>
           <ringGeometry args={[70.5, 71.2, 96]} />
-          <meshBasicMaterial color={0x6587bf} transparent opacity={0.07} side={THREE.DoubleSide} depthWrite={false} toneMapped={false} />
+          <meshBasicMaterial fog={false} color={0x6587bf} transparent opacity={0.07} side={THREE.DoubleSide} depthWrite={false} toneMapped={false} />
         </mesh>
         <mesh rotation={[Math.PI / 2, 0, 0]}>
           <ringGeometry args={[100.5, 101.2, 96]} />
-          <meshBasicMaterial color={0x7da1da} transparent opacity={0.06} side={THREE.DoubleSide} depthWrite={false} toneMapped={false} />
+          <meshBasicMaterial fog={false} color={0x7da1da} transparent opacity={0.06} side={THREE.DoubleSide} depthWrite={false} toneMapped={false} />
         </mesh>
         <mesh rotation={[Math.PI / 2, 0, 0]}>
           <ringGeometry args={[134.5, 135.2, 96]} />
-          <meshBasicMaterial color={0x90b6ef} transparent opacity={0.05} side={THREE.DoubleSide} depthWrite={false} toneMapped={false} />
+          <meshBasicMaterial fog={false} color={0x90b6ef} transparent opacity={0.05} side={THREE.DoubleSide} depthWrite={false} toneMapped={false} />
         </mesh>
       </group>
 
@@ -217,7 +217,7 @@ export function Starfield({ gasClouds = [] }: { gasClouds?: GasCloudField[] }) {
         <group key={`gas-cloud-${idx}`} position={cloud.position}>
           <mesh>
             <sphereGeometry args={[cloud.radius * 0.62, 24, 24]} />
-            <meshBasicMaterial
+            <meshBasicMaterial fog={false}
               color={cloud.color}
               transparent
               opacity={0.06 + cloud.density * 0.08}
@@ -228,7 +228,7 @@ export function Starfield({ gasClouds = [] }: { gasClouds?: GasCloudField[] }) {
           </mesh>
           <mesh>
             <sphereGeometry args={[cloud.radius * 0.88, 24, 24]} />
-            <meshBasicMaterial
+            <meshBasicMaterial fog={false}
               color={cloud.color}
               transparent
               opacity={0.03 + cloud.density * 0.05}
@@ -239,7 +239,7 @@ export function Starfield({ gasClouds = [] }: { gasClouds?: GasCloudField[] }) {
           </mesh>
           <mesh>
             <sphereGeometry args={[cloud.radius, 20, 20]} />
-            <meshBasicMaterial
+            <meshBasicMaterial fog={false}
               color={cloud.color}
               transparent
               opacity={0.02 + cloud.density * 0.04}
