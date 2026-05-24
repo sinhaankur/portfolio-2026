@@ -72,6 +72,8 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
   const rcsWingRightRef = useRef<THREE.Mesh>(null);
   const cockpitGlowRef = useRef<THREE.Mesh>(null);
   const visualBankRef = useRef(0);
+  const thrusterRefs = useMemo(() => [thrusterCone1Ref, thrusterCone2Ref, thrusterCone3Ref, thrusterCone4Ref], []);
+  const outerPlumeRefs = useMemo(() => [outerPlume1Ref, outerPlume2Ref, outerPlume3Ref, outerPlume4Ref], []);
   const selectedShip = (gameState.selectedShip || 'default-xwing') as SelectedShip;
 
   // Update engine trail, visual banking, and responsive glow
@@ -119,16 +121,24 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
     const plumeRadius = 0.84 + driveSignal * (boostActive ? 0.32 : 0.2);
     const plumeOpacity = (0.18 + driveSignal * (boostActive ? 0.6 : 0.4)) * flicker;
     const outerPlumeOpacity = (0.08 + driveSignal * (boostActive ? 0.42 : 0.26)) * flicker;
-    [thrusterCone1Ref, thrusterCone2Ref, thrusterCone3Ref, thrusterCone4Ref].forEach(ref => {
+    const thrusterHalfLength = 0.9 * plumeLength;
+    const outerHalfLength = 1.2 * plumeLength * 1.22;
+    const rearNozzleZ = -2.95;
+    const rearOuterNozzleZ = -3.02;
+
+    thrusterRefs.forEach(ref => {
       if (!ref.current) return;
       ref.current.scale.set(plumeRadius, plumeLength, plumeRadius);
       (ref.current.material as THREE.MeshBasicMaterial).opacity = plumeOpacity;
+      // Keep nozzle-end fixed at the engine rear and push the cone backward as it scales.
+      ref.current.position.z = rearNozzleZ - thrusterHalfLength;
     });
 
-    [outerPlume1Ref, outerPlume2Ref, outerPlume3Ref, outerPlume4Ref].forEach(ref => {
+    outerPlumeRefs.forEach(ref => {
       if (!ref.current) return;
       ref.current.scale.set(plumeRadius * 1.5, plumeLength * 1.22, plumeRadius * 1.5);
       (ref.current.material as THREE.MeshBasicMaterial).opacity = outerPlumeOpacity;
+      ref.current.position.z = rearOuterNozzleZ - outerHalfLength;
     });
 
     // RCS maneuvering thrusters for orientation/position hold.
