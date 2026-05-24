@@ -21,6 +21,15 @@ export class GameLoop {
   }
 
   /**
+   * Keep simulation state aligned with external UI state transitions.
+   * This prevents the loop from running on a stale snapshot when React
+   * has already moved phases (e.g. briefing -> ignition).
+   */
+  setState(nextState: GameState) {
+    this.gameState = nextState;
+  }
+
+  /**
    * Main update loop: call once per frame from useFrame.
    *
    * @param deltaTime Frame delta in seconds (already scaled by time warp)

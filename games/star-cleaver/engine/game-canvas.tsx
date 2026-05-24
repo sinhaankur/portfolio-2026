@@ -362,6 +362,9 @@ function GameScene({
   useFrame((state, delta) => {
     if (!gameLoopRef.current || !entityManagerRef.current) return;
 
+    // Sync loop snapshot with latest React state before sim stepping.
+    gameLoopRef.current.setState(gameState);
+
     // Cap delta at 0.1 to prevent spiral of death
     const clampedDelta = Math.min(delta, 0.1);
 
