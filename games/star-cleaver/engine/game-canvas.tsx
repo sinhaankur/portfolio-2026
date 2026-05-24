@@ -40,8 +40,6 @@ interface GameCanvasProps {
  * Player ship component: X-wing with enhanced visuals.
  */
 function PlayerShipGroup({ gameState }: { gameState: GameState }) {
-  const trailRef = useRef<THREE.Line>(null);
-  const trailPointsRef = useRef<THREE.Vector3[]>([]);
   const innerGroupRef = useRef<THREE.Group>(null);
   const engineGlow1Ref = useRef<THREE.Mesh>(null);
   const engineGlow2Ref = useRef<THREE.Mesh>(null);
@@ -61,24 +59,6 @@ function PlayerShipGroup({ gameState }: { gameState: GameState }) {
     const vy = gameState.playerEntity.velocity.y;
     const vz = gameState.playerEntity.velocity.z;
     const speed = Math.sqrt(vx * vx + vy * vy + vz * vz);
-
-    // Trail animation
-    if (speed > 0.5 && trailRef.current) {
-      const pos = new THREE.Vector3(
-        gameState.playerEntity.position.x,
-        gameState.playerEntity.position.y,
-        gameState.playerEntity.position.z - 2
-      );
-      trailPointsRef.current.push(pos);
-
-      if (trailPointsRef.current.length > 30) {
-        trailPointsRef.current.shift();
-      }
-
-      if (trailRef.current.geometry) {
-        (trailRef.current.geometry as THREE.BufferGeometry).setFromPoints(trailPointsRef.current);
-      }
-    }
 
     // Visual banking from lateral velocity
     const targetBank = Math.max(-0.35, Math.min(0.35, -vx * 0.018));
@@ -133,12 +113,6 @@ function PlayerShipGroup({ gameState }: { gameState: GameState }) {
           <sphereGeometry args={[0.42, 10, 10]} />
           <meshBasicMaterial color={0x7fffd4} transparent opacity={0.16} />
         </mesh>
-
-        {/* Engine thrust trail */}
-        <line ref={trailRef}>
-          <bufferGeometry />
-          <lineBasicMaterial color={0x88dfff} linewidth={2} transparent opacity={0.35} />
-        </line>
 
         {/* Four-engine glow (rear) - pink-red fusial signature */}
         <mesh position={[-0.55, 0.18, -2.8]}>
@@ -422,9 +396,18 @@ function GameScene({
       if (isBraking) targetSpeed = attackMode ? -12 : -18;
       if (isBoosting && targetSpeed > 0) targetSpeed *= attackMode ? 1.4 : 1.7;
 
+      if (!Number.isFinite(forwardSpeedRef.current)) {
+        forwardSpeedRef.current = targetSpeed;
+      }
+
       const speedResponse = isBoosting ? 8.0 : attackMode ? 6.0 : 4.5;
       const speedK = 1 - Math.exp(-clampedDelta * speedResponse);
       forwardSpeedRef.current += (targetSpeed - forwardSpeedRef.current) * speedK;
+
+      const cruiseFloor = attackMode ? 10 : 16;
+      if (!isAccelerating && !isBraking && forwardSpeedRef.current < cruiseFloor) {
+        forwardSpeedRef.current = cruiseFloor;
+      }
 
       gameState.playerEntity.velocity.x = forwardLocal.x * forwardSpeedRef.current;
       gameState.playerEntity.velocity.y = forwardLocal.y * forwardSpeedRef.current;
