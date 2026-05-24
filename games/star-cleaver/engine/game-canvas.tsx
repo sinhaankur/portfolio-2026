@@ -45,10 +45,18 @@ function PlayerShipGroup({ gameState }: { gameState: GameState }) {
   const engineGlow2Ref = useRef<THREE.Mesh>(null);
   const engineGlow3Ref = useRef<THREE.Mesh>(null);
   const engineGlow4Ref = useRef<THREE.Mesh>(null);
+  const engineCore1Ref = useRef<THREE.Mesh>(null);
+  const engineCore2Ref = useRef<THREE.Mesh>(null);
+  const engineCore3Ref = useRef<THREE.Mesh>(null);
+  const engineCore4Ref = useRef<THREE.Mesh>(null);
   const thrusterCone1Ref = useRef<THREE.Mesh>(null);
   const thrusterCone2Ref = useRef<THREE.Mesh>(null);
   const thrusterCone3Ref = useRef<THREE.Mesh>(null);
   const thrusterCone4Ref = useRef<THREE.Mesh>(null);
+  const outerPlume1Ref = useRef<THREE.Mesh>(null);
+  const outerPlume2Ref = useRef<THREE.Mesh>(null);
+  const outerPlume3Ref = useRef<THREE.Mesh>(null);
+  const outerPlume4Ref = useRef<THREE.Mesh>(null);
   const rcsNoseLeftRef = useRef<THREE.Mesh>(null);
   const rcsNoseRightRef = useRef<THREE.Mesh>(null);
   const rcsTopRef = useRef<THREE.Mesh>(null);
@@ -79,8 +87,14 @@ function PlayerShipGroup({ gameState }: { gameState: GameState }) {
     const boostActive = Boolean(gameState.playerEntity.metadata?.boostActive);
     const normalizedSpeed = Math.min(speed / 40, 1.0);
     const driveSignal = Math.max(normalizedSpeed, thrustSignal);
-    const engineOpacity = 0.3 + driveSignal * (boostActive ? 0.68 : 0.48);
-    const engineScale = 0.68 + driveSignal * (boostActive ? 1.0 : 0.72);
+    const flicker =
+      0.92 +
+      Math.sin(state.clock.elapsedTime * (boostActive ? 38 : 26)) * 0.05 +
+      Math.sin(state.clock.elapsedTime * (boostActive ? 61 : 47)) * 0.04;
+    const engineOpacity = (0.24 + driveSignal * (boostActive ? 0.56 : 0.42)) * flicker;
+    const engineScale = 0.62 + driveSignal * (boostActive ? 0.86 : 0.64);
+    const coreOpacity = (0.66 + driveSignal * (boostActive ? 0.28 : 0.2)) * flicker;
+    const coreScale = 0.92 + driveSignal * (boostActive ? 0.24 : 0.16);
 
     [engineGlow1Ref, engineGlow2Ref, engineGlow3Ref, engineGlow4Ref].forEach(ref => {
       if (!ref.current) return;
@@ -88,12 +102,26 @@ function PlayerShipGroup({ gameState }: { gameState: GameState }) {
       ref.current.scale.setScalar(engineScale);
     });
 
-    const plumeLength = 0.95 + driveSignal * (boostActive ? 4.2 : 2.7);
-    const plumeOpacity = 0.25 + driveSignal * (boostActive ? 0.7 : 0.45);
+    [engineCore1Ref, engineCore2Ref, engineCore3Ref, engineCore4Ref].forEach(ref => {
+      if (!ref.current) return;
+      (ref.current.material as THREE.MeshBasicMaterial).opacity = coreOpacity;
+      ref.current.scale.setScalar(coreScale);
+    });
+
+    const plumeLength = 1.05 + driveSignal * (boostActive ? 4.8 : 3.2);
+    const plumeRadius = 0.84 + driveSignal * (boostActive ? 0.32 : 0.2);
+    const plumeOpacity = (0.18 + driveSignal * (boostActive ? 0.6 : 0.4)) * flicker;
+    const outerPlumeOpacity = (0.08 + driveSignal * (boostActive ? 0.42 : 0.26)) * flicker;
     [thrusterCone1Ref, thrusterCone2Ref, thrusterCone3Ref, thrusterCone4Ref].forEach(ref => {
       if (!ref.current) return;
-      ref.current.scale.set(1, plumeLength, 1);
+      ref.current.scale.set(plumeRadius, plumeLength, plumeRadius);
       (ref.current.material as THREE.MeshBasicMaterial).opacity = plumeOpacity;
+    });
+
+    [outerPlume1Ref, outerPlume2Ref, outerPlume3Ref, outerPlume4Ref].forEach(ref => {
+      if (!ref.current) return;
+      ref.current.scale.set(plumeRadius * 1.5, plumeLength * 1.22, plumeRadius * 1.5);
+      (ref.current.material as THREE.MeshBasicMaterial).opacity = outerPlumeOpacity;
     });
 
     // RCS maneuvering thrusters for orientation/position hold.
@@ -144,56 +172,72 @@ function PlayerShipGroup({ gameState }: { gameState: GameState }) {
         </mesh>
 
         {/* Four-engine glow (rear) - blue plasma signature */}
-        <mesh position={[-1.24, 0.58, -2.65]}>
-          <sphereGeometry args={[0.29, 10, 10]} />
-          <meshBasicMaterial color={0x8fe6ff} transparent opacity={0.74} />
+        <mesh ref={engineCore1Ref} position={[-1.24, 0.58, -2.65]}>
+          <sphereGeometry args={[0.18, 12, 12]} />
+          <meshBasicMaterial color={0xfff4d2} transparent opacity={0.72} blending={THREE.AdditiveBlending} toneMapped={false} />
         </mesh>
         <mesh ref={engineGlow1Ref} position={[-1.24, 0.58, -2.65]}>
           <sphereGeometry args={[0.55, 8, 8]} />
-          <meshBasicMaterial color={0x3ea8ff} transparent opacity={0.2} />
+          <meshBasicMaterial color={0x6ecbff} transparent opacity={0.2} blending={THREE.AdditiveBlending} toneMapped={false} />
         </mesh>
         <mesh ref={thrusterCone1Ref} position={[-1.24, 0.58, -3.5]} rotation={[-Math.PI / 2, 0, 0]}>
-          <coneGeometry args={[0.24, 1.5, 12, 1, true]} />
-          <meshBasicMaterial color={0x6ccfff} transparent opacity={0.36} side={THREE.DoubleSide} depthWrite={false} />
+          <coneGeometry args={[0.18, 1.8, 14, 1, true]} />
+          <meshBasicMaterial color={0x8fdbff} transparent opacity={0.36} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+        </mesh>
+        <mesh ref={outerPlume1Ref} position={[-1.24, 0.58, -3.62]} rotation={[-Math.PI / 2, 0, 0]}>
+          <coneGeometry args={[0.28, 2.4, 14, 1, true]} />
+          <meshBasicMaterial color={0x4c9dff} transparent opacity={0.2} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
         </mesh>
 
-        <mesh position={[-1.24, -0.58, -2.65]}>
-          <sphereGeometry args={[0.29, 10, 10]} />
-          <meshBasicMaterial color={0x8fe6ff} transparent opacity={0.74} />
+        <mesh ref={engineCore2Ref} position={[-1.24, -0.58, -2.65]}>
+          <sphereGeometry args={[0.18, 12, 12]} />
+          <meshBasicMaterial color={0xfff4d2} transparent opacity={0.72} blending={THREE.AdditiveBlending} toneMapped={false} />
         </mesh>
         <mesh ref={engineGlow2Ref} position={[-1.24, -0.58, -2.65]}>
           <sphereGeometry args={[0.55, 8, 8]} />
-          <meshBasicMaterial color={0x3ea8ff} transparent opacity={0.2} />
+          <meshBasicMaterial color={0x6ecbff} transparent opacity={0.2} blending={THREE.AdditiveBlending} toneMapped={false} />
         </mesh>
         <mesh ref={thrusterCone2Ref} position={[-1.24, -0.58, -3.5]} rotation={[-Math.PI / 2, 0, 0]}>
-          <coneGeometry args={[0.24, 1.5, 12, 1, true]} />
-          <meshBasicMaterial color={0x6ccfff} transparent opacity={0.36} side={THREE.DoubleSide} depthWrite={false} />
+          <coneGeometry args={[0.18, 1.8, 14, 1, true]} />
+          <meshBasicMaterial color={0x8fdbff} transparent opacity={0.36} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+        </mesh>
+        <mesh ref={outerPlume2Ref} position={[-1.24, -0.58, -3.62]} rotation={[-Math.PI / 2, 0, 0]}>
+          <coneGeometry args={[0.28, 2.4, 14, 1, true]} />
+          <meshBasicMaterial color={0x4c9dff} transparent opacity={0.2} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
         </mesh>
 
-        <mesh position={[1.24, 0.58, -2.65]}>
-          <sphereGeometry args={[0.29, 10, 10]} />
-          <meshBasicMaterial color={0x8fe6ff} transparent opacity={0.74} />
+        <mesh ref={engineCore3Ref} position={[1.24, 0.58, -2.65]}>
+          <sphereGeometry args={[0.18, 12, 12]} />
+          <meshBasicMaterial color={0xfff4d2} transparent opacity={0.72} blending={THREE.AdditiveBlending} toneMapped={false} />
         </mesh>
         <mesh ref={engineGlow3Ref} position={[1.24, 0.58, -2.65]}>
           <sphereGeometry args={[0.55, 8, 8]} />
-          <meshBasicMaterial color={0x3ea8ff} transparent opacity={0.2} />
+          <meshBasicMaterial color={0x6ecbff} transparent opacity={0.2} blending={THREE.AdditiveBlending} toneMapped={false} />
         </mesh>
         <mesh ref={thrusterCone3Ref} position={[1.24, 0.58, -3.5]} rotation={[-Math.PI / 2, 0, 0]}>
-          <coneGeometry args={[0.24, 1.5, 12, 1, true]} />
-          <meshBasicMaterial color={0x6ccfff} transparent opacity={0.36} side={THREE.DoubleSide} depthWrite={false} />
+          <coneGeometry args={[0.18, 1.8, 14, 1, true]} />
+          <meshBasicMaterial color={0x8fdbff} transparent opacity={0.36} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+        </mesh>
+        <mesh ref={outerPlume3Ref} position={[1.24, 0.58, -3.62]} rotation={[-Math.PI / 2, 0, 0]}>
+          <coneGeometry args={[0.28, 2.4, 14, 1, true]} />
+          <meshBasicMaterial color={0x4c9dff} transparent opacity={0.2} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
         </mesh>
 
-        <mesh position={[1.24, -0.58, -2.65]}>
-          <sphereGeometry args={[0.29, 10, 10]} />
-          <meshBasicMaterial color={0x8fe6ff} transparent opacity={0.74} />
+        <mesh ref={engineCore4Ref} position={[1.24, -0.58, -2.65]}>
+          <sphereGeometry args={[0.18, 12, 12]} />
+          <meshBasicMaterial color={0xfff4d2} transparent opacity={0.72} blending={THREE.AdditiveBlending} toneMapped={false} />
         </mesh>
         <mesh ref={engineGlow4Ref} position={[1.24, -0.58, -2.65]}>
           <sphereGeometry args={[0.55, 8, 8]} />
-          <meshBasicMaterial color={0x3ea8ff} transparent opacity={0.2} />
+          <meshBasicMaterial color={0x6ecbff} transparent opacity={0.2} blending={THREE.AdditiveBlending} toneMapped={false} />
         </mesh>
         <mesh ref={thrusterCone4Ref} position={[1.24, -0.58, -3.5]} rotation={[-Math.PI / 2, 0, 0]}>
-          <coneGeometry args={[0.24, 1.5, 12, 1, true]} />
-          <meshBasicMaterial color={0x6ccfff} transparent opacity={0.36} side={THREE.DoubleSide} depthWrite={false} />
+          <coneGeometry args={[0.18, 1.8, 14, 1, true]} />
+          <meshBasicMaterial color={0x8fdbff} transparent opacity={0.36} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+        </mesh>
+        <mesh ref={outerPlume4Ref} position={[1.24, -0.58, -3.62]} rotation={[-Math.PI / 2, 0, 0]}>
+          <coneGeometry args={[0.28, 2.4, 14, 1, true]} />
+          <meshBasicMaterial color={0x4c9dff} transparent opacity={0.2} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
         </mesh>
 
         {/* RCS maneuvering thrusters (attitude + position correction) */}
@@ -363,6 +407,8 @@ function GameScene({
   const entityMeshesRef = useRef<Map<string, THREE.Group>>(new Map());
   const frameCountRef = useRef(0);
   const forwardSpeedRef = useRef(14);
+  const throttleRef = useRef(0.34);
+  const boostSpoolRef = useRef(0);
 
   // Initialize game systems on mount
   useEffect(() => {
@@ -446,22 +492,52 @@ function GameScene({
       const isBraking = keysPressed.current.has('KeyS') || keysPressed.current.has('ArrowDown');
       const isBoosting = keysPressed.current.has('ShiftLeft') || keysPressed.current.has('ShiftRight');
 
-      let targetSpeed = attackMode ? 11 : 18;
-      if (isAccelerating) targetSpeed = attackMode ? 30 : 44;
-      if (isBraking) targetSpeed = attackMode ? -12 : -18;
-      if (isBoosting && targetSpeed > 0) targetSpeed *= attackMode ? 1.4 : 1.7;
+      // Analog throttle model: engines spool up/down instead of instant speed snapping.
+      const cruiseThrottle = attackMode ? 0.26 : 0.34;
+      let targetThrottle = cruiseThrottle;
+      if (isAccelerating) targetThrottle = 1.0;
+      if (isBraking) targetThrottle = -0.5;
+
+      const throttleResponse =
+        targetThrottle > throttleRef.current
+          ? (isBoosting ? 4.2 : attackMode ? 3.7 : 3.3)
+          : (isBraking ? 6.4 : 4.9);
+      const throttleK = 1 - Math.exp(-clampedDelta * throttleResponse);
+      throttleRef.current += (targetThrottle - throttleRef.current) * throttleK;
+
+      const boostTarget = isBoosting && throttleRef.current > 0.05 ? 1 : 0;
+      const boostResponse = boostTarget > boostSpoolRef.current ? 5.4 : 7.4;
+      const boostK = 1 - Math.exp(-clampedDelta * boostResponse);
+      boostSpoolRef.current += (boostTarget - boostSpoolRef.current) * boostK;
+
+      const cruiseSpeed = attackMode ? 11 : 16;
+      const maxForwardSpeed = attackMode ? 33 : 48;
+      const maxReverseSpeed = attackMode ? -14 : -21;
+
+      const throttleSpeed =
+        throttleRef.current >= 0
+          ? cruiseSpeed + throttleRef.current * (maxForwardSpeed - cruiseSpeed)
+          : throttleRef.current * Math.abs(maxReverseSpeed);
+      const boostSpeedBonus = boostSpoolRef.current * (attackMode ? 16 : 24);
+      const targetSpeed = throttleSpeed + (throttleRef.current > 0 ? boostSpeedBonus : 0);
 
       if (!Number.isFinite(forwardSpeedRef.current)) {
-        forwardSpeedRef.current = targetSpeed;
+        forwardSpeedRef.current = cruiseSpeed;
       }
 
-      const speedResponse = isBoosting ? 8.0 : attackMode ? 6.0 : 4.5;
-      const speedK = 1 - Math.exp(-clampedDelta * speedResponse);
-      forwardSpeedRef.current += (targetSpeed - forwardSpeedRef.current) * speedK;
+      const accelLimit = (attackMode ? 34 : 48) + boostSpoolRef.current * (attackMode ? 22 : 34);
+      const decelLimit = isBraking ? (attackMode ? 78 : 94) : attackMode ? 42 : 56;
+      const speedDelta = targetSpeed - forwardSpeedRef.current;
+      const maxUpStep = accelLimit * clampedDelta;
+      const maxDownStep = decelLimit * clampedDelta;
+      if (speedDelta >= 0) {
+        forwardSpeedRef.current += Math.min(speedDelta, maxUpStep);
+      } else {
+        forwardSpeedRef.current += Math.max(speedDelta, -maxDownStep);
+      }
 
-      const cruiseFloor = attackMode ? 10 : 16;
-      if (!isAccelerating && !isBraking && forwardSpeedRef.current < cruiseFloor) {
-        forwardSpeedRef.current = cruiseFloor;
+      if (!isAccelerating && !isBraking && forwardSpeedRef.current < cruiseSpeed) {
+        forwardSpeedRef.current = Math.max(forwardSpeedRef.current, cruiseSpeed);
       }
 
       gameState.playerEntity.velocity.x = forwardLocal.x * forwardSpeedRef.current;
@@ -471,8 +547,11 @@ function GameScene({
       if (!gameState.playerEntity.metadata) {
         gameState.playerEntity.metadata = {};
       }
-      gameState.playerEntity.metadata.thrustLevel = Math.min(1, Math.abs(forwardSpeedRef.current) / 58);
-      gameState.playerEntity.metadata.boostActive = isBoosting;
+      gameState.playerEntity.metadata.thrustLevel = Math.min(
+        1,
+        Math.max(0, throttleRef.current) * 0.75 + Math.max(0, boostSpoolRef.current) * 0.25
+      );
+      gameState.playerEntity.metadata.boostActive = boostSpoolRef.current > 0.12;
       gameState.playerEntity.metadata.attackMode = attackMode;
       gameState.playerEntity.metadata.rcsYaw = yawDelta;
       gameState.playerEntity.metadata.rcsPitch = pitchDelta;
