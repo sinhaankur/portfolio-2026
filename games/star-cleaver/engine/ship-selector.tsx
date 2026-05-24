@@ -3,9 +3,11 @@
 import type { GameState } from '../../../lib/neural-game-engine';
 
 export interface ShipConfig {
-  id: 'default-xwing' | 't70-xwing' | 'custom';
+  id: 'default-xwing' | 'alliance-xwing' | 't70-xwing' | 'x-blade';
   name: string;
   description: string;
+  visualSource: 'glb' | 'procedural';
+  visualNote: string;
   stats: {
     speed: number; // 1-5
     armor: number; // 1-5
@@ -17,17 +19,33 @@ export const SHIP_CONFIGS: Record<string, ShipConfig> = {
   'default-xwing': {
     id: 'default-xwing',
     name: 'Classic X-Wing',
-    description: 'Balanced fighter with strong weapons',
+    description: 'Balanced trench-run veteran with reliable punch.',
+    visualSource: 'glb',
+    visualNote: 'Textured GLB',
     stats: {
       speed: 3,
       armor: 3,
       weapons: 4,
     },
   },
+  'alliance-xwing': {
+    id: 'alliance-xwing',
+    name: 'Alliance X-Wing',
+    description: 'Weathered Red Squadron-style frame with heavier plating.',
+    visualSource: 'glb',
+    visualNote: 'Textured GLB',
+    stats: {
+      speed: 3,
+      armor: 4,
+      weapons: 4,
+    },
+  },
   't70-xwing': {
     id: 't70-xwing',
     name: 'T-70 X-Wing',
-    description: 'Modern variant. Faster, more agile.',
+    description: 'Modern Poe-era variant. Faster, more agile.',
+    visualSource: 'glb',
+    visualNote: 'Textured GLB',
     stats: {
       speed: 4,
       armor: 2,
@@ -38,6 +56,8 @@ export const SHIP_CONFIGS: Record<string, ShipConfig> = {
     id: 'x-blade',
     name: 'X-Blade',
     description: 'Experimental fighter. Superior in every way.',
+    visualSource: 'procedural',
+    visualNote: 'Procedural concept',
     stats: {
       speed: 5,
       armor: 4,
@@ -46,7 +66,7 @@ export const SHIP_CONFIGS: Record<string, ShipConfig> = {
   },
 };
 
-export type SelectedShip = 'default-xwing' | 't70-xwing' | 'x-blade';
+export type SelectedShip = 'default-xwing' | 'alliance-xwing' | 't70-xwing' | 'x-blade';
 
 /**
  * Get available ships based on worlds completed
@@ -55,7 +75,7 @@ export type SelectedShip = 'default-xwing' | 't70-xwing' | 'x-blade';
  * X-Blade: unlocked after 5 worlds
  */
 export function getAvailableShips(worldsCompleted: number): ShipConfig[] {
-  const ships = [SHIP_CONFIGS['default-xwing']];
+  const ships = [SHIP_CONFIGS['default-xwing'], SHIP_CONFIGS['alliance-xwing']];
   if (worldsCompleted >= 2) ships.push(SHIP_CONFIGS['t70-xwing']);
   if (worldsCompleted >= 5) ships.push(SHIP_CONFIGS['x-blade']);
   return ships;
@@ -93,6 +113,15 @@ export function ShipSelector({ gameState, onSelect }: ShipSelectorProps) {
               <div className="relative space-y-4">
                 {/* Ship name and description */}
                 <div>
+                  <div className="mb-2 flex items-center gap-2">
+                    <span className={`rounded-full border px-2 py-1 font-mono text-[8px] uppercase tracking-[0.2em] ${
+                      ship.visualSource === 'glb'
+                        ? 'border-cyan-400/35 bg-cyan-400/10 text-cyan-300'
+                        : 'border-foreground/20 bg-foreground/5 text-foreground/55'
+                    }`}>
+                      {ship.visualNote}
+                    </span>
+                  </div>
                   <h3 className="font-mono text-[11px] tracking-[0.2em] uppercase text-foreground/85 mb-2">
                     {ship.name}
                   </h3>
@@ -104,7 +133,7 @@ export function ShipSelector({ gameState, onSelect }: ShipSelectorProps) {
                 {/* Stats grid */}
                 <div className="grid grid-cols-3 gap-2 pt-2 border-t border-foreground/10">
                   <div className="space-y-1">
-                    <div className="font-mono text-[8px] tracking-[0.1em] uppercase text-foreground/50">
+                    <div className="font-mono text-[8px] tracking-widest uppercase text-foreground/50">
                       Speed
                     </div>
                     <div className="flex gap-0.5">
@@ -120,7 +149,7 @@ export function ShipSelector({ gameState, onSelect }: ShipSelectorProps) {
                   </div>
 
                   <div className="space-y-1">
-                    <div className="font-mono text-[8px] tracking-[0.1em] uppercase text-foreground/50">
+                    <div className="font-mono text-[8px] tracking-widest uppercase text-foreground/50">
                       Armor
                     </div>
                     <div className="flex gap-0.5">
@@ -136,7 +165,7 @@ export function ShipSelector({ gameState, onSelect }: ShipSelectorProps) {
                   </div>
 
                   <div className="space-y-1">
-                    <div className="font-mono text-[8px] tracking-[0.1em] uppercase text-foreground/50">
+                    <div className="font-mono text-[8px] tracking-widest uppercase text-foreground/50">
                       Weapons
                     </div>
                     <div className="flex gap-0.5">
@@ -163,7 +192,7 @@ export function ShipSelector({ gameState, onSelect }: ShipSelectorProps) {
           ))}
         </div>
 
-        <div className="text-foreground/50 font-mono text-[9px] tracking-[0.1em]">
+        <div className="text-foreground/50 font-mono text-[9px] tracking-widest">
           You can change your selection before each wave
         </div>
       </div>

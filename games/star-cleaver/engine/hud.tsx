@@ -61,7 +61,7 @@ export function HUD({ gameState }: HUDProps) {
 
           {/* Right: Score */}
           <div className="text-right">
-            <div className="font-mono text-[13px] tracking-[0.1em] uppercase text-foreground/85 tabular-nums">
+            <div className="font-mono text-[13px] tracking-widest uppercase text-foreground/85 tabular-nums">
               {formatScore(gameState.score)}
             </div>
             <div className="text-foreground/55 font-mono text-[11px] tracking-[0.2em] mt-1">
@@ -141,6 +141,15 @@ export function HUD({ gameState }: HUDProps) {
                       >
                         <div className="absolute inset-0 rounded-lg bg-linear-to-r from-cyan-400/0 via-cyan-400/0 to-cyan-400/0 group-hover:from-cyan-400/20 group-hover:via-cyan-400/10 group-hover:to-cyan-400/0 pointer-events-none transition-all duration-300" />
                         <div className="relative space-y-3">
+                          <div>
+                            <span className={`inline-flex rounded-full border px-2 py-1 font-mono text-[8px] uppercase tracking-[0.18em] ${
+                              ship.visualSource === 'glb'
+                                ? 'border-cyan-400/35 bg-cyan-400/10 text-cyan-300'
+                                : 'border-foreground/20 bg-foreground/5 text-foreground/55'
+                            }`}>
+                              {ship.visualNote}
+                            </span>
+                          </div>
                           <h3 className="font-mono text-[11px] tracking-[0.2em] uppercase text-foreground/85">
                             {ship.name}
                           </h3>
@@ -216,7 +225,7 @@ export function HUD({ gameState }: HUDProps) {
                     LAUNCH IN
                   </div>
                   <div className="font-serif text-5xl text-cyan-400 font-light">
-                    {Math.max(0, Math.ceil(3.5 - ((gameState.ignitionStartTime ?? 0) - gameState.simTime)))}
+                    {Math.max(0, Math.ceil(3.5 - (gameState.simTime - (gameState.ignitionStartTime ?? 0))))}
                   </div>
                 </div>
               </div>

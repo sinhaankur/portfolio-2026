@@ -1,7 +1,7 @@
 'use client';
 
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { useEffect, useRef, useState, useMemo } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 
 import {
@@ -25,6 +25,8 @@ import { Starfield } from './starfield';
 import { TestingConsole } from './testing-console';
 import { OpeningSequence } from './opening-sequence';
 import { NexusStation } from './nexus-station';
+import { PlayerShipModel, ProceduralPlayerShipModel } from './player-ship-model';
+import type { SelectedShip } from './ship-selector';
 
 /**
  * Game Canvas: Main React component for Star Cleaver gameplay.
@@ -47,30 +49,7 @@ function PlayerShipGroup({ gameState }: { gameState: GameState }) {
   const engineGlow2Ref = useRef<THREE.Mesh>(null);
   const cockpitGlowRef = useRef<THREE.Mesh>(null);
   const visualBankRef = useRef(0);
-
-  // Generate procedural player ship based on selected variant
-  const shipModel = useMemo(() => {
-    const shipType = gameState.selectedShip || 'default-xwing';
-    const isT70 = shipType === 't70-xwing';
-    const isXBlade = shipType === 'x-blade';
-
-    return generateShip({
-      faction: 'player',
-      class: isXBlade ? 'destroyer' : 'fighter', // X-Blade is heavier
-      seed: isXBlade ? 99 : isT70 ? 70 : 42,
-      scale: isXBlade ? 3.2 : isT70 ? 2.8 : 3, // X-Blade is larger
-      color1: isXBlade
-        ? { r: 0.8, g: 0.2, b: 0.8 }  // magenta for X-Blade (experimental)
-        : isT70
-        ? { r: 0.3, g: 0.6, b: 1 }    // deep blue for T70
-        : { r: 0.2, g: 0.8, b: 1 },  // cyan for classic
-      color2: isXBlade
-        ? { r: 1, g: 0.5, b: 1 }      // bright magenta secondary
-        : isT70
-        ? { r: 0.6, g: 0.9, b: 1 }    // light blue for T70
-        : { r: 0.5, g: 1, b: 1 },    // bright cyan for classic
-    });
-  }, [gameState.selectedShip]);
+  const selectedShip = (gameState.selectedShip || 'default-xwing') as SelectedShip;
 
   // Update engine trail, visual banking, and responsive glow
   useFrame((state, delta) => {
@@ -130,14 +109,9 @@ function PlayerShipGroup({ gameState }: { gameState: GameState }) {
       rotation={[gameState.playerEntity.rotation.x, gameState.playerEntity.rotation.y, gameState.playerEntity.rotation.z]}
     >
       <group ref={innerGroupRef}>
-        {shipModel ? (
-          <primitive object={shipModel} />
-        ) : (
-          <mesh>
-            <coneGeometry args={[2, 4, 8]} />
-            <meshStandardMaterial color={0xff00ff} emissive={0xff00ff} emissiveIntensity={1} />
-          </mesh>
-        )}
+        <Suspense fallback={<ProceduralPlayerShipModel shipId={selectedShip} mode="game" />}>
+          <PlayerShipModel shipId={selectedShip} mode="game" />
+        </Suspense>
 
         {/* Cockpit glow - bright green-cyan */}
         <mesh position={[0, 0.3, 1.2]}>
@@ -508,7 +482,7 @@ function GameRenderer() {
             return startIgnition(s);
           }
           if (s.phase === 'ignition') {
-            const elapsedSinceIgnition = (s.ignitionStartTime ?? 0) - s.simTime;
+            const elapsedSinceIgnition = s.simTime - (s.ignitionStartTime ?? 0);
             if (elapsedSinceIgnition > 3.5) {
               return startCombat(s);
             }
