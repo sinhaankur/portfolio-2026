@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import { useState } from 'react';
 import { StaticStarfield } from '@/components/universe-engine/static-starfield';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { UniverseRuntimeFallback } from '@/components/universe-engine/runtime-fallback';
 
 const UniverseEngine = dynamic(() => import('@/components/universe-engine').then((mod) => mod.UniverseEngine), {
   ssr: false,
@@ -35,7 +36,9 @@ export default function StarCleaverExperience() {
   if (showGame) {
     return (
       <div style={{ width: '100vw', height: '100vh', overflow: 'hidden', margin: 0, padding: 0 }}>
-        <GameCanvas />
+        <UniverseRuntimeFallback>
+          <GameCanvas />
+        </UniverseRuntimeFallback>
         <button
           onClick={() => setShowGame(false)}
           style={{
@@ -63,7 +66,9 @@ export default function StarCleaverExperience() {
 
   return (
     <div style={{ width: '100vw', height: '100vh', overflow: 'hidden', margin: 0, padding: 0 }}>
-      <UniverseEngine interactive showHud showMusic />
+      <UniverseRuntimeFallback>
+        <UniverseEngine interactive showHud showMusic />
+      </UniverseRuntimeFallback>
       <div
         style={{
           position: 'fixed',

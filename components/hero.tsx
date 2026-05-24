@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import dynamic from "next/dynamic"
 import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion"
 import { StaticStarfield } from "./universe-engine/static-starfield"
+import { UniverseRuntimeFallback } from "./universe-engine/runtime-fallback"
 
 // The R3F universe scene is ~250 KB compressed of Three.js + drei + custom
 // shaders. Loading it eagerly blocks the home page's first paint and bloats
@@ -86,7 +87,9 @@ export function Hero() {
       {/* Universe engine — galaxy + solar system + constellations.
           Passive backdrop by default so page scroll works; explore mode flips it interactive. */}
       <div className="absolute inset-0" aria-hidden="true">
-        <UniverseEngine interactive={interactive} />
+        <UniverseRuntimeFallback>
+          <UniverseEngine interactive={interactive} />
+        </UniverseRuntimeFallback>
       </div>
 
       {/* Explore-mode toggle. On mobile: an icon-only circle (44×44) so it
