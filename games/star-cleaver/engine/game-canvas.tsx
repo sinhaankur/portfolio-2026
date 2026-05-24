@@ -42,18 +42,16 @@ function PlayerShipGroup({ gameState }: { gameState: GameState }) {
   const trailRef = useRef<THREE.Line>(null);
   const trailPointsRef = useRef<THREE.Vector3[]>([]);
 
-  // Create a memoized clone with enhanced materials
+  // Create a memoized clone with basic setup
   const shipModel = useMemo(() => {
     if (!gltf.scene) return null;
     const clone = gltf.scene.clone(true);
     clone.scale.set(2, 2, 2);
     clone.rotateZ(Math.PI / 2);
 
-    // Enhance all materials with better metallic properties
+    // Basic setup: enable shadows, don't modify materials to avoid shader issues
     clone.traverse((child: any) => {
-      if (child.isMesh && child.material) {
-        child.material.metalness = Math.max(child.material.metalness ?? 0.5, 0.6);
-        child.material.roughness = Math.min(child.material.roughness ?? 0.5, 0.4);
+      if (child.isMesh) {
         child.castShadow = true;
         child.receiveShadow = true;
       }
@@ -108,29 +106,29 @@ function PlayerShipGroup({ gameState }: { gameState: GameState }) {
       {/* Cockpit glow - bright green-cyan */}
       <mesh position={[0, 0.3, 1.2]}>
         <sphereGeometry args={[0.4, 12, 12]} />
-        <meshBasicMaterial color={0x00ff99} emissive={0x00ff99} toneMapped={false} />
+        <meshBasicMaterial color={0x00ff99} />
       </mesh>
       <mesh position={[0, 0.3, 1.2]}>
         <sphereGeometry args={[0.65, 8, 8]} />
-        <meshBasicMaterial color={0x00ff99} transparent opacity={0.2} toneMapped={false} />
+        <meshBasicMaterial color={0x00ff99} transparent opacity={0.2} />
       </mesh>
 
       {/* Weapon pod highlights - orange hot glow */}
       <mesh position={[-0.8, 0, 0.5]}>
         <sphereGeometry args={[0.2, 8, 8]} />
-        <meshBasicMaterial color={0xff6600} emissive={0xff5500} toneMapped={false} />
+        <meshBasicMaterial color={0xff6600} />
       </mesh>
       <mesh position={[-0.8, 0, 0.5]}>
         <sphereGeometry args={[0.4, 6, 6]} />
-        <meshBasicMaterial color={0xff8833} transparent opacity={0.25} toneMapped={false} />
+        <meshBasicMaterial color={0xff8833} transparent opacity={0.25} />
       </mesh>
       <mesh position={[0.8, 0, 0.5]}>
         <sphereGeometry args={[0.2, 8, 8]} />
-        <meshBasicMaterial color={0xff6600} emissive={0xff5500} toneMapped={false} />
+        <meshBasicMaterial color={0xff6600} />
       </mesh>
       <mesh position={[0.8, 0, 0.5]}>
         <sphereGeometry args={[0.4, 6, 6]} />
-        <meshBasicMaterial color={0xff8833} transparent opacity={0.25} toneMapped={false} />
+        <meshBasicMaterial color={0xff8833} transparent opacity={0.25} />
       </mesh>
 
       {/* Engine thrust trail */}
@@ -142,25 +140,25 @@ function PlayerShipGroup({ gameState }: { gameState: GameState }) {
       {/* Dual engine glow (rear) - cyan hot plasma */}
       <mesh position={[-0.4, 0, -2.8]}>
         <sphereGeometry args={[0.6, 10, 10]} />
-        <meshBasicMaterial color={0x00ffff} transparent opacity={0.6} toneMapped={false} />
+        <meshBasicMaterial color={0x00ffff} transparent opacity={0.6} />
       </mesh>
       <mesh position={[-0.4, 0, -2.8]}>
         <sphereGeometry args={[1.0, 6, 6]} />
-        <meshBasicMaterial color={0x00ccff} transparent opacity={0.15} toneMapped={false} />
+        <meshBasicMaterial color={0x00ccff} transparent opacity={0.15} />
       </mesh>
       <mesh position={[0.4, 0, -2.8]}>
         <sphereGeometry args={[0.6, 10, 10]} />
-        <meshBasicMaterial color={0x00ffff} transparent opacity={0.6} toneMapped={false} />
+        <meshBasicMaterial color={0x00ffff} transparent opacity={0.6} />
       </mesh>
       <mesh position={[0.4, 0, -2.8]}>
         <sphereGeometry args={[1.0, 6, 6]} />
-        <meshBasicMaterial color={0x00ccff} transparent opacity={0.15} toneMapped={false} />
+        <meshBasicMaterial color={0x00ccff} transparent opacity={0.15} />
       </mesh>
 
       {/* Energy shield: pulsing geometric field */}
       <mesh position={[0, 0, 0]} scale={[1 + Math.sin(gameState.simTime * 2.5) * 0.08, 1 + Math.sin(gameState.simTime * 2.5) * 0.08, 1 + Math.sin(gameState.simTime * 2.5) * 0.08]}>
         <icosahedronGeometry args={[3.0, 1]} />
-        <meshBasicMaterial color={0x00aaff} wireframe transparent opacity={0.12} toneMapped={false} />
+        <meshBasicMaterial color={0x00aaff} wireframe transparent opacity={0.12} />
       </mesh>
 
       {/* Additional charge indicator aura when charging */}
@@ -171,7 +169,6 @@ function PlayerShipGroup({ gameState }: { gameState: GameState }) {
             color={0xff00ff}
             transparent
             opacity={0.08 + gameState.chargeLevel * 0.1}
-            toneMapped={false}
           />
         </mesh>
       )}
@@ -467,7 +464,6 @@ function GameRenderer() {
             color={0x60a5fa}
             transparent
             opacity={0.1}
-            toneMapped={false}
           />
         </mesh>
 
@@ -490,17 +486,17 @@ function GameRenderer() {
             {/* Core bolt */}
             <mesh>
               <sphereGeometry args={[0.25, 12, 12]} />
-              <meshBasicMaterial color={0xffff00} emissive={0xffff00} toneMapped={false} />
+              <meshBasicMaterial color={0xffff00} />
             </mesh>
             {/* Energy halo */}
             <mesh>
               <sphereGeometry args={[0.5, 8, 8]} />
-              <meshBasicMaterial color={0xffcc00} transparent opacity={0.4} toneMapped={false} />
+              <meshBasicMaterial color={0xffcc00} transparent opacity={0.4} />
             </mesh>
             {/* Outer glow */}
             <mesh>
               <sphereGeometry args={[0.9, 6, 6]} />
-              <meshBasicMaterial color={0xffaa00} transparent opacity={0.15} toneMapped={false} />
+              <meshBasicMaterial color={0xffaa00} transparent opacity={0.15} />
             </mesh>
           </group>
         ))}
