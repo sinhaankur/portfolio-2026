@@ -69,7 +69,11 @@ export class GameLoop {
         break;
     }
 
-    return this.gameState;
+    // Return a fresh state reference so React state updates are not skipped
+    // when internal simulation mutates the same object in place.
+    return {
+      ...this.gameState,
+    };
   }
 
   /**
