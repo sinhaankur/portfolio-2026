@@ -37,6 +37,9 @@ export class GameLoop {
 
     // --- Phase-specific logic ---
     switch (this.gameState.phase) {
+      case 'ignition':
+        this.updateIgnition(deltaTime);
+        break;
       case 'combat':
         this.updateCombat(deltaTime, updateAI);
         break;
@@ -67,6 +70,24 @@ export class GameLoop {
     }
 
     return this.gameState;
+  }
+
+  /**
+   * Ignition phase: ship startup sequence.
+   * Auto-transitions to combat after sequence completes.
+   */
+  private updateIgnition(deltaTime: number) {
+    const ignitionDuration = 3.5; // seconds
+    const elapsed = this.gameState.simTime - (this.gameState.ignitionStartTime ?? 0);
+
+    // Allow player to practice flight controls during ignition
+    this.updateEntity(this.gameState.playerEntity, deltaTime);
+
+    // Auto-transition to combat when ignition completes
+    if (elapsed > ignitionDuration) {
+      this.gameState.phase = 'combat';
+      this.gameState.waveStartTime = this.gameState.simTime;
+    }
   }
 
   /**
