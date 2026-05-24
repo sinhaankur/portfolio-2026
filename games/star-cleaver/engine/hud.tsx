@@ -33,6 +33,7 @@ export function HUD({ gameState }: HUDProps) {
   const gasCloudDensity = Number(gameState.playerEntity.metadata?.gasCloudDensity ?? 0);
   const isExplorationPhase =
     gameState.phase === 'exploration' || gameState.phase === 'ignition' || gameState.phase === 'combat';
+  const isTouchDevice = typeof navigator !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
   // Planet health color: green → yellow → red
   const planetHealthColor = useMemo(() => {
@@ -45,21 +46,21 @@ export function HUD({ gameState }: HUDProps) {
     <>
       {/* Top bar: world info, health, score */}
       <div className="fixed top-0 inset-x-0 z-40 pointer-events-none">
-        <div className="flex justify-between items-center px-6 py-4 max-w-6xl mx-auto">
+        <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center px-3 sm:px-6 py-3 sm:py-4 max-w-6xl mx-auto">
           {/* Left: World info */}
-          <div className="font-mono text-[11px] tracking-[0.25em] uppercase text-foreground/85">
+          <div className="font-mono text-[9px] sm:text-[11px] tracking-[0.14em] sm:tracking-[0.25em] uppercase text-foreground/85">
             <div>{worldName}</div>
             <div className="text-foreground/55 mt-1">
-              STAGE 1 · EXPLORATION · WORLD {gameState.worldIndex + 1}/7
+              STAGE 1 · WORLD {gameState.worldIndex + 1}/7
             </div>
           </div>
 
           {/* Center: Player health bar */}
-          <div className="flex flex-col items-center gap-2">
-            <div className="text-foreground/55 font-mono text-[9px] tracking-[0.2em] uppercase">
+          <div className="flex flex-col items-center sm:items-center gap-1.5 sm:gap-2">
+            <div className="text-foreground/55 font-mono text-[8px] sm:text-[9px] tracking-[0.14em] sm:tracking-[0.2em] uppercase">
               HULL
             </div>
-            <div className="w-64 h-2 rounded-full bg-foreground/10 border border-foreground/25 overflow-hidden">
+            <div className="w-[min(92vw,16rem)] sm:w-64 h-2 rounded-full bg-foreground/10 border border-foreground/25 overflow-hidden">
               <div
                 className="h-full bg-accent transition-all duration-100"
                 style={{
@@ -68,17 +69,17 @@ export function HUD({ gameState }: HUDProps) {
                 }}
               />
             </div>
-            <div className="text-foreground/70 font-mono text-[9px]">
+            <div className="text-foreground/70 font-mono text-[8px] sm:text-[9px]">
               {Math.ceil(gameState.playerEntity.health)} / {gameState.playerMaxHealth}
             </div>
           </div>
 
           {/* Right: Score */}
-          <div className="text-right">
-            <div className="font-mono text-[13px] tracking-widest uppercase text-foreground/85 tabular-nums">
+          <div className="text-left sm:text-right">
+            <div className="font-mono text-[11px] sm:text-[13px] tracking-[0.12em] sm:tracking-widest uppercase text-foreground/85 tabular-nums">
               {formatScore(gameState.score)}
             </div>
-            <div className="text-foreground/55 font-mono text-[11px] tracking-[0.2em] mt-1">
+            <div className="text-foreground/55 font-mono text-[9px] sm:text-[11px] tracking-[0.12em] sm:tracking-[0.2em] mt-1">
               ×{gameState.comboMultiplier.toFixed(1)}
             </div>
           </div>
@@ -87,32 +88,32 @@ export function HUD({ gameState }: HUDProps) {
 
       {/* Bottom bar: travel telemetry + charge meter */}
       <div className="fixed bottom-0 inset-x-0 z-40 pointer-events-none">
-        <div className="flex flex-col items-center gap-4 pb-6 max-w-6xl mx-auto">
+        <div className="flex flex-col items-center gap-3 sm:gap-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-6 max-w-6xl mx-auto px-3 sm:px-0">
           {/* Travel telemetry */}
           {isExplorationPhase ? (
             <div className="flex flex-col items-center gap-2">
-              <div className="text-foreground/55 font-mono text-[9px] tracking-[0.2em] uppercase">
+              <div className="text-foreground/55 font-mono text-[8px] sm:text-[9px] tracking-[0.14em] sm:tracking-[0.2em] uppercase">
                 CRUISE VELOCITY
               </div>
-              <div className="w-96 h-1.5 rounded-full bg-foreground/10 border border-foreground/20 overflow-hidden">
+              <div className="w-[min(92vw,24rem)] h-1.5 rounded-full bg-foreground/10 border border-foreground/20 overflow-hidden">
                 <div
                   className="h-full bg-cyan-400 transition-all duration-100"
                   style={{ width: `${cruisePercent}%` }}
                 />
               </div>
-              <div className="text-foreground/70 font-mono text-[8px] tracking-[0.16em] uppercase">
-                {Math.round(speed)} U/S · HEADING {heading}°
+              <div className="text-foreground/70 font-mono text-[8px] tracking-widest sm:tracking-[0.16em] uppercase">
+                SPD {Math.round(speed)} · HDG {heading}°
               </div>
-              <div className="text-foreground/55 font-mono text-[8px] tracking-[0.14em] uppercase">
+              <div className="text-foreground/55 font-mono text-[8px] tracking-widest sm:tracking-[0.14em] uppercase">
                 GAS CLOUD {Math.round(gasCloudDensity * 100)}%
               </div>
             </div>
           ) : (
             <div className="flex flex-col items-center gap-2">
-              <div className="text-foreground/55 font-mono text-[9px] tracking-[0.2em] uppercase">
+              <div className="text-foreground/55 font-mono text-[8px] sm:text-[9px] tracking-[0.14em] sm:tracking-[0.2em] uppercase">
                 PLANET SHIELD
               </div>
-              <div className="w-96 h-1.5 rounded-full bg-foreground/10 border border-foreground/20 overflow-hidden">
+              <div className="w-[min(92vw,24rem)] h-1.5 rounded-full bg-foreground/10 border border-foreground/20 overflow-hidden">
                 <div
                   className={`h-full transition-all duration-100 ${planetHealthColor}`}
                   style={{ width: `${planetHealthPercent}%` }}
@@ -127,10 +128,10 @@ export function HUD({ gameState }: HUDProps) {
           {/* Charge meter - only visible when charging */}
           {gameState.phase === 'charging' && (
             <div className="flex flex-col items-center gap-2">
-              <div className="text-foreground/55 font-mono text-[9px] tracking-[0.2em] uppercase">
+              <div className="text-foreground/55 font-mono text-[8px] sm:text-[9px] tracking-[0.14em] sm:tracking-[0.2em] uppercase">
                 CHARGE LEVEL
               </div>
-              <div className="w-80 h-2.5 rounded-full bg-foreground/10 border border-foreground/25 overflow-hidden">
+              <div className="w-[min(92vw,20rem)] h-2.5 rounded-full bg-foreground/10 border border-foreground/25 overflow-hidden">
                 <div
                   className="h-full bg-purple-500 transition-all duration-50"
                   style={{ width: `${chargePercent}%` }}
@@ -145,16 +146,16 @@ export function HUD({ gameState }: HUDProps) {
           {/* Briefing overlay with ship selector */}
           {gameState.phase === 'briefing' && (
             <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/60 backdrop-blur-md pointer-events-auto">
-              <div className="max-w-5xl px-6 space-y-8 max-h-[90vh] overflow-y-auto">
+              <div className="max-w-5xl px-4 sm:px-6 space-y-6 sm:space-y-8 max-h-[92vh] overflow-y-auto pb-[max(1rem,env(safe-area-inset-bottom))]">
                 {/* Mission briefing */}
                 <div className="text-center">
-                  <div className="font-mono text-[10px] tracking-[0.25em] uppercase text-foreground/55 mb-4">
+                  <div className="font-mono text-[9px] sm:text-[10px] tracking-[0.15em] sm:tracking-[0.25em] uppercase text-foreground/55 mb-3 sm:mb-4">
                     INCOMING THREAT
                   </div>
-                  <h2 className="font-serif text-3xl md:text-4xl text-foreground mb-6 leading-tight italic">
+                  <h2 className="font-serif text-2xl md:text-4xl text-foreground mb-4 sm:mb-6 leading-tight italic">
                     {worldName}
                   </h2>
-                  <p className="text-foreground/75 font-sans text-base leading-relaxed">
+                  <p className="text-foreground/75 font-sans text-sm sm:text-base leading-relaxed">
                     Wave {gameState.wave} incoming. Prepare defensive systems.
                   </p>
                 </div>
@@ -166,12 +167,12 @@ export function HUD({ gameState }: HUDProps) {
                       SELECT YOUR VESSEL
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                     {getAvailableShips(gameState.worldsCompleted).map((ship) => (
                       <button
                         key={ship.id}
                         onClick={() => onShipSelect?.(ship.id as SelectedShip)}
-                        className="group relative p-6 rounded-lg border border-foreground/20 bg-foreground/5 hover:border-cyan-400/50 hover:bg-cyan-400/10 transition-all duration-300 text-left"
+                        className="group relative p-4 sm:p-6 rounded-lg border border-foreground/20 bg-foreground/5 hover:border-cyan-400/50 hover:bg-cyan-400/10 transition-all duration-300 text-left"
                       >
                         <div className="absolute inset-0 rounded-lg bg-linear-to-r from-cyan-400/0 via-cyan-400/0 to-cyan-400/0 group-hover:from-cyan-400/20 group-hover:via-cyan-400/10 group-hover:to-cyan-400/0 pointer-events-none transition-all duration-300" />
                         <div className="relative space-y-3">
@@ -296,12 +297,14 @@ export function HUD({ gameState }: HUDProps) {
 
       {/* Control hints and flight info */}
       {isExplorationPhase && (
-        <div className="fixed bottom-32 left-1/2 transform -translate-x-1/2 z-30 pointer-events-none text-center">
-          <div className="font-mono text-[8px] tracking-[0.25em] uppercase text-foreground/40 mb-2">
-            ↑↓←→ ROTATE · W ACCELERATE · S BRAKE · SHIFT BOOST · Q/E ROLL · X FOILS
+        <div className="fixed bottom-28 sm:bottom-32 left-1/2 transform -translate-x-1/2 z-30 pointer-events-none text-center px-3 w-full max-w-[min(100vw,42rem)]">
+          <div className="font-mono text-[8px] tracking-[0.08em] sm:tracking-[0.25em] uppercase text-foreground/40 mb-2">
+            {isTouchDevice
+              ? 'TILT DEVICE · ON-SCREEN ORIENTATION · TAP FOR BOOST/FOILS'
+              : '↑↓←→ ROTATE · W ACCELERATE · S BRAKE · SHIFT BOOST · Q/E ROLL · X FOILS'}
           </div>
-          <div className="font-mono text-[9px] tracking-[0.15em] text-foreground/50">
-            STAGE 1 EXPLORATION · FOILS: {attackMode ? 'ATTACK' : 'CRUISE'} · BOOST {boostActive ? 'ON' : 'OFF'} · SCORE {formatScore(gameState.score)}
+          <div className="font-mono text-[8px] sm:text-[9px] tracking-[0.08em] sm:tracking-[0.15em] text-foreground/50">
+            EXPLORATION · FOILS {attackMode ? 'ATTACK' : 'CRUISE'} · BOOST {boostActive ? 'ON' : 'OFF'} · SCORE {formatScore(gameState.score)}
           </div>
         </div>
       )}
