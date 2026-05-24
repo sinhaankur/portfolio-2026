@@ -53,6 +53,7 @@ import {
 import { SceneContents } from "./scene"
 import { DateReadout, InfoPanel, ResetViewButton, TimeWarpSlider } from "./hud"
 import { MobileBodySheet } from "./mobile-sheet"
+import { StaticStarfield } from "./static-starfield"
 import { GalaxyMusic } from "../galaxy-music"
 import type { BodyInfo, HoverHandler } from "./types"
 
@@ -213,8 +214,13 @@ export function UniverseEngine({
 
   if (!mounted) {
     return (
-      <div className="w-full h-full flex items-center justify-center">
-        <div className="w-64 h-64 rounded-full border border-foreground/10 motion-safe:animate-pulse" />
+      <div className="relative w-full h-full overflow-hidden bg-background">
+        <StaticStarfield />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="font-mono text-[11px] tracking-[0.22em] uppercase text-foreground/60">
+            Loading Universe
+          </div>
+        </div>
       </div>
     )
   }
