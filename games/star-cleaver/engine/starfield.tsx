@@ -19,6 +19,7 @@ interface GasCloudField {
 export function Starfield({ gasClouds = [] }: { gasClouds?: GasCloudField[] }) {
   const starsRef = useRef<Array<THREE.Points | null>>([]);
   const solarSystemRef = useRef<THREE.Group>(null);
+  const milkyWayRef = useRef<THREE.Group>(null);
 
   // Generate layered starfield + subtle galactic band for depth readability.
   const layers = useMemo(() => {
@@ -83,6 +84,10 @@ export function Starfield({ gasClouds = [] }: { gasClouds?: GasCloudField[] }) {
     if (solarSystemRef.current) {
       solarSystemRef.current.rotation.y += delta * 0.02;
     }
+
+    if (milkyWayRef.current) {
+      milkyWayRef.current.rotation.y += delta * 0.0018;
+    }
   });
 
   return (
@@ -120,6 +125,46 @@ export function Starfield({ gasClouds = [] }: { gasClouds?: GasCloudField[] }) {
         <sphereGeometry args={[620, 24, 24]} />
         <meshBasicMaterial color={0x1e4a8c} transparent opacity={0.025} side={THREE.BackSide} depthWrite={false} />
       </mesh>
+
+      {/* Milky Way inspired sky band + core glow to match Universe Engine ambience. */}
+      <group ref={milkyWayRef} rotation={[0.47, 0.92, 0.12]}>
+        <mesh>
+          <torusGeometry args={[1450, 170, 20, 180]} />
+          <meshBasicMaterial
+            color={0x4d78d6}
+            transparent
+            opacity={0.07}
+            blending={THREE.AdditiveBlending}
+            side={THREE.DoubleSide}
+            depthWrite={false}
+            toneMapped={false}
+          />
+        </mesh>
+        <mesh>
+          <torusGeometry args={[1450, 105, 20, 180]} />
+          <meshBasicMaterial
+            color={0x88aef8}
+            transparent
+            opacity={0.05}
+            blending={THREE.AdditiveBlending}
+            side={THREE.DoubleSide}
+            depthWrite={false}
+            toneMapped={false}
+          />
+        </mesh>
+        <mesh position={[220, -80, -620]}>
+          <sphereGeometry args={[130, 20, 20]} />
+          <meshBasicMaterial
+            color={0x9cc0ff}
+            transparent
+            opacity={0.05}
+            blending={THREE.AdditiveBlending}
+            side={THREE.DoubleSide}
+            depthWrite={false}
+            toneMapped={false}
+          />
+        </mesh>
+      </group>
 
       {/* Distant solar-system landmark cluster for navigation context. */}
       <group ref={solarSystemRef} position={[260, 90, -640]}>
