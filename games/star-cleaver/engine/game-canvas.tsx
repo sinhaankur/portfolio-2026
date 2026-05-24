@@ -26,6 +26,37 @@ import { NexusStation } from './nexus-station';
 import { PlayerShipModel, ProceduralPlayerShipModel, getPlayerShipTransform } from './player-ship-model';
 import type { SelectedShip } from './ship-selector';
 import { getMissionLayout } from './mission-layout';
+import { SceneContents as UniverseSceneContents } from '../../../components/universe-engine/scene';
+
+/**
+ * The Universe Engine renders itself in tiny scene units (Sun at scene-x 66,
+ * sky shell at 150). We inflate it so that the player ship — sized in single
+ * digits — can fly across it meaningfully. At scale 40, the Milky Way disc
+ * spans ~10,000 game units, the Sun sits ~2,640 units along +X, and the sky
+ * shell of constellations sits at ~6,000 units (just outside the camera far
+ * plane, hence the bumped frustum below).
+ */
+const UNIVERSE_SCALE = 40;
+const NOOP = () => {};
+
+/**
+ * Universe Engine's <SceneContents /> sets a dense FogExp2 on the scene as
+ * soon as it mounts (density 0.0035 → 50% extinction at ~198 world units),
+ * which would swallow everything past the ship in game scale. We render this
+ * sibling AFTER it so its effect runs second and replaces the fog with a
+ * gentle exp2 falloff matched to game units.
+ */
+function GameFog() {
+  const { scene } = useThree();
+  useEffect(() => {
+    const prev = scene.fog;
+    scene.fog = new THREE.FogExp2('#040816', 0.00009);
+    return () => {
+      scene.fog = prev;
+    };
+  }, [scene]);
+  return null;
+}
 
 /**
  * Game Canvas: Main React component for Star Cleaver gameplay.
@@ -936,18 +967,32 @@ function GameRenderer() {
         <>
         <div ref={canvasRef} style={{ width: '100%', height: '100%', position: 'relative' }}>
           <Canvas
-        camera={{ fov: 55, near: 0.1, far: 6000, position: [0, 8, 25] }}
+        camera={{ fov: 55, near: 0.1, far: 80000, position: [0, 8, 25] }}
         gl={{
           antialias: true,
           alpha: true,
           toneMappingExposure: 1.0,
         }}
       >
-        <color attach="background" args={['#040816']} />
-        <fog attach="fog" args={['#040816', 1800, 5400]} />
+        <color attach="background" args={['#030611']} />
 
-        {/* Starfield backdrop for universe exploration feeling */}
-        <Starfield gasClouds={GAS_CLOUD_FIELDS} />
+        {/* Real Universe Engine ecosystem — same Milky Way disc, Sun, planets,
+            constellations, deep-sky catalog the homepage hero renders, scaled
+            up to game space so the ship can actually fly across it. */}
+        <Suspense fallback={null}>
+          <group scale={UNIVERSE_SCALE}>
+            <UniverseSceneContents
+              enableMotion
+              onHover={NOOP}
+              onResetView={NOOP}
+              interactive={false}
+              mobile={false}
+              invert={false}
+            />
+          </group>
+        </Suspense>
+        {/* Must mount AFTER the universe so its fog override wins. */}
+        <GameFog />
 
         {/* Selected mission world + floating orbital station start point. */}
         <MissionStartScene worldIndex={gameState.worldIndex} />
