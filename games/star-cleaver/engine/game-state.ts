@@ -10,7 +10,7 @@ import { defendedWorlds, getWaveConfig, getDifficultyScale } from './worlds';
  */
 export function createInitialGameState(): GameState {
   return {
-    phase: 'briefing',
+    phase: 'opening',
     worldIndex: 0,
     wave: 1,
     score: 0,
@@ -80,6 +80,42 @@ export function setWorld(state: GameState, worldIndex: number, waveNumber: numbe
     allies: [],
     projectiles: [],
     events: [],
+  };
+}
+
+/**
+ * Start opening cinematic (game beginning).
+ */
+export function startOpening(state: GameState): GameState {
+  return {
+    ...state,
+    phase: 'opening',
+    simTime: 0,
+  };
+}
+
+/**
+ * Transition from opening to Nexus Station command center.
+ */
+export function goToNexus(state: GameState): GameState {
+  return {
+    ...state,
+    phase: 'nexus',
+    simTime: 0,
+  };
+}
+
+/**
+ * Select a world and transition to briefing.
+ */
+export function selectWorld(state: GameState, worldIndex: number): GameState {
+  return {
+    ...state,
+    worldIndex,
+    wave: 1,
+    phase: 'briefing',
+    simTime: 0,
+    waveStartTime: 0,
   };
 }
 
