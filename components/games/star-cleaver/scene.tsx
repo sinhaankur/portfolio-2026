@@ -198,52 +198,96 @@ function CleaverShip({
     }
   })
 
+  // Lambda-shuttle-inspired silhouette: long pointed cockpit, one
+  // fixed top fin, two swept-down side wings. Built from R3F
+  // primitives — no external assets, no IP-encumbered geometry.
+  // Proportions are deliberately tweaked (longer cockpit, sharper
+  // fin angle, the Cleaver's signature purple accents) so this
+  // reads as "Lambda-flavoured gunship" rather than a clone.
   return (
     <group ref={groupRef} position={[0, -1.5, 9]} scale={0.55}>
-      {/* Main hull — forward wedge. */}
-      <mesh position={[0, 0, -1.2]} rotation={[Math.PI / 2, 0, 0]}>
-        <coneGeometry args={[0.22, 1.6, 4]} />
-        <meshStandardMaterial color="#1a1a1d" roughness={0.55} metalness={0.7} />
+      {/* Forward fuselage — long, pointed, the defining wedge. */}
+      <mesh position={[0, 0, -1.6]} rotation={[Math.PI / 2, 0, 0]}>
+        <coneGeometry args={[0.22, 2.0, 6]} />
+        <meshStandardMaterial color="#1a1a1d" roughness={0.5} metalness={0.7} />
       </mesh>
-      {/* Body block. */}
-      <mesh>
-        <boxGeometry args={[0.85, 0.4, 1.0]} />
+      {/* Mid hull — flat wedge box, wider than tall. */}
+      <mesh position={[0, -0.03, -0.4]}>
+        <boxGeometry args={[0.55, 0.32, 1.3]} />
         <meshStandardMaterial color="#26262a" roughness={0.5} metalness={0.7} />
       </mesh>
-      {/* Wings — symmetric this time (the defender, not the bringer). */}
-      <mesh position={[-0.7, -0.05, 0.05]} rotation={[0, 0, -0.18]}>
-        <boxGeometry args={[0.55, 0.07, 0.45]} />
+      {/* Cockpit viewport — thin horizontal strip near the front,
+          subtly emissive so it reads as "someone's home". */}
+      <mesh position={[0, 0.08, -1.05]}>
+        <boxGeometry args={[0.32, 0.06, 0.18]} />
+        <meshStandardMaterial
+          color="#0a0a18"
+          emissive="#b466ff"
+          emissiveIntensity={0.7}
+        />
+      </mesh>
+      {/* Aft hull — slightly wider engine block. */}
+      <mesh position={[0, -0.05, 0.45]}>
+        <boxGeometry args={[0.75, 0.36, 0.7]} />
+        <meshStandardMaterial color="#1f1f24" roughness={0.55} metalness={0.7} />
+      </mesh>
+      {/* Top dorsal fin — tall trapezoid, the iconic "lambda" upright. */}
+      <mesh position={[0, 0.55, 0.15]} rotation={[0, 0, 0]}>
+        <boxGeometry args={[0.05, 0.85, 0.65]} />
         <meshStandardMaterial color="#1c1c20" roughness={0.5} metalness={0.7} />
       </mesh>
-      <mesh position={[0.7, -0.05, 0.05]} rotation={[0, 0, 0.18]}>
-        <boxGeometry args={[0.55, 0.07, 0.45]} />
+      {/* Top fin upper edge bevel — narrower bar near the top, gives
+          the trapezoid the right cut-back profile. */}
+      <mesh position={[0, 0.95, 0.32]} rotation={[0, 0, 0]}>
+        <boxGeometry args={[0.06, 0.08, 0.32]} />
+        <meshStandardMaterial color="#26262a" roughness={0.5} metalness={0.7} />
+      </mesh>
+      {/* Left wing — swept down at ~55° in flight position. */}
+      <mesh position={[-0.55, -0.55, 0.18]} rotation={[0, 0, 0.95]}>
+        <boxGeometry args={[0.85, 0.06, 0.55]} />
         <meshStandardMaterial color="#1c1c20" roughness={0.5} metalness={0.7} />
       </mesh>
-      {/* Tail fin. */}
-      <mesh position={[0, 0.28, 0.55]}>
-        <boxGeometry args={[0.08, 0.45, 0.32]} />
+      {/* Left wing tip — small accent bar at the wing's outer edge. */}
+      <mesh position={[-0.95, -0.95, 0.18]} rotation={[0, 0, 0.95]}>
+        <boxGeometry args={[0.12, 0.1, 0.55]} />
+        <meshStandardMaterial color="#0e0e12" roughness={0.6} metalness={0.7} />
+      </mesh>
+      {/* Right wing — mirrored. */}
+      <mesh position={[0.55, -0.55, 0.18]} rotation={[0, 0, -0.95]}>
+        <boxGeometry args={[0.85, 0.06, 0.55]} />
         <meshStandardMaterial color="#1c1c20" roughness={0.5} metalness={0.7} />
       </mesh>
-      {/* Thruster exhaust glow. */}
-      <mesh position={[0, 0, 0.65]}>
-        <coneGeometry args={[0.18, 0.6, 12]} />
+      <mesh position={[0.95, -0.95, 0.18]} rotation={[0, 0, -0.95]}>
+        <boxGeometry args={[0.12, 0.1, 0.55]} />
+        <meshStandardMaterial color="#0e0e12" roughness={0.6} metalness={0.7} />
+      </mesh>
+      {/* Twin rear thruster exhaust — wider stance than the original
+          single thruster; reads as "two engines, defender-class". */}
+      <mesh position={[-0.22, -0.05, 0.85]}>
+        <coneGeometry args={[0.13, 0.55, 12]} />
         <meshBasicMaterial
           color="#9bd0ff"
           transparent
-          opacity={0.55}
+          opacity={0.6}
           blending={AdditiveBlending}
           depthWrite={false}
         />
       </mesh>
-      {/* Emitter — front-mounted, the beam exits from here. */}
-      <mesh
-        ref={emitterRef}
-        position={[0, 0, -2.1]}
-      >
+      <mesh position={[0.22, -0.05, 0.85]}>
+        <coneGeometry args={[0.13, 0.55, 12]} />
+        <meshBasicMaterial
+          color="#9bd0ff"
+          transparent
+          opacity={0.6}
+          blending={AdditiveBlending}
+          depthWrite={false}
+        />
+      </mesh>
+      {/* Emitter — under-fuselage cannon, the beam exits from here. */}
+      <mesh ref={emitterRef} position={[0, -0.12, -2.5]}>
         <sphereGeometry args={[0.1, 16, 16]} />
         <meshStandardMaterial
           ref={(m) => {
-            // Pull a typed ref to mutate emissiveIntensity each frame.
             emitterMatRef.current = m as unknown as {
               emissiveIntensity?: number
             }
@@ -251,6 +295,116 @@ function CleaverShip({
           color="#7a3acf"
           emissive="#b466ff"
           emissiveIntensity={0.4}
+        />
+      </mesh>
+    </group>
+  )
+}
+
+/* =============================================================
+ * Venator-inspired alien mothership
+ *
+ * Looms in the deep background, slightly offset from the
+ * defended planet so it reads as a separate threat. Built as
+ * a dagger-shaped wedge hull with twin command towers + an
+ * angry red engine glow. Doesn't move or fight — just hangs
+ * there as the silent mass the fighters spawn from.
+ *
+ * IP note: this is a silhouette inspired by the Venator-class
+ * Star Destroyer aesthetic — built entirely from R3F primitives
+ * with different proportions and an alien colour grading. The
+ * Sketchfab model file is never ingested.
+ * ============================================================= */
+
+function VenatorMothership() {
+  const groupRef = useRef<Group>(null)
+  useFrame((state) => {
+    if (!groupRef.current) return
+    const t = state.clock.elapsedTime
+    // Drift slowly so it doesn't read as static. Yaw + a hint of
+    // lateral motion gives it weight without distracting.
+    groupRef.current.rotation.y = Math.sin(t * 0.04) * 0.12
+    groupRef.current.position.x = 4 + Math.sin(t * 0.05) * 0.6
+    groupRef.current.position.y = 1.8 + Math.sin(t * 0.06) * 0.15
+  })
+  return (
+    <group ref={groupRef} position={[4, 1.8, -28]} scale={2.2}>
+      {/* Main hull — long flat dagger. The thing's silhouette. */}
+      <mesh position={[0, 0, 0]} rotation={[0, 0, 0]}>
+        <coneGeometry args={[1.6, 6.0, 3]} />
+        <meshStandardMaterial color="#262630" roughness={0.55} metalness={0.7} />
+      </mesh>
+      {/* Hull top plate — slight rise on top of the dagger. */}
+      <mesh position={[0, 0.18, 0.4]} rotation={[0, 0, 0]}>
+        <coneGeometry args={[1.4, 5.4, 3]} />
+        <meshStandardMaterial color="#2c2c38" roughness={0.55} metalness={0.7} />
+      </mesh>
+      {/* Hangar slot — ventral dark strip running along the underside. */}
+      <mesh position={[0, -0.32, -0.5]} rotation={[Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[0.5, 3.5]} />
+        <meshStandardMaterial
+          color="#0a0a14"
+          emissive="#ff4a2a"
+          emissiveIntensity={0.4}
+          side={DoubleSide}
+        />
+      </mesh>
+      {/* Left command tower — rear-mounted, tall + narrow. */}
+      <mesh position={[-0.32, 0.55, 1.5]}>
+        <boxGeometry args={[0.22, 0.55, 0.5]} />
+        <meshStandardMaterial color="#1e1e26" roughness={0.5} metalness={0.7} />
+      </mesh>
+      {/* Right command tower — twin. */}
+      <mesh position={[0.32, 0.55, 1.5]}>
+        <boxGeometry args={[0.22, 0.55, 0.5]} />
+        <meshStandardMaterial color="#1e1e26" roughness={0.5} metalness={0.7} />
+      </mesh>
+      {/* Command-tower bridges — small spheres on top. */}
+      <mesh position={[-0.32, 0.95, 1.5]}>
+        <sphereGeometry args={[0.16, 12, 12]} />
+        <meshStandardMaterial
+          color="#1a1a22"
+          emissive="#ff7a4a"
+          emissiveIntensity={0.5}
+        />
+      </mesh>
+      <mesh position={[0.32, 0.95, 1.5]}>
+        <sphereGeometry args={[0.16, 12, 12]} />
+        <meshStandardMaterial
+          color="#1a1a22"
+          emissive="#ff7a4a"
+          emissiveIntensity={0.5}
+        />
+      </mesh>
+      {/* Rear engine bank — three glowing ports, hostile red. */}
+      <mesh position={[-0.5, 0, 2.6]}>
+        <sphereGeometry args={[0.22, 16, 16]} />
+        <meshBasicMaterial
+          color="#ff4a2a"
+          transparent
+          opacity={0.85}
+          blending={AdditiveBlending}
+          depthWrite={false}
+        />
+      </mesh>
+      <mesh position={[0, 0, 2.6]}>
+        <sphereGeometry args={[0.28, 16, 16]} />
+        <meshBasicMaterial
+          color="#ff6a4a"
+          transparent
+          opacity={0.85}
+          blending={AdditiveBlending}
+          depthWrite={false}
+        />
+      </mesh>
+      <mesh position={[0.5, 0, 2.6]}>
+        <sphereGeometry args={[0.22, 16, 16]} />
+        <meshBasicMaterial
+          color="#ff4a2a"
+          transparent
+          opacity={0.85}
+          blending={AdditiveBlending}
+          depthWrite={false}
         />
       </mesh>
     </group>
@@ -480,32 +634,57 @@ const AlienSwarm = (() => {
 })()
 
 function AlienMesh({ attach }: { attach: (o: Object3D | null) => void }) {
+  // TIE-Shuttle-inspired hostile fighter: central spherical cockpit
+  // flanked by two flat hexagonal solar panels. Glowing red viewport
+  // in the cockpit ball reads as "hostile". Procedural primitives
+  // only — no external geometry.
   return (
-    <group
-      ref={(o) => attach(o)}
-      visible={false}
-      scale={0.55}
-    >
-      {/* Hostile spar — dark body with red emissive eye. */}
-      <mesh rotation={[Math.PI / 2, 0, 0]}>
-        <coneGeometry args={[0.35, 0.8, 3]} />
-        <meshStandardMaterial color="#0e0a14" roughness={0.4} metalness={0.7} />
+    <group ref={(o) => attach(o)} visible={false} scale={0.5}>
+      {/* Central cockpit ball — the iconic TIE silhouette anchor. */}
+      <mesh>
+        <sphereGeometry args={[0.32, 16, 16]} />
+        <meshStandardMaterial color="#1a1a22" roughness={0.5} metalness={0.7} />
       </mesh>
-      <mesh position={[0, 0, 0.4]}>
-        <sphereGeometry args={[0.15, 12, 12]} />
+      {/* Cockpit window — bright red, the "eye" that signals threat. */}
+      <mesh position={[0, 0, 0.32]}>
+        <sphereGeometry args={[0.18, 12, 12]} />
         <meshStandardMaterial
           color="#3a0808"
           emissive="#ff2a2a"
           emissiveIntensity={2.2}
         />
       </mesh>
-      <mesh position={[-0.35, 0, 0.1]} rotation={[0, 0, 0.6]}>
-        <boxGeometry args={[0.5, 0.05, 0.15]} />
-        <meshStandardMaterial color="#1a1018" roughness={0.6} metalness={0.6} />
+      {/* Cockpit-to-panel pylon, left. */}
+      <mesh position={[-0.42, 0, 0]}>
+        <boxGeometry args={[0.18, 0.08, 0.12]} />
+        <meshStandardMaterial color="#0e0e14" roughness={0.6} metalness={0.6} />
       </mesh>
-      <mesh position={[0.35, 0, 0.1]} rotation={[0, 0, -0.6]}>
-        <boxGeometry args={[0.5, 0.05, 0.15]} />
-        <meshStandardMaterial color="#1a1018" roughness={0.6} metalness={0.6} />
+      {/* Cockpit-to-panel pylon, right. */}
+      <mesh position={[0.42, 0, 0]}>
+        <boxGeometry args={[0.18, 0.08, 0.12]} />
+        <meshStandardMaterial color="#0e0e14" roughness={0.6} metalness={0.6} />
+      </mesh>
+      {/* Left solar panel — hex-flavoured rectangle with a darker
+          inner crosshatch (cylinderGeometry with 6 segments gives a
+          hex when used flat). */}
+      <mesh position={[-0.78, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.55, 0.55, 0.06, 6]} />
+        <meshStandardMaterial color="#16161c" roughness={0.55} metalness={0.65} />
+      </mesh>
+      {/* Right solar panel. */}
+      <mesh position={[0.78, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.55, 0.55, 0.06, 6]} />
+        <meshStandardMaterial color="#16161c" roughness={0.55} metalness={0.65} />
+      </mesh>
+      {/* Panel inner detail — slightly raised central plate per panel
+          for that "segmented solar array" read. */}
+      <mesh position={[-0.78, 0, 0.04]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.32, 0.32, 0.04, 6]} />
+        <meshStandardMaterial color="#0a0a10" roughness={0.6} metalness={0.7} />
+      </mesh>
+      <mesh position={[0.78, 0, 0.04]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.32, 0.32, 0.04, 6]} />
+        <meshStandardMaterial color="#0a0a10" roughness={0.6} metalness={0.7} />
       </mesh>
     </group>
   )
@@ -633,6 +812,11 @@ export function SceneContents({
       <BrightStarField />
 
       <DefendedPlanet world={world} />
+
+      {/* Alien capital ship — looming in the deep background near
+          the defended planet. Doesn't engage; it's the source the
+          fighters spawn from + the silent presence behind everything. */}
+      <VenatorMothership />
 
       <MotionDebris />
 
