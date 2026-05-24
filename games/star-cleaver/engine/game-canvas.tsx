@@ -143,57 +143,57 @@ function PlayerShipGroup({ gameState }: { gameState: GameState }) {
           <meshBasicMaterial color={0x7fffd4} transparent opacity={0.16} />
         </mesh>
 
-        {/* Four-engine glow (rear) - pink-red fusial signature */}
+        {/* Four-engine glow (rear) - blue plasma signature */}
         <mesh position={[-0.55, 0.18, -2.8]}>
           <sphereGeometry args={[0.29, 10, 10]} />
-          <meshBasicMaterial color={0xff7aa9} transparent opacity={0.7} />
+          <meshBasicMaterial color={0x8fe6ff} transparent opacity={0.74} />
         </mesh>
         <mesh ref={engineGlow1Ref} position={[-0.55, 0.18, -2.8]}>
           <sphereGeometry args={[0.55, 8, 8]} />
-          <meshBasicMaterial color={0xff5f95} transparent opacity={0.2} />
+          <meshBasicMaterial color={0x3ea8ff} transparent opacity={0.2} />
         </mesh>
         <mesh ref={thrusterCone1Ref} position={[-0.55, 0.18, -3.5]} rotation={[-Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.24, 1.5, 12, 1, true]} />
-          <meshBasicMaterial color={0xff8ab3} transparent opacity={0.32} side={THREE.DoubleSide} depthWrite={false} />
+          <meshBasicMaterial color={0x6ccfff} transparent opacity={0.36} side={THREE.DoubleSide} depthWrite={false} />
         </mesh>
 
         <mesh position={[-0.55, -0.18, -2.8]}>
           <sphereGeometry args={[0.29, 10, 10]} />
-          <meshBasicMaterial color={0xff7aa9} transparent opacity={0.7} />
+          <meshBasicMaterial color={0x8fe6ff} transparent opacity={0.74} />
         </mesh>
         <mesh ref={engineGlow2Ref} position={[-0.55, -0.18, -2.8]}>
           <sphereGeometry args={[0.55, 8, 8]} />
-          <meshBasicMaterial color={0xff5f95} transparent opacity={0.2} />
+          <meshBasicMaterial color={0x3ea8ff} transparent opacity={0.2} />
         </mesh>
         <mesh ref={thrusterCone2Ref} position={[-0.55, -0.18, -3.5]} rotation={[-Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.24, 1.5, 12, 1, true]} />
-          <meshBasicMaterial color={0xff8ab3} transparent opacity={0.32} side={THREE.DoubleSide} depthWrite={false} />
+          <meshBasicMaterial color={0x6ccfff} transparent opacity={0.36} side={THREE.DoubleSide} depthWrite={false} />
         </mesh>
 
         <mesh position={[0.55, 0.18, -2.8]}>
           <sphereGeometry args={[0.29, 10, 10]} />
-          <meshBasicMaterial color={0xff7aa9} transparent opacity={0.7} />
+          <meshBasicMaterial color={0x8fe6ff} transparent opacity={0.74} />
         </mesh>
         <mesh ref={engineGlow3Ref} position={[0.55, 0.18, -2.8]}>
           <sphereGeometry args={[0.55, 8, 8]} />
-          <meshBasicMaterial color={0xff5f95} transparent opacity={0.2} />
+          <meshBasicMaterial color={0x3ea8ff} transparent opacity={0.2} />
         </mesh>
         <mesh ref={thrusterCone3Ref} position={[0.55, 0.18, -3.5]} rotation={[-Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.24, 1.5, 12, 1, true]} />
-          <meshBasicMaterial color={0xff8ab3} transparent opacity={0.32} side={THREE.DoubleSide} depthWrite={false} />
+          <meshBasicMaterial color={0x6ccfff} transparent opacity={0.36} side={THREE.DoubleSide} depthWrite={false} />
         </mesh>
 
         <mesh position={[0.55, -0.18, -2.8]}>
           <sphereGeometry args={[0.29, 10, 10]} />
-          <meshBasicMaterial color={0xff7aa9} transparent opacity={0.7} />
+          <meshBasicMaterial color={0x8fe6ff} transparent opacity={0.74} />
         </mesh>
         <mesh ref={engineGlow4Ref} position={[0.55, -0.18, -2.8]}>
           <sphereGeometry args={[0.55, 8, 8]} />
-          <meshBasicMaterial color={0xff5f95} transparent opacity={0.2} />
+          <meshBasicMaterial color={0x3ea8ff} transparent opacity={0.2} />
         </mesh>
         <mesh ref={thrusterCone4Ref} position={[0.55, -0.18, -3.5]} rotation={[-Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.24, 1.5, 12, 1, true]} />
-          <meshBasicMaterial color={0xff8ab3} transparent opacity={0.32} side={THREE.DoubleSide} depthWrite={false} />
+          <meshBasicMaterial color={0x6ccfff} transparent opacity={0.36} side={THREE.DoubleSide} depthWrite={false} />
         </mesh>
 
         {/* RCS maneuvering thrusters (attitude + position correction) */}
@@ -648,8 +648,8 @@ function GameRenderer() {
           toneMappingExposure: 1.0,
         }}
       >
-        <color attach="background" args={['#0a0e27']} />
-        <fog attach="fog" args={['#0a0e27', 400, 1000]} />
+        <color attach="background" args={['#040816']} />
+        <fog attach="fog" args={['#040816', 900, 2200]} />
 
         {/* Starfield backdrop for universe exploration feeling */}
         <Starfield />
