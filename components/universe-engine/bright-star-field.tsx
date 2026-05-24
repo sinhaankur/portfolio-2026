@@ -65,9 +65,19 @@ import {
 import {
   BRIGHT_STAR_COLORS,
   BRIGHT_STAR_COUNT,
+  BRIGHT_STAR_MOTION_PER_YEAR,
   BRIGHT_STAR_POSITIONS,
   BRIGHT_STAR_SIZES,
 } from "@/lib/data/bright-stars"
+import { simTimeRef } from "./astronomy"
+
+// J2000 epoch in ms (Jan 1, 2000 12:00 UTC). HYG proper motions are
+// referenced from here, so "years since J2000" is the multiplier we
+// apply to the per-star motion vector each frame. At page load with
+// the simulation clock = real time, this is ~26 years (we're in 2026),
+// so the stars already display their *current* positions on first
+// frame, not their J2000 positions.
+const J2000_MS = 946728000000
 
 // Mobile cutoff: keep the top N brightest stars (the dataset is
 // already sorted by magnitude). ~1,600 at mag ≤ 5 is the
@@ -77,20 +87,40 @@ const MOBILE_STAR_COUNT = 1600
 const STAR_VERTEX_SHADER = /* glsl */ `
   attribute float size;
   attribute vec3 color;
+  attribute vec3 aMotionPerYear;
   varying vec3 vColor;
   varying float vBrightness;
   uniform float uSizeBoost;
   uniform float uTime;
   uniform float uPixelRatio;
+  uniform float uYearsFromEpoch;
+  uniform float uSkyShellRadius;
 
   void main() {
     vColor = color;
     // size is 0.35..4.0 from magToSize; map to 0.1..1.0 brightness 0–1.
     vBrightness = clamp((size - 0.35) / 3.65, 0.0, 1.0);
 
-    // Stable per-star seed for twinkle phase. Using position (large
-    // numbers) means adjacent stars get wildly different phases and
-    // don't synchronise into a Mexican-wave shimmer.
+    // Proper-motion displacement.
+    //
+    // aMotionPerYear is a tangent-frame vector in radians per year
+    // (baked from HYG pmra/pmdec at J2000). At sky-shell radius R,
+    // angular displacement θ rad corresponds to Cartesian
+    // displacement θ × R (small-angle approximation, accurate enough
+    // for ~100,000-year scales). Linear extrapolation is fine; real
+    // stellar dynamics are nonlinear over megayears but invisible at
+    // our timescales.
+    //
+    // At default sim time (~26 years from J2000), most stars shift
+    // by < 1 scene unit — invisible. Crank the time-warp slider to
+    // run thousands of years and Barnard's Star (~10,000 mas/yr)
+    // will visibly streak; the Big Dipper's bowl will deform.
+    vec3 displaced = position + aMotionPerYear * uSkyShellRadius * uYearsFromEpoch;
+
+    // Stable per-star seed for twinkle phase. Using original position
+    // (not the displaced one) so the seed stays stable across the
+    // time-warp slider — stars don't change their twinkle phase as
+    // they drift.
     float seed = position.x * 0.13 + position.y * 0.17 + position.z * 0.11;
 
     // Atmospheric twinkle: low-amplitude wobble, more pronounced on
@@ -98,7 +128,7 @@ const STAR_VERTEX_SHADER = /* glsl */ `
     // luminance flicker more on bright sources).
     float twinkle = 1.0 + (0.06 + 0.10 * vBrightness) * sin(uTime * 1.8 + seed);
 
-    vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+    vec4 mvPosition = modelViewMatrix * vec4(displaced, 1.0);
 
     // FLAT size — no distance attenuation. All sky-shell stars are
     // ~the same distance in reality; size variation should come from
@@ -176,6 +206,13 @@ export function BrightStarField({
       new BufferAttribute(BRIGHT_STAR_COLORS.subarray(0, n * 3), 3),
     )
     geo.setAttribute("size", new BufferAttribute(BRIGHT_STAR_SIZES.subarray(0, n), 1))
+    // Per-star proper-motion vector in rad/yr (HYG, ref J2000).
+    // Shader multiplies by sky-shell radius × uYearsFromEpoch each
+    // frame to get the live displacement.
+    geo.setAttribute(
+      "aMotionPerYear",
+      new BufferAttribute(BRIGHT_STAR_MOTION_PER_YEAR.subarray(0, n * 3), 3),
+    )
     return { geometry: geo }
   }, [mobile])
 
@@ -189,9 +226,18 @@ export function BrightStarField({
   }, [gl])
 
   useFrame((state) => {
-    if (matRef.current && enableMotion) {
+    if (!matRef.current) return
+    if (enableMotion) {
       matRef.current.uniforms.uTime.value = state.clock.elapsedTime
     }
+    // Years from J2000 (the HYG proper-motion reference epoch). The
+    // simulation clock advances at TIME_WARP_DAYS_PER_SEC × timeWarp
+    // each real second; at warp 100 a year passes every ~2.7 s of
+    // real time and the deformation becomes visible. Cheap math, no
+    // throttling — one float per frame.
+    const simMs = simTimeRef.current.epochMs + simTimeRef.current.days * 86_400_000
+    const years = (simMs - J2000_MS) / (365.25 * 86_400_000)
+    matRef.current.uniforms.uYearsFromEpoch.value = years
   })
 
   // Chart mode — drop the star field. The MilkyWay ink-on-paper
@@ -210,6 +256,11 @@ export function BrightStarField({
           uSizeBoost: { value: 2.6 },
           uTime: { value: 0 },
           uPixelRatio: { value: 1 },
+          // Proper-motion drift. Set per frame from simTimeRef.
+          uYearsFromEpoch: { value: 0 },
+          // Sky-shell radius in scene units — must match the value the
+          // fetch script projected positions onto (SKY_SHELL there).
+          uSkyShellRadius: { value: 150 },
         }}
         transparent
         depthWrite={false}
