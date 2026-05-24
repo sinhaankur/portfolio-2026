@@ -34,9 +34,32 @@ export const SHIP_CONFIGS: Record<string, ShipConfig> = {
       weapons: 4,
     },
   },
+  'x-blade': {
+    id: 'x-blade',
+    name: 'X-Blade',
+    description: 'Experimental fighter. Superior in every way.',
+    stats: {
+      speed: 5,
+      armor: 4,
+      weapons: 5,
+    },
+  },
 };
 
-export type SelectedShip = 'default-xwing' | 't70-xwing';
+export type SelectedShip = 'default-xwing' | 't70-xwing' | 'x-blade';
+
+/**
+ * Get available ships based on worlds completed
+ * Classic: always available
+ * T-70: unlocked after 2 worlds
+ * X-Blade: unlocked after 5 worlds
+ */
+export function getAvailableShips(worldsCompleted: number): ShipConfig[] {
+  const ships = [SHIP_CONFIGS['default-xwing']];
+  if (worldsCompleted >= 2) ships.push(SHIP_CONFIGS['t70-xwing']);
+  if (worldsCompleted >= 5) ships.push(SHIP_CONFIGS['x-blade']);
+  return ships;
+}
 
 interface ShipSelectorProps {
   gameState: GameState;

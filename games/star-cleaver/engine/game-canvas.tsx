@@ -22,6 +22,7 @@ import { createInitialGameState, setWorld, startIgnition, startCombat, fireWeapo
 import { defendedWorlds, getWaveConfig } from './worlds';
 import { HUD } from './hud';
 import { Starfield } from './starfield';
+import { TestingConsole } from './testing-console';
 
 /**
  * Game Canvas: Main React component for Star Cleaver gameplay.
@@ -47,18 +48,25 @@ function PlayerShipGroup({ gameState }: { gameState: GameState }) {
 
   // Generate procedural player ship based on selected variant
   const shipModel = useMemo(() => {
-    const isT70 = gameState.selectedShip === 't70-xwing';
+    const shipType = gameState.selectedShip || 'default-xwing';
+    const isT70 = shipType === 't70-xwing';
+    const isXBlade = shipType === 'x-blade';
+
     return generateShip({
       faction: 'player',
-      class: 'fighter',
-      seed: isT70 ? 70 : 42, // different seed for T70 variant
-      scale: isT70 ? 2.8 : 3, // slightly smaller T70
-      color1: isT70
-        ? { r: 0.3, g: 0.6, b: 1 }    // deeper blue for T70
+      class: isXBlade ? 'destroyer' : 'fighter', // X-Blade is heavier
+      seed: isXBlade ? 99 : isT70 ? 70 : 42,
+      scale: isXBlade ? 3.2 : isT70 ? 2.8 : 3, // X-Blade is larger
+      color1: isXBlade
+        ? { r: 0.8, g: 0.2, b: 0.8 }  // magenta for X-Blade (experimental)
+        : isT70
+        ? { r: 0.3, g: 0.6, b: 1 }    // deep blue for T70
         : { r: 0.2, g: 0.8, b: 1 },  // cyan for classic
-      color2: isT70
-        ? { r: 0.6, g: 0.9, b: 1 }    // lighter blue secondary for T70
-        : { r: 0.5, g: 1, b: 1 },    // bright cyan secondary for classic
+      color2: isXBlade
+        ? { r: 1, g: 0.5, b: 1 }      // bright magenta secondary
+        : isT70
+        ? { r: 0.6, g: 0.9, b: 1 }    // light blue for T70
+        : { r: 0.5, g: 1, b: 1 },    // bright cyan for classic
     });
   }, [gameState.selectedShip]);
 
@@ -479,6 +487,7 @@ function GameScene({
 
 function GameRenderer() {
   const [gameState, setGameState] = useState<GameState>(createInitialGameState());
+  const [showTestConsole, setShowTestConsole] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
   const keysPressed = useRef<Set<string>>(new Set());
@@ -539,6 +548,14 @@ function GameRenderer() {
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('deviceorientation', handleDeviceOrientation);
 
+    // Testing console shortcut: Ctrl+Shift+T
+    const handleTestConsole = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.code === 'KeyT') {
+        e.preventDefault();
+        setShowTestConsole((s) => !s);
+      }
+    };
+
     // Request permission for iOS 13+
     if (typeof DeviceOrientationEvent !== 'undefined' && typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
       (DeviceOrientationEvent as any).requestPermission()
@@ -550,11 +567,14 @@ function GameRenderer() {
         .catch(() => console.log('Device orientation permission denied'));
     }
 
+    window.addEventListener('keydown', handleTestConsole);
+
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('deviceorientation', handleDeviceOrientation);
+      window.removeEventListener('keydown', handleTestConsole);
     };
   }, []);
 
@@ -658,6 +678,9 @@ function GameRenderer() {
           setGameState((s) => ({ ...s, selectedShip: shipId }));
         }}
       />
+
+      {/* Testing Console (Ctrl+Shift+T) */}
+      {showTestConsole && <TestingConsole gameState={gameState} onStateChange={setGameState} />}
     </div>
   );
 }

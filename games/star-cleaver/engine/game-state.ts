@@ -18,6 +18,7 @@ export function createInitialGameState(): GameState {
     simTime: 0,
     waveStartTime: 0,
     selectedShip: 'default-xwing', // default to classic X-wing
+    worldsCompleted: 0, // track progression for ship unlocks
 
     playerEntity: {
       id: 'player_ship',
