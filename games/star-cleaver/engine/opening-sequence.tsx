@@ -32,8 +32,26 @@ export function OpeningSequence({ onComplete }: OpeningSequenceProps) {
     onComplete();
   };
 
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.code !== 'Space') return;
+      event.preventDefault();
+      if (isComplete) handleContinue();
+      else handleSkip();
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isComplete]);
+
   return (
-    <div className="fixed inset-0 z-50 bg-background flex flex-col items-center justify-center pointer-events-auto overflow-hidden">
+    <div
+      className="fixed inset-0 z-50 bg-background flex flex-col items-center justify-center pointer-events-auto overflow-hidden"
+      onClick={() => {
+        if (isComplete) handleContinue();
+        else handleSkip();
+      }}
+    >
       {/* Starfield background */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(59,182,242,0.05)_0%,transparent_70%)] pointer-events-none" />
 
@@ -41,7 +59,7 @@ export function OpeningSequence({ onComplete }: OpeningSequenceProps) {
       <div className="relative z-10 max-w-3xl px-8 md:px-12 h-full flex flex-col items-center justify-center">
         <div className="space-y-6">
           {/* Main narrative - typewriter effect */}
-          <div className="font-mono text-sm md:text-base leading-relaxed text-foreground/90 whitespace-pre-wrap min-h-[400px]">
+          <div className="font-mono text-sm md:text-base leading-relaxed text-foreground/90 whitespace-pre-wrap min-h-100">
             {displayedText}
             {!isComplete && <span className="animate-pulse">█</span>}
           </div>
@@ -50,19 +68,27 @@ export function OpeningSequence({ onComplete }: OpeningSequenceProps) {
           <div className="flex flex-col gap-3 items-center pt-8">
             {!isComplete && (
               <button
-                onClick={handleSkip}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handleSkip();
+                }}
+                type="button"
                 className="px-4 py-2 text-xs font-mono tracking-widest uppercase text-foreground/50 hover:text-foreground/75 transition-colors"
               >
-                Press SPACE to skip
+                Press SPACE or click to skip
               </button>
             )}
 
             {isComplete && (
               <button
-                onClick={handleContinue}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handleContinue();
+                }}
+                type="button"
                 className="px-6 py-2 border border-cyan-400/50 bg-cyan-400/10 text-cyan-400 font-mono text-xs tracking-widest uppercase hover:bg-cyan-400/20 transition-colors animate-pulse"
               >
-                Press SPACE to continue
+                Press SPACE or click to continue
               </button>
             )}
           </div>
@@ -73,21 +99,6 @@ export function OpeningSequence({ onComplete }: OpeningSequenceProps) {
       <div className="fixed bottom-6 left-6 text-foreground/40 font-mono text-[9px] tracking-widest">
         STAR CLEAVER · INITIALIZATION
       </div>
-
-      {/* Skip on spacebar */}
-      {typeof window !== 'undefined' && (
-        <div
-          onKeyDown={(e) => {
-            if (e.code === 'Space') {
-              e.preventDefault();
-              if (isComplete) handleContinue();
-              else handleSkip();
-            }
-          }}
-          tabIndex={0}
-          className="sr-only"
-        />
-      )}
     </div>
   );
 }
