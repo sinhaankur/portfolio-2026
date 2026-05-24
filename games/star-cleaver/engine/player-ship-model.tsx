@@ -14,12 +14,42 @@ const XBLADE_MODEL_PATH = '/models/x-blade.glb';
 type PlayerShipMode = 'game' | 'preview';
 type ShipVariant = 'default-xwing' | 'alliance-xwing' | 't70-xwing' | 'x-blade';
 
+type ShipTransform = {
+	scale: number;
+	position: [number, number, number];
+	rotation: [number, number, number];
+};
+
 const VARIANT_ACCENTS: Record<ShipVariant, THREE.ColorRepresentation> = {
 	'default-xwing': '#6ec8ff',
 	'alliance-xwing': '#d7b98a',
 	't70-xwing': '#8dd7ff',
 	'x-blade': '#ff7a59',
 };
+
+const SHIP_TRANSFORMS: Record<ShipVariant, { game: ShipTransform; preview: ShipTransform }> = {
+	'default-xwing': {
+		preview: { scale: 0.95, position: [0, -0.95, 0.15], rotation: [-0.18, Math.PI * 0.92, 0] },
+		game: { scale: 1.65, position: [0, -1.55, 0.2], rotation: [-0.05, Math.PI, 0] },
+	},
+	'alliance-xwing': {
+		preview: { scale: 1.05, position: [0, -0.9, 0.2], rotation: [-0.16, Math.PI * 0.88, 0] },
+		game: { scale: 1.78, position: [0, -1.55, 0.25], rotation: [-0.03, Math.PI * 0.98, 0] },
+	},
+	't70-xwing': {
+		preview: { scale: 1.15, position: [0, -1.1, 0.2], rotation: [-0.16, Math.PI * 0.96, 0] },
+		game: { scale: 1.9, position: [0, -1.85, 0.3], rotation: [-0.04, Math.PI, 0] },
+	},
+	'x-blade': {
+		preview: { scale: 1.25, position: [0, -1.2, 0.2], rotation: [-0.14, Math.PI * 0.95, 0] },
+		game: { scale: 2.0, position: [0, -2.0, 0.3], rotation: [-0.03, Math.PI, 0] },
+	},
+};
+
+export function getPlayerShipTransform(shipId: SelectedShip, mode: PlayerShipMode = 'game'): ShipTransform {
+	const variant = shipId as ShipVariant;
+	return SHIP_TRANSFORMS[variant]?.[mode] ?? SHIP_TRANSFORMS['default-xwing'][mode];
+}
 
 function createProceduralPlayerShip(shipId: SelectedShip, mode: PlayerShipMode): THREE.Group {
 	const isT70 = shipId === 't70-xwing';
@@ -112,12 +142,36 @@ function cloneShipModel(scene: THREE.Object3D, variant: ShipVariant) {
 	return cloned;
 }
 
-export function ProceduralPlayerShipModel({ shipId, mode = 'game' }: { shipId: SelectedShip; mode?: PlayerShipMode }) {
+export function ProceduralPlayerShipModel({
+	shipId,
+	mode = 'game',
+	applyTransform = true,
+}: {
+	shipId: SelectedShip;
+	mode?: PlayerShipMode;
+	applyTransform?: boolean;
+}) {
 	const shipModel = useMemo(() => createProceduralPlayerShip(shipId, mode), [shipId, mode]);
-	return <primitive object={shipModel} />;
+	if (!applyTransform) {
+		return <primitive object={shipModel} />;
+	}
+	const transform = getPlayerShipTransform(shipId, mode);
+	return (
+		<group scale={transform.scale} position={transform.position} rotation={transform.rotation}>
+			<primitive object={shipModel} />
+		</group>
+	);
 }
 
-export function PlayerShipModel({ shipId, mode = 'game' }: { shipId: SelectedShip; mode?: PlayerShipMode }) {
+export function PlayerShipModel({
+	shipId,
+	mode = 'game',
+	applyTransform = true,
+}: {
+	shipId: SelectedShip;
+	mode?: PlayerShipMode;
+	applyTransform?: boolean;
+}) {
 	const classicGltf = useGLTF(CLASSIC_XWING_MODEL_PATH);
 	const allianceGltf = useGLTF(ALLIANCE_XWING_MODEL_PATH);
 	const t70Gltf = useGLTF(T70_XWING_MODEL_PATH);
@@ -129,40 +183,22 @@ export function PlayerShipModel({ shipId, mode = 'game' }: { shipId: SelectedShi
 	const t70Ship = useMemo(() => cloneShipModel(t70Gltf.scene, 't70-xwing'), [t70Gltf.scene]);
 	const xBladeShip = useMemo(() => cloneShipModel(xBladeGltf.scene, 'x-blade'), [xBladeGltf.scene]);
 
-	const isPreview = mode === 'preview';
-
-	const layoutByShip = {
-		'default-xwing': {
-			object: classicShip,
-			scale: isPreview ? 0.95 : 1.65,
-			position: isPreview ? [0, -0.95, 0.15] : [0, -1.55, 0.2],
-			rotation: isPreview ? [-0.18, Math.PI * 0.92, 0] : [-0.05, Math.PI, 0],
-		},
-		'alliance-xwing': {
-			object: allianceShip,
-			scale: isPreview ? 1.05 : 1.78,
-			position: isPreview ? [0, -0.9, 0.2] : [0, -1.55, 0.25],
-			rotation: isPreview ? [-0.16, Math.PI * 0.88, 0] : [-0.03, Math.PI * 0.98, 0],
-		},
-		't70-xwing': {
-			object: t70Ship,
-			scale: isPreview ? 1.15 : 1.9,
-			position: isPreview ? [0, -1.1, 0.2] : [0, -1.85, 0.3],
-			rotation: isPreview ? [-0.16, Math.PI * 0.96, 0] : [-0.04, Math.PI, 0],
-		},
-		'x-blade': {
-			object: xBladeShip,
-			scale: isPreview ? 1.25 : 2.0,
-			position: isPreview ? [0, -1.2, 0.2] : [0, -2.0, 0.3],
-			rotation: isPreview ? [-0.14, Math.PI * 0.95, 0] : [-0.03, Math.PI, 0],
-		},
+	const objectByShip = {
+		'default-xwing': classicShip,
+		'alliance-xwing': allianceShip,
+		't70-xwing': t70Ship,
+		'x-blade': xBladeShip,
 	} as const;
 
-	const layout = layoutByShip[shipId as 'default-xwing' | 'alliance-xwing' | 't70-xwing' | 'x-blade'];
+	const shipObject = objectByShip[shipId as 'default-xwing' | 'alliance-xwing' | 't70-xwing' | 'x-blade'] ?? fallbackShip;
+	if (!applyTransform) {
+		return <primitive object={shipObject} />;
+	}
 
+	const transform = getPlayerShipTransform(shipId, mode);
 	return (
-		<group scale={layout.scale} position={layout.position as [number, number, number]} rotation={layout.rotation as [number, number, number]}>
-			<primitive object={layout.object} />
+		<group scale={transform.scale} position={transform.position} rotation={transform.rotation}>
+			<primitive object={shipObject} />
 		</group>
 	);
 }
