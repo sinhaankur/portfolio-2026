@@ -1,7 +1,7 @@
 'use client';
 
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Suspense, useRef, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import type { GameState } from '../../../lib/neural-game-engine';
 import { WORLD_STORIES } from './narrative';
@@ -73,6 +73,12 @@ export function NexusStation({ gameState, onLaunchMission }: NexusStationProps) 
   const worldStory = WORLD_STORIES[selectedWorld];
   const availableShips = getAvailableShips(gameState.worldsCompleted);
   const selectedShipConfig = availableShips.find((ship) => ship.id === selectedShip) ?? availableShips[0];
+
+  useEffect(() => {
+    if (!availableShips.some((ship) => ship.id === selectedShip)) {
+      setSelectedShip(availableShips[0].id as SelectedShip);
+    }
+  }, [availableShips, selectedShip]);
 
   return (
     <div className="fixed inset-0 z-50 bg-background pointer-events-auto overflow-y-auto">
