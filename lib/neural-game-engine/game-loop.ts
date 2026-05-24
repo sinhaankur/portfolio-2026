@@ -96,79 +96,11 @@ export class GameLoop {
   }
 
   /**
-   * Combat phase: main gameplay loop.
+   * Combat phase is currently used as travel mode.
    */
   private updateCombat(deltaTime: number, updateAI?: any) {
     // Update player position/velocity
     this.updateEntity(this.gameState.playerEntity, deltaTime);
-
-    // Update enemies with basic AI movement
-    this.gameState.enemies.forEach((enemy) => {
-      if (!enemy.active) return;
-
-      // Basic enemy AI: move toward player or planet based on type
-      const playerPos = this.gameState.playerEntity.position;
-      const enemyPos = enemy.position;
-
-      // Calculate direction to player
-      const distToPlayer = Math.sqrt(
-        (playerPos.x - enemyPos.x) ** 2 +
-        (playerPos.y - enemyPos.y) ** 2 +
-        (playerPos.z - enemyPos.z) ** 2
-      );
-
-      // Different behaviors based on enemy type
-      const enemyType = (enemy.metadata?.type as string) || 'fighter';
-      const moveSpeed = enemy.metadata?.speed ?? 8;
-
-      if (enemyType === 'swarm') {
-        // Swarm: go straight for planet at (0, 0, -20)
-        const targetPos = { x: 0, y: 0, z: -20 };
-        const dir = this.getDirection(enemyPos, targetPos);
-        enemy.velocity.x = dir.x * moveSpeed;
-        enemy.velocity.y = dir.y * moveSpeed;
-        enemy.velocity.z = dir.z * moveSpeed;
-      } else if (enemyType === 'sniper') {
-        // Sniper: maintain distance, strafe around player
-        const targetDistance = 40;
-        const dir = this.getDirection(enemyPos, playerPos);
-        if (distToPlayer < targetDistance) {
-          // Too close, back up
-          enemy.velocity.x = -dir.x * moveSpeed * 0.7;
-          enemy.velocity.y = -dir.y * moveSpeed * 0.7;
-          enemy.velocity.z = -dir.z * moveSpeed * 0.7;
-        } else if (distToPlayer > targetDistance + 10) {
-          // Too far, move closer
-          enemy.velocity.x = dir.x * moveSpeed * 0.5;
-          enemy.velocity.y = dir.y * moveSpeed * 0.5;
-          enemy.velocity.z = dir.z * moveSpeed * 0.5;
-        } else {
-          // Strafe: move perpendicular to player
-          const rightVec = {
-            x: Math.sin((this.gameState.simTime + enemy.id.charCodeAt(0)) * 2),
-            y: 0,
-            z: Math.cos((this.gameState.simTime + enemy.id.charCodeAt(0)) * 2),
-          };
-          enemy.velocity.x = rightVec.x * moveSpeed * 0.8;
-          enemy.velocity.y = rightVec.y * moveSpeed * 0.8;
-          enemy.velocity.z = rightVec.z * moveSpeed * 0.8;
-        }
-      } else {
-        // Fighter/default: charge at player
-        const dir = this.getDirection(enemyPos, playerPos);
-        enemy.velocity.x = dir.x * moveSpeed;
-        enemy.velocity.y = dir.y * moveSpeed;
-        enemy.velocity.z = dir.z * moveSpeed;
-      }
-
-      // Update position
-      this.updateEntity(enemy, deltaTime);
-
-      // AI decision (async, deferred for later)
-      if (updateAI) {
-        updateAI(enemy, { gameState: this.gameState, entityManager: this.entityManager });
-      }
-    });
 
     // Update projectiles
     this.gameState.projectiles.forEach((projectile) => {
@@ -182,16 +114,7 @@ export class GameLoop {
       this.updateEntity(ally, deltaTime);
     });
 
-    // Check leaks: enemies reaching the planet
-    this.checkLeaks();
-
-    // Check wave completion
-    this.checkWaveCompletion();
-
-    // Check defeat condition
-    if (this.gameState.defendingPlanetHealth <= 0) {
-      this.gameState.phase = 'defeat';
-    }
+    void updateAI;
   }
 
   /**

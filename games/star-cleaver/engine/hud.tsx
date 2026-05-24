@@ -36,7 +36,7 @@ export function HUD({ gameState }: HUDProps) {
           <div className="font-mono text-[11px] tracking-[0.25em] uppercase text-foreground/85">
             <div>{worldName}</div>
             <div className="text-foreground/55 mt-1">
-              WAVE {gameState.wave}/4 · WORLD {gameState.worldIndex + 1}/7
+              TRAVEL MODE · WORLD {gameState.worldIndex + 1}/7
             </div>
           </div>
 
@@ -264,10 +264,10 @@ export function HUD({ gameState }: HUDProps) {
       {gameState.phase === 'combat' && (
         <div className="fixed bottom-32 left-1/2 transform -translate-x-1/2 z-30 pointer-events-none text-center">
           <div className="font-mono text-[8px] tracking-[0.25em] uppercase text-foreground/40 mb-2">
-            ↑↓←→ ROTATE · W THRUST · SHIFT BOOST · Q/E ROLL
+            ↑↓←→ ROTATE · W ACCELERATE · S BRAKE · SHIFT BOOST · Q/E ROLL
           </div>
           <div className="font-mono text-[9px] tracking-[0.15em] text-foreground/50">
-            SHIELD: {Math.ceil((gameState.defendingPlanetHealth) * 100)}% · ENEMIES: {gameState.enemies.length}
+            SHIELD: {Math.ceil((gameState.defendingPlanetHealth) * 100)}% · CRUISE ACTIVE
           </div>
         </div>
       )}

@@ -17,9 +17,7 @@ import {
 } from '../../../lib/neural-game-engine';
 // import { createNeuralAgent, type NeuralAgent } from '../../../lib/neural-game-engine/ai-agent';
 import { generateShip } from '../../../lib/ship-generator/procedural-ships';
-import { createEnemy } from './enemies';
 import { createInitialGameState, startOpening, goToNexus, selectWorld, startIgnition, startCombat } from './game-state';
-import { defendedWorlds, getWaveConfig } from './worlds';
 import { HUD } from './hud';
 import { Starfield } from './starfield';
 import { TestingConsole } from './testing-console';
@@ -325,38 +323,12 @@ function GameScene({
     };
   }, []);
 
-  // Spawn enemies when entering combat
+  // Travel-only mode: ensure enemy list remains empty while cruising.
   useEffect(() => {
-    if (gameState.phase !== 'combat' || gameState.enemies.length > 0) return;
-
-    const waveConfig = getWaveConfig(gameState.worldIndex, gameState.wave);
-    const difficulty = 1 + gameState.wave * 0.3 + gameState.worldIndex * 0.15;
-    const totalEnemies = Math.ceil(waveConfig.baseEnemyCount * difficulty);
-
-    for (let i = 0; i < totalEnemies; i++) {
-      const enemyType = waveConfig.enemyTypes[Math.floor(Math.random() * waveConfig.enemyTypes.length)];
-      // Spawn enemies spread around in a larger space (chasing through universe)
-      const angle = (i / totalEnemies) * Math.PI * 2;
-      const distance = 60 + Math.random() * 40;
-      const position = {
-        x: Math.cos(angle) * distance,
-        y: (Math.random() - 0.5) * 30,
-        z: Math.sin(angle) * distance + 50,
-      };
-
-      const enemyFactory = createEnemy(enemyType.type, `enemy_${i}`, position);
-      const enemy = enemyFactory.entity;
-
-      if (entityManagerRef.current) {
-        entityManagerRef.current.register(enemy);
-        gameState.enemies.push(enemy);
-
-        // TODO: Create AI agent for this enemy (deferred)
-        // const aiAgent = createNeuralAgent(enemyFactory.agentId, enemyType.type);
-        // enemyAgentsRef.current.set(enemy.id, aiAgent);
-      }
-    }
-  }, [gameState.phase, gameState.wave, gameState.worldIndex]);
+    if (gameState.phase !== 'combat') return;
+    if (gameState.enemies.length === 0) return;
+    onUpdate({ ...gameState, enemies: [] });
+  }, [gameState, onUpdate]);
 
   // Main update loop with player input
   useFrame((state, delta) => {
