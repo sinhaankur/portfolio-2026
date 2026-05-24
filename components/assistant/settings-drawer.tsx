@@ -65,8 +65,15 @@ type SettingsDrawerProps = {
   open: boolean
   onClose: () => void
   onConfigChange: () => void
-  sessionCostUSD: number
-  sessionTokens: { input: number; output: number; cached: number }
+  /** Optional session-cost display. When omitted, the "This session"
+   *  panel is hidden — useful for surfaces (like the Usability Engine)
+   *  where the work isn't measured in chat-turns. */
+  sessionCostUSD?: number
+  sessionTokens?: { input: number; output: number; cached: number }
+  /** Optional heading override. Default reads as a generic
+   *  "LLM provider · settings"; the Assistant overrides to
+   *  "Assistant · settings" so the surface origin is unambiguous. */
+  heading?: string
 }
 
 export function SettingsDrawer({
@@ -75,7 +82,11 @@ export function SettingsDrawer({
   onConfigChange,
   sessionCostUSD,
   sessionTokens,
+  heading = "LLM provider · settings",
 }: SettingsDrawerProps) {
+  const showSessionUsage =
+    sessionTokens != null &&
+    (sessionTokens.input > 0 || sessionTokens.output > 0 || sessionTokens.cached > 0)
   const prefersReducedMotion = useReducedMotion()
 
   // Live provider + per-provider config state.
@@ -214,7 +225,7 @@ export function SettingsDrawer({
                 id="assistant-settings-heading"
                 className="font-mono text-[10px] tracking-[0.3em] uppercase text-muted-foreground"
               >
-                Assistant · Settings
+                {heading}
               </h2>
               <button
                 onClick={onClose}
@@ -319,9 +330,12 @@ export function SettingsDrawer({
                 />
               )}
 
-              {/* Session usage — only meaningful for Anthropic; local
-                  providers don't charge by token. */}
-              {provider === "anthropic" && (
+              {/* Session usage — only renders when the caller passed
+                  non-zero tokens AND the provider is Anthropic (local
+                  providers don't charge by token). The Usability
+                  Engine omits sessionTokens entirely so the panel
+                  doesn't show on its surface. */}
+              {provider === "anthropic" && showSessionUsage && sessionTokens && (
                 <section>
                   <h3 className="font-display text-lg font-light mb-1.5">This session</h3>
                   <div className="rounded-md border border-border/70 p-3 font-mono text-xs text-muted-foreground space-y-1">
@@ -346,7 +360,7 @@ export function SettingsDrawer({
                     <div className="flex justify-between pt-2 mt-1 border-t border-border/60">
                       <span>Estimated cost</span>
                       <span className="text-foreground tabular-nums">
-                        ${sessionCostUSD.toFixed(4)}
+                        ${(sessionCostUSD ?? 0).toFixed(4)}
                       </span>
                     </div>
                   </div>

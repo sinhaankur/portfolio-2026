@@ -25,6 +25,7 @@
 
 import { useMemo, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
+import { Sparkles, Settings } from "lucide-react"
 import { heuristics } from "./heuristics"
 import { HeuristicCard } from "./heuristic-card"
 import { AuditBar } from "./audit-bar"
@@ -32,6 +33,7 @@ import { AuditSummary } from "./audit-summary"
 import { OllamaCallout } from "./ollama-callout"
 import { useAuditSession } from "./use-audit-session"
 import type { SurfaceKind } from "./types"
+import { SettingsDrawer } from "@/components/assistant/settings-drawer"
 
 type Filter = SurfaceKind | "all"
 
@@ -46,6 +48,12 @@ const SURFACES: { key: Filter; label: string; hint: string }[] = [
 export function UsabilityEngine() {
   const [filter, setFilter] = useState<Filter>("all")
   const audit = useAuditSession()
+  /** What to audit — pasted HTML, copy, or component text. Passed to
+   *  each HeuristicCard so the per-card AuditRunner can send it to
+   *  the LLM. Empty by default; the audit-runner stays idle until
+   *  the visitor pastes something. */
+  const [auditTarget, setAuditTarget] = useState("")
+  const [llmSettingsOpen, setLlmSettingsOpen] = useState(false)
 
   const filtered = useMemo(() => {
     if (filter === "all") return heuristics
@@ -66,9 +74,62 @@ export function UsabilityEngine() {
 
   return (
     <section aria-labelledby="usability-engine-heading" className="relative">
-      {/* Ollama callout — collapsible 'run the LLM checks yourself' banner.
-          The static site can't call an LLM, but the catalog is a spec —
-          anyone with Ollama can run the per-heuristic prompts locally. */}
+      {/* LLM provider + audit target.
+          Audits are now live — paste a UI surface (HTML excerpt, copy,
+          component text) into the target box, pick a provider (Anthropic
+          cloud / LM Studio / Ollama local), and each LLM-checkable
+          heuristic card grows a "Run audit" button. */}
+      <div className="mb-10 rounded-lg border border-border bg-card/30 p-5 md:p-6">
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <div className="flex items-center gap-2 min-w-0">
+            <Sparkles className="w-3.5 h-3.5 text-accent shrink-0" aria-hidden="true" />
+            <h2 className="font-mono text-[10px] tracking-[0.25em] uppercase text-muted-foreground truncate">
+              Audit target · live LLM checks
+            </h2>
+          </div>
+          <button
+            onClick={() => setLlmSettingsOpen(true)}
+            aria-label="LLM provider settings"
+            className="
+              shrink-0 inline-flex items-center gap-2
+              px-3 py-2 rounded-full border border-border
+              font-mono text-[10px] tracking-[0.2em] uppercase
+              text-muted-foreground hover:text-foreground hover:border-foreground/60
+              transition-colors min-h-11
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+            "
+          >
+            <Settings className="w-3.5 h-3.5" />
+            LLM
+          </button>
+        </div>
+        <label className="block">
+          <span className="font-mono text-[10px] tracking-[0.25em] uppercase text-muted-foreground mb-2 block">
+            Paste a UI surface to audit
+          </span>
+          <textarea
+            value={auditTarget}
+            onChange={(e) => setAuditTarget(e.target.value)}
+            placeholder="HTML excerpt, copy text, or a description of the surface — e.g. 'Login form: email, password, submit button labeled CONTINUE, no error states visible.'"
+            rows={4}
+            className="
+              w-full resize-y bg-transparent border border-border rounded-md
+              px-3 py-3 font-sans text-base md:text-sm text-foreground
+              placeholder:text-muted-foreground/55
+              focus:outline-none focus:border-accent transition-colors
+            "
+          />
+        </label>
+        <p className="mt-2 text-[11px] text-muted-foreground/85 leading-relaxed">
+          Anthropic uses your BYO key; LM Studio / Ollama call out to localhost.
+          Each LLM-checkable heuristic below grows a "Run audit" button when
+          this box has content + a provider is configured.
+        </p>
+      </div>
+
+      {/* Legacy Ollama-instructional callout — kept collapsed by default
+          now that the audits are live, but useful for the "I want to run
+          this from a terminal" path. */}
       <OllamaCallout />
 
       {/* Audit bar — URL input (idle) or active-audit chip (running) */}
@@ -153,6 +214,8 @@ export function UsabilityEngine() {
                 auditActive={audit.isActive}
                 verdict={audit.session.verdicts[h.id] ?? null}
                 onVerdict={(v) => audit.setVerdict(h.id, v)}
+                auditTarget={auditTarget}
+                onOpenProviderSettings={() => setLlmSettingsOpen(true)}
               />
             </li>
           ))}
@@ -168,6 +231,18 @@ export function UsabilityEngine() {
       {audit.isActive && (
         <AuditSummary heuristics={filtered} session={audit.session} />
       )}
+
+      {/* LLM provider drawer — same component the Universe Engine
+          Assistant uses, opened from the "LLM" button above and from
+          each heuristic card's audit-runner CTA when no provider is
+          configured. No session-cost panel here (audits aren't a
+          continuous chat, no token-stream to tally). */}
+      <SettingsDrawer
+        heading="Usability Engine · LLM"
+        open={llmSettingsOpen}
+        onClose={() => setLlmSettingsOpen(false)}
+        onConfigChange={() => setLlmSettingsOpen(false)}
+      />
     </section>
   )
 }
