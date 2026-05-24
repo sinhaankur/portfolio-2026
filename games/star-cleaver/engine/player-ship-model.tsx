@@ -9,6 +9,7 @@ import type { SelectedShip } from './ship-selector';
 const CLASSIC_XWING_MODEL_PATH = '/models/rebels_x-wing_starfighter.glb';
 const ALLIANCE_XWING_MODEL_PATH = '/models/xwing.glb';
 const T70_XWING_MODEL_PATH = '/models/poes_xwing.glb';
+const XBLADE_MODEL_PATH = '/models/x-blade.glb';
 
 type PlayerShipMode = 'game' | 'preview';
 
@@ -55,15 +56,13 @@ export function PlayerShipModel({ shipId, mode = 'game' }: { shipId: SelectedShi
 	const classicGltf = useGLTF(CLASSIC_XWING_MODEL_PATH);
 	const allianceGltf = useGLTF(ALLIANCE_XWING_MODEL_PATH);
 	const t70Gltf = useGLTF(T70_XWING_MODEL_PATH);
+	const xBladeGltf = useGLTF(XBLADE_MODEL_PATH);
 
 	const fallbackShip = useMemo(() => createProceduralPlayerShip(shipId, mode), [shipId, mode]);
 	const classicShip = useMemo(() => cloneShipModel(classicGltf.scene), [classicGltf.scene]);
 	const allianceShip = useMemo(() => cloneShipModel(allianceGltf.scene), [allianceGltf.scene]);
 	const t70Ship = useMemo(() => cloneShipModel(t70Gltf.scene), [t70Gltf.scene]);
-
-	if (shipId === 'x-blade') {
-		return <primitive object={fallbackShip} />;
-	}
+  const xBladeShip = useMemo(() => cloneShipModel(xBladeGltf.scene), [xBladeGltf.scene]);
 
 	const isPreview = mode === 'preview';
 
@@ -86,9 +85,15 @@ export function PlayerShipModel({ shipId, mode = 'game' }: { shipId: SelectedShi
 			position: isPreview ? [0, -1.1, 0.2] : [0, -1.85, 0.3],
 			rotation: isPreview ? [-0.16, Math.PI * 0.96, 0] : [-0.04, Math.PI, 0],
 		},
+		'x-blade': {
+			object: xBladeShip,
+			scale: isPreview ? 1.25 : 2.0,
+			position: isPreview ? [0, -1.2, 0.2] : [0, -2.0, 0.3],
+			rotation: isPreview ? [-0.14, Math.PI * 0.95, 0] : [-0.03, Math.PI, 0],
+		},
 	} as const;
 
-	const layout = layoutByShip[shipId as 'default-xwing' | 'alliance-xwing' | 't70-xwing'];
+	const layout = layoutByShip[shipId as 'default-xwing' | 'alliance-xwing' | 't70-xwing' | 'x-blade'];
 
 	return (
 		<group scale={layout.scale} position={layout.position as [number, number, number]} rotation={layout.rotation as [number, number, number]}>
@@ -100,3 +105,4 @@ export function PlayerShipModel({ shipId, mode = 'game' }: { shipId: SelectedShi
 useGLTF.preload(CLASSIC_XWING_MODEL_PATH);
 useGLTF.preload(ALLIANCE_XWING_MODEL_PATH);
 useGLTF.preload(T70_XWING_MODEL_PATH);
+useGLTF.preload(XBLADE_MODEL_PATH);
