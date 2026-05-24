@@ -1,5 +1,6 @@
 import type { GameState } from '../../../lib/neural-game-engine';
 import { defendedWorlds, getWaveConfig, getDifficultyScale } from './worlds';
+import { getMissionLayout } from './mission-layout';
 
 /**
  * Star Cleaver Game State initialization and helpers.
@@ -134,10 +135,25 @@ export function startBriefing(state: GameState): GameState {
  * Transition from briefing to ignition (ship startup sequence).
  */
 export function startIgnition(state: GameState): GameState {
+  const layout = getMissionLayout(state.worldIndex);
   return {
     ...state,
     phase: 'ignition',
     ignitionStartTime: state.simTime,
+    playerEntity: {
+      ...state.playerEntity,
+      position: {
+        x: layout.spawnPosition.x,
+        y: layout.spawnPosition.y,
+        z: layout.spawnPosition.z,
+      },
+      velocity: { x: 0, y: 0, z: 0 },
+      rotation: {
+        x: layout.spawnRotation.x,
+        y: layout.spawnRotation.y,
+        z: layout.spawnRotation.z,
+      },
+    },
   };
 }
 
