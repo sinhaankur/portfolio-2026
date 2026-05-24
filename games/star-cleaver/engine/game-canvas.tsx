@@ -25,6 +25,7 @@ import { OpeningSequence } from './opening-sequence';
 import { NexusStation } from './nexus-station';
 import { PlayerShipModel, ProceduralPlayerShipModel, getPlayerShipTransform } from './player-ship-model';
 import type { SelectedShip } from './ship-selector';
+import { getMissionLayout } from './mission-layout';
 
 /**
  * Game Canvas: Main React component for Star Cleaver gameplay.
@@ -365,6 +366,49 @@ function EnemyShipGroup({ enemy }: { enemy: GameEntity }) {
           opacity={0.3 + glowIntensity}
         />
       </mesh>
+    </group>
+  );
+}
+
+function MissionStartScene({ worldIndex }: { worldIndex: number }) {
+  const layout = useMemo(() => getMissionLayout(worldIndex), [worldIndex]);
+
+  return (
+    <group>
+      <group position={[layout.planetPosition.x, layout.planetPosition.y, layout.planetPosition.z]}>
+        <mesh>
+          <sphereGeometry args={[layout.planetRadius, 48, 48]} />
+          <meshStandardMaterial color={layout.planetColor} roughness={0.88} metalness={0.06} />
+        </mesh>
+        <mesh>
+          <sphereGeometry args={[layout.planetRadius * 1.05, 48, 48]} />
+          <meshBasicMaterial
+            color={layout.atmosphereColor}
+            transparent
+            opacity={0.12}
+            side={THREE.DoubleSide}
+            depthWrite={false}
+          />
+        </mesh>
+      </group>
+
+      <group
+        position={[layout.stationPosition.x, layout.stationPosition.y, layout.stationPosition.z]}
+        scale={[layout.stationScale, layout.stationScale, layout.stationScale]}
+      >
+        <mesh rotation={[Math.PI / 2, 0, 0]}>
+          <cylinderGeometry args={[36, 36, 2.4, 40]} />
+          <meshStandardMaterial color={0x6f7f99} roughness={0.52} metalness={0.56} />
+        </mesh>
+        <mesh rotation={[Math.PI / 2, 0, 0]}>
+          <torusGeometry args={[29, 1.1, 20, 56]} />
+          <meshBasicMaterial color={0x99ddff} transparent opacity={0.35} depthWrite={false} />
+        </mesh>
+        <mesh position={[0, 2.2, 0]}>
+          <boxGeometry args={[18, 2.4, 18]} />
+          <meshStandardMaterial color={0x8198b6} roughness={0.44} metalness={0.46} />
+        </mesh>
+      </group>
     </group>
   );
 }
@@ -846,6 +890,9 @@ function GameRenderer() {
 
         {/* Starfield backdrop for universe exploration feeling */}
         <Starfield gasClouds={GAS_CLOUD_FIELDS} />
+
+        {/* Selected mission world + floating orbital station start point. */}
+        <MissionStartScene worldIndex={gameState.worldIndex} />
 
         {/* Scene lighting: cinematic + directional for exploring universe */}
         <ambientLight intensity={0.4} color={0xffffff} />
