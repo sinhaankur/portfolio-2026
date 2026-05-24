@@ -292,14 +292,28 @@ export function cancelFlyTo() {
  * Default journey
  *
  * Plays automatically while the user hasn't entered explore mode. The
- * camera moves through a small loop of canonical sights — opens with a
- * solar-system overview, then visits Saturn → galactic centre → Andromeda
- * → Orion Nebula → back to open view. Loops until the user clicks "Tap
- * to explore," at which point the journey stops and the user has the
- * controls. Respects prefers-reduced-motion (skipped if true).
+ * narrative arc:
  *
- * Linger values include the fly-in animation (~1s) plus the dwell time
- * at the target. Tuned to feel unhurried — each scene gets ~5s to read.
+ *   1. Milky Way disc overview — open wide, establish scale
+ *   2. Pull in to our solar system
+ *   3. Pale Blue Dot (Earth from Voyager 1's vantage)
+ *   4. Saturn (rings catch the light)
+ *   5. Sgr A* — the supermassive black hole at our galactic centre
+ *   6. M87* / Pōwehi — first black hole ever imaged
+ *   7. Phoenix A — the largest known black hole
+ *   8. Polaris — the north star
+ *   9. Proxima Centauri — closest known star system, habitable-zone host
+ *  10. TRAPPIST-1 — seven planets, three in habitable zone
+ *  11. Kepler-186 — first Earth-sized planet in a habitable zone
+ *  12. Andromeda — outward look toward the next galaxy
+ *
+ * Loops until the user clicks "Tap to explore," at which point the
+ * journey stops and the user has the controls. Respects
+ * prefers-reduced-motion (skipped if true).
+ *
+ * Linger values include the fly-in animation (~1s) plus the dwell
+ * time at the target. Tuned to feel unhurried — each scene gets
+ * 5–7 s to read.
  * ------------------------------------------------------------------------ */
 
 export type JourneyWaypoint = {
@@ -321,29 +335,46 @@ export type JourneyWaypoint = {
   captionSource?: string
 }
 
+/** Project a body's RA/Dec onto the sky shell around the Sun.
+ *  Local helper so waypoints below stay declarative — same math the
+ *  scene's raDecToScenePos uses for constellations + skyPoints. */
+function _shellPos(raHours: number, decDeg: number): { x: number; y: number; z: number } {
+  const raRad = (raHours / 24) * 2 * Math.PI
+  const decRad = (decDeg * Math.PI) / 180
+  const cosDec = Math.cos(decRad)
+  return {
+    x: SUN_OFFSET_SCENE + SKY_SHELL_DISTANCE * cosDec * Math.cos(raRad),
+    y: SKY_SHELL_DISTANCE * Math.sin(decRad),
+    z: SKY_SHELL_DISTANCE * cosDec * Math.sin(raRad),
+  }
+}
+
 export const DEFAULT_JOURNEY: JourneyWaypoint[] = [
+  // 1. Milky Way disc overview — pull back far enough that the
+  // galactic plane reads as a disc, not just the inner solar system.
+  // Origin = galactic centre, large distance so the tilt of the disc
+  // is visible.
+  {
+    target: { x: 0, y: 0, z: 0 },
+    distance: 130,
+    label: "The Milky Way",
+    linger: 6500,
+  },
+  // 2. Pull in to the solar system — re-establish "we are here" after
+  // the wide galactic shot.
   {
     target: { x: SUN_OFFSET_SCENE, y: 4, z: 9 },
     distance: 14,
-    label: "Open view",
-    linger: 6500,
+    label: "Our solar system",
+    linger: 5500,
   },
+  // 3. Pale Blue Dot — Voyager 1's vantage on Valentine's Day 1990.
+  // Target is Earth (≈ 3 scene units from the Sun, on its start-phase
+  // position); camera is fixed ~46 scene units out, high above the
+  // ecliptic to mimic Voyager 1's actual heliocentric position. The
+  // fixed camera position makes the *vantage* the story — Earth
+  // shows up as a single sub-pixel speck against the void.
   {
-    // Saturn — Park ~9.27 scene units from the Sun, slightly above the
-    // ecliptic so the rings catch the camera at an interesting angle.
-    target: { x: SUN_OFFSET_SCENE + 9.27, y: 0.35, z: 0 },
-    distance: 2.2,
-    label: "Saturn",
-    linger: 6500,
-  },
-  {
-    // Pale Blue Dot — Voyager 1's vantage on Valentine's Day 1990.
-    // Target is Earth (≈ 3 scene units from the Sun, on its start-phase
-    // position); camera is fixed ~46 scene units out, high above the
-    // ecliptic to mimic Voyager 1's actual heliocentric position
-    // (35.7° inclination, ~166 AU today). The fixed camera position is
-    // what makes the *vantage* the story — Earth shows up as a single
-    // sub-pixel speck against the void, exactly as Sagan described it.
     target: { x: SUN_OFFSET_SCENE - 0.63, y: 0, z: 2.93 },
     cameraPos: { x: SUN_OFFSET_SCENE - 28, y: 22, z: 30 },
     distance: 46,
@@ -353,25 +384,78 @@ export const DEFAULT_JOURNEY: JourneyWaypoint[] = [
     captionSource: "Carl Sagan · Pale Blue Dot · 1994",
     linger: 11000,
   },
+  // 4. Saturn — ~9.27 scene units from the Sun, slightly above the
+  // ecliptic so the rings catch the camera at an interesting angle.
   {
-    // Galactic centre (Sgr A*) — origin of the MilkyWay group.
-    target: { x: 0, y: 0, z: 0 },
-    distance: 38,
-    label: "Galactic centre",
+    target: { x: SUN_OFFSET_SCENE + 9.27, y: 0.35, z: 0 },
+    distance: 2.2,
+    label: "Saturn",
     linger: 6500,
   },
+  // 5. Sgr A* — supermassive BH at the centre of the Milky Way.
+  // Origin of the MilkyWay group; closer distance frames the
+  // accretion-disc model rather than the galaxy as a whole.
   {
-    // Andromeda (M31) — projected onto the sky-shell around the Sun.
+    target: { x: 0, y: 0, z: 0 },
+    distance: 14,
+    label: "Sagittarius A*",
+    linger: 6500,
+  },
+  // 6. M87* / Pōwehi — first black hole ever imaged (EHT, April 2019).
+  // Projected onto the sky shell from its real RA/Dec.
+  {
+    target: _shellPos(12.514, 12.39),
+    distance: 22,
+    label: "M87* · Pōwehi",
+    linger: 7000,
+  },
+  // 7. Phoenix A — possibly the largest known black hole in the
+  // universe (~100 billion solar masses).
+  {
+    target: _shellPos(23.722, -42.72),
+    distance: 22,
+    label: "Phoenix A",
+    linger: 6500,
+  },
+  // 8. Polaris — the north star. ~89° declination, nearly straight
+  // up from Earth's vantage. The constellation Ursa Minor wraps
+  // around it.
+  {
+    target: _shellPos(2.530, 89.264),
+    distance: 16,
+    label: "Polaris",
+    linger: 6500,
+  },
+  // 9. Proxima Centauri — closest known star to the Sun (4.24 ly),
+  // host to a potentially habitable Earth-mass planet.
+  {
+    target: _shellPos(14.495, -62.68),
+    distance: 14,
+    label: "Proxima Centauri",
+    linger: 6500,
+  },
+  // 10. TRAPPIST-1 — seven confirmed planets, three in the habitable
+  // zone. The headline candidate for "another Earth" within reach.
+  {
+    target: _shellPos(23.108, -5.04),
+    distance: 14,
+    label: "TRAPPIST-1",
+    linger: 6500,
+  },
+  // 11. Kepler-186 — first Earth-sized planet found in a habitable
+  // zone (NASA Ames, 2014). 557 ly out.
+  {
+    target: _shellPos(19.907, 43.95),
+    distance: 14,
+    label: "Kepler-186",
+    linger: 6500,
+  },
+  // 12. Andromeda (M31) — next galaxy over. Outward look that pairs
+  // with the Milky Way opener.
+  {
     target: { x: SUN_OFFSET_SCENE + 102.2, y: 99.0, z: 16.9 },
     distance: 22,
     label: "Andromeda",
-    linger: 7000,
-  },
-  {
-    // Orion Nebula (M42) — projected onto the sky-shell around the Sun.
-    target: { x: SUN_OFFSET_SCENE - 53.1, y: -14.1, z: -138.5 },
-    distance: 14,
-    label: "Orion Nebula",
     linger: 7000,
   },
 ]
