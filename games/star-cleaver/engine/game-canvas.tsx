@@ -372,6 +372,25 @@ function EnemyShipGroup({ enemy }: { enemy: GameEntity }) {
 
 function MissionStartScene({ worldIndex }: { worldIndex: number }) {
   const layout = useMemo(() => getMissionLayout(worldIndex), [worldIndex]);
+  const stylePalette = useMemo(() => {
+    switch (layout.stationStyle) {
+      case 'industrial':
+        return { hull: 0x7d7367, deck: 0x5e5953, glow: 0xffa65c, trim: 0xd78546 };
+      case 'research':
+        return { hull: 0xb6c3d4, deck: 0x8ea0b8, glow: 0xb7eeff, trim: 0xe1f5ff };
+      case 'frontier':
+        return { hull: 0x8c8065, deck: 0x6f6653, glow: 0xffd79b, trim: 0xe8b86c };
+      case 'sentinel':
+        return { hull: 0x6a7ea4, deck: 0x4e607f, glow: 0xa5c4ff, trim: 0x8ea9df };
+      case 'exo':
+        return { hull: 0x5d8f79, deck: 0x497565, glow: 0x9cf0ce, trim: 0x79d7b5 };
+      case 'ark':
+        return { hull: 0x7c6ba9, deck: 0x60528d, glow: 0xd1beff, trim: 0xa88ee8 };
+      case 'civic':
+      default:
+        return { hull: 0x6f7f99, deck: 0x8198b6, glow: 0x99ddff, trim: 0x6fbef0 };
+    }
+  }, [layout.stationStyle]);
 
   return (
     <group>
@@ -398,16 +417,55 @@ function MissionStartScene({ worldIndex }: { worldIndex: number }) {
       >
         <mesh rotation={[Math.PI / 2, 0, 0]}>
           <cylinderGeometry args={[36, 36, 2.4, 40]} />
-          <meshStandardMaterial color={0x6f7f99} roughness={0.52} metalness={0.56} />
+          <meshStandardMaterial color={stylePalette.hull} roughness={0.52} metalness={0.56} />
         </mesh>
         <mesh rotation={[Math.PI / 2, 0, 0]}>
           <torusGeometry args={[29, 1.1, 20, 56]} />
-          <meshBasicMaterial color={0x99ddff} transparent opacity={0.35} depthWrite={false} />
+          <meshBasicMaterial color={stylePalette.glow} transparent opacity={0.35} depthWrite={false} />
         </mesh>
         <mesh position={[0, 2.2, 0]}>
           <boxGeometry args={[18, 2.4, 18]} />
-          <meshStandardMaterial color={0x8198b6} roughness={0.44} metalness={0.46} />
+          <meshStandardMaterial color={stylePalette.deck} roughness={0.44} metalness={0.46} />
         </mesh>
+
+        {layout.stationStyle === 'industrial' && (
+          <>
+            <mesh position={[-14, 3.5, 0]}>
+              <boxGeometry args={[4, 7, 4]} />
+              <meshStandardMaterial color={stylePalette.deck} roughness={0.5} metalness={0.52} />
+            </mesh>
+            <mesh position={[14, 3.5, 0]}>
+              <boxGeometry args={[4, 7, 4]} />
+              <meshStandardMaterial color={stylePalette.deck} roughness={0.5} metalness={0.52} />
+            </mesh>
+          </>
+        )}
+
+        {(layout.stationStyle === 'research' || layout.stationStyle === 'exo') && (
+          <>
+            <mesh position={[-20, 1.8, 0]} rotation={[0, 0, Math.PI * 0.08]}>
+              <boxGeometry args={[12, 0.5, 22]} />
+              <meshStandardMaterial color={stylePalette.trim} roughness={0.3} metalness={0.65} />
+            </mesh>
+            <mesh position={[20, 1.8, 0]} rotation={[0, 0, -Math.PI * 0.08]}>
+              <boxGeometry args={[12, 0.5, 22]} />
+              <meshStandardMaterial color={stylePalette.trim} roughness={0.3} metalness={0.65} />
+            </mesh>
+          </>
+        )}
+
+        {(layout.stationStyle === 'sentinel' || layout.stationStyle === 'ark') && (
+          <>
+            <mesh position={[0, 8, 0]}>
+              <cylinderGeometry args={[1.2, 1.2, 9, 16]} />
+              <meshStandardMaterial color={stylePalette.trim} roughness={0.42} metalness={0.62} />
+            </mesh>
+            <mesh position={[0, 13, 0]}>
+              <sphereGeometry args={[2.8, 16, 16]} />
+              <meshBasicMaterial color={stylePalette.glow} transparent opacity={0.28} depthWrite={false} />
+            </mesh>
+          </>
+        )}
       </group>
     </group>
   );

@@ -7,6 +7,7 @@ export interface MissionLayout {
   atmosphereColor: number;
   stationPosition: THREE.Vector3;
   stationScale: number;
+  stationStyle: 'civic' | 'industrial' | 'research' | 'frontier' | 'sentinel' | 'exo' | 'ark';
   spawnPosition: THREE.Vector3;
   spawnRotation: THREE.Vector3;
 }
@@ -19,6 +20,7 @@ const BASE_LAYOUTS: MissionLayout[] = [
     atmosphereColor: 0x8ec5ff,
     stationPosition: new THREE.Vector3(0, -6, -330),
     stationScale: 1.15,
+    stationStyle: 'civic',
     spawnPosition: new THREE.Vector3(0, 8, -300),
     spawnRotation: new THREE.Vector3(0, Math.PI, 0),
   },
@@ -29,6 +31,7 @@ const BASE_LAYOUTS: MissionLayout[] = [
     atmosphereColor: 0xf2b47a,
     stationPosition: new THREE.Vector3(120, -24, -428),
     stationScale: 1.08,
+    stationStyle: 'industrial',
     spawnPosition: new THREE.Vector3(120, -10, -398),
     spawnRotation: new THREE.Vector3(0, Math.PI, 0),
   },
@@ -39,6 +42,7 @@ const BASE_LAYOUTS: MissionLayout[] = [
     atmosphereColor: 0xeaf4ff,
     stationPosition: new THREE.Vector3(-180, -12, -506),
     stationScale: 1.0,
+    stationStyle: 'research',
     spawnPosition: new THREE.Vector3(-180, 4, -474),
     spawnRotation: new THREE.Vector3(0, Math.PI, 0),
   },
@@ -49,6 +53,7 @@ const BASE_LAYOUTS: MissionLayout[] = [
     atmosphereColor: 0xf0d39e,
     stationPosition: new THREE.Vector3(240, -14, -568),
     stationScale: 1.18,
+    stationStyle: 'frontier',
     spawnPosition: new THREE.Vector3(240, 2, -536),
     spawnRotation: new THREE.Vector3(0, Math.PI, 0),
   },
@@ -59,6 +64,7 @@ const BASE_LAYOUTS: MissionLayout[] = [
     atmosphereColor: 0x9cc4ff,
     stationPosition: new THREE.Vector3(-300, -30, -632),
     stationScale: 1.2,
+    stationStyle: 'sentinel',
     spawnPosition: new THREE.Vector3(-300, -14, -598),
     spawnRotation: new THREE.Vector3(0, Math.PI, 0),
   },
@@ -69,6 +75,7 @@ const BASE_LAYOUTS: MissionLayout[] = [
     atmosphereColor: 0x9ef0cc,
     stationPosition: new THREE.Vector3(360, -56, -676),
     stationScale: 1.24,
+    stationStyle: 'exo',
     spawnPosition: new THREE.Vector3(360, -40, -640),
     spawnRotation: new THREE.Vector3(0, Math.PI, 0),
   },
@@ -79,6 +86,7 @@ const BASE_LAYOUTS: MissionLayout[] = [
     atmosphereColor: 0xb5a9ff,
     stationPosition: new THREE.Vector3(-420, -82, -742),
     stationScale: 1.28,
+    stationStyle: 'ark',
     spawnPosition: new THREE.Vector3(-420, -66, -706),
     spawnRotation: new THREE.Vector3(0, Math.PI, 0),
   },
