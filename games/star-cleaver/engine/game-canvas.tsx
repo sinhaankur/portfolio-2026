@@ -85,9 +85,12 @@ function PlayerShipGroup({ gameState }: { gameState: GameState }) {
     }
 
     // Velocity-responsive engine glow brightness and scale
-    const normalizedSpeed = Math.min(speed / 25, 1.0);
-    const engineOpacity = 0.32 + normalizedSpeed * 0.5;
-    const engineScale = 0.7 + normalizedSpeed * 0.75;
+    const thrustSignal = Number(gameState.playerEntity.metadata?.thrustLevel ?? 0);
+    const boostActive = Boolean(gameState.playerEntity.metadata?.boostActive);
+    const normalizedSpeed = Math.min(speed / 40, 1.0);
+    const driveSignal = Math.max(normalizedSpeed, thrustSignal);
+    const engineOpacity = 0.3 + driveSignal * (boostActive ? 0.68 : 0.48);
+    const engineScale = 0.68 + driveSignal * (boostActive ? 1.0 : 0.72);
 
     [engineGlow1Ref, engineGlow2Ref].forEach(ref => {
       if (!ref.current) return;
@@ -95,8 +98,8 @@ function PlayerShipGroup({ gameState }: { gameState: GameState }) {
       ref.current.scale.setScalar(engineScale);
     });
 
-    const plumeLength = 0.9 + normalizedSpeed * 2.6;
-    const plumeOpacity = 0.2 + normalizedSpeed * 0.5;
+    const plumeLength = 0.95 + driveSignal * (boostActive ? 4.2 : 2.7);
+    const plumeOpacity = 0.25 + driveSignal * (boostActive ? 0.7 : 0.45);
     [thrusterCone1Ref, thrusterCone2Ref].forEach(ref => {
       if (!ref.current) return;
       ref.current.scale.set(1, plumeLength, 1);
@@ -105,7 +108,7 @@ function PlayerShipGroup({ gameState }: { gameState: GameState }) {
 
     // Cockpit glow pulses faster when boosting
     if (cockpitGlowRef.current) {
-      const pulseFreq = 1.5 + normalizedSpeed * 3.0;
+      const pulseFreq = 1.5 + driveSignal * (boostActive ? 5.0 : 3.0);
       const pulseAmt = 0.85 + Math.sin(state.clock.elapsedTime * pulseFreq) * 0.15;
       cockpitGlowRef.current.scale.setScalar(pulseAmt);
     }
@@ -258,6 +261,22 @@ function CameraFollowController({ gameState }: { gameState: GameState }) {
     }
 
     camera.lookAt(lookTarget);
+
+    // Dynamic FOV gives a clear sensation of acceleration and boost.
+    const speed = Math.sqrt(
+      gameState.playerEntity.velocity.x ** 2 +
+      gameState.playerEntity.velocity.y ** 2 +
+      gameState.playerEntity.velocity.z ** 2
+    );
+    const boostActive = Boolean(gameState.playerEntity.metadata?.boostActive);
+    const targetFov = 55 + Math.min(speed / 7, 6) + (boostActive ? 6 : 0);
+    const currentFov = (camera as THREE.PerspectiveCamera).fov ?? 55;
+    const fovK = 1 - Math.exp(-delta * 4.5);
+    const nextFov = currentFov + (targetFov - currentFov) * fovK;
+    if (Math.abs(nextFov - currentFov) > 0.02) {
+      (camera as THREE.PerspectiveCamera).fov = nextFov;
+      (camera as THREE.PerspectiveCamera).updateProjectionMatrix();
+    }
   });
 
   return null;
@@ -283,6 +302,7 @@ function GameScene({
   const enemyAgentsRef = useRef<Map<string, any>>(new Map());
   const entityMeshesRef = useRef<Map<string, THREE.Group>>(new Map());
   const frameCountRef = useRef(0);
+  const forwardSpeedRef = useRef(14);
 
   // Initialize game systems on mount
   useEffect(() => {
@@ -381,18 +401,31 @@ function GameScene({
       gameState.playerEntity.rotation.y += yawDelta;
       gameState.playerEntity.rotation.z += rollDelta;
 
-      // Travel-first controls: keep a gentle cruise speed so motion is always visible.
-      let thrustSpeed = 14;
-      if (keysPressed.current.has('KeyW') || keysPressed.current.has('ArrowUp')) thrustSpeed = 34;
-      if (keysPressed.current.has('KeyS') || keysPressed.current.has('ArrowDown')) thrustSpeed = -16;
+      const isAccelerating = keysPressed.current.has('KeyW') || keysPressed.current.has('ArrowUp');
+      const isBraking = keysPressed.current.has('KeyS') || keysPressed.current.has('ArrowDown');
+      const isBoosting = keysPressed.current.has('ShiftLeft') || keysPressed.current.has('ShiftRight');
 
-      // Boost with Shift
-      const boostMultiplier = keysPressed.current.has('ShiftLeft') || keysPressed.current.has('ShiftRight') ? 1.8 : 1.0;
+      // Inertial speed model: target speed changes by input, then eases over time.
+      let targetSpeed = 14;
+      if (isAccelerating) targetSpeed = 36;
+      if (isBraking) targetSpeed = -14;
+      if (isBoosting && targetSpeed > 0) targetSpeed *= 1.6;
 
-      // Apply velocity based on forward direction
-      gameState.playerEntity.velocity.x = forwardLocal.x * thrustSpeed * boostMultiplier;
-      gameState.playerEntity.velocity.y = forwardLocal.y * thrustSpeed * boostMultiplier;
-      gameState.playerEntity.velocity.z = forwardLocal.z * thrustSpeed * boostMultiplier;
+      const speedResponse = isBoosting ? 7.5 : 4.5;
+      const speedK = 1 - Math.exp(-clampedDelta * speedResponse);
+      forwardSpeedRef.current += (targetSpeed - forwardSpeedRef.current) * speedK;
+
+      // Apply velocity based on forward direction and smoothed speed.
+      gameState.playerEntity.velocity.x = forwardLocal.x * forwardSpeedRef.current;
+      gameState.playerEntity.velocity.y = forwardLocal.y * forwardSpeedRef.current;
+      gameState.playerEntity.velocity.z = forwardLocal.z * forwardSpeedRef.current;
+
+      // Publish control state so the ship can render immediate ignition/boost feedback.
+      if (!gameState.playerEntity.metadata) {
+        gameState.playerEntity.metadata = {};
+      }
+      gameState.playerEntity.metadata.thrustLevel = Math.min(1, Math.abs(forwardSpeedRef.current) / 58);
+      gameState.playerEntity.metadata.boostActive = isBoosting;
     }
 
     // Update game logic
