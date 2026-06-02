@@ -49,26 +49,26 @@ export function HUD({ gameState, showForwardDebug = false, onShipSelect }: HUDPr
       <div className="fixed top-0 inset-x-0 z-40 pointer-events-none">
         <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center px-3 sm:px-6 py-3 sm:py-4 max-w-6xl mx-auto">
           {/* Left: World info */}
-          <div className="font-mono text-[9px] sm:text-[11px] tracking-[0.14em] sm:tracking-[0.25em] uppercase text-foreground/85">
+          <div className="font-mono text-[9px] sm:text-[11px] tracking-[0.14em] sm:tracking-[0.25em] uppercase text-foreground/85 drop-shadow-md">
             <div>{worldName}</div>
             <div className="text-foreground/55 mt-1">
-              STAGE 1 · WORLD {gameState.worldIndex + 1}/7
+              STAGE 1 · WORLD 1/1
             </div>
           </div>
 
-          {/* Center: Player health bar */}
+          {/* Center: Player health bar with animation and gradient */}
           <div className="flex flex-col items-center sm:items-center gap-1.5 sm:gap-2">
             <div className="text-foreground/55 font-mono text-[8px] sm:text-[9px] tracking-[0.14em] sm:tracking-[0.2em] uppercase">
               HULL
             </div>
-            <div className="w-[min(92vw,16rem)] sm:w-64 h-2 rounded-full bg-foreground/10 border border-foreground/25 overflow-hidden">
+            <div className="relative w-[min(92vw,16rem)] sm:w-64 h-3 rounded-full bg-linear-to-r from-cyan-900/60 to-cyan-400/20 shadow-inner overflow-hidden border border-foreground/25">
               <div
-                className="h-full bg-accent transition-all duration-100"
-                style={{
-                  width: `${healthPercent}%`,
-                  backgroundColor: healthPercent > 50 ? '#22c55e' : healthPercent > 25 ? '#eab308' : '#ef4444',
-                }}
+                className="absolute left-0 top-0 h-full rounded-full bg-linear-to-r from-green-400 via-yellow-300 to-red-500 transition-all duration-500 shadow-lg"
+                style={{ width: `${healthPercent}%`, boxShadow: '0 0 8px 2px rgba(34,211,238,0.25)' }}
               />
+              <div className="absolute inset-0 flex items-center justify-center font-mono text-[10px] text-white/80 drop-shadow">
+                {Math.round(healthPercent)}%
+              </div>
             </div>
             <div className="text-foreground/70 font-mono text-[8px] sm:text-[9px]">
               {Math.ceil(gameState.playerEntity.health)} / {gameState.playerMaxHealth}
@@ -77,7 +77,7 @@ export function HUD({ gameState, showForwardDebug = false, onShipSelect }: HUDPr
 
           {/* Right: Score */}
           <div className="text-left sm:text-right">
-            <div className="font-mono text-[11px] sm:text-[13px] tracking-[0.12em] sm:tracking-widest uppercase text-foreground/85 tabular-nums">
+            <div className="font-mono text-[11px] sm:text-[13px] tracking-[0.12em] sm:tracking-widest uppercase text-foreground/85 tabular-nums drop-shadow">
               {formatScore(gameState.score)}
             </div>
             <div className="text-foreground/55 font-mono text-[9px] sm:text-[11px] tracking-[0.12em] sm:tracking-[0.2em] mt-1">

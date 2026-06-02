@@ -3,7 +3,7 @@
 import type { GameState } from '../../../lib/neural-game-engine';
 
 export interface ShipConfig {
-  id: 'default-xwing' | 'alliance-xwing' | 't70-xwing' | 'x-blade';
+  id: 'default-xwing';
   name: string;
   description: string;
   visualSource: 'glb' | 'procedural';
@@ -28,45 +28,9 @@ export const SHIP_CONFIGS: Record<string, ShipConfig> = {
       weapons: 4,
     },
   },
-  'alliance-xwing': {
-    id: 'alliance-xwing',
-    name: 'Vedic Space Craft',
-    description: 'Vedic-inspired starcraft silhouette, derived from the X-Wing profile.',
-    visualSource: 'glb',
-    visualNote: 'Textured GLB',
-    stats: {
-      speed: 3,
-      armor: 4,
-      weapons: 4,
-    },
-  },
-  't70-xwing': {
-    id: 't70-xwing',
-    name: 'T-70 X-Wing',
-    description: 'Modern Poe-era variant. Faster, more agile.',
-    visualSource: 'glb',
-    visualNote: 'Textured GLB',
-    stats: {
-      speed: 4,
-      armor: 2,
-      weapons: 4,
-    },
-  },
-  'x-blade': {
-    id: 'x-blade',
-    name: 'X-Blade',
-    description: 'Experimental interceptor with aggressive strike profile.',
-    visualSource: 'glb',
-    visualNote: 'Textured GLB',
-    stats: {
-      speed: 5,
-      armor: 4,
-      weapons: 5,
-    },
-  },
 };
 
-export type SelectedShip = 'default-xwing' | 'alliance-xwing' | 't70-xwing' | 'x-blade';
+export type SelectedShip = 'default-xwing';
 
 /**
  * Get available ships based on worlds completed

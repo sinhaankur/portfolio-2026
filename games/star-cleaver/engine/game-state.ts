@@ -10,8 +10,10 @@ import { getMissionLayout } from './mission-layout';
  * Create initial game state for a new game.
  */
 export function createInitialGameState(): GameState {
+  const layout = getMissionLayout(0);
+
   return {
-    phase: 'opening',
+    phase: 'exploration',
     worldIndex: 0,
     wave: 1,
     score: 0,
@@ -23,9 +25,17 @@ export function createInitialGameState(): GameState {
 
     playerEntity: {
       id: 'player_ship',
-      position: { x: 0, y: 0, z: 0 },
+      position: {
+        x: layout.spawnPosition.x,
+        y: layout.spawnPosition.y,
+        z: layout.spawnPosition.z,
+      },
       velocity: { x: 0, y: 0, z: 0 },
-      rotation: { x: 0, y: 0, z: 0 },
+      rotation: {
+        x: layout.spawnRotation.x,
+        y: layout.spawnRotation.y,
+        z: layout.spawnRotation.z,
+      },
       health: 100,
       maxHealth: 100,
       radius: 1,

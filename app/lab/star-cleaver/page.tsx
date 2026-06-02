@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StaticStarfield } from '@/components/universe-engine/static-starfield';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { UniverseRuntimeFallback } from '@/components/universe-engine/runtime-fallback';
@@ -31,16 +31,116 @@ const GameCanvas = dynamic(() => import('@/games/star-cleaver/engine/game-canvas
 
 export default function StarCleaverExperience() {
   const [showGame, setShowGame] = useState(false);
+  const [gameReady, setGameReady] = useState(false);
+  const [gameLoadTimedOut, setGameLoadTimedOut] = useState(false);
+  const [launchError, setLaunchError] = useState<string | null>(null);
   const isMobile = useIsMobile();
+
+  const canUseWebGL = () => {
+    if (typeof window === 'undefined') return true;
+    try {
+      const canvas = document.createElement('canvas');
+      const gl2 = canvas.getContext('webgl2');
+      if (gl2) return true;
+      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+      return Boolean(gl);
+    } catch {
+      return false;
+    }
+  };
+
+  useEffect(() => {
+    if (!showGame || gameReady) return;
+    setGameLoadTimedOut(false);
+    const timer = window.setTimeout(() => {
+      setGameLoadTimedOut(true);
+    }, 7000);
+    return () => window.clearTimeout(timer);
+  }, [showGame, gameReady]);
+
+  const handleLaunchGame = () => {
+    setLaunchError(null);
+    setGameReady(false);
+    setGameLoadTimedOut(false);
+
+    if (!canUseWebGL()) {
+      setLaunchError('WebGL is unavailable in this browser/device context.');
+      return;
+    }
+
+    setShowGame(true);
+  };
+
+  const handleBackToUniverse = () => {
+    setShowGame(false);
+    setGameReady(false);
+    setGameLoadTimedOut(false);
+  };
 
   if (showGame) {
     return (
       <div style={{ width: '100vw', height: '100vh', overflow: 'hidden', margin: 0, padding: 0 }}>
         <UniverseRuntimeFallback>
-          <GameCanvas />
+          <GameCanvas onReady={() => setGameReady(true)} />
         </UniverseRuntimeFallback>
+
+        {gameLoadTimedOut && !gameReady && (
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 45,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              pointerEvents: 'none',
+              padding: '16px',
+            }}
+          >
+            <div
+              style={{
+                pointerEvents: 'auto',
+                maxWidth: '500px',
+                borderRadius: '16px',
+                border: '1px solid rgba(255,255,255,0.25)',
+                background: 'rgba(0,0,0,0.78)',
+                backdropFilter: 'blur(12px)',
+                padding: '16px',
+                textAlign: 'center',
+                color: 'rgba(255,255,255,0.9)',
+              }}
+            >
+              <p style={{ margin: 0, fontFamily: 'monospace', fontSize: '10px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)' }}>
+                Launch interrupted
+              </p>
+              <p style={{ margin: '10px 0 0', fontSize: '14px', lineHeight: 1.5 }}>
+                WebGL initialization took too long or failed in this environment.
+              </p>
+              <button
+                type="button"
+                onClick={handleBackToUniverse}
+                style={{
+                  marginTop: '14px',
+                  padding: '8px 14px',
+                  border: '1px solid rgba(255,255,255,0.35)',
+                  borderRadius: '8px',
+                  background: 'rgba(0,0,0,0.5)',
+                  color: '#fff',
+                  fontFamily: 'monospace',
+                  fontSize: '11px',
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
+                  cursor: 'pointer',
+                }}
+              >
+                Back to Universe
+              </button>
+            </div>
+          </div>
+        )}
+
         <button
-          onClick={() => setShowGame(false)}
+          onClick={handleBackToUniverse}
           style={{
             position: 'fixed',
             top: isMobile ? 'max(12px, env(safe-area-inset-top))' : '16px',
@@ -117,7 +217,7 @@ export default function StarCleaverExperience() {
         }}
       >
         <button
-          onClick={() => setShowGame(true)}
+          onClick={handleLaunchGame}
           style={{
             pointerEvents: 'auto',
             width: isMobile ? '100%' : 'auto',
@@ -144,6 +244,21 @@ export default function StarCleaverExperience() {
         >
           Launch Star Cleaver
         </button>
+        {launchError && (
+          <p
+            style={{
+              margin: '8px 0 0',
+              fontSize: isMobile ? '10px' : '11px',
+              lineHeight: 1.5,
+              color: 'rgba(255, 170, 170, 0.95)',
+              maxWidth: isMobile ? '100%' : '420px',
+              fontFamily: 'monospace',
+              letterSpacing: '0.03em',
+            }}
+          >
+            {launchError}
+          </p>
+        )}
         <p
           style={{
             margin: '10px 0 0',
@@ -155,7 +270,7 @@ export default function StarCleaverExperience() {
             letterSpacing: '0.04em',
           }}
         >
-          Launch game, choose your world and ship together in Nexus, then go straight into ignition.
+          One-click launch. Start beside Earth and fly immediately in exploration mode.
         </p>
       </div>
     </div>

@@ -17,11 +17,9 @@ import {
 } from '../../../lib/neural-game-engine';
 // import { createNeuralAgent, type NeuralAgent } from '../../../lib/neural-game-engine/ai-agent';
 import { generateShip } from '../../../lib/ship-generator/procedural-ships';
-import { createInitialGameState, startOpening, goToNexus, selectWorld, startIgnition, startExploration } from './game-state';
+import { createInitialGameState, startIgnition, startExploration } from './game-state';
 import { HUD } from './hud';
 import { TestingConsole } from './testing-console';
-import { OpeningSequence } from './opening-sequence';
-import { NexusStation } from './nexus-station';
 import { PlayerShipModel, ProceduralPlayerShipModel, getPlayerShipTransform } from './player-ship-model';
 import type { SelectedShip } from './ship-selector';
 import { getMissionLayout } from './mission-layout';
@@ -65,7 +63,10 @@ function GameFog() {
 interface GameCanvasProps {
   onGameEnd?: (state: GameState) => void;
   onPhaseChange?: (phase: GameState['phase']) => void;
+  onReady?: () => void;
 }
+
+type CameraAssistLevel = 'low' | 'medium' | 'high';
 
 const GAS_CLOUD_FIELDS = [
   { position: [-260, 70, -520] as [number, number, number], radius: 170, density: 0.62, color: 0x6a96ff },
@@ -81,7 +82,8 @@ const SHIP_THRUSTER_PRESETS: Record<SelectedShip, {
   nozzleZ: number;
   outerNozzleZ: number;
 }> = {
-  'default-xwing': { lateral: 1.24, vertical: 0.58, coreZ: -2.65, nozzleZ: -2.95, outerNozzleZ: -3.02 },
+  // Adjust these values as needed for your custom model. Start with a centered, slightly behind-the-ship position.
+  'default-xwing': { lateral: 0.42, vertical: 0.36, coreZ: -1.16, nozzleZ: -1.44, outerNozzleZ: -1.62 },
   'alliance-xwing': { lateral: 1.3, vertical: 0.6, coreZ: -2.78, nozzleZ: -3.08, outerNozzleZ: -3.16 },
   't70-xwing': { lateral: 1.36, vertical: 0.64, coreZ: -2.95, nozzleZ: -3.27, outerNozzleZ: -3.35 },
   'x-blade': { lateral: 1.44, vertical: 0.7, coreZ: -3.08, nozzleZ: -3.42, outerNozzleZ: -3.5 },
@@ -175,10 +177,10 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
       ref.current.scale.setScalar(coreScale);
     });
 
-    const plumeLength = 1.05 + driveSignal * (boostActive ? 4.8 : 3.2);
-    const plumeRadius = 0.84 + driveSignal * (boostActive ? 0.32 : 0.2);
-    const plumeOpacity = (0.18 + driveSignal * (boostActive ? 0.6 : 0.4)) * flicker;
-    const outerPlumeOpacity = (0.08 + driveSignal * (boostActive ? 0.42 : 0.26)) * flicker;
+    const plumeLength = 0.72 + driveSignal * (boostActive ? 2.2 : 1.45);
+    const plumeRadius = 0.45 + driveSignal * (boostActive ? 0.18 : 0.12);
+    const plumeOpacity = (0.14 + driveSignal * (boostActive ? 0.42 : 0.28)) * flicker;
+    const outerPlumeOpacity = (0.05 + driveSignal * (boostActive ? 0.3 : 0.2)) * flicker;
     const thrusterHalfLength = 0.9 * plumeLength;
     const outerHalfLength = 1.2 * plumeLength * 1.22;
     const rearNozzleZ = thrusterPreset.nozzleZ;
@@ -188,7 +190,7 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
       if (!ref.current) return;
       ref.current.scale.set(plumeRadius, plumeLength, plumeRadius);
       (ref.current.material as THREE.MeshBasicMaterial).opacity = plumeOpacity;
-      // Keep the cone base fixed at the rear nozzle and extend plume rearward as it scales.
+      // Keep the cone base fixed at the rear nozzle and extend plume rearward (-Z).
       ref.current.position.z = rearNozzleZ - thrusterHalfLength;
     });
 
@@ -344,7 +346,7 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
 
           {/* Optional forward debug marker (nose direction). Toggle with V. */}
           {showForwardDebug && (
-            <mesh position={[0, 0.06, -3.25]} rotation={[-Math.PI / 2, 0, 0]}>
+            <mesh position={[0, 0.06, 3.25]} rotation={[Math.PI / 2, 0, 0]}>
               <coneGeometry args={[0.12, 0.42, 12]} />
               <meshBasicMaterial color={0x34d399} transparent opacity={0.9} depthWrite={false} />
             </mesh>
@@ -505,15 +507,18 @@ function MissionStartScene({ worldIndex }: { worldIndex: number }) {
  * Camera follow controller: smooth chase cam like following a comet in Universe Engine.
  * Uses exponential smoothing for silk-smooth, responsive flight feel.
  */
-function CameraFollowController({ gameState }: { gameState: GameState }) {
+function CameraFollowController({ gameState, cameraAssist }: { gameState: GameState; cameraAssist: CameraAssistLevel }) {
   const { camera } = useThree();
   const smoothPosRef = useRef(camera.position.clone());
   const smoothLookRef = useRef(new THREE.Vector3());
 
   // Dynamic offset based on phase: flight cam behind ship during ignition/exploration, wide during briefing
   const isFlightPhase = gameState.phase === 'ignition' || gameState.phase === 'exploration';
-  const baseOffsetDistance = isFlightPhase ? 8 : 20;
-  const baseOffsetHeight = isFlightPhase ? 2.5 : 9;
+  // Camera is closer and lower for a more cinematic chase view
+  const baseOffsetDistance = isFlightPhase ? 6.2 : 18;
+  const baseOffsetHeight = isFlightPhase ? 1.35 : 7.5;
+  // Add a slight side offset for a dynamic angle
+  const baseSideOffset = isFlightPhase ? 1.1 : 0.0;
 
   useFrame((state, delta) => {
     const playerPos = new THREE.Vector3(
@@ -538,35 +543,41 @@ function CameraFollowController({ gameState }: { gameState: GameState }) {
     const cloudShake = cloudDensity * (0.12 + boostSpool * 0.12);
     const turbulenceX = Math.sin(state.clock.elapsedTime * 3.4) * cloudShake;
     const turbulenceY = Math.sin(state.clock.elapsedTime * 5.1 + 1.7) * cloudShake * 0.6;
-    const cameraOffset = new THREE.Vector3(turbulenceX, offsetHeight + turbulenceY, offsetDistance);
+    const cameraOffset = new THREE.Vector3(baseSideOffset + turbulenceX, offsetHeight + turbulenceY, offsetDistance);
     const desiredCameraPos = playerPos.clone().add(cameraOffset);
 
     // Ultra-smooth exponential follow: k = 1 - exp(-delta * rate)
-    // Tighter during flight phases for responsive cockpit view
-    const followRate = isFlightPhase ? 4.5 : 2.8;
+    // Tighter and snappier during flight phases for a more responsive feel
+    const assistConfig = cameraAssist === 'high'
+      ? { follow: 8.1, look: 9.6, fov: 5.2 }
+      : cameraAssist === 'low'
+        ? { follow: 5.2, look: 6.7, fov: 3.6 }
+        : { follow: 6.5, look: 8.0, fov: 4.5 };
+
+    const followRate = isFlightPhase ? assistConfig.follow : 3.2;
     const k = 1 - Math.exp(-delta * followRate);
 
     smoothPosRef.current.lerp(desiredCameraPos, k);
     camera.position.copy(smoothPosRef.current);
 
-    // Look slightly ahead of player for better anticipation
+    // Look slightly ahead and above the player for better anticipation and visibility
     const lookAheadDistance = Math.sqrt(
       gameState.playerEntity.velocity.x ** 2 +
       gameState.playerEntity.velocity.y ** 2 +
       gameState.playerEntity.velocity.z ** 2
-    ) * 0.1;
+    ) * 0.13;
 
-    const lookTarget = playerPos.clone();
+    const lookTarget = playerPos.clone().add(new THREE.Vector3(0, 0.7, 0));
     if (lookAheadDistance > 0.1) {
       const velocityDir = new THREE.Vector3(
         gameState.playerEntity.velocity.x,
         gameState.playerEntity.velocity.y,
         gameState.playerEntity.velocity.z
       ).normalize();
-      lookTarget.add(velocityDir.multiplyScalar(lookAheadDistance + boostSpool * 1.4));
+      lookTarget.add(velocityDir.multiplyScalar(lookAheadDistance + boostSpool * 1.7));
     }
 
-    const lookK = 1 - Math.exp(-delta * 8.0);
+    const lookK = 1 - Math.exp(-delta * assistConfig.look);
     smoothLookRef.current.lerp(lookTarget, lookK);
     camera.lookAt(smoothLookRef.current);
 
@@ -579,7 +590,7 @@ function CameraFollowController({ gameState }: { gameState: GameState }) {
       (boostActive ? 1.5 : 0) +
       cloudDensity * 1.25;
     const currentFov = (camera as THREE.PerspectiveCamera).fov ?? 55;
-    const fovK = 1 - Math.exp(-delta * 4.5);
+    const fovK = 1 - Math.exp(-delta * assistConfig.fov);
     const nextFov = currentFov + (targetFov - currentFov) * fovK;
     if (Math.abs(nextFov - currentFov) > 0.02) {
       (camera as THREE.PerspectiveCamera).fov = nextFov;
@@ -590,18 +601,30 @@ function CameraFollowController({ gameState }: { gameState: GameState }) {
   return null;
 }
 
+function CanvasReadySignal({ onReady }: { onReady?: () => void }) {
+  useThree();
+
+  useEffect(() => {
+    onReady?.();
+  }, [onReady]);
+
+  return null;
+}
+
 function GameScene({
   gameState,
   onUpdate,
   keysPressed,
   mouseRotation,
   deviceOrientation,
+  assistedFlight,
 }: {
   gameState: GameState;
   onUpdate: (state: GameState) => void;
   keysPressed: React.MutableRefObject<Set<string>>;
   mouseRotation: React.MutableRefObject<{ pitch: number; yaw: number }>;
   deviceOrientation: React.MutableRefObject<{ alpha: number; beta: number; gamma: number }>;
+  assistedFlight: boolean;
 }) {
   const { camera, scene } = useThree();
   const gameLoopRef = useRef<GameLoop | null>(null);
@@ -614,6 +637,7 @@ function GameScene({
   const throttleRef = useRef(0.34);
   const boostSpoolRef = useRef(0);
   const prevForwardSpeedRef = useRef(14);
+  const smoothedInputRef = useRef({ pitch: 0, yaw: 0, roll: 0 });
 
   // Initialize game systems on mount
   useEffect(() => {
@@ -659,44 +683,63 @@ function GameScene({
       );
       playerQuat.setFromEuler(playerEuler);
 
-      // The imported ship mesh faces -Z in gameplay orientation.
-      // Use local -Z as thrust-forward so W moves toward the pointy nose.
-      const forwardLocal = new THREE.Vector3(0, 0, -1).applyQuaternion(playerQuat);
+      // Test1glb's nose aligns with local +Z in gameplay orientation.
+      const forwardLocal = new THREE.Vector3(0, 0, 1).applyQuaternion(playerQuat);
 
       const attackMode = Boolean(gameState.playerEntity.metadata?.attackMode);
-      const arrowSensitivity = attackMode ? 0.065 : 0.045;
+      const turnSpeed = attackMode ? 2.1 : 1.6;
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-      let pitchDelta = 0;
-      let yawDelta = 0;
-      let rollDelta = 0;
+      let pitchInput = 0;
+      let yawInput = 0;
+      let rollInput = 0;
 
-      if (keysPressed.current.has('ArrowUp')) pitchDelta += arrowSensitivity;
-      if (keysPressed.current.has('ArrowDown')) pitchDelta -= arrowSensitivity;
-      if (keysPressed.current.has('ArrowLeft')) yawDelta += arrowSensitivity;
-      if (keysPressed.current.has('ArrowRight')) yawDelta -= arrowSensitivity;
-      if (keysPressed.current.has('KeyQ')) rollDelta += arrowSensitivity;
-      if (keysPressed.current.has('KeyE')) rollDelta -= arrowSensitivity;
+      if (keysPressed.current.has('ArrowUp')) pitchInput += 1;
+      if (keysPressed.current.has('ArrowDown')) pitchInput -= 1;
+      if (keysPressed.current.has('ArrowLeft')) yawInput += 1;
+      if (keysPressed.current.has('ArrowRight')) yawInput -= 1;
+      if (keysPressed.current.has('KeyQ')) rollInput += 1;
+      if (keysPressed.current.has('KeyE')) rollInput -= 1;
 
       if (!isMobile) {
-        const mouseSensitivity = attackMode ? 0.018 : 0.013;
-        pitchDelta += mouseRotation.current.pitch * mouseSensitivity;
-        yawDelta += mouseRotation.current.yaw * mouseSensitivity;
+        const mouseSensitivity = attackMode ? 1.0 : 0.85;
+        pitchInput += mouseRotation.current.pitch * mouseSensitivity;
+        yawInput += mouseRotation.current.yaw * mouseSensitivity;
       }
 
       if (isMobile && deviceOrientation.current.beta !== 0) {
         const deviceSensitivity = attackMode ? 0.009 : 0.007;
-        pitchDelta += (deviceOrientation.current.beta / 180) * deviceSensitivity * 2;
-        yawDelta -= (deviceOrientation.current.gamma / 90) * deviceSensitivity * 2;
-        rollDelta += (deviceOrientation.current.alpha / 360) * deviceSensitivity * 0.5;
+        pitchInput += (deviceOrientation.current.beta / 180) * deviceSensitivity * 240;
+        yawInput -= (deviceOrientation.current.gamma / 90) * deviceSensitivity * 240;
+        rollInput += (deviceOrientation.current.alpha / 360) * deviceSensitivity * 120;
       }
 
-      gameState.playerEntity.rotation.x += pitchDelta;
-      gameState.playerEntity.rotation.y += yawDelta;
-      gameState.playerEntity.rotation.z += rollDelta;
+      const applyDeadzone = (value: number, deadzone = 0.045) => {
+        if (Math.abs(value) <= deadzone) return 0;
+        return Math.sign(value) * ((Math.abs(value) - deadzone) / (1 - deadzone));
+      };
 
-      const isAccelerating = keysPressed.current.has('KeyW') || keysPressed.current.has('ArrowUp');
-      const isBraking = keysPressed.current.has('KeyS') || keysPressed.current.has('ArrowDown');
+      pitchInput = applyDeadzone(Math.max(-1, Math.min(1, pitchInput)));
+      yawInput = applyDeadzone(Math.max(-1, Math.min(1, yawInput)));
+      rollInput = applyDeadzone(Math.max(-1, Math.min(1, rollInput)));
+
+      const turnK = 1 - Math.exp(-clampedDelta * 10.5);
+      smoothedInputRef.current.pitch += (pitchInput - smoothedInputRef.current.pitch) * turnK;
+      smoothedInputRef.current.yaw += (yawInput - smoothedInputRef.current.yaw) * turnK;
+      smoothedInputRef.current.roll += (rollInput - smoothedInputRef.current.roll) * turnK;
+
+      gameState.playerEntity.rotation.x += smoothedInputRef.current.pitch * turnSpeed * clampedDelta;
+      gameState.playerEntity.rotation.y += smoothedInputRef.current.yaw * turnSpeed * clampedDelta;
+      gameState.playerEntity.rotation.z += smoothedInputRef.current.roll * turnSpeed * clampedDelta;
+
+      if (assistedFlight) {
+        const autoLevelK = 1 - Math.exp(-clampedDelta * 1.8);
+        gameState.playerEntity.rotation.z += (0 - gameState.playerEntity.rotation.z) * autoLevelK;
+        gameState.playerEntity.rotation.x += (0 - gameState.playerEntity.rotation.x) * (autoLevelK * 0.22);
+      }
+
+      const isAccelerating = keysPressed.current.has('KeyW');
+      const isBraking = keysPressed.current.has('KeyS');
       const isBoosting = keysPressed.current.has('ShiftLeft') || keysPressed.current.has('ShiftRight');
 
       const px = gameState.playerEntity.position.x;
@@ -768,6 +811,24 @@ function GameScene({
       gameState.playerEntity.velocity.y = forwardLocal.y * forwardSpeedRef.current;
       gameState.playerEntity.velocity.z = forwardLocal.z * forwardSpeedRef.current;
 
+      if (assistedFlight) {
+        const vel = new THREE.Vector3(
+          gameState.playerEntity.velocity.x,
+          gameState.playerEntity.velocity.y,
+          gameState.playerEntity.velocity.z
+        );
+        const forwardNorm = forwardLocal.clone().normalize();
+        const forwardMag = vel.dot(forwardNorm);
+        const forwardComponent = forwardNorm.multiplyScalar(forwardMag);
+        const lateralComponent = vel.sub(forwardComponent);
+        const driftDamp = 1 - Math.exp(-clampedDelta * 2.4);
+        lateralComponent.multiplyScalar(1 - driftDamp);
+        const corrected = forwardComponent.add(lateralComponent);
+        gameState.playerEntity.velocity.x = corrected.x;
+        gameState.playerEntity.velocity.y = corrected.y;
+        gameState.playerEntity.velocity.z = corrected.z;
+      }
+
       if (gasCloudDensity > 0.02) {
         const localRight = new THREE.Vector3(1, 0, 0).applyQuaternion(playerQuat);
         const localUp = new THREE.Vector3(0, 1, 0).applyQuaternion(playerQuat);
@@ -794,9 +855,9 @@ function GameScene({
       gameState.playerEntity.metadata.accelKick = Math.min(1, accelKick);
       prevForwardSpeedRef.current = forwardSpeedRef.current;
       gameState.playerEntity.metadata.attackMode = attackMode;
-      gameState.playerEntity.metadata.rcsYaw = yawDelta;
-      gameState.playerEntity.metadata.rcsPitch = pitchDelta;
-      gameState.playerEntity.metadata.rcsRoll = rollDelta;
+      gameState.playerEntity.metadata.rcsYaw = smoothedInputRef.current.yaw;
+      gameState.playerEntity.metadata.rcsPitch = smoothedInputRef.current.pitch;
+      gameState.playerEntity.metadata.rcsRoll = smoothedInputRef.current.roll;
       gameState.playerEntity.metadata.rcsBrake = isBraking ? 1 : 0;
     }
 
@@ -821,15 +882,80 @@ function GameScene({
   return null; // Rendering handled by entity meshes
 }
 
-function GameRenderer() {
+function GameRenderer({ onReady }: { onReady?: () => void }) {
   const [gameState, setGameState] = useState<GameState>(createInitialGameState());
   const [showTestConsole, setShowTestConsole] = useState(false);
   const [showForwardDebug, setShowForwardDebug] = useState(false);
+  const [assistedFlight, setAssistedFlight] = useState(true);
+  const [cameraAssist, setCameraAssist] = useState<CameraAssistLevel>('medium');
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [tutorialIndex, setTutorialIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
   const keysPressed = useRef<Set<string>>(new Set());
   const mouseRotationRef = useRef({ pitch: 0, yaw: 0 });
   const deviceOrientationRef = useRef({ alpha: 0, beta: 0, gamma: 0 });
+
+  const tutorialMessages = [
+    'W/S throttle · Arrow keys steer · Shift boosts',
+    'Press R to reset heading toward mission vector',
+    'Press F to toggle assisted flight stability',
+    'Camera assist: Low/Medium/High from the top-right panel',
+    'Press X for foil/attack mode when you want tighter handling',
+  ];
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const key = 'star-cleaver-first-flight-v1';
+    if (window.localStorage.getItem(key) === 'seen') return;
+    window.localStorage.setItem(key, 'seen');
+    setShowTutorial(true);
+
+    const intervalId = window.setInterval(() => {
+      setTutorialIndex((i) => (i + 1) % tutorialMessages.length);
+    }, 4000);
+    const timeoutId = window.setTimeout(() => {
+      setShowTutorial(false);
+      window.clearInterval(intervalId);
+    }, 20000);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.clearTimeout(timeoutId);
+    };
+  }, []);
+
+  const resetHeadingToMission = () => {
+    setGameState((s) => {
+      const layout = getMissionLayout(s.worldIndex);
+      const toTarget = new THREE.Vector3(
+        layout.stationPosition.x - s.playerEntity.position.x,
+        layout.stationPosition.y - s.playerEntity.position.y,
+        layout.stationPosition.z - s.playerEntity.position.z
+      );
+
+      if (toTarget.lengthSq() < 1e-6) {
+        toTarget.set(0, 0, 1);
+      } else {
+        toTarget.normalize();
+      }
+
+      const yaw = Math.atan2(toTarget.x, toTarget.z);
+      const pitch = -Math.asin(Math.max(-1, Math.min(1, toTarget.y)));
+
+      return {
+        ...s,
+        playerEntity: {
+          ...s.playerEntity,
+          rotation: {
+            x: pitch,
+            y: yaw,
+            z: 0,
+          },
+        },
+      };
+    });
+  };
 
   // Guardrail: if ignition timer completes but phase did not flip for any reason,
   // force transition to exploration so it never appears frozen on countdown.
@@ -863,6 +989,14 @@ function GameRenderer() {
         e.preventDefault();
         setShowForwardDebug((v) => !v);
       }
+      if (e.code === 'KeyF') {
+        e.preventDefault();
+        setAssistedFlight((v) => !v);
+      }
+      if (e.code === 'KeyR') {
+        e.preventDefault();
+        resetHeadingToMission();
+      }
       // Start ignition on spacebar
       if (e.code === 'Space') {
         e.preventDefault();
@@ -885,16 +1019,26 @@ function GameRenderer() {
       keysPressed.current.delete(e.code);
     };
 
-    // Mouse look: map mouse position to pitch/yaw for aiming
+    // Mouse look: map mouse position to pitch/yaw while cursor is inside canvas.
     const handleMouseMove = (e: MouseEvent) => {
-      const centerX = window.innerWidth / 2;
-      const centerY = window.innerHeight / 2;
-      const mouseX = (e.clientX - centerX) / centerX;
-      const mouseY = (e.clientY - centerY) / centerY;
+      const canvasEl = canvasRef.current;
+      if (!canvasEl) return;
+      const rect = canvasEl.getBoundingClientRect();
+      const inside = e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom;
+      if (!inside) {
+        mouseRotationRef.current.yaw = 0;
+        mouseRotationRef.current.pitch = 0;
+        return;
+      }
 
-      // Convert mouse position to rotation (±0.3 radians = ±17°)
-      mouseRotationRef.current.yaw = mouseX * 0.4;
-      mouseRotationRef.current.pitch = -mouseY * 0.3;
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const mouseX = (e.clientX - centerX) / Math.max(1, rect.width / 2);
+      const mouseY = (e.clientY - centerY) / Math.max(1, rect.height / 2);
+
+      // Keep analog steering subtle; deadzone + smoothing in GameScene handles feel.
+      mouseRotationRef.current.yaw = mouseX * 0.6;
+      mouseRotationRef.current.pitch = -mouseY * 0.5;
     };
 
     // Device orientation for mobile: use gyroscope to fly
@@ -945,34 +1089,17 @@ function GameRenderer() {
 
   return (
     <div ref={containerRef} style={{ width: '100%', height: '100%' }}>
-      {/* Opening Sequence */}
-      {gameState.phase === 'opening' && (
-        <OpeningSequence onComplete={() => setGameState((s) => goToNexus(s))} />
-      )}
-
-      {/* Nexus Station Command Center */}
-      {gameState.phase === 'nexus' && (
-        <NexusStation
-          gameState={gameState}
-          onLaunchMission={(worldIndex, shipId) => setGameState((s) => startIgnition({
-            ...selectWorld(s, worldIndex),
-            selectedShip: shipId,
-          }))}
-        />
-      )}
-
-      {/* Game Canvas (hidden during opening/nexus) */}
-      {gameState.phase !== 'opening' && gameState.phase !== 'nexus' && (
-        <>
+      <>
         <div ref={canvasRef} style={{ width: '100%', height: '100%', position: 'relative' }}>
           <Canvas
-        camera={{ fov: 55, near: 0.1, far: 80000, position: [0, 8, 25] }}
+        camera={{ fov: 55, near: 0.1, far: 80000, position: [1.1, 2, 6.2] }}
         gl={{
           antialias: true,
           alpha: true,
           toneMappingExposure: 1.0,
         }}
       >
+        <CanvasReadySignal onReady={onReady} />
         <color attach="background" args={['#030611']} />
 
         {/* Real Universe Engine ecosystem — same Milky Way disc, Sun, planets,
@@ -1045,30 +1172,66 @@ function GameRenderer() {
           keysPressed={keysPressed}
           mouseRotation={mouseRotationRef}
           deviceOrientation={deviceOrientationRef}
+          assistedFlight={assistedFlight}
         />
 
         {/* Camera follow: chase the player ship */}
-        <CameraFollowController gameState={gameState} />
+        <CameraFollowController gameState={gameState} cameraAssist={cameraAssist} />
       </Canvas>
         </div>
+
+        <div className="pointer-events-auto fixed right-3 top-3 z-50 rounded-xl border border-white/20 bg-black/55 px-3 py-2 backdrop-blur-sm">
+          <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-white/70">Flight Assist</div>
+          <div className="mt-2 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setAssistedFlight((v) => !v)}
+              className={`rounded border px-2 py-1 font-mono text-[9px] uppercase tracking-[0.12em] ${assistedFlight ? 'border-cyan-300/60 text-cyan-200' : 'border-white/25 text-white/70'}`}
+            >
+              {assistedFlight ? 'On' : 'Off'} (F)
+            </button>
+            <button
+              type="button"
+              onClick={resetHeadingToMission}
+              className="rounded border border-white/25 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.12em] text-white/75"
+            >
+              Reset Heading (R)
+            </button>
+          </div>
+          <div className="mt-2 flex items-center gap-1">
+            {(['low', 'medium', 'high'] as CameraAssistLevel[]).map((level) => (
+              <button
+                key={level}
+                type="button"
+                onClick={() => setCameraAssist(level)}
+                className={`rounded border px-2 py-1 font-mono text-[9px] uppercase tracking-[0.12em] ${cameraAssist === level ? 'border-cyan-300/60 text-cyan-200' : 'border-white/25 text-white/70'}`}
+              >
+                {level}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {showTutorial && (
+          <div className="pointer-events-none fixed bottom-20 left-1/2 z-50 w-[min(92vw,32rem)] -translate-x-1/2 rounded-xl border border-cyan-200/25 bg-black/55 px-4 py-3 text-center backdrop-blur-sm">
+            <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-cyan-200/75">First Flight Guide</div>
+            <div className="mt-1 text-sm text-white/85">{tutorialMessages[tutorialIndex]}</div>
+          </div>
+        )}
 
         {/* HUD Layer */}
         <HUD
           gameState={gameState}
           showForwardDebug={showForwardDebug}
-          onShipSelect={(shipId) => {
-            setGameState((s) => ({ ...s, selectedShip: shipId }));
-          }}
         />
 
         {/* Testing Console (Ctrl+Shift+T) */}
         {showTestConsole && <TestingConsole gameState={gameState} onStateChange={setGameState} />}
-        </>
-      )}
+      </>
     </div>
   );
 }
 
-export default function GameCanvas({ onGameEnd, onPhaseChange }: GameCanvasProps) {
-  return <GameRenderer />;
+export default function GameCanvas({ onGameEnd, onPhaseChange, onReady }: GameCanvasProps) {
+  return <GameRenderer onReady={onReady} />;
 }
