@@ -3,7 +3,7 @@
 import type { GameState } from '../../../lib/neural-game-engine';
 
 export interface ShipConfig {
-  id: 'default-xwing';
+  id: 'default-vanguard';
   name: string;
   description: string;
   visualSource: 'glb' | 'procedural';
@@ -16,12 +16,12 @@ export interface ShipConfig {
 }
 
 export const SHIP_CONFIGS: Record<string, ShipConfig> = {
-  'default-xwing': {
-    id: 'default-xwing',
-    name: 'Classic X-Wing',
-    description: 'Balanced trench-run veteran with reliable punch.',
+  'default-vanguard': {
+    id: 'default-vanguard',
+    name: 'Vanguard Interceptor',
+    description: 'Styled GLB interceptor with tactical hull accents and cockpit HUD.',
     visualSource: 'glb',
-    visualNote: 'Textured GLB',
+    visualNote: 'Styled GLB',
     stats: {
       speed: 3,
       armor: 3,
@@ -30,17 +30,17 @@ export const SHIP_CONFIGS: Record<string, ShipConfig> = {
   },
 };
 
-export type SelectedShip = 'default-xwing';
+export type SelectedShip = 'default-vanguard';
 
 /**
  * Get available ships based on worlds completed
- * Classic: always available
+ * Vanguard: always available
  * T-70: unlocked after 2 worlds
  * X-Blade: unlocked after 5 worlds
  */
 export function getAvailableShips(worldsCompleted: number): ShipConfig[] {
   void worldsCompleted;
-  return [SHIP_CONFIGS['default-xwing']];
+  return [SHIP_CONFIGS['default-vanguard']];
 }
 
 interface ShipSelectorProps {

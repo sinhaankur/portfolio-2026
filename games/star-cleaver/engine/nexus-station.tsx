@@ -265,7 +265,7 @@ export function NexusStation({ gameState, onLaunchMission }: NexusStationProps) 
                 onClick={() => onLaunchMission(selectedWorld, selectedShip)}
                 className="w-full px-6 py-3 border border-cyan-400/50 bg-cyan-400/10 text-cyan-400 font-mono text-sm tracking-widest uppercase hover:bg-cyan-400/20 transition-colors rounded"
               >
-                LAUNCH {worldStory.name.toUpperCase()} WITH {availableShips.find((ship) => ship.id === selectedShip)?.name.toUpperCase() ?? 'CLASSIC X-WING'}
+                LAUNCH {worldStory.name.toUpperCase()} WITH {availableShips.find((ship) => ship.id === selectedShip)?.name.toUpperCase() ?? 'VANGUARD INTERCEPTOR'}
               </button>
 
               {/* Flavor status */}

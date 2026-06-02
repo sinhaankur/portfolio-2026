@@ -1,7 +1,8 @@
 'use client';
 
 import { useGLTF } from '@react-three/drei';
-import { useMemo } from 'react';
+import { useFrame } from '@react-three/fiber';
+import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { generateShip } from '../../../lib/ship-generator/procedural-ships';
 import type { SelectedShip } from './ship-selector';
@@ -9,7 +10,7 @@ import type { SelectedShip } from './ship-selector';
 const PLAYER_SHIP_MODEL_PATH = '/models/Test1glb.glb';
 
 type PlayerShipMode = 'game' | 'preview';
-type ShipVariant = 'default-xwing';
+type ShipVariant = 'default-vanguard';
 
 type ShipTransform = {
 	scale: number;
@@ -18,18 +19,20 @@ type ShipTransform = {
 };
 
 const SHIP_TRANSFORMS: Record<ShipVariant, { game: ShipTransform; preview: ShipTransform }> = {
-       'default-xwing': {
-	       preview: { scale: 1.05, position: [0, -1.05, 0], rotation: [-0.12, 0, 0] },
-	       game: { scale: 1.75, position: [0, -1.58, 0.2], rotation: [-0.03, 0, 0] },
+	'default-vanguard': {
+	       preview: { scale: 1.05, position: [0, -1.05, 0], rotation: [-(Math.PI / 2) - 0.12, Math.PI, 0] },
+	       game: { scale: 1.75, position: [0, -1.58, 0.2], rotation: [-(Math.PI / 2) - 0.03, Math.PI, 0] },
        },
 };
 
 export function getPlayerShipTransform(shipId: SelectedShip, mode: PlayerShipMode = 'game'): ShipTransform {
 	const variant = shipId as ShipVariant;
-	return SHIP_TRANSFORMS[variant]?.[mode] ?? SHIP_TRANSFORMS['default-xwing'][mode];
+	return SHIP_TRANSFORMS[variant]?.[mode] ?? SHIP_TRANSFORMS['default-vanguard'][mode];
 }
 
 function createProceduralPlayerShip(shipId: SelectedShip, mode: PlayerShipMode): THREE.Group {
+	void shipId;
+	void mode;
 	return generateShip({
 	       faction: 'player',
 	       class: 'fighter',
@@ -40,55 +43,128 @@ function createProceduralPlayerShip(shipId: SelectedShip, mode: PlayerShipMode):
 	});
 }
 
-function cloneShipModel(scene: THREE.Object3D) {
+function cloneAndStyleShipModel(scene: THREE.Object3D) {
 	const cloned = scene.clone(true);
 
 	cloned.traverse((child) => {
-		if (child instanceof THREE.Mesh) {
-			child.castShadow = true;
-			child.receiveShadow = true;
+		if (!(child instanceof THREE.Mesh)) return;
 
-			// Some exports ship with magenta/pink placeholder colors.
-			// Normalize to a neutral metallic palette for in-game readability.
-			const hash = (text: string) => {
-				let h = 0;
-				for (let i = 0; i < text.length; i += 1) h = (h * 31 + text.charCodeAt(i)) >>> 0;
-				return h;
-			};
+		child.castShadow = true;
+		child.receiveShadow = true;
 
-			const normalizeMaterial = (material: THREE.Material, index = 0, meshKey = '') => {
-				if (!(material instanceof THREE.MeshStandardMaterial || material instanceof THREE.MeshPhysicalMaterial)) {
-					return material;
-				}
+		const meshName = (child.name || '').toLowerCase();
+		const currentMaterial = child.material;
 
-				const mat = material.clone();
-				const hasBaseMap = Boolean(mat.map);
-				if (!hasBaseMap) {
-					const v = (hash(meshKey || `part-${index}`) % 1000) / 1000;
-					const base = new THREE.Color('#8f9eb1');
-					const trim = new THREE.Color('#c4d0df');
-					mat.color = base.lerp(trim, 0.22 + v * 0.48);
-				} else {
-					mat.color = new THREE.Color('#ffffff');
-				}
-
-				mat.roughness = Math.max(0.22, Math.min(0.68, mat.roughness || 0.46));
-				mat.metalness = Math.max(0.38, Math.min(0.9, mat.metalness || 0.58));
-				mat.envMapIntensity = Math.max(1.0, mat.envMapIntensity || 1.15);
-				mat.emissive = new THREE.Color(0x000000);
-				mat.emissiveIntensity = 0;
-				mat.needsUpdate = true;
-				return mat;
-			};
-
-			if (Array.isArray(child.material)) {
-				child.material = child.material.map((mat, idx) => normalizeMaterial(mat, idx, `${child.name}-${idx}`));
-			} else if (child.material) {
-				child.material = normalizeMaterial(child.material, 0, child.name);
+		const styleMaterial = (material: THREE.Material, index = 0) => {
+			if (!(material instanceof THREE.MeshStandardMaterial || material instanceof THREE.MeshPhysicalMaterial)) {
+				return material;
 			}
+
+			const mat = material.clone();
+			const partKey = `${meshName}-${index}`;
+
+			const looksLikeEngine = /engine|thruster|exhaust|nozzle/.test(partKey);
+			const looksLikeCockpit = /cockpit|canopy|glass|window/.test(partKey);
+			const looksLikeWing = /wing|fin|foil/.test(partKey);
+			const looksLikeWeapon = /laser|gun|barrel|cannon/.test(partKey);
+
+			if (looksLikeCockpit) {
+				mat.color = new THREE.Color('#8ec9ff');
+				mat.roughness = 0.06;
+				mat.metalness = 0.3;
+				if (mat instanceof THREE.MeshPhysicalMaterial) {
+					mat.transmission = 0.56;
+					mat.thickness = 0.3;
+					mat.clearcoat = 0.82;
+					mat.clearcoatRoughness = 0.08;
+				}
+				mat.emissive = new THREE.Color('#6ebeff');
+				mat.emissiveIntensity = 0.16;
+			} else if (looksLikeEngine) {
+				mat.color = new THREE.Color('#617287');
+				mat.roughness = 0.24;
+				mat.metalness = 0.9;
+				mat.emissive = new THREE.Color('#46c9ff');
+				mat.emissiveIntensity = 0.58;
+			} else if (looksLikeWeapon) {
+				mat.color = new THREE.Color('#485463');
+				mat.roughness = 0.34;
+				mat.metalness = 0.88;
+				mat.emissive = new THREE.Color('#000000');
+				mat.emissiveIntensity = 0;
+			} else if (looksLikeWing) {
+				mat.color = new THREE.Color('#8f9bad');
+				mat.roughness = 0.32;
+				mat.metalness = 0.82;
+				mat.emissive = new THREE.Color('#0e1826');
+				mat.emissiveIntensity = 0.04;
+			} else {
+				mat.color = new THREE.Color('#677689');
+				mat.roughness = 0.3;
+				mat.metalness = 0.86;
+				mat.emissive = new THREE.Color('#111d2b');
+				mat.emissiveIntensity = 0.05;
+			}
+
+			mat.envMapIntensity = Math.max(1.1, mat.envMapIntensity || 1.25);
+			mat.needsUpdate = true;
+			return mat;
+		};
+
+		if (Array.isArray(currentMaterial)) {
+			child.material = currentMaterial.map((mat, idx) => styleMaterial(mat, idx));
+		} else if (currentMaterial) {
+			child.material = styleMaterial(currentMaterial, 0);
 		}
 	});
+
 	return cloned;
+}
+
+function ShipUiOverlay({ mode }: { mode: PlayerShipMode }) {
+	const groupRef = useRef<THREE.Group>(null);
+	const ringRef = useRef<THREE.Mesh>(null);
+	const barRef = useRef<THREE.Mesh>(null);
+	const y = mode === 'preview' ? 0.15 : 0.22;
+	const z = mode === 'preview' ? 0.2 : 0.28;
+	const scale = mode === 'preview' ? 0.78 : 1;
+
+	useFrame((state) => {
+		if (groupRef.current) {
+			groupRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 0.45) * 0.05;
+		}
+
+		if (ringRef.current) {
+			const mat = ringRef.current.material as THREE.MeshBasicMaterial;
+			mat.opacity = 0.2 + (Math.sin(state.clock.elapsedTime * 2.2) * 0.5 + 0.5) * 0.18;
+		}
+
+		if (barRef.current) {
+			const mat = barRef.current.material as THREE.MeshBasicMaterial;
+			mat.opacity = 0.18 + (Math.sin(state.clock.elapsedTime * 3.8 + 0.7) * 0.5 + 0.5) * 0.22;
+		}
+	});
+
+	return (
+		<group ref={groupRef} position={[0, y, z]} scale={scale}>
+			<mesh ref={ringRef} rotation={[0, 0, 0]}>
+				<ringGeometry args={[0.24, 0.27, 56]} />
+				<meshBasicMaterial color="#40d8ff" transparent opacity={0.28} depthWrite={false} />
+			</mesh>
+			<mesh ref={barRef}>
+				<planeGeometry args={[0.42, 0.03]} />
+				<meshBasicMaterial color="#8ce6ff" transparent opacity={0.36} depthWrite={false} />
+			</mesh>
+			<mesh rotation={[0, 0, Math.PI / 2]}>
+				<planeGeometry args={[0.42, 0.03]} />
+				<meshBasicMaterial color="#8ce6ff" transparent opacity={0.24} depthWrite={false} />
+			</mesh>
+			<mesh rotation={[0, 0, Math.PI / 4]}>
+				<ringGeometry args={[0.12, 0.125, 32]} />
+				<meshBasicMaterial color="#5fe3ff" transparent opacity={0.35} depthWrite={false} />
+			</mesh>
+		</group>
+	);
 }
 
 export function ProceduralPlayerShipModel({
@@ -122,22 +198,24 @@ export function PlayerShipModel({
        applyTransform?: boolean;
 }) {
 	const playerShipGltf = useGLTF(PLAYER_SHIP_MODEL_PATH);
+	const fallbackShip = useMemo(() => createProceduralPlayerShip(shipId, mode), [shipId, mode]);
+	const shipObject = useMemo(() => cloneAndStyleShipModel(playerShipGltf.scene), [playerShipGltf.scene]);
+	const resolvedShip = shipObject ?? fallbackShip;
 
-       const fallbackShip = useMemo(() => createProceduralPlayerShip(shipId, mode), [shipId, mode]);
-	const playerShip = useMemo(() => cloneShipModel(playerShipGltf.scene), [playerShipGltf.scene]);
-       const objectByShip = {
-	       'default-xwing': playerShip,
-       } as const;
-
-       const shipObject = objectByShip[shipId as 'default-xwing'] ?? fallbackShip;
        if (!applyTransform) {
-	       return <primitive object={shipObject} />;
+	       return (
+		       <group>
+			       <primitive object={resolvedShip} />
+			       <ShipUiOverlay mode={mode} />
+		       </group>
+	       );
        }
 
        const transform = getPlayerShipTransform(shipId, mode);
        return (
 	       <group scale={transform.scale} position={transform.position} rotation={transform.rotation}>
-		       <primitive object={shipObject} />
+		       <primitive object={resolvedShip} />
+		       <ShipUiOverlay mode={mode} />
 	       </group>
        );
 }

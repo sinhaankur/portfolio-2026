@@ -32,9 +32,39 @@ export function HUD({ gameState, showForwardDebug = false, onShipSelect }: HUDPr
   const boostActive = Boolean(gameState.playerEntity.metadata?.boostActive);
   const attackMode = Boolean(gameState.playerEntity.metadata?.attackMode);
   const gasCloudDensity = Number(gameState.playerEntity.metadata?.gasCloudDensity ?? 0);
+  const interstellarDrive = String(gameState.playerEntity.metadata?.interstellarDrive ?? 'Fusion Torch');
+  const accelKick = Number(gameState.playerEntity.metadata?.accelKick ?? 0);
+  const speedJerk = Number(gameState.playerEntity.metadata?.speedJerk ?? 0);
+  const routeName = String(gameState.metadata?.activeRouteName ?? 'Inner System Survey');
+  const routeProgress = String(gameState.metadata?.activeRouteProgress ?? '0/0');
+  const routeMessage = String(gameState.metadata?.routeMessage ?? '');
+  const routeMessageUntil = Number(gameState.metadata?.routeMessageUntil ?? 0);
+  const weaponMode = String(gameState.playerEntity.metadata?.weaponMode ?? 'wing-cannons');
+  const weaponHeat = Number(gameState.playerEntity.metadata?.weaponHeat ?? 0);
+  const weaponOverheated = Boolean(gameState.playerEntity.metadata?.weaponOverheated);
+  const weaponStatus = String(gameState.playerEntity.metadata?.weaponStatus ?? 'NOMINAL');
+  const weaponPreset = String(gameState.playerEntity.metadata?.weaponPreset ?? 'sim');
+  const simpleJourneyMode = Boolean(gameState.playerEntity.metadata?.simpleJourneyMode);
+  const showRouteMessage = routeMessage.length > 0 && routeMessageUntil > gameState.simTime;
   const isExplorationPhase =
     gameState.phase === 'exploration' || gameState.phase === 'ignition' || gameState.phase === 'combat';
   const isTouchDevice = typeof navigator !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  const primaryFlightHint = useMemo(() => {
+    if (isTouchDevice) {
+      if (speed < 3) return 'TILT TO STEER · TAP THRUST TO START';
+      if (!boostActive) return 'TAP BOOST FOR BURST SPEED';
+      return 'TAP FOILS FOR TIGHT TURNING';
+    }
+
+    if (speed < 3) return 'W ACCELERATE · S BRAKE · A/D OR ←/→ STEER · CLICK/J FIRE';
+    if (!boostActive) return 'SHIFT OR SPACE BOOST · Q/E ROLL';
+    if (!attackMode) return 'X TO ENTER ATTACK FOILS FOR SHARPER CONTROL';
+    return 'R RESET HEADING IF YOU DRIFT OFF COURSE';
+  }, [isTouchDevice, speed, boostActive, attackMode]);
+  const secondaryFlightHint = useMemo(() => {
+    if (isTouchDevice) return 'FLIGHT ASSIST AUTO-STABILIZES YOUR SHIP';
+    return 'F FLIGHT ASSIST · H CONTROLS HELP · V NOSE MARKER';
+  }, [isTouchDevice]);
 
   // Planet health color: green → yellow → red
   const planetHealthColor = useMemo(() => {
@@ -54,6 +84,11 @@ export function HUD({ gameState, showForwardDebug = false, onShipSelect }: HUDPr
             <div className="text-foreground/55 mt-1">
               STAGE 1 · WORLD 1/1
             </div>
+            {simpleJourneyMode && (
+              <div className="mt-2 inline-flex rounded-full border border-cyan-300/35 bg-cyan-400/10 px-2 py-1 text-[8px] tracking-[0.18em] text-cyan-100/90">
+                SIMPLE JOURNEY
+              </div>
+            )}
           </div>
 
           {/* Center: Player health bar with animation and gradient */}
@@ -107,6 +142,24 @@ export function HUD({ gameState, showForwardDebug = false, onShipSelect }: HUDPr
               </div>
               <div className="text-foreground/55 font-mono text-[8px] tracking-widest sm:tracking-[0.14em] uppercase">
                 GAS CLOUD {Math.round(gasCloudDensity * 100)}%
+              </div>
+              <div className="text-cyan-200/75 font-mono text-[8px] tracking-widest sm:tracking-[0.14em] uppercase">
+                DRIVE {interstellarDrive.toUpperCase()}
+              </div>
+              <div className="text-foreground/55 font-mono text-[8px] tracking-widest sm:tracking-[0.14em] uppercase">
+                PUSH {Math.round(accelKick * 100)}% · JERK {Math.round(speedJerk * 100)}%
+              </div>
+              <div className="text-foreground/60 font-mono text-[8px] tracking-widest sm:tracking-[0.14em] uppercase">
+                ROUTE {routeName.toUpperCase()} {routeProgress}
+              </div>
+              <div className="text-foreground/55 font-mono text-[8px] tracking-widest sm:tracking-[0.14em] uppercase">
+                WEAPONS {weaponMode.toUpperCase()} · NOSE LOCKED TO FLIGHT VECTOR
+              </div>
+              <div className={`font-mono text-[8px] tracking-widest sm:tracking-[0.14em] uppercase ${weaponOverheated ? 'text-red-300/95' : 'text-foreground/55'}`}>
+                HEAT {Math.round(weaponHeat * 100)}% · {weaponStatus}
+              </div>
+              <div className="text-foreground/55 font-mono text-[8px] tracking-widest sm:tracking-[0.14em] uppercase">
+                TUNE {weaponPreset.toUpperCase()}
               </div>
             </div>
           ) : (
@@ -299,16 +352,19 @@ export function HUD({ gameState, showForwardDebug = false, onShipSelect }: HUDPr
       {/* Control hints and flight info */}
       {isExplorationPhase && (
         <div className="fixed bottom-28 sm:bottom-32 left-1/2 transform -translate-x-1/2 z-30 pointer-events-none text-center px-3 w-full max-w-[min(100vw,42rem)]">
+          {showRouteMessage && (
+            <div className="mb-2 inline-block rounded-full border border-cyan-300/30 bg-cyan-400/10 px-3 py-1 font-mono text-[9px] tracking-[0.12em] uppercase text-cyan-100/90">
+              {routeMessage}
+            </div>
+          )}
           <div className="font-mono text-[8px] tracking-[0.08em] sm:tracking-[0.25em] uppercase text-foreground/40 mb-2">
-            {isTouchDevice
-              ? 'TILT DEVICE · ON-SCREEN ORIENTATION · TAP FOR BOOST/FOILS'
-              : '↑↓←→ ROTATE · W ACCELERATE · S BRAKE · SHIFT BOOST · Q/E ROLL · X FOILS'}
+            {primaryFlightHint}
           </div>
           <div className="font-mono text-[8px] sm:text-[9px] tracking-[0.08em] sm:tracking-[0.15em] text-foreground/50">
             EXPLORATION · FOILS {attackMode ? 'ATTACK' : 'CRUISE'} · BOOST {boostActive ? 'ON' : 'OFF'} · SCORE {formatScore(gameState.score)} · FWD DBG {showForwardDebug ? 'ON' : 'OFF'}
           </div>
           <div className="font-mono text-[8px] tracking-widest text-foreground/40 uppercase mt-1">
-            V toggles nose marker
+            {secondaryFlightHint}
           </div>
         </div>
       )}

@@ -24,6 +24,7 @@ import { PlayerShipModel, ProceduralPlayerShipModel, getPlayerShipTransform } fr
 import type { SelectedShip } from './ship-selector';
 import { getMissionLayout } from './mission-layout';
 import { SceneContents as UniverseSceneContents } from '../../../components/universe-engine/scene';
+import { SUN_OFFSET_SCENE } from '../../../components/universe-engine/astronomy';
 
 /**
  * The Universe Engine renders itself in tiny scene units (Sun at scene-x 66,
@@ -35,6 +36,207 @@ import { SceneContents as UniverseSceneContents } from '../../../components/univ
  */
 const UNIVERSE_SCALE = 40;
 const NOOP = () => {};
+const SIMPLE_JOURNEY_MODE = true;
+
+type InterstellarDrive = {
+  key: 'fusion-torch' | 'antimatter-pulse' | 'beamed-sail' | 'warp-corridor';
+  label: string;
+  speedThreshold: number;
+};
+
+type RouteWaypoint = {
+  id: string;
+  label: string;
+  position: [number, number, number];
+  radius: number;
+  discoveryScore: number;
+};
+
+type RouteDefinition = {
+  id: string;
+  name: string;
+  completionScore: number;
+  waypoints: RouteWaypoint[];
+};
+
+type RouteState = {
+  visited: string[];
+  completed: boolean;
+};
+
+type MuzzleFlash = {
+  id: string;
+  position: { x: number; y: number; z: number };
+  endTime: number;
+};
+
+const INTERSTELLAR_DRIVES: InterstellarDrive[] = [
+  { key: 'fusion-torch', label: 'Fusion Torch', speedThreshold: 120 },
+  { key: 'antimatter-pulse', label: 'Antimatter Pulse', speedThreshold: 360 },
+  { key: 'beamed-sail', label: 'Beamed Sail', speedThreshold: 760 },
+  { key: 'warp-corridor', label: 'Warp Corridor', speedThreshold: 1200 },
+];
+
+const SOLAR_ANCHORS = {
+  sol: [SUN_OFFSET_SCENE * UNIVERSE_SCALE, 0, 0] as [number, number, number],
+  earthArc: [(SUN_OFFSET_SCENE - 0.63) * UNIVERSE_SCALE, 0, 2.93 * UNIVERSE_SCALE] as [number, number, number],
+  saturnGate: [(SUN_OFFSET_SCENE + 9.27) * UNIVERSE_SCALE, 14, 0] as [number, number, number],
+  paleBlueVantage: [(SUN_OFFSET_SCENE - 28) * UNIVERSE_SCALE, 22 * UNIVERSE_SCALE, 30 * UNIVERSE_SCALE] as [number, number, number],
+};
+
+const ROUTE_DEFINITIONS: RouteDefinition[] = SIMPLE_JOURNEY_MODE
+  ? [
+      {
+        id: 'solar-system-orientation',
+        name: 'Solar System Orientation',
+        completionScore: 900,
+        waypoints: [
+          {
+            id: 'sol-gate',
+            label: 'Sol Gate',
+            position: SOLAR_ANCHORS.sol,
+            radius: 560,
+            discoveryScore: 220,
+          },
+          {
+            id: 'earth-arc',
+            label: 'Earth Arc',
+            position: SOLAR_ANCHORS.earthArc,
+            radius: 460,
+            discoveryScore: 280,
+          },
+          {
+            id: 'saturn-gate',
+            label: 'Saturn Transfer Gate',
+            position: SOLAR_ANCHORS.saturnGate,
+            radius: 620,
+            discoveryScore: 360,
+          },
+        ],
+      },
+    ]
+  : [
+      {
+        id: 'inner-system-survey',
+        name: 'Inner System Survey',
+        completionScore: 1200,
+        waypoints: [
+          {
+            id: 'sol-gate',
+            label: 'Sol Gate',
+            position: SOLAR_ANCHORS.sol,
+            radius: 460,
+            discoveryScore: 180,
+          },
+          {
+            id: 'earth-arc',
+            label: 'Earth Arc',
+            position: SOLAR_ANCHORS.earthArc,
+            radius: 320,
+            discoveryScore: 240,
+          },
+          {
+            id: 'saturn-gate',
+            label: 'Saturn Transfer Gate',
+            position: SOLAR_ANCHORS.saturnGate,
+            radius: 460,
+            discoveryScore: 320,
+          },
+        ],
+      },
+      {
+        id: 'pale-blue-express',
+        name: 'Pale Blue Express',
+        completionScore: 1800,
+        waypoints: [
+          {
+            id: 'earth-arc-express',
+            label: 'Earth Arc',
+            position: SOLAR_ANCHORS.earthArc,
+            radius: 280,
+            discoveryScore: 220,
+          },
+          {
+            id: 'pale-blue-vantage',
+            label: 'Pale Blue Vantage',
+            position: SOLAR_ANCHORS.paleBlueVantage,
+            radius: 860,
+            discoveryScore: 520,
+          },
+          {
+            id: 'sol-return',
+            label: 'Solar Return Window',
+            position: SOLAR_ANCHORS.sol,
+            radius: 460,
+            discoveryScore: 260,
+          },
+        ],
+      },
+    ];
+
+function getInterstellarDriveLabel(speed: number) {
+  let current = INTERSTELLAR_DRIVES[0].label;
+  for (const profile of INTERSTELLAR_DRIVES) {
+    if (speed >= profile.speedThreshold) {
+      current = profile.label;
+    }
+  }
+  return current;
+}
+
+function updateRouteProgress(gameState: GameState) {
+  if (!gameState.metadata) gameState.metadata = {};
+  const metadata = gameState.metadata as Record<string, any>;
+  const routeProgress = (metadata.routeProgress ??= {} as Record<string, RouteState>);
+  const playerPos = gameState.playerEntity.position;
+
+  for (const route of ROUTE_DEFINITIONS) {
+    const routeState: RouteState =
+      routeProgress[route.id] ??
+      (routeProgress[route.id] = {
+        visited: [],
+        completed: false,
+      });
+
+    for (const waypoint of route.waypoints) {
+      if (routeState.visited.includes(waypoint.id)) continue;
+
+      const dx = playerPos.x - waypoint.position[0];
+      const dy = playerPos.y - waypoint.position[1];
+      const dz = playerPos.z - waypoint.position[2];
+      const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      if (dist > waypoint.radius) continue;
+
+      routeState.visited.push(waypoint.id);
+      const discoveryReward = Math.round(waypoint.discoveryScore * gameState.comboMultiplier);
+      gameState.score += discoveryReward;
+      metadata.routeMessage = `Discovery: ${waypoint.label} +${discoveryReward}`;
+      metadata.routeMessageUntil = gameState.simTime + 3.4;
+    }
+
+    if (!routeState.completed && routeState.visited.length === route.waypoints.length) {
+      routeState.completed = true;
+      const completionReward = Math.round(route.completionScore * gameState.comboMultiplier);
+      gameState.score += completionReward;
+      metadata.routeMessage = `Route complete: ${route.name} +${completionReward}`;
+      metadata.routeMessageUntil = gameState.simTime + 4.2;
+    }
+  }
+
+  const activeRoute = ROUTE_DEFINITIONS.find((route) => {
+    const state = routeProgress[route.id] as RouteState | undefined;
+    return state && !state.completed;
+  });
+
+  if (activeRoute) {
+    const state = routeProgress[activeRoute.id] as RouteState;
+    metadata.activeRouteName = activeRoute.name;
+    metadata.activeRouteProgress = `${state.visited.length}/${activeRoute.waypoints.length}`;
+  } else {
+    metadata.activeRouteName = 'All Routes Complete';
+    metadata.activeRouteProgress = `${ROUTE_DEFINITIONS.length}/${ROUTE_DEFINITIONS.length}`;
+  }
+}
 
 /**
  * Universe Engine's <SceneContents /> sets a dense FogExp2 on the scene as
@@ -67,6 +269,45 @@ interface GameCanvasProps {
 }
 
 type CameraAssistLevel = 'low' | 'medium' | 'high';
+type WeaponTuningProfile = 'arcade' | 'cinematic' | 'sim';
+
+const WEAPON_TUNING: Record<WeaponTuningProfile, {
+  cadence: number;
+  heatGain: number;
+  coolingRate: number;
+  overheatDuration: number;
+  recoilKick: number;
+  recoilDecay: number;
+  audioGain: number;
+}> = {
+  arcade: {
+    cadence: 0.075,
+    heatGain: 0.1,
+    coolingRate: 0.42,
+    overheatDuration: 0.82,
+    recoilKick: 0.55,
+    recoilDecay: 6.8,
+    audioGain: 0.045,
+  },
+  cinematic: {
+    cadence: 0.11,
+    heatGain: 0.16,
+    coolingRate: 0.25,
+    overheatDuration: 1.55,
+    recoilKick: 0.86,
+    recoilDecay: 5.1,
+    audioGain: 0.06,
+  },
+  sim: {
+    cadence: 0.095,
+    heatGain: 0.14,
+    coolingRate: 0.31,
+    overheatDuration: 1.25,
+    recoilKick: 0.72,
+    recoilDecay: 5.8,
+    audioGain: 0.05,
+  },
+};
 
 const GAS_CLOUD_FIELDS = [
   { position: [-260, 70, -520] as [number, number, number], radius: 170, density: 0.62, color: 0x6a96ff },
@@ -82,15 +323,12 @@ const SHIP_THRUSTER_PRESETS: Record<SelectedShip, {
   nozzleZ: number;
   outerNozzleZ: number;
 }> = {
-  // Adjust these values as needed for your custom model. Start with a centered, slightly behind-the-ship position.
-  'default-xwing': { lateral: 0.42, vertical: 0.36, coreZ: -1.16, nozzleZ: -1.44, outerNozzleZ: -1.62 },
-  'alliance-xwing': { lateral: 1.3, vertical: 0.6, coreZ: -2.78, nozzleZ: -3.08, outerNozzleZ: -3.16 },
-  't70-xwing': { lateral: 1.36, vertical: 0.64, coreZ: -2.95, nozzleZ: -3.27, outerNozzleZ: -3.35 },
-  'x-blade': { lateral: 1.44, vertical: 0.7, coreZ: -3.08, nozzleZ: -3.42, outerNozzleZ: -3.5 },
+  // Tuned mount points for the default procedural interceptor.
+  'default-vanguard': { lateral: 0.26, vertical: 0.22, coreZ: -0.78, nozzleZ: -0.98, outerNozzleZ: -1.14 },
 };
 
 /**
- * Player ship component: X-wing with enhanced visuals.
+ * Player ship component with enhanced thruster and RCS visuals.
  */
 function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState; showForwardDebug: boolean }) {
   const innerGroupRef = useRef<THREE.Group>(null);
@@ -118,23 +356,57 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
   const rcsWingRightRef = useRef<THREE.Mesh>(null);
   const cockpitGlowRef = useRef<THREE.Mesh>(null);
   const visualBankRef = useRef(0);
+  const recoilVisualRef = useRef(0);
   const thrusterRefs = useMemo(() => [thrusterCone1Ref, thrusterCone2Ref, thrusterCone3Ref, thrusterCone4Ref], []);
   const outerPlumeRefs = useMemo(() => [outerPlume1Ref, outerPlume2Ref, outerPlume3Ref, outerPlume4Ref], []);
-  const selectedShip = (gameState.selectedShip || 'default-xwing') as SelectedShip;
+  const selectedShip = (gameState.selectedShip || 'default-vanguard') as SelectedShip;
   const shipTransform = useMemo(() => getPlayerShipTransform(selectedShip, 'game'), [selectedShip]);
-  const thrusterPreset = SHIP_THRUSTER_PRESETS[selectedShip] ?? SHIP_THRUSTER_PRESETS['default-xwing'];
+  const thrusterPreset = SHIP_THRUSTER_PRESETS[selectedShip] ?? SHIP_THRUSTER_PRESETS['default-vanguard'];
+  const usingDefaultMountMap = selectedShip === 'default-vanguard';
   const engineMounts = useMemo(
-    () => [
-      [-thrusterPreset.lateral, thrusterPreset.vertical, thrusterPreset.coreZ] as [number, number, number],
-      [-thrusterPreset.lateral, -thrusterPreset.vertical, thrusterPreset.coreZ] as [number, number, number],
-      [thrusterPreset.lateral, thrusterPreset.vertical, thrusterPreset.coreZ] as [number, number, number],
-      [thrusterPreset.lateral, -thrusterPreset.vertical, thrusterPreset.coreZ] as [number, number, number],
-    ],
-    [thrusterPreset]
+    () => {
+      if (usingDefaultMountMap) {
+        // Tuned mount map for the default procedural hull (top-left, bottom-left, top-right, bottom-right).
+        return [
+          [-0.46, 0.44, -0.86] as [number, number, number],
+          [-0.46, -0.20, -0.94] as [number, number, number],
+          [0.46, 0.44, -0.86] as [number, number, number],
+          [0.46, -0.20, -0.94] as [number, number, number],
+        ];
+      }
+
+      return [
+        [-thrusterPreset.lateral, thrusterPreset.vertical, thrusterPreset.coreZ] as [number, number, number],
+        [-thrusterPreset.lateral, -thrusterPreset.vertical, thrusterPreset.coreZ] as [number, number, number],
+        [thrusterPreset.lateral, thrusterPreset.vertical, thrusterPreset.coreZ] as [number, number, number],
+        [thrusterPreset.lateral, -thrusterPreset.vertical, thrusterPreset.coreZ] as [number, number, number],
+      ];
+    },
+    [thrusterPreset, usingDefaultMountMap]
+  );
+  const rearNozzleZs = useMemo(
+    () =>
+      usingDefaultMountMap
+        ? [-1.10, -1.20, -1.10, -1.20]
+        : [thrusterPreset.nozzleZ, thrusterPreset.nozzleZ, thrusterPreset.nozzleZ, thrusterPreset.nozzleZ],
+    [usingDefaultMountMap, thrusterPreset.nozzleZ]
+  );
+  const rearOuterNozzleZs = useMemo(
+    () =>
+      usingDefaultMountMap
+        ? [-1.26, -1.36, -1.26, -1.36]
+        : [thrusterPreset.outerNozzleZ, thrusterPreset.outerNozzleZ, thrusterPreset.outerNozzleZ, thrusterPreset.outerNozzleZ],
+    [usingDefaultMountMap, thrusterPreset.outerNozzleZ]
   );
   const initialPlumeLength = 1.05;
-  const initialThrusterCenterZ = thrusterPreset.nozzleZ - 0.9 * initialPlumeLength;
-  const initialOuterCenterZ = thrusterPreset.outerNozzleZ - 1.2 * initialPlumeLength * 1.22;
+  const initialThrusterCenters = useMemo(
+    () => rearNozzleZs.map((z) => z - 0.9 * initialPlumeLength),
+    [rearNozzleZs]
+  );
+  const initialOuterCenters = useMemo(
+    () => rearOuterNozzleZs.map((z) => z - 1.2 * initialPlumeLength * 1.22),
+    [rearOuterNozzleZs]
+  );
 
   // Update engine trail, visual banking, and responsive glow
   useFrame((state, delta) => {
@@ -147,8 +419,12 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
     const targetBank = Math.max(-0.35, Math.min(0.35, -vx * 0.018));
     const bankK = 1 - Math.exp(-delta * 4.5);
     visualBankRef.current += (targetBank - visualBankRef.current) * bankK;
+    const recoilSignal = Number(gameState.playerEntity.metadata?.weaponRecoil ?? 0);
+    recoilVisualRef.current += (recoilSignal - recoilVisualRef.current) * (1 - Math.exp(-delta * 16));
     if (innerGroupRef.current) {
       innerGroupRef.current.rotation.z = visualBankRef.current;
+      innerGroupRef.current.rotation.x = recoilVisualRef.current * 0.04;
+      innerGroupRef.current.position.z = recoilVisualRef.current * 0.18;
     }
 
     // Velocity-responsive engine glow brightness and scale
@@ -160,9 +436,9 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
       0.92 +
       Math.sin(state.clock.elapsedTime * (boostActive ? 38 : 26)) * 0.05 +
       Math.sin(state.clock.elapsedTime * (boostActive ? 61 : 47)) * 0.04;
-    const engineOpacity = (0.24 + driveSignal * (boostActive ? 0.56 : 0.42)) * flicker;
-    const engineScale = 0.62 + driveSignal * (boostActive ? 0.86 : 0.64);
-    const coreOpacity = (0.66 + driveSignal * (boostActive ? 0.28 : 0.2)) * flicker;
+    const engineOpacity = (0.14 + driveSignal * (boostActive ? 0.31 : 0.26)) * flicker;
+    const engineScale = 0.56 + driveSignal * (boostActive ? 0.54 : 0.48);
+    const coreOpacity = (0.52 + driveSignal * (boostActive ? 0.17 : 0.14)) * flicker;
     const coreScale = 0.92 + driveSignal * (boostActive ? 0.24 : 0.16);
 
     [engineGlow1Ref, engineGlow2Ref, engineGlow3Ref, engineGlow4Ref].forEach(ref => {
@@ -177,28 +453,25 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
       ref.current.scale.setScalar(coreScale);
     });
 
-    const plumeLength = 0.72 + driveSignal * (boostActive ? 2.2 : 1.45);
-    const plumeRadius = 0.45 + driveSignal * (boostActive ? 0.18 : 0.12);
-    const plumeOpacity = (0.14 + driveSignal * (boostActive ? 0.42 : 0.28)) * flicker;
-    const outerPlumeOpacity = (0.05 + driveSignal * (boostActive ? 0.3 : 0.2)) * flicker;
+    const plumeLength = 0.54 + driveSignal * (boostActive ? 1.18 : 0.96);
+    const plumeRadius = 0.32 + driveSignal * (boostActive ? 0.085 : 0.07);
+    const plumeOpacity = (0.08 + driveSignal * (boostActive ? 0.21 : 0.17)) * flicker;
+    const outerPlumeOpacity = (0.03 + driveSignal * (boostActive ? 0.14 : 0.11)) * flicker;
     const thrusterHalfLength = 0.9 * plumeLength;
     const outerHalfLength = 1.2 * plumeLength * 1.22;
-    const rearNozzleZ = thrusterPreset.nozzleZ;
-    const rearOuterNozzleZ = thrusterPreset.outerNozzleZ;
-
-    thrusterRefs.forEach(ref => {
+    thrusterRefs.forEach((ref, idx) => {
       if (!ref.current) return;
       ref.current.scale.set(plumeRadius, plumeLength, plumeRadius);
       (ref.current.material as THREE.MeshBasicMaterial).opacity = plumeOpacity;
       // Keep the cone base fixed at the rear nozzle and extend plume rearward (-Z).
-      ref.current.position.z = rearNozzleZ - thrusterHalfLength;
+      ref.current.position.z = rearNozzleZs[idx] - thrusterHalfLength;
     });
 
-    outerPlumeRefs.forEach(ref => {
+    outerPlumeRefs.forEach((ref, idx) => {
       if (!ref.current) return;
       ref.current.scale.set(plumeRadius * 1.5, plumeLength * 1.22, plumeRadius * 1.5);
       (ref.current.material as THREE.MeshBasicMaterial).opacity = outerPlumeOpacity;
-      ref.current.position.z = rearOuterNozzleZ - outerHalfLength;
+      ref.current.position.z = rearOuterNozzleZs[idx] - outerHalfLength;
     });
 
     // RCS maneuvering thrusters for orientation/position hold.
@@ -258,11 +531,11 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
           <sphereGeometry args={[0.55, 8, 8]} />
           <meshBasicMaterial color={0x6ecbff} transparent opacity={0.2} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
-          <mesh ref={thrusterCone1Ref} position={[engineMounts[0][0], engineMounts[0][1], initialThrusterCenterZ]} rotation={[-Math.PI / 2, 0, 0]}>
+          <mesh ref={thrusterCone1Ref} position={[engineMounts[0][0], engineMounts[0][1], initialThrusterCenters[0]]} rotation={[-Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.18, 1.8, 14, 1, true]} />
           <meshBasicMaterial color={0x8fdbff} transparent opacity={0.36} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
-          <mesh ref={outerPlume1Ref} position={[engineMounts[0][0], engineMounts[0][1], initialOuterCenterZ]} rotation={[-Math.PI / 2, 0, 0]}>
+          <mesh ref={outerPlume1Ref} position={[engineMounts[0][0], engineMounts[0][1], initialOuterCenters[0]]} rotation={[-Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.28, 2.4, 14, 1, true]} />
           <meshBasicMaterial color={0x4c9dff} transparent opacity={0.2} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
@@ -275,11 +548,11 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
           <sphereGeometry args={[0.55, 8, 8]} />
           <meshBasicMaterial color={0x6ecbff} transparent opacity={0.2} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
-          <mesh ref={thrusterCone2Ref} position={[engineMounts[1][0], engineMounts[1][1], initialThrusterCenterZ]} rotation={[-Math.PI / 2, 0, 0]}>
+          <mesh ref={thrusterCone2Ref} position={[engineMounts[1][0], engineMounts[1][1], initialThrusterCenters[1]]} rotation={[-Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.18, 1.8, 14, 1, true]} />
           <meshBasicMaterial color={0x8fdbff} transparent opacity={0.36} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
-          <mesh ref={outerPlume2Ref} position={[engineMounts[1][0], engineMounts[1][1], initialOuterCenterZ]} rotation={[-Math.PI / 2, 0, 0]}>
+          <mesh ref={outerPlume2Ref} position={[engineMounts[1][0], engineMounts[1][1], initialOuterCenters[1]]} rotation={[-Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.28, 2.4, 14, 1, true]} />
           <meshBasicMaterial color={0x4c9dff} transparent opacity={0.2} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
@@ -292,11 +565,11 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
           <sphereGeometry args={[0.55, 8, 8]} />
           <meshBasicMaterial color={0x6ecbff} transparent opacity={0.2} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
-          <mesh ref={thrusterCone3Ref} position={[engineMounts[2][0], engineMounts[2][1], initialThrusterCenterZ]} rotation={[-Math.PI / 2, 0, 0]}>
+          <mesh ref={thrusterCone3Ref} position={[engineMounts[2][0], engineMounts[2][1], initialThrusterCenters[2]]} rotation={[-Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.18, 1.8, 14, 1, true]} />
           <meshBasicMaterial color={0x8fdbff} transparent opacity={0.36} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
-          <mesh ref={outerPlume3Ref} position={[engineMounts[2][0], engineMounts[2][1], initialOuterCenterZ]} rotation={[-Math.PI / 2, 0, 0]}>
+          <mesh ref={outerPlume3Ref} position={[engineMounts[2][0], engineMounts[2][1], initialOuterCenters[2]]} rotation={[-Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.28, 2.4, 14, 1, true]} />
           <meshBasicMaterial color={0x4c9dff} transparent opacity={0.2} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
@@ -309,11 +582,11 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
           <sphereGeometry args={[0.55, 8, 8]} />
           <meshBasicMaterial color={0x6ecbff} transparent opacity={0.2} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
-          <mesh ref={thrusterCone4Ref} position={[engineMounts[3][0], engineMounts[3][1], initialThrusterCenterZ]} rotation={[-Math.PI / 2, 0, 0]}>
+          <mesh ref={thrusterCone4Ref} position={[engineMounts[3][0], engineMounts[3][1], initialThrusterCenters[3]]} rotation={[-Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.18, 1.8, 14, 1, true]} />
           <meshBasicMaterial color={0x8fdbff} transparent opacity={0.36} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
-          <mesh ref={outerPlume4Ref} position={[engineMounts[3][0], engineMounts[3][1], initialOuterCenterZ]} rotation={[-Math.PI / 2, 0, 0]}>
+          <mesh ref={outerPlume4Ref} position={[engineMounts[3][0], engineMounts[3][1], initialOuterCenters[3]]} rotation={[-Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.28, 2.4, 14, 1, true]} />
           <meshBasicMaterial color={0x4c9dff} transparent opacity={0.2} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
@@ -346,7 +619,7 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
 
           {/* Optional forward debug marker (nose direction). Toggle with V. */}
           {showForwardDebug && (
-            <mesh position={[0, 0.06, 3.25]} rotation={[Math.PI / 2, 0, 0]}>
+            <mesh position={[0, 0.06, -3.25]} rotation={[-Math.PI / 2, 0, 0]}>
               <coneGeometry args={[0.12, 0.42, 12]} />
               <meshBasicMaterial color={0x34d399} transparent opacity={0.9} depthWrite={false} />
             </mesh>
@@ -526,6 +799,15 @@ function CameraFollowController({ gameState, cameraAssist }: { gameState: GameSt
       gameState.playerEntity.position.y,
       gameState.playerEntity.position.z
     );
+    const playerEuler = new THREE.Euler(
+      gameState.playerEntity.rotation.x,
+      gameState.playerEntity.rotation.y,
+      gameState.playerEntity.rotation.z
+    );
+    const playerQuat = new THREE.Quaternion().setFromEuler(playerEuler);
+    const forwardDir = new THREE.Vector3(0, 0, -1).applyQuaternion(playerQuat).normalize();
+    const worldUp = new THREE.Vector3(0, 1, 0);
+    const rightDir = new THREE.Vector3().crossVectors(forwardDir, worldUp).normalize();
     const speed = Math.sqrt(
       gameState.playerEntity.velocity.x ** 2 +
       gameState.playerEntity.velocity.y ** 2 +
@@ -534,17 +816,27 @@ function CameraFollowController({ gameState, cameraAssist }: { gameState: GameSt
     const boostSpool = Number(gameState.playerEntity.metadata?.boostSpool ?? 0);
     const cloudDensity = Number(gameState.playerEntity.metadata?.gasCloudDensity ?? 0);
     const accelKick = Number(gameState.playerEntity.metadata?.accelKick ?? 0);
+    const speedJerk = Number(gameState.playerEntity.metadata?.speedJerk ?? 0);
     const travelStretch = Math.min(speed / 50, 1.1);
 
-    const offsetDistance = baseOffsetDistance + travelStretch * 2.8 + boostSpool * 2.4 + accelKick * 1.1;
+    const offsetDistance =
+      baseOffsetDistance +
+      travelStretch * 2.8 +
+      boostSpool * 2.4 +
+      accelKick * 1.1 +
+      speedJerk * 2.2;
     const offsetHeight = baseOffsetHeight + travelStretch * 0.35;
 
-    // Calculate desired camera position (behind and above player for exploration view)
-    const cloudShake = cloudDensity * (0.12 + boostSpool * 0.12);
-    const turbulenceX = Math.sin(state.clock.elapsedTime * 3.4) * cloudShake;
-    const turbulenceY = Math.sin(state.clock.elapsedTime * 5.1 + 1.7) * cloudShake * 0.6;
-    const cameraOffset = new THREE.Vector3(baseSideOffset + turbulenceX, offsetHeight + turbulenceY, offsetDistance);
-    const desiredCameraPos = playerPos.clone().add(cameraOffset);
+    // Keep camera behind ship orientation so nose direction is always readable.
+    const cloudShake = cloudDensity * (0.12 + boostSpool * 0.12) + speedJerk * 0.22;
+    const turbulenceSide = Math.sin(state.clock.elapsedTime * 3.4) * cloudShake;
+    const turbulenceUp = Math.sin(state.clock.elapsedTime * 5.1 + 1.7) * cloudShake * 0.6;
+    const jerkBacklash = Math.sin(state.clock.elapsedTime * 17.0 + 0.5) * speedJerk * 0.32;
+    const desiredCameraPos = playerPos
+      .clone()
+      .add(forwardDir.clone().multiplyScalar(-(offsetDistance + jerkBacklash)))
+      .add(rightDir.clone().multiplyScalar(baseSideOffset + turbulenceSide))
+      .add(worldUp.clone().multiplyScalar(offsetHeight + turbulenceUp));
 
     // Ultra-smooth exponential follow: k = 1 - exp(-delta * rate)
     // Tighter and snappier during flight phases for a more responsive feel
@@ -575,6 +867,8 @@ function CameraFollowController({ gameState, cameraAssist }: { gameState: GameSt
         gameState.playerEntity.velocity.z
       ).normalize();
       lookTarget.add(velocityDir.multiplyScalar(lookAheadDistance + boostSpool * 1.7));
+    } else {
+      lookTarget.add(forwardDir.clone().multiplyScalar(2.2));
     }
 
     const lookK = 1 - Math.exp(-delta * assistConfig.look);
@@ -588,7 +882,8 @@ function CameraFollowController({ gameState, cameraAssist }: { gameState: GameSt
       Math.min(speed / 5.6, 10) +
       boostSpool * 5.5 +
       (boostActive ? 1.5 : 0) +
-      cloudDensity * 1.25;
+      cloudDensity * 1.25 +
+      speedJerk * 2.4;
     const currentFov = (camera as THREE.PerspectiveCamera).fov ?? 55;
     const fovK = 1 - Math.exp(-delta * assistConfig.fov);
     const nextFov = currentFov + (targetFov - currentFov) * fovK;
@@ -618,6 +913,7 @@ function GameScene({
   mouseRotation,
   deviceOrientation,
   assistedFlight,
+  weaponTune,
 }: {
   gameState: GameState;
   onUpdate: (state: GameState) => void;
@@ -625,6 +921,7 @@ function GameScene({
   mouseRotation: React.MutableRefObject<{ pitch: number; yaw: number }>;
   deviceOrientation: React.MutableRefObject<{ alpha: number; beta: number; gamma: number }>;
   assistedFlight: boolean;
+  weaponTune: WeaponTuningProfile;
 }) {
   const { camera, scene } = useThree();
   const gameLoopRef = useRef<GameLoop | null>(null);
@@ -637,7 +934,96 @@ function GameScene({
   const throttleRef = useRef(0.34);
   const boostSpoolRef = useRef(0);
   const prevForwardSpeedRef = useRef(14);
+  const prevForwardAccelRef = useRef(0);
+  const fireCooldownRef = useRef(0);
+  const cannonCycleRef = useRef(0);
   const smoothedInputRef = useRef({ pitch: 0, yaw: 0, roll: 0 });
+  const weaponProfile = WEAPON_TUNING[weaponTune];
+
+  const spawnPlayerVolley = (forward: THREE.Vector3, right: THREE.Vector3, up: THREE.Vector3) => {
+    if (!entityManagerRef.current) return;
+
+    const playerPos = new THREE.Vector3(
+      gameState.playerEntity.position.x,
+      gameState.playerEntity.position.y,
+      gameState.playerEntity.position.z
+    );
+    const playerVel = new THREE.Vector3(
+      gameState.playerEntity.velocity.x,
+      gameState.playerEntity.velocity.y,
+      gameState.playerEntity.velocity.z
+    );
+
+    // Fighter layout: two wing-tip cannons firing as alternating upper/lower pairs.
+    const pair = cannonCycleRef.current % 2;
+    cannonCycleRef.current += 1;
+    const verticalOffset = pair === 0 ? 0.26 : -0.1;
+    const muzzleOffsets: Array<[number, number, number]> = [
+      [-1.24, verticalOffset, 2.05],
+      [1.24, verticalOffset, 2.05],
+    ];
+
+    const baseSpeed = 210;
+    muzzleOffsets.forEach((offset, idx) => {
+      const muzzlePos = playerPos
+        .clone()
+        .add(right.clone().multiplyScalar(offset[0]))
+        .add(up.clone().multiplyScalar(offset[1]))
+        .add(forward.clone().multiplyScalar(offset[2]));
+
+      const shotSpeed = baseSpeed + Math.min(220, forwardSpeedRef.current * 1.2);
+      const shotVel = forward
+        .clone()
+        .multiplyScalar(shotSpeed)
+        .add(playerVel.clone().multiplyScalar(0.45));
+
+      const projectile: GameEntity = {
+        id: `player_laser_${Date.now()}_${pair}_${idx}`,
+        position: { x: muzzlePos.x, y: muzzlePos.y, z: muzzlePos.z },
+        velocity: { x: shotVel.x, y: shotVel.y, z: shotVel.z },
+        rotation: {
+          x: gameState.playerEntity.rotation.x,
+          y: gameState.playerEntity.rotation.y,
+          z: gameState.playerEntity.rotation.z,
+        },
+        health: 1,
+        maxHealth: 1,
+        radius: 0.16,
+        team: 'player',
+        type: 'projectile',
+        active: true,
+        metadata: {
+          damage: 22,
+          scoreReward: 120,
+          source: 'wing-cannon',
+          bornAt: gameState.simTime,
+        },
+      };
+
+      entityManagerRef.current?.register(projectile);
+      gameState.projectiles.push(projectile);
+    });
+
+    if (!gameState.playerEntity.metadata) gameState.playerEntity.metadata = {};
+    const flashes = (gameState.playerEntity.metadata.muzzleFlashes ??= [] as MuzzleFlash[]);
+    muzzleOffsets.forEach((offset, idx) => {
+      const muzzlePos = playerPos
+        .clone()
+        .add(right.clone().multiplyScalar(offset[0]))
+        .add(up.clone().multiplyScalar(offset[1]))
+        .add(forward.clone().multiplyScalar(offset[2]));
+      flashes.push({
+        id: `flash_${Date.now()}_${pair}_${idx}`,
+        position: { x: muzzlePos.x, y: muzzlePos.y, z: muzzlePos.z },
+        endTime: gameState.simTime + 0.085,
+      });
+    });
+    gameState.playerEntity.metadata.lastVolleyAt = gameState.simTime;
+    gameState.playerEntity.metadata.lastVolleyPair = pair;
+    gameState.playerEntity.metadata.lastVolleyIndex = Number(gameState.playerEntity.metadata.lastVolleyIndex ?? 0) + 1;
+    gameState.playerEntity.metadata.weaponRecoil = Math.min(1, Number(gameState.playerEntity.metadata.weaponRecoil ?? 0) + weaponProfile.recoilKick);
+    gameState.playerEntity.metadata.weaponMode = 'wing-cannons';
+  };
 
   // Initialize game systems on mount
   useEffect(() => {
@@ -683,8 +1069,11 @@ function GameScene({
       );
       playerQuat.setFromEuler(playerEuler);
 
-      // Test1glb's nose aligns with local +Z in gameplay orientation.
-      const forwardLocal = new THREE.Vector3(0, 0, 1).applyQuaternion(playerQuat);
+      // Canonical gameplay convention: ship nose points along local -Z.
+      // Weapons fire along this vector; engine thrust pushes in the opposite direction.
+      const forwardLocal = new THREE.Vector3(0, 0, -1).applyQuaternion(playerQuat);
+      const rightLocal = new THREE.Vector3(1, 0, 0).applyQuaternion(playerQuat);
+      const upLocal = new THREE.Vector3(0, 1, 0).applyQuaternion(playerQuat);
 
       const attackMode = Boolean(gameState.playerEntity.metadata?.attackMode);
       const turnSpeed = attackMode ? 2.1 : 1.6;
@@ -698,6 +1087,8 @@ function GameScene({
       if (keysPressed.current.has('ArrowDown')) pitchInput -= 1;
       if (keysPressed.current.has('ArrowLeft')) yawInput += 1;
       if (keysPressed.current.has('ArrowRight')) yawInput -= 1;
+      if (keysPressed.current.has('KeyA')) yawInput += 1;
+      if (keysPressed.current.has('KeyD')) yawInput -= 1;
       if (keysPressed.current.has('KeyQ')) rollInput += 1;
       if (keysPressed.current.has('KeyE')) rollInput -= 1;
 
@@ -741,6 +1132,7 @@ function GameScene({
       const isAccelerating = keysPressed.current.has('KeyW');
       const isBraking = keysPressed.current.has('KeyS');
       const isBoosting = keysPressed.current.has('ShiftLeft') || keysPressed.current.has('ShiftRight');
+      const isFiring = keysPressed.current.has('Mouse0') || keysPressed.current.has('KeyJ') || keysPressed.current.has('Enter');
 
       const px = gameState.playerEntity.position.x;
       const py = gameState.playerEntity.position.y;
@@ -775,15 +1167,16 @@ function GameScene({
       const boostK = 1 - Math.exp(-clampedDelta * boostResponse);
       boostSpoolRef.current += (boostTarget - boostSpoolRef.current) * boostK;
 
-      const cruiseSpeed = attackMode ? 11 : 16;
-      const maxForwardSpeed = attackMode ? 33 : 48;
+      const interstellarBlend = attackMode ? 0 : Math.max(0, Math.min(1, throttleRef.current * 0.62 + boostSpoolRef.current * 0.84));
+      const cruiseSpeed = attackMode ? 11 : 22 + interstellarBlend * 84;
+      const maxForwardSpeed = attackMode ? 42 : 280 + interstellarBlend * 1280;
       const maxReverseSpeed = attackMode ? -14 : -21;
 
       const throttleSpeed =
         throttleRef.current >= 0
           ? cruiseSpeed + throttleRef.current * (maxForwardSpeed - cruiseSpeed)
           : throttleRef.current * Math.abs(maxReverseSpeed);
-      const boostSpeedBonus = boostSpoolRef.current * (attackMode ? 16 : 24);
+      const boostSpeedBonus = boostSpoolRef.current * (attackMode ? 26 : 210 + interstellarBlend * 520);
       const cloudSpeedPenalty = gasCloudDensity * (attackMode ? 5.5 : 8.5);
       const targetSpeed =
         throttleSpeed + (throttleRef.current > 0 ? boostSpeedBonus : 0) - (throttleRef.current > 0 ? cloudSpeedPenalty : 0);
@@ -792,7 +1185,9 @@ function GameScene({
         forwardSpeedRef.current = cruiseSpeed;
       }
 
-      const accelLimit = ((attackMode ? 34 : 48) + boostSpoolRef.current * (attackMode ? 22 : 34)) * (1 - gasCloudDensity * 0.28);
+      const accelLimit =
+        ((attackMode ? 44 : 160 + interstellarBlend * 320) + boostSpoolRef.current * (attackMode ? 26 : 420)) *
+        (1 - gasCloudDensity * 0.28);
       const decelLimit = isBraking ? (attackMode ? 78 : 94) : attackMode ? 42 : 56;
       const speedDelta = targetSpeed - forwardSpeedRef.current;
       const maxUpStep = accelLimit * clampedDelta;
@@ -843,6 +1238,15 @@ function GameScene({
       if (!gameState.playerEntity.metadata) {
         gameState.playerEntity.metadata = {};
       }
+      const weaponHeat = Number(gameState.playerEntity.metadata.weaponHeat ?? 0);
+      let overheatUntil = Number(gameState.playerEntity.metadata.weaponOverheatUntil ?? 0);
+      const wasOverheated = gameState.simTime < overheatUntil;
+      const coolingRate = SIMPLE_JOURNEY_MODE
+        ? 0.42
+        : attackMode
+          ? Math.max(0.2, weaponProfile.coolingRate - 0.05)
+          : weaponProfile.coolingRate;
+      let nextWeaponHeat = Math.max(0, weaponHeat - coolingRate * clampedDelta);
       gameState.playerEntity.metadata.thrustLevel = Math.min(
         1,
         Math.max(0, throttleRef.current) * 0.75 + Math.max(0, boostSpoolRef.current) * 0.25
@@ -851,14 +1255,66 @@ function GameScene({
       gameState.playerEntity.metadata.boostSpool = boostSpoolRef.current;
       gameState.playerEntity.metadata.throttle = throttleRef.current;
       gameState.playerEntity.metadata.gasCloudDensity = gasCloudDensity;
-      const accelKick = Math.max(0, forwardSpeedRef.current - prevForwardSpeedRef.current) / Math.max(0.0001, clampedDelta * 42);
+      const currentAccel = (forwardSpeedRef.current - prevForwardSpeedRef.current) / Math.max(0.0001, clampedDelta);
+      const jerk = (currentAccel - prevForwardAccelRef.current) / Math.max(0.0001, clampedDelta);
+      const accelKick = Math.max(0, currentAccel) / (attackMode ? 80 : 420);
+      const speedJerk = Math.min(1, Math.max(0, Math.abs(jerk) / (attackMode ? 400 : 2600)));
       gameState.playerEntity.metadata.accelKick = Math.min(1, accelKick);
+      gameState.playerEntity.metadata.speedJerk = speedJerk;
+      gameState.playerEntity.metadata.interstellarBlend = interstellarBlend;
+      gameState.playerEntity.metadata.interstellarDrive = getInterstellarDriveLabel(forwardSpeedRef.current);
+      gameState.playerEntity.metadata.maxForwardSpeed = maxForwardSpeed;
+      gameState.playerEntity.metadata.currentAccel = currentAccel;
       prevForwardSpeedRef.current = forwardSpeedRef.current;
+      prevForwardAccelRef.current = currentAccel;
       gameState.playerEntity.metadata.attackMode = attackMode;
       gameState.playerEntity.metadata.rcsYaw = smoothedInputRef.current.yaw;
       gameState.playerEntity.metadata.rcsPitch = smoothedInputRef.current.pitch;
       gameState.playerEntity.metadata.rcsRoll = smoothedInputRef.current.roll;
       gameState.playerEntity.metadata.rcsBrake = isBraking ? 1 : 0;
+      gameState.playerEntity.metadata.weaponRecoil = Math.max(0, Number(gameState.playerEntity.metadata.weaponRecoil ?? 0) - clampedDelta * weaponProfile.recoilDecay);
+      gameState.playerEntity.metadata.weaponPreset = weaponTune;
+      gameState.playerEntity.metadata.simpleJourneyMode = SIMPLE_JOURNEY_MODE;
+
+      if (gameState.phase === 'exploration' || gameState.phase === 'ignition') {
+        updateRouteProgress(gameState);
+      }
+
+      if (!gameState.playerEntity.metadata) {
+        gameState.playerEntity.metadata = {};
+      }
+      const flashes = (gameState.playerEntity.metadata.muzzleFlashes ??= [] as MuzzleFlash[]);
+      gameState.playerEntity.metadata.muzzleFlashes = flashes.filter((flash) => flash.endTime > gameState.simTime);
+
+      fireCooldownRef.current = Math.max(0, fireCooldownRef.current - clampedDelta);
+      if ((gameState.phase === 'exploration' || gameState.phase === 'combat') && isFiring && fireCooldownRef.current <= 0 && !wasOverheated) {
+        const cadence = SIMPLE_JOURNEY_MODE
+          ? 0.08
+          : attackMode
+            ? Math.max(0.06, weaponProfile.cadence - 0.015)
+            : weaponProfile.cadence;
+        fireCooldownRef.current = cadence;
+        const heatGain = SIMPLE_JOURNEY_MODE ? 0.06 : attackMode ? weaponProfile.heatGain + 0.03 : weaponProfile.heatGain;
+        nextWeaponHeat = Math.min(1.35, nextWeaponHeat + heatGain);
+        spawnPlayerVolley(forwardLocal.clone().normalize(), rightLocal.clone().normalize(), upLocal.clone().normalize());
+      }
+
+      if (!SIMPLE_JOURNEY_MODE && !wasOverheated && nextWeaponHeat >= 1) {
+        overheatUntil = gameState.simTime + weaponProfile.overheatDuration;
+        nextWeaponHeat = 0.72;
+      }
+
+      const isOverheated = gameState.simTime < overheatUntil;
+      gameState.playerEntity.metadata.weaponHeat = Math.max(0, Math.min(1, nextWeaponHeat));
+      gameState.playerEntity.metadata.weaponOverheatUntil = overheatUntil;
+      gameState.playerEntity.metadata.weaponOverheated = SIMPLE_JOURNEY_MODE ? false : isOverheated;
+      gameState.playerEntity.metadata.weaponStatus = SIMPLE_JOURNEY_MODE
+        ? 'READY'
+        : isOverheated
+          ? 'OVERHEATED'
+          : gameState.playerEntity.metadata.weaponHeat > 0.78
+            ? 'HOT'
+            : 'NOMINAL';
     }
 
     // Update game logic
@@ -888,21 +1344,31 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
   const [showForwardDebug, setShowForwardDebug] = useState(false);
   const [assistedFlight, setAssistedFlight] = useState(true);
   const [cameraAssist, setCameraAssist] = useState<CameraAssistLevel>('medium');
+  const [weaponTune, setWeaponTune] = useState<WeaponTuningProfile>(SIMPLE_JOURNEY_MODE ? 'arcade' : 'sim');
   const [showTutorial, setShowTutorial] = useState(false);
   const [tutorialIndex, setTutorialIndex] = useState(0);
+  const [showControlsHelp, setShowControlsHelp] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
   const keysPressed = useRef<Set<string>>(new Set());
   const mouseRotationRef = useRef({ pitch: 0, yaw: 0 });
   const deviceOrientationRef = useRef({ alpha: 0, beta: 0, gamma: 0 });
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const lastVolleyAudioRef = useRef<number>(-1);
 
-  const tutorialMessages = [
-    'W/S throttle · Arrow keys steer · Shift boosts',
-    'Press R to reset heading toward mission vector',
-    'Press F to toggle assisted flight stability',
-    'Camera assist: Low/Medium/High from the top-right panel',
-    'Press X for foil/attack mode when you want tighter handling',
-  ];
+  const tutorialMessages = SIMPLE_JOURNEY_MODE
+    ? [
+        'W accelerate · S brake · A/D or Arrow keys steer',
+        'Shift boosts · Click/J fires cannons',
+        'R recenters heading · F toggles flight assist',
+      ]
+    : [
+        'W accelerate · S brake · A/D or Arrow keys steer',
+        'Shift or Space boosts · R recenters heading',
+        'F toggles flight assist · H opens controls help',
+        'Camera assist (Low/Medium/High) lives in the top-right panel',
+        'Press X for attack foils when you want tighter turning',
+      ];
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -925,6 +1391,56 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
     };
   }, []);
 
+  useEffect(() => {
+    const volleyIndex = Number(gameState.playerEntity.metadata?.lastVolleyIndex ?? -1);
+    if (volleyIndex < 0 || volleyIndex === lastVolleyAudioRef.current) return;
+    lastVolleyAudioRef.current = volleyIndex;
+
+    if (typeof window === 'undefined') return;
+    const pair = Number(gameState.playerEntity.metadata?.lastVolleyPair ?? 0);
+    const profile = WEAPON_TUNING[weaponTune];
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+
+    const ctx = audioContextRef.current ?? new AudioCtx();
+    audioContextRef.current = ctx;
+    if (ctx.state === 'suspended') {
+      void ctx.resume();
+    }
+
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const panner = ctx.createStereoPanner();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(pair === 0 ? 820 : 740, now);
+    osc.frequency.exponentialRampToValueAtTime(pair === 0 ? 360 : 330, now + 0.08);
+
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(profile.audioGain, now + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.09);
+
+    panner.pan.setValueAtTime(pair === 0 ? -0.35 : 0.35, now);
+
+    osc.connect(gain);
+    gain.connect(panner);
+    panner.connect(ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.1);
+  }, [gameState.playerEntity.metadata?.lastVolleyIndex, gameState.playerEntity.metadata?.lastVolleyPair, weaponTune]);
+
+  useEffect(() => {
+    return () => {
+      const ctx = audioContextRef.current;
+      if (ctx) {
+        void ctx.close();
+        audioContextRef.current = null;
+      }
+    };
+  }, []);
+
   const resetHeadingToMission = () => {
     setGameState((s) => {
       const layout = getMissionLayout(s.worldIndex);
@@ -935,12 +1451,12 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
       );
 
       if (toTarget.lengthSq() < 1e-6) {
-        toTarget.set(0, 0, 1);
+        toTarget.set(0, 0, -1);
       } else {
         toTarget.normalize();
       }
 
-      const yaw = Math.atan2(toTarget.x, toTarget.z);
+      const yaw = Math.atan2(-toTarget.x, -toTarget.z);
       const pitch = -Math.asin(Math.max(-1, Math.min(1, toTarget.y)));
 
       return {
@@ -997,6 +1513,10 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
         e.preventDefault();
         resetHeadingToMission();
       }
+      if (e.code === 'KeyH' || (e.code === 'Slash' && e.shiftKey)) {
+        e.preventDefault();
+        setShowControlsHelp((v) => !v);
+      }
       // Start ignition on spacebar
       if (e.code === 'Space') {
         e.preventDefault();
@@ -1010,6 +1530,9 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
               return startExploration(s);
             }
           }
+          if (s.phase === 'exploration' || s.phase === 'charging' || s.phase === 'combat') {
+            keysPressed.current.add('ShiftLeft');
+          }
           return s;
         });
       }
@@ -1017,6 +1540,9 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
 
     const handleKeyUp = (e: KeyboardEvent) => {
       keysPressed.current.delete(e.code);
+      if (e.code === 'Space') {
+        keysPressed.current.delete('ShiftLeft');
+      }
     };
 
     // Mouse look: map mouse position to pitch/yaw while cursor is inside canvas.
@@ -1041,6 +1567,21 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
       mouseRotationRef.current.pitch = -mouseY * 0.5;
     };
 
+    const handleMouseDown = (e: MouseEvent) => {
+      if (e.button !== 0) return;
+      const canvasEl = canvasRef.current;
+      if (!canvasEl) return;
+      const rect = canvasEl.getBoundingClientRect();
+      const inside = e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom;
+      if (!inside) return;
+      keysPressed.current.add('Mouse0');
+    };
+
+    const handleMouseUp = (e: MouseEvent) => {
+      if (e.button !== 0) return;
+      keysPressed.current.delete('Mouse0');
+    };
+
     // Device orientation for mobile: use gyroscope to fly
     const handleDeviceOrientation = (e: DeviceOrientationEvent) => {
       if (e.alpha !== null && e.beta !== null && e.gamma !== null) {
@@ -1055,6 +1596,8 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
     window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mousedown', handleMouseDown);
+    window.addEventListener('mouseup', handleMouseUp);
     window.addEventListener('deviceorientation', handleDeviceOrientation);
 
     // Testing console shortcut: Ctrl+Shift+T
@@ -1082,6 +1625,8 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mousedown', handleMouseDown);
+      window.removeEventListener('mouseup', handleMouseUp);
       window.removeEventListener('deviceorientation', handleDeviceOrientation);
       window.removeEventListener('keydown', handleTestConsole);
     };
@@ -1143,27 +1688,56 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
 
         {/* Projectiles: high-energy plasma bolts */}
         {gameState.projectiles.map((proj) => (
-          <group
-            key={proj.id}
-            position={[proj.position.x, proj.position.y, proj.position.z]}
-          >
-            {/* Core bolt */}
-            <mesh>
-              <sphereGeometry args={[0.25, 12, 12]} />
-              <meshBasicMaterial color={0xffff00} />
-            </mesh>
-            {/* Energy halo */}
-            <mesh>
-              <sphereGeometry args={[0.5, 8, 8]} />
-              <meshBasicMaterial color={0xffcc00} transparent opacity={0.4} />
-            </mesh>
-            {/* Outer glow */}
-            <mesh>
-              <sphereGeometry args={[0.9, 6, 6]} />
-              <meshBasicMaterial color={0xffaa00} transparent opacity={0.15} />
-            </mesh>
-          </group>
+          (() => {
+            const v = new THREE.Vector3(proj.velocity.x, proj.velocity.y, proj.velocity.z);
+            const dir = v.lengthSq() > 1e-6 ? v.clone().normalize() : new THREE.Vector3(0, 0, -1);
+            const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), dir);
+            const rot = new THREE.Euler().setFromQuaternion(q);
+            const isWingCannon = proj.metadata?.source === 'wing-cannon';
+            const boltColor = isWingCannon ? 0x9de8ff : 0xffff00;
+            const haloColor = isWingCannon ? 0x52c9ff : 0xffcc00;
+            const age = Math.max(0, gameState.simTime - Number(proj.metadata?.bornAt ?? gameState.simTime));
+            const pulse = 0.9 + Math.sin(age * 34) * 0.08;
+
+            return (
+              <group
+                key={proj.id}
+                position={[proj.position.x, proj.position.y, proj.position.z]}
+                rotation={[rot.x, rot.y, rot.z]}
+              >
+                {/* Tracer core */}
+                <mesh scale={[pulse, pulse, pulse]}>
+                  <capsuleGeometry args={[0.08, 1.55, 8, 16]} />
+                  <meshBasicMaterial color={boltColor} transparent opacity={0.95} toneMapped={false} />
+                </mesh>
+                {/* Plasma halo */}
+                <mesh scale={[pulse, pulse, pulse]}>
+                  <capsuleGeometry args={[0.16, 2.1, 6, 12]} />
+                  <meshBasicMaterial color={haloColor} transparent opacity={0.32} blending={THREE.AdditiveBlending} toneMapped={false} depthWrite={false} />
+                </mesh>
+              </group>
+            );
+          })()
         ))}
+
+        {/* Cannon muzzle flashes */}
+        {((gameState.playerEntity.metadata?.muzzleFlashes as MuzzleFlash[] | undefined) ?? []).map((flash) => {
+          const life = Math.max(0, (flash.endTime - gameState.simTime) / 0.085);
+          const outerOpacity = 0.45 * life;
+          const coreOpacity = 0.9 * life;
+          return (
+            <group key={flash.id} position={[flash.position.x, flash.position.y, flash.position.z]}>
+              <mesh>
+                <sphereGeometry args={[0.22, 10, 10]} />
+                <meshBasicMaterial color={0xd8f5ff} transparent opacity={coreOpacity} blending={THREE.AdditiveBlending} toneMapped={false} depthWrite={false} />
+              </mesh>
+              <mesh>
+                <sphereGeometry args={[0.48, 10, 10]} />
+                <meshBasicMaterial color={0x4fc8ff} transparent opacity={outerOpacity} blending={THREE.AdditiveBlending} toneMapped={false} depthWrite={false} />
+              </mesh>
+            </group>
+          );
+        })}
 
         {/* Game logic integration */}
         <GameScene
@@ -1173,6 +1747,7 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
           mouseRotation={mouseRotationRef}
           deviceOrientation={deviceOrientationRef}
           assistedFlight={assistedFlight}
+          weaponTune={weaponTune}
         />
 
         {/* Camera follow: chase the player ship */}
@@ -1210,7 +1785,56 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
               </button>
             ))}
           </div>
+          <div className="mt-2">
+            <button
+              type="button"
+              onClick={() => setShowControlsHelp((v) => !v)}
+              className="rounded border border-white/25 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.12em] text-white/75"
+            >
+              Controls Help (H)
+            </button>
+          </div>
+          {!SIMPLE_JOURNEY_MODE && (
+            <div className="mt-2">
+              <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-white/65">Weapon Tune</div>
+              <div className="mt-1 flex items-center gap-1">
+                {(['arcade', 'cinematic', 'sim'] as WeaponTuningProfile[]).map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => setWeaponTune(preset)}
+                    className={`rounded border px-2 py-1 font-mono text-[9px] uppercase tracking-[0.12em] ${weaponTune === preset ? 'border-cyan-300/60 text-cyan-200' : 'border-white/25 text-white/70'}`}
+                  >
+                    {preset}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
+
+        {showControlsHelp && (
+          <div className="pointer-events-auto fixed left-1/2 top-1/2 z-60 w-[min(92vw,34rem)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-cyan-200/30 bg-black/80 px-5 py-4 text-white backdrop-blur-md">
+            <div className="flex items-center justify-between">
+              <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-cyan-200/85">Star Cleaver Controls</div>
+              <button
+                type="button"
+                onClick={() => setShowControlsHelp(false)}
+                className="rounded border border-white/25 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.12em] text-white/75"
+              >
+                Close
+              </button>
+            </div>
+            <div className="mt-3 space-y-2 font-mono text-[11px] text-white/85">
+              <div>Move: W accelerate, S brake, Shift or Space boost</div>
+              <div>Steer: A/D or Arrow keys, Q/E roll, mouse for fine aim</div>
+              <div>Weapons: Hold left click, J, or Enter to fire wing cannons</div>
+              <div>Safety: F flight assist toggle, R reset heading</div>
+              {!SIMPLE_JOURNEY_MODE && <div>Mode: X toggles cruise/attack foils</div>}
+              <div>Debug: V nose marker, H toggles this panel</div>
+            </div>
+          </div>
+        )}
 
         {showTutorial && (
           <div className="pointer-events-none fixed bottom-20 left-1/2 z-50 w-[min(92vw,32rem)] -translate-x-1/2 rounded-xl border border-cyan-200/25 bg-black/55 px-4 py-3 text-center backdrop-blur-sm">

@@ -20,7 +20,7 @@ export function createInitialGameState(): GameState {
     comboMultiplier: 1,
     simTime: 0,
     waveStartTime: 0,
-    selectedShip: 'default-xwing', // default to classic X-wing
+    selectedShip: 'default-vanguard', // default procedural interceptor
     worldsCompleted: 0, // track progression for ship unlocks
 
     playerEntity: {
