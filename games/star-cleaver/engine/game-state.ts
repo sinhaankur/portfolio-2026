@@ -13,7 +13,7 @@ export function createInitialGameState(): GameState {
   const layout = getMissionLayout(0);
 
   return {
-    phase: 'exploration',
+    phase: 'ignition',
     worldIndex: 0,
     wave: 1,
     score: 0,

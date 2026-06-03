@@ -41,6 +41,80 @@ const NOOP = () => {};
 const SIMPLE_JOURNEY_MODE = true;
 const KNOWN_UNIVERSE_RADIUS = 9100;
 
+type GraphicsTier = 'low' | 'high' | 'ultra';
+
+type GraphicsProfile = {
+  tier: GraphicsTier;
+  dpr: number | [number, number];
+  shadows: boolean;
+  shadowMapSize: number;
+  universeMobile: boolean;
+  powerPreference: WebGLPowerPreference;
+  toneMappingExposure: number;
+  dustCount: number;
+};
+
+const GRAPHICS_PROFILES: Record<GraphicsTier, GraphicsProfile> = {
+  low: {
+    tier: 'low',
+    dpr: [1, 1.2],
+    shadows: false,
+    shadowMapSize: 1024,
+    universeMobile: true,
+    powerPreference: 'default',
+    toneMappingExposure: 1.0,
+    dustCount: 800,
+  },
+  high: {
+    tier: 'high',
+    dpr: [1, 1.75],
+    shadows: true,
+    shadowMapSize: 2048,
+    universeMobile: false,
+    powerPreference: 'high-performance',
+    toneMappingExposure: 1.04,
+    dustCount: 1400,
+  },
+  ultra: {
+    tier: 'ultra',
+    dpr: [1.25, 2.25],
+    shadows: true,
+    shadowMapSize: 4096,
+    universeMobile: false,
+    powerPreference: 'high-performance',
+    toneMappingExposure: 1.08,
+    dustCount: 2200,
+  },
+};
+
+function detectGraphicsProfile(): GraphicsProfile {
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') {
+    return GRAPHICS_PROFILES.high;
+  }
+
+  const override = window.localStorage.getItem('star-cleaver-graphics-profile') as GraphicsTier | null;
+  if (override && override in GRAPHICS_PROFILES) {
+    return GRAPHICS_PROFILES[override];
+  }
+
+  const ua = navigator.userAgent;
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+  const touchPoints = navigator.maxTouchPoints ?? 0;
+  const deviceMemory = Number((navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 8);
+  const cores = navigator.hardwareConcurrency ?? 8;
+  const pixelRatio = window.devicePixelRatio ?? 1;
+
+  if (!isMobile && touchPoints <= 1 && deviceMemory >= 8 && cores >= 8 && pixelRatio >= 1.5) {
+    return GRAPHICS_PROFILES.ultra;
+  }
+
+  if (!isMobile && deviceMemory >= 4 && cores >= 4) {
+    return GRAPHICS_PROFILES.high;
+  }
+
+  return GRAPHICS_PROFILES.low;
+}
+
 type GravityHazard = {
   id: string;
   label: string;
@@ -699,12 +773,13 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
             <PlayerShipModel shipId={selectedShip} mode="game" applyTransform={false} />
           </Suspense>
 
-          <pointLight position={[0, 0.35, 1.9]} intensity={1.15} distance={26} color={0xaee8ff} />
-          <pointLight position={[0, -0.2, -1.8]} intensity={0.7} distance={20} color={0x4fb3ff} />
+          <pointLight position={[0, 0.35, 1.9]} intensity={1.9} distance={34} color={0xf3f8ff} />
+          <pointLight position={[0, -0.2, -1.8]} intensity={1.45} distance={28} color={0xff9b6a} />
+          <pointLight position={[0, 0.95, 0.25]} intensity={0.85} distance={20} color={0xffffff} />
 
           <mesh position={[0, 0.02, 0.25]}>
-            <icosahedronGeometry args={[2.45, 1]} />
-            <meshBasicMaterial color={0x76d3ff} transparent opacity={0.08} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+            <icosahedronGeometry args={[2.85, 1]} />
+            <meshBasicMaterial color={0xffac80} transparent opacity={0.08} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
 
           {/* Cockpit glow - subtle green-cyan */}
@@ -1843,6 +1918,7 @@ function GameScene({
 
 function GameRenderer({ onReady }: { onReady?: () => void }) {
   const [gameState, setGameState] = useState<GameState>(createInitialGameState());
+  const [graphicsProfile, setGraphicsProfile] = useState<GraphicsProfile>(GRAPHICS_PROFILES.high);
   const [showTestConsole, setShowTestConsole] = useState(false);
   const [showForwardDebug, setShowForwardDebug] = useState(false);
   const [assistedFlight, setAssistedFlight] = useState(true);
@@ -1885,6 +1961,15 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
         'Camera assist (Low/Medium/High) lives in the top-right panel',
         'Press X for attack foils when you want tighter turning',
       ];
+
+  useEffect(() => {
+    setGraphicsProfile(detectGraphicsProfile());
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.__starCleaverGraphicsTier = graphicsProfile.tier;
+  }, [graphicsProfile]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -2006,14 +2091,14 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
     const filter = ctx.createBiquadFilter();
     const gain = ctx.createGain();
 
-    osc.type = 'sawtooth';
-    osc.frequency.value = 55;
+    osc.type = 'triangle';
+    osc.frequency.value = 46;
     rumble.type = 'sine';
-    rumble.frequency.value = 32;
+    rumble.frequency.value = 24;
 
     filter.type = 'lowpass';
-    filter.frequency.value = 180;
-    filter.Q.value = 0.5;
+    filter.frequency.value = 120;
+    filter.Q.value = 0.35;
 
     gain.gain.value = 0.0001;
 
@@ -2035,12 +2120,12 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
     const audio = engineAudioRef.current;
     if (!audio || !audio.active) return;
     const now = audio.ctx.currentTime;
-    const drive = Math.min(1, Math.max(0.05, throttle * 0.6 + Math.min(speed / 80, 1) * 0.4 + boostSpool * 0.35));
+    const drive = Math.min(1, Math.max(0.02, throttle * 0.58 + Math.min(speed / 90, 1) * 0.34 + boostSpool * 0.22));
 
-    audio.osc.frequency.setTargetAtTime(55 + drive * 85 + (boost ? 45 : 0), now, 0.12);
-    audio.rumble.frequency.setTargetAtTime(32 + drive * 28 + (boost ? 22 : 0), now, 0.12);
-    audio.filter.frequency.setTargetAtTime(180 + drive * 420 + (boost ? 280 : 0), now, 0.15);
-    audio.gain.gain.setTargetAtTime(0.008 + drive * 0.018 + (boost ? 0.012 : 0), now, 0.1);
+    audio.osc.frequency.setTargetAtTime(46 + drive * 42 + (boost ? 16 : 0), now, 0.16);
+    audio.rumble.frequency.setTargetAtTime(24 + drive * 10 + (boost ? 6 : 0), now, 0.16);
+    audio.filter.frequency.setTargetAtTime(120 + drive * 180 + (boost ? 95 : 0), now, 0.2);
+    audio.gain.gain.setTargetAtTime(0.0022 + drive * 0.0056 + (boost ? 0.0024 : 0), now, 0.18);
   };
 
   /**
@@ -2078,15 +2163,6 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
     osc.start(now);
     osc.stop(now + 0.2);
   };
-
-  // Guardrail: if ignition timer completes but phase did not flip for any reason,
-  // force transition to exploration so it never appears frozen on countdown.
-  useEffect(() => {
-    if (gameState.phase !== 'ignition') return;
-    const elapsed = gameState.simTime - (gameState.ignitionStartTime ?? 0);
-    if (elapsed <= 3.05) return;
-    setGameState((s) => (s.phase === 'ignition' ? startExploration(s) : s));
-  }, [gameState.phase, gameState.simTime, gameState.ignitionStartTime]);
 
   // Regenerate data cores when world changes
   useEffect(() => {
@@ -2142,18 +2218,12 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
         e.preventDefault();
         setShowControlsHelp((v) => !v);
       }
-      // Start ignition on spacebar
-      if (e.code === 'Space') {
+      // Start ignition on spacebar / W — immediate launch, no countdown
+      if (e.code === 'Space' || e.code === 'KeyW') {
         e.preventDefault();
         setGameState((s) => {
-          if (s.phase === 'briefing') {
-            return startIgnition(s);
-          }
           if (s.phase === 'ignition') {
-            const elapsedSinceIgnition = s.simTime - (s.ignitionStartTime ?? 0);
-            if (elapsedSinceIgnition > 3.0) {
-              return startExploration(s);
-            }
+            return startExploration(s);
           }
           if (s.phase === 'exploration' || s.phase === 'charging' || s.phase === 'combat') {
             keysPressed.current.add('ShiftLeft');
@@ -2262,11 +2332,18 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
       <>
         <div ref={canvasRef} style={{ width: '100%', height: '100%', position: 'relative' }}>
           <Canvas
+        dpr={graphicsProfile.dpr}
+        shadows={graphicsProfile.shadows}
         camera={{ fov: 55, near: 0.1, far: 80000, position: [1.1, 2, 6.2] }}
         gl={{
-          antialias: true,
+          antialias: graphicsProfile.tier !== 'low',
           alpha: true,
-          toneMappingExposure: 1.0,
+          powerPreference: graphicsProfile.powerPreference,
+        }}
+        onCreated={({ gl }) => {
+          gl.toneMappingExposure = graphicsProfile.toneMappingExposure;
+          gl.shadowMap.enabled = graphicsProfile.shadows;
+          gl.shadowMap.type = graphicsProfile.tier === 'ultra' ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
         }}
       >
         <CanvasReadySignal onReady={onReady} />
@@ -2282,7 +2359,7 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
               onHover={NOOP}
               onResetView={NOOP}
               interactive={false}
-              mobile={false}
+              mobile={graphicsProfile.universeMobile}
               invert={false}
             />
           </group>
@@ -2295,7 +2372,15 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
 
         {/* Scene lighting: cinematic + directional for exploring universe */}
         <ambientLight intensity={0.4} color={0xffffff} />
-        <directionalLight position={[80, 50, 60]} intensity={1.0} color={0xffffff} castShadow />
+        <directionalLight
+          position={[80, 50, 60]}
+          intensity={graphicsProfile.tier === 'ultra' ? 1.08 : 1.0}
+          color={0xffffff}
+          castShadow={graphicsProfile.shadows}
+          shadow-mapSize-width={graphicsProfile.shadowMapSize}
+          shadow-mapSize-height={graphicsProfile.shadowMapSize}
+          shadow-bias={-0.00018}
+        />
         <directionalLight position={[-60, 30, -40]} intensity={0.5} color={0x3b82f6} />
         <pointLight position={[0, 5, 10]} intensity={0.6} color={0xa855f7} />
 
@@ -2365,7 +2450,7 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
         })}
 
         {/* Space dust / speed lines — velocity-responsive particle field */}
-        <SpaceDust gameState={gameState} />
+        <SpaceDust gameState={gameState} count={graphicsProfile.dustCount} />
 
         {/* Data core collectibles at route waypoints */}
         <DataCoreField cores={dataCores} gameState={gameState} onCollect={handleCoreCollect} />

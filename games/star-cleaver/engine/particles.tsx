@@ -16,7 +16,7 @@ import type { GameState } from '../../../lib/neural-game-engine';
  *   - Boost triggers a "warp tunnel" effect with extreme streaking
  * ------------------------------------------------------------------------ */
 
-const DUST_COUNT = 1200;
+const DEFAULT_DUST_COUNT = 1200;
 const DUST_TUNNEL_LENGTH = 500; // particles spawn in a tunnel this long ahead
 const DUST_TUNNEL_RADIUS = 140;
 const DUST_COLORS = [
@@ -26,7 +26,7 @@ const DUST_COLORS = [
   new THREE.Color(0x99bbee),
 ];
 
-export function SpaceDust({ gameState }: { gameState: GameState }) {
+export function SpaceDust({ gameState, count = DEFAULT_DUST_COUNT }: { gameState: GameState; count?: number }) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const dummy = useMemo(() => new THREE.Object3D(), []);
 
@@ -38,7 +38,7 @@ export function SpaceDust({ gameState }: { gameState: GameState }) {
       baseSize: number;
       speedBias: number;
     }> = [];
-    for (let i = 0; i < DUST_COUNT; i++) {
+    for (let i = 0; i < count; i++) {
       // Cylindrical tunnel distribution — denser along the forward axis
       const t = Math.random(); // 0 = near ship, 1 = far ahead
       const angle = Math.random() * Math.PI * 2;
@@ -53,7 +53,7 @@ export function SpaceDust({ gameState }: { gameState: GameState }) {
       });
     }
     return arr;
-  }, []);
+  }, [count]);
 
   useFrame((_, delta) => {
     if (!meshRef.current) return;
@@ -75,7 +75,7 @@ export function SpaceDust({ gameState }: { gameState: GameState }) {
       ? new THREE.Vector3(vx, vy, vz).normalize()
       : new THREE.Vector3(0, 0, -1);
 
-    for (let i = 0; i < DUST_COUNT; i++) {
+    for (let i = 0; i < count; i++) {
       const s = seeds[i];
 
       // Particles stream past the ship — they drift opposite to velocity
@@ -134,7 +134,7 @@ export function SpaceDust({ gameState }: { gameState: GameState }) {
   });
 
   return (
-    <instancedMesh ref={meshRef} args={[undefined, undefined, DUST_COUNT]}>
+    <instancedMesh ref={meshRef} args={[undefined, undefined, count]}>
       <capsuleGeometry args={[0.5, 1, 4, 8]} />
       <meshBasicMaterial
         color={0xffffff}

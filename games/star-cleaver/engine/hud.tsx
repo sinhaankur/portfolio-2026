@@ -1,9 +1,16 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { GameState } from '../../../lib/neural-game-engine';
 import { formatScore, getCurrentWorldName } from './game-state';
+import type { ShipModelAuditReport } from './ship-model-qa';
 import { SHIP_CONFIGS, type SelectedShip, getAvailableShips } from './ship-selector';
+
+declare global {
+  interface Window {
+    __starCleaverGraphicsTier?: string;
+  }
+}
 
 interface HUDProps {
   gameState: GameState;
@@ -17,6 +24,8 @@ interface HUDProps {
  * Matches universe-engine/hud.tsx design language: font-mono, tracking-wide, backdrop-blur-sm.
  */
 export function HUD({ gameState, showForwardDebug = false, onShipSelect, waypoints }: HUDProps) {
+  const [shipAudit, setShipAudit] = useState<ShipModelAuditReport | null>(null);
+  const [graphicsTier, setGraphicsTier] = useState<string | null>(null);
   const healthPercent = (gameState.playerEntity.health / gameState.playerMaxHealth) * 100;
   const planetHealthPercent = gameState.defendingPlanetHealth * 100;
   const chargePercent = (gameState.chargeLevel / gameState.maxCharge) * 100;
@@ -79,19 +88,63 @@ export function HUD({ gameState, showForwardDebug = false, onShipSelect, waypoin
     return 'bg-red-500';
   }, [planetHealthPercent]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const shouldShowAudit =
+      process.env.NODE_ENV !== 'production' || window.localStorage.getItem('star-cleaver-model-audit') === '1';
+
+    if (!shouldShowAudit) return;
+
+    const syncAudit = () => {
+      setShipAudit(window.__starCleaverShipAudit ?? null);
+      setGraphicsTier(window.__starCleaverGraphicsTier ?? null);
+    };
+
+    syncAudit();
+    const intervalId = window.setInterval(syncAudit, 1500);
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, []);
+
+  const maxTextureSize = useMemo(() => {
+    if (!shipAudit || shipAudit.textures.length === 0) return 'NO TEX';
+    const maxDim = shipAudit.textures.reduce((max, texture) => Math.max(max, texture.width, texture.height), 0);
+    return maxDim > 0 ? `${maxDim}px` : 'NO TEX';
+  }, [shipAudit]);
+
   return (
     <>
+      {shipAudit && (
+        <div className="fixed left-3 top-24 z-50 pointer-events-none sm:left-6 sm:top-28">
+          <div className="rounded-2xl border border-cyan-300/20 bg-slate-950/70 px-3 py-2 shadow-[0_10px_25px_rgba(0,0,0,0.28)] backdrop-blur-md">
+            <div className="font-mono text-[8px] uppercase tracking-[0.18em] text-cyan-200/75">
+              Ship QA
+            </div>
+            <div className="mt-1 font-mono text-[9px] uppercase tracking-[0.12em] text-white/85">
+              {shipAudit.triangles.toLocaleString()} tris
+            </div>
+            <div className="font-mono text-[8px] uppercase tracking-[0.12em] text-white/55">
+              {shipAudit.meshes} meshes · {maxTextureSize}
+            </div>
+            {graphicsTier && (
+              <div className="font-mono text-[8px] uppercase tracking-[0.12em] text-cyan-100/70">
+                Graphics {graphicsTier}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Top bar: world info, health, score */}
       <div className="fixed top-0 inset-x-0 z-40 pointer-events-none">
         <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center px-3 sm:px-6 py-3 sm:py-4 max-w-6xl mx-auto">
           {/* Left: World info */}
           <div className="font-mono text-[9px] sm:text-[11px] tracking-[0.14em] sm:tracking-[0.25em] uppercase text-foreground/85 drop-shadow-md">
             <div>{worldName}</div>
-            <div className="text-foreground/55 mt-1">
-              STAGE 1 · WORLD 1/1
-            </div>
             {simpleJourneyMode && (
-              <div className="mt-2 inline-flex rounded-full border border-cyan-300/35 bg-cyan-400/10 px-2 py-1 text-[8px] tracking-[0.18em] text-cyan-100/90">
+              <div className="mt-1 inline-flex rounded-full border border-cyan-300/35 bg-cyan-400/10 px-2 py-1 text-[8px] tracking-[0.18em] text-cyan-100/90">
                 SIMPLE JOURNEY
               </div>
             )}
@@ -238,125 +291,25 @@ export function HUD({ gameState, showForwardDebug = false, onShipSelect, waypoin
             )}
           </div>
 
-          {/* Briefing overlay with ship selector */}
-          {gameState.phase === 'briefing' && (
-            <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/60 backdrop-blur-md pointer-events-auto">
-              <div className="max-w-5xl px-4 sm:px-6 space-y-6 sm:space-y-8 max-h-[92vh] overflow-y-auto pb-[max(1rem,env(safe-area-inset-bottom))]">
-                {/* Mission briefing */}
-                <div className="text-center">
-                  <div className="font-mono text-[9px] sm:text-[10px] tracking-[0.15em] sm:tracking-[0.25em] uppercase text-foreground/55 mb-3 sm:mb-4">
-                    INCOMING THREAT
-                  </div>
-                  <h2 className="font-serif text-2xl md:text-4xl text-foreground mb-4 sm:mb-6 leading-tight italic">
-                    {worldName}
-                  </h2>
-                  <p className="text-foreground/75 font-sans text-sm sm:text-base leading-relaxed">
-                    Wave {gameState.wave} incoming. Prepare defensive systems.
-                  </p>
-                </div>
-
-                {/* Ship selector */}
-                <div className="space-y-4">
-                  <div className="text-center">
-                    <div className="font-mono text-[10px] tracking-[0.25em] uppercase text-cyan-400 mb-4">
-                      SELECT YOUR VESSEL
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                    {getAvailableShips(gameState.worldsCompleted).map((ship) => (
-                      <button
-                        key={ship.id}
-                        onClick={() => onShipSelect?.(ship.id as SelectedShip)}
-                        className="group relative p-4 sm:p-6 rounded-lg border border-foreground/20 bg-foreground/5 hover:border-cyan-400/50 hover:bg-cyan-400/10 transition-all duration-300 text-left"
-                      >
-                        <div className="absolute inset-0 rounded-lg bg-linear-to-r from-cyan-400/0 via-cyan-400/0 to-cyan-400/0 group-hover:from-cyan-400/20 group-hover:via-cyan-400/10 group-hover:to-cyan-400/0 pointer-events-none transition-all duration-300" />
-                        <div className="relative space-y-3">
-                          <div>
-                            <span className={`inline-flex rounded-full border px-2 py-1 font-mono text-[8px] uppercase tracking-[0.18em] ${
-                              ship.visualSource === 'glb'
-                                ? 'border-cyan-400/35 bg-cyan-400/10 text-cyan-300'
-                                : 'border-foreground/20 bg-foreground/5 text-foreground/55'
-                            }`}>
-                              {ship.visualNote}
-                            </span>
-                          </div>
-                          <h3 className="font-mono text-[11px] tracking-[0.2em] uppercase text-foreground/85">
-                            {ship.name}
-                          </h3>
-                          <p className="text-foreground/60 text-sm font-sans">
-                            {ship.description}
-                          </p>
-                          <div className="grid grid-cols-3 gap-2 pt-2 border-t border-foreground/10">
-                            {['speed', 'armor', 'weapons'].map((stat) => (
-                              <div key={stat} className="space-y-1">
-                                <div className="font-mono text-[8px] tracking-widest uppercase text-foreground/50">
-                                  {stat}
-                                </div>
-                                <div className="flex gap-0.5">
-                                  {Array.from({ length: 5 }).map((_, i) => (
-                                    <div
-                                      key={i}
-                                      className={`h-1.5 w-2 rounded-full ${
-                                        i < ship.stats[stat as keyof typeof ship.stats]
-                                          ? 'bg-cyan-400'
-                                          : 'bg-foreground/20'
-                                      }`}
-                                    />
-                                  ))}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="text-center">
-                  <div className="font-mono text-[9px] tracking-[0.2em] uppercase text-foreground/55">
-                    SELECT A SHIP · THEN PRESS SPACE TO LAUNCH
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Ignition sequence */}
+          {/* Ignition sequence — minimal, elegant */}
           {gameState.phase === 'ignition' && (
-            <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/40 backdrop-blur-sm pointer-events-none">
-              <div className="text-center space-y-8">
-                <div className="space-y-3">
-                  <div className="font-mono text-[11px] tracking-[0.3em] uppercase text-cyan-400">
-                    SYSTEMS INITIALIZING
-                  </div>
-                  <div className="h-0.5 w-32 bg-linear-to-r from-transparent via-cyan-400 to-transparent mx-auto" />
+            <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/20 backdrop-blur-[2px] pointer-events-none"
+            >
+              <div className="text-center space-y-6"
+              >
+                <div className="font-mono text-[10px] tracking-[0.3em] uppercase text-cyan-300/80"
+                >
+                  Cleaver-class Interceptor
                 </div>
-
-                {/* Boot sequence stages */}
-                <div className="space-y-2 text-left">
-                  <div className="font-mono text-[9px] tracking-[0.15em] text-foreground/70">
-                    ▸ POWER CORE: <span className="text-green-400">ONLINE</span>
-                  </div>
-                  <div className="font-mono text-[9px] tracking-[0.15em] text-foreground/70">
-                    ▸ ENGINES: <span className="text-cyan-400">SPOOLING</span>
-                  </div>
-                  <div className="font-mono text-[9px] tracking-[0.15em] text-foreground/70">
-                    ▸ WEAPONS: <span className="text-yellow-400">ARMED</span>
-                  </div>
-                  <div className="font-mono text-[9px] tracking-[0.15em] text-foreground/70">
-                    ▸ SHIELDS: <span className="text-green-400">ACTIVE</span>
-                  </div>
+                <div className="font-serif text-4xl md:text-5xl text-white/90 font-light italic"
+                >
+                  {worldName}
                 </div>
-
-                {/* Launch countdown */}
-                <div className="space-y-2">
-                  <div className="font-mono text-[10px] tracking-[0.2em] uppercase text-foreground/55">
-                    LAUNCH IN
-                  </div>
-                  <div className="font-serif text-5xl text-cyan-400 font-light">
-                    {Math.max(0, Math.ceil(3.0 - (gameState.simTime - (gameState.ignitionStartTime ?? 0))))}
-                  </div>
+                <div className="h-px w-24 bg-linear-to-r from-transparent via-cyan-400/50 to-transparent mx-auto"
+                />
+                <div className="font-mono text-[9px] tracking-[0.2em] uppercase text-white/50"
+                >
+                  Press W or Space to launch
                 </div>
               </div>
             </div>

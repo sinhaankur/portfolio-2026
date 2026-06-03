@@ -2,9 +2,10 @@
 
 import { useGLTF } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { generateShip } from '../../../lib/ship-generator/procedural-ships';
+import { auditShipModel } from './ship-model-qa';
 import type { SelectedShip } from './ship-selector';
 
 const PLAYER_SHIP_MODEL_PATH = '/models/Test1glb.glb';
@@ -67,46 +68,53 @@ function cloneAndStyleShipModel(scene: THREE.Object3D) {
 			const looksLikeCockpit = /cockpit|canopy|glass|window/.test(partKey);
 			const looksLikeWing = /wing|fin|foil/.test(partKey);
 			const looksLikeWeapon = /laser|gun|barrel|cannon/.test(partKey);
+			const wearTint = /nose|fuselage|hull|wing|intake|panel/.test(partKey) ? 0.11 : 0.05;
+
+			const applyWear = (base: THREE.Color, extraWear = 0) => {
+				const worn = base.clone();
+				worn.offsetHSL(-0.01, -0.02, -(wearTint + extraWear));
+				return worn;
+			};
 
 			if (looksLikeCockpit) {
-				mat.color = new THREE.Color('#e8f4ff');
-				mat.roughness = 0.04;
-				mat.metalness = 0.35;
+				mat.color = applyWear(new THREE.Color('#dfe8ef'), 0.015);
+				mat.roughness = 0.08;
+				mat.metalness = 0.32;
 				if (mat instanceof THREE.MeshPhysicalMaterial) {
-					mat.transmission = 0.6;
+					mat.transmission = 0.48;
 					mat.thickness = 0.3;
-					mat.clearcoat = 0.9;
-					mat.clearcoatRoughness = 0.06;
+					mat.clearcoat = 0.82;
+					mat.clearcoatRoughness = 0.08;
 				}
-				mat.emissive = new THREE.Color('#60e0ff');
-				mat.emissiveIntensity = 0.75;
+				mat.emissive = new THREE.Color('#3a5472');
+				mat.emissiveIntensity = 0.18;
 			} else if (looksLikeEngine) {
-				mat.color = new THREE.Color('#4a7da8');
+				mat.color = applyWear(new THREE.Color('#2f3842'), 0.0);
 				mat.roughness = 0.22;
-				mat.metalness = 0.92;
-				mat.emissive = new THREE.Color('#5fd4ff');
-				mat.emissiveIntensity = 1.2;
+				mat.metalness = 0.96;
+				mat.emissive = new THREE.Color('#ff9a6b');
+				mat.emissiveIntensity = 1.55;
 			} else if (looksLikeWeapon) {
-				mat.color = new THREE.Color('#8aa8c8');
-				mat.roughness = 0.3;
-				mat.metalness = 0.9;
-				mat.emissive = new THREE.Color('#3a6da0');
-				mat.emissiveIntensity = 0.35;
+				mat.color = applyWear(new THREE.Color('#404954'), 0.02);
+				mat.roughness = 0.24;
+				mat.metalness = 0.94;
+				mat.emissive = new THREE.Color('#1b2230');
+				mat.emissiveIntensity = 0.08;
 			} else if (looksLikeWing) {
-				mat.color = new THREE.Color('#d8e6f4');
-				mat.roughness = 0.28;
-				mat.metalness = 0.85;
-				mat.emissive = new THREE.Color('#3a6da0');
-				mat.emissiveIntensity = 0.3;
+				mat.color = applyWear(new THREE.Color('#e3ddd2'), 0.05);
+				mat.roughness = 0.72;
+				mat.metalness = 0.12;
+				mat.emissive = new THREE.Color('#202a36');
+				mat.emissiveIntensity = 0.03;
 			} else {
-				mat.color = new THREE.Color('#aec4dc');
-				mat.roughness = 0.28;
-				mat.metalness = 0.88;
-				mat.emissive = new THREE.Color('#3a6da0');
-				mat.emissiveIntensity = 0.25;
+				mat.color = applyWear(new THREE.Color('#ece6da'), 0.07);
+				mat.roughness = 0.66;
+				mat.metalness = 0.18;
+				mat.emissive = new THREE.Color('#2b3645');
+				mat.emissiveIntensity = 0.04;
 			}
 
-			mat.envMapIntensity = Math.max(1.35, mat.envMapIntensity || 1.55);
+			mat.envMapIntensity = Math.max(looksLikeEngine || looksLikeWeapon ? 1.95 : 1.35, mat.envMapIntensity || (looksLikeEngine || looksLikeWeapon ? 2.05 : 1.55));
 			mat.needsUpdate = true;
 			return mat;
 		};
@@ -167,6 +175,21 @@ function ShipUiOverlay({ mode }: { mode: PlayerShipMode }) {
 	);
 }
 
+function ShipHighlightRig({ mode }: { mode: PlayerShipMode }) {
+	const glowScale = mode === 'preview' ? 1.05 : 1.15;
+	return (
+		<group scale={glowScale}>
+			<pointLight position={[0, 0.42, 1.85]} intensity={1.9} distance={28} color={0xcdf3ff} />
+			<pointLight position={[0, -0.18, -1.65]} intensity={1.4} distance={24} color={0xff9b6a} />
+			<pointLight position={[0, 0.9, 0.2]} intensity={0.7} distance={20} color={0xffffff} />
+			<mesh position={[0, 0.08, 0.12]}>
+				<icosahedronGeometry args={[2.85, 1]} />
+				<meshBasicMaterial color="#ffac80" transparent opacity={0.06} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+			</mesh>
+		</group>
+	);
+}
+
 export function ProceduralPlayerShipModel({
 	shipId,
 	mode = 'game',
@@ -202,10 +225,15 @@ export function PlayerShipModel({
 	const shipObject = useMemo(() => cloneAndStyleShipModel(playerShipGltf.scene), [playerShipGltf.scene]);
 	const resolvedShip = shipObject ?? fallbackShip;
 
+	useEffect(() => {
+		auditShipModel(playerShipGltf.scene, PLAYER_SHIP_MODEL_PATH);
+	}, [playerShipGltf.scene]);
+
        if (!applyTransform) {
 	       return (
 		       <group>
 			       <primitive object={resolvedShip} />
+				<ShipHighlightRig mode={mode} />
 			       <ShipUiOverlay mode={mode} />
 		       </group>
 	       );
@@ -215,6 +243,7 @@ export function PlayerShipModel({
        return (
 	       <group scale={transform.scale} position={transform.position} rotation={transform.rotation}>
 		       <primitive object={resolvedShip} />
+			<ShipHighlightRig mode={mode} />
 		       <ShipUiOverlay mode={mode} />
 	       </group>
        );
