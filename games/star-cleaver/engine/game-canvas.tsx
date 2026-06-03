@@ -1143,7 +1143,7 @@ function MissionStartScene({ worldIndex }: { worldIndex: number }) {
               <meshStandardMaterial color={trim} roughness={0.4} metalness={0.7} />
             </mesh>
             <mesh position={[0, 8, 0]} rotation={[Math.PI / 2, 0, 0]}>
-              <dishGeometry args={[3, 1, 8, 4, 0.5]} />
+              <sphereGeometry args={[3, 16, 8, 0, Math.PI * 2, 0, Math.PI * 0.35]} />
               <meshStandardMaterial color={trim} roughness={0.4} metalness={0.7} side={THREE.DoubleSide} />
             </mesh>
             <mesh position={[0, 10, 0]}>
