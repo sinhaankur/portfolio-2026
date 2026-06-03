@@ -909,33 +909,18 @@ function EnemyShipGroup({ enemy }: { enemy: GameEntity }) {
 
 function MissionStartScene({ worldIndex }: { worldIndex: number }) {
   const layout = useMemo(() => getMissionLayout(worldIndex), [worldIndex]);
-  const stylePalette = useMemo(() => {
-    switch (layout.stationStyle) {
-      case 'industrial':
-        return { hull: 0x7d7367, deck: 0x5e5953, glow: 0xffa65c, trim: 0xd78546 };
-      case 'research':
-        return { hull: 0xb6c3d4, deck: 0x8ea0b8, glow: 0xb7eeff, trim: 0xe1f5ff };
-      case 'frontier':
-        return { hull: 0x8c8065, deck: 0x6f6653, glow: 0xffd79b, trim: 0xe8b86c };
-      case 'sentinel':
-        return { hull: 0x6a7ea4, deck: 0x4e607f, glow: 0xa5c4ff, trim: 0x8ea9df };
-      case 'exo':
-        return { hull: 0x5d8f79, deck: 0x497565, glow: 0x9cf0ce, trim: 0x79d7b5 };
-      case 'ark':
-        return { hull: 0x7c6ba9, deck: 0x60528d, glow: 0xd1beff, trim: 0xa88ee8 };
-      case 'civic':
-      default:
-        return { hull: 0x6f7f99, deck: 0x8198b6, glow: 0x99ddff, trim: 0x6fbef0 };
-    }
-  }, [layout.stationStyle]);
 
-  const stationDeckColor = stylePalette.deck;
-  const stationHullColor = stylePalette.hull;
-  const stationTrimColor = stylePalette.trim;
-  const stationGlowColor = stylePalette.glow;
+  // Star Wars-inspired outpost palette — warm industrial tones
+  const hull = 0x6e665c;
+  const deck = 0x504b43;
+  const trim = 0x8a7e6e;
+  const glow = 0xff9e3d;     // warm amber
+  const glowHot = 0xff6622;  // exhaust orange
+  const window = 0xffcc66;   // lit windows
 
   return (
     <group>
+      {/* Defended planet */}
       <group position={[layout.planetPosition.x, layout.planetPosition.y, layout.planetPosition.z]}>
         <mesh>
           <sphereGeometry args={[layout.planetRadius, 48, 48]} />
@@ -953,152 +938,223 @@ function MissionStartScene({ worldIndex }: { worldIndex: number }) {
         </mesh>
       </group>
 
+      {/* Orbital station — Star Wars outpost style */}
       <group
         position={[layout.stationPosition.x, layout.stationPosition.y, layout.stationPosition.z]}
         scale={[layout.stationScale, layout.stationScale, layout.stationScale]}
       >
         <group rotation={[0, Math.PI * 0.12, 0]}>
+          {/* === MAIN HULL — wide horizontal block === */}
           <mesh>
-            <cylinderGeometry args={[13, 13, 34, 20]} />
-            <meshStandardMaterial color={stationHullColor} roughness={0.48} metalness={0.62} />
-          </mesh>
-          <mesh position={[0, 0, 0]}>
-            <cylinderGeometry args={[10.2, 10.2, 38, 20]} />
-            <meshStandardMaterial color={stationDeckColor} roughness={0.4} metalness={0.4} />
+            <boxGeometry args={[28, 10, 42]} />
+            <meshStandardMaterial color={hull} roughness={0.55} metalness={0.58} />
           </mesh>
 
-          <mesh rotation={[Math.PI / 2, 0, 0]}>
-            <torusGeometry args={[22, 3.2, 14, 64]} />
-            <meshStandardMaterial color={stationTrimColor} roughness={0.36} metalness={0.72} />
-          </mesh>
-          <mesh rotation={[Math.PI / 2, 0, 0]}>
-            <torusGeometry args={[24.2, 1.05, 12, 64]} />
-            <meshBasicMaterial color={stationGlowColor} transparent opacity={0.28} depthWrite={false} />
-          </mesh>
+          {/* Hull surface greeble strips (top + bottom detail layers) */}
+          {[-1, 1].map((side) => (
+            <group key={`greeble-${side}`}>
+              {Array.from({ length: 6 }).map((_, i) => (
+                <mesh
+                  key={`g-${i}`}
+                  position={[
+                    (i % 3 === 0 ? 14 : i % 3 === 1 ? -14 : 0) * side,
+                    side * 5.2,
+                    -14 + i * 5.6,
+                  ]}
+                >
+                  <boxGeometry args={[3.2, 0.8, 2.4]} />
+                  <meshStandardMaterial color={deck} roughness={0.6} metalness={0.5} />
+                </mesh>
+              ))}
+            </group>
+          ))}
 
-          {[
-            [0, 0, 24, 0, 0, 0],
-            [0, 0, -24, 0, 0, 0],
-            [24, 0, 0, 0, Math.PI / 2, 0],
-            [-24, 0, 0, 0, Math.PI / 2, 0],
-          ].map(([x, y, z, rx, ry, rz], idx) => (
-            <group key={`arm-${idx}`} position={[x, y, z]} rotation={[rx, ry, rz]}>
+          {/* === COMMAND TOWER — tall tapered spire on top === */}
+          <group position={[0, 12, -8]}>
+            <mesh>
+              <boxGeometry args={[8, 14, 8]} />
+              <meshStandardMaterial color={trim} roughness={0.45} metalness={0.68} />
+            </mesh>
+            {/* Tower windows */}
+            {Array.from({ length: 4 }).map((_, i) => (
+              <mesh key={`twin-${i}`} position={[0, -3 + i * 3.2, 4.1]}>
+                <boxGeometry args={[4, 1.2, 0.3]} />
+                <meshBasicMaterial color={window} transparent opacity={0.65} toneMapped={false} />
+              </mesh>
+            ))}
+            {/* Antenna array on tower top */}
+            <mesh position={[0, 8, 0]}>
+              <cylinderGeometry args={[0.3, 0.3, 8, 8]} />
+              <meshStandardMaterial color={trim} roughness={0.35} metalness={0.72} />
+            </mesh>
+            <mesh position={[2, 7, 0]} rotation={[0, 0, Math.PI * 0.15]}>
+              <cylinderGeometry args={[0.15, 0.15, 5, 6]} />
+              <meshStandardMaterial color={trim} roughness={0.35} metalness={0.72} />
+            </mesh>
+            <mesh position={[-2, 7, 0]} rotation={[0, 0, -Math.PI * 0.15]}>
+              <cylinderGeometry args={[0.15, 0.15, 5, 6]} />
+              <meshStandardMaterial color={trim} roughness={0.35} metalness={0.72} />
+            </mesh>
+            {/* Tower beacon */}
+            <mesh position={[0, 12.5, 0]}>
+              <sphereGeometry args={[0.8, 8, 8]} />
+              <meshBasicMaterial color={glow} transparent opacity={0.85} blending={THREE.AdditiveBlending} toneMapped={false} depthWrite={false} />
+            </mesh>
+            <pointLight position={[0, 12.5, 0]} intensity={2.2} distance={120} color={glow} />
+          </group>
+
+          {/* === HANGAR BAYS — large rectangular openings on each side === */}
+          {[-1, 1].map((side) => (
+            <group key={`hangar-${side}`} position={[side * 16, -1, 4]}>
+              {/* Bay frame */}
               <mesh>
-                <boxGeometry args={[4, 4, 20]} />
-                <meshStandardMaterial color={stationHullColor} roughness={0.5} metalness={0.56} />
+                <boxGeometry args={[5, 7, 10]} />
+                <meshStandardMaterial color={deck} roughness={0.52} metalness={0.55} />
               </mesh>
-              <mesh position={[0, 0, 9.5]}>
-                <boxGeometry args={[7, 2.4, 3.2]} />
-                <meshStandardMaterial color={stationDeckColor} roughness={0.42} metalness={0.48} />
+              {/* Bay interior glow */}
+              <mesh position={[side * 0.8, 0, 0]}>
+                <boxGeometry args={[0.2, 5, 7]} />
+                <meshBasicMaterial color={glow} transparent opacity={0.35} blending={THREE.AdditiveBlending} toneMapped={false} depthWrite={false} />
               </mesh>
-              <mesh position={[0, 0, -9.5]}>
-                <boxGeometry args={[7, 2.4, 3.2]} />
-                <meshStandardMaterial color={stationDeckColor} roughness={0.42} metalness={0.48} />
+              {/* Bay doors (partially open) */}
+              <mesh position={[side * 0.6, 3.8, 0]} rotation={[0, 0, side * 0.4]}>
+                <boxGeometry args={[4, 0.4, 9]} />
+                <meshStandardMaterial color={hull} roughness={0.6} metalness={0.6} />
+              </mesh>
+              <mesh position={[side * 0.6, -3.8, 0]} rotation={[0, 0, -side * 0.4]}>
+                <boxGeometry args={[4, 0.4, 9]} />
+                <meshStandardMaterial color={hull} roughness={0.6} metalness={0.6} />
+              </mesh>
+              {/* Red warning light above hangar */}
+              <mesh position={[0, 4.2, 3.5]}>
+                <sphereGeometry args={[0.35, 8, 8]} />
+                <meshBasicMaterial color={0xff3333} transparent opacity={0.7} blending={THREE.AdditiveBlending} toneMapped={false} depthWrite={false} />
               </mesh>
             </group>
           ))}
 
-          <mesh position={[0, 22, 0]}>
-            <cylinderGeometry args={[2.4, 3.1, 16, 12]} />
-            <meshStandardMaterial color={stationTrimColor} roughness={0.38} metalness={0.7} />
-          </mesh>
-          <mesh position={[0, 31, 0]}>
-            <sphereGeometry args={[4.6, 16, 16]} />
-            <meshBasicMaterial color={stationGlowColor} transparent opacity={0.25} depthWrite={false} />
-          </mesh>
-          <mesh position={[0, -24, 0]}>
-            <cylinderGeometry args={[4.5, 6, 14, 14]} />
-            <meshStandardMaterial color={stationDeckColor} roughness={0.46} metalness={0.62} />
-          </mesh>
-          <mesh position={[0, -33, 0]}>
-            <coneGeometry args={[5.4, 9, 14]} />
-            <meshBasicMaterial color={stationGlowColor} transparent opacity={0.18} depthWrite={false} />
-          </mesh>
-
-          <group position={[0, 3, 0]} rotation={[0, 0, Math.PI * 0.02]}>
-            <mesh position={[0, 0, 38]}>
-              <boxGeometry args={[4, 26, 2]} />
-              <meshStandardMaterial color={stationHullColor} roughness={0.54} metalness={0.58} />
+          {/* === SENSOR DISH — classic round radar === */}
+          <group position={[-18, 6, -6]} rotation={[0.3, 0.4, 0.2]}>
+            <mesh>
+              <cylinderGeometry args={[4, 0.8, 1.2, 20]} />
+              <meshStandardMaterial color={trim} roughness={0.4} metalness={0.7} />
             </mesh>
-            <mesh position={[0, 0, -38]}>
-              <boxGeometry args={[4, 26, 2]} />
-              <meshStandardMaterial color={stationHullColor} roughness={0.54} metalness={0.58} />
+            <mesh position={[0, 0.6, 0]}>
+              <cylinderGeometry args={[0.4, 0.4, 2.5, 8]} />
+              <meshStandardMaterial color={deck} roughness={0.5} metalness={0.6} />
             </mesh>
-            <mesh position={[0, 11, 0]}>
-              <boxGeometry args={[22, 4, 2]} />
-              <meshStandardMaterial color={stationTrimColor} roughness={0.44} metalness={0.66} />
-            </mesh>
-            <mesh position={[0, -11, 0]}>
-              <boxGeometry args={[22, 4, 2]} />
-              <meshStandardMaterial color={stationTrimColor} roughness={0.44} metalness={0.66} />
+            <mesh position={[0, 2, 0]}>
+              <sphereGeometry args={[0.3, 8, 8]} />
+              <meshBasicMaterial color={glow} transparent opacity={0.5} blending={THREE.AdditiveBlending} toneMapped={false} depthWrite={false} />
             </mesh>
           </group>
 
-          {Array.from({ length: 8 }).map((_, idx) => {
-            const angle = (idx / 8) * Math.PI * 2;
+          {/* === TRUSS ARMS — structural spars extending from main hull === */}
+          {[
+            [0, 0, 26, 0, 0, 0, 20],
+            [0, 0, -26, 0, 0, 0, 20],
+            [22, 0, 0, 0, Math.PI / 2, 0, 14],
+            [-22, 0, 0, 0, Math.PI / 2, 0, 14],
+          ].map(([x, y, z, rx, ry, rz, len], idx) => (
+            <group key={`truss-${idx}`} position={[x, y, z]} rotation={[rx, ry, rz]}>
+              {/* Main truss beam */}
+              <mesh>
+                <boxGeometry args={[1.6, 1.6, len]} />
+                <meshStandardMaterial color={deck} roughness={0.58} metalness={0.62} />
+              </mesh>
+              {/* Cross-braces */}
+              {Array.from({ length: 3 }).map((_, i) => (
+                <mesh key={`brace-${i}`} position={[0, 0, -len / 3 + i * (len / 3)]}>
+                  <boxGeometry args={[2.8, 0.25, 0.25]} />
+                  <meshStandardMaterial color={trim} roughness={0.5} metalness={0.65} />
+                </mesh>
+              ))}
+              {/* End cap */}
+              <mesh position={[0, 0, len / 2]}>
+                <cylinderGeometry args={[2.2, 2.2, 2.5, 12]} />
+                <meshStandardMaterial color={hull} roughness={0.5} metalness={0.6} />
+              </mesh>
+            </group>
+          ))}
+
+          {/* === ENGINE BELLS — large nozzles at the rear === */}
+          <group position={[0, -2, -24]}>
+            {[-1, 1].map((side) => (
+              <group key={`engine-${side}`} position={[side * 5, 0, 0]}>
+                <mesh>
+                  <cylinderGeometry args={[2.8, 3.8, 7, 14]} />
+                  <meshStandardMaterial color={deck} roughness={0.45} metalness={0.75} />
+                </mesh>
+                {/* Engine interior glow */}
+                <mesh position={[0, 0, -3.6]}>
+                  <circleGeometry args={[2.6, 14]} />
+                  <meshBasicMaterial color={glowHot} transparent opacity={0.55} blending={THREE.AdditiveBlending} toneMapped={false} side={THREE.DoubleSide} depthWrite={false} />
+                </mesh>
+                <pointLight position={[0, 0, -4]} intensity={1.8} distance={80} color={glowHot} />
+              </group>
+            ))}
+          </group>
+
+          {/* === DEFENSE TURRETS — small gun emplacements === */}
+          {[
+            [10, 6, 14],
+            [-10, 6, 14],
+            [10, 6, -14],
+            [-10, 6, -14],
+          ].map(([x, y, z], i) => (
+            <group key={`turret-${i}`} position={[x, y, z]}>
+              <mesh>
+                <cylinderGeometry args={[0.7, 0.9, 1.8, 8]} />
+                <meshStandardMaterial color={trim} roughness={0.48} metalness={0.7} />
+              </mesh>
+              <mesh position={[0, 1.1, 0]}>
+                <boxGeometry args={[0.4, 0.5, 1.2]} />
+                <meshStandardMaterial color={deck} roughness={0.5} metalness={0.65} />
+              </mesh>
+            </group>
+          ))}
+
+          {/* === RUNNING LIGHTS === */}
+          {Array.from({ length: 10 }).map((_, idx) => {
+            const angle = (idx / 10) * Math.PI * 2;
+            const isRed = idx < 5;
             return (
               <mesh
-                key={`light-${idx}`}
-                position={[Math.cos(angle) * 24.4, 0, Math.sin(angle) * 24.4]}
+                key={`nav-${idx}`}
+                position={[Math.cos(angle) * 15, Math.sin(angle) * 2.5, Math.sin(angle) * 22]}
               >
-                <sphereGeometry args={[0.7, 10, 10]} />
-                <meshBasicMaterial color={stationGlowColor} transparent opacity={0.5} depthWrite={false} />
+                <sphereGeometry args={[0.35, 8, 8]} />
+                <meshBasicMaterial
+                  color={isRed ? 0xff3333 : 0x33ff55}
+                  transparent
+                  opacity={0.6}
+                  blending={THREE.AdditiveBlending}
+                  toneMapped={false}
+                  depthWrite={false}
+                />
               </mesh>
             );
           })}
 
-        {layout.stationStyle === 'industrial' && (
-          <>
-            <mesh position={[-18, 4, 0]} rotation={[0, 0, Math.PI * 0.08]}>
-              <boxGeometry args={[6, 10, 4]} />
-              <meshStandardMaterial color={stationDeckColor} roughness={0.52} metalness={0.54} />
+          {/* === COMMUNICATIONS ARRAY — tall vertical spire with dishes === */}
+          <group position={[12, 8, -10]}>
+            <mesh>
+              <cylinderGeometry args={[0.5, 0.7, 18, 8]} />
+              <meshStandardMaterial color={trim} roughness={0.4} metalness={0.7} />
             </mesh>
-            <mesh position={[18, 4, 0]} rotation={[0, 0, -Math.PI * 0.08]}>
-              <boxGeometry args={[6, 10, 4]} />
-              <meshStandardMaterial color={stationDeckColor} roughness={0.52} metalness={0.54} />
+            <mesh position={[0, 8, 0]} rotation={[Math.PI / 2, 0, 0]}>
+              <dishGeometry args={[3, 1, 8, 4, 0.5]} />
+              <meshStandardMaterial color={trim} roughness={0.4} metalness={0.7} side={THREE.DoubleSide} />
             </mesh>
-          </>
-        )}
+            <mesh position={[0, 10, 0]}>
+              <sphereGeometry args={[0.6, 8, 8]} />
+              <meshBasicMaterial color={glow} transparent opacity={0.6} blending={THREE.AdditiveBlending} toneMapped={false} depthWrite={false} />
+            </mesh>
+          </group>
 
-        {(layout.stationStyle === 'research' || layout.stationStyle === 'exo') && (
-          <>
-            <mesh position={[-28, 0, 0]} rotation={[0, 0, Math.PI * 0.08]}>
-              <boxGeometry args={[18, 0.7, 26]} />
-              <meshStandardMaterial color={stationTrimColor} roughness={0.26} metalness={0.7} />
-            </mesh>
-            <mesh position={[28, 0, 0]} rotation={[0, 0, -Math.PI * 0.08]}>
-              <boxGeometry args={[18, 0.7, 26]} />
-              <meshStandardMaterial color={stationTrimColor} roughness={0.26} metalness={0.7} />
-            </mesh>
-          </>
-        )}
-
-        {(layout.stationStyle === 'sentinel' || layout.stationStyle === 'ark') && (
-          <>
-            <mesh position={[0, 16, 0]}>
-              <cylinderGeometry args={[1.4, 1.4, 16, 16]} />
-              <meshStandardMaterial color={stationTrimColor} roughness={0.36} metalness={0.64} />
-            </mesh>
-            <mesh position={[0, 26, 0]}>
-              <sphereGeometry args={[4.4, 16, 16]} />
-              <meshBasicMaterial color={stationGlowColor} transparent opacity={0.3} depthWrite={false} />
-            </mesh>
-          </>
-        )}
-
-        <mesh position={[0, 44, 0]}>
-          <sphereGeometry args={[4.8, 20, 20]} />
-          <meshBasicMaterial color={stationGlowColor} transparent opacity={0.72} depthWrite={false} />
-        </mesh>
-        <mesh position={[0, 44, 0]} rotation={[Math.PI / 2, 0, 0]}>
-          <torusGeometry args={[12.4, 1.15, 10, 56]} />
-          <meshBasicMaterial color={stationGlowColor} transparent opacity={0.36} depthWrite={false} />
-        </mesh>
-        <mesh position={[0, 44, 0]}>
-          <cylinderGeometry args={[0.42, 0.42, 72, 12]} />
-          <meshBasicMaterial color={stationGlowColor} transparent opacity={0.24} depthWrite={false} />
-        </mesh>
-        <pointLight position={[0, 44, 0]} intensity={2.8} distance={290} color={stationGlowColor} />
+          {/* Station ambient glow */}
+          <pointLight position={[0, 8, 0]} intensity={1.5} distance={200} color={glow} />
+          <pointLight position={[0, -4, -20]} intensity={1.2} distance={120} color={glowHot} />
         </group>
       </group>
     </group>
