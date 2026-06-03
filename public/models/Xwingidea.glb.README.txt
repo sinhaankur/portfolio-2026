@@ -1,0 +1,12 @@
+Legacy note: Xwingidea.glb
+==========================
+
+Xwingidea.glb is now a legacy concept file.
+
+Current active ship model for Star Cleaver:
+- /public/models/Test1glb.glb
+
+Provenance summary for users:
+- X-Wing style asset development was done in Blender.
+- LM Studio was used to support the workflow.
+- Attached local LLM in that workflow: qwen3.6-35b-a3b-mtp.

@@ -69,7 +69,7 @@ function cloneAndStyleShipModel(scene: THREE.Object3D) {
 			const looksLikeWeapon = /laser|gun|barrel|cannon/.test(partKey);
 
 			if (looksLikeCockpit) {
-				mat.color = new THREE.Color('#8ec9ff');
+				mat.color = new THREE.Color('#d4eeff');
 				mat.roughness = 0.06;
 				mat.metalness = 0.3;
 				if (mat instanceof THREE.MeshPhysicalMaterial) {
@@ -78,35 +78,35 @@ function cloneAndStyleShipModel(scene: THREE.Object3D) {
 					mat.clearcoat = 0.82;
 					mat.clearcoatRoughness = 0.08;
 				}
-				mat.emissive = new THREE.Color('#6ebeff');
-				mat.emissiveIntensity = 0.16;
+				mat.emissive = new THREE.Color('#40d8ff');
+				mat.emissiveIntensity = 0.55;
 			} else if (looksLikeEngine) {
-				mat.color = new THREE.Color('#617287');
+				mat.color = new THREE.Color('#5a8db5');
 				mat.roughness = 0.24;
 				mat.metalness = 0.9;
-				mat.emissive = new THREE.Color('#46c9ff');
-				mat.emissiveIntensity = 0.58;
+				mat.emissive = new THREE.Color('#69d8ff');
+				mat.emissiveIntensity = 1.0;
 			} else if (looksLikeWeapon) {
-				mat.color = new THREE.Color('#485463');
+				mat.color = new THREE.Color('#7a9bb8');
 				mat.roughness = 0.34;
 				mat.metalness = 0.88;
-				mat.emissive = new THREE.Color('#000000');
-				mat.emissiveIntensity = 0;
+				mat.emissive = new THREE.Color('#2a4d70');
+				mat.emissiveIntensity = 0.2;
 			} else if (looksLikeWing) {
-				mat.color = new THREE.Color('#8f9bad');
+				mat.color = new THREE.Color('#c8d8ec');
 				mat.roughness = 0.32;
 				mat.metalness = 0.82;
-				mat.emissive = new THREE.Color('#0e1826');
-				mat.emissiveIntensity = 0.04;
+				mat.emissive = new THREE.Color('#2a4d70');
+				mat.emissiveIntensity = 0.22;
 			} else {
-				mat.color = new THREE.Color('#677689');
+				mat.color = new THREE.Color('#9bb4d4');
 				mat.roughness = 0.3;
 				mat.metalness = 0.86;
-				mat.emissive = new THREE.Color('#111d2b');
-				mat.emissiveIntensity = 0.05;
+				mat.emissive = new THREE.Color('#2a4d70');
+				mat.emissiveIntensity = 0.18;
 			}
 
-			mat.envMapIntensity = Math.max(1.1, mat.envMapIntensity || 1.25);
+			mat.envMapIntensity = Math.max(1.35, mat.envMapIntensity || 1.55);
 			mat.needsUpdate = true;
 			return mat;
 		};

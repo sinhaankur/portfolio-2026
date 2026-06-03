@@ -1,0 +1,13 @@
+Model cleanup history
+=====================
+
+Previously removed GLB files:
+- vedic-space-craft-inspired-xwing.glb
+- poes_xwing.glb
+- x-blade.glb
+
+Current source of truth for the Star Cleaver player ship:
+- /public/models/Test1glb.glb
+
+User-facing provenance is documented in:
+- /public/models/README.txt

@@ -9,13 +9,14 @@ interface HUDProps {
   gameState: GameState;
   showForwardDebug?: boolean;
   onShipSelect?: (shipId: SelectedShip) => void;
+  waypoints?: Array<{ position: [number, number, number]; label: string }>;
 }
 
 /**
  * HUD: Desktop-first heads-up display for Star Cleaver.
  * Matches universe-engine/hud.tsx design language: font-mono, tracking-wide, backdrop-blur-sm.
  */
-export function HUD({ gameState, showForwardDebug = false, onShipSelect }: HUDProps) {
+export function HUD({ gameState, showForwardDebug = false, onShipSelect, waypoints }: HUDProps) {
   const healthPercent = (gameState.playerEntity.health / gameState.playerMaxHealth) * 100;
   const planetHealthPercent = gameState.defendingPlanetHealth * 100;
   const chargePercent = (gameState.chargeLevel / gameState.maxCharge) * 100;
@@ -44,6 +45,11 @@ export function HUD({ gameState, showForwardDebug = false, onShipSelect }: HUDPr
   const weaponOverheated = Boolean(gameState.playerEntity.metadata?.weaponOverheated);
   const weaponStatus = String(gameState.playerEntity.metadata?.weaponStatus ?? 'NOMINAL');
   const weaponPreset = String(gameState.playerEntity.metadata?.weaponPreset ?? 'sim');
+  const gravityLoad = Number(gameState.playerEntity.metadata?.gravityLoad ?? 0);
+  const boundaryLoad = Number(gameState.playerEntity.metadata?.boundaryLoad ?? 0);
+  const gravityWarning = String(gameState.playerEntity.metadata?.gravityWarning ?? '');
+  const nearestHazard = String(gameState.playerEntity.metadata?.nearestHazard ?? '');
+  const nearestHazardDistance = Number(gameState.playerEntity.metadata?.nearestHazardDistance ?? 0);
   const simpleJourneyMode = Boolean(gameState.playerEntity.metadata?.simpleJourneyMode);
   const showRouteMessage = routeMessage.length > 0 && routeMessageUntil > gameState.simTime;
   const isExplorationPhase =
@@ -122,80 +128,115 @@ export function HUD({ gameState, showForwardDebug = false, onShipSelect }: HUDPr
         </div>
       </div>
 
+      {/* Pause indicator */}
+      {gameState.phase === 'paused' && (
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none">
+          <div className="font-mono text-[11px] tracking-[0.35em] uppercase text-cyan-300/90 drop-shadow-lg animate-pulse">
+            Paused
+          </div>
+        </div>
+      )}
+
+      {/* Minimap radar — top-right, below score area on desktop */}
+      {isExplorationPhase && (
+        <Minimap
+          playerPos={gameState.playerEntity.position}
+          playerRotationY={gameState.playerEntity.rotation.y}
+          waypoints={waypoints}
+          nearestHazard={nearestHazard}
+          nearestHazardDistance={nearestHazardDistance}
+        />
+      )}
+
       {/* Bottom bar: travel telemetry + charge meter */}
       <div className="fixed bottom-0 inset-x-0 z-40 pointer-events-none">
-        <div className="flex flex-col items-center gap-3 sm:gap-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-6 max-w-6xl mx-auto px-3 sm:px-0">
-          {/* Travel telemetry */}
-          {isExplorationPhase ? (
-            <div className="flex flex-col items-center gap-2">
-              <div className="text-foreground/55 font-mono text-[8px] sm:text-[9px] tracking-[0.14em] sm:tracking-[0.2em] uppercase">
-                CRUISE VELOCITY
-              </div>
-              <div className="w-[min(92vw,24rem)] h-1.5 rounded-full bg-foreground/10 border border-foreground/20 overflow-hidden">
-                <div
-                  className="h-full bg-cyan-400 transition-all duration-100"
-                  style={{ width: `${cruisePercent}%` }}
-                />
-              </div>
-              <div className="text-foreground/70 font-mono text-[8px] tracking-widest sm:tracking-[0.16em] uppercase">
-                SPD {Math.round(speed)} · HDG {heading}°
-              </div>
-              <div className="text-foreground/55 font-mono text-[8px] tracking-widest sm:tracking-[0.14em] uppercase">
-                GAS CLOUD {Math.round(gasCloudDensity * 100)}%
-              </div>
-              <div className="text-cyan-200/75 font-mono text-[8px] tracking-widest sm:tracking-[0.14em] uppercase">
-                DRIVE {interstellarDrive.toUpperCase()}
-              </div>
-              <div className="text-foreground/55 font-mono text-[8px] tracking-widest sm:tracking-[0.14em] uppercase">
-                PUSH {Math.round(accelKick * 100)}% · JERK {Math.round(speedJerk * 100)}%
-              </div>
-              <div className="text-foreground/60 font-mono text-[8px] tracking-widest sm:tracking-[0.14em] uppercase">
-                ROUTE {routeName.toUpperCase()} {routeProgress}
-              </div>
-              <div className="text-foreground/55 font-mono text-[8px] tracking-widest sm:tracking-[0.14em] uppercase">
-                WEAPONS {weaponMode.toUpperCase()} · NOSE LOCKED TO FLIGHT VECTOR
-              </div>
-              <div className={`font-mono text-[8px] tracking-widest sm:tracking-[0.14em] uppercase ${weaponOverheated ? 'text-red-300/95' : 'text-foreground/55'}`}>
-                HEAT {Math.round(weaponHeat * 100)}% · {weaponStatus}
-              </div>
-              <div className="text-foreground/55 font-mono text-[8px] tracking-widest sm:tracking-[0.14em] uppercase">
-                TUNE {weaponPreset.toUpperCase()}
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center gap-2">
-              <div className="text-foreground/55 font-mono text-[8px] sm:text-[9px] tracking-[0.14em] sm:tracking-[0.2em] uppercase">
-                PLANET SHIELD
-              </div>
-              <div className="w-[min(92vw,24rem)] h-1.5 rounded-full bg-foreground/10 border border-foreground/20 overflow-hidden">
-                <div
-                  className={`h-full transition-all duration-100 ${planetHealthColor}`}
-                  style={{ width: `${planetHealthPercent}%` }}
-                />
-              </div>
-              <div className="text-foreground/70 font-mono text-[8px]">
-                {Math.ceil(planetHealthPercent)}%
-              </div>
-            </div>
-          )}
+        <div className="mx-auto flex w-[min(96vw,44rem)] flex-col gap-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-6 px-3 sm:px-0">
+          <div className="rounded-3xl border border-foreground/15 bg-background/35 px-3 py-3 shadow-[0_16px_40px_rgba(0,0,0,0.25)] backdrop-blur-md sm:px-4 sm:py-4">
+            {isExplorationPhase ? (
+              <div className="flex flex-col items-center gap-3">
+                <div className="text-center font-mono text-[8px] sm:text-[9px] tracking-[0.16em] sm:tracking-[0.24em] uppercase text-foreground/60">
+                  CRUISE VELOCITY
+                </div>
+                <div className="h-1.5 w-full overflow-hidden rounded-full border border-foreground/20 bg-foreground/10">
+                  <div
+                    className="h-full bg-cyan-400 transition-all duration-100"
+                    style={{ width: `${cruisePercent}%` }}
+                  />
+                </div>
 
-          {/* Charge meter - only visible when charging */}
-          {gameState.phase === 'charging' && (
-            <div className="flex flex-col items-center gap-2">
-              <div className="text-foreground/55 font-mono text-[8px] sm:text-[9px] tracking-[0.14em] sm:tracking-[0.2em] uppercase">
-                CHARGE LEVEL
+                <div className="grid w-full grid-cols-2 gap-2 text-center sm:flex sm:flex-wrap sm:justify-center">
+                  <div className="rounded-full border border-foreground/15 bg-foreground/5 px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] text-foreground/70 sm:text-[9px] sm:tracking-[0.14em]">
+                    SPD {Math.round(speed)} · HDG {heading}°
+                  </div>
+                  <div className="rounded-full border border-cyan-300/20 bg-cyan-400/8 px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] text-cyan-100/85 sm:text-[9px] sm:tracking-[0.14em]">
+                    DRIVE {interstellarDrive.toUpperCase()}
+                  </div>
+                  {!simpleJourneyMode && (
+                    <>
+                      <div className="rounded-full border border-foreground/15 bg-foreground/5 px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] text-foreground/60 sm:text-[9px] sm:tracking-[0.14em]">
+                        GAS {Math.round(gasCloudDensity * 100)}% · PUSH {Math.round(accelKick * 100)}%
+                      </div>
+                      <div className="rounded-full border border-foreground/15 bg-foreground/5 px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] text-foreground/60 sm:text-[9px] sm:tracking-[0.14em]">
+                        JERK {Math.round(speedJerk * 100)}% · {weaponPreset.toUpperCase()}
+                      </div>
+                      <div className="rounded-full border border-foreground/15 bg-foreground/5 px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] text-foreground/60 sm:text-[9px] sm:tracking-[0.14em]">
+                        GRAVITY {Math.round(gravityLoad * 100)}% · BOUNDARY {Math.round(boundaryLoad * 100)}%
+                      </div>
+                      <div className="col-span-2 rounded-full border border-foreground/15 bg-foreground/5 px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] text-foreground/60 sm:text-[9px] sm:tracking-[0.14em]">
+                        ROUTE {routeName.toUpperCase()} {routeProgress} · WEAPONS {weaponMode.toUpperCase()}
+                      </div>
+                      <div className={`col-span-2 rounded-full border border-foreground/15 bg-foreground/5 px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] sm:text-[9px] sm:tracking-[0.14em] ${weaponOverheated ? 'text-red-300/95' : 'text-foreground/60'}`}>
+                        HEAT {Math.round(weaponHeat * 100)}% · {weaponStatus} · NOSE LOCKED TO FLIGHT VECTOR
+                      </div>
+                    </>
+                  )}
+                  {simpleJourneyMode && (
+                    <>
+                      <div className="col-span-2 rounded-full border border-foreground/15 bg-foreground/5 px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] text-foreground/60 sm:text-[9px] sm:tracking-[0.14em]">
+                        ROUTE {routeName.toUpperCase()} {routeProgress}
+                      </div>
+                    </>
+                  )}
+                  <div className={`col-span-2 rounded-full border px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] sm:text-[9px] sm:tracking-[0.14em] ${gravityWarning ? 'border-red-300/30 bg-red-500/10 text-red-200/95' : 'border-foreground/15 bg-foreground/5 text-foreground/55'}`}>
+                    {gravityWarning || `NEAREST MASS ${nearestHazard.toUpperCase() || 'UNKNOWN'} ${nearestHazardDistance > 0 ? `· ${nearestHazardDistance}u` : ''}`}
+                  </div>
+                </div>
               </div>
-              <div className="w-[min(92vw,20rem)] h-2.5 rounded-full bg-foreground/10 border border-foreground/25 overflow-hidden">
-                <div
-                  className="h-full bg-purple-500 transition-all duration-50"
-                  style={{ width: `${chargePercent}%` }}
-                />
+            ) : (
+              <div className="flex flex-col items-center gap-3">
+                <div className="text-center font-mono text-[8px] sm:text-[9px] tracking-[0.16em] sm:tracking-[0.24em] uppercase text-foreground/60">
+                  PLANET SHIELD
+                </div>
+                <div className="h-1.5 w-full overflow-hidden rounded-full border border-foreground/20 bg-foreground/10">
+                  <div
+                    className={`h-full transition-all duration-100 ${planetHealthColor}`}
+                    style={{ width: `${planetHealthPercent}%` }}
+                  />
+                </div>
+                <div className="font-mono text-[8px] uppercase tracking-[0.14em] text-foreground/70 sm:text-[9px]">
+                  {Math.ceil(planetHealthPercent)}%
+                </div>
               </div>
-              <div className="text-foreground/70 font-mono text-[9px]">
-                {Math.ceil(chargePercent)}% · RELEASE TO FIRE
+            )}
+
+            {/* Charge meter - only visible when charging */}
+            {gameState.phase === 'charging' && (
+              <div className="mt-3 flex flex-col items-center gap-2 border-t border-foreground/10 pt-3">
+                <div className="text-center font-mono text-[8px] sm:text-[9px] tracking-[0.16em] sm:tracking-[0.24em] uppercase text-foreground/60">
+                  CHARGE LEVEL
+                </div>
+                <div className="h-2.5 w-full overflow-hidden rounded-full border border-foreground/20 bg-foreground/10">
+                  <div
+                    className="h-full bg-purple-500 transition-all duration-50"
+                    style={{ width: `${chargePercent}%` }}
+                  />
+                </div>
+                <div className="font-mono text-[8px] uppercase tracking-[0.14em] text-foreground/70 sm:text-[9px]">
+                  {Math.ceil(chargePercent)}% · RELEASE TO FIRE
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Briefing overlay with ship selector */}
           {gameState.phase === 'briefing' && (
@@ -351,20 +392,26 @@ export function HUD({ gameState, showForwardDebug = false, onShipSelect }: HUDPr
 
       {/* Control hints and flight info */}
       {isExplorationPhase && (
-        <div className="fixed bottom-28 sm:bottom-32 left-1/2 transform -translate-x-1/2 z-30 pointer-events-none text-center px-3 w-full max-w-[min(100vw,42rem)]">
+        <div className="fixed bottom-29 sm:bottom-36 left-1/2 z-30 w-full max-w-[min(100vw,42rem)] -translate-x-1/2 px-3 text-center pointer-events-none">
           {showRouteMessage && (
-            <div className="mb-2 inline-block rounded-full border border-cyan-300/30 bg-cyan-400/10 px-3 py-1 font-mono text-[9px] tracking-[0.12em] uppercase text-cyan-100/90">
+            <div className="mb-2 inline-block max-w-full rounded-full border border-cyan-300/30 bg-cyan-400/10 px-3 py-1 font-mono text-[8px] sm:text-[9px] tracking-widest sm:tracking-[0.12em] uppercase text-cyan-100/90 leading-tight text-balance">
               {routeMessage}
             </div>
           )}
-          <div className="font-mono text-[8px] tracking-[0.08em] sm:tracking-[0.25em] uppercase text-foreground/40 mb-2">
-            {primaryFlightHint}
+          <div className="mb-2 font-mono text-[8px] leading-relaxed tracking-[0.08em] uppercase text-foreground/40 sm:text-[9px] sm:tracking-[0.22em]">
+            <span className="sm:hidden">
+              {isTouchDevice
+                ? 'TILT TO STEER · TAP THRUST TO START · TAP BOOST FOR BURST SPEED'
+                : 'W ACCELERATE · S BRAKE · A/D STEER · FIRE TO KEEP MOVING'}
+            </span>
+            <span className="hidden sm:inline">{primaryFlightHint}</span>
           </div>
-          <div className="font-mono text-[8px] sm:text-[9px] tracking-[0.08em] sm:tracking-[0.15em] text-foreground/50">
+          <div className="font-mono text-[8px] leading-relaxed tracking-[0.08em] text-foreground/50 sm:text-[9px] sm:tracking-[0.15em]">
             EXPLORATION · FOILS {attackMode ? 'ATTACK' : 'CRUISE'} · BOOST {boostActive ? 'ON' : 'OFF'} · SCORE {formatScore(gameState.score)} · FWD DBG {showForwardDebug ? 'ON' : 'OFF'}
           </div>
-          <div className="font-mono text-[8px] tracking-widest text-foreground/40 uppercase mt-1">
-            {secondaryFlightHint}
+          <div className="mt-1 font-mono text-[8px] tracking-widest text-foreground/40 uppercase sm:text-[9px]">
+            <span className="sm:hidden">F LIGHT ASSIST · H CONTROLS · V NOSE MARKER</span>
+            <span className="hidden sm:inline">{secondaryFlightHint}</span>
           </div>
         </div>
       )}
@@ -378,5 +425,105 @@ export function HUD({ gameState, showForwardDebug = false, onShipSelect }: HUDPr
         </div>
       )}
     </>
+  );
+}
+
+/* --------------------------------------------------------------------------
+ * Minimap — circular radar showing waypoints and hazards relative to ship.
+ * Forward is always up. Range = 1500 world units.
+ * ------------------------------------------------------------------------ */
+
+function Minimap({
+  playerPos,
+  playerRotationY,
+  waypoints,
+  nearestHazard,
+  nearestHazardDistance,
+}: {
+  playerPos: { x: number; y: number; z: number };
+  playerRotationY: number;
+  waypoints?: Array<{ position: [number, number, number]; label: string }>;
+  nearestHazard: string;
+  nearestHazardDistance: number;
+}) {
+  const size = 96;
+  const radius = size / 2;
+  const range = 1500;
+
+  // Transform world position to minimap coordinates (forward = up)
+  const worldToMap = (wx: number, wy: number, wz: number) => {
+    const dx = wx - playerPos.x;
+    const dz = wz - playerPos.z;
+    const angle = Math.atan2(dx, -dz) - playerRotationY; // forward is -Z
+    const dist = Math.sqrt(dx * dx + dz * dz);
+    const clampedDist = Math.min(dist, range);
+    const r = (clampedDist / range) * (radius - 4);
+    return {
+      x: radius + Math.sin(angle) * r,
+      y: radius - Math.cos(angle) * r,
+      outOfRange: dist > range,
+    };
+  };
+
+  const blips = (waypoints ?? []).map((wp, i) => ({
+    ...worldToMap(wp.position[0], wp.position[1], wp.position[2]),
+    key: `wp-${i}`,
+    color: '#4fffd1',
+    size: 3,
+  }));
+
+  // Add nearest hazard blip if close enough
+  if (nearestHazard && nearestHazardDistance > 0 && nearestHazardDistance < range * 2) {
+    // We don't have exact hazard position, so place it at edge in forward-ish direction
+    // as a subtle warning
+    blips.push({
+      x: radius,
+      y: radius - radius * 0.85,
+      outOfRange: true,
+      key: 'hazard',
+      color: '#ff5555',
+      size: 2.5,
+    });
+  }
+
+  return (
+    <div className="fixed top-16 right-3 sm:top-20 sm:right-6 z-40 pointer-events-none">
+      <div className="relative rounded-full border border-white/15 bg-black/40 backdrop-blur-sm"
+        style={{ width: size, height: size }}
+      >
+        <svg width={size} height={size} className="absolute inset-0">
+          {/* Compass ring */}
+          <circle cx={radius} cy={radius} r={radius - 2} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth={1} />
+          <circle cx={radius} cy={radius} r={radius * 0.5} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={0.5} />
+          {/* Cardinal ticks */}
+          <line x1={radius} y1={2} x2={radius} y2={6} stroke="rgba(255,255,255,0.25)" strokeWidth={1} />
+          <line x1={radius} y1={size - 6} x2={radius} y2={size - 2} stroke="rgba(255,255,255,0.1)" strokeWidth={0.5} />
+          <line x1={2} y1={radius} x2={6} y2={radius} stroke="rgba(255,255,255,0.1)" strokeWidth={0.5} />
+          <line x1={size - 6} y1={radius} x2={size - 2} y2={radius} stroke="rgba(255,255,255,0.1)" strokeWidth={0.5} />
+          {/* Ship triangle */}
+          <polygon
+            points={`${radius},${radius - 4} ${radius - 3},${radius + 3} ${radius + 3},${radius + 3}`}
+            fill="#aee8ff"
+            opacity={0.9}
+          />
+          {/* Blips */}
+          {blips.map((blip) => (
+            <circle
+              key={blip.key}
+              cx={blip.x}
+              cy={blip.y}
+              r={blip.size}
+              fill={blip.color}
+              opacity={blip.outOfRange ? 0.4 : 0.85}
+            />
+          ))}
+        </svg>
+        <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 font-mono text-[7px] tracking-widest uppercase text-white/40 whitespace-nowrap">
+          {nearestHazardDistance > 0 && nearestHazardDistance < range * 2
+            ? `${Math.round(nearestHazardDistance)}u`
+            : `${range}u`}
+        </div>
+      </div>
+    </div>
   );
 }

@@ -17,14 +17,16 @@ import {
 } from '../../../lib/neural-game-engine';
 // import { createNeuralAgent, type NeuralAgent } from '../../../lib/neural-game-engine/ai-agent';
 import { generateShip } from '../../../lib/ship-generator/procedural-ships';
-import { createInitialGameState, startIgnition, startExploration } from './game-state';
+import { createInitialGameState, startIgnition, startExploration, formatScore } from './game-state';
 import { HUD } from './hud';
 import { TestingConsole } from './testing-console';
 import { PlayerShipModel, ProceduralPlayerShipModel, getPlayerShipTransform } from './player-ship-model';
 import type { SelectedShip } from './ship-selector';
 import { getMissionLayout } from './mission-layout';
+import { SpaceDust, DataCoreField, createDataCores, BoostShockwave } from './particles';
+import type { DataCore } from './particles';
 import { SceneContents as UniverseSceneContents } from '../../../components/universe-engine/scene';
-import { SUN_OFFSET_SCENE } from '../../../components/universe-engine/astronomy';
+import { SUN_OFFSET_SCENE, SKY_SHELL_DISTANCE, buildScenePlanets, timeWarpRef } from '../../../components/universe-engine/astronomy';
 
 /**
  * The Universe Engine renders itself in tiny scene units (Sun at scene-x 66,
@@ -37,6 +39,18 @@ import { SUN_OFFSET_SCENE } from '../../../components/universe-engine/astronomy'
 const UNIVERSE_SCALE = 40;
 const NOOP = () => {};
 const SIMPLE_JOURNEY_MODE = true;
+const KNOWN_UNIVERSE_RADIUS = 9100;
+
+type GravityHazard = {
+  id: string;
+  label: string;
+  position: THREE.Vector3;
+  influenceRadius: number;
+  warningRadius: number;
+  fatalRadius: number;
+  gravityStrength: number;
+  damagePerSecond: number;
+};
 
 type InterstellarDrive = {
   key: 'fusion-torch' | 'antimatter-pulse' | 'beamed-sail' | 'warp-corridor';
@@ -174,6 +188,110 @@ const ROUTE_DEFINITIONS: RouteDefinition[] = SIMPLE_JOURNEY_MODE
       },
     ];
 
+const SCENE_PLANETS = buildScenePlanets();
+
+function solveKeplerAnomaly(meanAnomaly: number, eccentricity: number) {
+  let E = meanAnomaly;
+  for (let i = 0; i < 5; i += 1) {
+    E = E - (E - eccentricity * Math.sin(E) - meanAnomaly) / Math.max(1e-6, 1 - eccentricity * Math.cos(E));
+  }
+  return E;
+}
+
+function computeScenePlanetPosition(planet: ReturnType<typeof buildScenePlanets>[number], simTimeSec: number, timeWarp: number) {
+  const meanAnomaly = planet.raw.startPhase + simTimeSec * planet.orbitalSpeedRadPerSec * timeWarp;
+  const eccentricity = planet.raw.deep?.eccentricity ?? 0;
+  let theta = meanAnomaly;
+  let radius = planet.orbitRadius;
+
+  if (eccentricity > 0.01) {
+    const E = solveKeplerAnomaly(meanAnomaly, eccentricity);
+    theta = 2 * Math.atan2(
+      Math.sqrt(1 + eccentricity) * Math.sin(E / 2),
+      Math.sqrt(Math.max(1e-6, 1 - eccentricity)) * Math.cos(E / 2)
+    );
+    radius = (planet.orbitRadius * (1 - eccentricity * eccentricity)) / (1 + eccentricity * Math.cos(theta));
+  }
+
+  const xLocal = radius * Math.cos(theta);
+  const zLocal = -radius * Math.sin(theta);
+  const y = -zLocal * Math.sin(planet.inclination);
+  const z = zLocal * Math.cos(planet.inclination);
+
+  return new THREE.Vector3(
+    SUN_OFFSET_SCENE + xLocal,
+    y,
+    z
+  ).multiplyScalar(UNIVERSE_SCALE);
+}
+
+function buildGravityHazards(layout: ReturnType<typeof getMissionLayout>, simTimeSec: number): GravityHazard[] {
+  const tw = Math.max(0.25, timeWarpRef.current);
+
+  const dynamicPlanetHazards = SCENE_PLANETS.map((planet) => {
+    const pos = computeScenePlanetPosition(planet, simTimeSec, tw);
+    const visualRadius = Math.max(8, planet.visualRadius * UNIVERSE_SCALE);
+    return {
+      id: `planet-${planet.raw.name.toLowerCase()}`,
+      label: planet.raw.name,
+      position: pos,
+      influenceRadius: visualRadius * 28,
+      warningRadius: visualRadius * 4.2,
+      fatalRadius: visualRadius * 1.35,
+      gravityStrength: 95 + visualRadius * 0.7,
+      damagePerSecond: 5 + visualRadius * 0.22,
+    } as GravityHazard;
+  });
+
+  const missionPlanetRadius = Math.max(16, layout.planetRadius);
+  const missionPlanet = {
+    id: 'mission-planet',
+    label: 'Defended Planet',
+    position: layout.planetPosition.clone(),
+    influenceRadius: missionPlanetRadius * 7,
+    warningRadius: missionPlanetRadius * 1.7,
+    fatalRadius: missionPlanetRadius * 1.08,
+    gravityStrength: 260,
+    damagePerSecond: 22,
+  } as GravityHazard;
+
+  const sunHazard = {
+    id: 'sun-core',
+    label: 'Sun',
+    position: new THREE.Vector3(SUN_OFFSET_SCENE * UNIVERSE_SCALE, 0, 0),
+    influenceRadius: 1800,
+    warningRadius: 420,
+    fatalRadius: 190,
+    gravityStrength: 640,
+    damagePerSecond: 58,
+  } as GravityHazard;
+
+  const galacticCenterBlackHole = {
+    id: 'sgr-a',
+    label: 'Black Hole',
+    position: new THREE.Vector3(0, 0, 0),
+    influenceRadius: 2400,
+    warningRadius: 360,
+    fatalRadius: 170,
+    gravityStrength: 780,
+    damagePerSecond: 70,
+  } as GravityHazard;
+
+  const skyShellLimit = SKY_SHELL_DISTANCE * UNIVERSE_SCALE;
+  const outerShellBlackHole = {
+    id: 'outer-shell-anomaly',
+    label: 'Outer Black Hole',
+    position: new THREE.Vector3(SUN_OFFSET_SCENE * UNIVERSE_SCALE + skyShellLimit * 0.66, skyShellLimit * 0.38, -skyShellLimit * 0.24),
+    influenceRadius: 1700,
+    warningRadius: 290,
+    fatalRadius: 130,
+    gravityStrength: 540,
+    damagePerSecond: 52,
+  } as GravityHazard;
+
+  return [missionPlanet, sunHazard, galacticCenterBlackHole, outerShellBlackHole, ...dynamicPlanetHazards];
+}
+
 function getInterstellarDriveLabel(speed: number) {
   let current = INTERSTELLAR_DRIVES[0].label;
   for (const profile of INTERSTELLAR_DRIVES) {
@@ -249,7 +367,7 @@ function GameFog() {
   const { scene } = useThree();
   useEffect(() => {
     const prev = scene.fog;
-    scene.fog = new THREE.FogExp2('#040816', 0.00009);
+    scene.fog = new THREE.FogExp2('#040816', 0.000065);
     return () => {
       scene.fog = prev;
     };
@@ -354,9 +472,17 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
   const rcsBottomRef = useRef<THREE.Mesh>(null);
   const rcsWingLeftRef = useRef<THREE.Mesh>(null);
   const rcsWingRightRef = useRef<THREE.Mesh>(null);
+  const rcsRearLeftRef = useRef<THREE.Mesh>(null);
+  const rcsRearRightRef = useRef<THREE.Mesh>(null);
+  const rcsRearTopRef = useRef<THREE.Mesh>(null);
+  const rcsRearBottomRef = useRef<THREE.Mesh>(null);
   const cockpitGlowRef = useRef<THREE.Mesh>(null);
+  const noseGlowRef = useRef<THREE.Mesh>(null);
+  const runningLightLeftRef = useRef<THREE.Mesh>(null);
+  const runningLightRightRef = useRef<THREE.Mesh>(null);
   const visualBankRef = useRef(0);
   const recoilVisualRef = useRef(0);
+  const gravityVisualRef = useRef(0);
   const thrusterRefs = useMemo(() => [thrusterCone1Ref, thrusterCone2Ref, thrusterCone3Ref, thrusterCone4Ref], []);
   const outerPlumeRefs = useMemo(() => [outerPlume1Ref, outerPlume2Ref, outerPlume3Ref, outerPlume4Ref], []);
   const selectedShip = (gameState.selectedShip || 'default-vanguard') as SelectedShip;
@@ -420,11 +546,15 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
     const bankK = 1 - Math.exp(-delta * 4.5);
     visualBankRef.current += (targetBank - visualBankRef.current) * bankK;
     const recoilSignal = Number(gameState.playerEntity.metadata?.weaponRecoil ?? 0);
+    const gravitySignal = Number(gameState.playerEntity.metadata?.gravityLoad ?? 0);
     recoilVisualRef.current += (recoilSignal - recoilVisualRef.current) * (1 - Math.exp(-delta * 16));
+    gravityVisualRef.current += (gravitySignal - gravityVisualRef.current) * (1 - Math.exp(-delta * 8));
     if (innerGroupRef.current) {
+      const gravityShake = gravityVisualRef.current * (0.01 + Math.sin(state.clock.elapsedTime * 28) * 0.012);
       innerGroupRef.current.rotation.z = visualBankRef.current;
-      innerGroupRef.current.rotation.x = recoilVisualRef.current * 0.04;
-      innerGroupRef.current.position.z = recoilVisualRef.current * 0.18;
+      innerGroupRef.current.rotation.x = recoilVisualRef.current * 0.04 + gravityShake;
+      innerGroupRef.current.position.z = recoilVisualRef.current * 0.18 - gravityVisualRef.current * 0.1;
+      innerGroupRef.current.position.y = Math.sin(state.clock.elapsedTime * 19) * gravityVisualRef.current * 0.06;
     }
 
     // Velocity-responsive engine glow brightness and scale
@@ -474,34 +604,87 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
       ref.current.position.z = rearOuterNozzleZs[idx] - outerHalfLength;
     });
 
-    // RCS maneuvering thrusters for orientation/position hold.
+    // RCS maneuvering thrusters — fire on the side matching user input.
+    // Intuitive visual mapping: steer left → left-side thrusters glow.
     const rcsYaw = Number(gameState.playerEntity.metadata?.rcsYaw ?? 0);
     const rcsPitch = Number(gameState.playerEntity.metadata?.rcsPitch ?? 0);
     const rcsRoll = Number(gameState.playerEntity.metadata?.rcsRoll ?? 0);
     const rcsBrake = Number(gameState.playerEntity.metadata?.rcsBrake ?? 0);
-    const yawStrength = Math.min(1, Math.abs(rcsYaw) * 22);
-    const pitchStrength = Math.min(1, Math.abs(rcsPitch) * 22);
-    const rollStrength = Math.min(1, Math.abs(rcsRoll) * 22);
+    const yawStrength = Math.min(1, Math.abs(rcsYaw) * 18);
+    const pitchStrength = Math.min(1, Math.abs(rcsPitch) * 18);
+    const rollStrength = Math.min(1, Math.abs(rcsRoll) * 18);
 
-    const noseLeftOpacity = 0.05 + (rcsYaw < 0 ? yawStrength * 0.7 : 0) + rcsBrake * 0.24;
-    const noseRightOpacity = 0.05 + (rcsYaw > 0 ? yawStrength * 0.7 : 0) + rcsBrake * 0.24;
-    const topOpacity = 0.04 + (rcsPitch < 0 ? pitchStrength * 0.78 : 0);
-    const bottomOpacity = 0.04 + (rcsPitch > 0 ? pitchStrength * 0.78 : 0);
-    const wingLeftOpacity = 0.04 + (rcsRoll > 0 ? rollStrength * 0.72 : 0);
-    const wingRightOpacity = 0.04 + (rcsRoll < 0 ? rollStrength * 0.72 : 0);
+    // Input direction → which side fires
+    const yawLeft = rcsYaw > 0.02;   // steering left
+    const yawRight = rcsYaw < -0.02; // steering right
+    const pitchUp = rcsPitch > 0.02;
+    const pitchDown = rcsPitch < -0.02;
+    const rollLeft = rcsRoll > 0.02;
+    const rollRight = rcsRoll < -0.02;
 
-    if (rcsNoseLeftRef.current) (rcsNoseLeftRef.current.material as THREE.MeshBasicMaterial).opacity = noseLeftOpacity;
-    if (rcsNoseRightRef.current) (rcsNoseRightRef.current.material as THREE.MeshBasicMaterial).opacity = noseRightOpacity;
-    if (rcsTopRef.current) (rcsTopRef.current.material as THREE.MeshBasicMaterial).opacity = topOpacity;
-    if (rcsBottomRef.current) (rcsBottomRef.current.material as THREE.MeshBasicMaterial).opacity = bottomOpacity;
-    if (rcsWingLeftRef.current) (rcsWingLeftRef.current.material as THREE.MeshBasicMaterial).opacity = wingLeftOpacity;
-    if (rcsWingRightRef.current) (rcsWingRightRef.current.material as THREE.MeshBasicMaterial).opacity = wingRightOpacity;
+    const baseRcs = 0.02;
+    const activeRcs = 0.65;
+
+    const noseLeftOpacity = baseRcs + (yawLeft ? yawStrength * activeRcs : 0) + (rollLeft ? rollStrength * activeRcs * 0.5 : 0) + rcsBrake * 0.3;
+    const noseRightOpacity = baseRcs + (yawRight ? yawStrength * activeRcs : 0) + (rollRight ? rollStrength * activeRcs * 0.5 : 0) + rcsBrake * 0.3;
+    const topOpacity = baseRcs + (pitchUp ? pitchStrength * activeRcs : 0);
+    const bottomOpacity = baseRcs + (pitchDown ? pitchStrength * activeRcs : 0);
+    const wingLeftOpacity = baseRcs + (rollLeft ? rollStrength * activeRcs : 0) + (yawLeft ? yawStrength * activeRcs * 0.4 : 0);
+    const wingRightOpacity = baseRcs + (rollRight ? rollStrength * activeRcs : 0) + (yawRight ? yawStrength * activeRcs * 0.4 : 0);
+    const rearLeftOpacity = baseRcs + (yawLeft ? yawStrength * activeRcs : 0) + (rollLeft ? rollStrength * activeRcs * 0.5 : 0) + rcsBrake * 0.3;
+    const rearRightOpacity = baseRcs + (yawRight ? yawStrength * activeRcs : 0) + (rollRight ? rollStrength * activeRcs * 0.5 : 0) + rcsBrake * 0.3;
+    const rearTopOpacity = baseRcs + (pitchUp ? pitchStrength * activeRcs : 0);
+    const rearBottomOpacity = baseRcs + (pitchDown ? pitchStrength * activeRcs : 0);
+
+    const setRcs = (ref: React.RefObject<THREE.Mesh | null>, opacity: number, color = 0x9fd8ff) => {
+      if (!ref.current) return;
+      const mat = ref.current.material as THREE.MeshBasicMaterial;
+      mat.opacity = opacity;
+      if (opacity > 0.15) {
+        mat.color.setHex(color);
+      } else {
+        mat.color.setHex(0x9fd8ff);
+      }
+    };
+
+    setRcs(rcsNoseLeftRef, noseLeftOpacity, 0x40d8ff);
+    setRcs(rcsNoseRightRef, noseRightOpacity, 0x40d8ff);
+    setRcs(rcsTopRef, topOpacity, 0x40d8ff);
+    setRcs(rcsBottomRef, bottomOpacity, 0x40d8ff);
+    setRcs(rcsWingLeftRef, wingLeftOpacity, 0x40d8ff);
+    setRcs(rcsWingRightRef, wingRightOpacity, 0x40d8ff);
+    setRcs(rcsRearLeftRef, rearLeftOpacity, 0x40d8ff);
+    setRcs(rcsRearRightRef, rearRightOpacity, 0x40d8ff);
+    setRcs(rcsRearTopRef, rearTopOpacity, 0x40d8ff);
+    setRcs(rcsRearBottomRef, rearBottomOpacity, 0x40d8ff);
+
+    // Nose forward glow — pulses with thrust, brightens when boosting
+    if (noseGlowRef.current) {
+      const nosePulse = 0.6 + driveSignal * 0.4 + (boostActive ? 0.25 : 0);
+      const noseScale = 0.9 + Math.sin(state.clock.elapsedTime * 4.2) * 0.1 + driveSignal * 0.3;
+      noseGlowRef.current.scale.setScalar(noseScale);
+      (noseGlowRef.current.material as THREE.MeshBasicMaterial).opacity = 0.12 * nosePulse;
+    }
+
+    // Running lights — aviation standard: red port (left), green starboard (right)
+    if (runningLightLeftRef.current) {
+      const blink = 0.7 + Math.sin(state.clock.elapsedTime * 2.8) * 0.3;
+      (runningLightLeftRef.current.material as THREE.MeshBasicMaterial).opacity = 0.85 * blink;
+    }
+    if (runningLightRightRef.current) {
+      const blink = 0.7 + Math.sin(state.clock.elapsedTime * 2.8 + 1.5) * 0.3;
+      (runningLightRightRef.current.material as THREE.MeshBasicMaterial).opacity = 0.85 * blink;
+    }
 
     // Cockpit glow pulses faster when boosting
     if (cockpitGlowRef.current) {
       const pulseFreq = 1.5 + driveSignal * (boostActive ? 5.0 : 3.0);
       const pulseAmt = 0.85 + Math.sin(state.clock.elapsedTime * pulseFreq) * 0.15;
-      cockpitGlowRef.current.scale.setScalar(pulseAmt);
+      cockpitGlowRef.current.scale.setScalar(pulseAmt * 1.15);
+      (cockpitGlowRef.current.material as THREE.MeshBasicMaterial).opacity = 0.24 + driveSignal * 0.12;
+      (cockpitGlowRef.current.material as THREE.MeshBasicMaterial).color.set(
+        gravityVisualRef.current > 0.62 ? 0xff7d7d : 0x7fffd4
+      );
     }
   });
 
@@ -511,10 +694,18 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
       rotation={[gameState.playerEntity.rotation.x, gameState.playerEntity.rotation.y, gameState.playerEntity.rotation.z]}
     >
       <group ref={innerGroupRef}>
-        <group scale={shipTransform.scale} position={shipTransform.position} rotation={shipTransform.rotation}>
+        <group scale={shipTransform.scale * 1.2} position={shipTransform.position} rotation={shipTransform.rotation}>
           <Suspense fallback={<ProceduralPlayerShipModel shipId={selectedShip} mode="game" applyTransform={false} />}>
             <PlayerShipModel shipId={selectedShip} mode="game" applyTransform={false} />
           </Suspense>
+
+          <pointLight position={[0, 0.35, 1.9]} intensity={1.15} distance={26} color={0xaee8ff} />
+          <pointLight position={[0, -0.2, -1.8]} intensity={0.7} distance={20} color={0x4fb3ff} />
+
+          <mesh position={[0, 0.02, 0.25]}>
+            <icosahedronGeometry args={[2.45, 1]} />
+            <meshBasicMaterial color={0x76d3ff} transparent opacity={0.08} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+          </mesh>
 
           {/* Cockpit glow - subtle green-cyan */}
           <mesh ref={cockpitGlowRef} position={[0, 0.3, 1.2]}>
@@ -591,30 +782,71 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
           <meshBasicMaterial color={0x4c9dff} transparent opacity={0.2} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
 
-          {/* RCS maneuvering thrusters (attitude + position correction) */}
+          {/* Nose forward glow cone — orientation marker */}
+          <mesh ref={noseGlowRef} position={[0, 0.1, -2.2]} rotation={[-Math.PI / 2, 0, 0]}>
+            <coneGeometry args={[0.35, 1.2, 16, 1, true]} />
+            <meshBasicMaterial color={0x40d8ff} transparent opacity={0.12} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+          </mesh>
+
+          {/* Running lights — aviation standard: red port (left), green starboard (right) */}
+          <mesh ref={runningLightLeftRef} position={[-1.05, 0.08, 0.8]}>
+            <sphereGeometry args={[0.07, 8, 8]} />
+            <meshBasicMaterial color={0xff3333} transparent opacity={0.7} blending={THREE.AdditiveBlending} toneMapped={false} depthWrite={false} />
+          </mesh>
+          <mesh ref={runningLightRightRef} position={[1.05, 0.08, 0.8]}>
+            <sphereGeometry args={[0.07, 8, 8]} />
+            <meshBasicMaterial color={0x33ff66} transparent opacity={0.7} blending={THREE.AdditiveBlending} toneMapped={false} depthWrite={false} />
+          </mesh>
+
+          {/* Ship outer halo ring for visibility against dark space */}
+          <mesh rotation={[Math.PI / 2, 0, 0]}>
+            <ringGeometry args={[2.8, 3.0, 64]} />
+            <meshBasicMaterial color={0x40d8ff} transparent opacity={0.06} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+          </mesh>
+
+          {/* RCS maneuvering thrusters — front + rear for realistic attitude control */}
+          {/* Front RCS */}
           <mesh ref={rcsNoseLeftRef} position={[-0.95, 0.06, 1.55]}>
-          <sphereGeometry args={[0.1, 8, 8]} />
-          <meshBasicMaterial color={0x9fd8ff} transparent opacity={0.05} depthWrite={false} />
+            <sphereGeometry args={[0.1, 8, 8]} />
+            <meshBasicMaterial color={0x9fd8ff} transparent opacity={0.02} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
           <mesh ref={rcsNoseRightRef} position={[0.95, 0.06, 1.55]}>
-          <sphereGeometry args={[0.1, 8, 8]} />
-          <meshBasicMaterial color={0x9fd8ff} transparent opacity={0.05} depthWrite={false} />
+            <sphereGeometry args={[0.1, 8, 8]} />
+            <meshBasicMaterial color={0x9fd8ff} transparent opacity={0.02} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
           <mesh ref={rcsTopRef} position={[0, 0.56, 0.55]}>
-          <sphereGeometry args={[0.09, 8, 8]} />
-          <meshBasicMaterial color={0xaee5ff} transparent opacity={0.04} depthWrite={false} />
+            <sphereGeometry args={[0.09, 8, 8]} />
+            <meshBasicMaterial color={0x9fd8ff} transparent opacity={0.02} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
           <mesh ref={rcsBottomRef} position={[0, -0.56, 0.55]}>
-          <sphereGeometry args={[0.09, 8, 8]} />
-          <meshBasicMaterial color={0xaee5ff} transparent opacity={0.04} depthWrite={false} />
+            <sphereGeometry args={[0.09, 8, 8]} />
+            <meshBasicMaterial color={0x9fd8ff} transparent opacity={0.02} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
+          {/* Wing RCS */}
           <mesh ref={rcsWingLeftRef} position={[-1.35, 0, -0.22]}>
-          <sphereGeometry args={[0.09, 8, 8]} />
-          <meshBasicMaterial color={0xb7e9ff} transparent opacity={0.04} depthWrite={false} />
+            <sphereGeometry args={[0.09, 8, 8]} />
+            <meshBasicMaterial color={0x9fd8ff} transparent opacity={0.02} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
           <mesh ref={rcsWingRightRef} position={[1.35, 0, -0.22]}>
-          <sphereGeometry args={[0.09, 8, 8]} />
-          <meshBasicMaterial color={0xb7e9ff} transparent opacity={0.04} depthWrite={false} />
+            <sphereGeometry args={[0.09, 8, 8]} />
+            <meshBasicMaterial color={0x9fd8ff} transparent opacity={0.02} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+          </mesh>
+          {/* Rear RCS */}
+          <mesh ref={rcsRearLeftRef} position={[-0.85, 0.06, -1.15]}>
+            <sphereGeometry args={[0.1, 8, 8]} />
+            <meshBasicMaterial color={0x9fd8ff} transparent opacity={0.02} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+          </mesh>
+          <mesh ref={rcsRearRightRef} position={[0.85, 0.06, -1.15]}>
+            <sphereGeometry args={[0.1, 8, 8]} />
+            <meshBasicMaterial color={0x9fd8ff} transparent opacity={0.02} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+          </mesh>
+          <mesh ref={rcsRearTopRef} position={[0, 0.52, -1.0]}>
+            <sphereGeometry args={[0.09, 8, 8]} />
+            <meshBasicMaterial color={0x9fd8ff} transparent opacity={0.02} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+          </mesh>
+          <mesh ref={rcsRearBottomRef} position={[0, -0.52, -1.0]}>
+            <sphereGeometry args={[0.09, 8, 8]} />
+            <meshBasicMaterial color={0x9fd8ff} transparent opacity={0.02} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
 
           {/* Optional forward debug marker (nose direction). Toggle with V. */}
@@ -697,6 +929,11 @@ function MissionStartScene({ worldIndex }: { worldIndex: number }) {
     }
   }, [layout.stationStyle]);
 
+  const stationDeckColor = stylePalette.deck;
+  const stationHullColor = stylePalette.hull;
+  const stationTrimColor = stylePalette.trim;
+  const stationGlowColor = stylePalette.glow;
+
   return (
     <group>
       <group position={[layout.planetPosition.x, layout.planetPosition.y, layout.planetPosition.z]}>
@@ -720,57 +957,149 @@ function MissionStartScene({ worldIndex }: { worldIndex: number }) {
         position={[layout.stationPosition.x, layout.stationPosition.y, layout.stationPosition.z]}
         scale={[layout.stationScale, layout.stationScale, layout.stationScale]}
       >
-        <mesh rotation={[Math.PI / 2, 0, 0]}>
-          <cylinderGeometry args={[36, 36, 2.4, 40]} />
-          <meshStandardMaterial color={stylePalette.hull} roughness={0.52} metalness={0.56} />
-        </mesh>
-        <mesh rotation={[Math.PI / 2, 0, 0]}>
-          <torusGeometry args={[29, 1.1, 20, 56]} />
-          <meshBasicMaterial color={stylePalette.glow} transparent opacity={0.35} depthWrite={false} />
-        </mesh>
-        <mesh position={[0, 2.2, 0]}>
-          <boxGeometry args={[18, 2.4, 18]} />
-          <meshStandardMaterial color={stylePalette.deck} roughness={0.44} metalness={0.46} />
-        </mesh>
+        <group rotation={[0, Math.PI * 0.12, 0]}>
+          <mesh>
+            <cylinderGeometry args={[13, 13, 34, 20]} />
+            <meshStandardMaterial color={stationHullColor} roughness={0.48} metalness={0.62} />
+          </mesh>
+          <mesh position={[0, 0, 0]}>
+            <cylinderGeometry args={[10.2, 10.2, 38, 20]} />
+            <meshStandardMaterial color={stationDeckColor} roughness={0.4} metalness={0.4} />
+          </mesh>
+
+          <mesh rotation={[Math.PI / 2, 0, 0]}>
+            <torusGeometry args={[22, 3.2, 14, 64]} />
+            <meshStandardMaterial color={stationTrimColor} roughness={0.36} metalness={0.72} />
+          </mesh>
+          <mesh rotation={[Math.PI / 2, 0, 0]}>
+            <torusGeometry args={[24.2, 1.05, 12, 64]} />
+            <meshBasicMaterial color={stationGlowColor} transparent opacity={0.28} depthWrite={false} />
+          </mesh>
+
+          {[
+            [0, 0, 24, 0, 0, 0],
+            [0, 0, -24, 0, 0, 0],
+            [24, 0, 0, 0, Math.PI / 2, 0],
+            [-24, 0, 0, 0, Math.PI / 2, 0],
+          ].map(([x, y, z, rx, ry, rz], idx) => (
+            <group key={`arm-${idx}`} position={[x, y, z]} rotation={[rx, ry, rz]}>
+              <mesh>
+                <boxGeometry args={[4, 4, 20]} />
+                <meshStandardMaterial color={stationHullColor} roughness={0.5} metalness={0.56} />
+              </mesh>
+              <mesh position={[0, 0, 9.5]}>
+                <boxGeometry args={[7, 2.4, 3.2]} />
+                <meshStandardMaterial color={stationDeckColor} roughness={0.42} metalness={0.48} />
+              </mesh>
+              <mesh position={[0, 0, -9.5]}>
+                <boxGeometry args={[7, 2.4, 3.2]} />
+                <meshStandardMaterial color={stationDeckColor} roughness={0.42} metalness={0.48} />
+              </mesh>
+            </group>
+          ))}
+
+          <mesh position={[0, 22, 0]}>
+            <cylinderGeometry args={[2.4, 3.1, 16, 12]} />
+            <meshStandardMaterial color={stationTrimColor} roughness={0.38} metalness={0.7} />
+          </mesh>
+          <mesh position={[0, 31, 0]}>
+            <sphereGeometry args={[4.6, 16, 16]} />
+            <meshBasicMaterial color={stationGlowColor} transparent opacity={0.25} depthWrite={false} />
+          </mesh>
+          <mesh position={[0, -24, 0]}>
+            <cylinderGeometry args={[4.5, 6, 14, 14]} />
+            <meshStandardMaterial color={stationDeckColor} roughness={0.46} metalness={0.62} />
+          </mesh>
+          <mesh position={[0, -33, 0]}>
+            <coneGeometry args={[5.4, 9, 14]} />
+            <meshBasicMaterial color={stationGlowColor} transparent opacity={0.18} depthWrite={false} />
+          </mesh>
+
+          <group position={[0, 3, 0]} rotation={[0, 0, Math.PI * 0.02]}>
+            <mesh position={[0, 0, 38]}>
+              <boxGeometry args={[4, 26, 2]} />
+              <meshStandardMaterial color={stationHullColor} roughness={0.54} metalness={0.58} />
+            </mesh>
+            <mesh position={[0, 0, -38]}>
+              <boxGeometry args={[4, 26, 2]} />
+              <meshStandardMaterial color={stationHullColor} roughness={0.54} metalness={0.58} />
+            </mesh>
+            <mesh position={[0, 11, 0]}>
+              <boxGeometry args={[22, 4, 2]} />
+              <meshStandardMaterial color={stationTrimColor} roughness={0.44} metalness={0.66} />
+            </mesh>
+            <mesh position={[0, -11, 0]}>
+              <boxGeometry args={[22, 4, 2]} />
+              <meshStandardMaterial color={stationTrimColor} roughness={0.44} metalness={0.66} />
+            </mesh>
+          </group>
+
+          {Array.from({ length: 8 }).map((_, idx) => {
+            const angle = (idx / 8) * Math.PI * 2;
+            return (
+              <mesh
+                key={`light-${idx}`}
+                position={[Math.cos(angle) * 24.4, 0, Math.sin(angle) * 24.4]}
+              >
+                <sphereGeometry args={[0.7, 10, 10]} />
+                <meshBasicMaterial color={stationGlowColor} transparent opacity={0.5} depthWrite={false} />
+              </mesh>
+            );
+          })}
 
         {layout.stationStyle === 'industrial' && (
           <>
-            <mesh position={[-14, 3.5, 0]}>
-              <boxGeometry args={[4, 7, 4]} />
-              <meshStandardMaterial color={stylePalette.deck} roughness={0.5} metalness={0.52} />
+            <mesh position={[-18, 4, 0]} rotation={[0, 0, Math.PI * 0.08]}>
+              <boxGeometry args={[6, 10, 4]} />
+              <meshStandardMaterial color={stationDeckColor} roughness={0.52} metalness={0.54} />
             </mesh>
-            <mesh position={[14, 3.5, 0]}>
-              <boxGeometry args={[4, 7, 4]} />
-              <meshStandardMaterial color={stylePalette.deck} roughness={0.5} metalness={0.52} />
+            <mesh position={[18, 4, 0]} rotation={[0, 0, -Math.PI * 0.08]}>
+              <boxGeometry args={[6, 10, 4]} />
+              <meshStandardMaterial color={stationDeckColor} roughness={0.52} metalness={0.54} />
             </mesh>
           </>
         )}
 
         {(layout.stationStyle === 'research' || layout.stationStyle === 'exo') && (
           <>
-            <mesh position={[-20, 1.8, 0]} rotation={[0, 0, Math.PI * 0.08]}>
-              <boxGeometry args={[12, 0.5, 22]} />
-              <meshStandardMaterial color={stylePalette.trim} roughness={0.3} metalness={0.65} />
+            <mesh position={[-28, 0, 0]} rotation={[0, 0, Math.PI * 0.08]}>
+              <boxGeometry args={[18, 0.7, 26]} />
+              <meshStandardMaterial color={stationTrimColor} roughness={0.26} metalness={0.7} />
             </mesh>
-            <mesh position={[20, 1.8, 0]} rotation={[0, 0, -Math.PI * 0.08]}>
-              <boxGeometry args={[12, 0.5, 22]} />
-              <meshStandardMaterial color={stylePalette.trim} roughness={0.3} metalness={0.65} />
+            <mesh position={[28, 0, 0]} rotation={[0, 0, -Math.PI * 0.08]}>
+              <boxGeometry args={[18, 0.7, 26]} />
+              <meshStandardMaterial color={stationTrimColor} roughness={0.26} metalness={0.7} />
             </mesh>
           </>
         )}
 
         {(layout.stationStyle === 'sentinel' || layout.stationStyle === 'ark') && (
           <>
-            <mesh position={[0, 8, 0]}>
-              <cylinderGeometry args={[1.2, 1.2, 9, 16]} />
-              <meshStandardMaterial color={stylePalette.trim} roughness={0.42} metalness={0.62} />
+            <mesh position={[0, 16, 0]}>
+              <cylinderGeometry args={[1.4, 1.4, 16, 16]} />
+              <meshStandardMaterial color={stationTrimColor} roughness={0.36} metalness={0.64} />
             </mesh>
-            <mesh position={[0, 13, 0]}>
-              <sphereGeometry args={[2.8, 16, 16]} />
-              <meshBasicMaterial color={stylePalette.glow} transparent opacity={0.28} depthWrite={false} />
+            <mesh position={[0, 26, 0]}>
+              <sphereGeometry args={[4.4, 16, 16]} />
+              <meshBasicMaterial color={stationGlowColor} transparent opacity={0.3} depthWrite={false} />
             </mesh>
           </>
         )}
+
+        <mesh position={[0, 44, 0]}>
+          <sphereGeometry args={[4.8, 20, 20]} />
+          <meshBasicMaterial color={stationGlowColor} transparent opacity={0.72} depthWrite={false} />
+        </mesh>
+        <mesh position={[0, 44, 0]} rotation={[Math.PI / 2, 0, 0]}>
+          <torusGeometry args={[12.4, 1.15, 10, 56]} />
+          <meshBasicMaterial color={stationGlowColor} transparent opacity={0.36} depthWrite={false} />
+        </mesh>
+        <mesh position={[0, 44, 0]}>
+          <cylinderGeometry args={[0.42, 0.42, 72, 12]} />
+          <meshBasicMaterial color={stationGlowColor} transparent opacity={0.24} depthWrite={false} />
+        </mesh>
+        <pointLight position={[0, 44, 0]} intensity={2.8} distance={290} color={stationGlowColor} />
+        </group>
       </group>
     </group>
   );
@@ -788,7 +1117,7 @@ function CameraFollowController({ gameState, cameraAssist }: { gameState: GameSt
   // Dynamic offset based on phase: flight cam behind ship during ignition/exploration, wide during briefing
   const isFlightPhase = gameState.phase === 'ignition' || gameState.phase === 'exploration';
   // Camera is closer and lower for a more cinematic chase view
-  const baseOffsetDistance = isFlightPhase ? 6.2 : 18;
+  const baseOffsetDistance = isFlightPhase ? 5.1 : 18;
   const baseOffsetHeight = isFlightPhase ? 1.35 : 7.5;
   // Add a slight side offset for a dynamic angle
   const baseSideOffset = isFlightPhase ? 1.1 : 0.0;
@@ -852,6 +1181,16 @@ function CameraFollowController({ gameState, cameraAssist }: { gameState: GameSt
     smoothPosRef.current.lerp(desiredCameraPos, k);
     camera.position.copy(smoothPosRef.current);
 
+    // Boost camera shake: high-frequency micro-jitter when boost is active
+    const boostActive = Boolean(gameState.playerEntity.metadata?.boostActive);
+    if (boostActive || boostSpool > 0.05) {
+      const shakeIntensity = boostSpool * 0.18 + (boostActive ? 0.08 : 0);
+      const t = state.clock.elapsedTime;
+      camera.position.x += Math.sin(t * 47) * shakeIntensity * 0.5;
+      camera.position.y += Math.sin(t * 61 + 1.3) * shakeIntensity * 0.5;
+      camera.position.z += Math.sin(t * 53 + 2.7) * shakeIntensity * 0.35;
+    }
+
     // Look slightly ahead and above the player for better anticipation and visibility
     const lookAheadDistance = Math.sqrt(
       gameState.playerEntity.velocity.x ** 2 +
@@ -876,7 +1215,6 @@ function CameraFollowController({ gameState, cameraAssist }: { gameState: GameSt
     camera.lookAt(smoothLookRef.current);
 
     // Dynamic FOV gives a clear sensation of acceleration and boost.
-    const boostActive = Boolean(gameState.playerEntity.metadata?.boostActive);
     const targetFov =
       55 +
       Math.min(speed / 5.6, 10) +
@@ -914,6 +1252,8 @@ function GameScene({
   deviceOrientation,
   assistedFlight,
   weaponTune,
+  updateEngineAudio,
+  joystickRef,
 }: {
   gameState: GameState;
   onUpdate: (state: GameState) => void;
@@ -922,6 +1262,8 @@ function GameScene({
   deviceOrientation: React.MutableRefObject<{ alpha: number; beta: number; gamma: number }>;
   assistedFlight: boolean;
   weaponTune: WeaponTuningProfile;
+  updateEngineAudio?: (speed: number, throttle: number, boost: boolean, boostSpool: number) => void;
+  joystickRef?: React.MutableRefObject<{ active: boolean; originX: number; originY: number; dx: number; dy: number }>;
 }) {
   const { camera, scene } = useThree();
   const gameLoopRef = useRef<GameLoop | null>(null);
@@ -1053,6 +1395,9 @@ function GameScene({
   useFrame((state, delta) => {
     if (!gameLoopRef.current || !entityManagerRef.current) return;
 
+    // Freeze simulation when paused
+    if (gameState.phase === 'paused') return;
+
     // Sync loop snapshot with latest React state before sim stepping.
     gameLoopRef.current.setState(gameState);
 
@@ -1103,6 +1448,16 @@ function GameScene({
         pitchInput += (deviceOrientation.current.beta / 180) * deviceSensitivity * 240;
         yawInput -= (deviceOrientation.current.gamma / 90) * deviceSensitivity * 240;
         rollInput += (deviceOrientation.current.alpha / 360) * deviceSensitivity * 120;
+      }
+
+      // Virtual joystick input for touch devices
+      if (joystickRef?.current?.active) {
+        const joystickSensitivity = attackMode ? 0.022 : 0.018;
+        const maxR = 48;
+        const normX = joystickRef.current.dx / maxR;
+        const normY = joystickRef.current.dy / maxR;
+        yawInput -= normX * joystickSensitivity * 60;  // left/right → yaw
+        pitchInput += normY * joystickSensitivity * 60; // up/down → pitch (inverted: drag up = pitch up)
       }
 
       const applyDeadzone = (value: number, deadzone = 0.045) => {
@@ -1206,6 +1561,9 @@ function GameScene({
       gameState.playerEntity.velocity.y = forwardLocal.y * forwardSpeedRef.current;
       gameState.playerEntity.velocity.z = forwardLocal.z * forwardSpeedRef.current;
 
+      // Update continuous engine audio
+      updateEngineAudio?.(forwardSpeedRef.current, throttleRef.current, isBoosting, boostSpoolRef.current);
+
       if (assistedFlight) {
         const vel = new THREE.Vector3(
           gameState.playerEntity.velocity.x,
@@ -1233,6 +1591,87 @@ function GameScene({
         gameState.playerEntity.velocity.x += (localRight.x * wobbleA + localUp.x * wobbleB) * clampedDelta * 6;
         gameState.playerEntity.velocity.y += (localRight.y * wobbleA + localUp.y * wobbleB) * clampedDelta * 6;
         gameState.playerEntity.velocity.z += (localRight.z * wobbleA + localUp.z * wobbleB) * clampedDelta * 6;
+      }
+
+      const layout = getMissionLayout(gameState.worldIndex);
+      const gravityHazards = buildGravityHazards(layout, gameState.simTime);
+      const playerPosVec = new THREE.Vector3(
+        gameState.playerEntity.position.x,
+        gameState.playerEntity.position.y,
+        gameState.playerEntity.position.z
+      );
+      const gravityAcceleration = new THREE.Vector3();
+      let gravityLoad = 0;
+      let boundaryLoad = 0;
+      let hullDamageThisFrame = 0;
+      let fatalSource = '';
+      let nearestHazard = '';
+      let nearestDist = Number.POSITIVE_INFINITY;
+
+      gravityHazards.forEach((hazard) => {
+        const deltaToHazard = hazard.position.clone().sub(playerPosVec);
+        const distance = deltaToHazard.length();
+        if (distance < nearestDist) {
+          nearestDist = distance;
+          nearestHazard = hazard.label;
+        }
+        if (distance > hazard.influenceRadius || distance <= 0.0001) return;
+
+        const normalizedInfluence = 1 - distance / hazard.influenceRadius;
+        const safeDistance = Math.max(20, distance);
+        const pullStrength = (hazard.gravityStrength * normalizedInfluence * normalizedInfluence) / safeDistance;
+        gravityAcceleration.add(deltaToHazard.normalize().multiplyScalar(pullStrength));
+        gravityLoad = Math.max(gravityLoad, Math.min(1, normalizedInfluence * 1.25));
+
+        if (distance < hazard.warningRadius) {
+          const warningRange = Math.max(1, hazard.warningRadius - hazard.fatalRadius);
+          const warningPressure = 1 - Math.max(0, distance - hazard.fatalRadius) / warningRange;
+          hullDamageThisFrame += warningPressure * hazard.damagePerSecond * clampedDelta;
+        }
+
+        if (distance <= hazard.fatalRadius) {
+          fatalSource = hazard.label;
+        }
+      });
+
+      gameState.playerEntity.velocity.x += gravityAcceleration.x * clampedDelta;
+      gameState.playerEntity.velocity.y += gravityAcceleration.y * clampedDelta;
+      gameState.playerEntity.velocity.z += gravityAcceleration.z * clampedDelta;
+
+      const distanceFromKnownCenter = playerPosVec.length();
+      if (distanceFromKnownCenter > KNOWN_UNIVERSE_RADIUS) {
+        const overflow = distanceFromKnownCenter - KNOWN_UNIVERSE_RADIUS;
+        const outward = playerPosVec.clone().normalize();
+        const inwardBrake = Math.min(280, 60 + overflow * 0.1);
+        gameState.playerEntity.velocity.x -= outward.x * inwardBrake * clampedDelta;
+        gameState.playerEntity.velocity.y -= outward.y * inwardBrake * clampedDelta;
+        gameState.playerEntity.velocity.z -= outward.z * inwardBrake * clampedDelta;
+
+        forwardSpeedRef.current = Math.max(cruiseSpeed * 0.25, forwardSpeedRef.current - (40 + overflow * 0.02) * clampedDelta);
+        boundaryLoad = Math.min(1, overflow / 900);
+        hullDamageThisFrame += (6 + boundaryLoad * 26) * clampedDelta;
+      }
+
+      const updatedHealth = Math.max(0, gameState.playerEntity.health - hullDamageThisFrame);
+      gameState.playerEntity.health = updatedHealth;
+
+      const gravityWarning =
+        fatalSource.length > 0
+          ? `${fatalSource.toUpperCase()} PROXIMITY CRITICAL`
+          : boundaryLoad > 0.2
+            ? 'BOUNDARY LIMIT REACHED: RETURN TO KNOWN SPACE'
+            : gravityLoad > 0.35
+              ? `GRAVITY SHEAR: ${nearestHazard.toUpperCase()}`
+              : '';
+
+      if (fatalSource.length > 0 || updatedHealth <= 0) {
+        if (!gameState.metadata) gameState.metadata = {};
+        gameState.metadata.routeMessage = fatalSource.length > 0
+          ? `Hull lost near ${fatalSource}`
+          : 'Hull integrity lost';
+        gameState.metadata.routeMessageUntil = gameState.simTime + 4;
+        gameState.phase = 'defeat';
+        gameState.waveStartTime = gameState.simTime;
       }
 
       if (!gameState.playerEntity.metadata) {
@@ -1275,6 +1714,11 @@ function GameScene({
       gameState.playerEntity.metadata.weaponRecoil = Math.max(0, Number(gameState.playerEntity.metadata.weaponRecoil ?? 0) - clampedDelta * weaponProfile.recoilDecay);
       gameState.playerEntity.metadata.weaponPreset = weaponTune;
       gameState.playerEntity.metadata.simpleJourneyMode = SIMPLE_JOURNEY_MODE;
+      gameState.playerEntity.metadata.gravityLoad = Math.max(gravityLoad, boundaryLoad);
+      gameState.playerEntity.metadata.boundaryLoad = boundaryLoad;
+      gameState.playerEntity.metadata.gravityWarning = gravityWarning;
+      gameState.playerEntity.metadata.nearestHazard = nearestHazard;
+      gameState.playerEntity.metadata.nearestHazardDistance = Number.isFinite(nearestDist) ? Math.round(nearestDist) : 0;
 
       if (gameState.phase === 'exploration' || gameState.phase === 'ignition') {
         updateRouteProgress(gameState);
@@ -1348,13 +1792,26 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
   const [showTutorial, setShowTutorial] = useState(false);
   const [tutorialIndex, setTutorialIndex] = useState(0);
   const [showControlsHelp, setShowControlsHelp] = useState(false);
+  const [dataCores, setDataCores] = useState<DataCore[]>(() =>
+    createDataCores(ROUTE_DEFINITIONS.flatMap((r) => r.waypoints))
+  );
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
   const keysPressed = useRef<Set<string>>(new Set());
   const mouseRotationRef = useRef({ pitch: 0, yaw: 0 });
   const deviceOrientationRef = useRef({ alpha: 0, beta: 0, gamma: 0 });
+  const joystickRef = useRef({ active: false, originX: 0, originY: 0, dx: 0, dy: 0 });
   const audioContextRef = useRef<AudioContext | null>(null);
   const lastVolleyAudioRef = useRef<number>(-1);
+  const lastCoreAudioRef = useRef<number>(-1);
+  const engineAudioRef = useRef<{
+    ctx: AudioContext;
+    osc: OscillatorNode;
+    rumble: OscillatorNode;
+    filter: BiquadFilterNode;
+    gain: GainNode;
+    active: boolean;
+  } | null>(null);
 
   const tutorialMessages = SIMPLE_JOURNEY_MODE
     ? [
@@ -1473,6 +1930,96 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
     });
   };
 
+  /**
+   * Initialize continuous engine audio on first user interaction.
+   */
+  const initEngineAudio = () => {
+    if (typeof window === 'undefined') return;
+    if (engineAudioRef.current) return;
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = audioContextRef.current ?? new AudioCtx();
+    audioContextRef.current = ctx;
+    if (ctx.state === 'suspended') void ctx.resume();
+
+    const osc = ctx.createOscillator();
+    const rumble = ctx.createOscillator();
+    const filter = ctx.createBiquadFilter();
+    const gain = ctx.createGain();
+
+    osc.type = 'sawtooth';
+    osc.frequency.value = 55;
+    rumble.type = 'sine';
+    rumble.frequency.value = 32;
+
+    filter.type = 'lowpass';
+    filter.frequency.value = 180;
+    filter.Q.value = 0.5;
+
+    gain.gain.value = 0.0001;
+
+    osc.connect(filter);
+    rumble.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start();
+    rumble.start();
+
+    engineAudioRef.current = { ctx, osc, rumble, filter, gain, active: true };
+  };
+
+  /**
+   * Update engine audio params based on flight state.
+   */
+  const updateEngineAudio = (speed: number, throttle: number, boost: boolean, boostSpool: number) => {
+    const audio = engineAudioRef.current;
+    if (!audio || !audio.active) return;
+    const now = audio.ctx.currentTime;
+    const drive = Math.min(1, Math.max(0.05, throttle * 0.6 + Math.min(speed / 80, 1) * 0.4 + boostSpool * 0.35));
+
+    audio.osc.frequency.setTargetAtTime(55 + drive * 85 + (boost ? 45 : 0), now, 0.12);
+    audio.rumble.frequency.setTargetAtTime(32 + drive * 28 + (boost ? 22 : 0), now, 0.12);
+    audio.filter.frequency.setTargetAtTime(180 + drive * 420 + (boost ? 280 : 0), now, 0.15);
+    audio.gain.gain.setTargetAtTime(0.008 + drive * 0.018 + (boost ? 0.012 : 0), now, 0.1);
+  };
+
+  /**
+   * Handle data core collection: score reward + audio chime + HUD message.
+   */
+  const handleCoreCollect = (coreId: string, value: number) => {
+    setDataCores((prev) => prev.map((c) => (c.id === coreId ? { ...c, collected: true } : c)));
+    setGameState((s) => {
+      if (!s.metadata) s.metadata = {};
+      const nextScore = s.score + value;
+      s.metadata.routeMessage = `Data core recovered +${value}`;
+      s.metadata.routeMessageUntil = s.simTime + 2.5;
+      return { ...s, score: nextScore };
+    });
+
+    // Audio chime
+    if (typeof window === 'undefined') return;
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = audioContextRef.current ?? new AudioCtx();
+    audioContextRef.current = ctx;
+    if (ctx.state === 'suspended') void ctx.resume();
+
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, now);
+    osc.frequency.exponentialRampToValueAtTime(1760, now + 0.12);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.03, now + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.2);
+  };
+
   // Guardrail: if ignition timer completes but phase did not flip for any reason,
   // force transition to exploration so it never appears frozen on countdown.
   useEffect(() => {
@@ -1482,10 +2029,16 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
     setGameState((s) => (s.phase === 'ignition' ? startExploration(s) : s));
   }, [gameState.phase, gameState.simTime, gameState.ignitionStartTime]);
 
+  // Regenerate data cores when world changes
+  useEffect(() => {
+    setDataCores(createDataCores(ROUTE_DEFINITIONS.flatMap((r) => r.waypoints)));
+  }, [gameState.worldIndex]);
+
   // Multi-input flight controls: keyboard, mouse, device orientation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       keysPressed.current.add(e.code);
+      initEngineAudio();
       if (e.code === 'KeyX') {
         setGameState((s) => {
           const current = Boolean(s.playerEntity.metadata?.attackMode);
@@ -1499,6 +2052,19 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
               },
             },
           };
+        });
+      }
+      // Pause / resume
+      if (e.code === 'Escape' || e.code === 'KeyP') {
+        e.preventDefault();
+        setGameState((s) => {
+          if (s.phase === 'paused') {
+            return { ...s, phase: 'exploration' };
+          }
+          if (s.phase === 'exploration' || s.phase === 'ignition' || s.phase === 'combat' || s.phase === 'charging') {
+            return { ...s, phase: 'paused' };
+          }
+          return s;
         });
       }
       if (e.code === 'KeyV') {
@@ -1739,6 +2305,22 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
           );
         })}
 
+        {/* Space dust / speed lines — velocity-responsive particle field */}
+        <SpaceDust gameState={gameState} />
+
+        {/* Data core collectibles at route waypoints */}
+        <DataCoreField cores={dataCores} gameState={gameState} onCollect={handleCoreCollect} />
+
+        {/* Boost shockwave ring */}
+        <BoostShockwave
+          active={Boolean(gameState.playerEntity.metadata?.boostActive)}
+          position={[
+            gameState.playerEntity.position.x,
+            gameState.playerEntity.position.y,
+            gameState.playerEntity.position.z,
+          ]}
+        />
+
         {/* Game logic integration */}
         <GameScene
           gameState={gameState}
@@ -1748,12 +2330,124 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
           deviceOrientation={deviceOrientationRef}
           assistedFlight={assistedFlight}
           weaponTune={weaponTune}
+          updateEngineAudio={updateEngineAudio}
+          joystickRef={joystickRef}
         />
 
         {/* Camera follow: chase the player ship */}
         <CameraFollowController gameState={gameState} cameraAssist={cameraAssist} />
       </Canvas>
         </div>
+
+        {/* Mobile touch controls — only visible on touch devices */}
+        {typeof navigator !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) && (
+          <>
+            {/* Virtual joystick — bottom-left */}
+            <div
+              className="pointer-events-auto fixed bottom-24 left-6 z-50"
+              onTouchStart={(e) => {
+                e.preventDefault();
+                initEngineAudio();
+                const touch = e.touches[0];
+                joystickRef.current = {
+                  active: true,
+                  originX: touch.clientX,
+                  originY: touch.clientY,
+                  dx: 0,
+                  dy: 0,
+                };
+              }}
+              onTouchMove={(e) => {
+                e.preventDefault();
+                if (!joystickRef.current.active) return;
+                const touch = e.touches[0];
+                const maxR = 48;
+                let dx = touch.clientX - joystickRef.current.originX;
+                let dy = touch.clientY - joystickRef.current.originY;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist > maxR) {
+                  dx = (dx / dist) * maxR;
+                  dy = (dy / dist) * maxR;
+                }
+                joystickRef.current.dx = dx;
+                joystickRef.current.dy = dy;
+              }}
+              onTouchEnd={(e) => {
+                e.preventDefault();
+                joystickRef.current = { active: false, originX: 0, originY: 0, dx: 0, dy: 0 };
+              }}
+            >
+              <div className="relative w-28 h-28 rounded-full border border-white/15 bg-black/30 backdrop-blur-sm">
+                <div
+                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-cyan-400/20 border border-cyan-300/40 transition-transform duration-75"
+                  style={{
+                    transform: `translate(calc(-50% + ${joystickRef.current.dx * 0.6}px), calc(-50% + ${joystickRef.current.dy * 0.6}px))`,
+                  }}
+                />
+              </div>
+              <div className="mt-1 text-center font-mono text-[7px] tracking-widest uppercase text-white/40">
+                STEER
+              </div>
+            </div>
+
+            {/* Thrust button — bottom-center-left */}
+            <div className="pointer-events-auto fixed bottom-24 left-1/2 -translate-x-1/2 z-50">
+              <button
+                type="button"
+                className="w-16 h-16 rounded-full border border-white/20 bg-black/35 backdrop-blur-sm active:bg-cyan-400/20 active:border-cyan-300/50 transition-colors"
+                onTouchStart={(e) => {
+                  e.preventDefault();
+                  initEngineAudio();
+                  keysPressed.current.add('KeyW');
+                }}
+                onTouchEnd={(e) => {
+                  e.preventDefault();
+                  keysPressed.current.delete('KeyW');
+                }}
+              >
+                <span className="block font-mono text-[8px] tracking-widest uppercase text-white/60 mt-1">THRUST</span>
+              </button>
+            </div>
+
+            {/* Boost button — bottom-right */}
+            <div className="pointer-events-auto fixed bottom-36 right-6 z-50">
+              <button
+                type="button"
+                className="w-14 h-14 rounded-full border border-white/20 bg-black/35 backdrop-blur-sm active:bg-purple-400/20 active:border-purple-300/50 transition-colors"
+                onTouchStart={(e) => {
+                  e.preventDefault();
+                  initEngineAudio();
+                  keysPressed.current.add('ShiftLeft');
+                }}
+                onTouchEnd={(e) => {
+                  e.preventDefault();
+                  keysPressed.current.delete('ShiftLeft');
+                }}
+              >
+                <span className="block font-mono text-[7px] tracking-widest uppercase text-white/60 mt-1">BOOST</span>
+              </button>
+            </div>
+
+            {/* Fire button — bottom-right, above boost */}
+            <div className="pointer-events-auto fixed bottom-24 right-6 z-50">
+              <button
+                type="button"
+                className="w-14 h-14 rounded-full border border-white/20 bg-black/35 backdrop-blur-sm active:bg-red-400/20 active:border-red-300/50 transition-colors"
+                onTouchStart={(e) => {
+                  e.preventDefault();
+                  initEngineAudio();
+                  keysPressed.current.add('Mouse0');
+                }}
+                onTouchEnd={(e) => {
+                  e.preventDefault();
+                  keysPressed.current.delete('Mouse0');
+                }}
+              >
+                <span className="block font-mono text-[7px] tracking-widest uppercase text-white/60 mt-1">FIRE</span>
+              </button>
+            </div>
+          </>
+        )}
 
         <div className="pointer-events-auto fixed right-3 top-3 z-50 rounded-xl border border-white/20 bg-black/55 px-3 py-2 backdrop-blur-sm">
           <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-white/70">Flight Assist</div>
@@ -1843,10 +2537,52 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
           </div>
         )}
 
+        {/* Pause Overlay */}
+        {gameState.phase === 'paused' && (
+          <div className="pointer-events-auto fixed inset-0 z-60 flex flex-col items-center justify-center bg-black/70 backdrop-blur-md">
+            <div className="text-center space-y-8">
+              <div className="font-mono text-[13px] tracking-[0.35em] uppercase text-cyan-300/90">Paused</div>
+              <div className="space-y-3">
+                <button
+                  type="button"
+                  onClick={() => setGameState((s) => ({ ...s, phase: 'exploration' }))}
+                  className="block w-56 rounded-full border border-cyan-300/50 bg-cyan-400/10 px-6 py-3 font-mono text-[11px] uppercase tracking-[0.2em] text-cyan-200 hover:bg-cyan-400/20 transition-colors"
+                >
+                  Resume (Esc)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setGameState(createInitialGameState());
+                    setDataCores(createDataCores(ROUTE_DEFINITIONS.flatMap((r) => r.waypoints)));
+                  }}
+                  className="block w-56 rounded-full border border-white/25 bg-white/5 px-6 py-3 font-mono text-[11px] uppercase tracking-[0.2em] text-white/80 hover:bg-white/10 transition-colors"
+                >
+                  Restart Mission
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowControlsHelp(true)}
+                  className="block w-56 rounded-full border border-white/25 bg-white/5 px-6 py-3 font-mono text-[11px] uppercase tracking-[0.2em] text-white/80 hover:bg-white/10 transition-colors"
+                >
+                  Controls (H)
+                </button>
+              </div>
+              <div className="font-mono text-[9px] tracking-[0.2em] uppercase text-white/50">
+                Score · {formatScore(gameState.score)}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* HUD Layer */}
         <HUD
           gameState={gameState}
           showForwardDebug={showForwardDebug}
+          waypoints={ROUTE_DEFINITIONS.flatMap((r) => r.waypoints).map((w) => ({
+            position: w.position,
+            label: w.label,
+          }))}
         />
 
         {/* Testing Console (Ctrl+Shift+T) */}

@@ -1,0 +1,15 @@
+Test1glb.glb provenance note
+============================
+
+This is the active Star Cleaver player ship model.
+
+Creation workflow:
+- Modeled and iterated in Blender.
+- LM Studio was used during the design/iteration workflow.
+- Attached local model used in that LM Studio workflow: qwen3.6-35b-a3b-mtp.
+
+Usage in code:
+- Loaded from /models/Test1glb.glb in the Star Cleaver player-ship model loader.
+
+Purpose:
+- This note exists for transparency so users know where the asset came from.
