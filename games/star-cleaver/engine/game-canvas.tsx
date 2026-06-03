@@ -87,6 +87,12 @@ const GRAPHICS_PROFILES: Record<GraphicsTier, GraphicsProfile> = {
   },
 };
 
+const ENGINE_VOLUME_STORAGE_KEY = 'star-cleaver-engine-volume';
+
+function clamp01(value: number) {
+  return Math.min(1, Math.max(0, value));
+}
+
 function detectGraphicsProfile(): GraphicsProfile {
   if (typeof window === 'undefined' || typeof navigator === 'undefined') {
     return GRAPHICS_PROFILES.high;
@@ -1919,6 +1925,7 @@ function GameScene({
 function GameRenderer({ onReady }: { onReady?: () => void }) {
   const [gameState, setGameState] = useState<GameState>(createInitialGameState());
   const [graphicsProfile, setGraphicsProfile] = useState<GraphicsProfile>(GRAPHICS_PROFILES.high);
+  const [engineVolume, setEngineVolume] = useState(0.38);
   const [showTestConsole, setShowTestConsole] = useState(false);
   const [showForwardDebug, setShowForwardDebug] = useState(false);
   const [assistedFlight, setAssistedFlight] = useState(true);
@@ -1965,6 +1972,19 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
   useEffect(() => {
     setGraphicsProfile(detectGraphicsProfile());
   }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const saved = Number(window.localStorage.getItem(ENGINE_VOLUME_STORAGE_KEY));
+    if (Number.isFinite(saved)) {
+      setEngineVolume(clamp01(saved));
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(ENGINE_VOLUME_STORAGE_KEY, String(clamp01(engineVolume)));
+  }, [engineVolume]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -2121,11 +2141,14 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
     if (!audio || !audio.active) return;
     const now = audio.ctx.currentTime;
     const drive = Math.min(1, Math.max(0.02, throttle * 0.58 + Math.min(speed / 90, 1) * 0.34 + boostSpool * 0.22));
+    const boostBlend = boost ? 0.4 + boostSpool * 0.35 : boostSpool * 0.18;
+    const baseGain = 0.0022 + drive * 0.0056;
+    const targetGain = baseGain * engineVolume * (1 - boostBlend * 0.08);
 
-    audio.osc.frequency.setTargetAtTime(46 + drive * 42 + (boost ? 16 : 0), now, 0.16);
-    audio.rumble.frequency.setTargetAtTime(24 + drive * 10 + (boost ? 6 : 0), now, 0.16);
-    audio.filter.frequency.setTargetAtTime(120 + drive * 180 + (boost ? 95 : 0), now, 0.2);
-    audio.gain.gain.setTargetAtTime(0.0022 + drive * 0.0056 + (boost ? 0.0024 : 0), now, 0.18);
+    audio.osc.frequency.setTargetAtTime(46 + drive * 42 - boostBlend * 5, now, 0.16);
+    audio.rumble.frequency.setTargetAtTime(24 + drive * 10 + boostBlend * 7, now, 0.16);
+    audio.filter.frequency.setTargetAtTime(120 + drive * 180 - boostBlend * 28, now, 0.2);
+    audio.gain.gain.setTargetAtTime(Math.max(0.0001, targetGain), now, 0.18);
   };
 
   /**
@@ -2651,6 +2674,25 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
               Controls Help (H)
             </button>
           </div>
+          <div className="mt-3">
+            <div className="flex items-center justify-between gap-3 font-mono text-[9px] uppercase tracking-[0.16em] text-white/65">
+              <span>Engine Mix</span>
+              <span>{Math.round(engineVolume * 100)}%</span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={1}
+              value={Math.round(engineVolume * 100)}
+              onChange={(event) => {
+                initEngineAudio();
+                setEngineVolume(clamp01(Number(event.target.value) / 100));
+              }}
+              className="mt-2 block w-full accent-cyan-300"
+              aria-label="Engine audio volume"
+            />
+          </div>
           {!SIMPLE_JOURNEY_MODE && (
             <div className="mt-2">
               <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-white/65">Weapon Tune</div>
@@ -2686,6 +2728,7 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
               <div>Move: W accelerate, S brake, Shift or Space boost</div>
               <div>Steer: A/D or Arrow keys, Q/E roll, mouse for fine aim</div>
               <div>Weapons: Hold left click, J, or Enter to fire wing cannons</div>
+              <div>Audio: Engine mix slider lives in the top-right panel</div>
               <div>Safety: F flight assist toggle, R reset heading</div>
               {!SIMPLE_JOURNEY_MODE && <div>Mode: X toggles cruise/attack foils</div>}
               <div>Debug: V nose marker, H toggles this panel</div>
