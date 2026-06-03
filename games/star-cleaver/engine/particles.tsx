@@ -7,27 +7,49 @@ import type { GameState } from '../../../lib/neural-game-engine';
 
 /* --------------------------------------------------------------------------
  * SpaceDust — instanced particle field that streaks past the ship based on
- * velocity. Uses a single InstancedMesh for performance (~600 points).
+ * velocity. Uses a single InstancedMesh for performance (~1200 streaks).
+ *
+ * Realistic feel:
+ *   - Particles spawn in a tunnel ahead of the ship, not a uniform cube
+ *   - Long thin streaks aligned to velocity
+ *   - Color temperature shifts from cool white to blue-purple at high speed
+ *   - Boost triggers a "warp tunnel" effect with extreme streaking
  * ------------------------------------------------------------------------ */
 
-const DUST_COUNT = 600;
-const DUST_BOX_SIZE = 320; // particles live in a cube this wide around the ship
-const DUST_COLOR = new THREE.Color(0xaaccff);
+const DUST_COUNT = 1200;
+const DUST_TUNNEL_LENGTH = 500; // particles spawn in a tunnel this long ahead
+const DUST_TUNNEL_RADIUS = 140;
+const DUST_COLORS = [
+  new THREE.Color(0xffffff),
+  new THREE.Color(0xcce8ff),
+  new THREE.Color(0xaaccff),
+  new THREE.Color(0x99bbee),
+];
 
 export function SpaceDust({ gameState }: { gameState: GameState }) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const dummy = useMemo(() => new THREE.Object3D(), []);
 
-  // Pre-seed random positions so particles don't all clump
+  // Each particle: position, color index, size, speed bias
   const seeds = useMemo(() => {
-    const arr: Array<{ x: number; y: number; z: number; size: number; speed: number }> = [];
+    const arr: Array<{
+      x: number; y: number; z: number;
+      colorIdx: number;
+      baseSize: number;
+      speedBias: number;
+    }> = [];
     for (let i = 0; i < DUST_COUNT; i++) {
+      // Cylindrical tunnel distribution — denser along the forward axis
+      const t = Math.random(); // 0 = near ship, 1 = far ahead
+      const angle = Math.random() * Math.PI * 2;
+      const r = Math.pow(Math.random(), 0.6) * DUST_TUNNEL_RADIUS;
       arr.push({
-        x: (Math.random() - 0.5) * DUST_BOX_SIZE,
-        y: (Math.random() - 0.5) * DUST_BOX_SIZE,
-        z: (Math.random() - 0.5) * DUST_BOX_SIZE,
-        size: 0.08 + Math.random() * 0.18,
-        speed: 0.7 + Math.random() * 0.3,
+        x: Math.cos(angle) * r,
+        y: Math.sin(angle) * r,
+        z: -t * DUST_TUNNEL_LENGTH, // ahead of ship (-Z is forward)
+        colorIdx: Math.floor(Math.random() * DUST_COLORS.length),
+        baseSize: 0.04 + Math.random() * 0.12,
+        speedBias: 0.6 + Math.random() * 0.8,
       });
     }
     return arr;
@@ -43,47 +65,51 @@ export function SpaceDust({ gameState }: { gameState: GameState }) {
     const vy = gameState.playerEntity.velocity.y;
     const vz = gameState.playerEntity.velocity.z;
     const speed = Math.sqrt(vx * vx + vy * vy + vz * vz);
-    const half = DUST_BOX_SIZE / 2;
+    const boostActive = Boolean(gameState.playerEntity.metadata?.boostActive);
 
-    // Direction the ship is moving (world space)
-    const moveDir = speed > 0.1 ? new THREE.Vector3(vx, vy, vz).normalize() : new THREE.Vector3(0, 0, -1);
+    // Warp factor: extreme stretch when boosting
+    const warp = boostActive ? 3.5 : 1.0;
+
+    // Move direction
+    const moveDir = speed > 0.1
+      ? new THREE.Vector3(vx, vy, vz).normalize()
+      : new THREE.Vector3(0, 0, -1);
 
     for (let i = 0; i < DUST_COUNT; i++) {
       const s = seeds[i];
 
-      // Particle drifts opposite to ship velocity to create parallax
-      const driftX = s.x - vx * delta * s.speed;
-      const driftY = s.y - vy * delta * s.speed;
-      const driftZ = s.z - vz * delta * s.speed;
+      // Particles stream past the ship — they drift opposite to velocity
+      const driftRate = speed * s.speedBias * warp;
+      s.z += driftRate * delta;
 
-      // Wrap around the bounding box relative to player position
-      let wx = ((driftX - px) % DUST_BOX_SIZE);
-      let wy = ((driftY - py) % DUST_BOX_SIZE);
-      let wz = ((driftZ - pz) % DUST_BOX_SIZE);
-      if (wx < -half) wx += DUST_BOX_SIZE;
-      if (wx > half) wx -= DUST_BOX_SIZE;
-      if (wy < -half) wy += DUST_BOX_SIZE;
-      if (wy > half) wy -= DUST_BOX_SIZE;
-      if (wz < -half) wz += DUST_BOX_SIZE;
-      if (wz > half) wz -= DUST_BOX_SIZE;
+      // Wrap: when a particle passes behind the ship, respawn it far ahead
+      if (s.z > 40) {
+        const angle = Math.random() * Math.PI * 2;
+        const r = Math.pow(Math.random(), 0.6) * DUST_TUNNEL_RADIUS;
+        s.x = Math.cos(angle) * r;
+        s.y = Math.sin(angle) * r;
+        s.z = -DUST_TUNNEL_LENGTH * (0.3 + Math.random() * 0.7);
+      }
 
-      // Absolute world position
-      const absX = px + wx;
-      const absY = py + wy;
-      const absZ = pz + wz;
+      // World position
+      const absX = px + s.x;
+      const absY = py + s.y;
+      const absZ = pz + s.z;
 
-      // Streak scale: stretch along velocity axis when moving fast
-      const stretch = Math.min(1, speed / 60); // 0→1 as speed ramps
-      const scaleX = s.size * (1 + stretch * 3);
-      const scaleY = s.size * (1 + stretch * 3);
-      const scaleZ = s.size * (1 + stretch * 10);
+      // Streak: long thin line aligned to velocity
+      const stretch = Math.min(1, speed / 30) * warp;
+      const streakLen = s.baseSize * (1 + stretch * 18);
+      const streakWidth = s.baseSize * (1 + stretch * 0.5);
 
       dummy.position.set(absX, absY, absZ);
-      dummy.scale.set(scaleX, scaleY, scaleZ);
+      dummy.scale.set(streakWidth, streakWidth, streakLen);
 
-      // Orient the stretch along velocity
+      // Orient so Z aligns with movement (streak points along velocity)
       if (speed > 0.5) {
-        const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), moveDir);
+        const q = new THREE.Quaternion().setFromUnitVectors(
+          new THREE.Vector3(0, 0, 1),
+          moveDir.clone().negate() // particles stream backward relative to ship
+        );
         dummy.quaternion.copy(q);
       } else {
         dummy.quaternion.set(0, 0, 0, 1);
@@ -92,23 +118,32 @@ export function SpaceDust({ gameState }: { gameState: GameState }) {
       dummy.updateMatrix();
       meshRef.current.setMatrixAt(i, dummy.matrix);
 
-      // Store wrapped coords back for next frame
-      s.x = absX;
-      s.y = absY;
-      s.z = absZ;
+      // Per-particle color
+      const col = DUST_COLORS[s.colorIdx];
+      meshRef.current.setColorAt(i, col);
     }
 
     meshRef.current.instanceMatrix.needsUpdate = true;
+    if (meshRef.current.instanceColor) {
+      meshRef.current.instanceColor.needsUpdate = true;
+    }
 
-    // Fade opacity by speed: invisible when still, bright when cruising
+    // Global opacity ramps with speed
     const mat = meshRef.current.material as THREE.MeshBasicMaterial;
-    mat.opacity = Math.min(0.55, speed / 120);
+    mat.opacity = Math.min(0.65, speed / 80);
   });
 
   return (
     <instancedMesh ref={meshRef} args={[undefined, undefined, DUST_COUNT]}>
-      <boxGeometry args={[1, 1, 1]} />
-      <meshBasicMaterial color={DUST_COLOR} transparent opacity={0} blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} />
+      <capsuleGeometry args={[0.5, 1, 4, 8]} />
+      <meshBasicMaterial
+        color={0xffffff}
+        transparent
+        opacity={0}
+        blending={THREE.AdditiveBlending}
+        depthWrite={false}
+        toneMapped={false}
+      />
     </instancedMesh>
   );
 }

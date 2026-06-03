@@ -20,8 +20,8 @@ type ShipTransform = {
 
 const SHIP_TRANSFORMS: Record<ShipVariant, { game: ShipTransform; preview: ShipTransform }> = {
 	'default-vanguard': {
-	       preview: { scale: 1.05, position: [0, -1.05, 0], rotation: [-(Math.PI / 2) - 0.12, Math.PI, 0] },
-	       game: { scale: 1.75, position: [0, -1.58, 0.2], rotation: [-(Math.PI / 2) - 0.03, Math.PI, 0] },
+	       preview: { scale: 1.2, position: [0, 0, 0], rotation: [0, 0, 0] },
+	       game: { scale: 1.5, position: [0, 0, 0], rotation: [0, 0, 0] },
        },
 };
 
@@ -69,41 +69,41 @@ function cloneAndStyleShipModel(scene: THREE.Object3D) {
 			const looksLikeWeapon = /laser|gun|barrel|cannon/.test(partKey);
 
 			if (looksLikeCockpit) {
-				mat.color = new THREE.Color('#d4eeff');
-				mat.roughness = 0.06;
-				mat.metalness = 0.3;
+				mat.color = new THREE.Color('#e8f4ff');
+				mat.roughness = 0.04;
+				mat.metalness = 0.35;
 				if (mat instanceof THREE.MeshPhysicalMaterial) {
-					mat.transmission = 0.56;
+					mat.transmission = 0.6;
 					mat.thickness = 0.3;
-					mat.clearcoat = 0.82;
-					mat.clearcoatRoughness = 0.08;
+					mat.clearcoat = 0.9;
+					mat.clearcoatRoughness = 0.06;
 				}
-				mat.emissive = new THREE.Color('#40d8ff');
-				mat.emissiveIntensity = 0.55;
+				mat.emissive = new THREE.Color('#60e0ff');
+				mat.emissiveIntensity = 0.75;
 			} else if (looksLikeEngine) {
-				mat.color = new THREE.Color('#5a8db5');
-				mat.roughness = 0.24;
-				mat.metalness = 0.9;
-				mat.emissive = new THREE.Color('#69d8ff');
-				mat.emissiveIntensity = 1.0;
+				mat.color = new THREE.Color('#4a7da8');
+				mat.roughness = 0.22;
+				mat.metalness = 0.92;
+				mat.emissive = new THREE.Color('#5fd4ff');
+				mat.emissiveIntensity = 1.2;
 			} else if (looksLikeWeapon) {
-				mat.color = new THREE.Color('#7a9bb8');
-				mat.roughness = 0.34;
-				mat.metalness = 0.88;
-				mat.emissive = new THREE.Color('#2a4d70');
-				mat.emissiveIntensity = 0.2;
-			} else if (looksLikeWing) {
-				mat.color = new THREE.Color('#c8d8ec');
-				mat.roughness = 0.32;
-				mat.metalness = 0.82;
-				mat.emissive = new THREE.Color('#2a4d70');
-				mat.emissiveIntensity = 0.22;
-			} else {
-				mat.color = new THREE.Color('#9bb4d4');
+				mat.color = new THREE.Color('#8aa8c8');
 				mat.roughness = 0.3;
-				mat.metalness = 0.86;
-				mat.emissive = new THREE.Color('#2a4d70');
-				mat.emissiveIntensity = 0.18;
+				mat.metalness = 0.9;
+				mat.emissive = new THREE.Color('#3a6da0');
+				mat.emissiveIntensity = 0.35;
+			} else if (looksLikeWing) {
+				mat.color = new THREE.Color('#d8e6f4');
+				mat.roughness = 0.28;
+				mat.metalness = 0.85;
+				mat.emissive = new THREE.Color('#3a6da0');
+				mat.emissiveIntensity = 0.3;
+			} else {
+				mat.color = new THREE.Color('#aec4dc');
+				mat.roughness = 0.28;
+				mat.metalness = 0.88;
+				mat.emissive = new THREE.Color('#3a6da0');
+				mat.emissiveIntensity = 0.25;
 			}
 
 			mat.envMapIntensity = Math.max(1.35, mat.envMapIntensity || 1.55);

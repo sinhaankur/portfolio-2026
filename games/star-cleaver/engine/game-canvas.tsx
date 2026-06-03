@@ -694,7 +694,7 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
       rotation={[gameState.playerEntity.rotation.x, gameState.playerEntity.rotation.y, gameState.playerEntity.rotation.z]}
     >
       <group ref={innerGroupRef}>
-        <group scale={shipTransform.scale * 1.2} position={shipTransform.position} rotation={shipTransform.rotation}>
+        <group scale={shipTransform.scale} position={shipTransform.position} rotation={shipTransform.rotation}>
           <Suspense fallback={<ProceduralPlayerShipModel shipId={selectedShip} mode="game" applyTransform={false} />}>
             <PlayerShipModel shipId={selectedShip} mode="game" applyTransform={false} />
           </Suspense>
@@ -1328,10 +1328,10 @@ function GameScene({
   const enemyAgentsRef = useRef<Map<string, any>>(new Map());
   const entityMeshesRef = useRef<Map<string, THREE.Group>>(new Map());
   const frameCountRef = useRef(0);
-  const forwardSpeedRef = useRef(14);
+  const forwardSpeedRef = useRef(0);
   const throttleRef = useRef(0.34);
   const boostSpoolRef = useRef(0);
-  const prevForwardSpeedRef = useRef(14);
+  const prevForwardSpeedRef = useRef(0);
   const prevForwardAccelRef = useRef(0);
   const fireCooldownRef = useRef(0);
   const cannonCycleRef = useRef(0);
@@ -1560,18 +1560,20 @@ function GameScene({
       });
       gasCloudDensity = Math.min(1, gasCloudDensity);
 
-      // Analog throttle model: engines spool up/down instead of instant speed snapping.
-      const cruiseThrottle = attackMode ? 0.26 : 0.34;
-      let targetThrottle = cruiseThrottle;
+      // Analog throttle model: user must actively thrust to move.
+      // No auto-cruise — ship starts and stays at rest until W is pressed.
+      let targetThrottle = 0;
       if (isAccelerating) targetThrottle = 1.0;
       if (isBraking) targetThrottle = -0.5;
 
       const throttleResponse =
         targetThrottle > throttleRef.current
           ? (isBoosting ? 4.2 : attackMode ? 3.7 : 3.3)
-          : (isBraking ? 6.4 : 4.9);
+          : (isBraking ? 6.4 : 2.2);
       const throttleK = 1 - Math.exp(-clampedDelta * throttleResponse);
       throttleRef.current += (targetThrottle - throttleRef.current) * throttleK;
+      // Hard floor at zero so the ship can actually come to a stop
+      if (Math.abs(throttleRef.current) < 0.001) throttleRef.current = 0;
 
       const boostTarget = isBoosting && throttleRef.current > 0.05 ? 1 : 0;
       const boostResponse = boostTarget > boostSpoolRef.current ? 5.4 : 7.4;
@@ -1593,7 +1595,7 @@ function GameScene({
         throttleSpeed + (throttleRef.current > 0 ? boostSpeedBonus : 0) - (throttleRef.current > 0 ? cloudSpeedPenalty : 0);
 
       if (!Number.isFinite(forwardSpeedRef.current)) {
-        forwardSpeedRef.current = cruiseSpeed;
+        forwardSpeedRef.current = 0;
       }
 
       const accelLimit =
@@ -1609,8 +1611,9 @@ function GameScene({
         forwardSpeedRef.current += Math.max(speedDelta, -maxDownStep);
       }
 
-      if (!isAccelerating && !isBraking && forwardSpeedRef.current < cruiseSpeed) {
-        forwardSpeedRef.current = Math.max(forwardSpeedRef.current, cruiseSpeed);
+      // Gentle friction deceleration to zero when no thrust input
+      if (!isAccelerating && !isBraking && forwardSpeedRef.current > 0) {
+        forwardSpeedRef.current = Math.max(0, forwardSpeedRef.current - 8 * clampedDelta);
       }
 
       gameState.playerEntity.velocity.x = forwardLocal.x * forwardSpeedRef.current;
@@ -2505,6 +2508,15 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
           </>
         )}
 
+        {/* Back to main site */}
+        <a
+          href="/"
+          className="pointer-events-auto fixed left-3 top-3 z-50 inline-flex items-center gap-1.5 rounded-xl border border-white/20 bg-black/55 px-3 py-2 backdrop-blur-sm font-mono text-[9px] uppercase tracking-[0.14em] text-white/75 hover:text-white hover:border-white/40 transition-colors"
+        >
+          <span aria-hidden="true">←</span>
+          Back
+        </a>
+
         <div className="pointer-events-auto fixed right-3 top-3 z-50 rounded-xl border border-white/20 bg-black/55 px-3 py-2 backdrop-blur-sm">
           <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-white/70">Flight Assist</div>
           <div className="mt-2 flex items-center gap-2">
@@ -2521,6 +2533,16 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
               className="rounded border border-white/25 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.12em] text-white/75"
             >
               Reset Heading (R)
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setGameState(createInitialGameState());
+                setDataCores(createDataCores(ROUTE_DEFINITIONS.flatMap((r) => r.waypoints)));
+              }}
+              className="rounded border border-white/25 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.12em] text-white/75 hover:text-red-300 hover:border-red-300/40 transition-colors"
+            >
+              Restart
             </button>
           </div>
           <div className="mt-2 flex items-center gap-1">
