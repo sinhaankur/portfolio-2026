@@ -17,7 +17,7 @@ import {
 } from '../../../lib/neural-game-engine';
 // import { createNeuralAgent, type NeuralAgent } from '../../../lib/neural-game-engine/ai-agent';
 import { generateShip } from '../../../lib/ship-generator/procedural-ships';
-import { createInitialGameState, startIgnition, startExploration, formatScore } from './game-state';
+import { createInitialGameState, startIgnition, startExploration, formatScore, IGNITION_STARTUP_DURATION } from './game-state';
 import { HUD } from './hud';
 import { TestingConsole } from './testing-console';
 import { PlayerShipModel, ProceduralPlayerShipModel, getPlayerShipTransform } from './player-ship-model';
@@ -1271,7 +1271,7 @@ function CameraFollowController({ gameState, cameraAssist }: { gameState: GameSt
       gameState.playerEntity.rotation.z
     );
     const playerQuat = new THREE.Quaternion().setFromEuler(playerEuler);
-    const forwardDir = new THREE.Vector3(0, 0, -1).applyQuaternion(playerQuat).normalize();
+    const forwardDir = new THREE.Vector3(0, 0, 1).applyQuaternion(playerQuat).normalize();
     const worldUp = new THREE.Vector3(0, 1, 0);
     const rightDir = new THREE.Vector3().crossVectors(forwardDir, worldUp).normalize();
     const speed = Math.sqrt(
@@ -1551,50 +1551,53 @@ function GameScene({
       );
       playerQuat.setFromEuler(playerEuler);
 
-      // Canonical gameplay convention: ship nose points along local -Z.
+      // Canonical gameplay convention: ship nose points along local +Z.
       // Weapons fire along this vector; engine thrust pushes in the opposite direction.
-      const forwardLocal = new THREE.Vector3(0, 0, -1).applyQuaternion(playerQuat);
+      const forwardLocal = new THREE.Vector3(0, 0, 1).applyQuaternion(playerQuat);
       const rightLocal = new THREE.Vector3(1, 0, 0).applyQuaternion(playerQuat);
       const upLocal = new THREE.Vector3(0, 1, 0).applyQuaternion(playerQuat);
 
       const attackMode = Boolean(gameState.playerEntity.metadata?.attackMode);
       const turnSpeed = attackMode ? 2.1 : 1.6;
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const ignitionSequenceActive = gameState.phase === 'ignition';
 
       let pitchInput = 0;
       let yawInput = 0;
       let rollInput = 0;
 
-      if (keysPressed.current.has('ArrowUp')) pitchInput += 1;
-      if (keysPressed.current.has('ArrowDown')) pitchInput -= 1;
-      if (keysPressed.current.has('ArrowLeft')) yawInput += 1;
-      if (keysPressed.current.has('ArrowRight')) yawInput -= 1;
-      if (keysPressed.current.has('KeyA')) yawInput += 1;
-      if (keysPressed.current.has('KeyD')) yawInput -= 1;
-      if (keysPressed.current.has('KeyQ')) rollInput += 1;
-      if (keysPressed.current.has('KeyE')) rollInput -= 1;
+      if (!ignitionSequenceActive) {
+        if (keysPressed.current.has('ArrowUp')) pitchInput += 1;
+        if (keysPressed.current.has('ArrowDown')) pitchInput -= 1;
+        if (keysPressed.current.has('ArrowLeft')) yawInput += 1;
+        if (keysPressed.current.has('ArrowRight')) yawInput -= 1;
+        if (keysPressed.current.has('KeyA')) yawInput += 1;
+        if (keysPressed.current.has('KeyD')) yawInput -= 1;
+        if (keysPressed.current.has('KeyQ')) rollInput += 1;
+        if (keysPressed.current.has('KeyE')) rollInput -= 1;
 
-      if (!isMobile) {
-        const mouseSensitivity = attackMode ? 1.0 : 0.85;
-        pitchInput += mouseRotation.current.pitch * mouseSensitivity;
-        yawInput += mouseRotation.current.yaw * mouseSensitivity;
-      }
+        if (!isMobile) {
+          const mouseSensitivity = attackMode ? 1.0 : 0.85;
+          pitchInput += mouseRotation.current.pitch * mouseSensitivity;
+          yawInput += mouseRotation.current.yaw * mouseSensitivity;
+        }
 
-      if (isMobile && deviceOrientation.current.beta !== 0) {
-        const deviceSensitivity = attackMode ? 0.009 : 0.007;
-        pitchInput += (deviceOrientation.current.beta / 180) * deviceSensitivity * 240;
-        yawInput -= (deviceOrientation.current.gamma / 90) * deviceSensitivity * 240;
-        rollInput += (deviceOrientation.current.alpha / 360) * deviceSensitivity * 120;
-      }
+        if (isMobile && deviceOrientation.current.beta !== 0) {
+          const deviceSensitivity = attackMode ? 0.009 : 0.007;
+          pitchInput += (deviceOrientation.current.beta / 180) * deviceSensitivity * 240;
+          yawInput -= (deviceOrientation.current.gamma / 90) * deviceSensitivity * 240;
+          rollInput += (deviceOrientation.current.alpha / 360) * deviceSensitivity * 120;
+        }
 
-      // Virtual joystick input for touch devices
-      if (joystickRef?.current?.active) {
-        const joystickSensitivity = attackMode ? 0.022 : 0.018;
-        const maxR = 48;
-        const normX = joystickRef.current.dx / maxR;
-        const normY = joystickRef.current.dy / maxR;
-        yawInput -= normX * joystickSensitivity * 60;  // left/right → yaw
-        pitchInput += normY * joystickSensitivity * 60; // up/down → pitch (inverted: drag up = pitch up)
+        // Virtual joystick input for touch devices
+        if (joystickRef?.current?.active) {
+          const joystickSensitivity = attackMode ? 0.022 : 0.018;
+          const maxR = 48;
+          const normX = joystickRef.current.dx / maxR;
+          const normY = joystickRef.current.dy / maxR;
+          yawInput -= normX * joystickSensitivity * 60;
+          pitchInput += normY * joystickSensitivity * 60;
+        }
       }
 
       const applyDeadzone = (value: number, deadzone = 0.045) => {
@@ -1621,10 +1624,10 @@ function GameScene({
         gameState.playerEntity.rotation.x += (0 - gameState.playerEntity.rotation.x) * (autoLevelK * 0.22);
       }
 
-      const isAccelerating = keysPressed.current.has('KeyW');
-      const isBraking = keysPressed.current.has('KeyS');
-      const isBoosting = keysPressed.current.has('ShiftLeft') || keysPressed.current.has('ShiftRight');
-      const isFiring = keysPressed.current.has('Mouse0') || keysPressed.current.has('KeyJ') || keysPressed.current.has('Enter');
+      const isAccelerating = !ignitionSequenceActive && keysPressed.current.has('KeyW');
+      const isBraking = !ignitionSequenceActive && keysPressed.current.has('KeyS');
+      const isBoosting = !ignitionSequenceActive && (keysPressed.current.has('ShiftLeft') || keysPressed.current.has('ShiftRight'));
+      const isFiring = !ignitionSequenceActive && (keysPressed.current.has('Mouse0') || keysPressed.current.has('KeyJ') || keysPressed.current.has('Enter'));
 
       const px = gameState.playerEntity.position.x;
       const py = gameState.playerEntity.position.y;
@@ -1992,6 +1995,18 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
   }, [graphicsProfile]);
 
   useEffect(() => {
+    if (gameState.phase !== 'ignition') return;
+    if (typeof gameState.ignitionStartTime !== 'number') return;
+    if (gameState.simTime - gameState.ignitionStartTime < IGNITION_STARTUP_DURATION) return;
+
+    setGameState((s) => {
+      if (s.phase !== 'ignition' || typeof s.ignitionStartTime !== 'number') return s;
+      if (s.simTime - s.ignitionStartTime < IGNITION_STARTUP_DURATION) return s;
+      return startExploration(s);
+    });
+  }, [gameState.phase, gameState.ignitionStartTime, gameState.simTime]);
+
+  useEffect(() => {
     if (typeof window === 'undefined') return;
     const key = 'star-cleaver-first-flight-v1';
     if (window.localStorage.getItem(key) === 'seen') return;
@@ -2072,12 +2087,12 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
       );
 
       if (toTarget.lengthSq() < 1e-6) {
-        toTarget.set(0, 0, -1);
+        toTarget.set(0, 0, 1);
       } else {
         toTarget.normalize();
       }
 
-      const yaw = Math.atan2(-toTarget.x, -toTarget.z);
+      const yaw = Math.atan2(toTarget.x, toTarget.z);
       const pitch = -Math.asin(Math.max(-1, Math.min(1, toTarget.y)));
 
       return {
@@ -2241,12 +2256,15 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
         e.preventDefault();
         setShowControlsHelp((v) => !v);
       }
-      // Start ignition on spacebar / W — immediate launch, no countdown
+      // Start ignition on spacebar / W, then transition to exploration when startup completes.
       if (e.code === 'Space' || e.code === 'KeyW') {
         e.preventDefault();
         setGameState((s) => {
           if (s.phase === 'ignition') {
-            return startExploration(s);
+            if (typeof s.ignitionStartTime === 'number') {
+              return s;
+            }
+            return startIgnition(s);
           }
           if (s.phase === 'exploration' || s.phase === 'charging' || s.phase === 'combat') {
             keysPressed.current.add('ShiftLeft');
@@ -2423,7 +2441,7 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
         {gameState.projectiles.map((proj) => (
           (() => {
             const v = new THREE.Vector3(proj.velocity.x, proj.velocity.y, proj.velocity.z);
-            const dir = v.lengthSq() > 1e-6 ? v.clone().normalize() : new THREE.Vector3(0, 0, -1);
+            const dir = v.lengthSq() > 1e-6 ? v.clone().normalize() : new THREE.Vector3(0, 0, 1);
             const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), dir);
             const rot = new THREE.Euler().setFromQuaternion(q);
             const isWingCannon = proj.metadata?.source === 'wing-cannon';

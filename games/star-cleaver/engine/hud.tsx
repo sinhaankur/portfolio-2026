@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import type { GameState } from '../../../lib/neural-game-engine';
-import { formatScore, getCurrentWorldName } from './game-state';
+import { formatScore, getCurrentWorldName, IGNITION_STARTUP_DURATION } from './game-state';
 import type { ShipModelAuditReport } from './ship-model-qa';
 import { SHIP_CONFIGS, type SelectedShip, getAvailableShips } from './ship-selector';
 
@@ -63,6 +63,12 @@ export function HUD({ gameState, showForwardDebug = false, onShipSelect, waypoin
   const showRouteMessage = routeMessage.length > 0 && routeMessageUntil > gameState.simTime;
   const isExplorationPhase =
     gameState.phase === 'exploration' || gameState.phase === 'ignition' || gameState.phase === 'combat';
+  const ignitionProgress = useMemo(() => {
+    if (gameState.phase !== 'ignition') return 0;
+    if (typeof gameState.ignitionStartTime !== 'number') return 0;
+    return Math.min(1, Math.max(0, (gameState.simTime - gameState.ignitionStartTime) / IGNITION_STARTUP_DURATION));
+  }, [gameState.phase, gameState.ignitionStartTime, gameState.simTime]);
+  const ignitionArmed = gameState.phase === 'ignition' && typeof gameState.ignitionStartTime === 'number';
   const isTouchDevice = typeof navigator !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   const primaryFlightHint = useMemo(() => {
     if (isTouchDevice) {
@@ -307,10 +313,25 @@ export function HUD({ gameState, showForwardDebug = false, onShipSelect, waypoin
                 </div>
                 <div className="h-px w-24 bg-linear-to-r from-transparent via-cyan-400/50 to-transparent mx-auto"
                 />
-                <div className="font-mono text-[9px] tracking-[0.2em] uppercase text-white/50"
-                >
-                  Press W or Space to launch
-                </div>
+                {ignitionArmed ? (
+                  <>
+                    <div className="mx-auto h-1.5 w-48 overflow-hidden rounded-full border border-cyan-300/20 bg-white/10">
+                      <div
+                        className="h-full bg-cyan-300 transition-all duration-150"
+                        style={{ width: `${ignitionProgress * 100}%` }}
+                      />
+                    </div>
+                    <div className="font-mono text-[9px] tracking-[0.2em] uppercase text-cyan-100/70"
+                    >
+                      Ignition sequence underway
+                    </div>
+                  </>
+                ) : (
+                  <div className="font-mono text-[9px] tracking-[0.2em] uppercase text-white/50"
+                  >
+                    Press W or Space to start ignition
+                  </div>
+                )}
               </div>
             </div>
           )}
