@@ -142,6 +142,18 @@ export function kerrHorizonRadiusMeters(massSolar: number, spin: number): number
   return (rs / 2) * (1 + Math.sqrt(1 - a * a))
 }
 
+/**
+ * Newtonian-equivalent acceleration at the event horizon.
+ *
+ * Black holes do not have a normal surface, but this gives a useful
+ * gravity-scale value for the horizon itself.
+ */
+export function blackHoleHorizonGravityMetersPerSec2(massSolar: number, spin: number): number {
+  const massKg = massSolar * SOLAR_MASS_KG
+  const horizonRadius = kerrHorizonRadiusMeters(massSolar, spin)
+  return (G_NEWTON * massKg) / (horizonRadius * horizonRadius)
+}
+
 /* --------------------------------------------------------------------------
  * Orbital mechanics — Kepler solvers shared by scene renderer + overlays
  * ------------------------------------------------------------------------ */
@@ -512,6 +524,12 @@ export const SGR_A_INFO: BodyInfo = {
   classification: "Supermassive black hole",
   surfaceTempK: { mean: 0 },
   fact: "Centre of the Milky Way, ~26,000 light-years from Earth. ~4 million solar masses, event horizon ~24 million km. Astronomers can't see Sgr A* directly — no light escapes — but they track its mass by watching stars whip around an invisible point at up to 10 million mph. The space immediately around it is one of the densest regions of the galaxy: thousands of stars (ancient red main-sequence + unusually hot young ones) plus rivers of molecular gas and dust. Considered 'dormant' compared to other galactic-centre BHs — it's exhausted the matter nearest to it. The brilliant glow you see toward the Sagittarius constellation isn't the black hole; it's the dense star + dust cloud surrounding it.",
+  gravityMeasurement: {
+    label: "Horizon gravity",
+    value: blackHoleHorizonGravityMetersPerSec2(SGR_A_MASS_SOLAR, 0),
+    unit: "m/s²",
+    note: "Newtonian-equivalent acceleration at the event horizon",
+  },
 }
 
 export const SUN_INFO: BodyInfo = {
@@ -611,6 +629,14 @@ export function planetToInfo(p: Planet): BodyInfo {
     moons: p.moons,
     fact: p.fact,
     deep: p.deep,
+    gravityMeasurement:
+      p.deep?.gravity !== undefined
+        ? {
+            label: "Surface gravity",
+            value: p.deep.gravity,
+            unit: "m/s²",
+          }
+        : undefined,
   }
 }
 

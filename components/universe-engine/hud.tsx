@@ -35,6 +35,20 @@ function formatEccentricity(e: number): string {
   return e.toFixed(3)
 }
 
+function formatGravityValue(value: number, unit = "m/s²"): string {
+  if (!Number.isFinite(value)) return unit
+  const abs = Math.abs(value)
+  const display = abs >= 1000 || abs < 0.1 ? value.toExponential(2) : value.toFixed(2)
+  return `${display} ${unit}`
+}
+
+function formatGee(value: number): string {
+  const gee = value / 9.80665
+  const abs = Math.abs(gee)
+  const display = abs >= 1000 || abs < 0.1 ? gee.toExponential(2) : gee.toFixed(2)
+  return `${display} g`
+}
+
 /** Whether an orbital-elements record has any field worth displaying.
  *  Used to skip rendering the orbital block for circular Earth-like
  *  orbits where every field is either undefined or zero. */
@@ -165,7 +179,7 @@ export function DeepFactsDisclosure({
           {deep.gravity !== undefined && (
             <>
               <dt className={rowLabel}>Gravity</dt>
-              <dd className={rowValue}>{deep.gravity.toFixed(2)} m/s²</dd>
+              <dd className={rowValue}>{formatGravityValue(deep.gravity)} · {formatGee(deep.gravity)}</dd>
             </>
           )}
           {deep.escapeVelocityKms !== undefined && (
@@ -299,6 +313,20 @@ export function InfoPanel({ info }: { info: BodyInfo | null }) {
         <div>
           <span className="text-foreground/55">Radius · </span>
           {info.radiusEarth.toFixed(2)} × Earth
+        </div>
+      )}
+
+      {info.gravityMeasurement && (
+        <div>
+          <span className="text-foreground/55">{info.gravityMeasurement.label} · </span>
+          {info.gravityMeasurement.value !== undefined ? (
+            <>
+              {formatGravityValue(info.gravityMeasurement.value, info.gravityMeasurement.unit ?? "m/s²")}
+              <span className="text-foreground/55"> ({formatGee(info.gravityMeasurement.value)})</span>
+            </>
+          ) : (
+            <>{info.gravityMeasurement.note}</>
+          )}
         </div>
       )}
 

@@ -66,6 +66,13 @@ export type BodyInfo = {
   fact?: string
   /** Deeper NASA-sourced facts — surfaced behind a "More" disclosure. */
   deep?: BodyDeepFacts
+  /** Front-facing gravity readout used for planets, black holes, and small bodies. */
+  gravityMeasurement?: {
+    label: string
+    value?: number
+    unit?: string
+    note?: string
+  }
   /** Orbital elements for spacecraft / comets / asteroids — surfaced in
    *  the InfoPanel when present. Lets curious users see the actual
    *  inclination / eccentricity / Ω / ω that drive the trajectory. */

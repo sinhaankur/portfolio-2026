@@ -64,6 +64,7 @@ import {
   SUN_INFO,
   SUN_OFFSET_SCENE,
   TIME_WARP_DAYS_PER_SEC,
+  blackHoleHorizonGravityMetersPerSec2,
   buildScenePlanets,
   constellations,
   eccentricToTrue,
@@ -3471,6 +3472,13 @@ function NamedBodyMesh({
               periodDays: isFinite(body.periodYears) ? body.periodYears * 365.25 : undefined,
               fact: body.fact,
               followable: interactive,
+                gravityMeasurement:
+                  body.kind === "comet" || body.kind === "asteroid"
+                    ? {
+                        label: "Gravity",
+                        note: "Microgravity body; no catalogued surface gravity value",
+                      }
+                    : undefined,
               orbital: {
                 eccentricity: body.eccentricity,
                 inclDeg: body.inclDeg,
@@ -4068,6 +4076,10 @@ function BlackHoleDetail({
   // BH without populating the physics data.
   const M = massSolar ?? 1e8
   const a = spin ?? 0
+  const horizonGravity = useMemo(
+    () => blackHoleHorizonGravityMetersPerSec2(M, a),
+    [M, a],
+  )
 
   const props = useMemo(
     () => computeBlackHoleProportions(M, a, size),
@@ -4169,6 +4181,8 @@ function BlackHoleDetail({
             <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-[9px] normal-case tracking-normal font-sans">
               <span className="opacity-55">Mass</span>
               <span className="text-right tabular-nums">{formatSolarMass(M)}</span>
+              <span className="opacity-55">Horizon g</span>
+              <span className="text-right tabular-nums">{horizonGravity.toExponential(2)} m/s²</span>
               <span className="opacity-55">rₛ</span>
               <span className="text-right tabular-nums">{formatLength(props.rsMeters)}</span>
               <span className="opacity-55">photon sphere</span>
@@ -4662,6 +4676,15 @@ function SkyPointMesh({
             point.kind === "black-hole" ? "Black hole" :
             point.kind === "star"       ? "Star" :
                                           "Exoplanet host star"
+              const gravityMeasurement =
+                point.kind === "black-hole" && point.massSolar !== undefined
+                  ? {
+                      label: "Horizon gravity",
+                      value: blackHoleHorizonGravityMetersPerSec2(point.massSolar, point.spin ?? 0),
+                      unit: "m/s²",
+                      note: "Newtonian-equivalent acceleration at the event horizon",
+                    }
+                  : undefined
           const factWithDistance = point.distance
             ? `${point.fact} Distance · ${point.distance}.`
             : point.fact
@@ -4669,6 +4692,7 @@ function SkyPointMesh({
             name: point.name,
             classification: `${classBase} · ${point.designation}`,
             fact: factWithDistance,
+                gravityMeasurement,
           })
         }}
         onPointerOut={() => {

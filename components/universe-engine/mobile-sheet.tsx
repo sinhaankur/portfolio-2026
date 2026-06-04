@@ -21,6 +21,20 @@ import { motion, AnimatePresence, type PanInfo } from "framer-motion"
 import type { BodyInfo } from "./types"
 import { DeepFactsDisclosure, OrbitalElements } from "./hud"
 
+function formatGravityValue(value: number, unit = "m/s²"): string {
+  if (!Number.isFinite(value)) return unit
+  const abs = Math.abs(value)
+  const display = abs >= 1000 || abs < 0.1 ? value.toExponential(2) : value.toFixed(2)
+  return `${display} ${unit}`
+}
+
+function formatGee(value: number): string {
+  const gee = value / 9.80665
+  const abs = Math.abs(gee)
+  const display = abs >= 1000 || abs < 0.1 ? gee.toExponential(2) : gee.toFixed(2)
+  return `${display} g`
+}
+
 export function MobileBodySheet({
   body,
   onDismiss,
@@ -172,6 +186,18 @@ function BodyStats({ body }: { body: BodyInfo }) {
       )}
       {body.radiusEarth !== undefined && (
         <Row label="Radius">{body.radiusEarth.toFixed(2)} × Earth</Row>
+      )}
+      {body.gravityMeasurement && (
+        <Row label={body.gravityMeasurement.label}>
+          {body.gravityMeasurement.value !== undefined ? (
+            <>
+              {formatGravityValue(body.gravityMeasurement.value, body.gravityMeasurement.unit ?? "m/s²")}
+              <span className="text-foreground/55"> ({formatGee(body.gravityMeasurement.value)})</span>
+            </>
+          ) : (
+            body.gravityMeasurement.note
+          )}
+        </Row>
       )}
       {body.moons !== undefined && body.moons > 0 && (
         <Row label="Moons">{body.moons}</Row>
