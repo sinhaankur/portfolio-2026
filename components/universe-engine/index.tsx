@@ -388,18 +388,47 @@ export function UniverseEngine({
                     The SOI shells show each planet&apos;s Hill sphere. Inner planets keep a minimum visual size so the boundary stays readable at this camera distance.
                   </p>
 
-                  <div className="rounded-2xl border border-foreground/8 bg-foreground/3 px-3 py-2.5 space-y-2">
-                    <div className="font-mono text-[9px] tracking-[0.22em] uppercase text-foreground/45">
-                      Physics lens
+                  <div className="rounded-2xl border border-foreground/8 bg-foreground/3 px-3 py-2.5 space-y-2.5">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="font-mono text-[9px] tracking-[0.22em] uppercase text-foreground/45">
+                        Physics lens
+                      </div>
+                      <div className="font-mono text-[9px] tracking-[0.18em] uppercase text-foreground/35">
+                        motion factors
+                      </div>
                     </div>
-                    <div className="space-y-1 font-mono text-[10px] leading-5 text-foreground/72">
-                      <div>v² = GM(2/r − 1/a)</div>
-                      <div>r_H = a · (m / 3M)^(1/3)</div>
-                      <div>r_s = 2GM / c²</div>
+
+                    <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] gap-x-3 gap-y-2 font-mono text-[10px] leading-4 text-foreground/72">
+                      <div className="rounded-xl border border-foreground/8 bg-background/35 px-2.5 py-2">
+                        <div className="text-foreground/45 mb-1">v² = GM(2/r − 1/a)</div>
+                        <div className="text-[9px] leading-4 text-foreground/58">
+                          orbital speed from mass, distance, and semi-major axis
+                        </div>
+                      </div>
+                      <div className="rounded-xl border border-foreground/8 bg-background/35 px-2.5 py-2">
+                        <div className="text-foreground/45 mb-1">the path changes with:</div>
+                        <div className="text-[9px] leading-4 text-foreground/58">
+                          gravity, launch speed, eccentricity, inclination, nearby perturbations, and for comets, outgassing
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl border border-foreground/8 bg-background/35 px-2.5 py-2">
+                        <div className="text-foreground/45 mb-1">r_H = a · (m / 3M)^(1/3)</div>
+                        <div className="text-[9px] leading-4 text-foreground/58">
+                          Hill sphere: where a planet begins to dominate locally
+                        </div>
+                      </div>
+                      <div className="rounded-xl border border-foreground/8 bg-background/35 px-2.5 py-2">
+                        <div className="text-foreground/45 mb-1">r_s = 2GM / c²</div>
+                        <div className="text-[9px] leading-4 text-foreground/58">
+                          Schwarzschild radius: the black-hole scale you can’t cross back out from
+                        </div>
+                      </div>
                     </div>
-                    <p className="font-sans text-[11px] leading-5 text-foreground/58">
-                      Gravity is the main driver, but motion also shifts with distance, initial velocity, orbital eccentricity and inclination, perturbations from other bodies, comets&apos; outgassing, radiation pressure, and black-hole spin.
-                    </p>
+
+                    <div className="rounded-xl border border-cyan-400/10 bg-cyan-400/5 px-2.5 py-2 font-sans text-[11px] leading-5 text-foreground/58">
+                      Gravity is the main driver, but it is not the whole story: motion also shifts with speed, orbital shape, perturbations, outgassing, radiation pressure, and black-hole spin.
+                    </div>
                   </div>
                 </div>
               </div>
@@ -419,6 +448,9 @@ export function UniverseEngine({
                     </div>
                     <div className="font-mono text-[10px] text-foreground/75 truncate">
                       Orbit trails and Hill spheres are visible
+                    </div>
+                    <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-foreground/45 truncate">
+                      Gravity + speed + orbit shape drive the motion
                     </div>
                   </div>
                 </div>
