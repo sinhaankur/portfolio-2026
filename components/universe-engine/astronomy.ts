@@ -142,7 +142,34 @@ export function kerrHorizonRadiusMeters(massSolar: number, spin: number): number
   return (rs / 2) * (1 + Math.sqrt(1 - a * a))
 }
 
-/**
+/* --------------------------------------------------------------------------
+ * Orbital mechanics — Kepler solvers shared by scene renderer + overlays
+ * ------------------------------------------------------------------------ */
+
+/** Solve Kepler's equation M = E − e·sin(E) for eccentric anomaly E.
+ *  Newton–Raphson, typically converges in 4–6 iterations. */
+export function solveKepler(meanAnomaly: number, e: number): number {
+  if (e >= 1) return meanAnomaly
+  let E = meanAnomaly + e * Math.sin(meanAnomaly)
+  for (let i = 0; i < 8; i++) {
+    const f = E - e * Math.sin(E) - meanAnomaly
+    const fp = 1 - e * Math.cos(E)
+    const dE = f / fp
+    E -= dE
+    if (Math.abs(dE) < 1e-8) break
+  }
+  return E
+}
+
+/** Eccentric anomaly → true anomaly. For elliptical orbits. */
+export function eccentricToTrue(E: number, e: number): number {
+  return 2 * Math.atan2(
+    Math.sqrt(1 + e) * Math.sin(E / 2),
+    Math.sqrt(1 - e) * Math.cos(E / 2),
+  )
+}
+
+/* --------------------------------------------------------------------------
  * Pretty-print a length for the BH data overlay. Picks the most
  * legible unit per order of magnitude:
  *   < 1 km     → metres

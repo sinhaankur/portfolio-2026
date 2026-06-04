@@ -51,7 +51,7 @@ import {
   timeWarpRef,
 } from "./astronomy"
 import { SceneContents } from "./scene"
-import { DateReadout, InfoPanel, ResetViewButton, TimeWarpSlider } from "./hud"
+import { DateReadout, GravityToggle, InfoPanel, ResetViewButton, TimeWarpSlider } from "./hud"
 import { MobileBodySheet } from "./mobile-sheet"
 import { StaticStarfield } from "./static-starfield"
 import { GalaxyMusic } from "../galaxy-music"
@@ -87,6 +87,7 @@ export function UniverseEngine({
   // most-recent tap and only clears when the user dismisses the bottom sheet.
   const [selectedBody, setSelectedBody] = useState<BodyInfo | null>(null)
   const [timeWarpDisplay, setTimeWarpDisplay] = useState(timeWarpRef.current)
+  const [showGravityOverlay, setShowGravityOverlay] = useState(false)
   const orbitRef = useRef<OrbitControlsImpl | null>(null)
   const { resolvedTheme } = useTheme()
   // Prop override wins; otherwise the engine flips to chart mode automatically
@@ -244,6 +245,7 @@ export function UniverseEngine({
           mobile={mobile}
           invert={invert}
           interactive={interactive}
+          showGravityOverlay={showGravityOverlay}
         />
 
         <OrbitControls
@@ -300,6 +302,7 @@ export function UniverseEngine({
             <div className="hidden md:flex items-center gap-2">
               <DateReadout />
               <TimeWarpSlider value={timeWarpDisplay} onChange={setTimeWarpDisplay} />
+              <GravityToggle active={showGravityOverlay} onToggle={() => setShowGravityOverlay(v => !v)} />
             </div>
             {showMusic && <GalaxyMusic />}
           </div>

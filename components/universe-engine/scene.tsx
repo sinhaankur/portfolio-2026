@@ -21,6 +21,7 @@ import { useFrame, useThree } from "@react-three/fiber"
 import { Clone, Html, useGLTF } from "@react-three/drei"
 import { BrightStarField } from "./bright-star-field"
 import { NamedStarHoverLayer } from "./named-star-hover-layer"
+import { GravityOverlay } from "./gravity-overlay"
 
 // Preload the black-hole mesh at module init so it's ready by the time a
 // user explores far enough to focus a sky-point BH. 8.4 MB asset — single
@@ -63,6 +64,7 @@ import {
   TIME_WARP_DAYS_PER_SEC,
   buildScenePlanets,
   constellations,
+  eccentricToTrue,
   flyToRef,
   followRef,
   formatLength,
@@ -79,6 +81,7 @@ import {
   schwarzschildRadiusMeters,
   simTimeRef,
   skyPoints,
+  solveKepler,
   timeWarpRef,
 } from "./astronomy"
 import { GALAXY_FRAGMENT_SHADER, GALAXY_VERTEX_SHADER } from "./shaders"
@@ -2682,29 +2685,6 @@ const _sunDirTmp = new Vector3()
  * scene scale, and our hyperbolic bodies (Voyagers, 'Oumuamua etc.)
  * already use a phase-wrap loop rather than real Kepler motion.
  */
-function solveKepler(meanAnomaly: number, e: number): number {
-  if (e >= 1) return meanAnomaly
-  let E = meanAnomaly + e * Math.sin(meanAnomaly)
-  for (let i = 0; i < 8; i++) {
-    const f = E - e * Math.sin(E) - meanAnomaly
-    const fp = 1 - e * Math.cos(E)
-    const dE = f / fp
-    E -= dE
-    if (Math.abs(dE) < 1e-8) break
-  }
-  return E
-}
-
-/**
- * Eccentric anomaly → true anomaly. For elliptical orbits.
- */
-function eccentricToTrue(E: number, e: number): number {
-  return 2 * Math.atan2(
-    Math.sqrt(1 + e) * Math.sin(E / 2),
-    Math.sqrt(1 - e) * Math.cos(E / 2),
-  )
-}
-
 /**
  * Scene-scale compression curve.
  *
@@ -4788,6 +4768,7 @@ export function SceneContents({
   mobile = false,
   invert = false,
   interactive = false,
+  showGravityOverlay = false,
 }: {
   enableMotion: boolean
   onHover: HoverHandler
@@ -4796,6 +4777,8 @@ export function SceneContents({
   invert?: boolean
   /** When true, body clicks fly the camera to that body. Off in passive mode. */
   interactive?: boolean
+  /** Show gravitational-influence visualization. */
+  showGravityOverlay?: boolean
 }) {
   const { scene } = useThree()
   useEffect(() => {
@@ -4826,6 +4809,7 @@ export function SceneContents({
       </group>
       <group position={SOLAR_SYSTEM_POSITION}>
         <SolarSystem onHover={onHover} invert={invert} interactive={interactive} />
+        <GravityOverlay show={showGravityOverlay} invert={invert} />
         {/* Comets, asteroids, interstellars — share the SolarSystem origin
             so their orbits sit around the same Sun the planets do. */}
         <NamedBodies onHover={onHover} invert={invert} interactive={interactive} />

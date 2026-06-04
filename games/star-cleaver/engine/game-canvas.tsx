@@ -26,7 +26,7 @@ import { getMissionLayout } from './mission-layout';
 import { SpaceDust, DataCoreField, createDataCores, BoostShockwave } from './particles';
 import type { DataCore } from './particles';
 import { SceneContents as UniverseSceneContents } from '../../../components/universe-engine/scene';
-import { SUN_OFFSET_SCENE, SKY_SHELL_DISTANCE, buildScenePlanets, timeWarpRef } from '../../../components/universe-engine/astronomy';
+import { SUN_OFFSET_SCENE } from '../../../components/universe-engine/astronomy';
 
 /**
  * The Universe Engine renders itself in tiny scene units (Sun at scene-x 66,
@@ -132,12 +132,6 @@ type GravityHazard = {
   damagePerSecond: number;
 };
 
-type InterstellarDrive = {
-  key: 'fusion-torch' | 'antimatter-pulse' | 'beamed-sail' | 'warp-corridor';
-  label: string;
-  speedThreshold: number;
-};
-
 type RouteWaypoint = {
   id: string;
   label: string;
@@ -163,13 +157,6 @@ type MuzzleFlash = {
   position: { x: number; y: number; z: number };
   endTime: number;
 };
-
-const INTERSTELLAR_DRIVES: InterstellarDrive[] = [
-  { key: 'fusion-torch', label: 'Fusion Torch', speedThreshold: 120 },
-  { key: 'antimatter-pulse', label: 'Antimatter Pulse', speedThreshold: 360 },
-  { key: 'beamed-sail', label: 'Beamed Sail', speedThreshold: 760 },
-  { key: 'warp-corridor', label: 'Warp Corridor', speedThreshold: 1200 },
-];
 
 const SOLAR_ANCHORS = {
   sol: [SUN_OFFSET_SCENE * UNIVERSE_SCALE, 0, 0] as [number, number, number],
@@ -268,61 +255,7 @@ const ROUTE_DEFINITIONS: RouteDefinition[] = SIMPLE_JOURNEY_MODE
       },
     ];
 
-const SCENE_PLANETS = buildScenePlanets();
-
-function solveKeplerAnomaly(meanAnomaly: number, eccentricity: number) {
-  let E = meanAnomaly;
-  for (let i = 0; i < 5; i += 1) {
-    E = E - (E - eccentricity * Math.sin(E) - meanAnomaly) / Math.max(1e-6, 1 - eccentricity * Math.cos(E));
-  }
-  return E;
-}
-
-function computeScenePlanetPosition(planet: ReturnType<typeof buildScenePlanets>[number], simTimeSec: number, timeWarp: number) {
-  const meanAnomaly = planet.raw.startPhase + simTimeSec * planet.orbitalSpeedRadPerSec * timeWarp;
-  const eccentricity = planet.raw.deep?.eccentricity ?? 0;
-  let theta = meanAnomaly;
-  let radius = planet.orbitRadius;
-
-  if (eccentricity > 0.01) {
-    const E = solveKeplerAnomaly(meanAnomaly, eccentricity);
-    theta = 2 * Math.atan2(
-      Math.sqrt(1 + eccentricity) * Math.sin(E / 2),
-      Math.sqrt(Math.max(1e-6, 1 - eccentricity)) * Math.cos(E / 2)
-    );
-    radius = (planet.orbitRadius * (1 - eccentricity * eccentricity)) / (1 + eccentricity * Math.cos(theta));
-  }
-
-  const xLocal = radius * Math.cos(theta);
-  const zLocal = -radius * Math.sin(theta);
-  const y = -zLocal * Math.sin(planet.inclination);
-  const z = zLocal * Math.cos(planet.inclination);
-
-  return new THREE.Vector3(
-    SUN_OFFSET_SCENE + xLocal,
-    y,
-    z
-  ).multiplyScalar(UNIVERSE_SCALE);
-}
-
-function buildGravityHazards(layout: ReturnType<typeof getMissionLayout>, simTimeSec: number): GravityHazard[] {
-  const tw = Math.max(0.25, timeWarpRef.current);
-
-  const dynamicPlanetHazards = SCENE_PLANETS.map((planet) => {
-    const pos = computeScenePlanetPosition(planet, simTimeSec, tw);
-    const visualRadius = Math.max(8, planet.visualRadius * UNIVERSE_SCALE);
-    return {
-      id: `planet-${planet.raw.name.toLowerCase()}`,
-      label: planet.raw.name,
-      position: pos,
-      influenceRadius: visualRadius * 28,
-      warningRadius: visualRadius * 4.2,
-      fatalRadius: visualRadius * 1.35,
-      gravityStrength: 95 + visualRadius * 0.7,
-      damagePerSecond: 5 + visualRadius * 0.22,
-    } as GravityHazard;
-  });
-
+function buildGravityHazards(layout: ReturnType<typeof getMissionLayout>): GravityHazard[] {
   const missionPlanetRadius = Math.max(16, layout.planetRadius);
   const missionPlanet = {
     id: 'mission-planet',
@@ -346,40 +279,7 @@ function buildGravityHazards(layout: ReturnType<typeof getMissionLayout>, simTim
     damagePerSecond: 58,
   } as GravityHazard;
 
-  const galacticCenterBlackHole = {
-    id: 'sgr-a',
-    label: 'Black Hole',
-    position: new THREE.Vector3(0, 0, 0),
-    influenceRadius: 2400,
-    warningRadius: 360,
-    fatalRadius: 170,
-    gravityStrength: 780,
-    damagePerSecond: 70,
-  } as GravityHazard;
-
-  const skyShellLimit = SKY_SHELL_DISTANCE * UNIVERSE_SCALE;
-  const outerShellBlackHole = {
-    id: 'outer-shell-anomaly',
-    label: 'Outer Black Hole',
-    position: new THREE.Vector3(SUN_OFFSET_SCENE * UNIVERSE_SCALE + skyShellLimit * 0.66, skyShellLimit * 0.38, -skyShellLimit * 0.24),
-    influenceRadius: 1700,
-    warningRadius: 290,
-    fatalRadius: 130,
-    gravityStrength: 540,
-    damagePerSecond: 52,
-  } as GravityHazard;
-
-  return [missionPlanet, sunHazard, galacticCenterBlackHole, outerShellBlackHole, ...dynamicPlanetHazards];
-}
-
-function getInterstellarDriveLabel(speed: number) {
-  let current = INTERSTELLAR_DRIVES[0].label;
-  for (const profile of INTERSTELLAR_DRIVES) {
-    if (speed >= profile.speedThreshold) {
-      current = profile.label;
-    }
-  }
-  return current;
+  return [missionPlanet, sunHazard];
 }
 
 function updateRouteProgress(gameState: GameState) {
@@ -467,52 +367,12 @@ interface GameCanvasProps {
 }
 
 type CameraAssistLevel = 'low' | 'medium' | 'high';
-type WeaponTuningProfile = 'arcade' | 'cinematic' | 'sim';
 
-const WEAPON_TUNING: Record<WeaponTuningProfile, {
-  cadence: number;
-  heatGain: number;
-  coolingRate: number;
-  overheatDuration: number;
-  recoilKick: number;
-  recoilDecay: number;
-  audioGain: number;
-}> = {
-  arcade: {
-    cadence: 0.075,
-    heatGain: 0.1,
-    coolingRate: 0.42,
-    overheatDuration: 0.82,
-    recoilKick: 0.55,
-    recoilDecay: 6.8,
-    audioGain: 0.045,
-  },
-  cinematic: {
-    cadence: 0.11,
-    heatGain: 0.16,
-    coolingRate: 0.25,
-    overheatDuration: 1.55,
-    recoilKick: 0.86,
-    recoilDecay: 5.1,
-    audioGain: 0.06,
-  },
-  sim: {
-    cadence: 0.095,
-    heatGain: 0.14,
-    coolingRate: 0.31,
-    overheatDuration: 1.25,
-    recoilKick: 0.72,
-    recoilDecay: 5.8,
-    audioGain: 0.05,
-  },
-};
+const FIRE_CADENCE = 0.08;
+const FIRE_RECOIL_KICK = 0.55;
+const FIRE_RECOIL_DECAY = 6.8;
+const FIRE_AUDIO_GAIN = 0.045;
 
-const GAS_CLOUD_FIELDS = [
-  { position: [-260, 70, -520] as [number, number, number], radius: 170, density: 0.62, color: 0x6a96ff },
-  { position: [320, -40, -780] as [number, number, number], radius: 220, density: 0.58, color: 0x87b7ff },
-  { position: [40, 120, -1050] as [number, number, number], radius: 260, density: 0.5, color: 0x5a88db },
-  { position: [-420, -120, -1320] as [number, number, number], radius: 300, density: 0.44, color: 0x7ab5ff },
-];
 
 const SHIP_THRUSTER_PRESETS: Record<SelectedShip, {
   lateral: number;
@@ -1280,7 +1140,6 @@ function CameraFollowController({ gameState, cameraAssist }: { gameState: GameSt
       gameState.playerEntity.velocity.z ** 2
     );
     const boostSpool = Number(gameState.playerEntity.metadata?.boostSpool ?? 0);
-    const cloudDensity = Number(gameState.playerEntity.metadata?.gasCloudDensity ?? 0);
     const accelKick = Number(gameState.playerEntity.metadata?.accelKick ?? 0);
     const speedJerk = Number(gameState.playerEntity.metadata?.speedJerk ?? 0);
     const travelStretch = Math.min(speed / 50, 1.1);
@@ -1294,7 +1153,7 @@ function CameraFollowController({ gameState, cameraAssist }: { gameState: GameSt
     const offsetHeight = baseOffsetHeight + travelStretch * 0.35;
 
     // Keep camera behind ship orientation so nose direction is always readable.
-    const cloudShake = cloudDensity * (0.12 + boostSpool * 0.12) + speedJerk * 0.22;
+    const cloudShake = speedJerk * 0.22;
     const turbulenceSide = Math.sin(state.clock.elapsedTime * 3.4) * cloudShake;
     const turbulenceUp = Math.sin(state.clock.elapsedTime * 5.1 + 1.7) * cloudShake * 0.6;
     const jerkBacklash = Math.sin(state.clock.elapsedTime * 17.0 + 0.5) * speedJerk * 0.32;
@@ -1357,7 +1216,6 @@ function CameraFollowController({ gameState, cameraAssist }: { gameState: GameSt
       Math.min(speed / 5.6, 10) +
       boostSpool * 5.5 +
       (boostActive ? 1.5 : 0) +
-      cloudDensity * 1.25 +
       speedJerk * 2.4;
     const currentFov = (camera as THREE.PerspectiveCamera).fov ?? 55;
     const fovK = 1 - Math.exp(-delta * assistConfig.fov);
@@ -1388,7 +1246,6 @@ function GameScene({
   mouseRotation,
   deviceOrientation,
   assistedFlight,
-  weaponTune,
   updateEngineAudio,
   joystickRef,
 }: {
@@ -1398,7 +1255,6 @@ function GameScene({
   mouseRotation: React.MutableRefObject<{ pitch: number; yaw: number }>;
   deviceOrientation: React.MutableRefObject<{ alpha: number; beta: number; gamma: number }>;
   assistedFlight: boolean;
-  weaponTune: WeaponTuningProfile;
   updateEngineAudio?: (speed: number, throttle: number, boost: boolean, boostSpool: number) => void;
   joystickRef?: React.MutableRefObject<{ active: boolean; originX: number; originY: number; dx: number; dy: number }>;
 }) {
@@ -1417,7 +1273,6 @@ function GameScene({
   const fireCooldownRef = useRef(0);
   const cannonCycleRef = useRef(0);
   const smoothedInputRef = useRef({ pitch: 0, yaw: 0, roll: 0 });
-  const weaponProfile = WEAPON_TUNING[weaponTune];
 
   const spawnPlayerVolley = (forward: THREE.Vector3, right: THREE.Vector3, up: THREE.Vector3) => {
     if (!entityManagerRef.current) return;
@@ -1500,7 +1355,7 @@ function GameScene({
     gameState.playerEntity.metadata.lastVolleyAt = gameState.simTime;
     gameState.playerEntity.metadata.lastVolleyPair = pair;
     gameState.playerEntity.metadata.lastVolleyIndex = Number(gameState.playerEntity.metadata.lastVolleyIndex ?? 0) + 1;
-    gameState.playerEntity.metadata.weaponRecoil = Math.min(1, Number(gameState.playerEntity.metadata.weaponRecoil ?? 0) + weaponProfile.recoilKick);
+    gameState.playerEntity.metadata.weaponRecoil = Math.min(1, Number(gameState.playerEntity.metadata.weaponRecoil ?? 0) + FIRE_RECOIL_KICK);
     gameState.playerEntity.metadata.weaponMode = 'wing-cannons';
   };
 
@@ -1629,21 +1484,6 @@ function GameScene({
       const isBoosting = !ignitionSequenceActive && (keysPressed.current.has('ShiftLeft') || keysPressed.current.has('ShiftRight'));
       const isFiring = !ignitionSequenceActive && (keysPressed.current.has('Mouse0') || keysPressed.current.has('KeyJ') || keysPressed.current.has('Enter'));
 
-      const px = gameState.playerEntity.position.x;
-      const py = gameState.playerEntity.position.y;
-      const pz = gameState.playerEntity.position.z;
-      let gasCloudDensity = 0;
-      GAS_CLOUD_FIELDS.forEach((cloud) => {
-        const dx = px - cloud.position[0];
-        const dy = py - cloud.position[1];
-        const dz = pz - cloud.position[2];
-        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-        if (dist >= cloud.radius) return;
-        const normalized = 1 - dist / cloud.radius;
-        gasCloudDensity += normalized * normalized * cloud.density;
-      });
-      gasCloudDensity = Math.min(1, gasCloudDensity);
-
       // Analog throttle model: user must actively thrust to move.
       // No auto-cruise — ship starts and stays at rest until W is pressed.
       let targetThrottle = 0;
@@ -1674,17 +1514,15 @@ function GameScene({
           ? cruiseSpeed + throttleRef.current * (maxForwardSpeed - cruiseSpeed)
           : throttleRef.current * Math.abs(maxReverseSpeed);
       const boostSpeedBonus = boostSpoolRef.current * (attackMode ? 26 : 210 + interstellarBlend * 520);
-      const cloudSpeedPenalty = gasCloudDensity * (attackMode ? 5.5 : 8.5);
       const targetSpeed =
-        throttleSpeed + (throttleRef.current > 0 ? boostSpeedBonus : 0) - (throttleRef.current > 0 ? cloudSpeedPenalty : 0);
+        throttleSpeed + (throttleRef.current > 0 ? boostSpeedBonus : 0);
 
       if (!Number.isFinite(forwardSpeedRef.current)) {
         forwardSpeedRef.current = 0;
       }
 
       const accelLimit =
-        ((attackMode ? 44 : 160 + interstellarBlend * 320) + boostSpoolRef.current * (attackMode ? 26 : 420)) *
-        (1 - gasCloudDensity * 0.28);
+        (attackMode ? 44 : 160 + interstellarBlend * 320) + boostSpoolRef.current * (attackMode ? 26 : 420);
       const decelLimit = isBraking ? (attackMode ? 78 : 94) : attackMode ? 42 : 56;
       const speedDelta = targetSpeed - forwardSpeedRef.current;
       const maxUpStep = accelLimit * clampedDelta;
@@ -1725,19 +1563,8 @@ function GameScene({
         gameState.playerEntity.velocity.z = corrected.z;
       }
 
-      if (gasCloudDensity > 0.02) {
-        const localRight = new THREE.Vector3(1, 0, 0).applyQuaternion(playerQuat);
-        const localUp = new THREE.Vector3(0, 1, 0).applyQuaternion(playerQuat);
-        const turbulence = gasCloudDensity * (attackMode ? 0.8 : 1.15);
-        const wobbleA = Math.sin(state.clock.elapsedTime * 2.6 + px * 0.0023) * turbulence;
-        const wobbleB = Math.sin(state.clock.elapsedTime * 4.1 + pz * 0.0017) * turbulence;
-        gameState.playerEntity.velocity.x += (localRight.x * wobbleA + localUp.x * wobbleB) * clampedDelta * 6;
-        gameState.playerEntity.velocity.y += (localRight.y * wobbleA + localUp.y * wobbleB) * clampedDelta * 6;
-        gameState.playerEntity.velocity.z += (localRight.z * wobbleA + localUp.z * wobbleB) * clampedDelta * 6;
-      }
-
       const layout = getMissionLayout(gameState.worldIndex);
-      const gravityHazards = buildGravityHazards(layout, gameState.simTime);
+      const gravityHazards = buildGravityHazards(layout);
       const playerPosVec = new THREE.Vector3(
         gameState.playerEntity.position.x,
         gameState.playerEntity.position.y,
@@ -1820,15 +1647,6 @@ function GameScene({
       if (!gameState.playerEntity.metadata) {
         gameState.playerEntity.metadata = {};
       }
-      const weaponHeat = Number(gameState.playerEntity.metadata.weaponHeat ?? 0);
-      let overheatUntil = Number(gameState.playerEntity.metadata.weaponOverheatUntil ?? 0);
-      const wasOverheated = gameState.simTime < overheatUntil;
-      const coolingRate = SIMPLE_JOURNEY_MODE
-        ? 0.42
-        : attackMode
-          ? Math.max(0.2, weaponProfile.coolingRate - 0.05)
-          : weaponProfile.coolingRate;
-      let nextWeaponHeat = Math.max(0, weaponHeat - coolingRate * clampedDelta);
       gameState.playerEntity.metadata.thrustLevel = Math.min(
         1,
         Math.max(0, throttleRef.current) * 0.75 + Math.max(0, boostSpoolRef.current) * 0.25
@@ -1836,15 +1654,13 @@ function GameScene({
       gameState.playerEntity.metadata.boostActive = boostSpoolRef.current > 0.12;
       gameState.playerEntity.metadata.boostSpool = boostSpoolRef.current;
       gameState.playerEntity.metadata.throttle = throttleRef.current;
-      gameState.playerEntity.metadata.gasCloudDensity = gasCloudDensity;
       const currentAccel = (forwardSpeedRef.current - prevForwardSpeedRef.current) / Math.max(0.0001, clampedDelta);
       const jerk = (currentAccel - prevForwardAccelRef.current) / Math.max(0.0001, clampedDelta);
       const accelKick = Math.max(0, currentAccel) / (attackMode ? 80 : 420);
       const speedJerk = Math.min(1, Math.max(0, Math.abs(jerk) / (attackMode ? 400 : 2600)));
       gameState.playerEntity.metadata.accelKick = Math.min(1, accelKick);
       gameState.playerEntity.metadata.speedJerk = speedJerk;
-      gameState.playerEntity.metadata.interstellarBlend = interstellarBlend;
-      gameState.playerEntity.metadata.interstellarDrive = getInterstellarDriveLabel(forwardSpeedRef.current);
+      // Speed is shown numerically in HUD — no drive tier labels needed.
       gameState.playerEntity.metadata.maxForwardSpeed = maxForwardSpeed;
       gameState.playerEntity.metadata.currentAccel = currentAccel;
       prevForwardSpeedRef.current = forwardSpeedRef.current;
@@ -1854,8 +1670,7 @@ function GameScene({
       gameState.playerEntity.metadata.rcsPitch = smoothedInputRef.current.pitch;
       gameState.playerEntity.metadata.rcsRoll = smoothedInputRef.current.roll;
       gameState.playerEntity.metadata.rcsBrake = isBraking ? 1 : 0;
-      gameState.playerEntity.metadata.weaponRecoil = Math.max(0, Number(gameState.playerEntity.metadata.weaponRecoil ?? 0) - clampedDelta * weaponProfile.recoilDecay);
-      gameState.playerEntity.metadata.weaponPreset = weaponTune;
+      gameState.playerEntity.metadata.weaponRecoil = Math.max(0, Number(gameState.playerEntity.metadata.weaponRecoil ?? 0) - clampedDelta * FIRE_RECOIL_DECAY);
       gameState.playerEntity.metadata.simpleJourneyMode = SIMPLE_JOURNEY_MODE;
       gameState.playerEntity.metadata.gravityLoad = Math.max(gravityLoad, boundaryLoad);
       gameState.playerEntity.metadata.boundaryLoad = boundaryLoad;
@@ -1874,34 +1689,12 @@ function GameScene({
       gameState.playerEntity.metadata.muzzleFlashes = flashes.filter((flash) => flash.endTime > gameState.simTime);
 
       fireCooldownRef.current = Math.max(0, fireCooldownRef.current - clampedDelta);
-      if ((gameState.phase === 'exploration' || gameState.phase === 'combat') && isFiring && fireCooldownRef.current <= 0 && !wasOverheated) {
-        const cadence = SIMPLE_JOURNEY_MODE
-          ? 0.08
-          : attackMode
-            ? Math.max(0.06, weaponProfile.cadence - 0.015)
-            : weaponProfile.cadence;
-        fireCooldownRef.current = cadence;
-        const heatGain = SIMPLE_JOURNEY_MODE ? 0.06 : attackMode ? weaponProfile.heatGain + 0.03 : weaponProfile.heatGain;
-        nextWeaponHeat = Math.min(1.35, nextWeaponHeat + heatGain);
+      if ((gameState.phase === 'exploration' || gameState.phase === 'combat') && isFiring && fireCooldownRef.current <= 0) {
+        fireCooldownRef.current = FIRE_CADENCE;
         spawnPlayerVolley(forwardLocal.clone().normalize(), rightLocal.clone().normalize(), upLocal.clone().normalize());
       }
 
-      if (!SIMPLE_JOURNEY_MODE && !wasOverheated && nextWeaponHeat >= 1) {
-        overheatUntil = gameState.simTime + weaponProfile.overheatDuration;
-        nextWeaponHeat = 0.72;
-      }
-
-      const isOverheated = gameState.simTime < overheatUntil;
-      gameState.playerEntity.metadata.weaponHeat = Math.max(0, Math.min(1, nextWeaponHeat));
-      gameState.playerEntity.metadata.weaponOverheatUntil = overheatUntil;
-      gameState.playerEntity.metadata.weaponOverheated = SIMPLE_JOURNEY_MODE ? false : isOverheated;
-      gameState.playerEntity.metadata.weaponStatus = SIMPLE_JOURNEY_MODE
-        ? 'READY'
-        : isOverheated
-          ? 'OVERHEATED'
-          : gameState.playerEntity.metadata.weaponHeat > 0.78
-            ? 'HOT'
-            : 'NOMINAL';
+      // Weapon status is always ready — no heat/overheat system.
     }
 
     // Update game logic

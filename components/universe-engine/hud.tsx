@@ -402,3 +402,45 @@ export function ResetViewButton({ onClick }: { onClick: () => void }) {
     </button>
   )
 }
+
+/** Gravity overlay toggle — switches the gravitational-field visualization
+ *  (influence spheres + ecliptic vector field) on/off.  Styled to match the
+ *  DateReadout / TimeWarpSlider pill cluster. */
+export function GravityToggle({
+  active,
+  onToggle,
+}: {
+  active: boolean
+  onToggle: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-pressed={active}
+      className={`
+        inline-flex items-center gap-2 px-3.5 py-2.5 rounded-full border
+        backdrop-blur-sm transition-colors duration-300
+        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+        ${
+          active
+            ? "border-accent/60 bg-accent/10 text-accent"
+            : "border-foreground/25 bg-background/50 text-foreground/70 hover:text-foreground/90"
+        }
+      `}
+    >
+      <span
+        className={`relative flex h-2 w-2 rounded-full ${
+          active ? "bg-accent" : "bg-foreground/40"
+        }`}
+      >
+        {active && (
+          <span className="motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75" />
+        )}
+      </span>
+      <span className="font-mono text-[10px] tracking-[0.2em] uppercase">
+        Gravity
+      </span>
+    </button>
+  )
+}
