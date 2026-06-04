@@ -14,7 +14,7 @@
 
 import { useMemo, useRef } from "react"
 import { useFrame } from "@react-three/fiber"
-import { AdditiveBlending } from "three"
+import { AdditiveBlending, Color, DoubleSide } from "three"
 import type { Mesh } from "three"
 import {
   buildScenePlanets,
@@ -26,6 +26,21 @@ import type { ScenePlanet } from "./types"
 
 const SUN_MASS_EARTH = 333_000
 const MIN_VISUAL_HILL_RADIUS = 0.18
+const SHELL_SEGMENTS = 24
+const SHELL_SCALE = 1.018
+
+function shellColor(hex: string, invert: boolean): string {
+  const color = new Color(hex)
+  if (invert) {
+    // Keep the planet identity, but calm the palette so the shell still
+    // feels chart-like rather than neon orange everywhere.
+    color.lerp(new Color("#d8d0c4"), 0.42)
+    color.offsetHSL(0, -0.15, 0.07)
+  } else {
+    color.offsetHSL(0, -0.05, 0.02)
+  }
+  return `#${color.getHexString()}`
+}
 
 function hillRadiusScene(planet: ScenePlanet): number {
   const mass = Math.max(planet.raw.deep?.massEarth ?? 0.1, 0.001)
@@ -63,6 +78,11 @@ function SphereShell({
 }) {
   const ref = useRef<Mesh>(null)
   const radius = useMemo(() => hillRadiusScene(planet), [planet])
+  const shellOpacity = useMemo(() => {
+    if (radius > 1.2) return 0.13
+    if (radius > 0.6) return 0.15
+    return 0.18
+  }, [radius])
 
   useFrame(() => {
     if (!ref.current) return
@@ -72,17 +92,31 @@ function SphereShell({
   })
 
   return (
-    <mesh ref={ref}>
-      <sphereGeometry args={[1, 20, 20]} />
-      <meshBasicMaterial
-        color={invert ? "#c95824" : planet.raw.shade}
-        transparent
-        opacity={invert ? 0.16 : 0.14}
-        blending={AdditiveBlending}
-        depthWrite={false}
-        wireframe
-      />
-    </mesh>
+    <group ref={ref}>
+      <mesh scale={1}>
+        <sphereGeometry args={[1, SHELL_SEGMENTS, SHELL_SEGMENTS]} />
+        <meshBasicMaterial
+          color={shellColor(planet.raw.shade, invert)}
+          transparent
+          opacity={invert ? 0.035 : 0.028}
+          blending={AdditiveBlending}
+          depthWrite={false}
+          side={DoubleSide}
+        />
+      </mesh>
+      <mesh scale={SHELL_SCALE}>
+        <sphereGeometry args={[1, SHELL_SEGMENTS, SHELL_SEGMENTS]} />
+        <meshBasicMaterial
+          color={shellColor(planet.raw.shade, invert)}
+          transparent
+          opacity={shellOpacity}
+          blending={AdditiveBlending}
+          depthWrite={false}
+          wireframe
+          side={DoubleSide}
+        />
+      </mesh>
+    </group>
   )
 }
 
