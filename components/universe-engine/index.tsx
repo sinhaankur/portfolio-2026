@@ -51,7 +51,7 @@ import {
   timeWarpRef,
 } from "./astronomy"
 import { SceneContents } from "./scene"
-import { DateReadout, GravityToggle, InfoPanel, ResetViewButton, TimeWarpSlider } from "./hud"
+import { DateReadout, DeepDiveToggle, GravityToggle, InfoPanel, ResetViewButton, TimeWarpSlider } from "./hud"
 import { MobileBodySheet } from "./mobile-sheet"
 import { StaticStarfield } from "./static-starfield"
 import { GalaxyMusic } from "../galaxy-music"
@@ -88,6 +88,7 @@ export function UniverseEngine({
   const [selectedBody, setSelectedBody] = useState<BodyInfo | null>(null)
   const [timeWarpDisplay, setTimeWarpDisplay] = useState(timeWarpRef.current)
   const [showGravityOverlay, setShowGravityOverlay] = useState(false)
+  const [showDeepDive, setShowDeepDive] = useState(false)
   const orbitRef = useRef<OrbitControlsImpl | null>(null)
   const { resolvedTheme } = useTheme()
   // Prop override wins; otherwise the engine flips to chart mode automatically
@@ -246,6 +247,7 @@ export function UniverseEngine({
           invert={invert}
           interactive={interactive}
           showGravityOverlay={showGravityOverlay}
+          showDeepDive={showDeepDive}
         />
 
         <OrbitControls
@@ -303,6 +305,7 @@ export function UniverseEngine({
               <DateReadout />
               <TimeWarpSlider value={timeWarpDisplay} onChange={setTimeWarpDisplay} />
               <GravityToggle active={showGravityOverlay} onToggle={() => setShowGravityOverlay(v => !v)} />
+              <DeepDiveToggle active={showDeepDive} onToggle={() => setShowDeepDive(v => !v)} />
             </div>
             {showMusic && <GalaxyMusic />}
           </div>

@@ -449,6 +449,48 @@ export function ResetViewButton({ onClick }: { onClick: () => void }) {
 /** Gravity overlay toggle — switches the gravitational-field visualization
  *  (influence spheres + ecliptic vector field) on/off.  Styled to match the
  *  DateReadout / TimeWarpSlider pill cluster. */
+/** Deep Dive toggle — switches the engine into exact-astrodynamics mode:
+ *  trajectory trails, live orbit dots, full gravity overlay, and rich
+ *  star/planet data readouts. */
+export function DeepDiveToggle({
+  active,
+  onToggle,
+}: {
+  active: boolean
+  onToggle: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-pressed={active}
+      className={`
+        inline-flex items-center gap-2 px-3.5 py-2.5 rounded-full border
+        backdrop-blur-sm transition-colors duration-300
+        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+        ${
+          active
+            ? "border-purple-400/60 bg-purple-400/10 text-purple-200"
+            : "border-foreground/25 bg-background/50 text-foreground/70 hover:text-foreground/90"
+        }
+      `}
+    >
+      <span
+        className={`relative flex h-2 w-2 rounded-full ${
+          active ? "bg-purple-300" : "bg-foreground/40"
+        }`}
+      >
+        {active && (
+          <span className="motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-300 opacity-75" />
+        )}
+      </span>
+      <span className="font-mono text-[10px] tracking-[0.2em] uppercase">
+        Deep Dive
+      </span>
+    </button>
+  )
+}
+
 export function GravityToggle({
   active,
   onToggle,
