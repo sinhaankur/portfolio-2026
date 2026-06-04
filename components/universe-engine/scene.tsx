@@ -2913,11 +2913,12 @@ function NamedBodyMesh({
     () =>
       getCometAffordance({
         kind: body.kind,
+        name: body.name,
         visualRadius: config.visualRadius,
         isLoop: config.isLoop,
         invert,
       }),
-    [body.kind, config.visualRadius, config.isLoop, invert],
+    [body.kind, body.name, config.visualRadius, config.isLoop, invert],
   )
 
   // Initialise the motion-trail ring buffer for comets / interstellars /
@@ -4341,7 +4342,10 @@ function BlackHoleDetail({
     () => computeBlackHoleProportions(M, a, size),
     [M, a, size],
   )
-  const bhAffordance = useMemo(() => getBlackHoleAffordance(invert), [invert])
+  const bhAffordance = useMemo(
+    () => getBlackHoleAffordance({ invert, name, massSolar: M }),
+    [invert, name, M],
+  )
 
   // Stellar-mass black holes (X-ray binaries) have brighter, hotter disks
   // relative to their horizon than supermassive ones. Drives the visual
@@ -4791,11 +4795,12 @@ function SkyPointMesh({
     () =>
       getSkyAffordance({
         kind: point.kind,
+        pointId: point.id,
         visualSize,
         invert,
         shade: point.shade,
       }),
-    [point.kind, visualSize, invert, point.shade],
+    [point.kind, point.id, visualSize, invert, point.shade],
   )
 
   // Hit-zone scales with the visual so even tiny exoplanet dots are findable.
