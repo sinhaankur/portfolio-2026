@@ -1,24 +1,5 @@
 import * as THREE from 'three';
-
-const EARTH_RADIUS_KM = 6371;
-const STATION_ORBIT_ALTITUDE_KM = 550;
-const STATION_ORBIT_INCLINATION_DEG = 51.6;
-const STATION_ORBIT_PHASE_DEG = 60;
-
-function deriveEarthOrbitStationPosition(planetPosition: THREE.Vector3, planetRadius: number): THREE.Vector3 {
-  const orbitRadius = planetRadius * (1 + STATION_ORBIT_ALTITUDE_KM / EARTH_RADIUS_KM);
-  const phaseRad = THREE.MathUtils.degToRad(STATION_ORBIT_PHASE_DEG);
-  const inclinationRad = THREE.MathUtils.degToRad(STATION_ORBIT_INCLINATION_DEG);
-
-  // Start in the planet's equatorial plane (x-z), then tilt by inclination.
-  const orbitalVector = new THREE.Vector3(
-    Math.cos(phaseRad) * orbitRadius,
-    0,
-    Math.sin(phaseRad) * orbitRadius,
-  ).applyAxisAngle(new THREE.Vector3(1, 0, 0), -inclinationRad);
-
-  return planetPosition.clone().add(orbitalVector);
-}
+import { deriveEarthOrbitStationPosition } from './scale-contract';
 
 export interface MissionLayout {
   planetPosition: THREE.Vector3;

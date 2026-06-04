@@ -41,6 +41,37 @@ const NOOP = () => {};
 const SIMPLE_JOURNEY_MODE = true;
 const KNOWN_UNIVERSE_RADIUS = 9100;
 
+const CAMERA_PHASE_TUNING = {
+  flight: {
+    offsetDistance: 5.1,
+    offsetHeight: 1.35,
+    sideOffset: 1.1,
+    baseFov: 55,
+    nonAssistFollowRate: 6.2,
+  },
+  briefing: {
+    offsetDistance: 18,
+    offsetHeight: 7.5,
+    sideOffset: 0,
+    baseFov: 55,
+    nonAssistFollowRate: 3.2,
+  },
+  stationInspect: {
+    orbitRadius: 54,
+    orbitHeight: 16,
+    orbitHeightWave: 4,
+    fov: 47,
+    followRate: 3.2,
+    lookRate: 3.9,
+  },
+} as const;
+
+const CAMERA_ASSIST_TUNING: Record<CameraAssistLevel, { follow: number; look: number; fov: number }> = {
+  high: { follow: 8.1, look: 9.6, fov: 5.2 },
+  medium: { follow: 6.5, look: 8.0, fov: 4.5 },
+  low: { follow: 5.2, look: 6.7, fov: 3.6 },
+};
+
 type GraphicsTier = 'low' | 'high' | 'ultra';
 
 type GraphicsProfile = {
@@ -1183,33 +1214,29 @@ function CameraFollowController({
   const canExploreStation =
     gameState.phase === 'briefing' || (gameState.phase === 'ignition' && typeof gameState.ignitionStartTime !== 'number');
   const stationInspectActive = canExploreStation && stationExploreMode;
-  // Camera is closer and lower for a more cinematic chase view
-  const baseOffsetDistance = isFlightPhase ? 5.1 : 18;
-  const baseOffsetHeight = isFlightPhase ? 1.35 : 7.5;
-  // Add a slight side offset for a dynamic angle
-  const baseSideOffset = isFlightPhase ? 1.1 : 0.0;
+  const phaseProfile = isFlightPhase ? CAMERA_PHASE_TUNING.flight : CAMERA_PHASE_TUNING.briefing;
 
   useFrame((state, delta) => {
     if (stationInspectActive) {
       const center = layout.stationPosition.clone();
       const t = state.clock.elapsedTime;
-      const orbitRadius = 54 * layout.stationScale;
+      const orbitRadius = CAMERA_PHASE_TUNING.stationInspect.orbitRadius * layout.stationScale;
       const desiredPos = new THREE.Vector3(
         center.x + Math.cos(t * 0.22) * orbitRadius,
-        center.y + 16 + Math.sin(t * 0.37) * 4,
+        center.y + CAMERA_PHASE_TUNING.stationInspect.orbitHeight + Math.sin(t * 0.37) * CAMERA_PHASE_TUNING.stationInspect.orbitHeightWave,
         center.z + Math.sin(t * 0.22) * orbitRadius,
       );
-      const k = 1 - Math.exp(-delta * 3.2);
+      const k = 1 - Math.exp(-delta * CAMERA_PHASE_TUNING.stationInspect.followRate);
       smoothPosRef.current.lerp(desiredPos, k);
       camera.position.copy(smoothPosRef.current);
 
       const lookTarget = center.clone().add(new THREE.Vector3(0, 6, 0));
-      const lookK = 1 - Math.exp(-delta * 3.9);
+      const lookK = 1 - Math.exp(-delta * CAMERA_PHASE_TUNING.stationInspect.lookRate);
       smoothLookRef.current.lerp(lookTarget, lookK);
       camera.lookAt(smoothLookRef.current);
 
       const perspective = camera as THREE.PerspectiveCamera;
-      const targetFov = 47;
+      const targetFov = CAMERA_PHASE_TUNING.stationInspect.fov;
       const fovK = 1 - Math.exp(-delta * 3.5);
       const nextFov = perspective.fov + (targetFov - perspective.fov) * fovK;
       if (Math.abs(nextFov - perspective.fov) > 0.02) {
@@ -1244,12 +1271,12 @@ function CameraFollowController({
     const travelStretch = Math.min(speed / 50, 1.1);
 
     const offsetDistance =
-      baseOffsetDistance +
+      phaseProfile.offsetDistance +
       travelStretch * 2.8 +
       boostSpool * 2.4 +
       accelKick * 1.1 +
       speedJerk * 2.2;
-    const offsetHeight = baseOffsetHeight + travelStretch * 0.35;
+    const offsetHeight = phaseProfile.offsetHeight + travelStretch * 0.35;
 
     // Keep camera behind ship orientation so nose direction is always readable.
     const cloudShake = speedJerk * 0.22;
@@ -1259,18 +1286,14 @@ function CameraFollowController({
     const desiredCameraPos = playerPos
       .clone()
       .add(forwardDir.clone().multiplyScalar(-(offsetDistance + jerkBacklash)))
-      .add(rightDir.clone().multiplyScalar(baseSideOffset + turbulenceSide))
+      .add(rightDir.clone().multiplyScalar(phaseProfile.sideOffset + turbulenceSide))
       .add(worldUp.clone().multiplyScalar(offsetHeight + turbulenceUp));
 
     // Ultra-smooth exponential follow: k = 1 - exp(-delta * rate)
     // Tighter and snappier during flight phases for a more responsive feel
-    const assistConfig = cameraAssist === 'high'
-      ? { follow: 8.1, look: 9.6, fov: 5.2 }
-      : cameraAssist === 'low'
-        ? { follow: 5.2, look: 6.7, fov: 3.6 }
-        : { follow: 6.5, look: 8.0, fov: 4.5 };
+    const assistConfig = CAMERA_ASSIST_TUNING[cameraAssist];
 
-    const followRate = isFlightPhase ? assistConfig.follow : 3.2;
+    const followRate = isFlightPhase ? assistConfig.follow : phaseProfile.nonAssistFollowRate;
     const k = 1 - Math.exp(-delta * followRate);
 
     smoothPosRef.current.lerp(desiredCameraPos, k);
@@ -1311,7 +1334,7 @@ function CameraFollowController({
 
     // Dynamic FOV gives a clear sensation of acceleration and boost.
     const targetFov =
-      55 +
+      phaseProfile.baseFov +
       Math.min(speed / 5.6, 10) +
       boostSpool * 5.5 +
       (boostActive ? 1.5 : 0) +

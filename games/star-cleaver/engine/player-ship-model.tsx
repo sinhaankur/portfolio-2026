@@ -7,18 +7,12 @@ import * as THREE from 'three';
 import { generateShip } from '../../../lib/ship-generator/procedural-ships';
 import { auditShipModel } from './ship-model-qa';
 import type { SelectedShip } from './ship-selector';
+import { CALIBRATED_SHIP_SCALE } from './scale-contract';
 
 const PLAYER_SHIP_MODEL_PATH = '/models/Test1glb.glb';
 // The authored GLB uses Y as its longitudinal axis; gameplay uses -Z forward.
 // Rotate imported GLB content so model-space aligns with game-space.
 const GLB_AXIS_CORRECTION: [number, number, number] = [Math.PI / 2, 0, 0];
-// Realism calibration: default-vanguard is treated as a ~12.5 m interceptor.
-// The imported GLB is ~5.98 units long on its authored longitudinal axis.
-// We keep mission readability by mapping 1 scene unit ~= 3 meters.
-const DEFAULT_VANGUARD_LENGTH_METERS = 12.5;
-const GLB_SOURCE_LENGTH_UNITS = 5.98;
-const SCENE_METERS_PER_UNIT = 3;
-const CALIBRATED_SHIP_SCALE = (DEFAULT_VANGUARD_LENGTH_METERS / SCENE_METERS_PER_UNIT) / GLB_SOURCE_LENGTH_UNITS;
 
 type PlayerShipMode = 'game' | 'preview';
 type ShipVariant = 'default-vanguard';
