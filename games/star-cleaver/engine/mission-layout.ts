@@ -25,7 +25,8 @@ const BASE_LAYOUTS: MissionLayout[] = [
     stationPosition: deriveEarthOrbitStationPosition(new THREE.Vector3(0, -140, -460), 112),
     stationScale: 1.42,
     stationStyle: 'civic',
-    spawnPosition: new THREE.Vector3(0, 8, -300),
+    // Spawn farther from Earth so the atmosphere shell doesn't dominate launch framing.
+    spawnPosition: new THREE.Vector3(0, 10, -250),
     // Keep yaw at 0 so gameplay forward (-Z) aligns with ship nose.
     spawnRotation: new THREE.Vector3(0, 0, 0),
   },

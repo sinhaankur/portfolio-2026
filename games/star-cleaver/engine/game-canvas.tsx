@@ -43,9 +43,9 @@ const KNOWN_UNIVERSE_RADIUS = 9100;
 
 const CAMERA_PHASE_TUNING = {
   flight: {
-    offsetDistance: 5.1,
-    offsetHeight: 1.35,
-    sideOffset: 1.1,
+    offsetDistance: 6.4,
+    offsetHeight: 1.7,
+    sideOffset: 0.85,
     baseFov: 55,
     nonAssistFollowRate: 6.2,
   },
@@ -931,7 +931,7 @@ function MissionStartScene({ worldIndex }: { worldIndex: number }) {
           <meshBasicMaterial
             color={layout.atmosphereColor}
             transparent
-            opacity={0.12}
+            opacity={0.07}
             side={THREE.DoubleSide}
             depthWrite={false}
           />
@@ -1269,14 +1269,16 @@ function CameraFollowController({
     const accelKick = Number(gameState.playerEntity.metadata?.accelKick ?? 0);
     const speedJerk = Number(gameState.playerEntity.metadata?.speedJerk ?? 0);
     const travelStretch = Math.min(speed / 50, 1.1);
+    const ignitionCinematic = gameState.phase === 'ignition' ? 1 : 0;
 
     const offsetDistance =
       phaseProfile.offsetDistance +
+      ignitionCinematic * 1.5 +
       travelStretch * 2.8 +
       boostSpool * 2.4 +
       accelKick * 1.1 +
       speedJerk * 2.2;
-    const offsetHeight = phaseProfile.offsetHeight + travelStretch * 0.35;
+    const offsetHeight = phaseProfile.offsetHeight + ignitionCinematic * 0.42 + travelStretch * 0.35;
 
     // Keep camera behind ship orientation so nose direction is always readable.
     const cloudShake = speedJerk * 0.22;

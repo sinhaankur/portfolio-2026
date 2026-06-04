@@ -223,8 +223,8 @@ export function HUD({ gameState, showForwardDebug = false, onShipSelect, waypoin
 
       {/* Bottom bar: travel telemetry + charge meter */}
       <div className="fixed bottom-0 inset-x-0 z-40 pointer-events-none">
-        <div className="mx-auto flex w-[min(96vw,44rem)] flex-col gap-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-6 px-3 sm:px-0">
-          <div className="rounded-3xl border border-foreground/15 bg-background/35 px-3 py-3 shadow-[0_16px_40px_rgba(0,0,0,0.25)] backdrop-blur-md sm:px-4 sm:py-4">
+        <div className="mx-auto flex w-[min(95vw,40rem)] flex-col gap-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-5 px-3 sm:px-0">
+          <div className="rounded-3xl border border-foreground/12 bg-background/28 px-3 py-3 shadow-[0_10px_26px_rgba(0,0,0,0.22)] backdrop-blur-md sm:px-4 sm:py-3.5">
             {isExplorationPhase ? (
               <div className="flex flex-col items-center gap-3">
                 <div className="text-center font-mono text-[8px] sm:text-[9px] tracking-[0.16em] sm:tracking-[0.24em] uppercase text-foreground/60">
@@ -238,30 +238,30 @@ export function HUD({ gameState, showForwardDebug = false, onShipSelect, waypoin
                 </div>
 
                 <div className="grid w-full grid-cols-2 gap-2 text-center sm:flex sm:flex-wrap sm:justify-center">
-                  <div className="rounded-full border border-foreground/15 bg-foreground/5 px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] text-foreground/70 sm:text-[9px] sm:tracking-[0.14em]">
+                  <div className="rounded-full border border-foreground/12 bg-foreground/4 px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] text-foreground/70 sm:text-[9px] sm:tracking-[0.14em]">
                     SPD {Math.round(speed)} · HDG {heading}°
                   </div>
                   <div className={`rounded-full border px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] sm:text-[9px] sm:tracking-[0.14em] ${stopAssistActive ? 'border-amber-300/35 bg-amber-500/10 text-amber-100/90' : nearStop ? 'border-green-300/35 bg-green-500/10 text-green-100/90' : 'border-foreground/15 bg-foreground/5 text-foreground/70'}`}>
                     STATE {flightStateLabel}
                   </div>
-                  <div className="rounded-full border border-cyan-300/20 bg-cyan-400/8 px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] text-cyan-100/85 sm:text-[9px] sm:tracking-[0.14em]">
+                  <div className="rounded-full border border-cyan-300/18 bg-cyan-400/7 px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] text-cyan-100/85 sm:text-[9px] sm:tracking-[0.14em]">
                     DRIVE {interstellarDrive.toUpperCase()}
                   </div>
-                  <div className="rounded-full border border-foreground/15 bg-foreground/5 px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] text-foreground/60 sm:text-[9px] sm:tracking-[0.14em]">
+                  <div className="rounded-full border border-foreground/12 bg-foreground/4 px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] text-foreground/60 sm:text-[9px] sm:tracking-[0.14em]">
                     THR {Math.round(throttle * 100)}% · BRK {brakeActive ? 'ON' : 'OFF'}
                   </div>
                   {!simpleJourneyMode && (
                     <>
-                      <div className="rounded-full border border-foreground/15 bg-foreground/5 px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] text-foreground/60 sm:text-[9px] sm:tracking-[0.14em]">
+                      <div className="rounded-full border border-foreground/12 bg-foreground/4 px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] text-foreground/60 sm:text-[9px] sm:tracking-[0.14em]">
                         GAS {Math.round(gasCloudDensity * 100)}% · PUSH {Math.round(accelKick * 100)}%
                       </div>
-                      <div className="rounded-full border border-foreground/15 bg-foreground/5 px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] text-foreground/60 sm:text-[9px] sm:tracking-[0.14em]">
+                      <div className="rounded-full border border-foreground/12 bg-foreground/4 px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] text-foreground/60 sm:text-[9px] sm:tracking-[0.14em]">
                         JERK {Math.round(speedJerk * 100)}% · {weaponPreset.toUpperCase()}
                       </div>
-                      <div className="rounded-full border border-foreground/15 bg-foreground/5 px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] text-foreground/60 sm:text-[9px] sm:tracking-[0.14em]">
+                      <div className="rounded-full border border-foreground/12 bg-foreground/4 px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] text-foreground/60 sm:text-[9px] sm:tracking-[0.14em]">
                         GRAVITY {Math.round(gravityLoad * 100)}% · BOUNDARY {Math.round(boundaryLoad * 100)}%
                       </div>
-                      <div className="col-span-2 rounded-full border border-foreground/15 bg-foreground/5 px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] text-foreground/60 sm:text-[9px] sm:tracking-[0.14em]">
+                      <div className="col-span-2 rounded-full border border-foreground/12 bg-foreground/4 px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] text-foreground/60 sm:text-[9px] sm:tracking-[0.14em]">
                         ROUTE {routeName.toUpperCase()} {routeProgress} · WEAPONS {weaponMode.toUpperCase()}
                       </div>
                       <div className={`col-span-2 rounded-full border border-foreground/15 bg-foreground/5 px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] sm:text-[9px] sm:tracking-[0.14em] ${weaponOverheated ? 'text-red-300/95' : 'text-foreground/60'}`}>
@@ -271,7 +271,7 @@ export function HUD({ gameState, showForwardDebug = false, onShipSelect, waypoin
                   )}
                   {simpleJourneyMode && (
                     <>
-                      <div className="col-span-2 rounded-full border border-foreground/15 bg-foreground/5 px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] text-foreground/60 sm:text-[9px] sm:tracking-[0.14em]">
+                      <div className="col-span-2 rounded-full border border-foreground/12 bg-foreground/4 px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] text-foreground/60 sm:text-[9px] sm:tracking-[0.14em]">
                         ROUTE {routeName.toUpperCase()} {routeProgress}
                       </div>
                     </>
@@ -386,7 +386,7 @@ export function HUD({ gameState, showForwardDebug = false, onShipSelect, waypoin
 
       {/* Control hints and flight info */}
       {isExplorationPhase && (
-        <div className="fixed bottom-29 sm:bottom-36 left-1/2 z-30 w-full max-w-[min(100vw,42rem)] -translate-x-1/2 px-3 text-center pointer-events-none">
+        <div className="fixed bottom-28 sm:bottom-35 left-1/2 z-30 w-full max-w-[min(100vw,40rem)] -translate-x-1/2 px-3 text-center pointer-events-none">
           {showRouteMessage && (
             <div className="mb-2 inline-block max-w-full rounded-full border border-cyan-300/30 bg-cyan-400/10 px-3 py-1 font-mono text-[8px] sm:text-[9px] tracking-widest sm:tracking-[0.12em] uppercase text-cyan-100/90 leading-tight text-balance">
               {routeMessage}
@@ -395,8 +395,8 @@ export function HUD({ gameState, showForwardDebug = false, onShipSelect, waypoin
           <div className="mb-2 font-mono text-[8px] leading-relaxed tracking-[0.08em] uppercase text-foreground/40 sm:text-[9px] sm:tracking-[0.22em]">
             <span className="sm:hidden">
               {isTouchDevice
-                ? 'TILT TO STEER · TAP THRUST TO START · TAP BOOST FOR BURST SPEED'
-                : 'W ACCELERATE · S BRAKE TO ZERO · A/D STEER · CLICK/J FIRE'}
+                ? 'TILT STEER · TAP THRUST · TAP BOOST'
+                : 'W ACCELERATE · S BRAKE · A/D STEER · FIRE'}
             </span>
             <span className="hidden sm:inline">{primaryFlightHint}</span>
           </div>
