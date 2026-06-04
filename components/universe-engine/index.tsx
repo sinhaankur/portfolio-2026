@@ -387,6 +387,20 @@ export function UniverseEngine({
                   <p className="max-w-[20rem] font-sans text-[11px] leading-5 text-foreground/62">
                     The SOI shells show each planet&apos;s Hill sphere. Inner planets keep a minimum visual size so the boundary stays readable at this camera distance.
                   </p>
+
+                  <div className="rounded-2xl border border-foreground/8 bg-foreground/3 px-3 py-2.5 space-y-2">
+                    <div className="font-mono text-[9px] tracking-[0.22em] uppercase text-foreground/45">
+                      Physics lens
+                    </div>
+                    <div className="space-y-1 font-mono text-[10px] leading-5 text-foreground/72">
+                      <div>v² = GM(2/r − 1/a)</div>
+                      <div>r_H = a · (m / 3M)^(1/3)</div>
+                      <div>r_s = 2GM / c²</div>
+                    </div>
+                    <p className="font-sans text-[11px] leading-5 text-foreground/58">
+                      Gravity is the main driver, but motion also shifts with distance, initial velocity, orbital eccentricity and inclination, perturbations from other bodies, comets&apos; outgassing, radiation pressure, and black-hole spin.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
