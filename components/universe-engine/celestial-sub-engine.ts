@@ -91,12 +91,42 @@ const COMET_PROFILES: Record<string, { hitMul: number; labelMul: number; idleMul
   "comet halley": { hitMul: 1.12, labelMul: 1.06, idleMul: 1.05, hoverMul: 1.08 },
 }
 
+const STAR_DYNAMIC_PROFILES: Record<string, { twinkleHz: number; amplitude: number; baseBias: number }> = {
+  sirius: { twinkleHz: 0.62, amplitude: 0.22, baseBias: 0.92 },
+  betelgeuse: { twinkleHz: 0.28, amplitude: 0.12, baseBias: 0.98 },
+  rigel: { twinkleHz: 0.52, amplitude: 0.16, baseBias: 0.94 },
+  vega: { twinkleHz: 0.48, amplitude: 0.12, baseBias: 0.98 },
+  antares: { twinkleHz: 0.32, amplitude: 0.13, baseBias: 0.98 },
+  aldebaran: { twinkleHz: 0.34, amplitude: 0.11, baseBias: 0.98 },
+  "vy-cma": { twinkleHz: 0.22, amplitude: 0.08, baseBias: 1.0 },
+  "eta-carinae": { twinkleHz: 0.58, amplitude: 0.18, baseBias: 0.95 },
+}
+
+const COMET_DYNAMIC_PROFILES: Record<string, {
+  activityMul: number
+  comaPulseAmp: number
+  comaPulseHz: number
+  jetPulseAmp: number
+  jetPulseHz: number
+}> = {
+  "comet hale-bopp": { activityMul: 1.22, comaPulseAmp: 0.16, comaPulseHz: 0.30, jetPulseAmp: 0.24, jetPulseHz: 0.82 },
+  "comet hyakutake": { activityMul: 1.18, comaPulseAmp: 0.14, comaPulseHz: 0.34, jetPulseAmp: 0.22, jetPulseHz: 0.88 },
+  "comet tsuchinshan-atlas": { activityMul: 1.25, comaPulseAmp: 0.18, comaPulseHz: 0.38, jetPulseAmp: 0.30, jetPulseHz: 0.94 },
+  "comet ikeya-seki": { activityMul: 1.2, comaPulseAmp: 0.16, comaPulseHz: 0.36, jetPulseAmp: 0.26, jetPulseHz: 0.92 },
+  "comet neowise": { activityMul: 1.16, comaPulseAmp: 0.14, comaPulseHz: 0.35, jetPulseAmp: 0.22, jetPulseHz: 0.88 },
+  "comet halley": { activityMul: 1.1, comaPulseAmp: 0.12, comaPulseHz: 0.32, jetPulseAmp: 0.2, jetPulseHz: 0.84 },
+}
+
 function clamp01(v: number) {
   return Math.max(0, Math.min(1, v))
 }
 
 function clampRadius(v: number) {
   return Math.max(0.12, Math.min(3.2, v))
+}
+
+function clampPositive(v: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, v))
 }
 
 export function getSkyAffordance({
@@ -261,5 +291,25 @@ export function getCometAffordance({
     labelOffset,
     trailIdle,
     trailHover,
+  }
+}
+
+export function getStarDynamicProfile(pointId?: string) {
+  const profile = pointId ? STAR_DYNAMIC_PROFILES[pointId] : undefined
+  return {
+    twinkleHz: clampPositive(profile?.twinkleHz ?? 0.42, 0.08, 1.8),
+    amplitude: clamp01(profile?.amplitude ?? 0.10),
+    baseBias: clampPositive(profile?.baseBias ?? 1.0, 0.7, 1.4),
+  }
+}
+
+export function getCometDynamicProfile(name: string) {
+  const profile = COMET_DYNAMIC_PROFILES[name.toLowerCase()]
+  return {
+    activityMul: clampPositive(profile?.activityMul ?? 1.0, 0.7, 1.5),
+    comaPulseAmp: clamp01(profile?.comaPulseAmp ?? 0.1),
+    comaPulseHz: clampPositive(profile?.comaPulseHz ?? 0.3, 0.05, 2.0),
+    jetPulseAmp: clamp01(profile?.jetPulseAmp ?? 0.16),
+    jetPulseHz: clampPositive(profile?.jetPulseHz ?? 0.8, 0.05, 3.0),
   }
 }

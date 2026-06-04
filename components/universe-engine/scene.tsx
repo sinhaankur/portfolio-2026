@@ -266,8 +266,10 @@ import { CONSTELLATION_FIGURES } from "./constellation-figures"
 import { SPACECRAFT_SHAPES } from "./spacecraft-shapes"
 import {
   getBlackHoleAffordance,
+  getCometDynamicProfile,
   getCometAffordance,
   getSkyAffordance,
+  getStarDynamicProfile,
 } from "./celestial-sub-engine"
 import type {
   Constellation,
@@ -2816,6 +2818,10 @@ function NamedBodyMesh({
    *  toward the Sun, only fading in close to perihelion. */
   const antiTailMeshRef = useRef<Mesh>(null)
   const antiTailMatRef = useRef<ShaderMaterial>(null)
+  const comaInnerMatRef = useRef<import("three").MeshBasicMaterial>(null)
+  const comaMidMatRef = useRef<import("three").MeshBasicMaterial>(null)
+  const comaOuterMatRef = useRef<import("three").MeshBasicMaterial>(null)
+  const cometPulseRef = useRef(Math.random() * Math.PI * 2)
   /** Motion trail — ring buffer of recent positions rendered as fading
    *  particles behind the body. Makes orbital movement legible at any
    *  time-warp (the body itself moves slowly in any given second; the
@@ -2919,6 +2925,10 @@ function NamedBodyMesh({
         invert,
       }),
     [body.kind, body.name, config.visualRadius, config.isLoop, invert],
+  )
+  const cometDynamic = useMemo(
+    () => getCometDynamicProfile(body.name),
+    [body.name],
   )
 
   // Initialise the motion-trail ring buffer for comets / interstellars /
@@ -3117,6 +3127,15 @@ function NamedBodyMesh({
 
     if (tailRef.current && config.hasTail) {
       const len = Math.sqrt(px * px + py * py + pz * pz) || 1
+      cometPulseRef.current += delta
+      const TAU = Math.PI * 2
+      const comaPulse =
+        1 +
+        Math.sin(cometPulseRef.current * TAU * cometDynamic.comaPulseHz) * cometDynamic.comaPulseAmp +
+        Math.sin(cometPulseRef.current * TAU * cometDynamic.comaPulseHz * 0.53 + 0.7) * cometDynamic.comaPulseAmp * 0.35
+      const jetPulse =
+        1 +
+        Math.sin(cometPulseRef.current * TAU * cometDynamic.jetPulseHz + 0.9) * cometDynamic.jetPulseAmp
       _tailFrom.set(0, 1, 0)
       _tailTo.set(px / len, py / len, pz / len)
       tailRef.current.quaternion.setFromUnitVectors(_tailFrom, _tailTo)
@@ -3128,13 +3147,29 @@ function NamedBodyMesh({
       // by 18u. So Halley flares dramatically each time it swings inside
       // Mars's orbit, then trails off as it heads back to Pluto-distance.
       const t = Math.max(0, Math.min(1, (18 - len) / 13))
+      const activityT = Math.max(0, Math.min(1, t * cometDynamic.activityMul))
+
+      const comaBoost = (0.75 + activityT * 0.25) * Math.max(0.6, comaPulse)
+      if (comaInnerMatRef.current) {
+        const base = invert ? 0.55 : 0.55
+        comaInnerMatRef.current.opacity = Math.max(0, Math.min(1, base * comaBoost))
+      }
+      if (comaMidMatRef.current) {
+        const base = invert ? 0.45 : 0.42
+        comaMidMatRef.current.opacity = Math.max(0, Math.min(1, base * comaBoost))
+      }
+      if (comaOuterMatRef.current) {
+        const base = invert ? 0.22 : 0.16
+        comaOuterMatRef.current.opacity = Math.max(0, Math.min(1, base * comaBoost))
+      }
+
       // Ion tail — straight, electric-blue, points exactly anti-radial.
       if (tailMeshRef.current && tailMatRef.current) {
         const baseHalf = config.visualRadius * 7.0 * config.tailLengthFactor
-        tailMeshRef.current.position.y = baseHalf * t
-        tailMeshRef.current.scale.y = t
+        tailMeshRef.current.position.y = baseHalf * activityT
+        tailMeshRef.current.scale.y = activityT
         const peakOpacity = invert ? 0.65 : 0.55
-        tailMatRef.current.uniforms.uOpacity.value = t * peakOpacity
+        tailMatRef.current.uniforms.uOpacity.value = activityT * peakOpacity * Math.max(0.68, jetPulse)
         tailMatRef.current.uniforms.uTime.value += delta
       }
       // Dust tail — broader, warm, slightly longer. Radiation pressure
@@ -3143,17 +3178,17 @@ function NamedBodyMesh({
       // that curve. Smooth (no plasma knots).
       if (dustTailMeshRef.current && dustTailMatRef.current) {
         const baseHalf = config.visualRadius * 8.0 * config.tailLengthFactor
-        dustTailMeshRef.current.position.y = baseHalf * t
-        dustTailMeshRef.current.scale.y = t
+        dustTailMeshRef.current.position.y = baseHalf * activityT
+        dustTailMeshRef.current.scale.y = activityT
         const peakOpacity = invert ? 0.55 : 0.48
-        dustTailMatRef.current.uniforms.uOpacity.value = t * peakOpacity
+        dustTailMatRef.current.uniforms.uOpacity.value = activityT * peakOpacity * Math.max(0.72, comaPulse)
       }
       // Sunward envelope — the bright dust hood pressed against the
       // Sun-facing side of an active comet. Same perihelion ramp; the
       // shader gradient handles the parabolic falloff toward the rim.
       if (envelopeMatRef.current) {
         const peakOpacity = invert ? 0.50 : 0.45
-        envelopeMatRef.current.uniforms.uOpacity.value = t * peakOpacity
+        envelopeMatRef.current.uniforms.uOpacity.value = activityT * peakOpacity * Math.max(0.74, comaPulse)
       }
       // Jet streamers — only really fire close to the Sun. Tighter ramp
       // than the tails (gone by 8u, full inside 3u). The group rotates
@@ -3165,7 +3200,7 @@ function NamedBodyMesh({
       if (jetMatRef.current) {
         const jetT = Math.max(0, Math.min(1, (8 - len) / 5))
         const peakOpacity = invert ? 0.70 : 0.60
-        jetMatRef.current.uniforms.uOpacity.value = jetT * peakOpacity
+        jetMatRef.current.uniforms.uOpacity.value = jetT * peakOpacity * Math.max(0.66, jetPulse)
         jetMatRef.current.uniforms.uTime.value += delta * 2.2
       }
       // Anti-tail — short sunward spike, visible only inside ~4u and
@@ -3289,6 +3324,7 @@ function NamedBodyMesh({
             <mesh>
               <sphereGeometry args={[config.visualRadius * 0.85, 18, 14]} />
               <meshBasicMaterial
+                ref={comaInnerMatRef as React.Ref<import("three").MeshBasicMaterial>}
                 color={invert ? "#4d8478" : "#b8ffd4"}
                 transparent
                 opacity={invert ? 0.55 : 0.55}
@@ -3301,6 +3337,7 @@ function NamedBodyMesh({
             <mesh>
               <sphereGeometry args={[config.visualRadius * 1.55, 20, 16]} />
               <meshBasicMaterial
+                ref={comaMidMatRef as React.Ref<import("three").MeshBasicMaterial>}
                 color={config.shade}
                 transparent
                 opacity={invert ? 0.45 : 0.42}
@@ -3315,6 +3352,7 @@ function NamedBodyMesh({
             <mesh>
               <sphereGeometry args={[config.visualRadius * 2.5, 20, 16]} />
               <meshBasicMaterial
+                ref={comaOuterMatRef as React.Ref<import("three").MeshBasicMaterial>}
                 color={config.shade}
                 transparent
                 opacity={invert ? 0.22 : 0.16}
@@ -4761,6 +4799,9 @@ function SkyPointMesh({
   interactive?: boolean
 }) {
   const [hovered, setHovered] = useState(false)
+  const starHaloMatRef = useRef<import("three").MeshBasicMaterial>(null)
+  const starCoreMatRef = useRef<import("three").MeshBasicMaterial>(null)
+  const starPulseRef = useRef(Math.random() * Math.PI * 2)
   // `focused` is set on click (in interactive mode) and stays true until
   // the user resets or focuses a different sky-point. This makes the rich
   // detail (galaxy spiral, nebula bloom) stay visible after the camera
@@ -4802,6 +4843,28 @@ function SkyPointMesh({
       }),
     [point.kind, point.id, visualSize, invert, point.shade],
   )
+  const starDynamic = useMemo(
+    () => (point.kind === "star" ? getStarDynamicProfile(point.id) : null),
+    [point.kind, point.id],
+  )
+
+  useFrame((_, delta) => {
+    if (point.kind !== "star" || !starDynamic) return
+    const haloMat = starHaloMatRef.current
+    const coreMat = starCoreMatRef.current
+    if (!haloMat || !coreMat) return
+
+    starPulseRef.current += delta
+    const TAU = Math.PI * 2
+    const primary = Math.sin(starPulseRef.current * TAU * starDynamic.twinkleHz)
+    const secondary = Math.sin(starPulseRef.current * TAU * starDynamic.twinkleHz * 0.37 + 1.2)
+    const mod = 1 + primary * starDynamic.amplitude + secondary * starDynamic.amplitude * 0.35
+    const haloTarget = Math.max(0, Math.min(1, skyAffordance.haloOpacity * starDynamic.baseBias * mod))
+    const coreTarget = Math.max(0, Math.min(1, skyAffordance.coreOpacity * (0.92 + (mod - 1) * 0.45)))
+    const k = 1 - Math.exp(-delta * 7)
+    haloMat.opacity += (haloTarget - haloMat.opacity) * k
+    coreMat.opacity += (coreTarget - coreMat.opacity) * k
+  })
 
   // Hit-zone scales with the visual so even tiny exoplanet dots are findable.
   // Nebulae get a wider zone so the on-hover bloom doesn't fall outside the
@@ -4816,6 +4879,7 @@ function SkyPointMesh({
         <mesh>
           <sphereGeometry args={[visualSize * skyAffordance.haloRadiusMul, 16, 16]} />
           <meshBasicMaterial
+            ref={point.kind === "star" ? (starHaloMatRef as React.Ref<import("three").MeshBasicMaterial>) : undefined}
             color={skyAffordance.halo}
             transparent
             opacity={skyAffordance.haloOpacity}
@@ -4835,6 +4899,7 @@ function SkyPointMesh({
             14,
           ]} />
           <meshBasicMaterial
+            ref={point.kind === "star" ? (starCoreMatRef as React.Ref<import("three").MeshBasicMaterial>) : undefined}
             color={skyAffordance.core}
             transparent
             opacity={skyAffordance.coreOpacity}
