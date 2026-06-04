@@ -3646,11 +3646,18 @@ function GalaxyDetail({
   const barMatRef = useRef<import("three").PointsMaterial>(null)
   const bulgeMatRef = useRef<import("three").MeshBasicMaterial>(null)
   const dustMatRef = useRef<import("three").MeshBasicMaterial>(null)
+  const irregularMatRef = useRef<import("three").PointsMaterial>(null)
+  const irregularHaloMatRef = useRef<import("three").PointsMaterial>(null)
+  const irregularBulgeMatRef = useRef<import("three").MeshBasicMaterial>(null)
   const companionMatRefs = useRef<Array<import("three").MeshBasicMaterial | null>>([])
 
   // Only Andromeda for now — the others kind: "galaxy" stays as the
   // existing diffuse halo. Adding Triangulum is a one-rotation change.
   const isAndromeda = pointId === "m31"
+  const isTriangulum = pointId === "m33"
+  const isLmc = pointId === "lmc"
+  const isSmc = pointId === "smc"
+  const isDetailedGalaxy = isAndromeda || isTriangulum || isLmc || isSmc
 
   // Andromeda procedural model — built to the structural spec:
   //   - 30% of stars in a dense central bulge, exponential radial decay,
@@ -3767,14 +3774,108 @@ function GalaxyDetail({
     return geo
   }, [])
 
+  // Non-Andromeda galaxy detail: Triangulum gets a looser flocculent spiral,
+  // while LMC/SMC are rendered as irregular clumpy dwarfs.
+  const irregularGeometry = useMemo(() => {
+    if (!isTriangulum && !isLmc && !isSmc) return null
+    const numStars = isTriangulum ? 7000 : isLmc ? 6200 : 5000
+    const positions = new Float32Array(numStars * 3)
+    const colors = new Float32Array(numStars * 3)
+
+    for (let i = 0; i < numStars; i++) {
+      const i3 = i * 3
+
+      if (isTriangulum) {
+        const armOffsets = [0, (2 * Math.PI) / 3, (4 * Math.PI) / 3]
+        const a = 0.08
+        const b = 0.18
+        const r = 0.12 + Math.pow(Math.random(), 0.58) * 1.02
+        const armChoice = armOffsets[i % armOffsets.length]
+        let theta = Math.log(r / a) / b + armChoice
+        theta += (Math.random() - 0.5) * (0.72 / (r + 0.2))
+        const z = (Math.random() - 0.5) * 0.06 + Math.sin(theta * 0.8) * (0.012 + r * 0.035)
+        positions[i3] = r * Math.cos(theta)
+        positions[i3 + 1] = z
+        positions[i3 + 2] = r * Math.sin(theta)
+      } else if (isLmc) {
+        const t = Math.random()
+        if (t < 0.44) {
+          const along = (Math.random() - 0.5) * 1.2
+          const cross = (Math.random() - 0.5) * 0.18 * (1 - Math.min(1, Math.abs(along) * 0.7))
+          positions[i3] = along
+          positions[i3 + 1] = (Math.random() - 0.5) * 0.08
+          positions[i3 + 2] = cross + along * 0.08
+        } else if (t < 0.78) {
+          const theta = Math.random() * Math.PI * 1.4 - Math.PI * 0.2
+          const r = 0.24 + Math.pow(Math.random(), 0.6) * 0.9
+          positions[i3] = r * Math.cos(theta) * 0.95 - 0.15
+          positions[i3 + 1] = (Math.random() - 0.5) * 0.10 + Math.sin(theta * 2.2) * 0.03
+          positions[i3 + 2] = r * Math.sin(theta) * 0.7 + 0.08
+        } else {
+          const clump = Math.random() < 0.5 ? [-0.42, 0.0, 0.32] : [0.35, 0.0, -0.28]
+          positions[i3] = clump[0] + (Math.random() - 0.5) * 0.18
+          positions[i3 + 1] = clump[1] + (Math.random() - 0.5) * 0.10
+          positions[i3 + 2] = clump[2] + (Math.random() - 0.5) * 0.16
+        }
+      } else {
+        const core = Math.random() < 0.62 ? [0.12, 0.0, 0.08] : [-0.38, 0.02, -0.24]
+        const bridgePull = Math.random()
+        positions[i3] = core[0] + (Math.random() - 0.5) * 0.34 + bridgePull * 0.18
+        positions[i3 + 1] = core[1] + (Math.random() - 0.5) * 0.11
+        positions[i3 + 2] = core[2] + (Math.random() - 0.5) * 0.30 - bridgePull * 0.12
+      }
+
+      if (Math.random() < (isTriangulum ? 0.24 : isLmc ? 0.28 : 0.22)) {
+        colors[i3] = 0.96
+        colors[i3 + 1] = 0.56 + Math.random() * 0.12
+        colors[i3 + 2] = 0.76 + Math.random() * 0.12
+      } else {
+        colors[i3] = 0.68 + Math.random() * 0.18
+        colors[i3 + 1] = 0.76 + Math.random() * 0.16
+        colors[i3 + 2] = 0.92 + Math.random() * 0.08
+      }
+    }
+
+    const geo = new BufferGeometry()
+    geo.setAttribute("position", new BufferAttribute(positions, 3))
+    geo.setAttribute("color", new BufferAttribute(colors, 3))
+    return geo
+  }, [isTriangulum, isLmc, isSmc])
+
+  const irregularHaloGeometry = useMemo(() => {
+    if (!isTriangulum && !isLmc && !isSmc) return null
+    const numStars = isTriangulum ? 1600 : isLmc ? 1300 : 1100
+    const positions = new Float32Array(numStars * 3)
+    const colors = new Float32Array(numStars * 3)
+    const eccentricity = isTriangulum ? 0.92 : isLmc ? 0.84 : 0.78
+    for (let i = 0; i < numStars; i++) {
+      const radius = Math.pow(Math.random(), 0.26) * (isSmc ? 1.0 : 1.2)
+      const theta = Math.random() * Math.PI * 2
+      const i3 = i * 3
+      positions[i3] = radius * Math.cos(theta)
+      positions[i3 + 1] = (Math.random() - 0.5) * 0.24 * (1 - radius * 0.4)
+      positions[i3 + 2] = radius * Math.sin(theta) * eccentricity
+      colors[i3] = 0.78 + Math.random() * 0.10
+      colors[i3 + 1] = 0.80 + Math.random() * 0.08
+      colors[i3 + 2] = 0.45 + Math.random() * 0.15
+    }
+    const geo = new BufferGeometry()
+    geo.setAttribute("position", new BufferAttribute(positions, 3))
+    geo.setAttribute("color", new BufferAttribute(colors, 3))
+    return geo
+  }, [isTriangulum, isLmc, isSmc])
+
   // Companion galaxy positions (Andromeda only — M32 + M110).
   // M32 sits south of the disc, M110 north-west; both are dwarf ellipticals.
   const companions = useMemo(
-    () => [
-      { offset: [0.55, -0.65, 0.05] as [number, number, number], radius: 0.08 }, // M32
-      { offset: [-0.75, 0.50, -0.10] as [number, number, number], radius: 0.13 }, // M110
-    ],
-    [],
+    () =>
+      isAndromeda
+        ? [
+            { offset: [0.55, -0.65, 0.05] as [number, number, number], radius: 0.08 },
+            { offset: [-0.75, 0.50, -0.10] as [number, number, number], radius: 0.13 },
+          ]
+        : [],
+    [isAndromeda],
   )
 
   useFrame((_, delta) => {
@@ -3808,9 +3909,21 @@ function GalaxyDetail({
     if (bulgeMatRef.current) {
       bulgeMatRef.current.opacity += (bulgeTarget - bulgeMatRef.current.opacity) * k
     }
-    const dustTarget = hovered ? (invert ? 0.5 : 0.55) : 0
+    const dustTarget = isAndromeda && hovered ? (invert ? 0.5 : 0.55) : 0
     if (dustMatRef.current) {
       dustMatRef.current.opacity += (dustTarget - dustMatRef.current.opacity) * k
+    }
+    const irregularTarget = hovered ? (invert ? 0.42 : 0.55) : 0
+    if (irregularMatRef.current) {
+      irregularMatRef.current.opacity += (irregularTarget - irregularMatRef.current.opacity) * k
+    }
+    const irregularHaloTarget = hovered ? (invert ? 0.14 : 0.22) : 0
+    if (irregularHaloMatRef.current) {
+      irregularHaloMatRef.current.opacity += (irregularHaloTarget - irregularHaloMatRef.current.opacity) * k
+    }
+    const irregularBulgeTarget = hovered ? (invert ? 0.45 : 0.62) : 0
+    if (irregularBulgeMatRef.current) {
+      irregularBulgeMatRef.current.opacity += (irregularBulgeTarget - irregularBulgeMatRef.current.opacity) * k
     }
     const companionTarget = hovered ? (invert ? 0.4 : 0.55) : 0
     companionMatRefs.current.forEach((m) => {
@@ -3819,17 +3932,13 @@ function GalaxyDetail({
     })
   })
 
-  if (!isAndromeda) return null
+  if (!isDetailedGalaxy) return null
 
-  // Andromeda's apparent inclination from Earth: 77° from face-on. The
-  // position angle (orientation of the major axis on the sky) is ~38°.
-  // Together these give the iconic tilted-oval look any naked-eye view
-  // recognises immediately.
-  const ANDROMEDA_TILT = 77 * DEG
-  const ANDROMEDA_POSITION_ANGLE = 38 * DEG
-  // Scene-units scale: idle halo is `size` (=5 for Andromeda); detail
-  // blooms to ~3× so the spiral structure reads.
-  const detailScale = size * 2.4
+  const tiltDeg = isAndromeda ? 77 : isTriangulum ? 54 : isLmc ? 35 : 20
+  const positionAngleDeg = isAndromeda ? 38 : isTriangulum ? 22 : isLmc ? 170 : 45
+  const detailScale = size * (isAndromeda ? 2.4 : isTriangulum ? 2.2 : isLmc ? 2.0 : 1.9)
+  const galaxyTilt = tiltDeg * DEG
+  const galaxyAngle = positionAngleDeg * DEG
 
   // Tight central bulge core — kept as a soft warm glow because the
   // dense inner region in a real galaxy is too star-packed to resolve
@@ -3846,86 +3955,126 @@ function GalaxyDetail({
       {/* Position angle — rotates the apparent major-axis on the sky
           plane (≈38° east of north for Andromeda). Wraps the inclination
           + spin so the spiral's projection lands at the right angle. */}
-      <group rotation={[0, 0, ANDROMEDA_POSITION_ANGLE]}>
+      <group rotation={[0, 0, galaxyAngle]}>
         {/* Disc inclination — tilts the disc plane 77° from face-on so
             the spiral reads as a near-edge-on ellipse. */}
-        <group rotation={[ANDROMEDA_TILT, 0, 0]}>
+        <group rotation={[galaxyTilt, 0, 0]}>
           <group ref={spinRef}>
-            {/* Faint stellar halo — old, diffuse stars extending beyond the
-                bright disc. This grounds the galaxy in the real M31 look. */}
-            <points geometry={haloGeometry} scale={detailScale * 1.14}>
-              <pointsMaterial
-                ref={haloMatRef as React.Ref<import("three").PointsMaterial>}
-                size={detailScale * 0.018}
-                sizeAttenuation
-                vertexColors
-                color={haloColor}
-                transparent
-                opacity={0}
-                blending={invert ? NormalBlending : AdditiveBlending}
-                depthWrite={false}
-              />
-            </points>
+            {isAndromeda ? (
+              <>
+                <points geometry={haloGeometry} scale={detailScale * 1.14}>
+                  <pointsMaterial
+                    ref={haloMatRef as React.Ref<import("three").PointsMaterial>}
+                    size={detailScale * 0.018}
+                    sizeAttenuation
+                    vertexColors
+                    color={haloColor}
+                    transparent
+                    opacity={0}
+                    blending={invert ? NormalBlending : AdditiveBlending}
+                    depthWrite={false}
+                  />
+                </points>
 
-            {/* Inner bar / nucleus — a subtle elongated centre instead of a
-                perfect blob, closer to the real nuclear structure of M31. */}
-            <points geometry={barGeometry} scale={detailScale * 0.72} rotation={[0, 0, Math.PI / 8]}>
-              <pointsMaterial
-                ref={barMatRef as React.Ref<import("three").PointsMaterial>}
-                size={detailScale * 0.032}
-                sizeAttenuation
-                vertexColors
-                color={barColor}
-                transparent
-                opacity={0}
-                blending={invert ? NormalBlending : AdditiveBlending}
-                depthWrite={false}
-              />
-            </points>
+                <points geometry={barGeometry} scale={detailScale * 0.72} rotation={[0, 0, Math.PI / 8]}>
+                  <pointsMaterial
+                    ref={barMatRef as React.Ref<import("three").PointsMaterial>}
+                    size={detailScale * 0.032}
+                    sizeAttenuation
+                    vertexColors
+                    color={barColor}
+                    transparent
+                    opacity={0}
+                    blending={invert ? NormalBlending : AdditiveBlending}
+                    depthWrite={false}
+                  />
+                </points>
 
-            {/* Per-vertex coloured star cloud — bulge yellow / arm blue /
-                H II pink, with logarithmic spiral arm structure baked in. */}
-            <points geometry={armsGeometry} scale={detailScale}>
-              <pointsMaterial
-                ref={armsMatRef as React.Ref<import("three").PointsMaterial>}
-                size={detailScale * 0.045}
-                sizeAttenuation
-                vertexColors
-                color={"#ffffff"}
-                transparent
-                opacity={0}
-                blending={invert ? NormalBlending : AdditiveBlending}
-                depthWrite={false}
-              />
-            </points>
-            {/* Tight bulge core — the unresolvable centre. Smaller and
-                tighter than before so it complements the per-vertex
-                bulge stars instead of swallowing them in a blob. */}
-            <mesh>
-              <sphereGeometry args={[detailScale * 0.14, 20, 20]} />
-              <meshBasicMaterial
-                ref={bulgeMatRef as React.Ref<import("three").MeshBasicMaterial>}
-                color={bulgeColor}
-                transparent
-                opacity={0}
-                blending={invert ? NormalBlending : AdditiveBlending}
-                depthWrite={false}
-              />
-            </mesh>
-            {/* Dust lane — a thin elliptical band across the disc plane
-                suggesting the iconic dark band that obscures part of
-                Andromeda's near side. */}
-            <mesh rotation={[Math.PI / 2, 0, 0]}>
-              <ringGeometry args={[detailScale * 0.45, detailScale * 0.58, 64]} />
-              <meshBasicMaterial
-                ref={dustMatRef as React.Ref<import("three").MeshBasicMaterial>}
-                color={dustColor}
-                transparent
-                opacity={0}
-                side={DoubleSide}
-                depthWrite={false}
-              />
-            </mesh>
+                <points geometry={armsGeometry} scale={detailScale}>
+                  <pointsMaterial
+                    ref={armsMatRef as React.Ref<import("three").PointsMaterial>}
+                    size={detailScale * 0.045}
+                    sizeAttenuation
+                    vertexColors
+                    color={"#ffffff"}
+                    transparent
+                    opacity={0}
+                    blending={invert ? NormalBlending : AdditiveBlending}
+                    depthWrite={false}
+                  />
+                </points>
+
+                <mesh>
+                  <sphereGeometry args={[detailScale * 0.14, 20, 20]} />
+                  <meshBasicMaterial
+                    ref={bulgeMatRef as React.Ref<import("three").MeshBasicMaterial>}
+                    color={bulgeColor}
+                    transparent
+                    opacity={0}
+                    blending={invert ? NormalBlending : AdditiveBlending}
+                    depthWrite={false}
+                  />
+                </mesh>
+
+                <mesh rotation={[Math.PI / 2, 0, 0]}>
+                  <ringGeometry args={[detailScale * 0.45, detailScale * 0.58, 64]} />
+                  <meshBasicMaterial
+                    ref={dustMatRef as React.Ref<import("three").MeshBasicMaterial>}
+                    color={dustColor}
+                    transparent
+                    opacity={0}
+                    side={DoubleSide}
+                    depthWrite={false}
+                  />
+                </mesh>
+              </>
+            ) : (
+              <>
+                {irregularHaloGeometry && (
+                  <points geometry={irregularHaloGeometry} scale={detailScale * (isSmc ? 1.04 : 1.10)}>
+                    <pointsMaterial
+                      ref={irregularHaloMatRef as React.Ref<import("three").PointsMaterial>}
+                      size={detailScale * 0.020}
+                      sizeAttenuation
+                      vertexColors
+                      color={isTriangulum ? (invert ? "#6c6a64" : "#d5e4ff") : (invert ? "#61584f" : "#dce1f2")}
+                      transparent
+                      opacity={0}
+                      blending={invert ? NormalBlending : AdditiveBlending}
+                      depthWrite={false}
+                    />
+                  </points>
+                )}
+
+                {irregularGeometry && (
+                  <points geometry={irregularGeometry} scale={detailScale}>
+                    <pointsMaterial
+                      ref={irregularMatRef as React.Ref<import("three").PointsMaterial>}
+                      size={detailScale * (isSmc ? 0.05 : 0.045)}
+                      sizeAttenuation
+                      vertexColors
+                      color={"#ffffff"}
+                      transparent
+                      opacity={0}
+                      blending={invert ? NormalBlending : AdditiveBlending}
+                      depthWrite={false}
+                    />
+                  </points>
+                )}
+
+                <mesh>
+                  <sphereGeometry args={[detailScale * (isTriangulum ? 0.1 : isLmc ? 0.12 : 0.11), 20, 20]} />
+                  <meshBasicMaterial
+                    ref={irregularBulgeMatRef as React.Ref<import("three").MeshBasicMaterial>}
+                    color={isSmc ? (invert ? "#54331c" : "#fbc897") : (invert ? "#5a3416" : "#ffd9b0")}
+                    transparent
+                    opacity={0}
+                    blending={invert ? NormalBlending : AdditiveBlending}
+                    depthWrite={false}
+                  />
+                </mesh>
+              </>
+            )}
           </group>
         </group>
       </group>
@@ -4338,7 +4487,12 @@ function NebulaDetail({
         variant: "ring" as const,
         ringColor: invert ? "#1e3a3a" : "#7adfd2",
         coreColor: invert ? "#5a2412" : "#ffe9b8",
-        clouds: [] as Array<{ color: string; offset: [number, number, number]; scale: number }>,
+        clouds: [] as Array<{
+          color: string
+          offset: [number, number, number]
+          scale: number
+          stretch: [number, number, number]
+        }>,
       }
     }
     if (pointId === "m1") {
@@ -4347,9 +4501,10 @@ function NebulaDetail({
         ringColor: "",
         coreColor: invert ? "#3a1530" : "#ff8acf",
         clouds: [
-          { color: invert ? "#5a1c4a" : "#ff7ab8", offset: [0.4, 0.2, 0],    scale: 1.6 },
-          { color: invert ? "#243a5a" : "#7ec8ff", offset: [-0.5, -0.3, 0.2], scale: 1.3 },
-          { color: invert ? "#3a1530" : "#ffb38a", offset: [0.1, -0.4, -0.2], scale: 1.0 },
+          { color: invert ? "#5a1c4a" : "#ff7ab8", offset: [0.42, 0.20, 0.04],  scale: 1.5, stretch: [1.5, 0.8, 1.3] },
+          { color: invert ? "#243a5a" : "#7ec8ff", offset: [-0.52, -0.28, 0.16], scale: 1.2, stretch: [1.2, 0.7, 1.6] },
+          { color: invert ? "#3a1530" : "#ffb38a", offset: [0.10, -0.42, -0.18], scale: 0.95, stretch: [1.3, 0.75, 1.1] },
+          { color: invert ? "#274963" : "#8fe8ff", offset: [-0.08, 0.36, -0.24], scale: 0.9, stretch: [1.1, 0.65, 1.4] },
         ],
       }
     }
@@ -4359,9 +4514,11 @@ function NebulaDetail({
       ringColor: "",
       coreColor: invert ? "#5a2436" : "#ffb6c9",
       clouds: [
-        { color: invert ? "#5a2436" : "#ff8fae", offset: [0.45, 0.15, 0.1],   scale: 1.7 }, // Hα pink
-        { color: invert ? "#1f3a4a" : "#7fd6e8", offset: [-0.4, -0.2, 0.15],  scale: 1.4 }, // OIII teal
-        { color: invert ? "#3a1f4a" : "#c19bff", offset: [0.05, 0.35, -0.3],  scale: 1.2 }, // dust-glow violet
+        { color: invert ? "#5a2436" : "#ff8fae", offset: [0.42, 0.12, 0.10], scale: 1.6, stretch: [1.55, 0.75, 1.20] },
+        { color: invert ? "#1f3a4a" : "#7fd6e8", offset: [-0.40, -0.18, 0.15], scale: 1.35, stretch: [1.25, 0.70, 1.50] },
+        { color: invert ? "#3a1f4a" : "#c19bff", offset: [0.04, 0.34, -0.28], scale: 1.15, stretch: [1.35, 0.82, 1.22] },
+        { color: invert ? "#4a2c1f" : "#ffb58f", offset: [0.12, -0.36, -0.16], scale: 0.95, stretch: [1.15, 0.68, 1.10] },
+        { color: invert ? "#2b3b56" : "#8fb6ff", offset: [-0.26, 0.32, 0.22], scale: 0.85, stretch: [1.05, 0.64, 1.30] },
       ],
     }
   }, [pointId, invert])
@@ -4450,27 +4607,41 @@ function NebulaDetail({
           </mesh>
         </>
       ) : (
-        // Cloud variant — three offset emission billows.
+        // Cloud variant — stretched layered billows with a softer envelope,
+        // so gas reads like depth volume instead of chunky spheres.
         <group ref={swirlRef}>
           {config.clouds.map((c, i) => (
-            <mesh
+            <group
               key={i}
               position={[
                 c.offset[0] * detailScale,
                 c.offset[1] * detailScale,
                 c.offset[2] * detailScale,
               ]}
+              rotation={[0, i * 0.45, i * 0.22]}
             >
-              <sphereGeometry args={[detailScale * 0.55 * c.scale, 24, 24]} />
-              <meshBasicMaterial
-                ref={(m) => { cloudMatRefs.current[i] = m }}
-                color={c.color}
-                transparent
-                opacity={0}
-                blending={blending}
-                depthWrite={false}
-              />
-            </mesh>
+              <mesh scale={c.stretch}>
+                <sphereGeometry args={[detailScale * 0.50 * c.scale, 30, 30]} />
+                <meshBasicMaterial
+                  ref={(m) => { cloudMatRefs.current[i] = m }}
+                  color={c.color}
+                  transparent
+                  opacity={0}
+                  blending={blending}
+                  depthWrite={false}
+                />
+              </mesh>
+              <mesh scale={[c.stretch[0] * 1.35, c.stretch[1] * 1.35, c.stretch[2] * 1.35]}>
+                <sphereGeometry args={[detailScale * 0.54 * c.scale, 24, 24]} />
+                <meshBasicMaterial
+                  color={c.color}
+                  transparent
+                  opacity={invert ? 0.16 : 0.14}
+                  blending={blending}
+                  depthWrite={false}
+                />
+              </mesh>
+            </group>
           ))}
         </group>
       )}
