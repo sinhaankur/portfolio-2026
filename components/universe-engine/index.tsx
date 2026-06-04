@@ -38,6 +38,7 @@ import { OrbitControls } from "@react-three/drei"
 import { TOUCH } from "three"
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib"
 import { useTheme } from "next-themes"
+import { motion } from "framer-motion"
 
 import {
   DEFAULT_JOURNEY,
@@ -293,32 +294,37 @@ export function UniverseEngine({
 
           {/* Deep Dive legend — explains what the user is seeing. */}
           {showDeepDive && !mobile && (
-            <div className="absolute bottom-6 left-8 md:left-12 z-30 pointer-events-none max-w-88">
-              <div className="overflow-hidden rounded-[1.4rem] border border-foreground/12 bg-background/72 shadow-[0_18px_48px_rgba(0,0,0,0.18)] backdrop-blur-xl">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+              className="absolute bottom-6 left-8 md:left-12 z-30 pointer-events-none max-w-88"
+            >
+              <div className="overflow-hidden rounded-[1.375rem] border border-foreground/12 bg-background/72 shadow-[0_18px_48px_rgba(0,0,0,0.18)] backdrop-blur-xl">
                 <div className="h-px bg-linear-to-r from-transparent via-cyan-400/70 to-transparent" />
-                <div className="px-4 py-3.5 space-y-3">
+                <div className="px-4 py-3 space-y-3">
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <div className="font-mono text-[9px] tracking-[0.28em] uppercase text-foreground/45">
+                      <div className="font-mono text-[9px] tracking-[0.30em] uppercase text-foreground/45">
                         Deep Dive
                       </div>
-                      <div className="mt-1 text-sm font-sans tracking-tight text-foreground">
+                      <div className="mt-1 text-[14px] font-sans tracking-[-0.015em] text-foreground leading-none">
                         Orbital overlays + Hill spheres
                       </div>
                     </div>
-                    <div className="rounded-full border border-foreground/10 bg-foreground/4 px-2.5 py-1 font-mono text-[9px] tracking-[0.22em] uppercase text-foreground/60">
+                    <div className="rounded-full border border-foreground/10 bg-foreground/4 px-2.5 py-1 font-mono text-[9px] tracking-[0.24em] uppercase text-foreground/60">
                       live
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-2.5">
+                  <div className="grid grid-cols-1 gap-2">
                     <div className="flex items-center gap-2.5 rounded-2xl border border-foreground/8 bg-foreground/3 px-3 py-2">
-                      <span className="inline-block h-px w-4 bg-cyan-400/80" />
+                      <span className="inline-block h-px w-4 rounded-full bg-cyan-400/80" />
                       <div>
-                        <div className="font-mono text-[9px] tracking-[0.2em] uppercase text-foreground/45">
+                        <div className="font-mono text-[9px] tracking-[0.22em] uppercase text-foreground/45">
                           Trail
                         </div>
-                        <div className="font-mono text-[10px] text-foreground/75">
+                        <div className="font-mono text-[10px] text-foreground/75 leading-tight">
                           Planet orbit trail
                         </div>
                       </div>
@@ -330,10 +336,10 @@ export function UniverseEngine({
                     <div className="flex items-center gap-2.5 rounded-2xl border border-foreground/8 bg-foreground/3 px-3 py-2">
                       <span className="inline-block h-1.5 w-1.5 rounded-full bg-white" />
                       <div>
-                        <div className="font-mono text-[9px] tracking-[0.2em] uppercase text-foreground/45">
+                        <div className="font-mono text-[9px] tracking-[0.22em] uppercase text-foreground/45">
                           Phase
                         </div>
-                        <div className="font-mono text-[10px] text-foreground/75">
+                        <div className="font-mono text-[10px] text-foreground/75 leading-tight">
                           Live phase marker
                         </div>
                       </div>
@@ -342,10 +348,10 @@ export function UniverseEngine({
                     <div className="flex items-center gap-2.5 rounded-2xl border border-foreground/8 bg-foreground/3 px-3 py-2">
                       <span className="inline-block h-px w-4 bg-teal-300/80" />
                       <div>
-                        <div className="font-mono text-[9px] tracking-[0.2em] uppercase text-foreground/45">
+                        <div className="font-mono text-[9px] tracking-[0.22em] uppercase text-foreground/45">
                           Small body
                         </div>
-                        <div className="font-mono text-[10px] text-foreground/75">
+                        <div className="font-mono text-[10px] text-foreground/75 leading-tight">
                           Comet / asteroid / spacecraft path
                         </div>
                       </div>
@@ -354,10 +360,10 @@ export function UniverseEngine({
                     <div className="flex items-center gap-2.5 rounded-2xl border border-foreground/8 bg-foreground/3 px-3 py-2">
                       <span className="inline-block h-2.5 w-2.5 rounded-full border border-cyan-300/45 bg-cyan-300/10" />
                       <div>
-                        <div className="font-mono text-[9px] tracking-[0.2em] uppercase text-foreground/45">
+                        <div className="font-mono text-[9px] tracking-[0.22em] uppercase text-foreground/45">
                           Sphere
                         </div>
-                        <div className="font-mono text-[10px] text-foreground/75">
+                        <div className="font-mono text-[10px] text-foreground/75 leading-tight">
                           Hill-radius boundary
                         </div>
                       </div>
@@ -366,18 +372,18 @@ export function UniverseEngine({
 
                   {showGravityOverlay && (
                     <div className="rounded-2xl border border-foreground/8 bg-foreground/3 px-3 py-2.5 space-y-2">
-                      <div className="font-mono text-[9px] tracking-[0.22em] uppercase text-foreground/45">
+                      <div className="font-mono text-[9px] tracking-[0.24em] uppercase text-foreground/45">
                         Gravity overlay
                       </div>
                       <div className="flex items-center gap-2.5">
                         <span className="inline-block h-2.5 w-2.5 rounded-full border border-cyan-300/40 bg-cyan-300/10" />
-                        <span className="font-mono text-[10px] text-foreground/70">
+                        <span className="font-mono text-[10px] text-foreground/70 leading-tight">
                           Influence sphere
                         </span>
                       </div>
                       <div className="flex items-center gap-2.5">
-                        <span className="inline-block h-px w-4 bg-cyan-400/65" />
-                        <span className="font-mono text-[10px] text-foreground/70">
+                        <span className="inline-block h-px w-4 rounded-full bg-cyan-400/65" />
+                        <span className="font-mono text-[10px] text-foreground/70 leading-tight">
                           Net gravity vector
                         </span>
                       </div>
@@ -390,36 +396,36 @@ export function UniverseEngine({
 
                   <div className="rounded-2xl border border-foreground/8 bg-foreground/3 px-3 py-2.5 space-y-2.5">
                     <div className="flex items-center justify-between gap-3">
-                      <div className="font-mono text-[9px] tracking-[0.22em] uppercase text-foreground/45">
+                      <div className="font-mono text-[9px] tracking-[0.24em] uppercase text-foreground/45">
                         Physics lens
                       </div>
-                      <div className="font-mono text-[9px] tracking-[0.18em] uppercase text-foreground/35">
+                      <div className="font-mono text-[9px] tracking-[0.2em] uppercase text-foreground/35">
                         motion factors
                       </div>
                     </div>
 
                     <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] gap-x-3 gap-y-2 font-mono text-[10px] leading-4 text-foreground/72">
                       <div className="rounded-xl border border-foreground/8 bg-background/35 px-2.5 py-2">
-                        <div className="text-foreground/45 mb-1">v² = GM(2/r − 1/a)</div>
+                        <div className="text-foreground/45 mb-1 tracking-[0.01em]">v² = GM(2/r − 1/a)</div>
                         <div className="text-[9px] leading-4 text-foreground/58">
                           orbital speed from mass, distance, and semi-major axis
                         </div>
                       </div>
                       <div className="rounded-xl border border-foreground/8 bg-background/35 px-2.5 py-2">
-                        <div className="text-foreground/45 mb-1">the path changes with:</div>
+                        <div className="text-foreground/45 mb-1 tracking-[0.01em]">the path changes with:</div>
                         <div className="text-[9px] leading-4 text-foreground/58">
                           gravity, launch speed, eccentricity, inclination, nearby perturbations, and for comets, outgassing
                         </div>
                       </div>
 
                       <div className="rounded-xl border border-foreground/8 bg-background/35 px-2.5 py-2">
-                        <div className="text-foreground/45 mb-1">r_H = a · (m / 3M)^(1/3)</div>
+                        <div className="text-foreground/45 mb-1 tracking-[0.01em]">r_H = a · (m / 3M)^(1/3)</div>
                         <div className="text-[9px] leading-4 text-foreground/58">
                           Hill sphere: where a planet begins to dominate locally
                         </div>
                       </div>
                       <div className="rounded-xl border border-foreground/8 bg-background/35 px-2.5 py-2">
-                        <div className="text-foreground/45 mb-1">r_s = 2GM / c²</div>
+                        <div className="text-foreground/45 mb-1 tracking-[0.01em]">r_s = 2GM / c²</div>
                         <div className="text-[9px] leading-4 text-foreground/58">
                           Schwarzschild radius: the black-hole scale you can’t cross back out from
                         </div>
@@ -432,7 +438,7 @@ export function UniverseEngine({
                   </div>
                 </div>
               </div>
-            </div>
+            </motion.div>
           )}
 
           {showDeepDive && mobile && (
@@ -446,10 +452,10 @@ export function UniverseEngine({
                     <div className="font-mono text-[9px] tracking-[0.24em] uppercase text-foreground/45">
                       Deep Dive
                     </div>
-                    <div className="font-mono text-[10px] text-foreground/75 truncate">
+                    <div className="font-mono text-[10px] text-foreground/75 truncate leading-tight">
                       Orbit trails and Hill spheres are visible
                     </div>
-                    <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-foreground/45 truncate">
+                    <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-foreground/45 truncate leading-tight">
                       Gravity + speed + orbit shape drive the motion
                     </div>
                   </div>
