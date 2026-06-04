@@ -62,9 +62,9 @@ Repository layout:
 
 ---
 
-## Asset provenance note (Star Cleaver)
+## Asset provenance note (Helion Drift)
 
-For transparency: the X-Wing style player ship used in Star Cleaver
+For transparency: the X-Wing style player ship used in Helion Drift
 (`public/models/Test1glb.glb`) was built in Blender. LM Studio was used
 in the iteration workflow, with the attached local model
 `qwen3.6-35b-a3b-mtp`.

@@ -1,4 +1,4 @@
-# Star Cleaver Neural Game Engine
+# Helion Drift Neural Game Engine
 
 ## Structure
 
@@ -18,7 +18,7 @@ lib/ship-generator/
 games/star-cleaver/engine/
   ├── worlds.ts             # 7 defending worlds + wave configs
   ├── enemies.ts            # Enemy archetypes + AI wiring
-  ├── game-state.ts         # Star Cleaver state helpers
+  ├── game-state.ts         # Helion Drift state helpers
   └── game-canvas.tsx       # React integration point
 ```
 

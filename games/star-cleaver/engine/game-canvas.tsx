@@ -363,7 +363,7 @@ function GameFog() {
 }
 
 /**
- * Game Canvas: Main React component for Star Cleaver gameplay.
+ * Game Canvas: Main React component for Helion Drift gameplay.
  * Integrates Universe Engine rendering with Neural Game Engine logic.
  */
 
@@ -2675,7 +2675,7 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
         {showControlsHelp && (
           <div className="pointer-events-auto fixed left-1/2 top-1/2 z-60 w-[min(92vw,34rem)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-cyan-200/30 bg-black/80 px-5 py-4 text-white backdrop-blur-md">
             <div className="flex items-center justify-between">
-              <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-cyan-200/85">Star Cleaver Controls</div>
+              <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-cyan-200/85">Helion Drift Controls</div>
               <button
                 type="button"
                 onClick={() => setShowControlsHelp(false)}

@@ -20,7 +20,7 @@ interface HUDProps {
 }
 
 /**
- * HUD: Desktop-first heads-up display for Star Cleaver.
+ * HUD: Desktop-first heads-up display for Helion Drift.
  * Matches universe-engine/hud.tsx design language: font-mono, tracking-wide, backdrop-blur-sm.
  */
 export function HUD({ gameState, showForwardDebug = false, onShipSelect, waypoints }: HUDProps) {

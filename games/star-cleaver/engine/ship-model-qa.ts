@@ -125,7 +125,7 @@ export function auditShipModel(scene: THREE.Object3D, label: string): ShipModelA
   window.__starCleaverShipAudit = report;
 
   // One-time snapshot for quick QA after each GLB replacement.
-  console.groupCollapsed(`[Star Cleaver][Ship QA] ${label}`);
+  console.groupCollapsed(`[Helion Drift][Ship QA] ${label}`);
   console.log('Triangles:', report.triangles);
   console.log('Vertices:', report.vertices);
   console.log('Meshes:', report.meshes);

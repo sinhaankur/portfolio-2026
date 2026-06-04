@@ -1,5 +1,5 @@
 import type { DefendedWorld } from '../../../lib/neural-game-engine';
-// Star Cleaver: Only Earth is present in this minimal build.
+// Helion Drift: Only Earth is present in this minimal build.
 
 export const defendedWorlds: DefendedWorld[] = [
   {

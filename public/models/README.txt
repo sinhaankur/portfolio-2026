@@ -1,4 +1,4 @@
-Star Cleaver player ship model notes
+Helion Drift player ship model notes
 ===================================
 
 Active model at runtime:

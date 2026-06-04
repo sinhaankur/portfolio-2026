@@ -1,4 +1,4 @@
-// Star Cleaver Game Engine: Core exports
+// Helion Drift Game Engine: Core exports
 export * from './worlds';
 export * from './enemies';
 export * from './game-state';

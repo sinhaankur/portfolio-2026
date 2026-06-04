@@ -3,7 +3,7 @@ import { defendedWorlds, getWaveConfig, getDifficultyScale } from './worlds';
 import { getMissionLayout } from './mission-layout';
 
 /**
- * Star Cleaver Game State initialization and helpers.
+ * Helion Drift Game State initialization and helpers.
  */
 
 export const IGNITION_STARTUP_DURATION = 0.3;

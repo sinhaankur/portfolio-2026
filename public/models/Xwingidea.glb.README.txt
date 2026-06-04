@@ -3,7 +3,7 @@ Legacy note: Xwingidea.glb
 
 Xwingidea.glb is now a legacy concept file.
 
-Current active ship model for Star Cleaver:
+Current active ship model for Helion Drift:
 - /public/models/Test1glb.glb
 
 Provenance summary for users:

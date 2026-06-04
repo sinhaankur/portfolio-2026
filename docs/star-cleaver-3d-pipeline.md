@@ -1,6 +1,6 @@
-# Star Cleaver 3D Asset Pipeline (Free + Low-Pain)
+# Helion Drift 3D Asset Pipeline (Free + Low-Pain)
 
-This is a practical workflow for creating and shipping web-ready ship models for Star Cleaver without paid tools.
+This is a practical workflow for creating and shipping web-ready ship models for Helion Drift without paid tools.
 
 ## 1) Use This Folder Strategy
 

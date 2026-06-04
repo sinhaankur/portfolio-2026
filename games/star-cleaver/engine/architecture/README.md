@@ -1,4 +1,4 @@
-# Star Cleaver Mission Director Architecture
+# Helion Drift Mission Director Architecture
 
 This folder contains high-level runtime orchestration utilities used to keep
 mission flow and phase behavior centralized.

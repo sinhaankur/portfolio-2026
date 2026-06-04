@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""GLB fixer and tuner for Star Cleaver ship assets.
+"""GLB fixer and tuner for Helion Drift ship assets.
 
 Features:
 - Safe GLB parsing/writing (JSON + BIN chunks, 4-byte alignment)
@@ -398,7 +398,7 @@ def _process_one_file(
 
 
 def parse_args() -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="Fix and tune X-wing GLB files for Star Cleaver")
+    p = argparse.ArgumentParser(description="Fix and tune X-wing GLB files for Helion Drift")
     p.add_argument("input", type=Path, help="Input GLB file path or directory")
     p.add_argument("--output", type=Path, help="Output GLB file path")
     p.add_argument("--output-dir", type=Path, help="Output directory for batch runs")

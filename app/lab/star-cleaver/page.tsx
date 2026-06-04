@@ -24,12 +24,12 @@ const GameCanvas = dynamic(() => import('@/games/star-cleaver/engine/game-canvas
   ssr: false,
   loading: () => (
     <div style={{ width: '100vw', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#000' }}>
-      <p style={{ color: '#fff' }}>Loading Star Cleaver...</p>
+      <p style={{ color: '#fff' }}>Loading Helion Drift...</p>
     </div>
   ),
 });
 
-export default function StarCleaverExperience() {
+export default function HelionDriftExperience() {
   const [showGame, setShowGame] = useState(false);
   const [gameReady, setGameReady] = useState(false);
   const [gameLoadTimedOut, setGameLoadTimedOut] = useState(false);
@@ -199,7 +199,7 @@ export default function StarCleaverExperience() {
           Lab Engine · Science First
         </div>
         <p style={{ margin: 0, fontSize: isMobile ? '11px' : '12px', lineHeight: 1.5, color: 'rgba(255, 255, 255, 0.78)' }}>
-          This is the more detailed lab-side Universe Engine. It uses real astronomy data and stricter scale behavior than the home hero, and this is the version Star Cleaver launches from.
+          This is the more detailed lab-side Universe Engine. It uses real astronomy data and stricter scale behavior than the home hero, and this is the version Helion Drift launches from.
         </p>
       </div>
       {/* Overlay hint for game discovery */}
@@ -242,7 +242,7 @@ export default function StarCleaverExperience() {
             e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
           }}
         >
-          Launch Star Cleaver
+          Launch Helion Drift
         </button>
         {launchError && (
           <p

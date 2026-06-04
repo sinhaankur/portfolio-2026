@@ -97,7 +97,7 @@ export function OpeningSequence({ onComplete }: OpeningSequenceProps) {
 
       {/* Bottom status line */}
       <div className="fixed bottom-6 left-6 text-foreground/40 font-mono text-[9px] tracking-widest">
-        STAR CLEAVER · INITIALIZATION
+        HELION DRIFT · INITIALIZATION
       </div>
     </div>
   );

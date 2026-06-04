@@ -1,6 +1,6 @@
-# Star Cleaver AAA Component Standards
+# Helion Drift AAA Component Standards
 
-This document defines production-grade standards for Star Cleaver.
+This document defines production-grade standards for Helion Drift.
 
 Note: This is an AAA-style standard inspired by widely used game-industry practices for open-world and action games. It is not a reverse-engineered proprietary GTA implementation.
 
@@ -122,4 +122,4 @@ A section is done only when:
 3. Ship material/scale contracts: games/star-cleaver/engine/player-ship-model.tsx
 4. Mission orbital layout: games/star-cleaver/engine/mission-layout.ts
 
-Use this file as the quality contract before implementing or reviewing any Star Cleaver component change.
+Use this file as the quality contract before implementing or reviewing any Helion Drift component change.
