@@ -291,6 +291,68 @@ export function UniverseEngine({
             </div>
           )}
 
+          {/* Deep Dive legend — explains what the user is seeing. */}
+          {showDeepDive && !mobile && (
+            <div className="absolute bottom-6 left-8 md:left-12 z-30 pointer-events-none"
+            >
+              <div className="rounded-2xl border border-foreground/15 bg-background/50 backdrop-blur-sm px-4 py-3 space-y-1.5"
+              >
+                <div className="font-mono text-[9px] tracking-[0.25em] uppercase text-foreground/55 mb-1.5"
+                >
+                  Deep Dive Legend
+                </div>
+                <div className="flex items-center gap-2"
+                >
+                  <span className="inline-block w-4 h-px bg-cyan-400/70"
+                  />
+                  <span className="font-mono text-[10px] text-foreground/70"
+                  >Planet orbit trail</span>
+                </div>
+                <div className="flex items-center gap-2"
+                >
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-white"
+                  />
+                  <span className="font-mono text-[10px] text-foreground/70"
+                  >Live orbital position</span>
+                </div>
+                <div className="flex items-center gap-2"
+                >
+                  <span className="inline-block w-4 h-px bg-teal-300/70"
+                  />
+                  <span className="font-mono text-[10px] text-foreground/70"
+                  >Comet trajectory</span>
+                </div>
+                <div className="flex items-center gap-2"
+                >
+                  <span className="inline-block w-4 h-px bg-amber-300/70"
+                  />
+                  <span className="font-mono text-[10px] text-foreground/70"
+                  >Asteroid / spacecraft path</span>
+                </div>
+                {showGravityOverlay && (
+                  <>
+                    <div className="h-px w-full bg-foreground/10 my-1"
+                    />
+                    <div className="flex items-center gap-2"
+                    >
+                      <span className="inline-block w-2 h-2 rounded-full border border-cyan-300/40 bg-cyan-300/10"
+                      />
+                      <span className="font-mono text-[10px] text-foreground/70"
+                      >Gravity influence sphere</span>
+                    </div>
+                    <div className="flex items-center gap-2"
+                    >
+                      <span className="inline-block w-3 h-px bg-cyan-400/60"
+                      />
+                      <span className="font-mono text-[10px] text-foreground/70"
+                      >Net gravity vector</span>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* HUD cluster — horizontal row, anchored bottom-right alongside
               UPCOMING (which lives at bottom-6 right-6). The previous stacked
               layout placed the music chip at bottom-24+, which on shorter
