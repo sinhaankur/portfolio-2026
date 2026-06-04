@@ -3642,6 +3642,8 @@ function GalaxyDetail({
   const rootRef = useRef<Group>(null)
   const spinRef = useRef<Group>(null)
   const armsMatRef = useRef<import("three").PointsMaterial>(null)
+  const haloMatRef = useRef<import("three").PointsMaterial>(null)
+  const barMatRef = useRef<import("three").PointsMaterial>(null)
   const bulgeMatRef = useRef<import("three").MeshBasicMaterial>(null)
   const dustMatRef = useRef<import("three").MeshBasicMaterial>(null)
   const companionMatRefs = useRef<Array<import("three").MeshBasicMaterial | null>>([])
@@ -3692,7 +3694,8 @@ function GalaxyDetail({
       let theta = Math.log(r / a) / b + armChoice
       const dispersion = (Math.random() - 0.5) * (0.40 / (r + 0.1))
       theta += dispersion
-      const z = (Math.random() - 0.5) * 0.04
+      const warp = Math.sin(theta * 1.35) * (0.018 + r * 0.05)
+      const z = (Math.random() - 0.5) * 0.04 + warp
       const i3 = i * 3
       positions[i3]     = r * Math.cos(theta)
       positions[i3 + 1] = z
@@ -3709,6 +3712,55 @@ function GalaxyDetail({
       }
     }
 
+    const geo = new BufferGeometry()
+    geo.setAttribute("position", new BufferAttribute(positions, 3))
+    geo.setAttribute("color", new BufferAttribute(colors, 3))
+    return geo
+  }, [])
+
+  // Faint stellar halo — loose, old stars spread far beyond the bright disc.
+  // This is what makes Andromeda feel like a real galaxy instead of a flat icon.
+  const haloGeometry = useMemo(() => {
+    const numStars = 2200
+    const positions = new Float32Array(numStars * 3)
+    const colors = new Float32Array(numStars * 3)
+    for (let i = 0; i < numStars; i++) {
+      const radius = Math.pow(Math.random(), 0.28) * 1.25
+      const theta = Math.random() * Math.PI * 2
+      const thickness = (Math.random() - 0.5) * 0.28 * (1 - radius * 0.45)
+      const haloBias = 0.45 + Math.random() * 0.15
+      const i3 = i * 3
+      positions[i3] = radius * Math.cos(theta)
+      positions[i3 + 1] = thickness
+      positions[i3 + 2] = radius * Math.sin(theta)
+      colors[i3] = 0.78 + Math.random() * 0.10
+      colors[i3 + 1] = 0.80 + Math.random() * 0.08
+      colors[i3 + 2] = haloBias
+    }
+    const geo = new BufferGeometry()
+    geo.setAttribute("position", new BufferAttribute(positions, 3))
+    geo.setAttribute("color", new BufferAttribute(colors, 3))
+    return geo
+  }, [])
+
+  // Inner bar / nuclear region — Andromeda's center is not a perfect
+  // sphere. A subtle elongated stellar bar helps the real structure read.
+  const barGeometry = useMemo(() => {
+    const numStars = 2600
+    const positions = new Float32Array(numStars * 3)
+    const colors = new Float32Array(numStars * 3)
+    for (let i = 0; i < numStars; i++) {
+      const along = (Math.random() - 0.5) * 0.85
+      const cross = (Math.random() - 0.5) * 0.12 * (1 - Math.abs(along) * 0.8)
+      const vertical = (Math.random() - 0.5) * 0.06 * Math.exp(-Math.abs(along) * 1.4)
+      const i3 = i * 3
+      positions[i3] = along
+      positions[i3 + 1] = vertical
+      positions[i3 + 2] = cross
+      colors[i3] = 0.92 + Math.random() * 0.06
+      colors[i3 + 1] = 0.78 + Math.random() * 0.10
+      colors[i3 + 2] = 0.56 + Math.random() * 0.10
+    }
     const geo = new BufferGeometry()
     geo.setAttribute("position", new BufferAttribute(positions, 3))
     geo.setAttribute("color", new BufferAttribute(colors, 3))
@@ -3744,6 +3796,14 @@ function GalaxyDetail({
     if (armsMatRef.current) {
       armsMatRef.current.opacity += (armTarget - armsMatRef.current.opacity) * k
     }
+    const haloTarget = hovered ? (invert ? 0.18 : 0.24) : 0
+    if (haloMatRef.current) {
+      haloMatRef.current.opacity += (haloTarget - haloMatRef.current.opacity) * k
+    }
+    const barTarget = hovered ? (invert ? 0.38 : 0.46) : 0
+    if (barMatRef.current) {
+      barMatRef.current.opacity += (barTarget - barMatRef.current.opacity) * k
+    }
     const bulgeTarget = hovered ? (invert ? 0.55 : 0.75) : 0
     if (bulgeMatRef.current) {
       bulgeMatRef.current.opacity += (bulgeTarget - bulgeMatRef.current.opacity) * k
@@ -3776,6 +3836,8 @@ function GalaxyDetail({
   // into individual points. The star-cloud bulge baked into the
   // geometry handles the outer-bulge population.
   const bulgeColor = invert ? "#5a3416" : "#ffd9b0"
+  const haloColor = invert ? "#8b7358" : "#dce7ff"
+  const barColor = invert ? "#6c4524" : "#ffe2bf"
   const dustColor = invert ? "#0a0a0a" : "#1a0a04"
   const companionColor = invert ? "#3a1d12" : "#ffd9c2"
 
@@ -3789,6 +3851,38 @@ function GalaxyDetail({
             the spiral reads as a near-edge-on ellipse. */}
         <group rotation={[ANDROMEDA_TILT, 0, 0]}>
           <group ref={spinRef}>
+            {/* Faint stellar halo — old, diffuse stars extending beyond the
+                bright disc. This grounds the galaxy in the real M31 look. */}
+            <points geometry={haloGeometry} scale={detailScale * 1.14}>
+              <pointsMaterial
+                ref={haloMatRef as React.Ref<import("three").PointsMaterial>}
+                size={detailScale * 0.018}
+                sizeAttenuation
+                vertexColors
+                color={haloColor}
+                transparent
+                opacity={0}
+                blending={invert ? NormalBlending : AdditiveBlending}
+                depthWrite={false}
+              />
+            </points>
+
+            {/* Inner bar / nucleus — a subtle elongated centre instead of a
+                perfect blob, closer to the real nuclear structure of M31. */}
+            <points geometry={barGeometry} scale={detailScale * 0.72} rotation={[0, 0, Math.PI / 8]}>
+              <pointsMaterial
+                ref={barMatRef as React.Ref<import("three").PointsMaterial>}
+                size={detailScale * 0.032}
+                sizeAttenuation
+                vertexColors
+                color={barColor}
+                transparent
+                opacity={0}
+                blending={invert ? NormalBlending : AdditiveBlending}
+                depthWrite={false}
+              />
+            </points>
+
             {/* Per-vertex coloured star cloud — bulge yellow / arm blue /
                 H II pink, with logarithmic spiral arm structure baked in. */}
             <points geometry={armsGeometry} scale={detailScale}>
