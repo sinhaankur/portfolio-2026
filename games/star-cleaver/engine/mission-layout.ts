@@ -19,8 +19,10 @@ const BASE_LAYOUTS: MissionLayout[] = [
     planetRadius: 112,
     planetColor: 0x3b82f6, // blue for Earth
     atmosphereColor: 0x8ec5ff,
-    stationPosition: new THREE.Vector3(0, -6, -330),
-    stationScale: 1.15,
+    // Size + spacing tuned against calibrated fighter length so the outpost
+    // reads as a proper orbital station rather than a nearby prop.
+    stationPosition: new THREE.Vector3(0, -6, -388),
+    stationScale: 1.42,
     stationStyle: 'civic',
     spawnPosition: new THREE.Vector3(0, 8, -300),
     // Keep yaw at 0 so gameplay forward (-Z) aligns with ship nose.

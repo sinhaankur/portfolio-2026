@@ -1504,18 +1504,18 @@ function GameScene({
       const boostK = 1 - Math.exp(-clampedDelta * boostResponse);
       boostSpoolRef.current += (boostTarget - boostSpoolRef.current) * boostK;
 
-      const interstellarBlend = attackMode ? 0 : Math.max(0, Math.min(1, throttleRef.current * 0.62 + boostSpoolRef.current * 0.84));
-      const cruiseSpeed = attackMode ? 11 : 22 + interstellarBlend * 84;
+      const forwardThrottle = Math.max(0, throttleRef.current);
+      const interstellarBlend = attackMode ? 0 : Math.max(0, Math.min(1, forwardThrottle * 0.62 + boostSpoolRef.current * 0.84));
       const maxForwardSpeed = attackMode ? 42 : 280 + interstellarBlend * 1280;
       const maxReverseSpeed = attackMode ? -14 : -21;
 
       const throttleSpeed =
         throttleRef.current >= 0
-          ? cruiseSpeed + throttleRef.current * (maxForwardSpeed - cruiseSpeed)
+          ? forwardThrottle * maxForwardSpeed
           : throttleRef.current * Math.abs(maxReverseSpeed);
       const boostSpeedBonus = boostSpoolRef.current * (attackMode ? 26 : 210 + interstellarBlend * 520);
       const targetSpeed =
-        throttleSpeed + (throttleRef.current > 0 ? boostSpeedBonus : 0);
+        throttleSpeed + (forwardThrottle > 0 ? boostSpeedBonus : 0);
 
       if (!Number.isFinite(forwardSpeedRef.current)) {
         forwardSpeedRef.current = 0;
@@ -1533,9 +1533,11 @@ function GameScene({
         forwardSpeedRef.current += Math.max(speedDelta, -maxDownStep);
       }
 
-      // Gentle friction deceleration to zero when no thrust input
-      if (!isAccelerating && !isBraking && forwardSpeedRef.current > 0) {
-        forwardSpeedRef.current = Math.max(0, forwardSpeedRef.current - 8 * clampedDelta);
+      // Gentle friction deceleration to zero when no thrust input.
+      if (!isAccelerating && !isBraking && Math.abs(forwardSpeedRef.current) > 0) {
+        const next = Math.abs(forwardSpeedRef.current) - 10 * clampedDelta;
+        forwardSpeedRef.current = Math.sign(forwardSpeedRef.current) * Math.max(0, next);
+        if (Math.abs(forwardSpeedRef.current) < 0.05) forwardSpeedRef.current = 0;
       }
 
       gameState.playerEntity.velocity.x = forwardLocal.x * forwardSpeedRef.current;
@@ -1617,7 +1619,7 @@ function GameScene({
         gameState.playerEntity.velocity.y -= outward.y * inwardBrake * clampedDelta;
         gameState.playerEntity.velocity.z -= outward.z * inwardBrake * clampedDelta;
 
-        forwardSpeedRef.current = Math.max(cruiseSpeed * 0.25, forwardSpeedRef.current - (40 + overflow * 0.02) * clampedDelta);
+        forwardSpeedRef.current = Math.max(0, forwardSpeedRef.current - (40 + overflow * 0.02) * clampedDelta);
         boundaryLoad = Math.min(1, overflow / 900);
         hullDamageThisFrame += (6 + boundaryLoad * 26) * clampedDelta;
       }

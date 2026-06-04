@@ -34,11 +34,25 @@ export function HUD({ gameState, showForwardDebug = false, onShipSelect, waypoin
     const { x, y, z } = gameState.playerEntity.velocity;
     return Math.sqrt(x * x + y * y + z * z);
   }, [gameState.playerEntity.velocity]);
+  const throttle = Number(gameState.playerEntity.metadata?.throttle ?? 0);
+  const maxForwardSpeed = Number(gameState.playerEntity.metadata?.maxForwardSpeed ?? 30);
+  const brakeActive = Boolean(gameState.playerEntity.metadata?.rcsBrake);
+  const nearStop = speed < 0.6;
+  const stopAssistActive = (Math.abs(throttle) < 0.05 && speed > 0.6) || brakeActive;
+  const flightStateLabel = nearStop
+    ? 'HOLD'
+    : stopAssistActive
+      ? 'STOPPING'
+      : throttle > 0.05
+        ? 'THRUST'
+        : throttle < -0.05
+          ? 'REVERSE'
+          : 'DRIFT';
   const heading = useMemo(() => {
     const deg = (gameState.playerEntity.rotation.y * 180) / Math.PI;
     return Math.round(((deg % 360) + 360) % 360);
   }, [gameState.playerEntity.rotation.y]);
-  const cruisePercent = Math.min(100, (speed / 30) * 100);
+  const cruisePercent = Math.min(100, (speed / Math.max(8, maxForwardSpeed)) * 100);
   const boostActive = Boolean(gameState.playerEntity.metadata?.boostActive);
   const attackMode = Boolean(gameState.playerEntity.metadata?.attackMode);
   const gasCloudDensity = Number(gameState.playerEntity.metadata?.gasCloudDensity ?? 0);
@@ -77,7 +91,7 @@ export function HUD({ gameState, showForwardDebug = false, onShipSelect, waypoin
       return 'TAP FOILS FOR TIGHT TURNING';
     }
 
-    if (speed < 3) return 'W ACCELERATE · S BRAKE · A/D OR ←/→ STEER · CLICK/J FIRE';
+    if (speed < 3) return 'W ACCELERATE · S BRAKE TO ZERO · A/D OR ←/→ STEER · CLICK/J FIRE';
     if (!boostActive) return 'SHIFT OR SPACE BOOST · Q/E ROLL';
     if (!attackMode) return 'X TO ENTER ATTACK FOILS FOR SHARPER CONTROL';
     return 'R RESET HEADING IF YOU DRIFT OFF COURSE';
@@ -227,8 +241,14 @@ export function HUD({ gameState, showForwardDebug = false, onShipSelect, waypoin
                   <div className="rounded-full border border-foreground/15 bg-foreground/5 px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] text-foreground/70 sm:text-[9px] sm:tracking-[0.14em]">
                     SPD {Math.round(speed)} · HDG {heading}°
                   </div>
+                  <div className={`rounded-full border px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] sm:text-[9px] sm:tracking-[0.14em] ${stopAssistActive ? 'border-amber-300/35 bg-amber-500/10 text-amber-100/90' : nearStop ? 'border-green-300/35 bg-green-500/10 text-green-100/90' : 'border-foreground/15 bg-foreground/5 text-foreground/70'}`}>
+                    STATE {flightStateLabel}
+                  </div>
                   <div className="rounded-full border border-cyan-300/20 bg-cyan-400/8 px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] text-cyan-100/85 sm:text-[9px] sm:tracking-[0.14em]">
                     DRIVE {interstellarDrive.toUpperCase()}
+                  </div>
+                  <div className="rounded-full border border-foreground/15 bg-foreground/5 px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] text-foreground/60 sm:text-[9px] sm:tracking-[0.14em]">
+                    THR {Math.round(throttle * 100)}% · BRK {brakeActive ? 'ON' : 'OFF'}
                   </div>
                   {!simpleJourneyMode && (
                     <>
@@ -376,7 +396,7 @@ export function HUD({ gameState, showForwardDebug = false, onShipSelect, waypoin
             <span className="sm:hidden">
               {isTouchDevice
                 ? 'TILT TO STEER · TAP THRUST TO START · TAP BOOST FOR BURST SPEED'
-                : 'W ACCELERATE · S BRAKE · A/D STEER · FIRE TO KEEP MOVING'}
+                : 'W ACCELERATE · S BRAKE TO ZERO · A/D STEER · CLICK/J FIRE'}
             </span>
             <span className="hidden sm:inline">{primaryFlightHint}</span>
           </div>
@@ -384,7 +404,7 @@ export function HUD({ gameState, showForwardDebug = false, onShipSelect, waypoin
             EXPLORATION · FOILS {attackMode ? 'ATTACK' : 'CRUISE'} · BOOST {boostActive ? 'ON' : 'OFF'} · SCORE {formatScore(gameState.score)} · FWD DBG {showForwardDebug ? 'ON' : 'OFF'}
           </div>
           <div className="mt-1 font-mono text-[8px] tracking-widest text-foreground/40 uppercase sm:text-[9px]">
-            <span className="sm:hidden">F LIGHT ASSIST · H CONTROLS · V NOSE MARKER</span>
+            <span className="sm:hidden">F FLIGHT ASSIST · H CONTROLS · V NOSE MARKER</span>
             <span className="hidden sm:inline">{secondaryFlightHint}</span>
           </div>
         </div>

@@ -12,6 +12,13 @@ const PLAYER_SHIP_MODEL_PATH = '/models/Test1glb.glb';
 // The authored GLB uses Y as its longitudinal axis; gameplay uses -Z forward.
 // Rotate imported GLB content so model-space aligns with game-space.
 const GLB_AXIS_CORRECTION: [number, number, number] = [Math.PI / 2, 0, 0];
+// Realism calibration: default-vanguard is treated as a ~12.5 m interceptor.
+// The imported GLB is ~5.98 units long on its authored longitudinal axis.
+// We keep mission readability by mapping 1 scene unit ~= 3 meters.
+const DEFAULT_VANGUARD_LENGTH_METERS = 12.5;
+const GLB_SOURCE_LENGTH_UNITS = 5.98;
+const SCENE_METERS_PER_UNIT = 3;
+const CALIBRATED_SHIP_SCALE = (DEFAULT_VANGUARD_LENGTH_METERS / SCENE_METERS_PER_UNIT) / GLB_SOURCE_LENGTH_UNITS;
 
 type PlayerShipMode = 'game' | 'preview';
 type ShipVariant = 'default-vanguard';
@@ -22,10 +29,125 @@ type ShipTransform = {
 	rotation: [number, number, number];
 };
 
+type ShipTextureSet = {
+	color: THREE.CanvasTexture;
+	roughness: THREE.CanvasTexture;
+	metalness: THREE.CanvasTexture;
+};
+
+let shipTextureSetCache: ShipTextureSet | null | undefined;
+
+function seededRandom(seed: number) {
+	let state = seed >>> 0;
+	return () => {
+		state = (1664525 * state + 1013904223) >>> 0;
+		return state / 4294967296;
+	};
+}
+
+function createTextureCanvas(size: number) {
+	const canvas = document.createElement('canvas');
+	canvas.width = size;
+	canvas.height = size;
+	const ctx = canvas.getContext('2d');
+	if (!ctx) return null;
+	return { canvas, ctx };
+}
+
+function getShipTextureSet(): ShipTextureSet | null {
+	if (shipTextureSetCache !== undefined) return shipTextureSetCache;
+	if (typeof document === 'undefined') {
+		shipTextureSetCache = null;
+		return shipTextureSetCache;
+	}
+
+	const size = 512;
+	const colorLayer = createTextureCanvas(size);
+	const roughLayer = createTextureCanvas(size);
+	const metalLayer = createTextureCanvas(size);
+	if (!colorLayer || !roughLayer || !metalLayer) {
+		shipTextureSetCache = null;
+		return shipTextureSetCache;
+	}
+
+	const rand = seededRandom(94721);
+	const { ctx: colorCtx, canvas: colorCanvas } = colorLayer;
+	const { ctx: roughCtx, canvas: roughCanvas } = roughLayer;
+	const { ctx: metalCtx, canvas: metalCanvas } = metalLayer;
+
+	colorCtx.fillStyle = '#d8d2c8';
+	colorCtx.fillRect(0, 0, size, size);
+	roughCtx.fillStyle = '#8a8a8a';
+	roughCtx.fillRect(0, 0, size, size);
+	metalCtx.fillStyle = '#2f2f2f';
+	metalCtx.fillRect(0, 0, size, size);
+
+	for (let i = 0; i < 420; i += 1) {
+		const x = Math.floor(rand() * size);
+		const y = Math.floor(rand() * size);
+		const w = 12 + Math.floor(rand() * 78);
+		const h = 8 + Math.floor(rand() * 44);
+
+		const shade = 202 + Math.floor(rand() * 32);
+		colorCtx.fillStyle = `rgb(${shade},${shade - 4},${shade - 10})`;
+		colorCtx.fillRect(x, y, w, h);
+
+		const grime = 78 + Math.floor(rand() * 50);
+		roughCtx.fillStyle = `rgb(${grime},${grime},${grime})`;
+		roughCtx.fillRect(x, y, w, h);
+
+		const metal = 28 + Math.floor(rand() * 48);
+		metalCtx.fillStyle = `rgb(${metal},${metal},${metal})`;
+		metalCtx.fillRect(x, y, w, h);
+
+		colorCtx.strokeStyle = 'rgba(96,104,112,0.42)';
+		colorCtx.lineWidth = 1;
+		colorCtx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+	}
+
+	for (let i = 0; i < 900; i += 1) {
+		const x = Math.floor(rand() * size);
+		const y = Math.floor(rand() * size);
+		const dust = 126 + Math.floor(rand() * 48);
+		colorCtx.fillStyle = `rgba(${dust},${dust},${dust},0.08)`;
+		colorCtx.fillRect(x, y, 2, 2);
+
+		const rough = 108 + Math.floor(rand() * 40);
+		roughCtx.fillStyle = `rgba(${rough},${rough},${rough},0.2)`;
+		roughCtx.fillRect(x, y, 2, 2);
+	}
+
+	const color = new THREE.CanvasTexture(colorCanvas);
+	const roughness = new THREE.CanvasTexture(roughCanvas);
+	const metalness = new THREE.CanvasTexture(metalCanvas);
+
+	[color, roughness, metalness].forEach((tex) => {
+		tex.wrapS = THREE.RepeatWrapping;
+		tex.wrapT = THREE.RepeatWrapping;
+		tex.colorSpace = THREE.SRGBColorSpace;
+		tex.needsUpdate = true;
+	});
+
+	roughness.colorSpace = THREE.NoColorSpace;
+	metalness.colorSpace = THREE.NoColorSpace;
+
+	shipTextureSetCache = { color, roughness, metalness };
+	return shipTextureSetCache;
+}
+
+function cloneTextureWithRepeat(source: THREE.Texture, repeatX: number, repeatY: number) {
+	const tex = source.clone();
+	tex.wrapS = THREE.RepeatWrapping;
+	tex.wrapT = THREE.RepeatWrapping;
+	tex.repeat.set(repeatX, repeatY);
+	tex.needsUpdate = true;
+	return tex;
+}
+
 const SHIP_TRANSFORMS: Record<ShipVariant, { game: ShipTransform; preview: ShipTransform }> = {
 	'default-vanguard': {
-	       preview: { scale: 1.2, position: [0, 0, 0], rotation: [0, 0, 0] },
-	       game: { scale: 1.5, position: [0, 0, 0], rotation: [0, 0, 0] },
+	       preview: { scale: CALIBRATED_SHIP_SCALE * 0.92, position: [0, 0, 0], rotation: [0, 0, 0] },
+	       game: { scale: CALIBRATED_SHIP_SCALE, position: [0, 0, 0], rotation: [0, 0, 0] },
        },
 };
 
@@ -71,6 +193,7 @@ function cloneAndStyleShipModel(scene: THREE.Object3D) {
 			const looksLikeCockpit = /cockpit|canopy|glass|window/.test(partKey);
 			const looksLikeWing = /wing|fin|foil/.test(partKey);
 			const looksLikeWeapon = /laser|gun|barrel|cannon/.test(partKey);
+			const textureSet = getShipTextureSet();
 			const wearTint = /nose|fuselage|hull|wing|intake|panel/.test(partKey) ? 0.11 : 0.05;
 
 			const applyWear = (base: THREE.Color, extraWear = 0) => {
@@ -115,6 +238,13 @@ function cloneAndStyleShipModel(scene: THREE.Object3D) {
 				mat.metalness = 0.18;
 				mat.emissive = new THREE.Color('#2b3645');
 				mat.emissiveIntensity = 0.04;
+			}
+
+			if (textureSet && !looksLikeCockpit && !looksLikeEngine) {
+				const repeat = looksLikeWing ? [2.6, 1.8] : looksLikeWeapon ? [3.2, 2.2] : [4.2, 3.0];
+				mat.map = cloneTextureWithRepeat(textureSet.color, repeat[0], repeat[1]);
+				mat.roughnessMap = cloneTextureWithRepeat(textureSet.roughness, repeat[0], repeat[1]);
+				mat.metalnessMap = cloneTextureWithRepeat(textureSet.metalness, repeat[0], repeat[1]);
 			}
 
 			mat.envMapIntensity = Math.max(looksLikeEngine || looksLikeWeapon ? 1.95 : 1.35, mat.envMapIntensity || (looksLikeEngine || looksLikeWeapon ? 2.05 : 1.55));
