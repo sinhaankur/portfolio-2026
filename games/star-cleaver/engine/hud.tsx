@@ -37,8 +37,10 @@ export function HUD({ gameState, showForwardDebug = false, onShipSelect, waypoin
   const throttle = Number(gameState.playerEntity.metadata?.throttle ?? 0);
   const maxForwardSpeed = Number(gameState.playerEntity.metadata?.maxForwardSpeed ?? 30);
   const brakeActive = Boolean(gameState.playerEntity.metadata?.rcsBrake);
+  const flightAssistActive = Boolean(gameState.playerEntity.metadata?.flightAssistActive ?? true);
+  const stopLock = Boolean(gameState.playerEntity.metadata?.stopLock);
   const nearStop = speed < 0.6;
-  const stopAssistActive = (Math.abs(throttle) < 0.05 && speed > 0.6) || brakeActive;
+  const stopAssistActive = stopLock || (Math.abs(throttle) < 0.05 && speed > 0.6) || brakeActive;
   const flightStateLabel = nearStop
     ? 'HOLD'
     : stopAssistActive
@@ -249,6 +251,9 @@ export function HUD({ gameState, showForwardDebug = false, onShipSelect, waypoin
                   </div>
                   <div className="rounded-full border border-foreground/12 bg-foreground/4 px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] text-foreground/60 sm:text-[9px] sm:tracking-[0.14em]">
                     THR {Math.round(throttle * 100)}% · BRK {brakeActive ? 'ON' : 'OFF'}
+                  </div>
+                  <div className={`rounded-full border px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] sm:text-[9px] sm:tracking-[0.14em] ${flightAssistActive ? 'border-cyan-300/25 bg-cyan-400/7 text-cyan-100/85' : 'border-foreground/12 bg-foreground/4 text-foreground/65'}`}>
+                    ASSIST {flightAssistActive ? 'ON' : 'OFF'} · STOP {stopLock ? 'LOCK' : 'OPEN'}
                   </div>
                   {!simpleJourneyMode && (
                     <>

@@ -25,6 +25,12 @@ import type { SelectedShip } from './ship-selector';
 import { getMissionLayout } from './mission-layout';
 import { SpaceDust, DataCoreField, createDataCores, BoostShockwave } from './particles';
 import type { DataCore } from './particles';
+import {
+  canInspectStation,
+  isFlightPhase as isRuntimeFlightPhase,
+  shouldAutoStartExploration,
+  togglePausePhase,
+} from './architecture/mission-director';
 import { SceneContents as UniverseSceneContents } from '../../../components/universe-engine/scene';
 import { SUN_OFFSET_SCENE } from '../../../components/universe-engine/astronomy';
 
@@ -1210,9 +1216,8 @@ function CameraFollowController({
   const layout = useMemo(() => getMissionLayout(gameState.worldIndex), [gameState.worldIndex]);
 
   // Dynamic offset based on phase: flight cam behind ship during ignition/exploration, wide during briefing
-  const isFlightPhase = gameState.phase === 'ignition' || gameState.phase === 'exploration';
-  const canExploreStation =
-    gameState.phase === 'briefing' || (gameState.phase === 'ignition' && typeof gameState.ignitionStartTime !== 'number');
+  const isFlightPhase = isRuntimeFlightPhase(gameState.phase);
+  const canExploreStation = canInspectStation(gameState);
   const stationInspectActive = canExploreStation && stationExploreMode;
   const phaseProfile = isFlightPhase ? CAMERA_PHASE_TUNING.flight : CAMERA_PHASE_TUNING.briefing;
 
@@ -1664,6 +1669,15 @@ function GameScene({
         if (Math.abs(forwardSpeedRef.current) < 0.05) forwardSpeedRef.current = 0;
       }
 
+      const stopLock =
+        (isBraking && Math.abs(forwardSpeedRef.current) < 1.2) ||
+        (assistedFlight && !isAccelerating && !isBraking && Math.abs(forwardSpeedRef.current) < 0.2);
+      if (stopLock) {
+        forwardSpeedRef.current = 0;
+        throttleRef.current = 0;
+        boostSpoolRef.current = 0;
+      }
+
       const desiredForwardVelocity = forwardLocal.clone().multiplyScalar(forwardSpeedRef.current);
       if (assistedFlight) {
         // Assisted mode behaves like fly-by-wire: velocity tracks nose aggressively.
@@ -1811,6 +1825,7 @@ function GameScene({
       prevForwardAccelRef.current = currentAccel;
       gameState.playerEntity.metadata.attackMode = attackMode;
       gameState.playerEntity.metadata.flightAssistActive = assistedFlight;
+      gameState.playerEntity.metadata.stopLock = stopLock;
       gameState.playerEntity.metadata.rcsYaw = smoothedInputRef.current.yaw;
       gameState.playerEntity.metadata.rcsPitch = smoothedInputRef.current.pitch;
       gameState.playerEntity.metadata.rcsRoll = smoothedInputRef.current.roll;
@@ -1934,20 +1949,16 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
   }, [graphicsProfile]);
 
   useEffect(() => {
-    if (gameState.phase !== 'ignition') return;
-    if (typeof gameState.ignitionStartTime !== 'number') return;
-    if (gameState.simTime - gameState.ignitionStartTime < IGNITION_STARTUP_DURATION) return;
+    if (!shouldAutoStartExploration(gameState, IGNITION_STARTUP_DURATION)) return;
 
     setGameState((s) => {
-      if (s.phase !== 'ignition' || typeof s.ignitionStartTime !== 'number') return s;
-      if (s.simTime - s.ignitionStartTime < IGNITION_STARTUP_DURATION) return s;
+      if (!shouldAutoStartExploration(s, IGNITION_STARTUP_DURATION)) return s;
       return startExploration(s);
     });
   }, [gameState.phase, gameState.ignitionStartTime, gameState.simTime]);
 
   useEffect(() => {
-    const canExploreStation =
-      gameState.phase === 'briefing' || (gameState.phase === 'ignition' && typeof gameState.ignitionStartTime !== 'number');
+    const canExploreStation = canInspectStation(gameState);
     if (!canExploreStation && stationExploreMode) {
       setStationExploreMode(false);
     }
@@ -2178,13 +2189,9 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
       if (e.code === 'Escape' || e.code === 'KeyP') {
         e.preventDefault();
         setGameState((s) => {
-          if (s.phase === 'paused') {
-            return { ...s, phase: 'exploration' };
-          }
-          if (s.phase === 'exploration' || s.phase === 'ignition' || s.phase === 'combat' || s.phase === 'charging') {
-            return { ...s, phase: 'paused' };
-          }
-          return s;
+          const nextPhase = togglePausePhase(s.phase);
+          if (nextPhase === s.phase) return s;
+          return { ...s, phase: nextPhase };
         });
       }
       if (e.code === 'KeyV') {
@@ -2204,8 +2211,7 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
         setShowControlsHelp((v) => !v);
       }
       if (e.code === 'KeyE') {
-        const canExploreStation =
-          gameState.phase === 'briefing' || (gameState.phase === 'ignition' && typeof gameState.ignitionStartTime !== 'number');
+        const canExploreStation = canInspectStation(gameState);
         if (canExploreStation) {
           e.preventDefault();
           setStationExploreMode((v) => !v);
@@ -2647,7 +2653,7 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
               Controls Help (H)
             </button>
           </div>
-          {(gameState.phase === 'briefing' || (gameState.phase === 'ignition' && typeof gameState.ignitionStartTime !== 'number')) && (
+          {canInspectStation(gameState) && (
             <div className="mt-2">
               <button
                 type="button"
