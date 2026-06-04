@@ -23,6 +23,7 @@ import { BrightStarField } from "./bright-star-field"
 import { NamedStarHoverLayer } from "./named-star-hover-layer"
 import { GravityOverlay } from "./gravity-overlay"
 import { TrajectoryTrails } from "./trajectory-trails"
+import { SphereOfInfluence } from "./sphere-of-influence"
 
 // Preload the black-hole mesh at module init so it's ready by the time a
 // user explores far enough to focus a sky-point BH. 8.4 MB asset — single
@@ -4770,6 +4771,7 @@ export function SceneContents({
   invert = false,
   interactive = false,
   showGravityOverlay = false,
+  showDeepDive = false,
 }: {
   enableMotion: boolean
   onHover: HoverHandler
@@ -4814,6 +4816,7 @@ export function SceneContents({
         <SolarSystem onHover={onHover} invert={invert} interactive={interactive} />
         <GravityOverlay show={showGravityOverlay} invert={invert} />
         <TrajectoryTrails show={showDeepDive} invert={invert} />
+        <SphereOfInfluence show={showDeepDive} invert={invert} />
         {/* Comets, asteroids, interstellars — share the SolarSystem origin
             so their orbits sit around the same Sun the planets do. */}
         <NamedBodies onHover={onHover} invert={invert} interactive={interactive} />
