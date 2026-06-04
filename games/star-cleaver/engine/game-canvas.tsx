@@ -1131,7 +1131,7 @@ function CameraFollowController({ gameState, cameraAssist }: { gameState: GameSt
       gameState.playerEntity.rotation.z
     );
     const playerQuat = new THREE.Quaternion().setFromEuler(playerEuler);
-    const forwardDir = new THREE.Vector3(0, 0, 1).applyQuaternion(playerQuat).normalize();
+    const forwardDir = new THREE.Vector3(0, 0, -1).applyQuaternion(playerQuat).normalize();
     const worldUp = new THREE.Vector3(0, 1, 0);
     const rightDir = new THREE.Vector3().crossVectors(forwardDir, worldUp).normalize();
     const speed = Math.sqrt(
@@ -1406,9 +1406,9 @@ function GameScene({
       );
       playerQuat.setFromEuler(playerEuler);
 
-      // Canonical gameplay convention: ship nose points along local +Z.
+      // Canonical gameplay convention: ship nose points along local -Z.
       // Weapons fire along this vector; engine thrust pushes in the opposite direction.
-      const forwardLocal = new THREE.Vector3(0, 0, 1).applyQuaternion(playerQuat);
+      const forwardLocal = new THREE.Vector3(0, 0, -1).applyQuaternion(playerQuat);
       const rightLocal = new THREE.Vector3(1, 0, 0).applyQuaternion(playerQuat);
       const upLocal = new THREE.Vector3(0, 1, 0).applyQuaternion(playerQuat);
 
@@ -1880,12 +1880,12 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
       );
 
       if (toTarget.lengthSq() < 1e-6) {
-        toTarget.set(0, 0, 1);
+        toTarget.set(0, 0, -1);
       } else {
         toTarget.normalize();
       }
 
-      const yaw = Math.atan2(toTarget.x, toTarget.z);
+      const yaw = Math.atan2(-toTarget.x, -toTarget.z);
       const pitch = -Math.asin(Math.max(-1, Math.min(1, toTarget.y)));
 
       return {
@@ -2234,7 +2234,7 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
         {gameState.projectiles.map((proj) => (
           (() => {
             const v = new THREE.Vector3(proj.velocity.x, proj.velocity.y, proj.velocity.z);
-            const dir = v.lengthSq() > 1e-6 ? v.clone().normalize() : new THREE.Vector3(0, 0, 1);
+            const dir = v.lengthSq() > 1e-6 ? v.clone().normalize() : new THREE.Vector3(0, 0, -1);
             const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), dir);
             const rot = new THREE.Euler().setFromQuaternion(q);
             const isWingCannon = proj.metadata?.source === 'wing-cannon';

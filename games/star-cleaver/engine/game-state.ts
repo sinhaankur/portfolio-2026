@@ -6,7 +6,7 @@ import { getMissionLayout } from './mission-layout';
  * Star Cleaver Game State initialization and helpers.
  */
 
-export const IGNITION_STARTUP_DURATION = 2.4;
+export const IGNITION_STARTUP_DURATION = 0.3;
 
 /**
  * Create initial game state for a new game.
