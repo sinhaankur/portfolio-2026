@@ -264,6 +264,11 @@ const COMET_ENVELOPE_FRAGMENT_SHADER = `
 
 import { CONSTELLATION_FIGURES } from "./constellation-figures"
 import { SPACECRAFT_SHAPES } from "./spacecraft-shapes"
+import {
+  getBlackHoleAffordance,
+  getCometAffordance,
+  getSkyAffordance,
+} from "./celestial-sub-engine"
 import type {
   Constellation,
   ConstellationId,
@@ -2904,6 +2909,16 @@ function NamedBodyMesh({
     const hasAntiTail = body.name === "Comet Tsuchinshan-ATLAS"
     return { a, e, inclination, longNode, argPeri, visualRadius, angularSpeed, phase, shade, shadeRgb, isLoop: isFinite(body.periodYears), hasTail, tailLengthFactor, hasAntiTail }
   }, [body])
+  const cometAffordance = useMemo(
+    () =>
+      getCometAffordance({
+        kind: body.kind,
+        visualRadius: config.visualRadius,
+        isLoop: config.isLoop,
+        invert,
+      }),
+    [body.kind, config.visualRadius, config.isLoop, invert],
+  )
 
   // Initialise the motion-trail ring buffer for comets / interstellars /
   // dwarfs — bodies whose motion is the headline detail. Built lazily so
@@ -3179,9 +3194,7 @@ function NamedBodyMesh({
     // stay at a faint baseline so crossings read as ghostly rather than
     // colliding.
     if (trailMatRef.current) {
-      const baseIdle = config.isLoop ? (invert ? 0.18 : 0.10) : (invert ? 0.14 : 0.08)
-      const baseHover = config.isLoop ? (invert ? 0.65 : 0.50) : (invert ? 0.55 : 0.42)
-      const target = isHovered ? baseHover : baseIdle
+      const target = isHovered ? cometAffordance.trailHover : cometAffordance.trailIdle
       const k = 1 - Math.exp(-delta * 8)
       trailMatRef.current.opacity += (target - trailMatRef.current.opacity) * k
     }
@@ -3189,7 +3202,7 @@ function NamedBodyMesh({
 
   // Hit-zone radius — never smaller than 0.16 so even tiny bodies are
   // findable with a finger or cursor.
-  const hitRadius = Math.max(0.16, config.visualRadius * 3)
+  const hitRadius = cometAffordance.hitRadius
 
   return (
     // Both the trail (anchored at the Sun) and the moving body live in the
@@ -3207,7 +3220,7 @@ function NamedBodyMesh({
           sizeAttenuation
           color={invert ? "#1a1208" : config.shade}
           transparent
-          opacity={config.isLoop ? (invert ? 0.18 : 0.10) : (invert ? 0.14 : 0.08)}
+          opacity={cometAffordance.trailIdle}
           depthWrite={false}
         />
       </points>
@@ -3546,7 +3559,7 @@ function NamedBodyMesh({
             affordance. Desktop only; mobile uses the bottom sheet. */}
         {isHovered && (
           <Html
-            position={[0, Math.max(config.visualRadius * 3.5, 0.35), 0]}
+            position={[0, cometAffordance.labelOffset, 0]}
             center
             distanceFactor={8}
             zIndexRange={[10, 0]}
@@ -4328,6 +4341,7 @@ function BlackHoleDetail({
     () => computeBlackHoleProportions(M, a, size),
     [M, a, size],
   )
+  const bhAffordance = useMemo(() => getBlackHoleAffordance(invert), [invert])
 
   // Stellar-mass black holes (X-ray binaries) have brighter, hotter disks
   // relative to their horizon than supermassive ones. Drives the visual
@@ -4374,9 +4388,9 @@ function BlackHoleDetail({
         <mesh>
           <sphereGeometry args={[props.detailScale * 0.5, 24, 24]} />
           <meshBasicMaterial
-            color={invert ? "#3a2418" : "#ffd6a8"}
+            color={bhAffordance.haloColor}
             transparent
-            opacity={invert ? 0.14 : 0.22}
+            opacity={bhAffordance.haloOpacity}
             blending={invert ? NormalBlending : AdditiveBlending}
             depthWrite={false}
           />
@@ -4773,54 +4787,21 @@ function SkyPointMesh({
     /* exoplanet-host */                  0.5
   )
 
-  // Per-kind colour palettes. Chart mode (invert) flips to ink-on-cream
-  // accents so the halos stay readable. Individual stars override the
-  // default palette via their `shade` field — driven by spectral class
-  // (blue O/B, white A, yellow F/G, orange K, red M).
-  const palette = useMemo(() => {
-    switch (point.kind) {
-      case "galaxy":
-        return {
-          core: invert ? "#3a1d12" : "#ffd9c2",
-          halo: invert ? "#6b3a20" : "#d68a5c",
-        }
-      case "nebula":
-        return {
-          core: invert ? "#1e2a45" : "#a8d2ff",
-          halo: invert ? "#3a5085" : "#5587d0",
-        }
-      case "cluster":
-        return {
-          core: invert ? "#0a0a0a" : "#ffffff",
-          halo: invert ? "#2a2a2a" : "#cfd7ff",
-        }
-      case "black-hole":
-        // Iconic Event-Horizon-Telescope colour scheme: a dark central
-        // shadow ringed by a glowing orange accretion disk. The core
-        // renders BLACK against any background so the silhouette pops.
-        return {
-          core: "#000000",
-          halo: invert ? "#b34a13" : "#ff7a1a",
-        }
-      case "star": {
-        // Star shade comes from the data (spectral class colour). Fallback
-        // is white if unspecified. Halo lifts toward warmer for chart mode.
-        const shade = point.shade ?? "#ffffff"
-        return { core: shade, halo: invert ? "#5a4a18" : shade }
-      }
-      case "exoplanet-host":
-      default:
-        return {
-          core: invert ? "#b34a13" : "#ffd66b",
-          halo: invert ? "#7a3a16" : "#ffb84d",
-        }
-    }
-  }, [point.kind, invert, point.shade])
+  const skyAffordance = useMemo(
+    () =>
+      getSkyAffordance({
+        kind: point.kind,
+        visualSize,
+        invert,
+        shade: point.shade,
+      }),
+    [point.kind, visualSize, invert, point.shade],
+  )
 
   // Hit-zone scales with the visual so even tiny exoplanet dots are findable.
   // Nebulae get a wider zone so the on-hover bloom doesn't fall outside the
   // tracked area and cause flicker as the cursor explores the expanded detail.
-  const hitRadius = Math.max(1, visualSize * (point.kind === "nebula" ? 2.6 : 1.4))
+  const hitRadius = Math.max(skyAffordance.minHitRadius, visualSize * skyAffordance.hitRadiusMul)
 
   return (
     <group position={position}>
@@ -4828,11 +4809,11 @@ function SkyPointMesh({
           Black holes skip this (BlackHoleDetail handles its own visual). */}
       {(point.kind === "galaxy" || point.kind === "nebula" || point.kind === "star") && (
         <mesh>
-          <sphereGeometry args={[visualSize * (point.kind === "star" ? 0.7 : 1.0), 16, 16]} />
+          <sphereGeometry args={[visualSize * skyAffordance.haloRadiusMul, 16, 16]} />
           <meshBasicMaterial
-            color={palette.halo}
+            color={skyAffordance.halo}
             transparent
-            opacity={point.kind === "star" ? (invert ? 0.30 : 0.38) : (invert ? 0.18 : 0.22)}
+            opacity={skyAffordance.haloOpacity}
             blending={invert ? NormalBlending : AdditiveBlending}
             depthWrite={false}
           />
@@ -4844,14 +4825,14 @@ function SkyPointMesh({
       {point.kind !== "black-hole" && (
         <mesh>
           <sphereGeometry args={[
-            visualSize * (point.kind === "exoplanet-host" ? 1.0 : point.kind === "star" ? 0.30 : 0.45),
+            visualSize * skyAffordance.coreRadiusMul,
             14,
             14,
           ]} />
           <meshBasicMaterial
-            color={palette.core}
+            color={skyAffordance.core}
             transparent
-            opacity={point.kind === "exoplanet-host" ? 1 : point.kind === "star" ? 1 : (invert ? 0.55 : 0.55)}
+            opacity={skyAffordance.coreOpacity}
             blending={invert ? NormalBlending : AdditiveBlending}
             depthWrite={false}
           />
@@ -4917,7 +4898,7 @@ function SkyPointMesh({
             <mesh key={i} position={[dx * visualSize * 0.7, dy * visualSize * 0.7, dz * visualSize * 0.7]}>
               <sphereGeometry args={[visualSize * 0.12, 8, 8]} />
               <meshBasicMaterial
-                color={palette.core}
+                color={skyAffordance.core}
                 transparent
                 opacity={0.9}
                 blending={invert ? NormalBlending : AdditiveBlending}
