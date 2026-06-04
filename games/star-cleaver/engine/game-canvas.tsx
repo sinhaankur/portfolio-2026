@@ -382,7 +382,7 @@ const SHIP_THRUSTER_PRESETS: Record<SelectedShip, {
   outerNozzleZ: number;
 }> = {
   // Tuned mount points for the default procedural interceptor.
-  'default-vanguard': { lateral: 0.26, vertical: 0.22, coreZ: -0.78, nozzleZ: -0.98, outerNozzleZ: -1.14 },
+  'default-vanguard': { lateral: 0.26, vertical: 0.22, coreZ: 0.78, nozzleZ: 0.98, outerNozzleZ: 1.14 },
 };
 
 /**
@@ -434,10 +434,10 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
       if (usingDefaultMountMap) {
         // Tuned mount map for the default procedural hull (top-left, bottom-left, top-right, bottom-right).
         return [
-          [-0.46, 0.44, -0.86] as [number, number, number],
-          [-0.46, -0.20, -0.94] as [number, number, number],
-          [0.46, 0.44, -0.86] as [number, number, number],
-          [0.46, -0.20, -0.94] as [number, number, number],
+          [-0.46, 0.44, 0.86] as [number, number, number],
+          [-0.46, -0.20, 0.94] as [number, number, number],
+          [0.46, 0.44, 0.86] as [number, number, number],
+          [0.46, -0.20, 0.94] as [number, number, number],
         ];
       }
 
@@ -453,24 +453,24 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
   const rearNozzleZs = useMemo(
     () =>
       usingDefaultMountMap
-        ? [-1.10, -1.20, -1.10, -1.20]
+        ? [1.10, 1.20, 1.10, 1.20]
         : [thrusterPreset.nozzleZ, thrusterPreset.nozzleZ, thrusterPreset.nozzleZ, thrusterPreset.nozzleZ],
     [usingDefaultMountMap, thrusterPreset.nozzleZ]
   );
   const rearOuterNozzleZs = useMemo(
     () =>
       usingDefaultMountMap
-        ? [-1.26, -1.36, -1.26, -1.36]
+        ? [1.26, 1.36, 1.26, 1.36]
         : [thrusterPreset.outerNozzleZ, thrusterPreset.outerNozzleZ, thrusterPreset.outerNozzleZ, thrusterPreset.outerNozzleZ],
     [usingDefaultMountMap, thrusterPreset.outerNozzleZ]
   );
   const initialPlumeLength = 1.05;
   const initialThrusterCenters = useMemo(
-    () => rearNozzleZs.map((z) => z - 0.9 * initialPlumeLength),
+    () => rearNozzleZs.map((z) => z + 0.9 * initialPlumeLength),
     [rearNozzleZs]
   );
   const initialOuterCenters = useMemo(
-    () => rearOuterNozzleZs.map((z) => z - 1.2 * initialPlumeLength * 1.22),
+    () => rearOuterNozzleZs.map((z) => z + 1.2 * initialPlumeLength * 1.22),
     [rearOuterNozzleZs]
   );
 
@@ -533,15 +533,15 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
       if (!ref.current) return;
       ref.current.scale.set(plumeRadius, plumeLength, plumeRadius);
       (ref.current.material as THREE.MeshBasicMaterial).opacity = plumeOpacity;
-      // Keep the cone base fixed at the rear nozzle and extend plume rearward (-Z).
-      ref.current.position.z = rearNozzleZs[idx] - thrusterHalfLength;
+      // Keep the cone base fixed at the rear nozzle and extend plume rearward (+Z).
+      ref.current.position.z = rearNozzleZs[idx] + thrusterHalfLength;
     });
 
     outerPlumeRefs.forEach((ref, idx) => {
       if (!ref.current) return;
       ref.current.scale.set(plumeRadius * 1.5, plumeLength * 1.22, plumeRadius * 1.5);
       (ref.current.material as THREE.MeshBasicMaterial).opacity = outerPlumeOpacity;
-      ref.current.position.z = rearOuterNozzleZs[idx] - outerHalfLength;
+      ref.current.position.z = rearOuterNozzleZs[idx] + outerHalfLength;
     });
 
     // RCS maneuvering thrusters — fire on the side matching user input.
@@ -663,11 +663,11 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
           <sphereGeometry args={[0.55, 8, 8]} />
           <meshBasicMaterial color={0x6ecbff} transparent opacity={0.2} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
-          <mesh ref={thrusterCone1Ref} position={[engineMounts[0][0], engineMounts[0][1], initialThrusterCenters[0]]} rotation={[-Math.PI / 2, 0, 0]}>
+          <mesh ref={thrusterCone1Ref} position={[engineMounts[0][0], engineMounts[0][1], initialThrusterCenters[0]]} rotation={[Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.18, 1.8, 14, 1, true]} />
           <meshBasicMaterial color={0x8fdbff} transparent opacity={0.36} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
-          <mesh ref={outerPlume1Ref} position={[engineMounts[0][0], engineMounts[0][1], initialOuterCenters[0]]} rotation={[-Math.PI / 2, 0, 0]}>
+          <mesh ref={outerPlume1Ref} position={[engineMounts[0][0], engineMounts[0][1], initialOuterCenters[0]]} rotation={[Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.28, 2.4, 14, 1, true]} />
           <meshBasicMaterial color={0x4c9dff} transparent opacity={0.2} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
@@ -680,11 +680,11 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
           <sphereGeometry args={[0.55, 8, 8]} />
           <meshBasicMaterial color={0x6ecbff} transparent opacity={0.2} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
-          <mesh ref={thrusterCone2Ref} position={[engineMounts[1][0], engineMounts[1][1], initialThrusterCenters[1]]} rotation={[-Math.PI / 2, 0, 0]}>
+          <mesh ref={thrusterCone2Ref} position={[engineMounts[1][0], engineMounts[1][1], initialThrusterCenters[1]]} rotation={[Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.18, 1.8, 14, 1, true]} />
           <meshBasicMaterial color={0x8fdbff} transparent opacity={0.36} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
-          <mesh ref={outerPlume2Ref} position={[engineMounts[1][0], engineMounts[1][1], initialOuterCenters[1]]} rotation={[-Math.PI / 2, 0, 0]}>
+          <mesh ref={outerPlume2Ref} position={[engineMounts[1][0], engineMounts[1][1], initialOuterCenters[1]]} rotation={[Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.28, 2.4, 14, 1, true]} />
           <meshBasicMaterial color={0x4c9dff} transparent opacity={0.2} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
@@ -697,11 +697,11 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
           <sphereGeometry args={[0.55, 8, 8]} />
           <meshBasicMaterial color={0x6ecbff} transparent opacity={0.2} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
-          <mesh ref={thrusterCone3Ref} position={[engineMounts[2][0], engineMounts[2][1], initialThrusterCenters[2]]} rotation={[-Math.PI / 2, 0, 0]}>
+          <mesh ref={thrusterCone3Ref} position={[engineMounts[2][0], engineMounts[2][1], initialThrusterCenters[2]]} rotation={[Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.18, 1.8, 14, 1, true]} />
           <meshBasicMaterial color={0x8fdbff} transparent opacity={0.36} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
-          <mesh ref={outerPlume3Ref} position={[engineMounts[2][0], engineMounts[2][1], initialOuterCenters[2]]} rotation={[-Math.PI / 2, 0, 0]}>
+          <mesh ref={outerPlume3Ref} position={[engineMounts[2][0], engineMounts[2][1], initialOuterCenters[2]]} rotation={[Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.28, 2.4, 14, 1, true]} />
           <meshBasicMaterial color={0x4c9dff} transparent opacity={0.2} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
@@ -714,11 +714,11 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
           <sphereGeometry args={[0.55, 8, 8]} />
           <meshBasicMaterial color={0x6ecbff} transparent opacity={0.2} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
-          <mesh ref={thrusterCone4Ref} position={[engineMounts[3][0], engineMounts[3][1], initialThrusterCenters[3]]} rotation={[-Math.PI / 2, 0, 0]}>
+          <mesh ref={thrusterCone4Ref} position={[engineMounts[3][0], engineMounts[3][1], initialThrusterCenters[3]]} rotation={[Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.18, 1.8, 14, 1, true]} />
           <meshBasicMaterial color={0x8fdbff} transparent opacity={0.36} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
-          <mesh ref={outerPlume4Ref} position={[engineMounts[3][0], engineMounts[3][1], initialOuterCenters[3]]} rotation={[-Math.PI / 2, 0, 0]}>
+          <mesh ref={outerPlume4Ref} position={[engineMounts[3][0], engineMounts[3][1], initialOuterCenters[3]]} rotation={[Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.28, 2.4, 14, 1, true]} />
           <meshBasicMaterial color={0x4c9dff} transparent opacity={0.2} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
@@ -747,19 +747,19 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
 
           {/* RCS maneuvering thrusters — front + rear for realistic attitude control */}
           {/* Front RCS */}
-          <mesh ref={rcsNoseLeftRef} position={[-0.95, 0.06, 1.55]}>
+          <mesh ref={rcsNoseLeftRef} position={[-0.95, 0.06, -1.55]}>
             <sphereGeometry args={[0.1, 8, 8]} />
             <meshBasicMaterial color={0x9fd8ff} transparent opacity={0.02} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
-          <mesh ref={rcsNoseRightRef} position={[0.95, 0.06, 1.55]}>
+          <mesh ref={rcsNoseRightRef} position={[0.95, 0.06, -1.55]}>
             <sphereGeometry args={[0.1, 8, 8]} />
             <meshBasicMaterial color={0x9fd8ff} transparent opacity={0.02} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
-          <mesh ref={rcsTopRef} position={[0, 0.56, 0.55]}>
+          <mesh ref={rcsTopRef} position={[0, 0.56, -0.55]}>
             <sphereGeometry args={[0.09, 8, 8]} />
             <meshBasicMaterial color={0x9fd8ff} transparent opacity={0.02} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
-          <mesh ref={rcsBottomRef} position={[0, -0.56, 0.55]}>
+          <mesh ref={rcsBottomRef} position={[0, -0.56, -0.55]}>
             <sphereGeometry args={[0.09, 8, 8]} />
             <meshBasicMaterial color={0x9fd8ff} transparent opacity={0.02} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
@@ -773,19 +773,19 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
             <meshBasicMaterial color={0x9fd8ff} transparent opacity={0.02} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
           {/* Rear RCS */}
-          <mesh ref={rcsRearLeftRef} position={[-0.85, 0.06, -1.15]}>
+          <mesh ref={rcsRearLeftRef} position={[-0.85, 0.06, 1.15]}>
             <sphereGeometry args={[0.1, 8, 8]} />
             <meshBasicMaterial color={0x9fd8ff} transparent opacity={0.02} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
-          <mesh ref={rcsRearRightRef} position={[0.85, 0.06, -1.15]}>
+          <mesh ref={rcsRearRightRef} position={[0.85, 0.06, 1.15]}>
             <sphereGeometry args={[0.1, 8, 8]} />
             <meshBasicMaterial color={0x9fd8ff} transparent opacity={0.02} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
-          <mesh ref={rcsRearTopRef} position={[0, 0.52, -1.0]}>
+          <mesh ref={rcsRearTopRef} position={[0, 0.52, 1.0]}>
             <sphereGeometry args={[0.09, 8, 8]} />
             <meshBasicMaterial color={0x9fd8ff} transparent opacity={0.02} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
-          <mesh ref={rcsRearBottomRef} position={[0, -0.52, -1.0]}>
+          <mesh ref={rcsRearBottomRef} position={[0, -0.52, 1.0]}>
             <sphereGeometry args={[0.09, 8, 8]} />
             <meshBasicMaterial color={0x9fd8ff} transparent opacity={0.02} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
