@@ -9,6 +9,9 @@ import { auditShipModel } from './ship-model-qa';
 import type { SelectedShip } from './ship-selector';
 
 const PLAYER_SHIP_MODEL_PATH = '/models/Test1glb.glb';
+// The authored GLB uses Y as its longitudinal axis; gameplay uses -Z forward.
+// Rotate imported GLB content so model-space aligns with game-space.
+const GLB_AXIS_CORRECTION: [number, number, number] = [Math.PI / 2, 0, 0];
 
 type PlayerShipMode = 'game' | 'preview';
 type ShipVariant = 'default-vanguard';
@@ -224,17 +227,30 @@ export function PlayerShipModel({
 	const fallbackShip = useMemo(() => createProceduralPlayerShip(shipId, mode), [shipId, mode]);
 	const shipObject = useMemo(() => cloneAndStyleShipModel(playerShipGltf.scene), [playerShipGltf.scene]);
 	const resolvedShip = shipObject ?? fallbackShip;
+	const hasGltfShip = Boolean(shipObject);
 
 	useEffect(() => {
 		auditShipModel(playerShipGltf.scene, PLAYER_SHIP_MODEL_PATH);
 	}, [playerShipGltf.scene]);
 
+	const shipVisual = hasGltfShip ? (
+		<group rotation={GLB_AXIS_CORRECTION}>
+			<primitive object={resolvedShip} />
+			<ShipHighlightRig mode={mode} />
+			<ShipUiOverlay mode={mode} />
+		</group>
+	) : (
+		<>
+			<primitive object={resolvedShip} />
+			<ShipHighlightRig mode={mode} />
+			<ShipUiOverlay mode={mode} />
+		</>
+	);
+
        if (!applyTransform) {
 	       return (
 		       <group>
-			       <primitive object={resolvedShip} />
-				<ShipHighlightRig mode={mode} />
-			       <ShipUiOverlay mode={mode} />
+			       {shipVisual}
 		       </group>
 	       );
        }
@@ -242,9 +258,7 @@ export function PlayerShipModel({
        const transform = getPlayerShipTransform(shipId, mode);
        return (
 	       <group scale={transform.scale} position={transform.position} rotation={transform.rotation}>
-		       <primitive object={resolvedShip} />
-			<ShipHighlightRig mode={mode} />
-		       <ShipUiOverlay mode={mode} />
+		       {shipVisual}
 	       </group>
        );
 }
