@@ -213,6 +213,11 @@ export function InfoPanel({ info }: { info: BodyInfo | null }) {
   const k = info.surfaceTempK
   const c = info.surfaceTempC
 
+  const isStar =
+    info.apparentMag !== undefined ||
+    info.spectralType !== undefined ||
+    info.distanceLy !== undefined
+
   return (
     <div className="font-mono text-[11px] text-foreground/90 leading-relaxed pointer-events-none">
       <div className="text-[10px] tracking-[0.3em] uppercase text-foreground/50 mb-1">
@@ -222,7 +227,38 @@ export function InfoPanel({ info }: { info: BodyInfo | null }) {
         {info.name}
       </div>
 
-      {k && (
+      {/* Star data block — NASA-style compact readout */}
+      {isStar && (
+        <div className="mb-3 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[10px]">
+          {info.apparentMag !== undefined && (
+            <>
+              <span className="text-foreground/55">Apparent mag</span>
+              <span className="text-foreground/85 tabular-nums">{info.apparentMag.toFixed(2)} V</span>
+            </>
+          )}
+          {info.distanceLy !== undefined && (
+            <>
+              <span className="text-foreground/55">Distance</span>
+              <span className="text-foreground/85 tabular-nums">{info.distanceLy.toFixed(1)} ly</span>
+            </>
+          )}
+          {info.spectralType !== undefined && (
+            <>
+              <span className="text-foreground/55">Spectral type</span>
+              <span className="text-foreground/85">{info.spectralType}</span>
+            </>
+          )}
+          {info.catalogDesignation !== undefined && (
+            <>
+              <span className="text-foreground/55">Catalog</span>
+              <span className="text-foreground/85">{info.catalogDesignation}</span>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Non-star planetary data */}
+      {!isStar && k && (
         <div>
           <span className="text-foreground/55">Surface temp · </span>
           {k.min !== undefined && k.max !== undefined ? (
@@ -236,14 +272,14 @@ export function InfoPanel({ info }: { info: BodyInfo | null }) {
         </div>
       )}
 
-      {info.aAU !== undefined && (
+      {!isStar && info.aAU !== undefined && (
         <div>
           <span className="text-foreground/55">Orbit · </span>
           {info.aAU.toFixed(2)} AU · {Math.round(info.periodDays ?? 0).toLocaleString()} days
         </div>
       )}
 
-      {info.rotHours !== undefined && (
+      {!isStar && info.rotHours !== undefined && (
         <div>
           <span className="text-foreground/55">Day · </span>
           {Math.abs(info.rotHours) < 100
@@ -252,21 +288,21 @@ export function InfoPanel({ info }: { info: BodyInfo | null }) {
         </div>
       )}
 
-      {info.tiltDeg !== undefined && (
+      {!isStar && info.tiltDeg !== undefined && (
         <div>
           <span className="text-foreground/55">Axial tilt · </span>
           {info.tiltDeg.toFixed(1)}°
         </div>
       )}
 
-      {info.radiusEarth !== undefined && (
+      {!isStar && info.radiusEarth !== undefined && (
         <div>
           <span className="text-foreground/55">Radius · </span>
           {info.radiusEarth.toFixed(2)} × Earth
         </div>
       )}
 
-      {info.moons !== undefined && info.moons > 0 && (
+      {!isStar && info.moons !== undefined && info.moons > 0 && (
         <div>
           <span className="text-foreground/55">Moons · </span>
           {info.moons}
@@ -288,6 +324,13 @@ export function InfoPanel({ info }: { info: BodyInfo | null }) {
           dwarfs. Fully describes the 3D orbit (i / e / Ω / ω) for the
           curious; planets use the deep facts disclosure above instead. */}
       <OrbitalElements orbital={info.orbital} variant="panel" />
+
+      {info.clickable && (
+        <div className="mt-3 inline-flex items-center gap-2 font-mono text-[9px] tracking-[0.25em] uppercase text-cyan-100/70">
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-cyan-300/80 animate-pulse" />
+          Click to interact
+        </div>
+      )}
 
       {info.followable && (
         <div className="mt-3 inline-flex items-center gap-2 font-mono text-[9px] tracking-[0.25em] uppercase text-foreground/60">

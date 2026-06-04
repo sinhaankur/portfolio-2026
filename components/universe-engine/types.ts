@@ -84,6 +84,14 @@ export type BodyInfo = {
    *  its orbit). Surfaces a hint in the InfoPanel so the gesture is
    *  discoverable for fast-moving bodies like comets + spacecraft. */
   followable?: boolean
+  /** Star-specific: apparent magnitude (V-band). */
+  apparentMag?: number
+  /** Star-specific: distance from the Sun in light-years. */
+  distanceLy?: number
+  /** Star-specific: spectral type (e.g. "A0V", "M2Ib"). */
+  spectralType?: string
+  /** Star-specific: catalog designations (HR, HD, Hipparcos, etc.). */
+  catalogDesignation?: string
 }
 
 export type HoverHandler = (info: BodyInfo | null) => void
