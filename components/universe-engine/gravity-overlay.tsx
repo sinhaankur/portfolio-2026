@@ -1,24 +1,25 @@
 "use client"
 
 /**
- * Gravity Overlay — visualises the gravitational influence of every major
- * body in the solar system.  Two modes, toggled together:
+ * Gravity Overlay — visualises the gravitational influence of every massive
+ * body in the scene: solar system (Sun + planets), sky-shell black holes
+ * (M87*, TON 618, Cygnus X-1, …), and Sgr A* at the galactic centre.
  *
- *   1. Influence spheres: faint transparent shells around each body whose
- *      radius scales with sqrt(mass).  Gives an immediate sense of which
- *      bodies dominate their neighbourhood.
+ *   1. Influence spheres: faint transparent shells around each body. Radius
+ *      scales with sqrt(mass) and is capped at 45 scene units so supermassive
+ *      black holes read as dramatic background domes without swallowing the
+ *      entire viewport.
  *
- *   2. Ecliptic vector field: a grid of small arrows on the ecliptic plane
- *      (y = 0.06) pointing in the direction of net gravitational acceleration
- *      at that point.  Arrow length / opacity encode field strength.
+ *   2. Ecliptic vector field: a 30×30 grid of arrows on the ecliptic plane
+ *      showing net gravitational acceleration at each point. Distant masses
+ *      (black holes, galactic centre) are included in the calculation so the
+ *      field shows the true large-scale pull, not just the local solar-system
+ *      gradient.
  *
  * Performance:
- *   - Grid resolution is capped at 30 × 30 = 900 instances — well within
- *     comfortable InstancedMesh territory.
- *   - Only the Sun + 8 planets contribute to field calculations; moons and
- *     small bodies are negligible at solar-system scale.
- *   - Positions are recomputed analytically each frame (same Kepler math
- *     the renderer uses) so no ref-walking or matrix-world queries are needed.
+ *   - Grid resolution capped at 900 instances (InstancedMesh).
+ *   - Body list rebuilt once per frame; distant bodies add ~10 entries.
+ *   - Sphere meshes are low-poly (16–32 segments) and additive-blended.
  */
 
 import { useRef, useMemo } from "react"
@@ -27,7 +28,6 @@ import {
   AdditiveBlending,
   Color,
   ConeGeometry,
-  CylinderGeometry,
   InstancedMesh,
   Matrix4,
   MeshBasicMaterial,
@@ -38,33 +38,67 @@ import {
 
 import {
   SUN_OFFSET_SCENE,
-  TIME_WARP_DAYS_PER_SEC,
+  SKY_SHELL_DISTANCE,
+  SGR_A_MASS_SOLAR,
   buildScenePlanets,
   eccentricToTrue,
+  raDecToScenePos,
   simTimeRef,
+  skyPoints,
   solveKepler,
   timeWarpRef,
 } from "./astronomy"
-import type { ScenePlanet } from "./types"
+import type { ScenePlanet, SkyPoint } from "./types"
 
 /* --------------------------------------------------------------------------
  * Scene-scale constants
  * ------------------------------------------------------------------------ */
 
-const SUN_MASS_EARTH = 333_000 // M☉ in Earth-masses
-const GRID_SIZE = 30 // 30 × 30 arrows
-const GRID_EXTENT = 32 // covers ±32 scene units (roughly Neptune orbit)
-const GRID_Y = 0.06 // slightly above ecliptic to avoid z-fighting with rings
-const INFLUENCE_SCALE = 0.55 // multiplier on sqrt(mass) → sphere radius
-const ARROW_MAX_SCALE = 0.55 // maximum arrow length
-const ARROW_MIN_SCALE = 0.08 // minimum arrow length (dead zone)
-const FIELD_STRENGTH_SCALE = 0.000_015 // empirical: tunes arrow length
+const SUN_MASS_EARTH = 333_000
+const GRID_SIZE = 30
+const GRID_EXTENT = 32
+const GRID_Y = 0.06
+const INFLUENCE_SCALE = 0.55
+const INFLUENCE_CAP = 45 // scene units — prevents supermassive BHs from engulfing everything
+const ARROW_MAX_SCALE = 0.55
+const ARROW_MIN_SCALE = 0.08
+const FIELD_STRENGTH_SCALE = 0.000_015
+
+/* --------------------------------------------------------------------------
+ * Precomputed sky black holes (massive bodies on the sky shell)
+ * ------------------------------------------------------------------------ */
+
+const SKY_MASSIVE_BODIES: Array<{
+  name: string
+  position: Vector3
+  massEarth: number
+  color: string
+}> = skyPoints
+  .filter((p): p is SkyPoint & { massSolar: number } => p.massSolar != null)
+  .map((p) => {
+    const [wx, wy, wz] = raDecToScenePos(p.raHours, p.decDeg, SKY_SHELL_DISTANCE)
+    // GravityOverlay lives inside the solar-system group (origin at Sun).
+    // raDecToScenePos bakes in SUN_OFFSET_SCENE, so subtract it for local coords.
+    return {
+      name: p.name,
+      position: new Vector3(wx - SUN_OFFSET_SCENE, wy, wz),
+      massEarth: p.massSolar * SUN_MASS_EARTH,
+      color: p.shade ?? "#b0c8ff",
+    }
+  })
+
+// Sgr A* at galactic centre — world origin, so local position is opposite the Sun offset.
+const SGR_A_BODY = {
+  name: "Sagittarius A*",
+  position: new Vector3(-SUN_OFFSET_SCENE, 0, 0),
+  massEarth: SGR_A_MASS_SOLAR * SUN_MASS_EARTH,
+  color: "#b0c8ff",
+}
 
 /* --------------------------------------------------------------------------
  * Math helpers
  * ------------------------------------------------------------------------ */
 
-/** Current planet position in solar-system scene coordinates. */
 function planetScenePosition(planet: ScenePlanet, simDays: number): Vector3 {
   const meanAnomaly =
     planet.raw.startPhase +
@@ -77,9 +111,7 @@ function planetScenePosition(planet: ScenePlanet, simDays: number): Vector3 {
   if (e > 0.01) {
     const E = solveKepler(meanAnomaly, e)
     theta = eccentricToTrue(E, e)
-    r =
-      (planet.orbitRadius * (1 - e * e)) /
-      (1 + e * Math.cos(theta))
+    r = (planet.orbitRadius * (1 - e * e)) / (1 + e * Math.cos(theta))
   }
 
   const xLocal = r * Math.cos(theta)
@@ -90,7 +122,6 @@ function planetScenePosition(planet: ScenePlanet, simDays: number): Vector3 {
   return new Vector3(xLocal, y, z)
 }
 
-/** Gravitational acceleration vector at `point` from all massive bodies. */
 function netGravityAt(
   point: Vector3,
   bodies: Array<{ position: Vector3; mass: number }>,
@@ -106,8 +137,12 @@ function netGravityAt(
   return net
 }
 
+function influenceRadius(massEarth: number): number {
+  return Math.min(INFLUENCE_CAP, Math.sqrt(massEarth) * INFLUENCE_SCALE)
+}
+
 /* --------------------------------------------------------------------------
- * Reusable temporaries — avoid per-frame allocations
+ * Reusable temporaries
  * ------------------------------------------------------------------------ */
 const _tempVec3A = new Vector3()
 const _tempVec3B = new Vector3()
@@ -117,7 +152,7 @@ const _tempMatrix = new Matrix4()
 const _tempColor = new Color()
 
 /* --------------------------------------------------------------------------
- * Influence spheres — one per major body
+ * Influence spheres — solar system + distant massive bodies
  * ------------------------------------------------------------------------ */
 
 function InfluenceSpheres({
@@ -129,6 +164,11 @@ function InfluenceSpheres({
 }) {
   const groupRef = useRef<THREE.Group>(null)
 
+  // Precompute static sphere count so useFrame knows which mesh is which.
+  const solarSystemCount = 1 + planets.length // Sun + planets
+  const distantCount = SKY_MASSIVE_BODIES.length + 1 // sky BHs + Sgr A*
+  const totalCount = solarSystemCount + distantCount
+
   useFrame(() => {
     if (!groupRef.current) return
     const simDays = simTimeRef.current.days
@@ -137,9 +177,8 @@ function InfluenceSpheres({
 
     // Sun
     if (children[idx]) {
-      children[idx].position.set(SUN_OFFSET_SCENE, 0, 0)
-      const sunRadius = Math.sqrt(SUN_MASS_EARTH) * INFLUENCE_SCALE * 0.35
-      children[idx].scale.setScalar(sunRadius)
+      children[idx].position.set(0, 0, 0)
+      children[idx].scale.setScalar(influenceRadius(SUN_MASS_EARTH) * 0.35)
       idx++
     }
 
@@ -149,18 +188,33 @@ function InfluenceSpheres({
       const pos = planetScenePosition(planet, simDays)
       children[idx].position.copy(pos)
       const mass = planet.raw.deep?.massEarth ?? 0.1
-      const radius = Math.sqrt(mass) * INFLUENCE_SCALE
-      children[idx].scale.setScalar(Math.max(radius, 0.4))
+      children[idx].scale.setScalar(Math.max(0.4, influenceRadius(mass)))
+      idx++
+    }
+
+    // Sky black holes
+    for (const bh of SKY_MASSIVE_BODIES) {
+      if (!children[idx]) continue
+      children[idx].position.copy(bh.position)
+      children[idx].scale.setScalar(influenceRadius(bh.massEarth))
+      idx++
+    }
+
+    // Sgr A*
+    if (children[idx]) {
+      children[idx].position.copy(SGR_A_BODY.position)
+      children[idx].scale.setScalar(influenceRadius(SGR_A_BODY.massEarth))
       idx++
     }
   })
 
   const sunColor = invert ? "#c95824" : "#ffffff"
   const sunOpacity = invert ? 0.06 : 0.05
+  const distantOpacity = invert ? 0.05 : 0.04
 
   return (
     <group ref={groupRef}>
-      {/* Sun influence */}
+      {/* Sun */}
       <mesh>
         <sphereGeometry args={[1, 32, 32]} />
         <meshBasicMaterial
@@ -172,27 +226,51 @@ function InfluenceSpheres({
         />
       </mesh>
 
-      {planets.map((p) => {
-        const hue = p.raw.shade
-        return (
-          <mesh key={`gsphere-${p.raw.name}`}>
-            <sphereGeometry args={[1, 24, 24]} />
-            <meshBasicMaterial
-              color={hue}
-              transparent
-              opacity={invert ? 0.07 : 0.06}
-              blending={AdditiveBlending}
-              depthWrite={false}
-            />
-          </mesh>
-        )
-      })}
+      {/* Planets */}
+      {planets.map((p) => (
+        <mesh key={`gsphere-${p.raw.name}`}>
+          <sphereGeometry args={[1, 24, 24]} />
+          <meshBasicMaterial
+            color={p.raw.shade}
+            transparent
+            opacity={invert ? 0.07 : 0.06}
+            blending={AdditiveBlending}
+            depthWrite={false}
+          />
+        </mesh>
+      ))}
+
+      {/* Sky black holes */}
+      {SKY_MASSIVE_BODIES.map((bh) => (
+        <mesh key={`gsphere-bh-${bh.name}`}>
+          <sphereGeometry args={[1, 16, 16]} />
+          <meshBasicMaterial
+            color={bh.color}
+            transparent
+            opacity={distantOpacity}
+            blending={AdditiveBlending}
+            depthWrite={false}
+          />
+        </mesh>
+      ))}
+
+      {/* Sgr A* */}
+      <mesh>
+        <sphereGeometry args={[1, 16, 16]} />
+        <meshBasicMaterial
+          color={SGR_A_BODY.color}
+          transparent
+          opacity={distantOpacity}
+          blending={AdditiveBlending}
+          depthWrite={false}
+        />
+      </mesh>
     </group>
   )
 }
 
 /* --------------------------------------------------------------------------
- * Vector field — InstancedMesh of arrows on the ecliptic plane
+ * Vector field — includes distant masses for true large-scale gravity
  * ------------------------------------------------------------------------ */
 
 function VectorField({
@@ -204,22 +282,7 @@ function VectorField({
 }) {
   const meshRef = useRef<InstancedMesh>(null)
 
-  // Build arrow geometry once: cylinder shaft + cone head
-  const arrowGeo = useMemo(() => {
-    const shaft = new CylinderGeometry(0.015, 0.015, 0.5, 6)
-    shaft.translate(0, 0.25, 0)
-    shaft.rotateX(Math.PI / 2)
-
-    const head = new ConeGeometry(0.04, 0.18, 6)
-    head.translate(0, 0.59, 0)
-    head.rotateX(Math.PI / 2)
-
-    // Merge — three.js doesn't have a built-in merge, so we approximate by
-    // parenting in the InstancedMesh (simpler: just use the cone as the
-    // visible arrow, scaled along Y to become a pointer).
-    return new ConeGeometry(0.035, 1, 6)
-  }, [])
-
+  const arrowGeo = useMemo(() => new ConeGeometry(0.035, 1, 6), [])
   const arrowMat = useMemo(
     () =>
       new MeshBasicMaterial({
@@ -238,9 +301,8 @@ function VectorField({
     if (!meshRef.current) return
     const simDays = simTimeRef.current.days
 
-    // Build body list once per frame
     const bodies: Array<{ position: Vector3; mass: number }> = [
-      { position: _tempVec3A.set(SUN_OFFSET_SCENE, 0, 0), mass: SUN_MASS_EARTH },
+      { position: _tempVec3A.set(0, 0, 0), mass: SUN_MASS_EARTH },
     ]
     for (const p of planets) {
       bodies.push({
@@ -248,6 +310,10 @@ function VectorField({
         mass: p.raw.deep?.massEarth ?? 0.1,
       })
     }
+    for (const bh of SKY_MASSIVE_BODIES) {
+      bodies.push({ position: bh.position, mass: bh.massEarth })
+    }
+    bodies.push({ position: SGR_A_BODY.position, mass: SGR_A_BODY.massEarth })
 
     const halfExtent = GRID_EXTENT / 2
     const step = GRID_EXTENT / GRID_SIZE
@@ -262,16 +328,11 @@ function VectorField({
         const g = netGravityAt(point, bodies)
         const strength = g.length()
 
-        // Arrow scale based on field strength, clamped
         const scale =
           ARROW_MIN_SCALE +
-          Math.min(
-            1,
-            strength * FIELD_STRENGTH_SCALE,
-          ) *
+          Math.min(1, strength * FIELD_STRENGTH_SCALE) *
             (ARROW_MAX_SCALE - ARROW_MIN_SCALE)
 
-        // Orientation: arrow points in direction of gravity (toward masses)
         _tempQuat.setFromUnitVectors(
           _tempVec3C.set(0, 1, 0),
           g.normalize(),
@@ -280,18 +341,21 @@ function VectorField({
         _tempMatrix.compose(point, _tempQuat, _tempVec3A.set(scale, scale, scale))
         meshRef.current.setMatrixAt(instanceIdx, _tempMatrix)
 
-        // Fade out very weak vectors
         const alpha =
           0.08 + Math.min(1, strength * FIELD_STRENGTH_SCALE * 2.5) * 0.35
         _tempColor.set(arrowMat.color)
         meshRef.current.setColorAt(
           instanceIdx,
-          _tempColor.setRGB(
-            _tempColor.r,
-            _tempColor.g,
-            _tempColor.b,
-          ).multiplyScalar(alpha / 0.35),
+          _tempColor.setRGB(_tempColor.r, _tempColor.g, _tempColor.b),
         )
+        // Dim the instance by alpha via the color multiplier trick
+        const colAttr = meshRef.current.instanceColor
+        if (colAttr) {
+          const r = _tempColor.r * (alpha / 0.35)
+          const g = _tempColor.g * (alpha / 0.35)
+          const b = _tempColor.b * (alpha / 0.35)
+          colAttr.setXYZ(instanceIdx, r, g, b)
+        }
 
         instanceIdx++
       }

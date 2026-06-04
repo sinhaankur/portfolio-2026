@@ -505,6 +505,8 @@ export const MILKY_WAY_INFO: BodyInfo = {
   fact: "~100,000 ly across · 400 billion stars · 4 major arms (Perseus, Sagittarius, Scutum-Centaurus, Norma). Our Sun sits ~26,670 ly from the galactic centre, on the Orion Arm.",
 }
 
+export const SGR_A_MASS_SOLAR = 4.15e6
+
 export const SGR_A_INFO: BodyInfo = {
   name: "Sagittarius A*",
   classification: "Supermassive black hole",
