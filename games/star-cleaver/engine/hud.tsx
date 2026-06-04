@@ -414,7 +414,7 @@ export function HUD({ gameState, showForwardDebug = false, onShipSelect, waypoin
       {gameState.phase === 'briefing' && (
         <div className="fixed bottom-12 left-1/2 transform -translate-x-1/2 z-30 pointer-events-none text-center">
           <div className="font-mono text-[9px] tracking-[0.2em] uppercase text-foreground/55">
-            SPACE TO EXPLORE
+            E INSPECT STATION · SPACE TO LAUNCH
           </div>
         </div>
       )}

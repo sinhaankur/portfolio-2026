@@ -850,6 +850,10 @@ function EnemyShipGroup({ enemy }: { enemy: GameEntity }) {
 
 function MissionStartScene({ worldIndex }: { worldIndex: number }) {
   const layout = useMemo(() => getMissionLayout(worldIndex), [worldIndex]);
+  const stationRigRef = useRef<THREE.Group>(null);
+  const dockingRingRef = useRef<THREE.Group>(null);
+  const beaconCoreRef = useRef<THREE.Mesh>(null);
+  const navLightRefs = useRef<Array<THREE.Mesh | null>>([]);
 
   // Star Wars-inspired outpost palette — warm industrial tones
   const hull = 0x6e665c;
@@ -858,6 +862,30 @@ function MissionStartScene({ worldIndex }: { worldIndex: number }) {
   const glow = 0xff9e3d;     // warm amber
   const glowHot = 0xff6622;  // exhaust orange
   const window = 0xffcc66;   // lit windows
+
+  useFrame((state, delta) => {
+    if (stationRigRef.current) {
+      stationRigRef.current.rotation.y += delta * 0.016;
+    }
+
+    if (dockingRingRef.current) {
+      dockingRingRef.current.rotation.z -= delta * 0.095;
+    }
+
+    if (beaconCoreRef.current) {
+      const beaconMat = beaconCoreRef.current.material as THREE.MeshBasicMaterial;
+      beaconMat.opacity = 0.5 + (Math.sin(state.clock.elapsedTime * 3.3) * 0.5 + 0.5) * 0.45;
+      const s = 0.92 + (Math.sin(state.clock.elapsedTime * 3.3 + 0.4) * 0.5 + 0.5) * 0.24;
+      beaconCoreRef.current.scale.setScalar(s);
+    }
+
+    navLightRefs.current.forEach((light, idx) => {
+      if (!light) return;
+      const mat = light.material as THREE.MeshBasicMaterial;
+      const phase = idx * 0.65;
+      mat.opacity = 0.32 + (Math.sin(state.clock.elapsedTime * 2.1 + phase) * 0.5 + 0.5) * 0.38;
+    });
+  });
 
   return (
     <group>
@@ -884,7 +912,7 @@ function MissionStartScene({ worldIndex }: { worldIndex: number }) {
         position={[layout.stationPosition.x, layout.stationPosition.y, layout.stationPosition.z]}
         scale={[layout.stationScale, layout.stationScale, layout.stationScale]}
       >
-        <group rotation={[0, Math.PI * 0.12, 0]}>
+        <group ref={stationRigRef} rotation={[0, Math.PI * 0.12, 0]}>
           {/* === MAIN HULL — wide horizontal block === */}
           <mesh>
             <boxGeometry args={[28, 10, 42]} />
@@ -937,11 +965,38 @@ function MissionStartScene({ worldIndex }: { worldIndex: number }) {
               <meshStandardMaterial color={trim} roughness={0.35} metalness={0.72} />
             </mesh>
             {/* Tower beacon */}
-            <mesh position={[0, 12.5, 0]}>
+            <mesh ref={beaconCoreRef} position={[0, 12.5, 0]}>
               <sphereGeometry args={[0.8, 8, 8]} />
               <meshBasicMaterial color={glow} transparent opacity={0.85} blending={THREE.AdditiveBlending} toneMapped={false} depthWrite={false} />
             </mesh>
             <pointLight position={[0, 12.5, 0]} intensity={2.2} distance={120} color={glow} />
+          </group>
+
+          {/* === DOCKING RING — rotating berths around station core === */}
+          <group ref={dockingRingRef} position={[0, -1.5, 2]} rotation={[Math.PI / 2, 0, 0]}>
+            <mesh>
+              <torusGeometry args={[21.5, 1.25, 22, 120]} />
+              <meshStandardMaterial color={deck} roughness={0.48} metalness={0.72} />
+            </mesh>
+            <mesh>
+              <torusGeometry args={[21.5, 0.38, 16, 120]} />
+              <meshBasicMaterial color={0x7ad2ff} transparent opacity={0.18} blending={THREE.AdditiveBlending} toneMapped={false} depthWrite={false} />
+            </mesh>
+            {Array.from({ length: 8 }).map((_, idx) => {
+              const a = (idx / 8) * Math.PI * 2;
+              return (
+                <group key={`dock-berth-${idx}`} position={[Math.cos(a) * 21.5, Math.sin(a) * 21.5, 0]} rotation={[0, 0, a]}>
+                  <mesh position={[0, 0, 0.8]}>
+                    <boxGeometry args={[2.4, 1.5, 1.6]} />
+                    <meshStandardMaterial color={trim} roughness={0.52} metalness={0.64} />
+                  </mesh>
+                  <mesh position={[0, 0, 1.9]}>
+                    <boxGeometry args={[1.1, 0.45, 0.45]} />
+                    <meshBasicMaterial color={0x90dfff} transparent opacity={0.5} blending={THREE.AdditiveBlending} toneMapped={false} depthWrite={false} />
+                  </mesh>
+                </group>
+              );
+            })}
           </group>
 
           {/* === HANGAR BAYS — large rectangular openings on each side === */}
@@ -1062,6 +1117,9 @@ function MissionStartScene({ worldIndex }: { worldIndex: number }) {
             return (
               <mesh
                 key={`nav-${idx}`}
+                ref={(el) => {
+                  navLightRefs.current[idx] = el;
+                }}
                 position={[Math.cos(angle) * 15, Math.sin(angle) * 2.5, Math.sin(angle) * 22]}
               >
                 <sphereGeometry args={[0.35, 8, 8]} />
@@ -1106,13 +1164,25 @@ function MissionStartScene({ worldIndex }: { worldIndex: number }) {
  * Camera follow controller: smooth chase cam like following a comet in Universe Engine.
  * Uses exponential smoothing for silk-smooth, responsive flight feel.
  */
-function CameraFollowController({ gameState, cameraAssist }: { gameState: GameState; cameraAssist: CameraAssistLevel }) {
+function CameraFollowController({
+  gameState,
+  cameraAssist,
+  stationExploreMode,
+}: {
+  gameState: GameState;
+  cameraAssist: CameraAssistLevel;
+  stationExploreMode: boolean;
+}) {
   const { camera } = useThree();
   const smoothPosRef = useRef(camera.position.clone());
   const smoothLookRef = useRef(new THREE.Vector3());
+  const layout = useMemo(() => getMissionLayout(gameState.worldIndex), [gameState.worldIndex]);
 
   // Dynamic offset based on phase: flight cam behind ship during ignition/exploration, wide during briefing
   const isFlightPhase = gameState.phase === 'ignition' || gameState.phase === 'exploration';
+  const canExploreStation =
+    gameState.phase === 'briefing' || (gameState.phase === 'ignition' && typeof gameState.ignitionStartTime !== 'number');
+  const stationInspectActive = canExploreStation && stationExploreMode;
   // Camera is closer and lower for a more cinematic chase view
   const baseOffsetDistance = isFlightPhase ? 5.1 : 18;
   const baseOffsetHeight = isFlightPhase ? 1.35 : 7.5;
@@ -1120,6 +1190,35 @@ function CameraFollowController({ gameState, cameraAssist }: { gameState: GameSt
   const baseSideOffset = isFlightPhase ? 1.1 : 0.0;
 
   useFrame((state, delta) => {
+    if (stationInspectActive) {
+      const center = layout.stationPosition.clone();
+      const t = state.clock.elapsedTime;
+      const orbitRadius = 54 * layout.stationScale;
+      const desiredPos = new THREE.Vector3(
+        center.x + Math.cos(t * 0.22) * orbitRadius,
+        center.y + 16 + Math.sin(t * 0.37) * 4,
+        center.z + Math.sin(t * 0.22) * orbitRadius,
+      );
+      const k = 1 - Math.exp(-delta * 3.2);
+      smoothPosRef.current.lerp(desiredPos, k);
+      camera.position.copy(smoothPosRef.current);
+
+      const lookTarget = center.clone().add(new THREE.Vector3(0, 6, 0));
+      const lookK = 1 - Math.exp(-delta * 3.9);
+      smoothLookRef.current.lerp(lookTarget, lookK);
+      camera.lookAt(smoothLookRef.current);
+
+      const perspective = camera as THREE.PerspectiveCamera;
+      const targetFov = 47;
+      const fovK = 1 - Math.exp(-delta * 3.5);
+      const nextFov = perspective.fov + (targetFov - perspective.fov) * fovK;
+      if (Math.abs(nextFov - perspective.fov) > 0.02) {
+        perspective.fov = nextFov;
+        perspective.updateProjectionMatrix();
+      }
+      return;
+    }
+
     const playerPos = new THREE.Vector3(
       gameState.playerEntity.position.x,
       gameState.playerEntity.position.y,
@@ -1732,6 +1831,7 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
   const [showTutorial, setShowTutorial] = useState(false);
   const [tutorialIndex, setTutorialIndex] = useState(0);
   const [showControlsHelp, setShowControlsHelp] = useState(false);
+  const [stationExploreMode, setStationExploreMode] = useState(true);
   const [dataCores, setDataCores] = useState<DataCore[]>(() =>
     createDataCores(ROUTE_DEFINITIONS.flatMap((r) => r.waypoints))
   );
@@ -1800,6 +1900,14 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
       return startExploration(s);
     });
   }, [gameState.phase, gameState.ignitionStartTime, gameState.simTime]);
+
+  useEffect(() => {
+    const canExploreStation =
+      gameState.phase === 'briefing' || (gameState.phase === 'ignition' && typeof gameState.ignitionStartTime !== 'number');
+    if (!canExploreStation && stationExploreMode) {
+      setStationExploreMode(false);
+    }
+  }, [gameState.phase, gameState.ignitionStartTime, stationExploreMode]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -2050,6 +2158,14 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
       if (e.code === 'KeyH' || (e.code === 'Slash' && e.shiftKey)) {
         e.preventDefault();
         setShowControlsHelp((v) => !v);
+      }
+      if (e.code === 'KeyE') {
+        const canExploreStation =
+          gameState.phase === 'briefing' || (gameState.phase === 'ignition' && typeof gameState.ignitionStartTime !== 'number');
+        if (canExploreStation) {
+          e.preventDefault();
+          setStationExploreMode((v) => !v);
+        }
       }
       // Start ignition on spacebar / W, then transition to exploration when startup completes.
       if (e.code === 'Space' || e.code === 'KeyW') {
@@ -2315,7 +2431,7 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
         />
 
         {/* Camera follow: chase the player ship */}
-        <CameraFollowController gameState={gameState} cameraAssist={cameraAssist} />
+        <CameraFollowController gameState={gameState} cameraAssist={cameraAssist} stationExploreMode={stationExploreMode} />
       </Canvas>
         </div>
 
@@ -2487,6 +2603,17 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
               Controls Help (H)
             </button>
           </div>
+          {(gameState.phase === 'briefing' || (gameState.phase === 'ignition' && typeof gameState.ignitionStartTime !== 'number')) && (
+            <div className="mt-2">
+              <button
+                type="button"
+                onClick={() => setStationExploreMode((v) => !v)}
+                className={`rounded border px-2 py-1 font-mono text-[9px] uppercase tracking-[0.12em] ${stationExploreMode ? 'border-cyan-300/60 text-cyan-200' : 'border-white/25 text-white/75'}`}
+              >
+                {stationExploreMode ? 'Station View On' : 'Station View Off'} (E)
+              </button>
+            </div>
+          )}
           <div className="mt-3">
             <div className="flex items-center justify-between gap-3 font-mono text-[9px] uppercase tracking-[0.16em] text-white/65">
               <span>Engine Mix</span>
