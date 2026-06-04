@@ -1573,9 +1573,9 @@ function GameScene({
       gameState.playerEntity.rotation.z += smoothedInputRef.current.roll * turnSpeed * clampedDelta;
 
       if (assistedFlight) {
-        const autoLevelK = 1 - Math.exp(-clampedDelta * 1.8);
+        const autoLevelK = 1 - Math.exp(-clampedDelta * 3.2);
         gameState.playerEntity.rotation.z += (0 - gameState.playerEntity.rotation.z) * autoLevelK;
-        gameState.playerEntity.rotation.x += (0 - gameState.playerEntity.rotation.x) * (autoLevelK * 0.22);
+        gameState.playerEntity.rotation.x += (0 - gameState.playerEntity.rotation.x) * (autoLevelK * 0.36);
       }
 
       const isAccelerating = !ignitionSequenceActive && keysPressed.current.has('KeyW');
@@ -1639,30 +1639,28 @@ function GameScene({
         if (Math.abs(forwardSpeedRef.current) < 0.05) forwardSpeedRef.current = 0;
       }
 
-      gameState.playerEntity.velocity.x = forwardLocal.x * forwardSpeedRef.current;
-      gameState.playerEntity.velocity.y = forwardLocal.y * forwardSpeedRef.current;
-      gameState.playerEntity.velocity.z = forwardLocal.z * forwardSpeedRef.current;
-
-      // Update continuous engine audio
-      updateEngineAudio?.(forwardSpeedRef.current, throttleRef.current, isBoosting, boostSpoolRef.current);
-
+      const desiredForwardVelocity = forwardLocal.clone().multiplyScalar(forwardSpeedRef.current);
       if (assistedFlight) {
+        // Assisted mode behaves like fly-by-wire: velocity tracks nose aggressively.
+        gameState.playerEntity.velocity.x = desiredForwardVelocity.x;
+        gameState.playerEntity.velocity.y = desiredForwardVelocity.y;
+        gameState.playerEntity.velocity.z = desiredForwardVelocity.z;
+      } else {
+        // Manual mode keeps inertial drift and only gently steers velocity toward the nose.
         const vel = new THREE.Vector3(
           gameState.playerEntity.velocity.x,
           gameState.playerEntity.velocity.y,
           gameState.playerEntity.velocity.z
         );
-        const forwardNorm = forwardLocal.clone().normalize();
-        const forwardMag = vel.dot(forwardNorm);
-        const forwardComponent = forwardNorm.multiplyScalar(forwardMag);
-        const lateralComponent = vel.sub(forwardComponent);
-        const driftDamp = 1 - Math.exp(-clampedDelta * 2.4);
-        lateralComponent.multiplyScalar(1 - driftDamp);
-        const corrected = forwardComponent.add(lateralComponent);
-        gameState.playerEntity.velocity.x = corrected.x;
-        gameState.playerEntity.velocity.y = corrected.y;
-        gameState.playerEntity.velocity.z = corrected.z;
+        const steerK = 1 - Math.exp(-clampedDelta * 1.15);
+        vel.lerp(desiredForwardVelocity, steerK);
+        gameState.playerEntity.velocity.x = vel.x;
+        gameState.playerEntity.velocity.y = vel.y;
+        gameState.playerEntity.velocity.z = vel.z;
       }
+
+      // Update continuous engine audio
+      updateEngineAudio?.(forwardSpeedRef.current, throttleRef.current, isBoosting, boostSpoolRef.current);
 
       const layout = getMissionLayout(gameState.worldIndex);
       const gravityHazards = buildGravityHazards(layout);
@@ -1723,6 +1721,26 @@ function GameScene({
         hullDamageThisFrame += (6 + boundaryLoad * 26) * clampedDelta;
       }
 
+      if (assistedFlight) {
+        // Apply post-force anti-drift damping so gravity/boundary forces do not
+        // leave persistent lateral slip in assisted mode.
+        const vel = new THREE.Vector3(
+          gameState.playerEntity.velocity.x,
+          gameState.playerEntity.velocity.y,
+          gameState.playerEntity.velocity.z
+        );
+        const forwardNorm = forwardLocal.clone().normalize();
+        const forwardMag = vel.dot(forwardNorm);
+        const forwardComponent = forwardNorm.multiplyScalar(forwardMag);
+        const lateralComponent = vel.sub(forwardComponent);
+        const driftDamp = 1 - Math.exp(-clampedDelta * 6.0);
+        lateralComponent.multiplyScalar(1 - driftDamp);
+        const corrected = forwardComponent.add(lateralComponent);
+        gameState.playerEntity.velocity.x = corrected.x;
+        gameState.playerEntity.velocity.y = corrected.y;
+        gameState.playerEntity.velocity.z = corrected.z;
+      }
+
       const updatedHealth = Math.max(0, gameState.playerEntity.health - hullDamageThisFrame);
       gameState.playerEntity.health = updatedHealth;
 
@@ -1767,6 +1785,7 @@ function GameScene({
       prevForwardSpeedRef.current = forwardSpeedRef.current;
       prevForwardAccelRef.current = currentAccel;
       gameState.playerEntity.metadata.attackMode = attackMode;
+      gameState.playerEntity.metadata.flightAssistActive = assistedFlight;
       gameState.playerEntity.metadata.rcsYaw = smoothedInputRef.current.yaw;
       gameState.playerEntity.metadata.rcsPitch = smoothedInputRef.current.pitch;
       gameState.playerEntity.metadata.rcsRoll = smoothedInputRef.current.roll;
