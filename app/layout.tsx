@@ -203,6 +203,9 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   });
 }`}
         </Script>
+        <Script id="person-schema" type="application/ld+json" strategy="beforeInteractive">
+          {JSON.stringify(personSchema)}
+        </Script>
       </head>
       <body className="font-sans antialiased overflow-x-hidden bg-background text-foreground">
         {/* GTM noscript fallback — fires the container for visitors with
@@ -216,11 +219,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
             title="Google Tag Manager"
           />
         </noscript>
-        {/* JSON-LD Person schema — feeds Google knowledge panel + rich previews. */}
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(personSchema) }}
-        />
         {/* No-JS fallback — the site is a heavy R3F/SPA experience, so without
             JS the viewport would otherwise be blank. This gives crawlers,
             text browsers, and JS-disabled visitors a real page: name, role,
