@@ -19,6 +19,7 @@ What is now configured:
 - Web app manifest (`public/manifest.webmanifest`)
 - iOS touch icon (`public/apple-touch-icon.png`)
 - Service worker registration (`public/sw.js`, wired in layout)
+- Offline fallback page (`public/offline.html`) with cached shell behavior
 - Apple web app metadata in Next layout
 
 ## 2) TestFlight-style distribution (native shell wrapper)
