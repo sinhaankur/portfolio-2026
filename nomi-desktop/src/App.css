@@ -1,5 +1,5 @@
 :root {
-  font-family: "IBM Plex Sans", "Inter", "Segoe UI", sans-serif;
+  font-family: "Inter", "Segoe UI", sans-serif;
   color: #f7fafc;
   background: #030712;
 
@@ -20,13 +20,33 @@ body {
 }
 
 .shell {
+  position: relative;
   min-height: 100vh;
-  max-width: 900px;
+  max-width: 1100px;
   margin: 0 auto;
-  padding: 32px 24px;
+  padding: 28px 24px 36px;
+}
+
+.universe-bg {
+  position: absolute;
+  inset: 0;
+  border-radius: 24px;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: radial-gradient(circle at 70% 20%, rgba(14, 116, 144, 0.25), rgba(2, 6, 23, 0.7));
+}
+
+.universe-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(2, 6, 23, 0.08), rgba(2, 6, 23, 0.55));
+  pointer-events: none;
 }
 
 .topbar {
+  position: relative;
+  z-index: 2;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -41,8 +61,8 @@ body {
 }
 
 .mark {
-  width: 56px;
-  height: 56px;
+  width: 62px;
+  height: 62px;
 }
 
 .kicker {
@@ -50,12 +70,20 @@ body {
   font-size: 12px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: #93c5fd;
+  color: #cbd5e1;
 }
 
 .brand h1 {
   margin: 0;
-  font-size: 2rem;
+  font-size: 2.4rem;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.top-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .status {
@@ -68,15 +96,29 @@ body {
 }
 
 .panel {
-  background: rgba(2, 6, 23, 0.7);
-  border: 1px solid #1e293b;
-  border-radius: 16px;
-  padding: 20px;
-  margin-bottom: 16px;
+  position: relative;
+  z-index: 2;
+  background: rgba(2, 6, 23, 0.68);
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 18px;
+  padding: 22px;
+  margin-bottom: 14px;
+  backdrop-filter: blur(10px);
 }
 
 .panel h2 {
-  margin-top: 0;
+  margin: 6px 0 10px;
+  font-size: 1.45rem;
+  letter-spacing: -0.02em;
+}
+
+.eyebrow {
+  margin: 0;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #93c5fd;
 }
 
 .controls {
@@ -88,7 +130,7 @@ body {
 input {
   flex: 1;
   border-radius: 10px;
-  border: 1px solid #334155;
+  border: 1px solid #475569;
   background: #0f172a;
   color: #e2e8f0;
   padding: 10px 12px;
@@ -96,13 +138,18 @@ input {
 }
 
 button {
-  border: 1px solid #2563eb;
+  border: 1px solid #0ea5e9;
   border-radius: 10px;
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  background: linear-gradient(135deg, #0284c7, #1d4ed8);
   color: #eff6ff;
   padding: 10px 14px;
   font-weight: 600;
   cursor: pointer;
+}
+
+.ghost {
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  background: rgba(15, 23, 42, 0.55);
 }
 
 ul {
@@ -122,6 +169,14 @@ li {
 }
 
 @media (max-width: 720px) {
+  .shell {
+    padding: 16px;
+  }
+
+  .universe-bg {
+    border-radius: 18px;
+  }
+
   .topbar {
     flex-direction: column;
     align-items: flex-start;

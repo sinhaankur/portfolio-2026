@@ -8,6 +8,12 @@ Nomi is a Rust-first personal desktop agent built with Tauri v2.
 - Thin React shell for UI composition and fast iteration
 - Tauri packaging for macOS, Linux, and Windows from one codebase
 
+## UX direction
+
+- Website-inspired interaction language (hero typography, glass HUD panels, cosmic atmosphere)
+- Dedicated universe-style 3D backdrop tuned for desktop performance in Tauri
+- Rust command layer for deterministic agent responses
+
 ## Quick start
 
 ```bash
@@ -42,3 +48,9 @@ pnpm icons
 ```
 
 This refreshes `.icns` (macOS), `.ico` (Windows), and `.png` bundle sizes (Linux and app stores).
+
+## Ecosystem blueprint
+
+For home-system + laptop + Smart TV continuity and top-tier repo selection, see:
+
+- `docs/ecosystem-system-blueprint.md`
