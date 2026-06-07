@@ -112,6 +112,13 @@ body {
   letter-spacing: -0.02em;
 }
 
+.panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
 .eyebrow {
   margin: 0;
   font-family: "JetBrains Mono", monospace;
@@ -137,6 +144,25 @@ input {
   font-size: 15px;
 }
 
+textarea {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid #475569;
+  background: #0f172a;
+  color: #e2e8f0;
+  padding: 10px 12px;
+  font-size: 14px;
+  resize: vertical;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: #cbd5e1;
+}
+
 button {
   border: 1px solid #0ea5e9;
   border-radius: 10px;
@@ -150,6 +176,48 @@ button {
 .ghost {
   border: 1px solid rgba(148, 163, 184, 0.45);
   background: rgba(15, 23, 42, 0.55);
+}
+
+.llm-grid {
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.llm-grid .full {
+  grid-column: 1 / -1;
+}
+
+.hint-list {
+  margin: 12px 0;
+  padding-left: 18px;
+}
+
+.hint-list li {
+  margin-bottom: 6px;
+  color: #bfdbfe;
+}
+
+.reply-block {
+  margin-top: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 12px;
+  padding: 12px;
+  background: rgba(15, 23, 42, 0.42);
+}
+
+.reply-text {
+  margin: 10px 0 0;
+  color: #e2e8f0;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.error {
+  margin: 10px 0 0;
+  color: #fca5a5;
+  font-size: 13px;
 }
 
 ul {
@@ -183,6 +251,14 @@ li {
   }
 
   .controls {
+    flex-direction: column;
+  }
+
+  .llm-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .panel-head {
     flex-direction: column;
   }
 }

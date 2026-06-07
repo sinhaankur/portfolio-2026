@@ -44,6 +44,14 @@ This document defines a top-tier deployment ecosystem for Nomi so the personal a
 5. Home Assistant subscribes to NATS or HTTP hooks from Nomi.
 6. Smart TV receives state via Home Assistant dashboard/card or cast endpoint.
 
+## Unhosted reference path
+
+- Treat Unhosted as a primary gateway profile for API-compatible model routing.
+- Nomi desktop uses an OpenAI-compatible client contract, so Unhosted endpoint + key can be injected without code changes.
+- Keep a profile switch between:
+	- Unhosted gateway mode
+	- Local-only mode (Ollama/LM Studio)
+
 ## Installation Sequence (Home System)
 
 1. Install Nomi desktop app.
