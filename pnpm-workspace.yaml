@@ -3,6 +3,7 @@
 # next/image — even with images.unoptimized: true — emits a warning at build.
 allowBuilds:
   sharp: true
+  unrs-resolver: true
 
 # Dependency overrides — pnpm 10+ reads these from the workspace file, not
 # package.json. Forces transitive deps to safer versions when an upstream
