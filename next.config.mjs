@@ -20,6 +20,9 @@ const nextConfig = {
     unoptimized: true,
   },
 
+  // Allow dev resources (HMR/assets) when opening the site from a phone on LAN.
+  allowedDevOrigins: ["192.168.1.79", "localhost", "127.0.0.1"],
+
   // Turbopack alias map — stubs the Node-only `node:fs/promises` and
   // `node:path` imports that the Anthropic SDK pulls in transitively via
   // its managed-agents environment-worker namespace. The browser never
