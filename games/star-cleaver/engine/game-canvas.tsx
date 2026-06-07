@@ -20,7 +20,7 @@ import { generateShip } from '../../../lib/ship-generator/procedural-ships';
 import { createInitialGameState, startIgnition, startExploration, formatScore, IGNITION_STARTUP_DURATION } from './game-state';
 import { HUD } from './hud';
 import { TestingConsole } from './testing-console';
-import { PlayerShipModel, ProceduralPlayerShipModel, getPlayerShipTransform } from './player-ship-model';
+import { PlayerShipModel, ProceduralPlayerShipModel, SHIP_MODEL_BASIS_ROTATION, getPlayerShipTransform } from './player-ship-model';
 import type { SelectedShip } from './ship-selector';
 import { getMissionLayout } from './mission-layout';
 import { SpaceDust, DataCoreField, createDataCores, BoostShockwave } from './particles';
@@ -473,11 +473,11 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
   );
   const initialPlumeLength = 1.05;
   const initialThrusterCenters = useMemo(
-    () => rearNozzleZs.map((z) => z + 0.9 * initialPlumeLength),
+    () => rearNozzleZs.map((z) => z - 0.9 * initialPlumeLength),
     [rearNozzleZs]
   );
   const initialOuterCenters = useMemo(
-    () => rearOuterNozzleZs.map((z) => z + 1.2 * initialPlumeLength * 1.22),
+    () => rearOuterNozzleZs.map((z) => z - 1.2 * initialPlumeLength * 1.22),
     [rearOuterNozzleZs]
   );
 
@@ -513,10 +513,10 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
       0.92 +
       Math.sin(state.clock.elapsedTime * (boostActive ? 38 : 26)) * 0.05 +
       Math.sin(state.clock.elapsedTime * (boostActive ? 61 : 47)) * 0.04;
-    const engineOpacity = (0.14 + driveSignal * (boostActive ? 0.31 : 0.26)) * flicker;
-    const engineScale = 0.56 + driveSignal * (boostActive ? 0.54 : 0.48);
-    const coreOpacity = (0.52 + driveSignal * (boostActive ? 0.17 : 0.14)) * flicker;
-    const coreScale = 0.92 + driveSignal * (boostActive ? 0.24 : 0.16);
+    const engineOpacity = (0.08 + driveSignal * (boostActive ? 0.18 : 0.14)) * flicker;
+    const engineScale = 0.44 + driveSignal * (boostActive ? 0.32 : 0.26);
+    const coreOpacity = (0.28 + driveSignal * (boostActive ? 0.14 : 0.1)) * flicker;
+    const coreScale = 0.74 + driveSignal * (boostActive ? 0.18 : 0.12);
 
     [engineGlow1Ref, engineGlow2Ref, engineGlow3Ref, engineGlow4Ref].forEach(ref => {
       if (!ref.current) return;
@@ -530,25 +530,25 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
       ref.current.scale.setScalar(coreScale);
     });
 
-    const plumeLength = 0.54 + driveSignal * (boostActive ? 1.18 : 0.96);
-    const plumeRadius = 0.32 + driveSignal * (boostActive ? 0.085 : 0.07);
-    const plumeOpacity = (0.08 + driveSignal * (boostActive ? 0.21 : 0.17)) * flicker;
-    const outerPlumeOpacity = (0.03 + driveSignal * (boostActive ? 0.14 : 0.11)) * flicker;
+    const plumeLength = 0.42 + driveSignal * (boostActive ? 0.84 : 0.68);
+    const plumeRadius = 0.24 + driveSignal * (boostActive ? 0.06 : 0.05);
+    const plumeOpacity = (0.04 + driveSignal * (boostActive ? 0.12 : 0.1)) * flicker;
+    const outerPlumeOpacity = (0.015 + driveSignal * (boostActive ? 0.07 : 0.055)) * flicker;
     const thrusterHalfLength = 0.9 * plumeLength;
     const outerHalfLength = 1.2 * plumeLength * 1.22;
     thrusterRefs.forEach((ref, idx) => {
       if (!ref.current) return;
       ref.current.scale.set(plumeRadius, plumeLength, plumeRadius);
       (ref.current.material as THREE.MeshBasicMaterial).opacity = plumeOpacity;
-      // Keep the cone base fixed at the rear nozzle and extend plume rearward (+Z).
-      ref.current.position.z = rearNozzleZs[idx] + thrusterHalfLength;
+      // Keep the cone base fixed at the rear nozzle and extend plume behind the ship.
+      ref.current.position.z = rearNozzleZs[idx] - thrusterHalfLength;
     });
 
     outerPlumeRefs.forEach((ref, idx) => {
       if (!ref.current) return;
       ref.current.scale.set(plumeRadius * 1.5, plumeLength * 1.22, plumeRadius * 1.5);
       (ref.current.material as THREE.MeshBasicMaterial).opacity = outerPlumeOpacity;
-      ref.current.position.z = rearOuterNozzleZs[idx] + outerHalfLength;
+      ref.current.position.z = rearOuterNozzleZs[idx] - outerHalfLength;
     });
 
     // RCS maneuvering thrusters — fire on the side matching user input.
@@ -607,10 +607,10 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
 
     // Nose forward glow — pulses with thrust, brightens when boosting
     if (noseGlowRef.current) {
-      const nosePulse = 0.6 + driveSignal * 0.4 + (boostActive ? 0.25 : 0);
-      const noseScale = 0.9 + Math.sin(state.clock.elapsedTime * 4.2) * 0.1 + driveSignal * 0.3;
+      const nosePulse = 0.45 + driveSignal * 0.28 + (boostActive ? 0.14 : 0);
+      const noseScale = 0.72 + Math.sin(state.clock.elapsedTime * 4.2) * 0.08 + driveSignal * 0.18;
       noseGlowRef.current.scale.setScalar(noseScale);
-      (noseGlowRef.current.material as THREE.MeshBasicMaterial).opacity = 0.12 * nosePulse;
+      (noseGlowRef.current.material as THREE.MeshBasicMaterial).opacity = 0.07 * nosePulse;
     }
 
     // Running lights — aviation standard: red port (left), green starboard (right)
@@ -626,9 +626,9 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
     // Cockpit glow pulses faster when boosting
     if (cockpitGlowRef.current) {
       const pulseFreq = 1.5 + driveSignal * (boostActive ? 5.0 : 3.0);
-      const pulseAmt = 0.85 + Math.sin(state.clock.elapsedTime * pulseFreq) * 0.15;
-      cockpitGlowRef.current.scale.setScalar(pulseAmt * 1.15);
-      (cockpitGlowRef.current.material as THREE.MeshBasicMaterial).opacity = 0.24 + driveSignal * 0.12;
+      const pulseAmt = 0.84 + Math.sin(state.clock.elapsedTime * pulseFreq) * 0.12;
+      cockpitGlowRef.current.scale.setScalar(pulseAmt * 0.82);
+      (cockpitGlowRef.current.material as THREE.MeshBasicMaterial).opacity = 0.08 + driveSignal * 0.05;
       (cockpitGlowRef.current.material as THREE.MeshBasicMaterial).color.set(
         gravityVisualRef.current > 0.62 ? 0xff7d7d : 0x7fffd4
       );
@@ -642,24 +642,55 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
     >
       <group ref={innerGroupRef}>
         <group scale={shipTransform.scale} position={shipTransform.position} rotation={shipTransform.rotation}>
+          <group rotation={SHIP_MODEL_BASIS_ROTATION}>
           <Suspense fallback={<ProceduralPlayerShipModel shipId={selectedShip} mode="game" applyTransform={false} />}>
-            <PlayerShipModel shipId={selectedShip} mode="game" applyTransform={false} />
+            <PlayerShipModel shipId={selectedShip} mode="game" applyTransform={false} applyBasisCorrection={false} />
           </Suspense>
 
-          <pointLight position={[0, 0.35, 1.9]} intensity={1.9} distance={34} color={0xf3f8ff} />
-          <pointLight position={[0, -0.2, -1.8]} intensity={1.45} distance={28} color={0xff9b6a} />
-          <pointLight position={[0, 0.95, 0.25]} intensity={0.85} distance={20} color={0xffffff} />
+          <pointLight position={[0, 0.18, 1.45]} intensity={0.72} distance={16} color={0xcde6ff} />
+          <pointLight position={[0, 0.14, -0.82]} intensity={0.34} distance={10} color={0x9ecbff} />
+          <pointLight position={[0, 0.72, 0.1]} intensity={0.26} distance={9} color={0xffffff} />
 
-          <mesh position={[0, 0.02, 0.25]}>
-            <icosahedronGeometry args={[2.85, 1]} />
-            <meshBasicMaterial color={0xffac80} transparent opacity={0.08} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+          <mesh position={[0, 0.02, 0.18]}>
+            <icosahedronGeometry args={[1.7, 1]} />
+            <meshBasicMaterial color={0xb8e6ff} transparent opacity={0.022} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
 
           {/* Cockpit glow - subtle green-cyan */}
-          <mesh ref={cockpitGlowRef} position={[0, 0.3, 1.2]}>
-          <sphereGeometry args={[0.42, 10, 10]} />
-          <meshBasicMaterial color={0x7fffd4} transparent opacity={0.16} />
+          <mesh ref={cockpitGlowRef} position={[0, 0.24, -0.42]}>
+          <sphereGeometry args={[0.24, 10, 10]} />
+          <meshBasicMaterial color={0x7fffd4} transparent opacity={0.08} depthWrite={false} />
           </mesh>
+
+          {/* Cockpit canopy glass shell so canopy stays readable in all lighting. */}
+          <mesh position={[0, 0.24, -0.44]} rotation={[0.14, 0, 0]}>
+            <sphereGeometry args={[0.28, 20, 12, 0, Math.PI * 2, 0, Math.PI * 0.56]} />
+            <meshPhysicalMaterial
+              color={0x9dc6df}
+              transparent
+              opacity={0.62}
+              transmission={0.68}
+              roughness={0.12}
+              metalness={0.04}
+              clearcoat={1}
+              clearcoatRoughness={0.08}
+              depthWrite={false}
+            />
+          </mesh>
+
+          {/* Rear engine nozzle lips + cores for cleaner, higher-fidelity engine ends. */}
+          {engineMounts.map((mount, idx) => (
+            <group key={`engine-nozzle-${idx}`} position={[mount[0], mount[1], rearNozzleZs[idx]]}>
+              <mesh rotation={[Math.PI / 2, 0, 0]}>
+                <ringGeometry args={[0.13, 0.19, 26]} />
+                <meshStandardMaterial color={0x6f7f90} roughness={0.34} metalness={0.88} />
+              </mesh>
+              <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, -0.012]}>
+                <circleGeometry args={[0.1, 26]} />
+                <meshStandardMaterial color={0x273a4a} roughness={0.18} metalness={0.95} emissive={0x345d7a} emissiveIntensity={0.2} />
+              </mesh>
+            </group>
+          ))}
 
           {/* Four-engine glow (rear) - blue plasma signature */}
           <mesh ref={engineCore1Ref} position={engineMounts[0]}>
@@ -667,7 +698,7 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
           <meshBasicMaterial color={0xfff4d2} transparent opacity={0.72} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
           <mesh ref={engineGlow1Ref} position={engineMounts[0]}>
-          <sphereGeometry args={[0.55, 8, 8]} />
+          <sphereGeometry args={[0.34, 8, 8]} />
           <meshBasicMaterial color={0x6ecbff} transparent opacity={0.2} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
           <mesh ref={thrusterCone1Ref} position={[engineMounts[0][0], engineMounts[0][1], initialThrusterCenters[0]]} rotation={[Math.PI / 2, 0, 0]}>
@@ -684,7 +715,7 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
           <meshBasicMaterial color={0xfff4d2} transparent opacity={0.72} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
           <mesh ref={engineGlow2Ref} position={engineMounts[1]}>
-          <sphereGeometry args={[0.55, 8, 8]} />
+          <sphereGeometry args={[0.34, 8, 8]} />
           <meshBasicMaterial color={0x6ecbff} transparent opacity={0.2} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
           <mesh ref={thrusterCone2Ref} position={[engineMounts[1][0], engineMounts[1][1], initialThrusterCenters[1]]} rotation={[Math.PI / 2, 0, 0]}>
@@ -701,7 +732,7 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
           <meshBasicMaterial color={0xfff4d2} transparent opacity={0.72} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
           <mesh ref={engineGlow3Ref} position={engineMounts[2]}>
-          <sphereGeometry args={[0.55, 8, 8]} />
+          <sphereGeometry args={[0.34, 8, 8]} />
           <meshBasicMaterial color={0x6ecbff} transparent opacity={0.2} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
           <mesh ref={thrusterCone3Ref} position={[engineMounts[2][0], engineMounts[2][1], initialThrusterCenters[2]]} rotation={[Math.PI / 2, 0, 0]}>
@@ -718,7 +749,7 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
           <meshBasicMaterial color={0xfff4d2} transparent opacity={0.72} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
           <mesh ref={engineGlow4Ref} position={engineMounts[3]}>
-          <sphereGeometry args={[0.55, 8, 8]} />
+          <sphereGeometry args={[0.34, 8, 8]} />
           <meshBasicMaterial color={0x6ecbff} transparent opacity={0.2} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
           <mesh ref={thrusterCone4Ref} position={[engineMounts[3][0], engineMounts[3][1], initialThrusterCenters[3]]} rotation={[Math.PI / 2, 0, 0]}>
@@ -731,9 +762,9 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
           </mesh>
 
           {/* Nose forward glow cone — orientation marker */}
-          <mesh ref={noseGlowRef} position={[0, 0.1, -2.2]} rotation={[-Math.PI / 2, 0, 0]}>
+          <mesh ref={noseGlowRef} position={[0, 0.08, -2.05]} rotation={[-Math.PI / 2, 0, 0]}>
             <coneGeometry args={[0.35, 1.2, 16, 1, true]} />
-            <meshBasicMaterial color={0x40d8ff} transparent opacity={0.12} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+            <meshBasicMaterial color={0x40d8ff} transparent opacity={0.05} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
 
           {/* Running lights — aviation standard: red port (left), green starboard (right) */}
@@ -749,7 +780,7 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
           {/* Ship outer halo ring for visibility against dark space */}
           <mesh rotation={[Math.PI / 2, 0, 0]}>
             <ringGeometry args={[2.8, 3.0, 64]} />
-            <meshBasicMaterial color={0x40d8ff} transparent opacity={0.06} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+            <meshBasicMaterial color={0x40d8ff} transparent opacity={0.02} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
 
           {/* RCS maneuvering thrusters — front + rear for realistic attitude control */}
@@ -804,6 +835,7 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
               <meshBasicMaterial color={0x34d399} transparent opacity={0.9} depthWrite={false} />
             </mesh>
           )}
+          </group>
         </group>
       </group>
     </group>
@@ -1183,6 +1215,8 @@ function CameraFollowController({
   const { camera } = useThree();
   const smoothPosRef = useRef(camera.position.clone());
   const smoothLookRef = useRef(new THREE.Vector3());
+  const smoothForwardRef = useRef(new THREE.Vector3(0, 0, -1));
+  const lookAheadRef = useRef(new THREE.Vector3(0, 0, -1));
   const layout = useMemo(() => getMissionLayout(gameState.worldIndex), [gameState.worldIndex]);
 
   // Dynamic offset based on phase: flight cam behind ship during ignition/exploration, wide during briefing
@@ -1246,6 +1280,10 @@ function CameraFollowController({
     const travelStretch = Math.min(speed / 50, 1.1);
     const ignitionCinematic = gameState.phase === 'ignition' ? 1 : 0;
 
+    // Smooth the forward vector to avoid micro-twitches from rapid Euler updates.
+    const forwardK = 1 - Math.exp(-delta * 8.2);
+    smoothForwardRef.current.lerp(forwardDir, forwardK).normalize();
+
     const offsetDistance =
       phaseProfile.offsetDistance +
       ignitionCinematic * 1.5 +
@@ -1256,13 +1294,12 @@ function CameraFollowController({
     const offsetHeight = phaseProfile.offsetHeight + ignitionCinematic * 0.42 + travelStretch * 0.35;
 
     // Keep camera behind ship orientation so nose direction is always readable.
-    const cloudShake = speedJerk * 0.22;
+    const cloudShake = speedJerk * 0.08;
     const turbulenceSide = Math.sin(state.clock.elapsedTime * 3.4) * cloudShake;
     const turbulenceUp = Math.sin(state.clock.elapsedTime * 5.1 + 1.7) * cloudShake * 0.6;
-    const jerkBacklash = Math.sin(state.clock.elapsedTime * 17.0 + 0.5) * speedJerk * 0.32;
     const desiredCameraPos = playerPos
       .clone()
-      .add(forwardDir.clone().multiplyScalar(-(offsetDistance + jerkBacklash)))
+      .add(smoothForwardRef.current.clone().multiplyScalar(-offsetDistance))
       .add(rightDir.clone().multiplyScalar(phaseProfile.sideOffset + turbulenceSide))
       .add(worldUp.clone().multiplyScalar(offsetHeight + turbulenceUp));
 
@@ -1273,13 +1310,21 @@ function CameraFollowController({
     const followRate = isFlightPhase ? assistConfig.follow : phaseProfile.nonAssistFollowRate;
     const k = 1 - Math.exp(-delta * followRate);
 
+    // Cap catch-up speed to prevent sudden snaps when heading changes quickly.
+    const maxCatchUp = 42 * delta;
+    const catchUp = desiredCameraPos.clone().sub(smoothPosRef.current);
+    if (catchUp.length() > maxCatchUp) {
+      catchUp.setLength(maxCatchUp);
+      desiredCameraPos.copy(smoothPosRef.current).add(catchUp);
+    }
+
     smoothPosRef.current.lerp(desiredCameraPos, k);
     camera.position.copy(smoothPosRef.current);
 
     // Boost camera shake: high-frequency micro-jitter when boost is active
     const boostActive = Boolean(gameState.playerEntity.metadata?.boostActive);
     if (boostActive || boostSpool > 0.05) {
-      const shakeIntensity = boostSpool * 0.18 + (boostActive ? 0.08 : 0);
+      const shakeIntensity = boostSpool * 0.08 + (boostActive ? 0.03 : 0);
       const t = state.clock.elapsedTime;
       camera.position.x += Math.sin(t * 47) * shakeIntensity * 0.5;
       camera.position.y += Math.sin(t * 61 + 1.3) * shakeIntensity * 0.5;
@@ -1300,9 +1345,11 @@ function CameraFollowController({
         gameState.playerEntity.velocity.y,
         gameState.playerEntity.velocity.z
       ).normalize();
-      lookTarget.add(velocityDir.multiplyScalar(lookAheadDistance + boostSpool * 1.7));
+      const lookVelK = 1 - Math.exp(-delta * 6.5);
+      lookAheadRef.current.lerp(velocityDir, lookVelK).normalize();
+      lookTarget.add(lookAheadRef.current.clone().multiplyScalar(lookAheadDistance + boostSpool * 1.2));
     } else {
-      lookTarget.add(forwardDir.clone().multiplyScalar(2.2));
+      lookTarget.add(smoothForwardRef.current.clone().multiplyScalar(2.2));
     }
 
     const lookK = 1 - Math.exp(-delta * assistConfig.look);
@@ -1860,7 +1907,7 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
   const [showTutorial, setShowTutorial] = useState(false);
   const [tutorialIndex, setTutorialIndex] = useState(0);
   const [showControlsHelp, setShowControlsHelp] = useState(false);
-  const [stationExploreMode, setStationExploreMode] = useState(true);
+  const [stationExploreMode, setStationExploreMode] = useState(false);
   const [dataCores, setDataCores] = useState<DataCore[]>(() =>
     createDataCores(ROUTE_DEFINITIONS.flatMap((r) => r.waypoints))
   );
@@ -1879,6 +1926,12 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
     rumble: OscillatorNode;
     filter: BiquadFilterNode;
     gain: GainNode;
+    ambienceOsc: OscillatorNode;
+    ambienceSub: OscillatorNode;
+    ambienceFilter: BiquadFilterNode;
+    ambienceGain: GainNode;
+    ambienceLfo: OscillatorNode;
+    ambienceLfoGain: GainNode;
     active: boolean;
   } | null>(null);
 
@@ -2053,27 +2106,67 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
     const rumble = ctx.createOscillator();
     const filter = ctx.createBiquadFilter();
     const gain = ctx.createGain();
+    const ambienceOsc = ctx.createOscillator();
+    const ambienceSub = ctx.createOscillator();
+    const ambienceFilter = ctx.createBiquadFilter();
+    const ambienceGain = ctx.createGain();
+    const ambienceLfo = ctx.createOscillator();
+    const ambienceLfoGain = ctx.createGain();
 
     osc.type = 'triangle';
     osc.frequency.value = 46;
     rumble.type = 'sine';
     rumble.frequency.value = 24;
+    ambienceOsc.type = 'triangle';
+    ambienceOsc.frequency.value = 110;
+    ambienceSub.type = 'sine';
+    ambienceSub.frequency.value = 55;
+    ambienceLfo.type = 'sine';
+    ambienceLfo.frequency.value = 0.08;
 
     filter.type = 'lowpass';
     filter.frequency.value = 120;
     filter.Q.value = 0.35;
+    ambienceFilter.type = 'lowpass';
+    ambienceFilter.frequency.value = 560;
+    ambienceFilter.Q.value = 0.42;
 
     gain.gain.value = 0.0001;
+    ambienceGain.gain.value = 0.0001;
+    ambienceLfoGain.gain.value = 24;
 
     osc.connect(filter);
     rumble.connect(filter);
     filter.connect(gain);
     gain.connect(ctx.destination);
 
+    ambienceOsc.connect(ambienceFilter);
+    ambienceSub.connect(ambienceFilter);
+    ambienceFilter.connect(ambienceGain);
+    ambienceGain.connect(ctx.destination);
+    ambienceLfo.connect(ambienceLfoGain);
+    ambienceLfoGain.connect(ambienceFilter.frequency);
+
     osc.start();
     rumble.start();
+    ambienceOsc.start();
+    ambienceSub.start();
+    ambienceLfo.start();
 
-    engineAudioRef.current = { ctx, osc, rumble, filter, gain, active: true };
+    engineAudioRef.current = {
+      ctx,
+      osc,
+      rumble,
+      filter,
+      gain,
+      ambienceOsc,
+      ambienceSub,
+      ambienceFilter,
+      ambienceGain,
+      ambienceLfo,
+      ambienceLfoGain,
+      active: true,
+    };
   };
 
   /**
@@ -2085,14 +2178,35 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
     const now = audio.ctx.currentTime;
     const drive = Math.min(1, Math.max(0.02, throttle * 0.58 + Math.min(speed / 90, 1) * 0.34 + boostSpool * 0.22));
     const boostBlend = boost ? 0.4 + boostSpool * 0.35 : boostSpool * 0.18;
-    const baseGain = 0.0022 + drive * 0.0056;
+    const baseGain = 0.0052 + drive * 0.018;
     const targetGain = baseGain * engineVolume * (1 - boostBlend * 0.08);
+    const ambienceGain = (0.0036 + drive * 0.0054 + boostSpool * 0.0018) * engineVolume;
 
     audio.osc.frequency.setTargetAtTime(46 + drive * 42 - boostBlend * 5, now, 0.16);
     audio.rumble.frequency.setTargetAtTime(24 + drive * 10 + boostBlend * 7, now, 0.16);
     audio.filter.frequency.setTargetAtTime(120 + drive * 180 - boostBlend * 28, now, 0.2);
     audio.gain.gain.setTargetAtTime(Math.max(0.0001, targetGain), now, 0.18);
+    audio.ambienceOsc.frequency.setTargetAtTime(110 + drive * 26 + boostSpool * 12, now, 0.35);
+    audio.ambienceSub.frequency.setTargetAtTime(55 + drive * 9 + boostSpool * 4, now, 0.38);
+    audio.ambienceFilter.frequency.setTargetAtTime(540 + drive * 220 + boostSpool * 80, now, 0.45);
+    audio.ambienceGain.gain.setTargetAtTime(Math.max(0.0001, ambienceGain), now, 0.3);
   };
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const unlockAudio = () => {
+      initEngineAudio();
+    };
+
+    window.addEventListener('pointerdown', unlockAudio, { passive: true });
+    window.addEventListener('keydown', unlockAudio);
+
+    return () => {
+      window.removeEventListener('pointerdown', unlockAudio);
+      window.removeEventListener('keydown', unlockAudio);
+    };
+  }, []);
 
   /**
    * Handle data core collection: score reward + audio chime + HUD message.

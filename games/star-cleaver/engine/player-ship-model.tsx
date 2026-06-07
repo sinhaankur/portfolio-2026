@@ -7,12 +7,13 @@ import * as THREE from 'three';
 import { generateShip } from '../../../lib/ship-generator/procedural-ships';
 import { auditShipModel } from './ship-model-qa';
 import type { SelectedShip } from './ship-selector';
-import { CALIBRATED_SHIP_SCALE } from './scale-contract';
+import { GAMEPLAY_SHIP_RENDER_SCALE, PREVIEW_SHIP_RENDER_SCALE } from './scale-contract';
 
 const PLAYER_SHIP_MODEL_PATH = '/models/Test1glb.glb';
 // The authored GLB uses Y as its longitudinal axis; gameplay uses -Z forward.
-// Rotate imported GLB content so model-space aligns with game-space.
-const GLB_AXIS_CORRECTION: [number, number, number] = [Math.PI / 2, 0, 0];
+// Rotate imported GLB content so model-space aligns with game-space, then
+// rotate 180 degrees around heading so front/back reads correctly in gameplay.
+export const SHIP_MODEL_BASIS_ROTATION: [number, number, number] = [Math.PI / 2, Math.PI, 0];
 
 type PlayerShipMode = 'game' | 'preview';
 type ShipVariant = 'default-vanguard';
@@ -140,8 +141,8 @@ function cloneTextureWithRepeat(source: THREE.Texture, repeatX: number, repeatY:
 
 const SHIP_TRANSFORMS: Record<ShipVariant, { game: ShipTransform; preview: ShipTransform }> = {
 	'default-vanguard': {
-	       preview: { scale: CALIBRATED_SHIP_SCALE * 0.92, position: [0, 0, 0], rotation: [0, 0, 0] },
-	       game: { scale: CALIBRATED_SHIP_SCALE, position: [0, 0, 0], rotation: [0, 0, 0] },
+	       preview: { scale: PREVIEW_SHIP_RENDER_SCALE, position: [0, 0, 0], rotation: [0, 0, 0] },
+	       game: { scale: GAMEPLAY_SHIP_RENDER_SCALE, position: [0, 0, 0], rotation: [0, 0, 0] },
        },
 };
 
@@ -171,6 +172,7 @@ function cloneAndStyleShipModel(scene: THREE.Object3D) {
 
 		child.castShadow = true;
 		child.receiveShadow = true;
+		child.frustumCulled = false;
 
 		const meshName = (child.name || '').toLowerCase();
 		const currentMaterial = child.material;
@@ -197,17 +199,19 @@ function cloneAndStyleShipModel(scene: THREE.Object3D) {
 			};
 
 			if (looksLikeCockpit) {
-				mat.color = applyWear(new THREE.Color('#dfe8ef'), 0.015);
-				mat.roughness = 0.08;
-				mat.metalness = 0.32;
+				mat.color = applyWear(new THREE.Color('#a9c7df'), 0.01);
+				mat.roughness = 0.1;
+				mat.metalness = 0.08;
+				mat.transparent = true;
+				mat.opacity = 0.7;
 				if (mat instanceof THREE.MeshPhysicalMaterial) {
-					mat.transmission = 0.48;
-					mat.thickness = 0.3;
-					mat.clearcoat = 0.82;
+					mat.transmission = 0.66;
+					mat.thickness = 0.38;
+					mat.clearcoat = 0.9;
 					mat.clearcoatRoughness = 0.08;
 				}
-				mat.emissive = new THREE.Color('#3a5472');
-				mat.emissiveIntensity = 0.18;
+				mat.emissive = new THREE.Color('#1f3143');
+				mat.emissiveIntensity = 0.03;
 			} else if (looksLikeEngine) {
 				mat.color = applyWear(new THREE.Color('#2f3842'), 0.0);
 				mat.roughness = 0.22;
@@ -342,10 +346,12 @@ export function PlayerShipModel({
        shipId,
        mode = 'game',
        applyTransform = true,
+	applyBasisCorrection = true,
 }: {
        shipId: SelectedShip;
        mode?: PlayerShipMode;
        applyTransform?: boolean;
+	applyBasisCorrection?: boolean;
 }) {
 	const playerShipGltf = useGLTF(PLAYER_SHIP_MODEL_PATH);
 	const fallbackShip = useMemo(() => createProceduralPlayerShip(shipId, mode), [shipId, mode]);
@@ -358,11 +364,11 @@ export function PlayerShipModel({
 	}, [playerShipGltf.scene]);
 
 	const shipVisual = hasGltfShip ? (
-		<group rotation={GLB_AXIS_CORRECTION}>
+		<>
 			<primitive object={resolvedShip} />
 			<ShipHighlightRig mode={mode} />
 			<ShipUiOverlay mode={mode} />
-		</group>
+		</>
 	) : (
 		<>
 			<primitive object={resolvedShip} />
@@ -371,10 +377,16 @@ export function PlayerShipModel({
 		</>
 	);
 
+	const basisAdjustedVisual = hasGltfShip && applyBasisCorrection ? (
+		<group rotation={SHIP_MODEL_BASIS_ROTATION}>{shipVisual}</group>
+	) : (
+		shipVisual
+	);
+
        if (!applyTransform) {
 	       return (
 		       <group>
-			       {shipVisual}
+			       {basisAdjustedVisual}
 		       </group>
 	       );
        }
@@ -382,7 +394,7 @@ export function PlayerShipModel({
        const transform = getPlayerShipTransform(shipId, mode);
        return (
 	       <group scale={transform.scale} position={transform.position} rotation={transform.rotation}>
-		       {shipVisual}
+		       {basisAdjustedVisual}
 	       </group>
        );
 }

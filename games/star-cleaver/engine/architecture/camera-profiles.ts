@@ -1,16 +1,16 @@
 export const CAMERA_PHASE_TUNING = {
   flight: {
-    offsetDistance: 6.4,
-    offsetHeight: 1.7,
-    sideOffset: 0.85,
+    offsetDistance: 5.8,
+    offsetHeight: 1.58,
+    sideOffset: 0.56,
     baseFov: 55,
     nonAssistFollowRate: 6.2,
   },
   briefing: {
-    offsetDistance: 18,
-    offsetHeight: 7.5,
+    offsetDistance: 12.5,
+    offsetHeight: 4.4,
     sideOffset: 0,
-    baseFov: 55,
+    baseFov: 52,
     nonAssistFollowRate: 3.2,
   },
   stationInspect: {

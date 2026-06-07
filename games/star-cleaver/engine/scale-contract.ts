@@ -7,6 +7,9 @@ export const DEFAULT_VANGUARD_LENGTH_METERS = 12.5;
 export const GLB_SOURCE_LENGTH_UNITS = 5.98;
 export const CALIBRATED_SHIP_SCALE =
   (DEFAULT_VANGUARD_LENGTH_METERS / SCENE_METERS_PER_UNIT) / GLB_SOURCE_LENGTH_UNITS;
+// Slight visual boost keeps the ship legible on high-FOV and high-DPI displays.
+export const GAMEPLAY_SHIP_RENDER_SCALE = CALIBRATED_SHIP_SCALE * 1.28;
+export const PREVIEW_SHIP_RENDER_SCALE = CALIBRATED_SHIP_SCALE * 1.18;
 
 // Earth/station orbital calibration.
 export const EARTH_RADIUS_KM = 6371;
