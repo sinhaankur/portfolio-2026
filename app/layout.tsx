@@ -119,6 +119,16 @@ export const metadata: Metadata = {
     email: false,
     address: false,
   },
+  manifest: "/manifest.webmanifest",
+  icons: {
+    apple: "/apple-touch-icon.png",
+    icon: "/icon.svg",
+  },
+  appleWebApp: {
+    capable: true,
+    title: SITE_NAME,
+    statusBarStyle: "black-translucent",
+  },
 }
 
 export const viewport: Viewport = {
@@ -185,6 +195,13 @@ new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
 j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
 })(window,document,'script','dataLayer','${GTM_ID}');`}
+        </Script>
+        <Script id="pwa-sw-register" strategy="afterInteractive">
+          {`if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}`}
         </Script>
       </head>
       <body className="font-sans antialiased overflow-x-hidden bg-background text-foreground">

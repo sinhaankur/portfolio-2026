@@ -1,0 +1,19 @@
+{
+  "name": "Ankur Sinha Portfolio",
+  "short_name": "Ankur",
+  "description": "Principal UX Designer portfolio and interactive AI systems lab.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#050505",
+  "theme_color": "#050505",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
