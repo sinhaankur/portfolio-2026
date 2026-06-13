@@ -111,7 +111,19 @@ export type Planet = {
   tiltDeg: number
   rotHours: number
   inclDeg: number
+  /** Legacy arbitrary phase offset (radians). Used only as a fallback when
+   *  m0Deg is absent — kept so non-anchored bodies still render plausibly. */
   startPhase: number
+  /** Mean anomaly at the J2000.0 epoch (degrees), from JPL mean orbital
+   *  elements. When present, the body's position becomes a true function of
+   *  the simulation date: M(t) = m0 + 2π·(daysSinceJ2000 / periodDays).
+   *  This is what makes the timeline date-accurate and scrubbable. */
+  m0Deg?: number
+  /** Longitude of perihelion at J2000 (degrees), ϖ = Ω + ω. Orients the
+   *  apsidal line of eccentric orbits so perihelion points the real way.
+   *  Combined with m0Deg + eccentricity this fixes both where the body is
+   *  AND which direction it's heading on its ellipse. */
+  periDeg?: number
   shade: string
   surfaceTempK: { min?: number; mean: number; max?: number }
   classification: string

@@ -13,9 +13,20 @@
  * if a consumer wraps it in a light scope.
  */
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import type { BodyDeepFacts, BodyInfo } from "./types"
-import { simTimeRef, timeWarpRef } from "./astronomy"
+import {
+  DAY_MS,
+  REAL_NOW_MS,
+  TIMELINE_RANGE_YEARS,
+  TIMELINE_WAYPOINTS,
+  YEAR_MS,
+  getSimMs,
+  jumpToNow,
+  setSimMs,
+  simTimeRef,
+  timeWarpRef,
+} from "./astronomy"
 
 /** Format a mass given in Earth-masses into a readable string.
  *  Small bodies (< 0.01 Earth) get scientific notation; Earth-and-up
@@ -370,53 +381,25 @@ export function InfoPanel({ info }: { info: BodyInfo | null }) {
   )
 }
 
-export function TimeWarpSlider({
-  value,
-  onChange,
-}: {
-  value: number
-  onChange: (v: number) => void
-}) {
-  return (
-    <label className="flex items-center gap-3 px-4 py-2.5 border border-foreground/25 rounded-full bg-background/50 backdrop-blur-sm">
-      <span className="font-mono text-[10px] tracking-[0.25em] uppercase text-foreground/70">
-        Time
-      </span>
-      <input
-        type="range"
-        min={0}
-        max={3}
-        step={0.05}
-        value={value}
-        onChange={(e) => {
-          const v = parseFloat(e.target.value)
-          onChange(v)
-          timeWarpRef.current = v
-        }}
-        aria-label="Adjust simulation speed"
-        aria-valuetext={value === 0 ? "Paused" : `${value.toFixed(2)} times normal speed`}
-        className="
-          w-32 md:w-40 accent-accent cursor-ew-resize
-          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
-          focus-visible:ring-offset-2 focus-visible:ring-offset-background
-          rounded
-        "
-      />
-      <span className="font-mono text-[10px] tracking-widest text-foreground/85 tabular-nums w-10 text-right">
-        {value === 0 ? "PAUSED" : `${value.toFixed(2)}×`}
-      </span>
-    </label>
-  )
+/** Available playback speeds (days of sim-time per second of real time,
+ *  as a multiplier on the base TIME_WARP_DAYS_PER_SEC). The transport
+ *  remembers the last non-zero magnitude so Play resumes at the chosen
+ *  speed and Reverse flips its sign. */
+const SPEED_STEPS = [0.25, 1, 4, 20, 100] as const
+
+function formatSimDate(ms: number): { date: string; time: string } {
+  const d = new Date(ms)
+  const month = d.toLocaleString("en-US", { month: "short", timeZone: "UTC" }).toUpperCase()
+  const day = String(d.getUTCDate()).padStart(2, "0")
+  const time = `${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")} UTC`
+  return { date: `${month} ${day} · ${d.getUTCFullYear()}`, time }
 }
 
 /**
- * Date readout — surfaces the current simulation date.
- *
- * Reads from the module-scoped `simTimeRef` accumulator (advanced each
- * frame by SceneClock) and polls at ~5 Hz, which is enough resolution
- * for "MAR 14 · 2026" to update smoothly without re-rendering on every
- * frame. Pairs naturally with the TimeWarpSlider: pause the slider and
- * the date freezes; crank it to 3× and the date races forward.
+ * Date readout — surfaces the current simulation date. Reads `simMs`
+ * (the absolute, scrubbable simulation instant) at ~5 Hz. Kept as a
+ * standalone pill for compact desktop placements; the full TimelineControl
+ * below embeds its own readout.
  */
 export function DateReadout() {
   const [dateStr, setDateStr] = useState<string | null>(null)
@@ -424,12 +407,7 @@ export function DateReadout() {
     let cancelled = false
     const tick = () => {
       if (cancelled) return
-      const { days, epochMs } = simTimeRef.current
-      const d = new Date(epochMs + days * 86_400_000)
-      const month = d
-        .toLocaleString("en-US", { month: "short" })
-        .toUpperCase()
-      setDateStr(`${month} ${d.getDate()} · ${d.getFullYear()}`)
+      setDateStr(formatSimDate(simTimeRef.current.simMs).date)
     }
     tick()
     const id = setInterval(tick, 200)
@@ -447,6 +425,267 @@ export function DateReadout() {
         {dateStr ?? "—"}
       </span>
     </div>
+  )
+}
+
+/* ============================================================
+ * TimelineControl — the date-first time machine.
+ *
+ * One panel that owns the whole clock: a live date readout, a
+ * scrubber that maps a ±TIMELINE_RANGE_YEARS window onto an absolute
+ * simMs, a transport (reverse / pause / play), a speed cycler, a Today
+ * reset, and a waypoints popover that jumps to iconic moments and frames
+ * the relevant body. Writing the scrubber sets simMs directly; the
+ * SceneClock advances it during playback. Because every body is a pure
+ * function of simMs, dragging here moves the entire solar system to its
+ * true configuration for that instant.
+ * ============================================================ */
+export function TimelineControl() {
+  // Slider position is a normalised offset in [-1, 1] around REAL_NOW_MS;
+  // we convert to/from absolute simMs. We hold the displayed date in state
+  // (polled), but the slider itself is uncontrolled-feeling: while dragging
+  // we write simMs immediately and reflect it back.
+  const [simMs, setSimMsState] = useState<number>(() => getSimMs())
+  const [warp, setWarp] = useState<number>(() => timeWarpRef.current)
+  const [speedIdx, setSpeedIdx] = useState<number>(1) // default 1×
+  const [waypointsOpen, setWaypointsOpen] = useState(false)
+  const draggingRef = useRef(false)
+
+  // Poll the clock so the readout + slider track playback without a
+  // per-frame React re-render. While the user is dragging we own simMs, so
+  // skip the poll-write to avoid fighting the input.
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (draggingRef.current) return
+      setSimMsState(getSimMs())
+      setWarp(timeWarpRef.current)
+    }, 120)
+    return () => clearInterval(id)
+  }, [])
+
+  const rangeMs = TIMELINE_RANGE_YEARS * YEAR_MS
+  const sliderValue = (simMs - REAL_NOW_MS) / rangeMs // [-1, 1]
+
+  const onScrub = useCallback((norm: number) => {
+    const ms = REAL_NOW_MS + norm * rangeMs
+    setSimMs(ms)
+    setSimMsState(ms)
+  }, [rangeMs])
+
+  const applyWarp = useCallback((v: number) => {
+    timeWarpRef.current = v
+    setWarp(v)
+  }, [])
+
+  const playing = warp !== 0
+  const reversed = warp < 0
+  const speed = SPEED_STEPS[speedIdx]
+
+  const togglePlay = () => applyWarp(playing ? 0 : (reversed ? -speed : speed))
+  const toggleReverse = () => applyWarp(playing ? -warp : -speed)
+  const cycleSpeed = () => {
+    const next = (speedIdx + 1) % SPEED_STEPS.length
+    setSpeedIdx(next)
+    if (playing) applyWarp((reversed ? -1 : 1) * SPEED_STEPS[next])
+  }
+  const today = () => {
+    jumpToNow()
+    const ms = getSimMs()
+    setSimMsState(ms)
+    applyWarp(0)
+  }
+
+  const jumpToWaypoint = (iso: string, body?: string) => {
+    const ms = Date.parse(iso)
+    if (!Number.isNaN(ms)) {
+      setSimMs(ms)
+      setSimMsState(ms)
+      applyWarp(0)
+    }
+    setWaypointsOpen(false)
+    if (body && typeof window !== "undefined") {
+      // Give the scene a frame to reposition the body to its new date, then
+      // ask the scene to frame it via the same focus channel bodies use.
+      setTimeout(() => {
+        window.dispatchEvent(
+          new CustomEvent("universe:sky-focus", { detail: { pointId: `planet:${body}` } }),
+        )
+      }, 60)
+    }
+  }
+
+  const { date, time } = formatSimDate(simMs)
+  const isToday = Math.abs(simMs - Date.now()) < DAY_MS
+
+  return (
+    <div
+      className="
+        pointer-events-auto flex flex-col gap-2
+        w-[min(92vw,30rem)] px-4 py-3
+        border border-foreground/25 rounded-2xl
+        bg-background/60 backdrop-blur-md
+      "
+      role="group"
+      aria-label="Timeline controls"
+    >
+      {/* Row 1 — date readout + transport */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-col leading-tight">
+          <span className="font-mono text-[11px] md:text-xs tracking-[0.18em] uppercase text-foreground/90 tabular-nums">
+            {date}
+          </span>
+          <span className="font-mono text-[9px] tracking-[0.2em] uppercase text-foreground/45 tabular-nums">
+            {time}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-1">
+          <TransportButton label="Run time backward" active={reversed && playing} onClick={toggleReverse}>
+            ⏪
+          </TransportButton>
+          <TransportButton label={playing ? "Pause" : "Play"} active={playing} onClick={togglePlay}>
+            {playing ? "⏸" : "▶"}
+          </TransportButton>
+          <button
+            type="button"
+            onClick={cycleSpeed}
+            aria-label={`Playback speed ${speed}×, tap to change`}
+            className="
+              min-h-8 px-2.5 rounded-full border border-foreground/25
+              font-mono text-[10px] tracking-widest text-foreground/85 tabular-nums
+              hover:border-accent/60 hover:text-foreground transition-colors
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+            "
+          >
+            {speed}×
+          </button>
+        </div>
+      </div>
+
+      {/* Row 2 — the scrubber */}
+      <input
+        type="range"
+        min={-1}
+        max={1}
+        step={0.0001}
+        value={Math.max(-1, Math.min(1, sliderValue))}
+        onPointerDown={() => { draggingRef.current = true; applyWarp(0) }}
+        onPointerUp={() => { draggingRef.current = false }}
+        onChange={(e) => onScrub(parseFloat(e.target.value))}
+        aria-label="Scrub simulation date"
+        aria-valuetext={date}
+        className="
+          w-full accent-accent cursor-ew-resize
+          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+          focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded
+        "
+      />
+
+      {/* Row 3 — anchors: Today + waypoints */}
+      <div className="flex items-center justify-between gap-2">
+        <button
+          type="button"
+          onClick={today}
+          disabled={isToday && !playing}
+          className="
+            min-h-8 px-3 rounded-full border border-foreground/25
+            font-mono text-[10px] tracking-[0.2em] uppercase
+            text-foreground/85 hover:text-foreground hover:border-accent/60
+            disabled:opacity-40 disabled:hover:border-foreground/25 disabled:hover:text-foreground/85
+            transition-colors
+            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+          "
+        >
+          ↺ Today
+        </button>
+
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setWaypointsOpen((v) => !v)}
+            aria-expanded={waypointsOpen}
+            aria-label="Jump to a moment in time"
+            className="
+              min-h-8 px-3 rounded-full border border-foreground/25
+              font-mono text-[10px] tracking-[0.2em] uppercase
+              text-foreground/85 hover:text-foreground hover:border-accent/60
+              transition-colors
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+            "
+          >
+            Moments ▾
+          </button>
+
+          {waypointsOpen && (
+            <div
+              className="
+                absolute bottom-full right-0 mb-2 z-40
+                w-[min(80vw,18rem)] max-h-[40vh] overflow-y-auto
+                flex flex-col gap-0.5 p-1.5
+                border border-foreground/25 rounded-xl
+                bg-background/90 backdrop-blur-md
+              "
+              role="menu"
+            >
+              {TIMELINE_WAYPOINTS.map((w) => (
+                <button
+                  key={w.label}
+                  type="button"
+                  role="menuitem"
+                  onClick={() => jumpToWaypoint(w.iso, w.body)}
+                  className="
+                    text-left px-2.5 py-2 rounded-lg
+                    hover:bg-foreground/10 transition-colors
+                    focus-visible:outline-none focus-visible:bg-foreground/10
+                  "
+                >
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="font-mono text-[10px] tracking-[0.12em] uppercase text-foreground/90">
+                      {w.label}
+                    </span>
+                    <span className="font-mono text-[9px] text-foreground/40 tabular-nums">
+                      {new Date(w.iso).getUTCFullYear()}
+                    </span>
+                  </div>
+                  <p className="mt-0.5 text-[11px] leading-snug text-foreground/55">{w.note}</p>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function TransportButton({
+  children,
+  label,
+  active,
+  onClick,
+}: {
+  children: React.ReactNode
+  label: string
+  active?: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      aria-pressed={active}
+      className={`
+        min-h-8 min-w-8 grid place-items-center rounded-full border text-[12px]
+        transition-colors
+        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+        ${active
+          ? "border-accent/70 text-foreground bg-accent/10"
+          : "border-foreground/25 text-foreground/85 hover:text-foreground hover:border-accent/60"}
+      `}
+    >
+      {children}
+    </button>
   )
 }
 
@@ -476,7 +715,7 @@ export function ResetViewButton({ onClick }: { onClick: () => void }) {
 
 /** Gravity overlay toggle — switches the gravitational-field visualization
  *  (influence spheres + ecliptic vector field) on/off.  Styled to match the
- *  DateReadout / TimeWarpSlider pill cluster. */
+ *  DateReadout / TimelineControl pill cluster. */
 /** Deep Dive toggle — switches the engine into exact-astrodynamics mode:
  *  trajectory trails, live orbit dots, full gravity overlay, and rich
  *  star/planet data readouts. */

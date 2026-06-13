@@ -67,6 +67,7 @@ import {
   blackHoleHorizonGravityMetersPerSec2,
   buildScenePlanets,
   constellations,
+  daysSinceJ2000,
   eccentricToTrue,
   flyToRef,
   followRef,
@@ -75,6 +76,7 @@ import {
   gauss,
   kerrHorizonRadiusMeters,
   magToVisualRadius,
+  meanAnomalyAt,
   moons,
   namedBodies,
   planetToInfo,
@@ -458,7 +460,12 @@ function FlyToController({ interactive }: { interactive: boolean }) {
 
 function SceneClock() {
   useFrame((_, delta) => {
-    simTimeRef.current.days += delta * TIME_WARP_DAYS_PER_SEC * timeWarpRef.current
+    // Advance the absolute simulation instant. timeWarpRef may be negative
+    // to run time backwards; at 0 the clock (and every body) freezes. The
+    // timeline scrubber writes simMs directly, so this is the only place
+    // that *advances* it during playback.
+    simTimeRef.current.simMs +=
+      delta * TIME_WARP_DAYS_PER_SEC * timeWarpRef.current * 86_400_000
   })
   return null
 }
@@ -843,11 +850,17 @@ function MoonBody({
     if (texture) dayNightUniforms.tDay.value = texture
   }, [texture, dayNightUniforms])
 
-  const speedRadPerSec = useMemo(
-    () => (2 * Math.PI) / (moon.periodDays / TIME_WARP_DAYS_PER_SEC),
-    [moon.periodDays],
-  )
-  const startPhase = useMemo(() => Math.random() * Math.PI * 2, [])
+  // Stable phase offset per moon (radians). Derived deterministically from
+  // the moon's name rather than Math.random() so scrubbing the timeline
+  // lands the moon at the same place every time you revisit a date — a
+  // random phase would jump on every remount. We don't have per-moon J2000
+  // ephemerides, so this is a fixed offset on top of date-driven motion,
+  // not a true anchor: the period is real, the absolute longitude is not.
+  const startPhase = useMemo(() => {
+    let h = 0
+    for (let i = 0; i < moon.name.length; i++) h = (h * 31 + moon.name.charCodeAt(i)) >>> 0
+    return (h % 360) * DEG
+  }, [moon.name])
 
   // Eagerly load the moon's surface texture on mount — same always-visible
   // treatment as the planets. Luna is the only moon shipping a texture today
@@ -863,12 +876,11 @@ function MoonBody({
     })
   }, [textureUrl, texture])
 
-  useEffect(() => {
-    if (orbitRef.current) orbitRef.current.rotation.y = startPhase
-  }, [startPhase])
-
   useFrame((_, delta) => {
-    if (orbitRef.current) orbitRef.current.rotation.y += delta * speedRadPerSec * timeWarpRef.current
+    // Date-driven so moons stay in lockstep with the scrubbable clock.
+    if (orbitRef.current) {
+      orbitRef.current.rotation.y = meanAnomalyAt(startPhase, moon.periodDays, simTimeRef.current.simMs)
+    }
 
     // Lerp the moon's visual emphasis when the parent planet is hovered.
     const k = 1 - Math.exp(-delta * 10)
@@ -1984,16 +1996,22 @@ function PlanetBody({
     if (nightTexture) dayNightUniforms.tNight.value = nightTexture
   }, [texture, nightTexture, dayNightUniforms])
 
-  // Mean anomaly accumulator for proper Kepler's-2nd-law motion. Phase
-  // accumulates uniformly here; orbitRef.rotation.y is set to TRUE anomaly
-  // each frame so eccentric planets (Pluto e=0.244, Mercury e=0.206) move
-  // visibly faster near perihelion and slower at aphelion.
+  // Date-driven mean anomaly. When the body has a real J2000 anchor
+  // (m0Deg), its position is a pure function of the simulation date —
+  // M(t) = M0 + 2π·(daysSinceJ2000 / period) — which is what makes the
+  // timeline scrubber land every planet at its genuine real-world
+  // position for any date. Bodies without an anchor fall back to the
+  // legacy uniform accumulator so they still drift plausibly.
+  const m0Rad = planet.raw.m0Deg != null ? planet.raw.m0Deg * DEG : null
+  // Longitude-of-perihelion offset (radians) orients the apsidal line so
+  // perihelion points the real direction for eccentric orbits.
+  const periRad = planet.raw.periDeg != null ? planet.raw.periDeg * DEG : 0
   const meanAnomalyRef = useRef(planet.raw.startPhase)
 
   useEffect(() => {
     meanAnomalyRef.current = planet.raw.startPhase
-    if (orbitRef.current) orbitRef.current.rotation.y = planet.raw.startPhase
-  }, [planet.raw.startPhase])
+    if (orbitRef.current && m0Rad == null) orbitRef.current.rotation.y = planet.raw.startPhase
+  }, [planet.raw.startPhase, m0Rad])
 
   // rotHours in the data uses the signed convention (negative = retrograde),
   // but for planets like Venus (177°), Uranus (98°), and Pluto (123°) the
@@ -2010,24 +2028,36 @@ function PlanetBody({
 
   useFrame((_, delta) => {
     const tw = timeWarpRef.current
-    meanAnomalyRef.current += delta * planet.orbitalSpeedRadPerSec * tw
     if (meshRef.current) meshRef.current.rotation.y += delta * visibleRotSpeed * tw
+
+    // Mean anomaly for this frame. Anchored bodies derive it straight from
+    // the simulation date (deterministic, scrubbable); legacy bodies keep
+    // accumulating uniformly off their startPhase.
+    let M: number
+    if (m0Rad != null) {
+      M = meanAnomalyAt(m0Rad, planet.raw.periodDays, simTimeRef.current.simMs)
+    } else {
+      meanAnomalyRef.current += delta * planet.orbitalSpeedRadPerSec * tw
+      M = meanAnomalyRef.current
+    }
 
     // Kepler's 2nd law in action: solve E - e·sin E = M for the eccentric
     // anomaly, convert to true anomaly, then set BOTH the orbit rotation
     // AND the radial distance from those values. Bodies on eccentric
     // orbits sweep equal areas in equal times — fast at perihelion,
-    // slow at aphelion — matching the textbook Keplerian behaviour.
+    // slow at aphelion — matching the textbook Keplerian behaviour. The
+    // periRad offset rotates the apsidal line so perihelion points the
+    // real direction.
     if (useEllipticalOrbit && positionRef.current && orbitRef.current) {
-      const E = solveKepler(meanAnomalyRef.current, eccentricity)
+      const E = solveKepler(M, eccentricity)
       const trueAnom = eccentricToTrue(E, eccentricity)
       const r = (planet.orbitRadius * (1 - eccentricity * eccentricity)) /
                 (1 + eccentricity * Math.cos(trueAnom))
-      orbitRef.current.rotation.y = trueAnom
+      orbitRef.current.rotation.y = trueAnom + periRad
       positionRef.current.position.x = r
     } else if (orbitRef.current) {
       // Circular orbit (or near-circular): true anomaly == mean anomaly.
-      orbitRef.current.rotation.y = meanAnomalyRef.current
+      orbitRef.current.rotation.y = M + periRad
     }
 
 
@@ -2861,6 +2891,15 @@ function NamedBodyMesh({
     const direction = body.inclDeg > 90 ? -1 : 1
     const angularSpeed = direction * (2 * Math.PI) / period
     const phase = body.startPhase * Math.PI * 2
+    // Date-driven anchor for periodic bodies: real period in days + a base
+    // mean anomaly. Each frame we recompute config.phase from the sim date
+    // so periodic comets are scrubbable and land in the same place every
+    // time you revisit a date (rather than free-running off a one-time
+    // accumulator). We lack true per-comet J2000 ephemerides, so the base
+    // phase is a fixed offset — period + direction are real, absolute
+    // longitude is approximate.
+    const periodDaysReal = isFinite(body.periodYears) ? body.periodYears * 365.25 : 0
+    const baseMeanAnomaly = phase
     // Orientation of the orbital plane in 3D — without these the orbit is
     // correctly tilted but oriented arbitrarily, so Voyager 1's escape
     // doesn't point toward Ophiuchus and Voyager 2's toward Telescopium.
@@ -2913,7 +2952,7 @@ function NamedBodyMesh({
     // (Arend-Roland 1957, Tsuchinshan-ATLAS 2024). Of the catalog, only
     // Tsuchinshan-ATLAS qualifies — its fact text already calls it out.
     const hasAntiTail = body.name === "Comet Tsuchinshan-ATLAS"
-    return { a, e, inclination, longNode, argPeri, visualRadius, angularSpeed, phase, shade, shadeRgb, isLoop: isFinite(body.periodYears), hasTail, tailLengthFactor, hasAntiTail }
+    return { a, e, inclination, longNode, argPeri, visualRadius, angularSpeed, phase, periodDaysReal, baseMeanAnomaly, direction, shade, shadeRgb, isLoop: isFinite(body.periodYears), hasTail, tailLengthFactor, hasAntiTail }
   }, [body])
   const cometAffordance = useMemo(
     () =>
@@ -3048,11 +3087,19 @@ function NamedBodyMesh({
     const tw = timeWarpRef.current
     if (!groupRef.current) return
 
-    // Advance phase; loop for periodic bodies, ping-pong for interstellars
-    // so they continue to pass through the scene every couple of minutes.
-    config.phase += delta * config.angularSpeed * tw
+    // Periodic bodies derive phase straight from the simulation date so
+    // they're scrubbable and deterministic; interstellars keep ping-ponging
+    // off the accumulator since they don't loop and have no period.
+    if (config.isLoop && config.periodDaysReal > 0) {
+      config.phase =
+        config.baseMeanAnomaly +
+        config.direction * 2 * Math.PI * daysSinceJ2000(simTimeRef.current.simMs) / config.periodDaysReal
+    } else {
+      config.phase += delta * config.angularSpeed * tw
+    }
     if (config.isLoop) {
-      if (config.phase > Math.PI * 2) config.phase -= Math.PI * 2
+      // keep within a sane range for the Kepler solver
+      config.phase = config.phase % (Math.PI * 2)
     } else {
       // Interstellar — keep phase in [0, 2π] and reset position when it
       // wanders too far so the body re-enters the scene periodically.

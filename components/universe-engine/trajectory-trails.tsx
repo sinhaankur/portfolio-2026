@@ -20,10 +20,13 @@ import { useMemo, useRef } from "react"
 import { useFrame } from "@react-three/fiber"
 import { BufferGeometry, Float32BufferAttribute, Vector3 } from "three"
 import {
+  DEG,
   buildScenePlanets,
   eccentricToTrue,
+  meanAnomalyAt,
   moons,
   namedBodies,
+  simTimeRef,
   solveKepler,
 } from "./astronomy"
 import type { NamedBody, ScenePlanet } from "./types"
@@ -96,6 +99,9 @@ function PlanetTrail({
 }) {
   const geometry = useMemo(() => {
     const e = planet.raw.deep?.eccentricity ?? 0
+    // Orient the ellipse by the real longitude of perihelion so the live
+    // dot (which uses the same offset) rides exactly on this path.
+    const periRad = planet.raw.periDeg != null ? planet.raw.periDeg * DEG : 0
     const positions: number[] = []
     for (let s = 0; s <= PLANET_TRAIL_SEGMENTS; s++) {
       const M = (s / PLANET_TRAIL_SEGMENTS) * Math.PI * 2
@@ -104,7 +110,7 @@ function PlanetTrail({
         e,
         planet.inclination,
         0, // longNode — planets use simplified tilt-only orbits
-        0, // argPeri — simplified
+        periRad,
         M,
       )
       positions.push(pos.x, pos.y, pos.z)
@@ -194,16 +200,19 @@ function LiveOrbitDot({
   useFrame(() => {
     if (!meshRef.current) return
     const e = planet.raw.deep?.eccentricity ?? 0
+    // Date-driven so the live dot sits exactly on the planet as the
+    // timeline scrubs (previously free-ran off performance.now()).
+    const periRad = planet.raw.periDeg != null ? planet.raw.periDeg * DEG : 0
     const M =
-      planet.raw.startPhase +
-      (performance.now() / 1000) *
-        planet.orbitalSpeedRadPerSec
+      planet.raw.m0Deg != null
+        ? meanAnomalyAt(planet.raw.m0Deg * DEG, planet.raw.periodDays, simTimeRef.current.simMs)
+        : planet.raw.startPhase
     const pos = keplerianPosition(
       planet.orbitRadius,
       e,
       planet.inclination,
       0,
-      0,
+      periRad,
       M,
     )
     meshRef.current.position.copy(pos)

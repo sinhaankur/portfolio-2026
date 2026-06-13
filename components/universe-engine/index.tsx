@@ -24,7 +24,7 @@
  *   astronomy.ts   Real-world data + scale + helpers (no React, no R3F)
  *   shaders.ts     GLSL for the spiral-arm point field
  *   scene.tsx      All R3F components, composed via <SceneContents />
- *   hud.tsx        DOM overlays (InfoPanel, TimeWarpSlider, ResetViewButton)
+ *   hud.tsx        DOM overlays (InfoPanel, TimelineControl, ResetViewButton)
  *   index.tsx      <UniverseEngine /> + public re-exports (this file)
  *
  * Limitations:
@@ -49,10 +49,9 @@ import {
   flyToRef,
   followRef,
   requestFlyTo,
-  timeWarpRef,
 } from "./astronomy"
 import { SceneContents } from "./scene"
-import { DateReadout, DeepDiveToggle, GravityToggle, InfoPanel, ResetViewButton, TimeWarpSlider } from "./hud"
+import { DeepDiveToggle, GravityToggle, InfoPanel, ResetViewButton, TimelineControl } from "./hud"
 import { MobileBodySheet } from "./mobile-sheet"
 import { StaticStarfield } from "./static-starfield"
 import { GalaxyMusic } from "../galaxy-music"
@@ -87,7 +86,6 @@ export function UniverseEngine({
   // each tap, so `hovered` clears immediately. `selectedBody` latches on the
   // most-recent tap and only clears when the user dismisses the bottom sheet.
   const [selectedBody, setSelectedBody] = useState<BodyInfo | null>(null)
-  const [timeWarpDisplay, setTimeWarpDisplay] = useState(timeWarpRef.current)
   const [showGravityOverlay, setShowGravityOverlay] = useState(false)
   const [showDeepDive, setShowDeepDive] = useState(false)
   const orbitRef = useRef<OrbitControlsImpl | null>(null)
@@ -442,7 +440,8 @@ export function UniverseEngine({
           )}
 
           {showDeepDive && mobile && (
-            <div className="absolute bottom-32 left-4 right-4 z-30 pointer-events-none">
+            // bottom-44 keeps it clear of the bottom-20 timeline bar on phones.
+            <div className="absolute bottom-44 left-4 right-4 z-30 pointer-events-none">
               <div className="mx-auto max-w-md rounded-full border border-foreground/12 bg-background/78 px-4 py-2.5 backdrop-blur-xl shadow-[0_10px_30px_rgba(0,0,0,0.18)]">
                 <div className="flex items-center gap-2.5">
                   <span className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-cyan-300/40 bg-cyan-300/10 text-[8px] text-cyan-200">
@@ -471,17 +470,26 @@ export function UniverseEngine({
               on the same baseline as UPCOMING keeps the chip out of the
               typography zone entirely, with a horizontal gap to UPCOMING. */}
           <div className="absolute bottom-6 right-44 md:right-56 z-30 pointer-events-auto flex flex-row items-center gap-2">
-            {/* Date + time-warp cluster stay desktop-only — the pills are
-                too wide on phones, they would push the cluster into UPCOMING.
-                Touch users still get pinch-zoom + drag + tap-to-explore. */}
+            {/* Overlay toggles stay desktop-only — too wide on phones, they
+                would push the cluster into UPCOMING. Touch users still get
+                pinch-zoom + drag + tap-to-explore. */}
             <div className="hidden md:flex items-center gap-2">
-              <DateReadout />
-              <TimeWarpSlider value={timeWarpDisplay} onChange={setTimeWarpDisplay} />
               <GravityToggle active={showGravityOverlay} onToggle={() => setShowGravityOverlay(v => !v)} />
               <DeepDiveToggle active={showDeepDive} onToggle={() => setShowDeepDive(v => !v)} />
             </div>
             {showMusic && <GalaxyMusic />}
           </div>
+
+          {/* Timeline — the time machine. Bottom-centre so it reads as the
+              primary control on every viewport (phones included). Only shown
+              in interactive mode since it drives the shared simulation clock;
+              the passive hero render keeps a still, present-day sky. Sits
+              above UPCOMING/music (bottom-6) with clearance. */}
+          {interactive && (
+            <div className="absolute bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-30 flex justify-center">
+              <TimelineControl />
+            </div>
+          )}
 
           {interactive && <ResetViewButton onClick={handleReset} />}
 
@@ -489,7 +497,8 @@ export function UniverseEngine({
               bottom-left slot the destinations menu used to live in. Click
               the chip to stop following; Reset (top-right) also clears it. */}
           {interactive && followingLabel && (
-            <div className="absolute bottom-32 left-6 md:bottom-32 md:left-12 z-30 pointer-events-auto">
+            // Mobile: sit above the bottom-20 timeline bar; desktop: original slot.
+            <div className="absolute bottom-44 left-6 md:bottom-32 md:left-12 z-30 pointer-events-auto">
               <button
                 type="button"
                 onClick={stopFollowing}

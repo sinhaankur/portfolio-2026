@@ -90,7 +90,7 @@ types.ts        Shared types (BodyInfo, Constellation, Planet, etc.)
 astronomy.ts    Real-world data + scene-scale + helpers (no React, no R3F)
 shaders.ts      GLSL for the spiral-arm point field
 scene.tsx       All R3F components, composed via <SceneContents />
-hud.tsx         DOM overlays (InfoPanel, TimeWarpSlider, ResetViewButton)
+hud.tsx         DOM overlays (InfoPanel, TimelineControl, ResetViewButton)
 mobile-sheet.tsx  Slide-up bottom sheet for touch devices
 static-starfield.tsx  CSS fallback used during lazy-load + on the 404 page
 index.tsx       <UniverseEngine /> entry + public re-exports

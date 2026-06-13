@@ -37,16 +37,17 @@ import {
 } from "three"
 
 import {
+  DEG,
   SUN_OFFSET_SCENE,
   SKY_SHELL_DISTANCE,
   SGR_A_MASS_SOLAR,
   buildScenePlanets,
   eccentricToTrue,
+  meanAnomalyAt,
   raDecToScenePos,
   simTimeRef,
   skyPoints,
   solveKepler,
-  timeWarpRef,
 } from "./astronomy"
 import type { ScenePlanet, SkyPoint } from "./types"
 
@@ -99,10 +100,16 @@ const SGR_A_BODY = {
  * Math helpers
  * ------------------------------------------------------------------------ */
 
-function planetScenePosition(planet: ScenePlanet, simDays: number): Vector3 {
+function planetScenePosition(planet: ScenePlanet, simMs: number): Vector3 {
+  // Same date-driven basis the scene renderer uses, so the gravity field +
+  // Hill spheres stay glued to where the planets actually are. Anchored
+  // bodies (m0Deg) derive mean anomaly from the date; the rest fall back to
+  // startPhase. The longitude-of-perihelion offset orients eccentric orbits.
+  const periRad = planet.raw.periDeg != null ? planet.raw.periDeg * DEG : 0
   const meanAnomaly =
-    planet.raw.startPhase +
-    simDays * planet.orbitalSpeedRadPerSec * timeWarpRef.current
+    planet.raw.m0Deg != null
+      ? meanAnomalyAt(planet.raw.m0Deg * DEG, planet.raw.periodDays, simMs)
+      : planet.raw.startPhase
 
   const e = planet.raw.deep?.eccentricity ?? 0
   let theta = meanAnomaly
@@ -113,6 +120,7 @@ function planetScenePosition(planet: ScenePlanet, simDays: number): Vector3 {
     theta = eccentricToTrue(E, e)
     r = (planet.orbitRadius * (1 - e * e)) / (1 + e * Math.cos(theta))
   }
+  theta += periRad
 
   const xLocal = r * Math.cos(theta)
   const zLocal = -r * Math.sin(theta)
@@ -171,7 +179,7 @@ function InfluenceSpheres({
 
   useFrame(() => {
     if (!groupRef.current) return
-    const simDays = simTimeRef.current.days
+    const simMs = simTimeRef.current.simMs
     const children = groupRef.current.children as THREE.Mesh[]
     let idx = 0
 
@@ -185,7 +193,7 @@ function InfluenceSpheres({
     // Planets
     for (const planet of planets) {
       if (!children[idx]) continue
-      const pos = planetScenePosition(planet, simDays)
+      const pos = planetScenePosition(planet, simMs)
       children[idx].position.copy(pos)
       const mass = planet.raw.deep?.massEarth ?? 0.1
       children[idx].scale.setScalar(Math.max(0.4, influenceRadius(mass)))
@@ -299,14 +307,14 @@ function VectorField({
 
   useFrame(() => {
     if (!meshRef.current) return
-    const simDays = simTimeRef.current.days
+    const simMs = simTimeRef.current.simMs
 
     const bodies: Array<{ position: Vector3; mass: number }> = [
       { position: _tempVec3A.set(0, 0, 0), mass: SUN_MASS_EARTH },
     ]
     for (const p of planets) {
       bodies.push({
-        position: planetScenePosition(p, simDays),
+        position: planetScenePosition(p, simMs),
         mass: p.raw.deep?.massEarth ?? 0.1,
       })
     }

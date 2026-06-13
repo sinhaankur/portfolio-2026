@@ -62,31 +62,157 @@ export const TIME_WARP_DAYS_PER_SEC = BASE_TIME_WARP_DAYS_PER_SEC
 export const timeWarpRef = { current: 1.0 }
 
 /* --------------------------------------------------------------------------
- * Simulation clock
+ * Simulation clock — date-first, scrubbable
  *
- * Tracks how much simulated time has advanced since the page loaded, so
- * the HUD can surface a real calendar date and waypoints can eventually
- * scrub to specific dates (Halley's perihelion, the next eclipse, your
- * birthday). The accumulator is advanced by the SceneClock component
- * each frame using `delta × TIME_WARP_DAYS_PER_SEC × timeWarpRef.current`,
- * which is the exact same scaling every orbiting body uses — so the
- * displayed date stays in lockstep with where the planets visibly are.
+ * The single source of truth for "what instant the universe is showing" is
+ * `simTimeRef.current.simMs`: an absolute Unix-epoch millisecond timestamp.
+ * Every orbiting body computes its position as a pure function of this
+ * timestamp (mean anomaly at J2000 + elapsed days × 2π / period), so the
+ * scene is fully deterministic: set simMs to any instant and every planet,
+ * moon, and comet snaps to its real position for that date. This is what
+ * makes the timeline scrubber possible — there's no path-dependent
+ * accumulator to desync.
  *
- * `epochMs` is captured at module load on the client (Date.now()); the
- * displayed date is `epochMs + days × 86_400_000`. Pausing the time-warp
- * slider freezes both the bodies and the date.
+ * `simMs` is initialised to the real "now" on the client so the engine
+ * opens on today's true sky. SceneClock advances it each frame by
+ * `delta × TIME_WARP_DAYS_PER_SEC × timeWarpRef.current × 86_400_000`
+ * (timeWarpRef may be negative to run time backwards). The timeline
+ * scrubber writes simMs directly to jump to any date.
  * ------------------------------------------------------------------------ */
+
+/* --------------------------------------------------------------------------
+ * J2000 epoch + date → orbital-phase helpers
+ *
+ * J2000.0 is the standard astronomical epoch: 2000-01-01 12:00 TT
+ * (≈ 2000-01-01T11:58:55.816Z UTC, close enough to noon UTC for our
+ * visual fidelity). All per-body mean-anomaly anchors (M0) below are
+ * given at this instant, sourced from JPL/NASA mean orbital elements.
+ * ------------------------------------------------------------------------ */
+
+/** J2000.0 as Unix-epoch milliseconds (2000-01-01T12:00:00Z, ~noon UTC). */
+export const J2000_MS = Date.UTC(2000, 0, 1, 12, 0, 0)
 
 export const simTimeRef = {
   current: {
-    /** Days elapsed in simulation since page load. */
-    days: 0,
-    /** Real-world epoch the simulation started from. Set on first read. */
-    epochMs: typeof Date !== "undefined" ? Date.now() : 0,
+    /** Absolute simulation instant, Unix epoch milliseconds. */
+    simMs: typeof Date !== "undefined" ? Date.now() : J2000_MS,
   },
 }
 
 export const DEG = Math.PI / 180
+
+/** Days from J2000 for a given simulation timestamp (can be negative). */
+export function daysSinceJ2000(simMs: number): number {
+  return (simMs - J2000_MS) / 86_400_000
+}
+
+/**
+ * Mean anomaly (radians, wrapped to [0, 2π)) for an orbiting body at a
+ * given simulation instant. Pure function of date — the foundation of the
+ * scrubbable timeline.
+ *
+ *   M(t) = M0 + 2π · (daysSinceJ2000 / periodDays)
+ *
+ * @param m0Rad      mean anomaly at J2000 (radians)
+ * @param periodDays orbital period (days)
+ * @param simMs      simulation instant (Unix ms)
+ */
+export function meanAnomalyAt(m0Rad: number, periodDays: number, simMs: number): number {
+  const M = m0Rad + (2 * Math.PI * daysSinceJ2000(simMs)) / periodDays
+  // Wrap to [0, 2π) — keeps the Kepler solver in its happy range.
+  const twoPi = 2 * Math.PI
+  return ((M % twoPi) + twoPi) % twoPi
+}
+
+/* --------------------------------------------------------------------------
+ * Timeline control surface
+ *
+ * Thin imperative API over simTimeRef + timeWarpRef so the HUD can drive
+ * the clock without prop-drilling through the R3F tree. The scrubber reads
+ * getSimMs() at ~30 Hz to render the date and writes setSimMs() on drag;
+ * play/pause/reverse just set timeWarpRef. Centralising it here keeps the
+ * "one source of truth" promise and means waypoints, the scrubber, and the
+ * SceneClock all agree on the same instant.
+ * ------------------------------------------------------------------------ */
+
+/** Real "now" captured at module load — the anchor for the Today button and
+ *  the scrubber's default centre. */
+export const REAL_NOW_MS = typeof Date !== "undefined" ? Date.now() : J2000_MS
+
+/** How far the scrubber can travel each side of the centre, in years.
+ *  ±150 yrs comfortably covers every catalog waypoint (next Halley
+ *  perihelion 2061, total eclipses through 2045, Voyager milestones). */
+export const TIMELINE_RANGE_YEARS = 150
+export const DAY_MS = 86_400_000
+export const YEAR_MS = 365.25 * DAY_MS
+
+export function getSimMs(): number {
+  return simTimeRef.current.simMs
+}
+
+/** Jump the whole simulation to an absolute instant. Every body recomputes
+ *  its position from this on the next frame — that's the scrub. */
+export function setSimMs(ms: number): void {
+  simTimeRef.current.simMs = ms
+}
+
+/** Reset to the real present moment. */
+export function jumpToNow(): void {
+  simTimeRef.current.simMs = Date.now()
+}
+
+/**
+ * Named moments worth jumping to. Dates are real (UTC). Kept deliberately
+ * small + iconic rather than exhaustive — the goal is "take me somewhere
+ * meaningful", not a full almanac. `body` optionally hints which object to
+ * frame when we arrive (handled by the HUD).
+ */
+export type TimelineWaypoint = {
+  label: string
+  /** ISO date (UTC) the engine should jump to. */
+  iso: string
+  /** Short note shown under the label. */
+  note: string
+  /** Optional body to fly to on arrival, by catalog name. */
+  body?: string
+}
+
+export const TIMELINE_WAYPOINTS: TimelineWaypoint[] = [
+  {
+    label: "Halley perihelion",
+    iso: "2061-07-28T00:00:00Z",
+    note: "1P/Halley returns to perihelion — its first since 1986.",
+    body: "Comet Halley",
+  },
+  {
+    label: "Great American eclipse",
+    iso: "2045-08-12T17:42:00Z",
+    note: "Total solar eclipse crossing the U.S. — 6+ minutes of totality.",
+  },
+  {
+    label: "Mars opposition",
+    iso: "2027-02-19T00:00:00Z",
+    note: "Mars at opposition — closest + brightest, rising as the Sun sets.",
+    body: "Mars",
+  },
+  {
+    label: "Jupiter–Saturn",
+    iso: "2020-12-21T00:00:00Z",
+    note: "The great conjunction — the two giants 0.1° apart in the sky.",
+    body: "Jupiter",
+  },
+  {
+    label: "New Horizons · Pluto",
+    iso: "2015-07-14T11:49:00Z",
+    note: "First and only close flyby of Pluto.",
+    body: "Pluto",
+  },
+  {
+    label: "J2000 epoch",
+    iso: "2000-01-01T12:00:00Z",
+    note: "The reference instant every orbital element is anchored to.",
+  },
+]
 
 /* --------------------------------------------------------------------------
  * Black-hole physics
@@ -557,10 +683,10 @@ export const KUIPER_BELT_INFO: BodyInfo = {
  * ------------------------------------------------------------------------ */
 
 export const planetsData: Planet[] = [
-  { name: "Mercury", aAU: 0.387, radiusEarth: 0.383, periodDays: 87.97,   tiltDeg: 0.03,   rotHours: 1407.6, inclDeg: 7.005, startPhase: 0.0, shade: "#7a7a7a", surfaceTempK: { min: 100, mean: 440, max: 700 }, classification: "Terrestrial planet", moons: 0, fact: "No atmosphere. Day side 700 K, night side 100 K — biggest swing in the solar system. A year on Mercury is just 88 Earth days; a single day is 176 Earth days. Two years pass for every day.", textureUrl: "/textures/mercury.webp", useDayNight: true, terminatorSoftness: 0.04, deep: { massEarth: 0.0553, densityGcc: 5.43, gravity: 3.70, escapeVelocityKms: 4.30, eccentricity: 0.206 } },
-  { name: "Venus",   aAU: 0.723, radiusEarth: 0.949, periodDays: 224.70,  tiltDeg: 177.4,  rotHours: -5832.5, inclDeg: 3.395, startPhase: 2.1, shade: "#bdbdbd", surfaceTempK: { mean: 737 }, classification: "Terrestrial planet (retrograde)", moons: 0, fact: "Hottest surface — 737 K — runaway CO₂ greenhouse. Rotates backwards on a 243-day day. The 177° axial tilt means Venus is technically upside-down relative to the rest of the planets.", textureUrl: "/textures/venus.webp", deep: { massEarth: 0.815, densityGcc: 5.24, gravity: 8.87, escapeVelocityKms: 10.36, eccentricity: 0.007 } },
-  { name: "Earth",   aAU: 1.000, radiusEarth: 1.000, periodDays: 365.25,  tiltDeg: 23.44,  rotHours: 23.93,  inclDeg: 0.000, startPhase: 4.5, shade: "#dcdcdc", surfaceTempK: { min: 184, mean: 288, max: 330 }, classification: "Terrestrial planet — life", moons: 1, fact: "Mean surface 288 K. Only known planet with liquid water and life.", textureUrl: "/textures/earth.webp", nightTextureUrl: "/textures/earth-night.webp", deep: { massEarth: 1.000, densityGcc: 5.51, gravity: 9.81, escapeVelocityKms: 11.19, eccentricity: 0.017 } },
-  { name: "Mars",    aAU: 1.524, radiusEarth: 0.532, periodDays: 686.97,  tiltDeg: 25.19,  rotHours: 24.62,  inclDeg: 1.850, startPhase: 1.3, shade: "#c1623a", surfaceTempK: { min: 130, mean: 210, max: 308 }, classification: "Terrestrial planet", moons: 2, fact: "Thin CO₂ atmosphere, polar ice caps, evidence of ancient liquid water. Hosts the solar system's tallest mountain (Olympus Mons, 22 km) and longest canyon (Valles Marineris, 4,000 km). The 25° axial tilt gives Mars Earth-like seasons.", textureUrl: "/textures/mars.webp", useDayNight: true, terminatorSoftness: 0.10, deep: { massEarth: 0.107, densityGcc: 3.93, gravity: 3.71, escapeVelocityKms: 5.03, eccentricity: 0.094 }, surfaceFeatures: [
+  { name: "Mercury", aAU: 0.387, radiusEarth: 0.383, periodDays: 87.97,   tiltDeg: 0.03,   rotHours: 1407.6, inclDeg: 7.005, startPhase: 0.0, m0Deg: 174.794, periDeg: 77.456, shade: "#7a7a7a", surfaceTempK: { min: 100, mean: 440, max: 700 }, classification: "Terrestrial planet", moons: 0, fact: "No atmosphere. Day side 700 K, night side 100 K — biggest swing in the solar system. A year on Mercury is just 88 Earth days; a single day is 176 Earth days. Two years pass for every day.", textureUrl: "/textures/mercury.webp", useDayNight: true, terminatorSoftness: 0.04, deep: { massEarth: 0.0553, densityGcc: 5.43, gravity: 3.70, escapeVelocityKms: 4.30, eccentricity: 0.206 } },
+  { name: "Venus",   aAU: 0.723, radiusEarth: 0.949, periodDays: 224.70,  tiltDeg: 177.4,  rotHours: -5832.5, inclDeg: 3.395, startPhase: 2.1, m0Deg: 50.377, periDeg: 131.602, shade: "#bdbdbd", surfaceTempK: { mean: 737 }, classification: "Terrestrial planet (retrograde)", moons: 0, fact: "Hottest surface — 737 K — runaway CO₂ greenhouse. Rotates backwards on a 243-day day. The 177° axial tilt means Venus is technically upside-down relative to the rest of the planets.", textureUrl: "/textures/venus.webp", deep: { massEarth: 0.815, densityGcc: 5.24, gravity: 8.87, escapeVelocityKms: 10.36, eccentricity: 0.007 } },
+  { name: "Earth",   aAU: 1.000, radiusEarth: 1.000, periodDays: 365.25,  tiltDeg: 23.44,  rotHours: 23.93,  inclDeg: 0.000, startPhase: 4.5, m0Deg: 357.517, periDeg: 102.947, shade: "#dcdcdc", surfaceTempK: { min: 184, mean: 288, max: 330 }, classification: "Terrestrial planet — life", moons: 1, fact: "Mean surface 288 K. Only known planet with liquid water and life.", textureUrl: "/textures/earth.webp", nightTextureUrl: "/textures/earth-night.webp", deep: { massEarth: 1.000, densityGcc: 5.51, gravity: 9.81, escapeVelocityKms: 11.19, eccentricity: 0.017 } },
+  { name: "Mars",    aAU: 1.524, radiusEarth: 0.532, periodDays: 686.97,  tiltDeg: 25.19,  rotHours: 24.62,  inclDeg: 1.850, startPhase: 1.3, m0Deg: 19.412, periDeg: 336.041, shade: "#c1623a", surfaceTempK: { min: 130, mean: 210, max: 308 }, classification: "Terrestrial planet", moons: 2, fact: "Thin CO₂ atmosphere, polar ice caps, evidence of ancient liquid water. Hosts the solar system's tallest mountain (Olympus Mons, 22 km) and longest canyon (Valles Marineris, 4,000 km). The 25° axial tilt gives Mars Earth-like seasons.", textureUrl: "/textures/mars.webp", useDayNight: true, terminatorSoftness: 0.10, deep: { massEarth: 0.107, densityGcc: 3.93, gravity: 3.71, escapeVelocityKms: 5.03, eccentricity: 0.094 }, surfaceFeatures: [
     { name: "Perseverance", lat: 18.44, lon: 77.45, date: "2021-02-18", status: "active", agency: "NASA", fact: "Mars 2020 mission — exploring Jezero Crater, an ancient river delta. Caching samples for future return to Earth. Carries the Ingenuity helicopter, first powered flight on another world." },
     { name: "Curiosity", lat: -4.59, lon: 137.44, date: "2012-08-06", status: "active", agency: "NASA", fact: "Mars Science Laboratory rover. Climbing Mount Sharp inside Gale Crater since 2014, drilling layered sedimentary rocks that recorded Mars's transition from wet to dry." },
     { name: "InSight", lat: 4.50, lon: 135.62, date: "2018-11-26", status: "completed", agency: "NASA", fact: "Stationary lander on Elysium Planitia. Recorded 1,300+ marsquakes with the SEIS seismometer before dust on its solar panels ended the mission in December 2022. Mapped the interior structure of a planet other than Earth for the first time." },
@@ -580,14 +706,14 @@ export const planetsData: Planet[] = [
     { name: "Chryse Planitia", lat: 22.5, lon: 310.5, date: "natural", status: "natural", agency: "—", fact: "Vast plain at the mouth of a Hesperian-era flood channel system. Where the first successful Mars lander — Viking 1, July 20, 1976 — touched down, and where Pathfinder + Sojourner followed in 1997." },
     { name: "Vastitas Borealis", lat: 68.2, lon: 234.3, date: "natural", status: "natural", agency: "—", fact: "Vast northern lowland plains. Where Phoenix landed in May 2008 and scooped water ice within centimetres of the surface — direct confirmation that the polar plains are an ice cap covered by a thin dust veneer." },
   ] },
-  { name: "Jupiter", aAU: 5.203, radiusEarth: 11.21, periodDays: 4332.59, tiltDeg: 3.13,   rotHours: 9.92,   inclDeg: 1.303, startPhase: 5.8, shade: "#cfcfcf", surfaceTempK: { mean: 165 }, classification: "Gas giant", moons: 95, fact: "Largest planet. 10-hour day. Great Red Spot is a storm wider than Earth.", textureUrl: "/textures/jupiter.webp", deep: { massEarth: 317.8, densityGcc: 1.33, gravity: 24.79, escapeVelocityKms: 59.5, eccentricity: 0.049 } },
-  { name: "Saturn",  aAU: 9.537, radiusEarth: 9.449, periodDays: 10759.22,tiltDeg: 26.73,  rotHours: 10.66,  inclDeg: 2.485, startPhase: 3.2, shade: "#bababa", surfaceTempK: { mean: 134 }, classification: "Gas giant", moons: 146, fact: "Ring system spans 282,000 km but is only ~10 m thick.", hasRings: true, textureUrl: "/textures/saturn.webp", deep: { massEarth: 95.16, densityGcc: 0.69, gravity: 10.44, escapeVelocityKms: 35.5, eccentricity: 0.057 } },
-  { name: "Uranus",  aAU: 19.19, radiusEarth: 4.007, periodDays: 30688.50,tiltDeg: 97.77,  rotHours: -17.24, inclDeg: 0.773, startPhase: 0.7, shade: "#a5dad0", surfaceTempK: { mean: 76 }, classification: "Ice giant (sideways)", moons: 28, fact: "Rotates on its side at 98° tilt — likely from an ancient collision. Each pole experiences 42 years of sunlight followed by 42 years of darkness. Surface methane gives it that pale blue-green colour.", textureUrl: "/textures/uranus.webp", deep: { massEarth: 14.54, densityGcc: 1.27, gravity: 8.87, escapeVelocityKms: 21.3, eccentricity: 0.046, discoveredYear: 1781, discoveredBy: "William Herschel" } },
-  { name: "Neptune", aAU: 30.07, radiusEarth: 3.883, periodDays: 60182.00,tiltDeg: 28.32,  rotHours: 16.11,  inclDeg: 1.770, startPhase: 2.9, shade: "#4a6db8", surfaceTempK: { mean: 72 }, classification: "Ice giant", moons: 16, fact: "Coldest planet. Fastest winds in the solar system — 2,100 km/h supersonic gales. 165-year orbit means it has completed only one orbit since its discovery in 1846.", textureUrl: "/textures/neptune.webp", deep: { massEarth: 17.15, densityGcc: 1.64, gravity: 11.15, escapeVelocityKms: 23.5, eccentricity: 0.011, discoveredYear: 1846, discoveredBy: "Le Verrier / Galle" } },
+  { name: "Jupiter", aAU: 5.203, radiusEarth: 11.21, periodDays: 4332.59, tiltDeg: 3.13,   rotHours: 9.92,   inclDeg: 1.303, startPhase: 5.8, m0Deg: 19.676, periDeg: 14.728, shade: "#cfcfcf", surfaceTempK: { mean: 165 }, classification: "Gas giant", moons: 95, fact: "Largest planet. 10-hour day. Great Red Spot is a storm wider than Earth.", textureUrl: "/textures/jupiter.webp", deep: { massEarth: 317.8, densityGcc: 1.33, gravity: 24.79, escapeVelocityKms: 59.5, eccentricity: 0.049 } },
+  { name: "Saturn",  aAU: 9.537, radiusEarth: 9.449, periodDays: 10759.22,tiltDeg: 26.73,  rotHours: 10.66,  inclDeg: 2.485, startPhase: 3.2, m0Deg: 317.345, periDeg: 92.599, shade: "#bababa", surfaceTempK: { mean: 134 }, classification: "Gas giant", moons: 146, fact: "Ring system spans 282,000 km but is only ~10 m thick.", hasRings: true, textureUrl: "/textures/saturn.webp", deep: { massEarth: 95.16, densityGcc: 0.69, gravity: 10.44, escapeVelocityKms: 35.5, eccentricity: 0.057 } },
+  { name: "Uranus",  aAU: 19.19, radiusEarth: 4.007, periodDays: 30688.50,tiltDeg: 97.77,  rotHours: -17.24, inclDeg: 0.773, startPhase: 0.7, m0Deg: 142.278, periDeg: 170.954, shade: "#a5dad0", surfaceTempK: { mean: 76 }, classification: "Ice giant (sideways)", moons: 28, fact: "Rotates on its side at 98° tilt — likely from an ancient collision. Each pole experiences 42 years of sunlight followed by 42 years of darkness. Surface methane gives it that pale blue-green colour.", textureUrl: "/textures/uranus.webp", deep: { massEarth: 14.54, densityGcc: 1.27, gravity: 8.87, escapeVelocityKms: 21.3, eccentricity: 0.046, discoveredYear: 1781, discoveredBy: "William Herschel" } },
+  { name: "Neptune", aAU: 30.07, radiusEarth: 3.883, periodDays: 60182.00,tiltDeg: 28.32,  rotHours: 16.11,  inclDeg: 1.770, startPhase: 2.9, m0Deg: 259.915, periDeg: 44.965, shade: "#4a6db8", surfaceTempK: { mean: 72 }, classification: "Ice giant", moons: 16, fact: "Coldest planet. Fastest winds in the solar system — 2,100 km/h supersonic gales. 165-year orbit means it has completed only one orbit since its discovery in 1846.", textureUrl: "/textures/neptune.webp", deep: { massEarth: 17.15, densityGcc: 1.64, gravity: 11.15, escapeVelocityKms: 23.5, eccentricity: 0.011, discoveredYear: 1846, discoveredBy: "Le Verrier / Galle" } },
   // Pluto — reclassified to dwarf planet in 2006 but still part of the family.
   // 17.16° inclination really does tilt its ring above the ecliptic — Pluto
   // crosses inside Neptune's orbit for ~20 years every 248-year orbit.
-  { name: "Pluto",   aAU: 39.48, radiusEarth: 0.186, periodDays: 90560.00,tiltDeg: 122.5,  rotHours: -153.3, inclDeg: 17.16, startPhase: 4.1, shade: "#c8a378", visualRadiusOverride: 0.26, surfaceTempK: { min: 33, mean: 44, max: 55 }, classification: "Dwarf planet · Kuiper Belt", moons: 5, fact: "Reclassified from planet to dwarf planet in 2006. 17° orbital inclination lifts it above the ecliptic. Charon is so massive (12% of Pluto's mass) they orbit a barycentre outside Pluto's surface — effectively a binary system. The famous heart-shaped Tombaugh Regio was photographed by New Horizons in 2015.", textureUrl: "/textures/pluto.webp", useDayNight: true, terminatorSoftness: 0.04, deep: { massEarth: 0.00220, densityGcc: 1.86, gravity: 0.62, escapeVelocityKms: 1.21, eccentricity: 0.244, discoveredYear: 1930, discoveredBy: "Clyde Tombaugh" } },
+  { name: "Pluto",   aAU: 39.48, radiusEarth: 0.186, periodDays: 90560.00,tiltDeg: 122.5,  rotHours: -153.3, inclDeg: 17.16, startPhase: 4.1, m0Deg: 14.862, periDeg: 224.067, shade: "#c8a378", visualRadiusOverride: 0.26, surfaceTempK: { min: 33, mean: 44, max: 55 }, classification: "Dwarf planet · Kuiper Belt", moons: 5, fact: "Reclassified from planet to dwarf planet in 2006. 17° orbital inclination lifts it above the ecliptic. Charon is so massive (12% of Pluto's mass) they orbit a barycentre outside Pluto's surface — effectively a binary system. The famous heart-shaped Tombaugh Regio was photographed by New Horizons in 2015.", textureUrl: "/textures/pluto.webp", useDayNight: true, terminatorSoftness: 0.04, deep: { massEarth: 0.00220, densityGcc: 1.86, gravity: 0.62, escapeVelocityKms: 1.21, eccentricity: 0.244, discoveredYear: 1930, discoveredBy: "Clyde Tombaugh" } },
 ]
 
 export function buildScenePlanets(): ScenePlanet[] {

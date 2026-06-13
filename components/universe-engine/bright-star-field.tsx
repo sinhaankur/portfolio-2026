@@ -235,7 +235,7 @@ export function BrightStarField({
     // each real second; at warp 100 a year passes every ~2.7 s of
     // real time and the deformation becomes visible. Cheap math, no
     // throttling — one float per frame.
-    const simMs = simTimeRef.current.epochMs + simTimeRef.current.days * 86_400_000
+    const simMs = simTimeRef.current.simMs
     const years = (simMs - J2000_MS) / (365.25 * 86_400_000)
     matRef.current.uniforms.uYearsFromEpoch.value = years
   })

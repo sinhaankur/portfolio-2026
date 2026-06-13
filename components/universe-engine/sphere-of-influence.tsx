@@ -17,8 +17,10 @@ import { useFrame } from "@react-three/fiber"
 import { AdditiveBlending, Color, DoubleSide } from "three"
 import type { Mesh } from "three"
 import {
+  DEG,
   buildScenePlanets,
   eccentricToTrue,
+  meanAnomalyAt,
   simTimeRef,
   solveKepler,
 } from "./astronomy"
@@ -49,10 +51,15 @@ function hillRadiusScene(planet: ScenePlanet): number {
   return Math.max(MIN_VISUAL_HILL_RADIUS, trueHill)
 }
 
-function planetScenePosition(planet: ScenePlanet, simDays: number) {
+function planetScenePosition(planet: ScenePlanet, simMs: number) {
+  // Date-driven, matching the scene renderer so each Hill sphere stays
+  // centred on its planet as the timeline scrubs.
   const e = planet.raw.deep?.eccentricity ?? 0
+  const periRad = planet.raw.periDeg != null ? planet.raw.periDeg * DEG : 0
   const meanAnomaly =
-    planet.raw.startPhase + simDays * planet.orbitalSpeedRadPerSec
+    planet.raw.m0Deg != null
+      ? meanAnomalyAt(planet.raw.m0Deg * DEG, planet.raw.periodDays, simMs)
+      : planet.raw.startPhase
 
   let theta = meanAnomaly
   let r = planet.orbitRadius
@@ -61,6 +68,7 @@ function planetScenePosition(planet: ScenePlanet, simDays: number) {
     theta = eccentricToTrue(E, e)
     r = (planet.orbitRadius * (1 - e * e)) / (1 + e * Math.cos(theta))
   }
+  theta += periRad
 
   const xLocal = r * Math.cos(theta)
   const zLocal = -r * Math.sin(theta)
@@ -86,7 +94,7 @@ function SphereShell({
 
   useFrame(() => {
     if (!ref.current) return
-    const [x, y, z] = planetScenePosition(planet, simTimeRef.current.days)
+    const [x, y, z] = planetScenePosition(planet, simTimeRef.current.simMs)
     ref.current.position.set(x, y, z)
     ref.current.scale.setScalar(radius)
   })
