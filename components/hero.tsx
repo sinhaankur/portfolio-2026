@@ -209,21 +209,6 @@ export function Hero() {
           </p>
         </motion.div>
 
-        {/* Center strip — adds a single readable sentence so the hero doesn't
-            rely only on the split headline treatment. */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.9, delay: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
-          className="hidden md:flex absolute inset-x-0 top-1/2 -translate-y-1/2 justify-center px-12 z-10 pointer-events-none"
-        >
-          <div className="max-w-2xl rounded-full border border-foreground/15 bg-background/35 px-6 py-3 backdrop-blur-sm text-center shadow-[0_0_0_1px_rgba(255,255,255,0.02)]">
-            <p className="font-mono text-[10px] tracking-[0.28em] uppercase text-foreground/55">
-              Human-in-the-loop systems for AI, enterprise, and complex workflows
-            </p>
-          </div>
-        </motion.div>
-
         {/* CTA — anchored bottom-left, out of the way of the central sun */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
