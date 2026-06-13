@@ -1,7 +1,8 @@
 "use client"
 
-import { type FormEvent, useMemo, useState } from "react"
+import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import dynamic from "next/dynamic"
+import { Maximize2, Minimize2 } from "lucide-react"
 import { executeAssistantTool, searchUniverseCatalog } from "@/lib/assistant-tools"
 import { StaticStarfield } from "@/components/universe-engine/static-starfield"
 import { AssistantPanel } from "@/components/assistant"
@@ -24,6 +25,24 @@ export function UniverseAssistantDemo() {
   const [searchQuery, setSearchQuery] = useState("")
   const [searchFocus, setSearchFocus] = useState(false)
   const [flyStatus, setFlyStatus] = useState<string | null>(null)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const viewportRef = useRef<HTMLDivElement>(null)
+
+  const toggleFullscreen = useCallback(() => {
+    const el = viewportRef.current
+    if (!el) return
+    if (!document.fullscreenElement) {
+      el.requestFullscreen().catch(() => {})
+    } else {
+      document.exitFullscreen().catch(() => {})
+    }
+  }, [])
+
+  useEffect(() => {
+    const onFsChange = () => setIsFullscreen(!!document.fullscreenElement)
+    document.addEventListener("fullscreenchange", onFsChange)
+    return () => document.removeEventListener("fullscreenchange", onFsChange)
+  }, [])
 
   const searchResults = useMemo(() => searchUniverseCatalog(searchQuery, 10), [searchQuery])
 
@@ -41,7 +60,10 @@ export function UniverseAssistantDemo() {
 
   return (
     <div className="space-y-4">
-      <div className="relative h-[78vh] md:h-[88vh] rounded-xl overflow-hidden ring-1 ring-white/10 bg-background">
+      <div
+        ref={viewportRef}
+        className="relative h-[78vh] md:h-[88vh] rounded-xl overflow-hidden ring-1 ring-white/10 bg-background"
+      >
         <UniverseEngine interactive showHud showMusic={false} />
 
         <div className="pointer-events-none absolute left-4 top-4 z-20 max-w-xs rounded-2xl border border-white/12 bg-black/55 px-4 py-3 backdrop-blur-sm">
@@ -107,7 +129,7 @@ export function UniverseAssistantDemo() {
         </div>
 
         {!panelOpen && (
-          <div className="absolute right-4 top-4 z-30 pointer-events-auto">
+          <div className="absolute right-4 top-4 z-30 pointer-events-auto flex items-center gap-2">
             <button
               type="button"
               onClick={() => setPanelOpen(true)}
@@ -116,6 +138,14 @@ export function UniverseAssistantDemo() {
             >
               <span aria-hidden="true">*</span>
               Open Copilot
+            </button>
+            <button
+              type="button"
+              onClick={toggleFullscreen}
+              className="inline-flex items-center justify-center w-9 h-9 rounded-full border border-white/20 bg-black/55 backdrop-blur-sm hover:border-white/35 hover:text-white text-white/70 transition-colors"
+              aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+            >
+              {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
             </button>
           </div>
         )}
@@ -134,6 +164,16 @@ export function UniverseAssistantDemo() {
             <AssistantPanel onClose={() => setPanelOpen(false)} />
           </aside>
         )}
+
+        {/* Fullscreen toggle — bottom-right, always visible */}
+        <button
+          type="button"
+          onClick={toggleFullscreen}
+          className="absolute bottom-4 right-4 z-40 pointer-events-auto inline-flex items-center justify-center w-9 h-9 rounded-full border border-white/20 bg-black/55 backdrop-blur-sm hover:border-white/35 hover:text-white text-white/70 transition-colors"
+          aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+        >
+          {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+        </button>
       </div>
 
       <div className="rounded-lg border border-border/70 bg-secondary/20 px-4 py-3">
