@@ -26,9 +26,17 @@ const DUST_COLORS = [
   new THREE.Color(0x99bbee),
 ];
 
+// Frame-scope scratch objects — the streak orientation is identical for every
+// particle, so compute it once per frame instead of per instance.
+const _dustMoveDir = new THREE.Vector3();
+const _dustNegDir = new THREE.Vector3();
+const _dustQuat = new THREE.Quaternion();
+const _dustZ = new THREE.Vector3(0, 0, 1);
+
 export function SpaceDust({ gameState, count = DEFAULT_DUST_COUNT }: { gameState: GameState; count?: number }) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const dummy = useMemo(() => new THREE.Object3D(), []);
+  const colorsAppliedRef = useRef(false);
 
   // Each particle: position, color index, size, speed bias
   const seeds = useMemo(() => {
@@ -58,6 +66,17 @@ export function SpaceDust({ gameState, count = DEFAULT_DUST_COUNT }: { gameState
   useFrame((_, delta) => {
     if (!meshRef.current) return;
 
+    // Per-particle colors are static — write them once on first frame.
+    if (!colorsAppliedRef.current) {
+      colorsAppliedRef.current = true;
+      for (let i = 0; i < count; i++) {
+        meshRef.current.setColorAt(i, DUST_COLORS[seeds[i].colorIdx]);
+      }
+      if (meshRef.current.instanceColor) {
+        meshRef.current.instanceColor.needsUpdate = true;
+      }
+    }
+
     const px = gameState.playerEntity.position.x;
     const py = gameState.playerEntity.position.y;
     const pz = gameState.playerEntity.position.z;
@@ -70,10 +89,18 @@ export function SpaceDust({ gameState, count = DEFAULT_DUST_COUNT }: { gameState
     // Warp factor: extreme stretch when boosting
     const warp = boostActive ? 3.5 : 1.0;
 
-    // Move direction
-    const moveDir = speed > 0.1
-      ? new THREE.Vector3(vx, vy, vz).normalize()
-      : new THREE.Vector3(0, 0, -1);
+    // Move direction + streak orientation, computed once for all particles.
+    if (speed > 0.1) {
+      _dustMoveDir.set(vx, vy, vz).normalize();
+    } else {
+      _dustMoveDir.set(0, 0, -1);
+    }
+    if (speed > 0.5) {
+      // Particles stream backward relative to the ship.
+      _dustQuat.setFromUnitVectors(_dustZ, _dustNegDir.copy(_dustMoveDir).negate());
+    } else {
+      _dustQuat.set(0, 0, 0, 1);
+    }
 
     for (let i = 0; i < count; i++) {
       const s = seeds[i];
@@ -105,28 +132,13 @@ export function SpaceDust({ gameState, count = DEFAULT_DUST_COUNT }: { gameState
       dummy.scale.set(streakWidth, streakWidth, streakLen);
 
       // Orient so Z aligns with movement (streak points along velocity)
-      if (speed > 0.5) {
-        const q = new THREE.Quaternion().setFromUnitVectors(
-          new THREE.Vector3(0, 0, 1),
-          moveDir.clone().negate() // particles stream backward relative to ship
-        );
-        dummy.quaternion.copy(q);
-      } else {
-        dummy.quaternion.set(0, 0, 0, 1);
-      }
+      dummy.quaternion.copy(_dustQuat);
 
       dummy.updateMatrix();
       meshRef.current.setMatrixAt(i, dummy.matrix);
-
-      // Per-particle color
-      const col = DUST_COLORS[s.colorIdx];
-      meshRef.current.setColorAt(i, col);
     }
 
     meshRef.current.instanceMatrix.needsUpdate = true;
-    if (meshRef.current.instanceColor) {
-      meshRef.current.instanceColor.needsUpdate = true;
-    }
 
     // Global opacity ramps with speed
     const mat = meshRef.current.material as THREE.MeshBasicMaterial;
@@ -251,14 +263,20 @@ export function DataCoreField({
  * BoostShockwave — brief ring expansion when boost engages
  * ------------------------------------------------------------------------ */
 
-export function BoostShockwave({ active, position }: { active: boolean; position: [number, number, number] }) {
+export function BoostShockwave({ gameState }: { gameState: GameState }) {
   const meshRef = useRef<THREE.Mesh>(null);
   const startTimeRef = useRef<number>(-1);
 
   useFrame((state) => {
     if (!meshRef.current) return;
+    const active = Boolean(gameState.playerEntity.metadata?.boostActive);
     if (active && startTimeRef.current < 0) {
       startTimeRef.current = state.clock.elapsedTime;
+      meshRef.current.position.set(
+        gameState.playerEntity.position.x,
+        gameState.playerEntity.position.y,
+        gameState.playerEntity.position.z
+      );
     }
     if (!active) {
       startTimeRef.current = -1;
@@ -280,7 +298,7 @@ export function BoostShockwave({ active, position }: { active: boolean; position
   });
 
   return (
-    <mesh ref={meshRef} position={position} visible={false}>
+    <mesh ref={meshRef} visible={false}>
       <ringGeometry args={[1, 1.3, 32]} />
       <meshBasicMaterial color={0x4fc8ff} transparent opacity={0} blending={THREE.AdditiveBlending} depthWrite={false} side={THREE.DoubleSide} toneMapped={false} />
     </mesh>

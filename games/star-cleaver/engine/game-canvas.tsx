@@ -1,7 +1,7 @@
 'use client';
 
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, memo, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import * as THREE from 'three';
 
 import {
@@ -380,6 +380,40 @@ const FIRE_RECOIL_KICK = 0.55;
 const FIRE_RECOIL_DECAY = 6.8;
 const FIRE_AUDIO_GAIN = 0.045;
 
+// Weapon presets only differ in feel polish today; audioGain drives the
+// volley sound level. (These symbols were previously referenced without a
+// definition, which made the first cannon volley throw a ReferenceError.)
+type WeaponTuningProfile = 'arcade' | 'cinematic' | 'sim';
+const WEAPON_TUNING: Record<WeaponTuningProfile, { audioGain: number }> = {
+  arcade: { audioGain: FIRE_AUDIO_GAIN * 1.25 },
+  cinematic: { audioGain: FIRE_AUDIO_GAIN },
+  sim: { audioGain: FIRE_AUDIO_GAIN * 0.8 },
+};
+
+/**
+ * React re-render cadence for HUD/menus. The simulation and all Three.js
+ * mutation run at full frame rate via refs; React only needs to repaint
+ * DOM telemetry, so 12 Hz keeps it readable without reconciling the
+ * whole scene graph 60 times a second.
+ */
+const UI_SYNC_INTERVAL = 1 / 12;
+
+// Module-scope scratch objects, reused every frame to avoid per-frame
+// allocations (GC hitches were a major source of frame drops).
+const _playerEuler = new THREE.Euler();
+const _playerQuat = new THREE.Quaternion();
+const _forwardLocal = new THREE.Vector3();
+const _rightLocal = new THREE.Vector3();
+const _upLocal = new THREE.Vector3();
+const _desiredVel = new THREE.Vector3();
+const _velScratch = new THREE.Vector3();
+const _fwdNorm = new THREE.Vector3();
+const _lateral = new THREE.Vector3();
+const _playerPosVec = new THREE.Vector3();
+const _gravityAccel = new THREE.Vector3();
+const _hazardDelta = new THREE.Vector3();
+const _outward = new THREE.Vector3();
+
 
 const SHIP_THRUSTER_PRESETS: Record<SelectedShip, {
   lateral: number;
@@ -396,6 +430,7 @@ const SHIP_THRUSTER_PRESETS: Record<SelectedShip, {
  * Player ship component with enhanced thruster and RCS visuals.
  */
 function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState; showForwardDebug: boolean }) {
+  const outerGroupRef = useRef<THREE.Group>(null);
   const innerGroupRef = useRef<THREE.Group>(null);
   const engineGlow1Ref = useRef<THREE.Mesh>(null);
   const engineGlow2Ref = useRef<THREE.Mesh>(null);
@@ -483,6 +518,21 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
 
   // Update engine trail, visual banking, and responsive glow
   useFrame((state, delta) => {
+    // Track the sim at full frame rate — React renders are throttled, so the
+    // ship's world transform must be copied imperatively every frame.
+    if (outerGroupRef.current) {
+      outerGroupRef.current.position.set(
+        gameState.playerEntity.position.x,
+        gameState.playerEntity.position.y,
+        gameState.playerEntity.position.z
+      );
+      outerGroupRef.current.rotation.set(
+        gameState.playerEntity.rotation.x,
+        gameState.playerEntity.rotation.y,
+        gameState.playerEntity.rotation.z
+      );
+    }
+
     const vx = gameState.playerEntity.velocity.x;
     const vy = gameState.playerEntity.velocity.y;
     const vz = gameState.playerEntity.velocity.z;
@@ -637,6 +687,7 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
 
   return (
     <group
+      ref={outerGroupRef}
       position={[gameState.playerEntity.position.x, gameState.playerEntity.position.y, gameState.playerEntity.position.z]}
       rotation={[gameState.playerEntity.rotation.x, gameState.playerEntity.rotation.y, gameState.playerEntity.rotation.z]}
     >
@@ -845,7 +896,20 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
 /**
  * Enemy ship component: procedurally generated with engine glow.
  */
+/**
+ * The ship's JSX subtree is large (engine glows, RCS thrusters, plumes) but
+ * structurally static — all animation runs imperatively in its useFrame.
+ * Re-render only when the selected hull or debug overlay changes.
+ */
+const MemoPlayerShipGroup = memo(
+  PlayerShipGroup,
+  (prev, next) =>
+    prev.showForwardDebug === next.showForwardDebug &&
+    prev.gameState.selectedShip === next.gameState.selectedShip
+);
+
 function EnemyShipGroup({ enemy }: { enemy: GameEntity }) {
+  const groupRef = useRef<THREE.Group>(null);
   const factionClass = (enemy.metadata?.class ?? 'fighter') as any;
   const shipGroup = useMemo(() => {
     let shipFaction: 'player' | 'alien_basic' | 'alien_sniper' | 'alien_swarm' | 'boss' = 'alien_basic';
@@ -867,8 +931,18 @@ function EnemyShipGroup({ enemy }: { enemy: GameEntity }) {
   const speed = Math.sqrt(enemy.velocity.x ** 2 + enemy.velocity.y ** 2 + enemy.velocity.z ** 2);
   const glowIntensity = Math.min(speed / 10, 0.7);
 
+  // The sim mutates the shared entity object in place; copy its transform at
+  // full frame rate since React renders are throttled.
+  useFrame(() => {
+    if (!groupRef.current) return;
+    groupRef.current.position.set(enemy.position.x, enemy.position.y, enemy.position.z);
+    groupRef.current.rotation.set(enemy.rotation.x, enemy.rotation.y, enemy.rotation.z);
+    groupRef.current.visible = enemy.active;
+  });
+
   return (
     <group
+      ref={groupRef}
       position={[enemy.position.x, enemy.position.y, enemy.position.z]}
       rotation={[enemy.rotation.x, enemy.rotation.y, enemy.rotation.z]}
     >
@@ -884,6 +958,132 @@ function EnemyShipGroup({ enemy }: { enemy: GameEntity }) {
         />
       </mesh>
     </group>
+  );
+}
+
+/* --------------------------------------------------------------------------
+ * ProjectileField — instanced renderer for plasma bolts. The sim owns the
+ * projectile list; this component mirrors it into two InstancedMeshes (tracer
+ * core + halo) every frame. No React reconciliation per bolt.
+ * ------------------------------------------------------------------------ */
+
+const PROJECTILE_POOL = 96;
+const _projDummy = new THREE.Object3D();
+const _projDir = new THREE.Vector3();
+const _projZ = new THREE.Vector3(0, 0, 1);
+const _projColor = new THREE.Color();
+
+function ProjectileField({ gameState }: { gameState: GameState }) {
+  const coreRef = useRef<THREE.InstancedMesh>(null);
+  const haloRef = useRef<THREE.InstancedMesh>(null);
+
+  useFrame(() => {
+    const core = coreRef.current;
+    const halo = haloRef.current;
+    if (!core || !halo) return;
+
+    let slot = 0;
+    for (const proj of gameState.projectiles) {
+      if (slot >= PROJECTILE_POOL) break;
+      if (!proj.active) continue;
+
+      _projDir.set(proj.velocity.x, proj.velocity.y, proj.velocity.z);
+      if (_projDir.lengthSq() > 1e-6) {
+        _projDir.normalize();
+      } else {
+        _projDir.set(0, 0, -1);
+      }
+
+      const age = Math.max(0, gameState.simTime - Number(proj.metadata?.bornAt ?? gameState.simTime));
+      const pulse = 0.9 + Math.sin(age * 34) * 0.08;
+
+      _projDummy.position.set(proj.position.x, proj.position.y, proj.position.z);
+      _projDummy.quaternion.setFromUnitVectors(_projZ, _projDir);
+      _projDummy.scale.setScalar(pulse);
+      _projDummy.updateMatrix();
+
+      const isWingCannon = proj.metadata?.source === 'wing-cannon';
+      core.setMatrixAt(slot, _projDummy.matrix);
+      core.setColorAt(slot, _projColor.setHex(isWingCannon ? 0x9de8ff : 0xffff00));
+      halo.setMatrixAt(slot, _projDummy.matrix);
+      halo.setColorAt(slot, _projColor.setHex(isWingCannon ? 0x52c9ff : 0xffcc00));
+      slot += 1;
+    }
+
+    core.count = slot;
+    halo.count = slot;
+    core.instanceMatrix.needsUpdate = true;
+    halo.instanceMatrix.needsUpdate = true;
+    if (core.instanceColor) core.instanceColor.needsUpdate = true;
+    if (halo.instanceColor) halo.instanceColor.needsUpdate = true;
+  });
+
+  return (
+    <>
+      <instancedMesh ref={coreRef} args={[undefined, undefined, PROJECTILE_POOL]} frustumCulled={false}>
+        <capsuleGeometry args={[0.08, 1.55, 8, 16]} />
+        <meshBasicMaterial color={0xffffff} transparent opacity={0.95} toneMapped={false} />
+      </instancedMesh>
+      <instancedMesh ref={haloRef} args={[undefined, undefined, PROJECTILE_POOL]} frustumCulled={false}>
+        <capsuleGeometry args={[0.16, 2.1, 6, 12]} />
+        <meshBasicMaterial color={0xffffff} transparent opacity={0.32} blending={THREE.AdditiveBlending} toneMapped={false} depthWrite={false} />
+      </instancedMesh>
+    </>
+  );
+}
+
+/* --------------------------------------------------------------------------
+ * MuzzleFlashField — small fixed pool of flash sprites driven imperatively.
+ * Flashes live ~85ms, far shorter than a React sync interval, so they must
+ * render from the sim state directly.
+ * ------------------------------------------------------------------------ */
+
+const MUZZLE_FLASH_POOL = 8;
+
+function MuzzleFlashField({ gameState }: { gameState: GameState }) {
+  const slotsRef = useRef<Array<THREE.Group | null>>([]);
+
+  useFrame(() => {
+    const flashes = (gameState.playerEntity.metadata?.muzzleFlashes as MuzzleFlash[] | undefined) ?? [];
+    for (let i = 0; i < MUZZLE_FLASH_POOL; i++) {
+      const slot = slotsRef.current[i];
+      if (!slot) continue;
+      const flash = flashes[i];
+      if (!flash || flash.endTime <= gameState.simTime) {
+        slot.visible = false;
+        continue;
+      }
+      slot.visible = true;
+      slot.position.set(flash.position.x, flash.position.y, flash.position.z);
+      const life = Math.max(0, (flash.endTime - gameState.simTime) / 0.085);
+      const coreMat = (slot.children[0] as THREE.Mesh).material as THREE.MeshBasicMaterial;
+      const outerMat = (slot.children[1] as THREE.Mesh).material as THREE.MeshBasicMaterial;
+      coreMat.opacity = 0.9 * life;
+      outerMat.opacity = 0.45 * life;
+    }
+  });
+
+  return (
+    <>
+      {Array.from({ length: MUZZLE_FLASH_POOL }).map((_, i) => (
+        <group
+          key={`muzzle-flash-${i}`}
+          visible={false}
+          ref={(el) => {
+            slotsRef.current[i] = el;
+          }}
+        >
+          <mesh>
+            <sphereGeometry args={[0.22, 10, 10]} />
+            <meshBasicMaterial color={0xd8f5ff} transparent opacity={0} blending={THREE.AdditiveBlending} toneMapped={false} depthWrite={false} />
+          </mesh>
+          <mesh>
+            <sphereGeometry args={[0.48, 10, 10]} />
+            <meshBasicMaterial color={0x4fc8ff} transparent opacity={0} blending={THREE.AdditiveBlending} toneMapped={false} depthWrite={false} />
+          </mesh>
+        </group>
+      ))}
+    </>
   );
 }
 
@@ -1203,6 +1403,22 @@ function MissionStartScene({ worldIndex }: { worldIndex: number }) {
  * Camera follow controller: smooth chase cam like following a comet in Universe Engine.
  * Uses exponential smoothing for silk-smooth, responsive flight feel.
  */
+// Station + world geometry is static per mission; skip it on HUD syncs.
+const MemoMissionStartScene = memo(MissionStartScene);
+
+// Scratch objects for the camera follow math (per-frame, never retained).
+const _camPlayerPos = new THREE.Vector3();
+const _camEuler = new THREE.Euler();
+const _camQuat = new THREE.Quaternion();
+const _camForward = new THREE.Vector3();
+const _camRight = new THREE.Vector3();
+const _camWorldUp = new THREE.Vector3(0, 1, 0);
+const _camDesired = new THREE.Vector3();
+const _camCatchUp = new THREE.Vector3();
+const _camLook = new THREE.Vector3();
+const _camVelDir = new THREE.Vector3();
+const _camTmp = new THREE.Vector3();
+
 function CameraFollowController({
   gameState,
   cameraAssist,
@@ -1227,10 +1443,10 @@ function CameraFollowController({
 
   useFrame((state, delta) => {
     if (stationInspectActive) {
-      const center = layout.stationPosition.clone();
+      const center = layout.stationPosition;
       const t = state.clock.elapsedTime;
       const orbitRadius = CAMERA_PHASE_TUNING.stationInspect.orbitRadius * layout.stationScale;
-      const desiredPos = new THREE.Vector3(
+      const desiredPos = _camDesired.set(
         center.x + Math.cos(t * 0.22) * orbitRadius,
         center.y + CAMERA_PHASE_TUNING.stationInspect.orbitHeight + Math.sin(t * 0.37) * CAMERA_PHASE_TUNING.stationInspect.orbitHeightWave,
         center.z + Math.sin(t * 0.22) * orbitRadius,
@@ -1239,7 +1455,7 @@ function CameraFollowController({
       smoothPosRef.current.lerp(desiredPos, k);
       camera.position.copy(smoothPosRef.current);
 
-      const lookTarget = center.clone().add(new THREE.Vector3(0, 6, 0));
+      const lookTarget = _camLook.set(center.x, center.y + 6, center.z);
       const lookK = 1 - Math.exp(-delta * CAMERA_PHASE_TUNING.stationInspect.lookRate);
       smoothLookRef.current.lerp(lookTarget, lookK);
       camera.lookAt(smoothLookRef.current);
@@ -1255,20 +1471,20 @@ function CameraFollowController({
       return;
     }
 
-    const playerPos = new THREE.Vector3(
+    const playerPos = _camPlayerPos.set(
       gameState.playerEntity.position.x,
       gameState.playerEntity.position.y,
       gameState.playerEntity.position.z
     );
-    const playerEuler = new THREE.Euler(
+    _camEuler.set(
       gameState.playerEntity.rotation.x,
       gameState.playerEntity.rotation.y,
       gameState.playerEntity.rotation.z
     );
-    const playerQuat = new THREE.Quaternion().setFromEuler(playerEuler);
-    const forwardDir = new THREE.Vector3(0, 0, -1).applyQuaternion(playerQuat).normalize();
-    const worldUp = new THREE.Vector3(0, 1, 0);
-    const rightDir = new THREE.Vector3().crossVectors(forwardDir, worldUp).normalize();
+    _camQuat.setFromEuler(_camEuler);
+    const forwardDir = _camForward.set(0, 0, -1).applyQuaternion(_camQuat).normalize();
+    const worldUp = _camWorldUp;
+    const rightDir = _camRight.crossVectors(forwardDir, worldUp).normalize();
     const speed = Math.sqrt(
       gameState.playerEntity.velocity.x ** 2 +
       gameState.playerEntity.velocity.y ** 2 +
@@ -1297,11 +1513,11 @@ function CameraFollowController({
     const cloudShake = speedJerk * 0.08;
     const turbulenceSide = Math.sin(state.clock.elapsedTime * 3.4) * cloudShake;
     const turbulenceUp = Math.sin(state.clock.elapsedTime * 5.1 + 1.7) * cloudShake * 0.6;
-    const desiredCameraPos = playerPos
-      .clone()
-      .add(smoothForwardRef.current.clone().multiplyScalar(-offsetDistance))
-      .add(rightDir.clone().multiplyScalar(phaseProfile.sideOffset + turbulenceSide))
-      .add(worldUp.clone().multiplyScalar(offsetHeight + turbulenceUp));
+    const desiredCameraPos = _camDesired
+      .copy(playerPos)
+      .addScaledVector(smoothForwardRef.current, -offsetDistance)
+      .addScaledVector(rightDir, phaseProfile.sideOffset + turbulenceSide)
+      .addScaledVector(worldUp, offsetHeight + turbulenceUp);
 
     // Ultra-smooth exponential follow: k = 1 - exp(-delta * rate)
     // Tighter and snappier during flight phases for a more responsive feel
@@ -1312,7 +1528,7 @@ function CameraFollowController({
 
     // Cap catch-up speed to prevent sudden snaps when heading changes quickly.
     const maxCatchUp = 42 * delta;
-    const catchUp = desiredCameraPos.clone().sub(smoothPosRef.current);
+    const catchUp = _camCatchUp.copy(desiredCameraPos).sub(smoothPosRef.current);
     if (catchUp.length() > maxCatchUp) {
       catchUp.setLength(maxCatchUp);
       desiredCameraPos.copy(smoothPosRef.current).add(catchUp);
@@ -1338,18 +1554,18 @@ function CameraFollowController({
       gameState.playerEntity.velocity.z ** 2
     ) * 0.13;
 
-    const lookTarget = playerPos.clone().add(new THREE.Vector3(0, 0.7, 0));
+    const lookTarget = _camLook.copy(playerPos).add(_camTmp.set(0, 0.7, 0));
     if (lookAheadDistance > 0.1) {
-      const velocityDir = new THREE.Vector3(
+      const velocityDir = _camVelDir.set(
         gameState.playerEntity.velocity.x,
         gameState.playerEntity.velocity.y,
         gameState.playerEntity.velocity.z
       ).normalize();
       const lookVelK = 1 - Math.exp(-delta * 6.5);
       lookAheadRef.current.lerp(velocityDir, lookVelK).normalize();
-      lookTarget.add(lookAheadRef.current.clone().multiplyScalar(lookAheadDistance + boostSpool * 1.2));
+      lookTarget.addScaledVector(lookAheadRef.current, lookAheadDistance + boostSpool * 1.2);
     } else {
-      lookTarget.add(smoothForwardRef.current.clone().multiplyScalar(2.2));
+      lookTarget.addScaledVector(smoothForwardRef.current, 2.2);
     }
 
     const lookK = 1 - Math.exp(-delta * assistConfig.look);
@@ -1387,7 +1603,8 @@ function CanvasReadySignal({ onReady }: { onReady?: () => void }) {
 
 function GameScene({
   gameState,
-  onUpdate,
+  onUiSync,
+  onVolley,
   keysPressed,
   mouseRotation,
   deviceOrientation,
@@ -1396,7 +1613,8 @@ function GameScene({
   joystickRef,
 }: {
   gameState: GameState;
-  onUpdate: (state: GameState) => void;
+  onUiSync: () => void;
+  onVolley?: (pair: number) => void;
   keysPressed: React.MutableRefObject<Set<string>>;
   mouseRotation: React.MutableRefObject<{ pitch: number; yaw: number }>;
   deviceOrientation: React.MutableRefObject<{ alpha: number; beta: number; gamma: number }>;
@@ -1409,7 +1627,9 @@ function GameScene({
   const entityManagerRef = useRef<EntityManager | null>(null);
   const collisionSystemRef = useRef<CollisionSystem | null>(null);
   const enemyAgentsRef = useRef<Map<string, any>>(new Map());
-  const entityMeshesRef = useRef<Map<string, THREE.Group>>(new Map());
+  const uiSyncAccumRef = useRef(0);
+  const lastSyncedPhaseRef = useRef(gameState.phase);
+  const hazardsCacheRef = useRef<{ worldIndex: number; hazards: GravityHazard[] } | null>(null);
   const frameCountRef = useRef(0);
   const forwardSpeedRef = useRef(0);
   const throttleRef = useRef(0.34);
@@ -1503,6 +1723,9 @@ function GameScene({
     gameState.playerEntity.metadata.lastVolleyIndex = Number(gameState.playerEntity.metadata.lastVolleyIndex ?? 0) + 1;
     gameState.playerEntity.metadata.weaponRecoil = Math.min(1, Number(gameState.playerEntity.metadata.weaponRecoil ?? 0) + FIRE_RECOIL_KICK);
     gameState.playerEntity.metadata.weaponMode = 'wing-cannons';
+    // Fire audio runs through a direct callback so it stays sample-accurate
+    // even though React only re-renders at UI_SYNC_INTERVAL.
+    onVolley?.(pair);
   };
 
   // Initialize game systems on mount
@@ -1517,17 +1740,9 @@ function GameScene({
 
     return () => {
       // Cleanup
-      entityMeshesRef.current.clear();
       enemyAgentsRef.current.clear();
     };
   }, []);
-
-  // Travel-only mode: ensure enemy list remains empty while cruising.
-  useEffect(() => {
-    if (gameState.phase !== 'exploration') return;
-    if (gameState.enemies.length === 0) return;
-    onUpdate({ ...gameState, enemies: [] });
-  }, [gameState, onUpdate]);
 
   // Main update loop with player input
   useFrame((state, delta) => {
@@ -1536,27 +1751,32 @@ function GameScene({
     // Freeze simulation when paused
     if (gameState.phase === 'paused') return;
 
-    // Sync loop snapshot with latest React state before sim stepping.
+    // Keep the loop pointed at the shared state object (cheap pointer sync;
+    // matters after restarts where helpers may swap nested references).
     gameLoopRef.current.setState(gameState);
+
+    // Travel-only mode: ensure enemy list remains empty while cruising.
+    if (gameState.phase === 'exploration' && gameState.enemies.length > 0) {
+      gameState.enemies.length = 0;
+    }
 
     // Cap delta at 0.1 to prevent spiral of death
     const clampedDelta = Math.min(delta, 0.1);
 
     // --- FLIGHT CONTROLS: Arrow keys for rotation, W/Up for thrust ---
     if (gameState.phase === 'ignition' || gameState.phase === 'exploration' || gameState.phase === 'charging') {
-      const playerQuat = new THREE.Quaternion();
-      const playerEuler = new THREE.Euler(
+      _playerEuler.set(
         gameState.playerEntity.rotation.x,
         gameState.playerEntity.rotation.y,
         gameState.playerEntity.rotation.z
       );
-      playerQuat.setFromEuler(playerEuler);
+      _playerQuat.setFromEuler(_playerEuler);
 
       // Canonical gameplay convention: ship nose points along local -Z.
       // Weapons fire along this vector; engine thrust pushes in the opposite direction.
-      const forwardLocal = new THREE.Vector3(0, 0, -1).applyQuaternion(playerQuat);
-      const rightLocal = new THREE.Vector3(1, 0, 0).applyQuaternion(playerQuat);
-      const upLocal = new THREE.Vector3(0, 1, 0).applyQuaternion(playerQuat);
+      const forwardLocal = _forwardLocal.set(0, 0, -1).applyQuaternion(_playerQuat);
+      const rightLocal = _rightLocal.set(1, 0, 0).applyQuaternion(_playerQuat);
+      const upLocal = _upLocal.set(0, 1, 0).applyQuaternion(_playerQuat);
 
       const attackMode = Boolean(gameState.playerEntity.metadata?.attackMode);
       const turnSpeed = attackMode ? 2.1 : 1.6;
@@ -1695,7 +1915,7 @@ function GameScene({
         boostSpoolRef.current = 0;
       }
 
-      const desiredForwardVelocity = forwardLocal.clone().multiplyScalar(forwardSpeedRef.current);
+      const desiredForwardVelocity = _desiredVel.copy(forwardLocal).multiplyScalar(forwardSpeedRef.current);
       if (assistedFlight) {
         // Assisted mode behaves like fly-by-wire: velocity tracks nose aggressively.
         gameState.playerEntity.velocity.x = desiredForwardVelocity.x;
@@ -1703,7 +1923,7 @@ function GameScene({
         gameState.playerEntity.velocity.z = desiredForwardVelocity.z;
       } else {
         // Manual mode keeps inertial drift and only gently steers velocity toward the nose.
-        const vel = new THREE.Vector3(
+        const vel = _velScratch.set(
           gameState.playerEntity.velocity.x,
           gameState.playerEntity.velocity.y,
           gameState.playerEntity.velocity.z
@@ -1718,14 +1938,19 @@ function GameScene({
       // Update continuous engine audio
       updateEngineAudio?.(forwardSpeedRef.current, throttleRef.current, isBoosting, boostSpoolRef.current);
 
-      const layout = getMissionLayout(gameState.worldIndex);
-      const gravityHazards = buildGravityHazards(layout);
-      const playerPosVec = new THREE.Vector3(
+      if (hazardsCacheRef.current?.worldIndex !== gameState.worldIndex) {
+        hazardsCacheRef.current = {
+          worldIndex: gameState.worldIndex,
+          hazards: buildGravityHazards(getMissionLayout(gameState.worldIndex)),
+        };
+      }
+      const gravityHazards = hazardsCacheRef.current.hazards;
+      const playerPosVec = _playerPosVec.set(
         gameState.playerEntity.position.x,
         gameState.playerEntity.position.y,
         gameState.playerEntity.position.z
       );
-      const gravityAcceleration = new THREE.Vector3();
+      const gravityAcceleration = _gravityAccel.set(0, 0, 0);
       let gravityLoad = 0;
       let boundaryLoad = 0;
       let hullDamageThisFrame = 0;
@@ -1734,7 +1959,7 @@ function GameScene({
       let nearestDist = Number.POSITIVE_INFINITY;
 
       gravityHazards.forEach((hazard) => {
-        const deltaToHazard = hazard.position.clone().sub(playerPosVec);
+        const deltaToHazard = _hazardDelta.copy(hazard.position).sub(playerPosVec);
         const distance = deltaToHazard.length();
         if (distance < nearestDist) {
           nearestDist = distance;
@@ -1766,7 +1991,7 @@ function GameScene({
       const distanceFromKnownCenter = playerPosVec.length();
       if (distanceFromKnownCenter > KNOWN_UNIVERSE_RADIUS) {
         const overflow = distanceFromKnownCenter - KNOWN_UNIVERSE_RADIUS;
-        const outward = playerPosVec.clone().normalize();
+        const outward = _outward.copy(playerPosVec).normalize();
         const inwardBrake = Math.min(280, 60 + overflow * 0.1);
         gameState.playerEntity.velocity.x -= outward.x * inwardBrake * clampedDelta;
         gameState.playerEntity.velocity.y -= outward.y * inwardBrake * clampedDelta;
@@ -1780,21 +2005,20 @@ function GameScene({
       if (assistedFlight) {
         // Apply post-force anti-drift damping so gravity/boundary forces do not
         // leave persistent lateral slip in assisted mode.
-        const vel = new THREE.Vector3(
+        const vel = _velScratch.set(
           gameState.playerEntity.velocity.x,
           gameState.playerEntity.velocity.y,
           gameState.playerEntity.velocity.z
         );
-        const forwardNorm = forwardLocal.clone().normalize();
+        const forwardNorm = _fwdNorm.copy(forwardLocal).normalize();
         const forwardMag = vel.dot(forwardNorm);
         const forwardComponent = forwardNorm.multiplyScalar(forwardMag);
-        const lateralComponent = vel.sub(forwardComponent);
+        const lateralComponent = _lateral.copy(vel).sub(forwardComponent);
         const driftDamp = 1 - Math.exp(-clampedDelta * 6.0);
         lateralComponent.multiplyScalar(1 - driftDamp);
-        const corrected = forwardComponent.add(lateralComponent);
-        gameState.playerEntity.velocity.x = corrected.x;
-        gameState.playerEntity.velocity.y = corrected.y;
-        gameState.playerEntity.velocity.z = corrected.z;
+        gameState.playerEntity.velocity.x = forwardComponent.x + lateralComponent.x;
+        gameState.playerEntity.velocity.y = forwardComponent.y + lateralComponent.y;
+        gameState.playerEntity.velocity.z = forwardComponent.z + lateralComponent.z;
       }
 
       const updatedHealth = Math.max(0, gameState.playerEntity.health - hullDamageThisFrame);
@@ -1874,19 +2098,19 @@ function GameScene({
       // Weapon status is always ready — no heat/overheat system.
     }
 
-    // Update game logic
-    const updatedState = gameLoopRef.current.update(clampedDelta);
-    onUpdate(updatedState);
+    // Update game logic — mutates the shared gameState object in place.
+    // Three.js visuals read it directly each frame; no React state involved.
+    gameLoopRef.current.update(clampedDelta);
 
-    // Update entity positions in Three.js
-    entityManagerRef.current.getAll().forEach((entity) => {
-      const mesh = entityMeshesRef.current.get(entity.id);
-      if (mesh) {
-        mesh.position.set(entity.position.x, entity.position.y, entity.position.z);
-        mesh.rotation.set(entity.rotation.x, entity.rotation.y, entity.rotation.z);
-        mesh.visible = entity.active;
-      }
-    });
+    // Low-frequency React sync: phase changes flush immediately (menus,
+    // overlays), everything else repaints on the UI_SYNC_INTERVAL cadence.
+    uiSyncAccumRef.current += delta;
+    const phaseChanged = gameState.phase !== lastSyncedPhaseRef.current;
+    if (phaseChanged || uiSyncAccumRef.current >= UI_SYNC_INTERVAL) {
+      uiSyncAccumRef.current = 0;
+      lastSyncedPhaseRef.current = gameState.phase;
+      onUiSync();
+    }
 
     // TODO: AI decisions via Claude API (deferred)
     // For now, enemies move using basic patterns defined in game-loop.ts
@@ -1896,7 +2120,15 @@ function GameScene({
 }
 
 function GameRenderer({ onReady }: { onReady?: () => void }) {
-  const [gameState, setGameState] = useState<GameState>(createInitialGameState());
+  // THE game state: one mutable object the simulation writes into at frame
+  // rate. Three.js visuals read it inside useFrame at 60 fps. React renders
+  // are decoupled — bumpUi() repaints HUD/menus at UI_SYNC_INTERVAL (~12 Hz)
+  // or instantly on phase changes, and render code reads current values out
+  // of this same stable object.
+  const gameStateRef = useRef<GameState | null>(null);
+  if (gameStateRef.current === null) gameStateRef.current = createInitialGameState();
+  const gameState = gameStateRef.current;
+  const [, bumpUi] = useReducer((c: number) => c + 1, 0);
   const [graphicsProfile, setGraphicsProfile] = useState<GraphicsProfile>(GRAPHICS_PROFILES.high);
   const [engineVolume, setEngineVolume] = useState(0.38);
   const [showTestConsole, setShowTestConsole] = useState(false);
@@ -1918,7 +2150,6 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
   const deviceOrientationRef = useRef({ alpha: 0, beta: 0, gamma: 0 });
   const joystickRef = useRef({ active: false, originX: 0, originY: 0, dx: 0, dy: 0 });
   const audioContextRef = useRef<AudioContext | null>(null);
-  const lastVolleyAudioRef = useRef<number>(-1);
   const lastCoreAudioRef = useRef<number>(-1);
   const engineAudioRef = useRef<{
     ctx: AudioContext;
@@ -1973,11 +2204,8 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
 
   useEffect(() => {
     if (!shouldAutoStartExploration(gameState, IGNITION_STARTUP_DURATION)) return;
-
-    setGameState((s) => {
-      if (!shouldAutoStartExploration(s, IGNITION_STARTUP_DURATION)) return s;
-      return startExploration(s);
-    });
+    Object.assign(gameState, startExploration(gameState));
+    bumpUi();
   }, [gameState.phase, gameState.ignitionStartTime, gameState.simTime]);
 
   useEffect(() => {
@@ -2008,13 +2236,10 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
     };
   }, []);
 
-  useEffect(() => {
-    const volleyIndex = Number(gameState.playerEntity.metadata?.lastVolleyIndex ?? -1);
-    if (volleyIndex < 0 || volleyIndex === lastVolleyAudioRef.current) return;
-    lastVolleyAudioRef.current = volleyIndex;
-
+  // Called directly from the sim when a volley fires — sample-accurate even
+  // though React only repaints at UI_SYNC_INTERVAL.
+  const playVolleyAudio = (pair: number) => {
     if (typeof window === 'undefined') return;
-    const pair = Number(gameState.playerEntity.metadata?.lastVolleyPair ?? 0);
     const profile = WEAPON_TUNING[weaponTune];
     const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
     if (!AudioCtx) return;
@@ -2046,7 +2271,7 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
 
     osc.start(now);
     osc.stop(now + 0.1);
-  }, [gameState.playerEntity.metadata?.lastVolleyIndex, gameState.playerEntity.metadata?.lastVolleyPair, weaponTune]);
+  };
 
   useEffect(() => {
     return () => {
@@ -2059,35 +2284,23 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
   }, []);
 
   const resetHeadingToMission = () => {
-    setGameState((s) => {
-      const layout = getMissionLayout(s.worldIndex);
-      const toTarget = new THREE.Vector3(
-        layout.stationPosition.x - s.playerEntity.position.x,
-        layout.stationPosition.y - s.playerEntity.position.y,
-        layout.stationPosition.z - s.playerEntity.position.z
-      );
+    const layout = getMissionLayout(gameState.worldIndex);
+    const toTarget = new THREE.Vector3(
+      layout.stationPosition.x - gameState.playerEntity.position.x,
+      layout.stationPosition.y - gameState.playerEntity.position.y,
+      layout.stationPosition.z - gameState.playerEntity.position.z
+    );
 
-      if (toTarget.lengthSq() < 1e-6) {
-        toTarget.set(0, 0, -1);
-      } else {
-        toTarget.normalize();
-      }
+    if (toTarget.lengthSq() < 1e-6) {
+      toTarget.set(0, 0, -1);
+    } else {
+      toTarget.normalize();
+    }
 
-      const yaw = Math.atan2(-toTarget.x, -toTarget.z);
-      const pitch = -Math.asin(Math.max(-1, Math.min(1, toTarget.y)));
-
-      return {
-        ...s,
-        playerEntity: {
-          ...s.playerEntity,
-          rotation: {
-            x: pitch,
-            y: yaw,
-            z: 0,
-          },
-        },
-      };
-    });
+    gameState.playerEntity.rotation.x = -Math.asin(Math.max(-1, Math.min(1, toTarget.y)));
+    gameState.playerEntity.rotation.y = Math.atan2(-toTarget.x, -toTarget.z);
+    gameState.playerEntity.rotation.z = 0;
+    bumpUi();
   };
 
   /**
@@ -2213,13 +2426,11 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
    */
   const handleCoreCollect = (coreId: string, value: number) => {
     setDataCores((prev) => prev.map((c) => (c.id === coreId ? { ...c, collected: true } : c)));
-    setGameState((s) => {
-      if (!s.metadata) s.metadata = {};
-      const nextScore = s.score + value;
-      s.metadata.routeMessage = `Data core recovered +${value}`;
-      s.metadata.routeMessageUntil = s.simTime + 2.5;
-      return { ...s, score: nextScore };
-    });
+    if (!gameState.metadata) gameState.metadata = {};
+    gameState.score += value;
+    gameState.metadata.routeMessage = `Data core recovered +${value}`;
+    gameState.metadata.routeMessageUntil = gameState.simTime + 2.5;
+    bumpUi();
 
     // Audio chime
     if (typeof window === 'undefined') return;
@@ -2255,28 +2466,18 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
       keysPressed.current.add(e.code);
       initEngineAudio();
       if (e.code === 'KeyX') {
-        setGameState((s) => {
-          const current = Boolean(s.playerEntity.metadata?.attackMode);
-          return {
-            ...s,
-            playerEntity: {
-              ...s.playerEntity,
-              metadata: {
-                ...(s.playerEntity.metadata ?? {}),
-                attackMode: !current,
-              },
-            },
-          };
-        });
+        const meta = (gameState.playerEntity.metadata ??= {});
+        meta.attackMode = !meta.attackMode;
+        bumpUi();
       }
       // Pause / resume
       if (e.code === 'Escape' || e.code === 'KeyP') {
         e.preventDefault();
-        setGameState((s) => {
-          const nextPhase = togglePausePhase(s.phase);
-          if (nextPhase === s.phase) return s;
-          return { ...s, phase: nextPhase };
-        });
+        const nextPhase = togglePausePhase(gameState.phase);
+        if (nextPhase !== gameState.phase) {
+          gameState.phase = nextPhase;
+          bumpUi();
+        }
       }
       if (e.code === 'KeyV') {
         e.preventDefault();
@@ -2304,18 +2505,14 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
       // Start ignition on spacebar / W, then transition to exploration when startup completes.
       if (e.code === 'Space' || e.code === 'KeyW') {
         e.preventDefault();
-        setGameState((s) => {
-          if (s.phase === 'ignition') {
-            if (typeof s.ignitionStartTime === 'number') {
-              return s;
-            }
-            return startIgnition(s);
+        if (gameState.phase === 'ignition') {
+          if (typeof gameState.ignitionStartTime !== 'number') {
+            Object.assign(gameState, startIgnition(gameState));
+            bumpUi();
           }
-          if (s.phase === 'exploration' || s.phase === 'charging' || s.phase === 'combat') {
-            keysPressed.current.add('ShiftLeft');
-          }
-          return s;
-        });
+        } else if (gameState.phase === 'exploration' || gameState.phase === 'charging' || gameState.phase === 'combat') {
+          keysPressed.current.add('ShiftLeft');
+        }
       }
     };
 
@@ -2437,24 +2634,31 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
 
         {/* Real Universe Engine ecosystem — same Milky Way disc, Sun, planets,
             constellations, deep-sky catalog the homepage hero renders, scaled
-            up to game space so the ship can actually fly across it. */}
+            up to game space so the ship can actually fly across it.
+            Memoized: this subtree is huge and must not re-reconcile on the
+            12 Hz HUD sync. */}
         <Suspense fallback={null}>
-          <group scale={UNIVERSE_SCALE}>
-            <UniverseSceneContents
-              enableMotion
-              onHover={NOOP}
-              onResetView={NOOP}
-              interactive={false}
-              mobile={graphicsProfile.universeMobile}
-              invert={false}
-            />
-          </group>
+          {useMemo(
+            () => (
+              <group scale={UNIVERSE_SCALE}>
+                <UniverseSceneContents
+                  enableMotion
+                  onHover={NOOP}
+                  onResetView={NOOP}
+                  interactive={false}
+                  mobile={graphicsProfile.universeMobile}
+                  invert={false}
+                />
+              </group>
+            ),
+            [graphicsProfile.universeMobile]
+          )}
         </Suspense>
         {/* Must mount AFTER the universe so its fog override wins. */}
         <GameFog />
 
         {/* Selected mission world + floating orbital station start point. */}
-        <MissionStartScene worldIndex={gameState.worldIndex} />
+        <MemoMissionStartScene worldIndex={gameState.worldIndex} />
 
         {/* Scene lighting: cinematic + directional for exploring universe */}
         <ambientLight intensity={0.4} color={0xffffff} />
@@ -2474,7 +2678,7 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
 
         {/* Player ship: Cleaver-class */}
         {gameState.playerEntity && (
-          <PlayerShipGroup gameState={gameState} showForwardDebug={showForwardDebug} />
+          <MemoPlayerShipGroup gameState={gameState} showForwardDebug={showForwardDebug} />
         )}
 
         {/* Enemy ships */}
@@ -2482,58 +2686,11 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
           <EnemyShipGroup key={enemy.id} enemy={enemy} />
         ))}
 
-        {/* Projectiles: high-energy plasma bolts */}
-        {gameState.projectiles.map((proj) => (
-          (() => {
-            const v = new THREE.Vector3(proj.velocity.x, proj.velocity.y, proj.velocity.z);
-            const dir = v.lengthSq() > 1e-6 ? v.clone().normalize() : new THREE.Vector3(0, 0, -1);
-            const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), dir);
-            const rot = new THREE.Euler().setFromQuaternion(q);
-            const isWingCannon = proj.metadata?.source === 'wing-cannon';
-            const boltColor = isWingCannon ? 0x9de8ff : 0xffff00;
-            const haloColor = isWingCannon ? 0x52c9ff : 0xffcc00;
-            const age = Math.max(0, gameState.simTime - Number(proj.metadata?.bornAt ?? gameState.simTime));
-            const pulse = 0.9 + Math.sin(age * 34) * 0.08;
+        {/* Projectiles: high-energy plasma bolts (instanced, sim-driven) */}
+        <ProjectileField gameState={gameState} />
 
-            return (
-              <group
-                key={proj.id}
-                position={[proj.position.x, proj.position.y, proj.position.z]}
-                rotation={[rot.x, rot.y, rot.z]}
-              >
-                {/* Tracer core */}
-                <mesh scale={[pulse, pulse, pulse]}>
-                  <capsuleGeometry args={[0.08, 1.55, 8, 16]} />
-                  <meshBasicMaterial color={boltColor} transparent opacity={0.95} toneMapped={false} />
-                </mesh>
-                {/* Plasma halo */}
-                <mesh scale={[pulse, pulse, pulse]}>
-                  <capsuleGeometry args={[0.16, 2.1, 6, 12]} />
-                  <meshBasicMaterial color={haloColor} transparent opacity={0.32} blending={THREE.AdditiveBlending} toneMapped={false} depthWrite={false} />
-                </mesh>
-              </group>
-            );
-          })()
-        ))}
-
-        {/* Cannon muzzle flashes */}
-        {((gameState.playerEntity.metadata?.muzzleFlashes as MuzzleFlash[] | undefined) ?? []).map((flash) => {
-          const life = Math.max(0, (flash.endTime - gameState.simTime) / 0.085);
-          const outerOpacity = 0.45 * life;
-          const coreOpacity = 0.9 * life;
-          return (
-            <group key={flash.id} position={[flash.position.x, flash.position.y, flash.position.z]}>
-              <mesh>
-                <sphereGeometry args={[0.22, 10, 10]} />
-                <meshBasicMaterial color={0xd8f5ff} transparent opacity={coreOpacity} blending={THREE.AdditiveBlending} toneMapped={false} depthWrite={false} />
-              </mesh>
-              <mesh>
-                <sphereGeometry args={[0.48, 10, 10]} />
-                <meshBasicMaterial color={0x4fc8ff} transparent opacity={outerOpacity} blending={THREE.AdditiveBlending} toneMapped={false} depthWrite={false} />
-              </mesh>
-            </group>
-          );
-        })}
+        {/* Cannon muzzle flashes (pooled, sim-driven) */}
+        <MuzzleFlashField gameState={gameState} />
 
         {/* Space dust / speed lines — velocity-responsive particle field */}
         <SpaceDust gameState={gameState} count={graphicsProfile.dustCount} />
@@ -2541,25 +2698,18 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
         {/* Data core collectibles at route waypoints */}
         <DataCoreField cores={dataCores} gameState={gameState} onCollect={handleCoreCollect} />
 
-        {/* Boost shockwave ring */}
-        <BoostShockwave
-          active={Boolean(gameState.playerEntity.metadata?.boostActive)}
-          position={[
-            gameState.playerEntity.position.x,
-            gameState.playerEntity.position.y,
-            gameState.playerEntity.position.z,
-          ]}
-        />
+        {/* Boost shockwave ring (sim-driven) */}
+        <BoostShockwave gameState={gameState} />
 
         {/* Game logic integration */}
         <GameScene
           gameState={gameState}
-          onUpdate={setGameState}
+          onUiSync={bumpUi}
+          onVolley={playVolleyAudio}
           keysPressed={keysPressed}
           mouseRotation={mouseRotationRef}
           deviceOrientation={deviceOrientationRef}
           assistedFlight={assistedFlight}
-          weaponTune={weaponTune}
           updateEngineAudio={updateEngineAudio}
           joystickRef={joystickRef}
         />
@@ -2708,8 +2858,9 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
             <button
               type="button"
               onClick={() => {
-                setGameState(createInitialGameState());
+                Object.assign(gameState, createInitialGameState());
                 setDataCores(createDataCores(ROUTE_DEFINITIONS.flatMap((r) => r.waypoints)));
+                bumpUi();
               }}
               className="rounded border border-white/25 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.12em] text-white/75 hover:text-red-300 hover:border-red-300/40 transition-colors"
             >
@@ -2825,7 +2976,10 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
               <div className="space-y-3">
                 <button
                   type="button"
-                  onClick={() => setGameState((s) => ({ ...s, phase: 'exploration' }))}
+                  onClick={() => {
+                    gameState.phase = 'exploration';
+                    bumpUi();
+                  }}
                   className="block w-56 rounded-full border border-cyan-300/50 bg-cyan-400/10 px-6 py-3 font-mono text-[11px] uppercase tracking-[0.2em] text-cyan-200 hover:bg-cyan-400/20 transition-colors"
                 >
                   Resume (Esc)
@@ -2833,8 +2987,9 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
                 <button
                   type="button"
                   onClick={() => {
-                    setGameState(createInitialGameState());
+                    Object.assign(gameState, createInitialGameState());
                     setDataCores(createDataCores(ROUTE_DEFINITIONS.flatMap((r) => r.waypoints)));
+                    bumpUi();
                   }}
                   className="block w-56 rounded-full border border-white/25 bg-white/5 px-6 py-3 font-mono text-[11px] uppercase tracking-[0.2em] text-white/80 hover:bg-white/10 transition-colors"
                 >
@@ -2866,7 +3021,15 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
         />
 
         {/* Testing Console (Ctrl+Shift+T) */}
-        {showTestConsole && <TestingConsole gameState={gameState} onStateChange={setGameState} />}
+        {showTestConsole && (
+          <TestingConsole
+            gameState={gameState}
+            onStateChange={(next) => {
+              Object.assign(gameState, next);
+              bumpUi();
+            }}
+          />
+        )}
       </>
     </div>
   );

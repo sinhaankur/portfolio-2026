@@ -30,10 +30,10 @@ export function HUD({ gameState, showForwardDebug = false, onShipSelect, waypoin
   const planetHealthPercent = gameState.defendingPlanetHealth * 100;
   const chargePercent = (gameState.chargeLevel / gameState.maxCharge) * 100;
   const worldName = getCurrentWorldName(gameState);
-  const speed = useMemo(() => {
-    const { x, y, z } = gameState.playerEntity.velocity;
-    return Math.sqrt(x * x + y * y + z * z);
-  }, [gameState.playerEntity.velocity]);
+  // Computed inline: the velocity object is mutated in place by the sim, so
+  // its identity never changes and memoizing on it would freeze the readout.
+  const { x: velX, y: velY, z: velZ } = gameState.playerEntity.velocity;
+  const speed = Math.sqrt(velX * velX + velY * velY + velZ * velZ);
   const throttle = Number(gameState.playerEntity.metadata?.throttle ?? 0);
   const maxForwardSpeed = Number(gameState.playerEntity.metadata?.maxForwardSpeed ?? 30);
   const brakeActive = Boolean(gameState.playerEntity.metadata?.rcsBrake);

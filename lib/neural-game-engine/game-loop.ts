@@ -73,11 +73,10 @@ export class GameLoop {
         break;
     }
 
-    // Return a fresh state reference so React state updates are not skipped
-    // when internal simulation mutates the same object in place.
-    return {
-      ...this.gameState,
-    };
+    // The simulation mutates state in place; consumers hold the same stable
+    // object and read fresh values each frame. React re-renders are driven
+    // separately at low frequency, never by this return value.
+    return this.gameState;
   }
 
   /**
