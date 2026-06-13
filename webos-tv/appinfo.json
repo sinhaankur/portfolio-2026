@@ -1,0 +1,10 @@
+{
+  "id": "com.sinhaankur.universeengine",
+  "version": "0.0.1",
+  "vendor": "Ankur Sinha",
+  "type": "web",
+  "main": "index.html",
+  "title": "Universe Engine TV",
+  "icon": "icon.png",
+  "largeIcon": "largeIcon.png"
+}
