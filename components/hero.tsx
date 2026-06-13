@@ -25,6 +25,7 @@ export function Hero() {
   const containerRef = useRef<HTMLElement>(null)
   const prefersReducedMotion = useReducedMotion()
   const [interactive, setInteractive] = useState(false)
+  const [tvBrowserFallback, setTvBrowserFallback] = useState(false)
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start start", "end start"],
@@ -69,6 +70,13 @@ export function Hero() {
     }
   }, [gestureHintVisible])
 
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const ua = window.navigator.userAgent.toLowerCase()
+    const isTvBrowser = /(web0s|webos|smarttv|smart-tv|netcast|tizen|viera|hbbtv|appletv|googletv|roku)/.test(ua)
+    setTvBrowserFallback(isTvBrowser)
+  }, [])
+
   return (
     <section
       ref={containerRef}
@@ -88,7 +96,11 @@ export function Hero() {
           Passive backdrop by default so page scroll works; explore mode flips it interactive. */}
       <div className="absolute inset-0" aria-hidden="true">
         <UniverseRuntimeFallback>
-          <UniverseEngine interactive={interactive} showMusic={true} />
+          {tvBrowserFallback ? (
+            <StaticStarfield />
+          ) : (
+            <UniverseEngine interactive={interactive} showMusic={true} />
+          )}
         </UniverseRuntimeFallback>
       </div>
 
@@ -97,6 +109,7 @@ export function Hero() {
           same Y. On desktop: a wider pill with the full "Tap to explore"
           label, since there's room. Positioned in the gap between the navbar
           and the hero typography (mobile) or in the top-right cluster (desktop). */}
+      {!tvBrowserFallback && (
       <div className="absolute top-16 right-4 md:top-24 md:right-12 z-30 pointer-events-auto">
         <button
           type="button"
@@ -142,12 +155,13 @@ export function Hero() {
           </p>
         </div>
       </div>
+      )}
 
       {/* Explore-mode hint — phrasing flips by input modality so the verbs
           match what the user actually does (pinch on touch, scroll on a
           trackpad / mouse wheel). Click-to-focus + Destinations menu give
           users a way to actually fly to bodies. */}
-      {interactive && (
+      {interactive && !tvBrowserFallback && (
         <p className="absolute bottom-36 md:bottom-24 left-1/2 -translate-x-1/2 z-20 font-mono text-[10px] tracking-[0.25em] uppercase text-foreground/55 pointer-events-none whitespace-nowrap">
           <span className="md:hidden">Tap any body to follow its orbit</span>
           <span className="hidden md:inline">Click any body — planet, moon, comet, spacecraft — to follow its orbit</span>
@@ -158,7 +172,7 @@ export function Hero() {
           scroll / click) so a new visitor doesn't have to discover the
           universe is interactive on their own. Shown once per session,
           dismissed automatically on first pointer/wheel interaction. */}
-      {interactive && gestureHintVisible && (
+      {interactive && gestureHintVisible && !tvBrowserFallback && (
         <div
           className="absolute bottom-52 md:bottom-36 left-1/2 -translate-x-1/2 z-20 pointer-events-none"
           style={{ animation: "ue-label-in 420ms ease-out both" }}

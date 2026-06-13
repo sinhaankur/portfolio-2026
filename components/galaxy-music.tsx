@@ -55,6 +55,8 @@ function loadSoundCloudAPI(): Promise<SCAPI> {
 export function GalaxyMusic() {
   const iframeRef = useRef<HTMLIFrameElement | null>(null)
   const widgetRef = useRef<SCWidget | null>(null)
+  const widgetReadyRef = useRef(false)
+  const queuedActionRef = useRef<"play" | "pause" | null>(null)
   const [ready, setReady] = useState(false)
   const [playing, setPlaying] = useState(false)
   const [loadError, setLoadError] = useState(false)
@@ -74,9 +76,16 @@ export function GalaxyMusic() {
       widgetRef.current = widget
       widget.bind(SC.Widget.Events.READY, () => {
         if (cancelled) return
+        widgetReadyRef.current = true
         if (readyFallback) clearTimeout(readyFallback)
         widget.setVolume(45)
         setReady(true)
+        if (queuedActionRef.current === "play") {
+          widget.play()
+        } else if (queuedActionRef.current === "pause") {
+          widget.pause()
+        }
+        queuedActionRef.current = null
       })
       widget.bind(SC.Widget.Events.PLAY, () => {
         if (!cancelled) setPlaying(true)
@@ -113,6 +122,12 @@ export function GalaxyMusic() {
   const toggle = () => {
     const widget = widgetRef.current
     if (!widget) return
+    if (!widgetReadyRef.current) {
+      const nextAction = playing ? "pause" : "play"
+      queuedActionRef.current = nextAction
+      setPlaying(nextAction === "play")
+      return
+    }
     // Optimistically flip the icon — the PLAY/PAUSE binds will correct it.
     // Some browsers won't deliver the bound events until the first user
     // gesture, so driving the icon off local intent keeps the UI honest.
