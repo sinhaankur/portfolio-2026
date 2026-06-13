@@ -24,6 +24,7 @@
 
 import { useRef, useMemo } from "react"
 import { useFrame } from "@react-three/fiber"
+import { Html } from "@react-three/drei"
 import {
   AdditiveBlending,
   Color,
@@ -426,6 +427,124 @@ function VectorField({
 }
 
 /* --------------------------------------------------------------------------
+ * Lagrange points — the 5 Sun–planet equilibrium points
+ *
+ * Where the Sun's and the planet's gravity, plus the orbital centrifugal
+ * term, cancel out so a small body can sit at rest relative to the pair.
+ * Real spacecraft live here (JWST + Gaia at Sun–Earth L2, SOHO at L1),
+ * and the Jupiter Trojans swarm L4/L5. We show them only for a couple of
+ * significant planets to stay legible.
+ *
+ * Geometry (μ = m/(3M))^(1/3):
+ *   L1  Sun-ward of the planet at  a·(1 − μ)
+ *   L2  beyond the planet at        a·(1 + μ)
+ *   L3  opposite the Sun at        −a·(1 + 5m/12M)
+ *   L4/L5  ±60° along the orbit (equilateral with Sun + planet)
+ *
+ * We derive each from the planet's current scene-space position vector:
+ * L1–L3 scale the radial vector, L4/L5 rotate it ±60° about the ecliptic
+ * normal — valid because the scene's radial compression preserves both
+ * the radial fraction and the angular offset.
+ * ------------------------------------------------------------------------ */
+
+/** Planets to annotate with Lagrange points — kept small to avoid clutter.
+ *  Earth (JWST/SOHO/Gaia) and Jupiter (Trojan asteroids) are the iconic
+ *  cases people recognise. */
+const LAGRANGE_PLANETS = new Set(["Earth", "Jupiter"])
+
+const _eclipticNormal = new Vector3(0, 1, 0)
+
+type LPoint = { id: "L1" | "L2" | "L3" | "L4" | "L5"; pos: Vector3; note: string }
+
+function lagrangePointsFor(planet: ScenePlanet, simMs: number): LPoint[] {
+  const mass = Math.max(planet.raw.deep?.massEarth ?? 0.1, 0.001)
+  const mu = Math.cbrt(mass / (3 * SUN_MASS_EARTH))
+  const planetPos = planetScenePosition(planet, simMs)
+  const radial = planetPos.clone() // Sun (origin) → planet
+
+  const l1 = radial.clone().multiplyScalar(1 - mu)
+  const l2 = radial.clone().multiplyScalar(1 + mu)
+  const l3 = radial.clone().multiplyScalar(-(1 + (5 * mass) / (12 * SUN_MASS_EARTH)))
+  const l4 = radial.clone().applyAxisAngle(_eclipticNormal, +60 * DEG)
+  const l5 = radial.clone().applyAxisAngle(_eclipticNormal, -60 * DEG)
+
+  return [
+    { id: "L1", pos: l1, note: "SOHO" },
+    { id: "L2", pos: l2, note: "JWST · Gaia" },
+    { id: "L3", pos: l3, note: "far side" },
+    { id: "L4", pos: l4, note: "Trojans" },
+    { id: "L5", pos: l5, note: "Trojans" },
+  ]
+}
+
+function LagrangeMarker({ point, invert }: { point: LPoint; invert: boolean }) {
+  const color = invert ? "#9a5a2c" : "#ffd27a"
+  return (
+    <group position={point.pos}>
+      <mesh>
+        <sphereGeometry args={[0.05, 12, 12]} />
+        <meshBasicMaterial
+          color={color}
+          transparent
+          opacity={0.85}
+          blending={invert ? undefined : AdditiveBlending}
+          depthWrite={false}
+        />
+      </mesh>
+      <Html center distanceFactor={26} zIndexRange={[6, 0]} style={{ pointerEvents: "none" }}>
+        <div
+          className="select-none whitespace-nowrap font-mono uppercase leading-none"
+          style={{ color, opacity: 0.9, transform: "translateY(-12px)" }}
+        >
+          <span className="text-[11px] tracking-[0.18em]">{point.id}</span>
+          <span className="ml-1.5 text-[8px] tracking-[0.12em] opacity-60">{point.note}</span>
+        </div>
+      </Html>
+    </group>
+  )
+}
+
+function LagrangePoints({ planets, invert }: { planets: ScenePlanet[]; invert: boolean }) {
+  const targets = useMemo(
+    () => planets.filter((p) => LAGRANGE_PLANETS.has(p.raw.name)),
+    [planets],
+  )
+  const groupRef = useRef<THREE.Group>(null)
+
+  // Reposition each marker group every frame off the live date so the
+  // L-points track their planet as it orbits + the timeline scrubs.
+  useFrame(() => {
+    if (!groupRef.current) return
+    const simMs = simTimeRef.current.simMs
+    let i = 0
+    for (const planet of targets) {
+      const pts = lagrangePointsFor(planet, simMs)
+      for (const p of pts) {
+        const child = groupRef.current.children[i]
+        if (child) child.position.copy(p.pos)
+        i++
+      }
+    }
+  })
+
+  // Initial render lays out the marker groups; useFrame keeps them placed.
+  const initial = useMemo(() => {
+    const simMs = simTimeRef.current.simMs
+    return targets.flatMap((planet) =>
+      lagrangePointsFor(planet, simMs).map((pt) => ({ key: `${planet.raw.name}-${pt.id}`, pt })),
+    )
+  }, [targets])
+
+  return (
+    <group ref={groupRef}>
+      {initial.map(({ key, pt }) => (
+        <LagrangeMarker key={key} point={pt} invert={invert} />
+      ))}
+    </group>
+  )
+}
+
+/* --------------------------------------------------------------------------
  * Public export
  * ------------------------------------------------------------------------ */
 
@@ -444,6 +563,7 @@ export function GravityOverlay({
     <group>
       <InfluenceSpheres planets={planets} invert={invert} />
       <VectorField planets={planets} invert={invert} />
+      <LagrangePoints planets={planets} invert={invert} />
     </group>
   )
 }
