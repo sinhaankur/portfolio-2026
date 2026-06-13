@@ -41,7 +41,7 @@ export function UniverseAssistantDemo() {
 
   return (
     <div className="space-y-4">
-      <div className="relative min-h-[78vh] md:min-h-[88vh] rounded-xl overflow-hidden ring-1 ring-white/10 bg-background">
+      <div className="relative h-[78vh] md:h-[88vh] rounded-xl overflow-hidden ring-1 ring-white/10 bg-background">
         <UniverseEngine interactive showHud showMusic={false} />
 
         <div className="pointer-events-none absolute left-4 top-4 z-20 max-w-xs rounded-2xl border border-white/12 bg-black/55 px-4 py-3 backdrop-blur-sm">
