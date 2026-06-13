@@ -495,7 +495,7 @@ export function TimelineControl() {
     applyWarp(0)
   }
 
-  const jumpToWaypoint = (iso: string, body?: string) => {
+  const jumpToWaypoint = (iso: string, body?: string, bodyKind?: "planet" | "named") => {
     const ms = Date.parse(iso)
     if (!Number.isNaN(ms)) {
       setSimMs(ms)
@@ -504,13 +504,15 @@ export function TimelineControl() {
     }
     setWaypointsOpen(false)
     if (body && typeof window !== "undefined") {
-      // Give the scene a frame to reposition the body to its new date, then
-      // ask the scene to frame it via the same focus channel bodies use.
+      // Give the scene a couple of frames to reposition the body to its new
+      // date, then ask the scene to frame it via the focus channel. Planets
+      // listen on "planet:<name>"; comets/dwarfs on "named:<name>".
+      const prefix = bodyKind === "named" ? "named" : "planet"
       setTimeout(() => {
         window.dispatchEvent(
-          new CustomEvent("universe:sky-focus", { detail: { pointId: `planet:${body}` } }),
+          new CustomEvent("universe:sky-focus", { detail: { pointId: `${prefix}:${body}` } }),
         )
-      }, 60)
+      }, 80)
     }
   }
 
@@ -632,7 +634,7 @@ export function TimelineControl() {
                   key={w.label}
                   type="button"
                   role="menuitem"
-                  onClick={() => jumpToWaypoint(w.iso, w.body)}
+                  onClick={() => jumpToWaypoint(w.iso, w.body, w.bodyKind)}
                   className="
                     text-left px-2.5 py-2 rounded-lg
                     hover:bg-foreground/10 transition-colors

@@ -175,6 +175,9 @@ export type TimelineWaypoint = {
   note: string
   /** Optional body to fly to on arrival, by catalog name. */
   body?: string
+  /** Which focus channel the body uses: "planet" for the major planets,
+   *  "named" for comets / dwarfs / spacecraft. Defaults to "planet". */
+  bodyKind?: "planet" | "named"
 }
 
 export const TIMELINE_WAYPOINTS: TimelineWaypoint[] = [
@@ -182,7 +185,8 @@ export const TIMELINE_WAYPOINTS: TimelineWaypoint[] = [
     label: "Halley perihelion",
     iso: "2061-07-28T00:00:00Z",
     note: "1P/Halley returns to perihelion — its first since 1986.",
-    body: "Comet Halley",
+    body: "Halley's Comet",
+    bodyKind: "named",
   },
   {
     label: "Great American eclipse",
@@ -865,6 +869,7 @@ export const namedBodies: NamedBody[] = [
     longNodeDeg: 59.4,
     argPeriDeg: 112.3,
     periodYears: 75.3,
+    perihelionTT: "1986-02-09T00:00:00Z",
     startPhase: 0.62,
     fact: "Returns every ~76 years; next perihelion in 2061. Parent body of both the Eta Aquariids (May) and Orionids (October) meteor showers — Earth crosses its trail twice per orbit.",
     visualRadius: 0.07,
@@ -879,6 +884,7 @@ export const namedBodies: NamedBody[] = [
     longNodeDeg: 139.4,
     argPeriDeg: 153.0,
     periodYears: 133.3,
+    perihelionTT: "1992-12-12T00:00:00Z",
     startPhase: 0.18,
     fact: "Source of the Perseids meteor shower (peaks August 12 each year). Nucleus is ~26 km across — one of the largest objects that repeatedly crosses Earth's orbit.",
     visualRadius: 0.06,
@@ -893,6 +899,7 @@ export const namedBodies: NamedBody[] = [
     longNodeDeg: 235.2,
     argPeriDeg: 172.5,
     periodYears: 33.2,
+    perihelionTT: "1998-02-28T00:00:00Z",
     startPhase: 0.34,
     fact: "Source of the Leonids meteor shower (peaks November 17). Every 33 years its return triggers spectacular Leonid storms — the 1833 storm rained ~100,000 meteors per hour over North America.",
     visualRadius: 0.05,
@@ -907,6 +914,7 @@ export const namedBodies: NamedBody[] = [
     longNodeDeg: 334.6,
     argPeriDeg: 186.5,
     periodYears: 3.3,
+    perihelionTT: "2017-03-10T00:00:00Z",
     startPhase: 0.71,
     fact: "Shortest-period known comet — completes an orbit in just 3.3 years, the second comet ever found to be periodic. Parent of the Taurid meteor shower in October/November.",
     visualRadius: 0.05,
@@ -921,6 +929,7 @@ export const namedBodies: NamedBody[] = [
     longNodeDeg: 195.4,
     argPeriDeg: 173.0,
     periodYears: 6.6,
+    perihelionTT: "2018-09-10T00:00:00Z",
     startPhase: 0.05,
     fact: "Parent of the Draconids meteor shower (peaks October 8). Visited by the ICE spacecraft in 1985 — the first ever direct flyby of a comet's tail.",
     visualRadius: 0.05,
@@ -935,6 +944,7 @@ export const namedBodies: NamedBody[] = [
     longNodeDeg: 282.9,
     argPeriDeg: 130.6,
     periodYears: 2533,       // returns ~4385 CE
+    perihelionTT: "1997-04-01T00:00:00Z",
     startPhase: 0.30,
     fact: "The Great Comet of 1997 — visible to the naked eye for 18 months, the longest period of unaided visibility of any comet in modern history. Bright enough to see from city centres. Won't return until around the year 4385.",
     visualRadius: 0.075,
@@ -949,6 +959,7 @@ export const namedBodies: NamedBody[] = [
     longNodeDeg: 50.1,
     argPeriDeg: 12.8,
     periodYears: 6.44,
+    perihelionTT: "2015-08-13T00:00:00Z",
     startPhase: 0.65,
     fact: "Famous as the first comet humanity ever landed on — ESA's Philae touched down on 67P's surface November 12, 2014. Rubber-duck shaped (two lobes fused), only 4.3 × 4.1 km. Mother ship Rosetta tracked it through perihelion in August 2015, watching jets of gas erupt as the comet warmed.",
     visualRadius: 0.06,

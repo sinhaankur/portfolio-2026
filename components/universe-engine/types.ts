@@ -266,6 +266,13 @@ export type NamedBody = {
   elementsEpoch?: string
   /** Period in Earth years. Use Infinity for interstellar visitors. */
   periodYears: number
+  /** ISO date (UTC) of a known perihelion passage — the true epoch anchor
+   *  for a periodic body. When present, mean anomaly becomes a real
+   *  function of date: M(t) = 2π·((simMs − perihelionMs) / periodMs), which
+   *  is 0 at perihelion. This is what makes "jump to Halley's 2061
+   *  perihelion" actually put the comet at perihelion. Without it the body
+   *  falls back to the approximate startPhase offset. */
+  perihelionTT?: string
   /** 0–1 phase along the orbit at scene start (jitters body positions). */
   startPhase: number
   /** Short fact shown in the info panel. */

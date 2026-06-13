@@ -2894,11 +2894,16 @@ function NamedBodyMesh({
     // Date-driven anchor for periodic bodies: real period in days + a base
     // mean anomaly. Each frame we recompute config.phase from the sim date
     // so periodic comets are scrubbable and land in the same place every
-    // time you revisit a date (rather than free-running off a one-time
-    // accumulator). We lack true per-comet J2000 ephemerides, so the base
-    // phase is a fixed offset — period + direction are real, absolute
+    // time you revisit a date.
+    //
+    // When the body carries a real perihelion-passage date (perihelionTT),
+    // mean anomaly is anchored to it: M = 0 exactly at perihelion, so
+    // jumping the timeline to a known perihelion (Halley 2061) puts the
+    // comet at perihelion for real. Bodies without that date fall back to
+    // a fixed startPhase offset — period + direction are real, absolute
     // longitude is approximate.
     const periodDaysReal = isFinite(body.periodYears) ? body.periodYears * 365.25 : 0
+    const perihelionMs = body.perihelionTT ? Date.parse(body.perihelionTT) : null
     const baseMeanAnomaly = phase
     // Orientation of the orbital plane in 3D — without these the orbit is
     // correctly tilted but oriented arbitrarily, so Voyager 1's escape
@@ -2952,7 +2957,7 @@ function NamedBodyMesh({
     // (Arend-Roland 1957, Tsuchinshan-ATLAS 2024). Of the catalog, only
     // Tsuchinshan-ATLAS qualifies — its fact text already calls it out.
     const hasAntiTail = body.name === "Comet Tsuchinshan-ATLAS"
-    return { a, e, inclination, longNode, argPeri, visualRadius, angularSpeed, phase, periodDaysReal, baseMeanAnomaly, direction, shade, shadeRgb, isLoop: isFinite(body.periodYears), hasTail, tailLengthFactor, hasAntiTail }
+    return { a, e, inclination, longNode, argPeri, visualRadius, angularSpeed, phase, periodDaysReal, perihelionMs, baseMeanAnomaly, direction, shade, shadeRgb, isLoop: isFinite(body.periodYears), hasTail, tailLengthFactor, hasAntiTail }
   }, [body])
   const cometAffordance = useMemo(
     () =>
@@ -2974,6 +2979,31 @@ function NamedBodyMesh({
   // dwarfs — bodies whose motion is the headline detail. Built lazily so
   // bodies without a trail (asteroids, spacecraft using custom shapes)
   // don't allocate.
+  // Programmatic focus — the timeline "Moments" waypoints dispatch
+  // universe:sky-focus with pointId "named:<name>" to frame a comet after
+  // jumping to its perihelion. Mirrors the click handler's requestFollow so
+  // the camera locks on and tracks the body as it sweeps perihelion.
+  useEffect(() => {
+    if (!interactive) return
+    const onFocus = (e: Event) => {
+      const id = (e as CustomEvent<{ pointId?: string }>).detail?.pointId
+      if (id !== `named:${body.name}`) return
+      requestFollow(
+        () => {
+          const g = groupRef.current
+          if (!g) return null
+          const v = new Vector3()
+          g.getWorldPosition(v)
+          return { x: v.x, y: v.y, z: v.z }
+        },
+        body.kind === "dwarf" ? 2.4 : 1.6,
+        body.name,
+      )
+    }
+    window.addEventListener("universe:sky-focus", onFocus)
+    return () => window.removeEventListener("universe:sky-focus", onFocus)
+  }, [interactive, body.name, body.kind])
+
   useEffect(() => {
     const wantsTrail = body.kind === "comet" || body.kind === "interstellar" || body.kind === "dwarf" || body.name === "Comet Borisov"
     if (!wantsTrail) return
@@ -3091,9 +3121,16 @@ function NamedBodyMesh({
     // they're scrubbable and deterministic; interstellars keep ping-ponging
     // off the accumulator since they don't loop and have no period.
     if (config.isLoop && config.periodDaysReal > 0) {
-      config.phase =
-        config.baseMeanAnomaly +
-        config.direction * 2 * Math.PI * daysSinceJ2000(simTimeRef.current.simMs) / config.periodDaysReal
+      if (config.perihelionMs != null) {
+        // Real anchor: M = 0 at perihelion, growing with days since it.
+        const daysSincePeri = (simTimeRef.current.simMs - config.perihelionMs) / 86_400_000
+        config.phase = config.direction * 2 * Math.PI * daysSincePeri / config.periodDaysReal
+      } else {
+        // Approximate anchor off J2000 + a fixed offset.
+        config.phase =
+          config.baseMeanAnomaly +
+          config.direction * 2 * Math.PI * daysSinceJ2000(simTimeRef.current.simMs) / config.periodDaysReal
+      }
     } else {
       config.phase += delta * config.angularSpeed * tw
     }
