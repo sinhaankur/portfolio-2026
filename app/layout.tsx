@@ -10,6 +10,7 @@ import Script from "next/script"
 import { Inter, Instrument_Serif, JetBrains_Mono, Fraunces } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
 import { DisplayPrefsProvider } from "@/components/display-prefs"
+import { VisitorAnalytics } from "@/components/analytics/visitor-analytics"
 import "./globals.css"
 
 // Google Tag Manager container — feeds GA4 + any future marketing tags from
@@ -208,6 +209,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         </Script>
       </head>
       <body className="font-sans antialiased overflow-x-hidden bg-background text-foreground">
+        <VisitorAnalytics />
         {/* GTM noscript fallback — fires the container for visitors with
             JS disabled so basic page-view counts still land. */}
         <noscript>

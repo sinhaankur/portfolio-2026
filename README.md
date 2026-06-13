@@ -85,6 +85,29 @@ fallback only; the live site no longer routes through Netlify.
 
 ---
 
+## Visitor analytics
+
+Visitor tracking is enabled through Google Tag Manager in
+[`app/layout.tsx`](./app/layout.tsx) and a client analytics bridge in
+[`components/analytics/visitor-analytics.tsx`](./components/analytics/visitor-analytics.tsx).
+
+Events pushed to `dataLayer`:
+
+- `visitor_session_start`
+  - `visitor_id` (anonymous localStorage id)
+  - `visitor_new` (first time on this browser)
+  - `visitor_first_session_today`
+  - `visitor_day`
+  - `referrer`
+- `page_view`
+  - `page_path`
+  - `page_title`
+
+In GTM/GA4, map these event names and parameters to report unique visitors,
+new vs returning sessions, and per-route traffic.
+
+---
+
 ## License & use
 
 **Personal Portfolio License. Copyright (c) 2026 Ankur Sinha. All rights reserved.**
