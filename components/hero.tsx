@@ -162,7 +162,7 @@ export function Hero() {
           trackpad / mouse wheel). Click-to-focus + Destinations menu give
           users a way to actually fly to bodies. */}
       {interactive && !tvBrowserFallback && (
-        <p className="absolute bottom-36 md:bottom-24 left-1/2 -translate-x-1/2 z-20 font-mono text-[10px] tracking-[0.25em] uppercase text-foreground/55 pointer-events-none whitespace-nowrap">
+        <p className="absolute bottom-36 md:bottom-52 lg:bottom-48 left-1/2 -translate-x-1/2 z-20 font-mono text-[10px] tracking-[0.25em] uppercase text-foreground/55 pointer-events-none whitespace-nowrap max-w-[calc(100vw-4rem)] text-center">
           <span className="md:hidden">Tap any body to follow its orbit</span>
           <span className="hidden md:inline">Click any body — planet, moon, comet, spacecraft — to follow its orbit</span>
         </p>
@@ -289,6 +289,7 @@ export function Hero() {
 
       {/* Scroll Indicator — hidden on mobile because the Enter Work CTA covers
           the same affordance and the bottom band is crowded enough on phones. */}
+      {!interactive && (
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -311,6 +312,7 @@ export function Hero() {
           <div className="w-px h-8 bg-linear-to-b from-foreground/50 to-transparent" />
         </motion.div>
       </motion.div>
+      )}
     </section>
   )
 }
