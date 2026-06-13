@@ -61,33 +61,47 @@ export function GalaxyMusic() {
 
   useEffect(() => {
     let cancelled = false
+    // Failsafe: the SoundCloud Widget READY event is occasionally flaky
+    // (it never fires if the API binds before the cross-origin iframe has
+    // posted back). Don't let that leave the button disabled forever —
+    // enable it after a short grace period and let the first click drive
+    // playback, which forces the widget to initialise anyway.
+    let readyFallback: ReturnType<typeof setTimeout> | null = null
+
+    const bindWidget = (SC: SCAPI) => {
+      if (cancelled || !iframeRef.current) return
+      const widget = SC.Widget(iframeRef.current)
+      widgetRef.current = widget
+      widget.bind(SC.Widget.Events.READY, () => {
+        if (cancelled) return
+        if (readyFallback) clearTimeout(readyFallback)
+        widget.setVolume(45)
+        setReady(true)
+      })
+      widget.bind(SC.Widget.Events.PLAY, () => {
+        if (!cancelled) setPlaying(true)
+      })
+      widget.bind(SC.Widget.Events.PAUSE, () => {
+        if (!cancelled) setPlaying(false)
+      })
+      widget.bind(SC.Widget.Events.FINISH, () => {
+        if (!cancelled) setPlaying(false)
+      })
+      // If READY hasn't arrived in 2.5s, enable the control anyway.
+      readyFallback = setTimeout(() => {
+        if (!cancelled) setReady(true)
+      }, 2500)
+    }
 
     loadSoundCloudAPI()
-      .then((SC) => {
-        if (cancelled || !iframeRef.current) return
-        const widget = SC.Widget(iframeRef.current)
-        widgetRef.current = widget
-        widget.bind(SC.Widget.Events.READY, () => {
-          if (cancelled) return
-          widget.setVolume(45)
-          setReady(true)
-        })
-        widget.bind(SC.Widget.Events.PLAY, () => {
-          if (!cancelled) setPlaying(true)
-        })
-        widget.bind(SC.Widget.Events.PAUSE, () => {
-          if (!cancelled) setPlaying(false)
-        })
-        widget.bind(SC.Widget.Events.FINISH, () => {
-          if (!cancelled) setPlaying(false)
-        })
-      })
+      .then(bindWidget)
       .catch(() => {
         if (!cancelled) setLoadError(true)
       })
 
     return () => {
       cancelled = true
+      if (readyFallback) clearTimeout(readyFallback)
       try {
         widgetRef.current?.pause()
       } catch {
@@ -97,9 +111,18 @@ export function GalaxyMusic() {
   }, [])
 
   const toggle = () => {
-    if (!widgetRef.current) return
-    if (playing) widgetRef.current.pause()
-    else widgetRef.current.play()
+    const widget = widgetRef.current
+    if (!widget) return
+    // Optimistically flip the icon — the PLAY/PAUSE binds will correct it.
+    // Some browsers won't deliver the bound events until the first user
+    // gesture, so driving the icon off local intent keeps the UI honest.
+    if (playing) {
+      widget.pause()
+      setPlaying(false)
+    } else {
+      widget.play()
+      setPlaying(true)
+    }
   }
 
   // Iframe is loaded but kept visually hidden — we control playback via the widget API.
@@ -112,23 +135,28 @@ export function GalaxyMusic() {
 
   return (
     <>
-      {/* Hidden audio source. Visually-hidden but kept in the layout for the widget API. */}
+      {/* Hidden audio source. Kept off-screen (not zero-area) so browsers
+          still fully initialise the cross-origin iframe — a 1×1 / display:none
+          frame can be deprioritised, which stops the Widget API from ever
+          becoming ready. We give it real dimensions and push it off-screen. */}
       <iframe
         ref={iframeRef}
         src={embedSrc}
-        width="1"
-        height="1"
+        width="320"
+        height="166"
         title="Ambient music — Ludovico Einaudi, Experience (Reimagined)"
         aria-hidden="true"
         allow="autoplay"
+        tabIndex={-1}
         style={{
-          position: "absolute",
-          width: 1,
-          height: 1,
+          position: "fixed",
+          width: 320,
+          height: 166,
           opacity: 0,
           pointerEvents: "none",
           border: 0,
-          left: -9999,
+          left: -10000,
+          top: 0,
         }}
       />
 
