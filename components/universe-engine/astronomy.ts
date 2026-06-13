@@ -312,6 +312,65 @@ export function eccentricToTrue(E: number, e: number): number {
 }
 
 /* --------------------------------------------------------------------------
+ * Heliocentric Cartesian placement — the single canonical transform
+ *
+ * Used by BOTH the live comet/named-body renderer (scene.tsx) and the
+ * orbit-trail overlay (trajectory-trails.tsx) so a body provably rides on
+ * its own trail. Keeping two copies of this math is what previously left
+ * comets floating off their trails; there is now exactly one.
+ * ------------------------------------------------------------------------ */
+
+/** Scene units per sqrt(AU). Distances are sqrt-compressed so the inner
+ *  and outer solar system both stay legible in one frame. */
+export const SCENE_SCALE = 3
+
+/** Compress a real heliocentric radius (AU) into scene units. */
+export function compressRadius(rAU: number): number {
+  return Math.sqrt(Math.max(rAU, 0)) * SCENE_SCALE
+}
+
+/**
+ * Convert orbital elements + a true anomaly into a scene-space position.
+ *
+ * Returns `[x, y, z]` in scene units, with the heliocentric radius
+ * sqrt-compressed by {@link compressRadius}. For hyperbolic orbits (e ≥ 1)
+ * the caller passes e = 0 so this still returns a finite r = aAU; such
+ * bodies are pinned separately by the renderer.
+ */
+export function orbitalElementsToCartesian(
+  aAU: number,
+  e: number,
+  trueAnomaly: number,
+  inclination: number,
+  longNode: number,
+  argPeri: number,
+): [number, number, number] {
+  // Polar form of the conic — r in REAL AU, then compressed to scene units.
+  const rAU = (aAU * (1 - e * e)) / (1 + e * Math.cos(trueAnomaly))
+  const r = compressRadius(rAU)
+  // Step 1: position in orbital plane, perihelion at +x_orbital.
+  let xp = r * Math.cos(trueAnomaly)
+  let zp = r * Math.sin(trueAnomaly)
+  // Step 2: rotate by ω around the plane normal (y in orbital frame).
+  if (argPeri !== 0) {
+    const cw = Math.cos(argPeri)
+    const sw = Math.sin(argPeri)
+    const xRot = xp * cw - zp * sw
+    const zRot = xp * sw + zp * cw
+    xp = xRot
+    zp = zRot
+  }
+  // Step 3: tilt by inclination around the line of nodes (x-axis when Ω=0).
+  const yi = zp * Math.sin(inclination)
+  const zi = zp * Math.cos(inclination)
+  // Step 4: rotate by Ω around y (ecliptic pole).
+  if (longNode === 0) return [xp, yi, zi]
+  const cO = Math.cos(longNode)
+  const sO = Math.sin(longNode)
+  return [xp * cO - zi * sO, yi, xp * sO + zi * cO]
+}
+
+/* --------------------------------------------------------------------------
  * Pretty-print a length for the BH data overlay. Picks the most
  * legible unit per order of magnitude:
  *   < 1 km     → metres

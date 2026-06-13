@@ -26,6 +26,7 @@ import {
   meanAnomalyAt,
   moons,
   namedBodies,
+  orbitalElementsToCartesian,
   simTimeRef,
   solveKepler,
 } from "./astronomy"
@@ -144,7 +145,13 @@ function NamedBodyTrail({
   invert: boolean
 }) {
   const geometry = useMemo(() => {
-    const a = Math.sqrt(body.aAU) * 3
+    // Trace the trail with the SAME canonical transform the comet body uses
+    // (orbitalElementsToCartesian), so the body provably rides on its own
+    // trail. We step around the orbit in mean anomaly, solve Kepler for the
+    // true anomaly, then place each point exactly as scene.tsx does — real
+    // AU in, sqrt-compressed scene units out. The old local keplerianPosition
+    // used a different rotation convention + radius scaling, which warped
+    // eccentric-comet ellipses and left the body floating off the trail.
     const e = body.eccentricity
     const i = (body.inclDeg * Math.PI) / 180
     const node = ((body.longNodeDeg ?? 0) * Math.PI) / 180
@@ -154,8 +161,19 @@ function NamedBodyTrail({
 
     for (let s = 0; s <= segments; s++) {
       const M = (s / segments) * Math.PI * 2
-      const pos = keplerianPosition(a, e, i, node, peri, M)
-      positions.push(pos.x, pos.y, pos.z)
+      // Hyperbolic guard mirrors the body: e≥1 bodies are pinned by the
+      // renderer, so their "trail" is just the elements at e=0.
+      const eForTransform = e >= 1 ? 0 : e
+      const trueAnom = e >= 1 ? M : eccentricToTrue(solveKepler(M, e), e)
+      const [x, y, z] = orbitalElementsToCartesian(
+        body.aAU,
+        eForTransform,
+        trueAnom,
+        i,
+        node,
+        peri,
+      )
+      positions.push(x, y, z)
     }
 
     const geo = new BufferGeometry()

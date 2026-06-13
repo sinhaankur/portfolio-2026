@@ -79,6 +79,7 @@ import {
   meanAnomalyAt,
   moons,
   namedBodies,
+  orbitalElementsToCartesian,
   planetToInfo,
   raDecToScenePos,
   requestFlyTo,
@@ -2755,47 +2756,6 @@ const _sunDirTmp = new Vector3()
  * visual consistency with the rest of the scene (planets, moons,
  * named-body distances all live in the same sqrt(AU)·3 frame).
  */
-const SCENE_SCALE = 3 // scene units per sqrt(AU)
-function compressRadius(rAU: number): number {
-  return Math.sqrt(Math.max(rAU, 0)) * SCENE_SCALE
-}
-
-function orbitalElementsToCartesian(
-  aAU: number,
-  e: number,
-  trueAnomaly: number,
-  inclination: number,
-  longNode: number,
-  argPeri: number,
-): [number, number, number] {
-  // Polar form of the conic — r in REAL AU.
-  // For hyperbolic orbits (e ≥ 1) the caller passes e=0, so this still
-  // returns a finite r = aAU; callers using actual e ≥ 1 should pin
-  // the body separately (see the e >= 1 branch in NamedBodyMesh).
-  const rAU = (aAU * (1 - e * e)) / (1 + e * Math.cos(trueAnomaly))
-  // Compress to scene units consistently with planet/moon scaling.
-  const r = compressRadius(rAU)
-  // Step 1: position in orbital plane, perihelion at +x_orbital.
-  let xp = r * Math.cos(trueAnomaly)
-  let zp = r * Math.sin(trueAnomaly)
-  // Step 2: rotate by ω around the plane normal (y in orbital frame).
-  if (argPeri !== 0) {
-    const cw = Math.cos(argPeri)
-    const sw = Math.sin(argPeri)
-    const xRot = xp * cw - zp * sw
-    const zRot = xp * sw + zp * cw
-    xp = xRot
-    zp = zRot
-  }
-  // Step 3: tilt by inclination around the line of nodes (x-axis when Ω=0).
-  const yi = zp * Math.sin(inclination)
-  const zi = zp * Math.cos(inclination)
-  // Step 4: rotate by Ω around y (ecliptic pole).
-  if (longNode === 0) return [xp, yi, zi]
-  const cO = Math.cos(longNode)
-  const sO = Math.sin(longNode)
-  return [xp * cO - zi * sO, yi, xp * sO + zi * cO]
-}
 
 function NamedBodyMesh({
   body,
