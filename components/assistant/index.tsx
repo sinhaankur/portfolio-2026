@@ -33,7 +33,7 @@ import {
 } from "react"
 import type { MessageParam } from "@anthropic-ai/sdk/resources/messages"
 import { motion, useReducedMotion } from "framer-motion"
-import { Send, Settings, Sparkles, Loader2, AlertTriangle } from "lucide-react"
+import { Send, Settings, Sparkles, Loader2, AlertTriangle, X } from "lucide-react"
 import {
   ZERO_USAGE,
   type AssistantUsage,
@@ -48,7 +48,7 @@ import { TOOL_LABELS } from "@/lib/assistant-tools"
 import { SettingsDrawer } from "./settings-drawer"
 import { type UIMessage, type AssistantUIBlock, newId } from "./types"
 
-export function AssistantPanel() {
+export function AssistantPanel({ onClose }: { onClose?: () => void } = {}) {
   const prefersReducedMotion = useReducedMotion()
 
   /** Resolved provider config (Anthropic key + model, or local
@@ -269,19 +269,36 @@ export function AssistantPanel() {
             Universe Engine · Assistant
           </h2>
         </div>
-        <button
-          onClick={() => setSettingsOpen(true)}
-          aria-label="Open assistant settings"
-          className="
-            inline-flex items-center justify-center
-            p-2 rounded-full
-            text-muted-foreground hover:text-foreground hover:bg-secondary
-            transition-colors
-            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
-          "
-        >
-          <Settings className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setSettingsOpen(true)}
+            aria-label="Open assistant settings"
+            className="
+              inline-flex items-center justify-center
+              p-2 rounded-full
+              text-muted-foreground hover:text-foreground hover:bg-secondary
+              transition-colors
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+            "
+          >
+            <Settings className="w-4 h-4" />
+          </button>
+          {onClose && (
+            <button
+              onClick={onClose}
+              aria-label="Close assistant panel"
+              className="
+                inline-flex items-center justify-center
+                p-2 rounded-full
+                text-muted-foreground hover:text-foreground hover:bg-secondary
+                transition-colors
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+              "
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
       </header>
 
       {/* Chat scroll */}

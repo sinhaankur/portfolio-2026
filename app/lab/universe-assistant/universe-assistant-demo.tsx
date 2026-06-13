@@ -106,18 +106,19 @@ export function UniverseAssistantDemo() {
           )}
         </div>
 
-        <div className="absolute right-4 top-4 z-30 pointer-events-auto">
-          <button
-            type="button"
-            onClick={() => setPanelOpen((v) => !v)}
-            className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/55 px-4 py-2.5 font-mono text-[10px] tracking-[0.22em] uppercase text-white/85 backdrop-blur-sm hover:border-white/35 hover:text-white transition-colors"
-            aria-expanded={panelOpen}
-            aria-label={panelOpen ? "Hide AI copilot" : "Show AI copilot"}
-          >
-            <span aria-hidden="true">*</span>
-            {panelOpen ? "Hide Copilot" : "Open Copilot"}
-          </button>
-        </div>
+        {!panelOpen && (
+          <div className="absolute right-4 top-4 z-30 pointer-events-auto">
+            <button
+              type="button"
+              onClick={() => setPanelOpen(true)}
+              className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/55 px-4 py-2.5 font-mono text-[10px] tracking-[0.22em] uppercase text-white/85 backdrop-blur-sm hover:border-white/35 hover:text-white transition-colors"
+              aria-label="Open AI copilot"
+            >
+              <span aria-hidden="true">*</span>
+              Open Copilot
+            </button>
+          </div>
+        )}
 
         {panelOpen && (
           <aside
@@ -130,7 +131,7 @@ export function UniverseAssistantDemo() {
               rounded-xl md:rounded-none overflow-hidden
             "
           >
-            <AssistantPanel />
+            <AssistantPanel onClose={() => setPanelOpen(false)} />
           </aside>
         )}
       </div>
