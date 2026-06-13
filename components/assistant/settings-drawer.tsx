@@ -14,11 +14,13 @@
  * or it'll fail with a Failed-to-fetch).
  */
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
 import { Eye, EyeOff, ExternalLink, X, Check, AlertTriangle } from "lucide-react"
 import {
   type AnthropicModelId,
+  detectLocalLLMProviders,
+  type LocalProviderDetection,
   type LLMProviderId,
   PROVIDER_LABELS,
   PROVIDER_DEFAULTS,
@@ -103,6 +105,41 @@ export function SettingsDrawer({
   const [status, setStatus] = useState<"idle" | "validating" | "saved" | "error">("idle")
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [availableModels, setAvailableModels] = useState<string[]>([])
+  const [localDetection, setLocalDetection] = useState<LocalProviderDetection | null>(null)
+  const [detectingLocal, setDetectingLocal] = useState(false)
+  const [localDetectError, setLocalDetectError] = useState<string | null>(null)
+
+  const runLocalDetection = useCallback(async () => {
+    setDetectingLocal(true)
+    setLocalDetectError(null)
+    try {
+      const result = await detectLocalLLMProviders()
+      setLocalDetection(result)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      setLocalDetectError(msg)
+      setLocalDetection(null)
+    } finally {
+      setDetectingLocal(false)
+    }
+  }, [])
+
+  const applyDetectedEndpoint = useCallback(
+    (kind: "lmstudio" | "ollama", baseUrl: string, models: string[]) => {
+      setProvider(kind)
+      setStatus("idle")
+      setErrorMsg(null)
+      if (kind === "lmstudio") {
+        setLmstudioBase(baseUrl)
+        setLmstudioModel((prev) => prev || models[0] || "")
+      } else {
+        setOllamaBase(baseUrl)
+        setOllamaModel((prev) => prev || models[0] || "")
+      }
+      setAvailableModels(models)
+    },
+    [],
+  )
 
   // Hydrate from localStorage when the drawer opens. We re-read each
   // open so external changes (another tab clearing, etc.) reflect.
@@ -120,7 +157,8 @@ export function SettingsDrawer({
     setStatus("idle")
     setErrorMsg(null)
     setAvailableModels([])
-  }, [open])
+    void runLocalDetection()
+  }, [open, runLocalDetection])
 
   /* ------------------------------------------------------------ */
   /* Save handlers — one per provider so each has its own validate */
@@ -281,6 +319,77 @@ export function SettingsDrawer({
                     </label>
                   ))}
                 </div>
+
+                <div className="mt-4 rounded-md border border-border/70 bg-secondary/20 p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground">
+                      Local runtime detection
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => void runLocalDetection()}
+                      disabled={detectingLocal}
+                      className="px-3 py-1.5 rounded-full border border-border/70 text-[10px] font-mono tracking-[0.16em] uppercase text-foreground/80 hover:border-accent disabled:opacity-50 transition-colors"
+                    >
+                      {detectingLocal ? "Scanning..." : "Rescan"}
+                    </button>
+                  </div>
+
+                  {localDetectError && (
+                    <p className="mt-2 text-xs text-destructive">{localDetectError}</p>
+                  )}
+
+                  {localDetection && (
+                    <div className="mt-3 space-y-2 text-xs">
+                      <DetectionRow
+                        name="LM Studio"
+                        details={`${localDetection.lmstudio.baseUrl}${localDetection.lmstudio.models.length ? ` · ${localDetection.lmstudio.models.length} models` : ""}`}
+                        reachable={localDetection.lmstudio.reachable}
+                        actionLabel="Use"
+                        onAction={() =>
+                          applyDetectedEndpoint(
+                            "lmstudio",
+                            localDetection.lmstudio.baseUrl,
+                            localDetection.lmstudio.models,
+                          )
+                        }
+                      />
+                      <DetectionRow
+                        name="Ollama"
+                        details={`${localDetection.ollama.baseUrl}${localDetection.ollama.models.length ? ` · ${localDetection.ollama.models.length} models` : ""}`}
+                        reachable={localDetection.ollama.reachable}
+                        actionLabel="Use"
+                        onAction={() =>
+                          applyDetectedEndpoint(
+                            "ollama",
+                            localDetection.ollama.baseUrl,
+                            localDetection.ollama.models,
+                          )
+                        }
+                      />
+
+                      {localDetection.compatible
+                        .filter((entry) => entry.reachable)
+                        .slice(0, 3)
+                        .map((entry) => (
+                          <DetectionRow
+                            key={entry.baseUrl}
+                            name="OpenAI-compatible"
+                            details={`${entry.baseUrl}${entry.models.length ? ` · ${entry.models.length} models` : ""}`}
+                            reachable={entry.reachable}
+                            actionLabel="Use"
+                            onAction={() =>
+                              applyDetectedEndpoint("lmstudio", entry.baseUrl, entry.models)
+                            }
+                          />
+                        ))}
+                    </div>
+                  )}
+
+                  <p className="mt-3 text-[11px] text-muted-foreground/80 leading-relaxed">
+                    Detects LM Studio, Ollama, and common OpenAI-compatible local endpoints (including TinyLLM-style localhost runtimes).
+                  </p>
+                </div>
               </section>
 
               {/* Per-provider config */}
@@ -302,7 +411,7 @@ export function SettingsDrawer({
               {provider === "lmstudio" && (
                 <LocalConfig
                   label="LM Studio"
-                  helpText="Start LM Studio, load a model with tool-calling support (Llama 3.1+, Qwen 2.5+), and click 'Start Server' under the Developer tab. CORS is enabled by default."
+                  helpText="Start LM Studio (or any OpenAI-compatible local server), load a model with tool-calling support (Llama 3.1+, Qwen 2.5+), and start the API server. CORS must allow this origin."
                   baseUrl={lmstudioBase}
                   onBaseUrlChange={setLmstudioBase}
                   model={lmstudioModel}
@@ -317,7 +426,7 @@ export function SettingsDrawer({
               {provider === "ollama" && (
                 <LocalConfig
                   label="Ollama"
-                  helpText="Start Ollama with OLLAMA_ORIGINS=* so the browser can reach it. `ollama pull llama3.1` (or qwen2.5 — both support tool use)."
+                  helpText="Start Ollama with OLLAMA_ORIGINS=* so the browser can reach it. `ollama pull llama3.1` (or qwen2.5 - both support tool use)."
                   baseUrl={ollamaBase}
                   onBaseUrlChange={setOllamaBase}
                   model={ollamaModel}
@@ -380,6 +489,44 @@ export function SettingsDrawer({
         </>
       )}
     </AnimatePresence>
+  )
+}
+
+function DetectionRow({
+  name,
+  details,
+  reachable,
+  actionLabel,
+  onAction,
+}: {
+  name: string
+  details: string
+  reachable: boolean
+  actionLabel: string
+  onAction: () => void
+}) {
+  return (
+    <div className="flex items-center justify-between gap-2 rounded-md border border-border/60 bg-background/40 px-2.5 py-2">
+      <div className="min-w-0">
+        <p className="text-foreground/90 truncate">{name}</p>
+        <p className="text-muted-foreground truncate">{details}</p>
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        <span
+          className={`inline-flex h-2.5 w-2.5 rounded-full ${reachable ? "bg-emerald-500" : "bg-muted"}`}
+          aria-hidden="true"
+        />
+        {reachable && (
+          <button
+            type="button"
+            onClick={onAction}
+            className="px-2.5 py-1 rounded border border-border/70 text-[10px] font-mono tracking-[0.14em] uppercase hover:border-accent transition-colors"
+          >
+            {actionLabel}
+          </button>
+        )}
+      </div>
+    </div>
   )
 }
 

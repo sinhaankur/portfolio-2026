@@ -194,6 +194,111 @@ export type ValidationResult =
   | { ok: true; models?: string[] }
   | { ok: false; error: string }
 
+export type LocalEndpointProbe = {
+  label: string
+  baseUrl: string
+  reachable: boolean
+  models: string[]
+  error?: string
+}
+
+export type LocalProviderDetection = {
+  lmstudio: LocalEndpointProbe
+  ollama: LocalEndpointProbe
+  compatible: LocalEndpointProbe[]
+}
+
+const COMMON_OPENAI_COMPAT_BASE_URLS = [
+  "http://localhost:8000/v1",
+  "http://127.0.0.1:8000/v1",
+  "http://localhost:8080/v1",
+  "http://127.0.0.1:8080/v1",
+]
+
+async function probeOpenAICompatEndpoint(
+  label: string,
+  baseUrl: string,
+  timeoutMs = 2200,
+): Promise<LocalEndpointProbe> {
+  if (typeof window === "undefined") {
+    return {
+      label,
+      baseUrl,
+      reachable: false,
+      models: [],
+      error: "Detection is available in the browser only.",
+    }
+  }
+
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+
+  try {
+    const res = await fetch(`${baseUrl.replace(/\/$/, "")}/models`, {
+      signal: controller.signal,
+    })
+    if (!res.ok) {
+      return {
+        label,
+        baseUrl,
+        reachable: false,
+        models: [],
+        error: `${res.status} ${res.statusText}`,
+      }
+    }
+    const body = await res.json()
+    const models = Array.isArray(body?.data)
+      ? body.data
+        .map((m: { id?: string }) => m.id)
+        .filter((id?: string): id is string => Boolean(id))
+      : []
+    return {
+      label,
+      baseUrl,
+      reachable: true,
+      models,
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    return {
+      label,
+      baseUrl,
+      reachable: false,
+      models: [],
+      error:
+        msg.includes("aborted") || msg.includes("AbortError")
+          ? "Timeout"
+          : msg,
+    }
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+export async function detectLocalLLMProviders(): Promise<LocalProviderDetection> {
+  const [lmstudio, ollama, ...compatibles] = await Promise.all([
+    probeOpenAICompatEndpoint("LM Studio", PROVIDER_DEFAULTS.lmstudio.baseUrl),
+    probeOpenAICompatEndpoint("Ollama", PROVIDER_DEFAULTS.ollama.baseUrl),
+    ...COMMON_OPENAI_COMPAT_BASE_URLS.map((url) =>
+      probeOpenAICompatEndpoint("OpenAI-compatible", url),
+    ),
+  ])
+
+  const taken = new Set([
+    PROVIDER_DEFAULTS.lmstudio.baseUrl.replace(/\/$/, ""),
+    PROVIDER_DEFAULTS.ollama.baseUrl.replace(/\/$/, ""),
+  ])
+
+  return {
+    lmstudio,
+    ollama,
+    compatible: compatibles.filter((entry) => {
+      const normalized = entry.baseUrl.replace(/\/$/, "")
+      return !taken.has(normalized)
+    }),
+  }
+}
+
 export async function validateProviderConfig(
   cfg: ProviderConfig,
 ): Promise<ValidationResult> {

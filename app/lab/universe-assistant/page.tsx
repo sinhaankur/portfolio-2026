@@ -9,9 +9,9 @@ import { UniverseAssistantDemo } from "./universe-assistant-demo"
 
 export const metadata: Metadata = {
   title:
-    "Universe Engine Assistant — chat with a real-astronomy 3D simulation · Ankur Sinha",
+    "Universe Engine Assistant — fullscreen real-astronomy simulation with AI copilot · Ankur Sinha",
   description:
-    "An LLM front-end for the Universe Engine. Natural-language queries against 30+ named small bodies, 8 planets, 60+ deep-sky objects, projected from real J2000 coordinates. Tool use, prompt caching, browser-direct streaming. Designer + engineer: Ankur Sinha.",
+    "A universe-first fullscreen experience with an optional AI copilot. Explore real-astronomy simulation data and use natural language to steer camera/time only when needed. Tool use, prompt caching, browser-direct streaming. Designer + engineer: Ankur Sinha.",
 }
 
 type ArchitectureRow = {
@@ -93,7 +93,7 @@ export default function UniverseAssistantPage() {
     <CaseStudyLayout
       eyebrow="Lab — AI · 2026"
       title="Universe Engine Assistant"
-      subtitle="An LLM front-end for the real-astronomy 3D simulation"
+      subtitle="A fullscreen real-astronomy simulation with an optional AI copilot"
       period="May 2026"
       role="Designer + engineer"
       tags={[
@@ -107,17 +107,15 @@ export default function UniverseAssistantPage() {
       ]}
       intro={
         <p>
-          The Universe Engine renders a real solar system at the current epoch:
-          orbital elements pulled from JPL, J2000 coordinates for the
-          constellations, 30+ named small bodies that obey Kepler&apos;s second
-          law. Visitors explore it by clicking. This assistant lets them
-          explore it by{" "}
-          <em>asking</em> — natural-language queries that translate into the
-          same scene-control actions the HUD already wires up. The interesting
-          engineering is what holds it together: browser-direct streaming with
-          a BYO Anthropic key, prompt caching on a 30&nbsp;KB injected
-          dataset, and a manual tool-use loop that dispatches each call into
-          the live engine refs.
+          The Universe Engine remains the primary surface: a fullscreen, real
+          solar-system simulation at the current epoch with JPL-derived orbital
+          elements, J2000 sky projection, and 30+ named small bodies obeying
+          Kepler&apos;s second law. The assistant is intentionally secondary — an
+          optional copilot you open when you want to ask for a jump, a date,
+          or a comparison. Under the hood, that still runs through browser-direct
+          streaming with a BYO Anthropic key, prompt caching on a 30&nbsp;KB
+          injected dataset, and a manual tool-use loop that dispatches each
+          call into the live engine refs.
         </p>
       }
       backTo={{ label: "Back to lab", href: "/#lab" }}

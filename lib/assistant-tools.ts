@@ -243,6 +243,113 @@ function findExoplanetHost(name: string): ExoplanetHost | undefined {
   )
 }
 
+export type UniverseSearchHit = {
+  name: string
+  kind: string
+  source: "sun" | "planet" | "named-body" | "sky-point" | "exoplanet-host"
+  subtitle?: string
+}
+
+function scoreSearchValue(query: string, haystack: string): number {
+  if (!haystack) return -1
+  const q = query.toLowerCase().trim()
+  const value = haystack.toLowerCase().trim()
+  if (!q || !value) return -1
+  if (value === q) return 100
+  if (value.startsWith(q)) return 80
+  if (value.includes(` ${q}`)) return 65
+  if (value.includes(q)) return 50
+  return -1
+}
+
+export function searchUniverseCatalog(query: string, limit = 12): UniverseSearchHit[] {
+  const q = query.trim().toLowerCase()
+  if (!q) return []
+
+  const scored: Array<{ hit: UniverseSearchHit; score: number }> = []
+  const pushScored = (hit: UniverseSearchHit, aliases: string[] = []) => {
+    const values = [hit.name, ...aliases]
+    const best = values.reduce((max, value) => {
+      const score = scoreSearchValue(q, value)
+      return score > max ? score : max
+    }, -1)
+    if (best >= 0) scored.push({ hit, score: best })
+  }
+
+  pushScored(
+    {
+      name: "Sun",
+      kind: "star",
+      source: "sun",
+      subtitle: "Solar system anchor",
+    },
+    ["sol"],
+  )
+
+  planetsData.forEach((planet) => {
+    pushScored(
+      {
+        name: planet.name,
+        kind: "planet",
+        source: "planet",
+        subtitle: `${planet.classification} planet`,
+      },
+      [planet.classification],
+    )
+  })
+
+  namedBodies.forEach((body) => {
+    pushScored(
+      {
+        name: body.name,
+        kind: body.kind,
+        source: "named-body",
+        subtitle: body.designation,
+      },
+      [body.designation, body.kind],
+    )
+  })
+
+  skyPoints.forEach((point) => {
+    pushScored(
+      {
+        name: point.name,
+        kind: point.kind,
+        source: "sky-point",
+        subtitle: point.designation,
+      },
+      [point.designation, point.kind],
+    )
+  })
+
+  EXOPLANET_HOSTS_NEARBY.forEach((host) => {
+    pushScored(
+      {
+        name: host.name,
+        kind: host.kind,
+        source: "exoplanet-host",
+        subtitle: host.designation,
+      },
+      [host.designation, host.kind],
+    )
+  })
+
+  const deduped = new Map<string, { hit: UniverseSearchHit; score: number }>()
+  for (const row of scored) {
+    const key = row.hit.name.toLowerCase()
+    const prev = deduped.get(key)
+    if (!prev || row.score > prev.score) deduped.set(key, row)
+  }
+
+  return Array.from(deduped.values())
+    .sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score
+      return a.hit.name.localeCompare(b.hit.name)
+    })
+    .slice(0, limit)
+    .map((row) => row.hit)
+}
+
 /** Project a host's RA/Dec onto the engine's sky shell. Matches
  *  raDecToScenePos in the engine: spherical → Cartesian with radius
  *  150 (SKY_SHELL_DISTANCE). */
