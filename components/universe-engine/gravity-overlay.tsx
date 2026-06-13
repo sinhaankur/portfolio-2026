@@ -61,9 +61,19 @@ const GRID_EXTENT = 32
 const GRID_Y = 0.06
 const INFLUENCE_SCALE = 0.55
 const INFLUENCE_CAP = 45 // scene units — prevents supermassive BHs from engulfing everything
-const ARROW_MAX_SCALE = 0.55
-const ARROW_MIN_SCALE = 0.08
+// Minimum visible Hill-sphere radius (scene units) — matches
+// sphere-of-influence.tsx so inner planets stay findable at camera distance.
+const HILL_VISUAL_MIN = 0.18
+const ARROW_MAX_SCALE = 0.62
+const ARROW_MIN_SCALE = 0.07
 const FIELD_STRENGTH_SCALE = 0.000_015
+// Log-domain span the normalised field magnitude is divided by. Tuned so
+// the field spreads smoothly across the arrow-length band: faint outer grid
+// ≈0, mid-system ~0.1, near-Earth ~0.5, near-Jupiter ~0.9, near-Sun →1,
+// rather than saturating near every mass and flooring everywhere else.
+const FIELD_LOG_RANGE = 3.2
+const ARROW_ALPHA_MIN = 0.06
+const ARROW_ALPHA_MAX = 0.5
 
 /* --------------------------------------------------------------------------
  * Precomputed sky black holes (massive bodies on the sky shell)
@@ -145,8 +155,23 @@ function netGravityAt(
   return net
 }
 
+/** Visual marker radius for bodies with no orbital Hill sphere (the Sun,
+ *  distant black holes). Mass-based, sqrt-compressed, capped so the
+ *  supermassive ones don't engulf the scene. Not a physical boundary —
+ *  just a "this is massive" halo. */
 function influenceRadius(massEarth: number): number {
   return Math.min(INFLUENCE_CAP, Math.sqrt(massEarth) * INFLUENCE_SCALE)
+}
+
+/** Real Hill-sphere radius (scene units) for a planet: the region where the
+ *  planet's gravity dominates the Sun's for nearby orbits.
+ *      r_H = a · (m / 3M)^(1/3)
+ *  Matches sphere-of-influence.tsx exactly so the two overlays agree when
+ *  both are on. A visual minimum keeps inner-planet spheres findable. */
+function planetHillRadius(planet: ScenePlanet): number {
+  const mass = Math.max(planet.raw.deep?.massEarth ?? 0.1, 0.001)
+  const trueHill = planet.orbitRadius * Math.cbrt(mass / (3 * SUN_MASS_EARTH))
+  return Math.max(HILL_VISUAL_MIN, trueHill)
 }
 
 /* --------------------------------------------------------------------------
@@ -157,7 +182,6 @@ const _tempVec3B = new Vector3()
 const _tempVec3C = new Vector3()
 const _tempQuat = new Quaternion()
 const _tempMatrix = new Matrix4()
-const _tempColor = new Color()
 
 /* --------------------------------------------------------------------------
  * Influence spheres — solar system + distant massive bodies
@@ -190,13 +214,12 @@ function InfluenceSpheres({
       idx++
     }
 
-    // Planets
+    // Planets — real Hill sphere (physical), not the mass-halo hack.
     for (const planet of planets) {
       if (!children[idx]) continue
       const pos = planetScenePosition(planet, simMs)
       children[idx].position.copy(pos)
-      const mass = planet.raw.deep?.massEarth ?? 0.1
-      children[idx].scale.setScalar(Math.max(0.4, influenceRadius(mass)))
+      children[idx].scale.setScalar(planetHillRadius(planet))
       idx++
     }
 
@@ -302,6 +325,11 @@ function VectorField({
       }),
     [invert],
   )
+  // Base RGB the per-instance brightness multiplies against.
+  const arrowBaseColor = useMemo(
+    () => new Color(invert ? "#c95824" : "#7ec8ff"),
+    [invert],
+  )
 
   const instanceCount = GRID_SIZE * GRID_SIZE
 
@@ -333,36 +361,49 @@ function VectorField({
         const z = -halfExtent + iz * step + step * 0.5
         const point = _tempVec3B.set(x, GRID_Y, z)
 
-        const g = netGravityAt(point, bodies)
-        const strength = g.length()
+        const gVec = netGravityAt(point, bodies)
+        const strength = gVec.length()
 
-        const scale =
-          ARROW_MIN_SCALE +
-          Math.min(1, strength * FIELD_STRENGTH_SCALE) *
-            (ARROW_MAX_SCALE - ARROW_MIN_SCALE)
+        // Gravity spans many orders of magnitude (∝ 1/r²), so a linear map
+        // saturates near every mass and floors everywhere else — the field
+        // ends up reading as direction-only. Map magnitude through a LOG
+        // curve instead, normalised across the field's real dynamic range,
+        // so a faint outer-system pull and a strong near-planet pull both
+        // land somewhere readable on the arrow-length band.
+        const logStrength = Math.log10(1 + strength * FIELD_STRENGTH_SCALE)
+        const norm = Math.min(1, logStrength / FIELD_LOG_RANGE)
+
+        // Length encodes magnitude (the arrow reaches further when the pull
+        // is stronger); the cross-section grows only gently so strong
+        // vectors read as reach, not girth — keeps the field from clotting.
+        const lengthScale = ARROW_MIN_SCALE + norm * (ARROW_MAX_SCALE - ARROW_MIN_SCALE)
+        const girthScale = ARROW_MIN_SCALE + norm * (ARROW_MAX_SCALE - ARROW_MIN_SCALE) * 0.4
 
         _tempQuat.setFromUnitVectors(
           _tempVec3C.set(0, 1, 0),
-          g.normalize(),
+          gVec.normalize(),
         )
 
-        _tempMatrix.compose(point, _tempQuat, _tempVec3A.set(scale, scale, scale))
+        _tempMatrix.compose(
+          point,
+          _tempQuat,
+          _tempVec3A.set(girthScale, lengthScale, girthScale),
+        )
         meshRef.current.setMatrixAt(instanceIdx, _tempMatrix)
 
-        const alpha =
-          0.08 + Math.min(1, strength * FIELD_STRENGTH_SCALE * 2.5) * 0.35
-        _tempColor.set(arrowMat.color)
-        meshRef.current.setColorAt(
-          instanceIdx,
-          _tempColor.setRGB(_tempColor.r, _tempColor.g, _tempColor.b),
-        )
-        // Dim the instance by alpha via the color multiplier trick
+        // Brightness tracks the same normalised magnitude, so strong-field
+        // regions glow and faint ones recede — a second, redundant channel
+        // for the same quantity (helps the colour-blind + low-contrast case).
+        const alpha = ARROW_ALPHA_MIN + norm * (ARROW_ALPHA_MAX - ARROW_ALPHA_MIN)
         const colAttr = meshRef.current.instanceColor
         if (colAttr) {
-          const r = _tempColor.r * (alpha / 0.35)
-          const g = _tempColor.g * (alpha / 0.35)
-          const b = _tempColor.b * (alpha / 0.35)
-          colAttr.setXYZ(instanceIdx, r, g, b)
+          const k = alpha / ARROW_ALPHA_MAX
+          colAttr.setXYZ(
+            instanceIdx,
+            arrowBaseColor.r * k,
+            arrowBaseColor.g * k,
+            arrowBaseColor.b * k,
+          )
         }
 
         instanceIdx++
