@@ -17,7 +17,6 @@ import {
   type ActionCommand,
 } from '../../../lib/neural-game-engine';
 // import { createNeuralAgent, type NeuralAgent } from '../../../lib/neural-game-engine/ai-agent';
-import { generateShip } from '../../../lib/ship-generator/procedural-ships';
 import { createInitialGameState, startIgnition, startExploration, selectGameMode, formatScore, IGNITION_STARTUP_DURATION } from './game-state';
 import { ModeSelect } from './mode-select';
 import { HUD } from './hud';
@@ -930,24 +929,36 @@ const MemoPlayerShipGroup = memo(
     prev.gameState.selectedShip === next.gameState.selectedShip
 );
 
+// Blender enemy GLBs by class. Built Y-forward (same basis as the player
+// ship), so they reuse SHIP_MODEL_BASIS_ROTATION.
+const ENEMY_MODEL_PATHS: Record<string, string> = {
+  fighter: '/models/enemy-fighter.glb',
+  sniper: '/models/enemy-sniper.glb',
+  swarm: '/models/enemy-swarm.glb',
+  boss: '/models/enemy-boss.glb',
+};
+Object.values(ENEMY_MODEL_PATHS).forEach((p) => useGLTF.preload(p));
+
 function EnemyShipGroup({ enemy }: { enemy: GameEntity }) {
   const groupRef = useRef<THREE.Group>(null);
   const factionClass = (enemy.metadata?.class ?? 'fighter') as any;
+  const modelPath = ENEMY_MODEL_PATHS[factionClass] ?? ENEMY_MODEL_PATHS.fighter;
+  const gltf = useGLTF(modelPath);
   const shipGroup = useMemo(() => {
-    let shipFaction: 'player' | 'alien_basic' | 'alien_sniper' | 'alien_swarm' | 'boss' = 'alien_basic';
-    if (factionClass === 'sniper') shipFaction = 'alien_sniper';
-    else if (factionClass === 'swarm') shipFaction = 'alien_swarm';
-    else if (factionClass === 'boss') shipFaction = 'boss';
-
-    return generateShip({
-      faction: shipFaction,
-      class: factionClass === 'boss' ? 'destroyer' : 'fighter',
-      seed: parseInt(enemy.id.replace(/\D/g, '')) || Math.random() * 1000,
-      scale: enemy.radius / 0.8,
-      color1: factionClass === 'boss' ? { r: 0.6, g: 0.2, b: 0.1 } : { r: 0.5, g: 0.1, b: 0.1 },
-      color2: factionClass === 'boss' ? { r: 1, g: 0.3, b: 0.1 } : { r: 0.9, g: 0.2, b: 0.2 },
+    const cloned = gltf.scene.clone(true);
+    cloned.traverse((child) => {
+      if (child instanceof THREE.Mesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+        child.frustumCulled = false;
+      }
     });
-  }, [enemy.id, factionClass]);
+    // Scale the model to the entity's gameplay radius (source enemies are
+    // modelled ~1-3 units; normalise toward the sim radius).
+    const s = (enemy.radius / 0.8) * 0.6;
+    cloned.scale.setScalar(s);
+    return cloned;
+  }, [gltf.scene, enemy.radius]);
 
   // Calculate movement speed for glow intensity
   const speed = Math.sqrt(enemy.velocity.x ** 2 + enemy.velocity.y ** 2 + enemy.velocity.z ** 2);
@@ -968,7 +979,10 @@ function EnemyShipGroup({ enemy }: { enemy: GameEntity }) {
       position={[enemy.position.x, enemy.position.y, enemy.position.z]}
       rotation={[enemy.rotation.x, enemy.rotation.y, enemy.rotation.z]}
     >
-      <primitive object={shipGroup} />
+      {/* Y-forward GLB → game -Z forward, same basis as the player ship. */}
+      <group rotation={SHIP_MODEL_BASIS_ROTATION}>
+        <primitive object={shipGroup} />
+      </group>
 
       {/* Engine glow */}
       <mesh position={[0, 0, -2]}>
