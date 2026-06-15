@@ -240,6 +240,42 @@ const CLOUD_FRAGMENT_SHADER = `
 `
 
 /* ============================================================
+ * Nebula haze shader — big soft additive billboards for diffuse gas/dust.
+ * Each point is a large, very soft radial blob with a gentle per-cloud
+ * twinkle so the haze breathes. Color + size + alpha come from attributes.
+ * ============================================================ */
+const NEBULA_VERTEX_SHADER = `
+  attribute float aSize;
+  attribute float aAlpha;
+  attribute vec3  aColor;
+  varying float vAlpha;
+  varying vec3  vColor;
+  uniform float uTime;
+  uniform float uPixelRatio;
+  void main() {
+    vAlpha = aAlpha;
+    vColor = aColor;
+    float breathe = 0.92 + 0.08 * sin(uTime * 0.4 + position.x * 2.3 + position.z * 1.7);
+    vec4 mv = modelViewMatrix * vec4(position, 1.0);
+    gl_Position = projectionMatrix * mv;
+    gl_PointSize = aSize * breathe * uPixelRatio * (320.0 / -mv.z);
+    gl_PointSize = clamp(gl_PointSize, 4.0, 520.0);
+  }
+`
+const NEBULA_FRAGMENT_SHADER = `
+  varying float vAlpha;
+  varying vec3  vColor;
+  void main() {
+    vec2 uv = gl_PointCoord * 2.0 - 1.0;
+    float d = length(uv);
+    if (d > 1.0) discard;
+    // Very soft falloff — gas haze, not a star. Squared for a smooth core.
+    float a = pow(1.0 - d, 2.4);
+    gl_FragColor = vec4(vColor, a * vAlpha);
+  }
+`
+
+/* ============================================================
  * Atmospheric scattering shell shader.
  *
  * Replaces the old flat additive halo with a sun-aware limb glow: a Fresnel
@@ -614,6 +650,100 @@ function makeFocusHandler(
 }
 
 /* ============================================================
+ * Nebula clouds — diffuse gas/dust haze tracing the spiral arms.
+ * A handful of big soft additive billboards layered over the star field
+ * to give the Milky Way the volumetric glow real galaxy images have.
+ * ============================================================ */
+function NebulaClouds({ mobile = false }: { mobile?: boolean }) {
+  const pointsRef = useRef<Points>(null)
+  const matRef = useRef<ShaderMaterial>(null)
+  const { gl } = useThree()
+
+  const geometry = useMemo(() => {
+    const radius = GALAXY_RADIUS_SCENE
+    const branches = 4
+    const spin = 7
+    const count = mobile ? 22 : 44
+    const positions = new Float32Array(count * 3)
+    const sizes = new Float32Array(count)
+    const alphas = new Float32Array(count)
+    const colors = new Float32Array(count * 3)
+
+    const gauss = () =>
+      (Math.random() + Math.random() + Math.random() + Math.random() - 2) / 2
+
+    for (let i = 0; i < count; i++) {
+      const i3 = i * 3
+      // Anchor each cloud on a spiral-arm position (same math as the stars).
+      const r = (0.16 + Math.random() * 0.78) * radius
+      const branch = Math.floor(Math.random() * branches)
+      const branchAngle = (branch / branches) * Math.PI * 2
+      const spinAngle = r * spin * 0.04
+      positions[i3]     = Math.cos(branchAngle + spinAngle) * r + gauss() * 3.0
+      positions[i3 + 1] = gauss() * 1.2
+      positions[i3 + 2] = Math.sin(branchAngle + spinAngle) * r + gauss() * 3.0
+
+      const normR = r / radius
+      sizes[i]  = 26 + Math.random() * 46
+      alphas[i] = 0.05 + Math.random() * 0.07 // deliberately faint — it's haze
+
+      // Palette: Hα-pink/magenta in star-forming mid-arms, dusty blue in the
+      // outskirts, warm amber dust nearer the core.
+      const roll = Math.random()
+      if (normR < 0.4 && roll < 0.7) {
+        // Warm amber dust near the core
+        colors[i3] = 0.95; colors[i3 + 1] = 0.62; colors[i3 + 2] = 0.34
+      } else if (roll < 0.55) {
+        // Hα pink/magenta star-forming clouds
+        colors[i3] = 0.95; colors[i3 + 1] = 0.36; colors[i3 + 2] = 0.62
+      } else {
+        // Cool dusty blue
+        colors[i3] = 0.40; colors[i3 + 1] = 0.55; colors[i3 + 2] = 0.95
+      }
+    }
+
+    const geo = new BufferGeometry()
+    geo.setAttribute("position", new BufferAttribute(positions, 3))
+    geo.setAttribute("aSize", new BufferAttribute(sizes, 1))
+    geo.setAttribute("aAlpha", new BufferAttribute(alphas, 1))
+    geo.setAttribute("aColor", new BufferAttribute(colors, 3))
+    return geo
+  }, [mobile])
+
+  const uniforms = useMemo(
+    () => ({
+      uTime: { value: 0 },
+      uPixelRatio: { value: Math.min(gl.getPixelRatio(), 2) },
+    }),
+    [gl],
+  )
+
+  useFrame((_, delta) => {
+    // Drift with the disc (slow), and breathe via uTime.
+    if (pointsRef.current) {
+      pointsRef.current.rotation.y += delta * 0.0004 * (1 + timeWarpRef.current * 0.05)
+    }
+    if (matRef.current) {
+      ;(matRef.current.uniforms.uTime as { value: number }).value += delta
+    }
+  })
+
+  return (
+    <points ref={pointsRef} geometry={geometry}>
+      <shaderMaterial
+        ref={matRef}
+        vertexShader={NEBULA_VERTEX_SHADER}
+        fragmentShader={NEBULA_FRAGMENT_SHADER}
+        uniforms={uniforms}
+        transparent
+        depthWrite={false}
+        blending={AdditiveBlending}
+      />
+    </points>
+  )
+}
+
+/* ============================================================
  * Milky Way backdrop — 4 spiral arms + bulge, with hover hit-zones
  * for Sgr A* (galactic centre) and the galaxy itself.
  * ============================================================ */
@@ -867,6 +997,13 @@ function MilkyWay({
           blending={invert ? NormalBlending : AdditiveBlending}
         />
       </points>
+
+      {/* Diffuse nebula / dust haze — soft glowing gas clouds between the
+          star points, tracing the arms. Hα-pink in star-forming zones, dusty
+          blue/amber elsewhere. Points-as-billboards with a very soft radial
+          falloff; additive so they layer into a volumetric haze. Skipped in
+          chart mode (would muddy the ink-on-cream map). */}
+      {!invert && <NebulaClouds mobile={mobile} />}
 
       {/* Sgr A* — the Milky Way's 4.15 million-M☉ supermassive black hole.
           Visible mark sized to be a small accent inside the bulge, not a
