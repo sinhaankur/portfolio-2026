@@ -1,9 +1,11 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# Raw genomic data must never be committed. Only the encrypted, derived
-# summary (public/data/dna.enc.json) is allowed in the repo.
+# Personal genomic data must NEVER be committed to this PUBLIC repo — neither
+# the raw CSV nor the encrypted derived blob. Ankur's own genome lives in a
+# separate PRIVATE repo. This public site is upload-your-own-file only.
 *raw_dna*.csv
 *MyHeritage*.csv
+public/data/dna.enc.json
 
 # dependencies
 /node_modules
