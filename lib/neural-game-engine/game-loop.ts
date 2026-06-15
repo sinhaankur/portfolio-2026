@@ -104,11 +104,17 @@ export class GameLoop {
     // Update player position/velocity
     this.updateEntity(this.gameState.playerEntity, deltaTime);
 
-    // Update projectiles
+    // Update projectiles — swept collision so fast bolts don't tunnel
+    // through enemies between frames (210+ u/s vs sub-unit hit windows).
     this.gameState.projectiles.forEach((projectile) => {
+      if (!projectile.active) return;
+      const prev = {
+        x: projectile.position.x,
+        y: projectile.position.y,
+        z: projectile.position.z,
+      };
       this.updateEntity(projectile, deltaTime);
-      // Check collisions
-      this.checkProjectileCollisions(projectile);
+      this.checkProjectileCollisions(projectile, prev);
     });
 
     // Update allies (if any)
@@ -197,6 +203,10 @@ export class GameLoop {
     entity.position.y += entity.velocity.y * deltaTime;
     entity.position.z += entity.velocity.z * deltaTime;
 
+    // Projectiles fly ballistically — no drag, or plasma bolts would stall
+    // mid-flight before reaching distant targets.
+    if (entity.type === 'projectile') return;
+
     // Apply basic drag (optional, tunable)
     const dragFactor = 0.98;
     entity.velocity.x *= dragFactor;
@@ -207,48 +217,61 @@ export class GameLoop {
   /**
    * Check if projectile hit any enemy.
    */
-  private checkProjectileCollisions(projectile: GameEntity) {
-    // Simple sphere overlap
-    const hits = this.collisionSystem.sphereOverlap(
-      { x: projectile.position.x, y: projectile.position.y, z: projectile.position.z },
-      projectile.radius,
-      projectile.id
-    );
+  private checkProjectileCollisions(
+    projectile: GameEntity,
+    prevPos?: { x: number; y: number; z: number }
+  ) {
+    // Sweep the segment the bolt travelled this frame so fast shots can't
+    // skip past a target. Sample at roughly one projectile-radius spacing.
+    const from = prevPos ?? projectile.position;
+    const dx = projectile.position.x - from.x;
+    const dy = projectile.position.y - from.y;
+    const dz = projectile.position.z - from.z;
+    const travel = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    const step = Math.max(projectile.radius, 0.25);
+    const samples = Math.min(48, Math.max(1, Math.ceil(travel / step)));
 
-    hits.forEach((hit) => {
-      if (hit.team === 'enemy') {
-        // Deal damage
-        const damage = projectile.metadata?.damage ?? 10;
-        hit.health -= damage;
+    for (let s = 1; s <= samples; s++) {
+      const t = s / samples;
+      const hits = this.collisionSystem.sphereOverlap(
+        { x: from.x + dx * t, y: from.y + dy * t, z: from.z + dz * t },
+        projectile.radius,
+        projectile.id
+      );
 
-        // Record event
+      const enemyHit = hits.find((h) => h.team === 'enemy' && h.active);
+      if (!enemyHit) continue;
+
+      // Deal damage
+      const damage = projectile.metadata?.damage ?? 10;
+      enemyHit.health -= damage;
+
+      this.gameState.events.push({
+        type: 'entity_damaged',
+        source: projectile.id,
+        target: enemyHit.id,
+        amount: damage,
+        timestamp: this.gameState.simTime,
+      });
+
+      if (enemyHit.health <= 0) {
+        enemyHit.active = false;
+        const scoreReward = projectile.metadata?.scoreReward ?? 100;
+        this.gameState.score += scoreReward * this.gameState.comboMultiplier;
+
         this.gameState.events.push({
-          type: 'entity_damaged',
+          type: 'entity_killed',
           source: projectile.id,
-          target: hit.id,
-          amount: damage,
+          target: enemyHit.id,
+          amount: scoreReward,
           timestamp: this.gameState.simTime,
         });
-
-        if (hit.health <= 0) {
-          // Enemy died
-          hit.active = false;
-          const scoreReward = projectile.metadata?.scoreReward ?? 100;
-          this.gameState.score += scoreReward * this.gameState.comboMultiplier;
-
-          this.gameState.events.push({
-            type: 'entity_killed',
-            source: projectile.id,
-            target: hit.id,
-            amount: scoreReward,
-            timestamp: this.gameState.simTime,
-          });
-        }
-
-        // Projectile consumed
-        projectile.active = false;
       }
-    });
+
+      // Projectile consumed — stop sweeping.
+      projectile.active = false;
+      return;
+    }
   }
 
   /**

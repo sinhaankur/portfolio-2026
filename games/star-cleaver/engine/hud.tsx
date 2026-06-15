@@ -218,6 +218,7 @@ export function HUD({ gameState, showForwardDebug = false, onShipSelect, waypoin
           playerPos={gameState.playerEntity.position}
           playerRotationY={gameState.playerEntity.rotation.y}
           waypoints={waypoints}
+          enemies={gameState.enemies.filter((e) => e.active).map((e) => e.position)}
           nearestHazard={nearestHazard}
           nearestHazardDistance={nearestHazardDistance}
         />
@@ -436,12 +437,14 @@ function Minimap({
   playerPos,
   playerRotationY,
   waypoints,
+  enemies,
   nearestHazard,
   nearestHazardDistance,
 }: {
   playerPos: { x: number; y: number; z: number };
   playerRotationY: number;
   waypoints?: Array<{ position: [number, number, number]; label: string }>;
+  enemies?: Array<{ x: number; y: number; z: number }>;
   nearestHazard: string;
   nearestHazardDistance: number;
 }) {
@@ -470,6 +473,16 @@ function Minimap({
     color: '#4fffd1',
     size: 3,
   }));
+
+  // Hostile contacts — red blips so the player can read incoming threats.
+  (enemies ?? []).forEach((e, i) => {
+    blips.push({
+      ...worldToMap(e.x, e.y, e.z),
+      key: `enemy-${i}`,
+      color: '#ff4d4d',
+      size: 2.5,
+    });
+  });
 
   // Add nearest hazard blip if close enough
   if (nearestHazard && nearestHazardDistance > 0 && nearestHazardDistance < range * 2) {

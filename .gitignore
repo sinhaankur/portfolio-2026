@@ -50,3 +50,11 @@ blender/space-assets/reference/
 
 # Blender backup saves
 *.blend1
+
+# Blender master + backups now live in the dedicated assets repo
+# (sinhaankur/star-cleaver-assets). Don't re-commit the heavy sources here.
+blender/space-assets/space-assets.blend
+blender/space-assets/glb-backup/
+blender/space-assets/*.glb
+blender/space-assets/bodies/
+blender/space-assets/small-bodies/
