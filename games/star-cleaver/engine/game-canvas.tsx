@@ -1450,6 +1450,18 @@ const MemoMissionStartScene = memo(MissionStartScene);
 const _camPlayerPos = new THREE.Vector3();
 const _camEuler = new THREE.Euler();
 const _camQuat = new THREE.Quaternion();
+
+// User-controllable view: right-drag orbits the chase cam around the ship,
+// scroll zooms. Module-scoped so input handlers + the camera controller share
+// it without prop drilling. Decays back to centred when the user lets go.
+const cameraOrbitRef = {
+  current: {
+    yaw: 0,        // radians, left/right around the ship
+    pitch: 0,      // radians, up/down
+    zoom: 1,       // multiplier on chase distance (1 = default)
+    active: false, // true while right-dragging (suppresses auto-recenter)
+  },
+};
 const _camForward = new THREE.Vector3();
 const _camRight = new THREE.Vector3();
 const _camWorldUp = new THREE.Vector3(0, 1, 0);
@@ -1599,24 +1611,39 @@ function CameraFollowController({
     const forwardK = 1 - Math.exp(-delta * 8.2);
     smoothForwardRef.current.lerp(forwardDir, forwardK).normalize();
 
+    // User view control: orbit yaw/pitch + zoom. Decays back to centred when
+    // the user isn't right-dragging, so the cam always settles behind the ship.
+    const orbit = cameraOrbitRef.current;
+    if (!orbit.active) {
+      const decay = 1 - Math.exp(-delta * 2.4);
+      orbit.yaw += (0 - orbit.yaw) * decay;
+      orbit.pitch += (0 - orbit.pitch) * decay;
+    }
+
     const offsetDistance =
-      phaseProfile.offsetDistance +
-      ignitionCinematic * 1.5 +
-      travelStretch * 2.8 +
-      boostSpool * 2.4 +
-      accelKick * 1.1 +
-      speedJerk * 2.2;
+      (phaseProfile.offsetDistance +
+        ignitionCinematic * 1.5 +
+        travelStretch * 2.8 +
+        boostSpool * 2.4 +
+        accelKick * 1.1 +
+        speedJerk * 2.2) * orbit.zoom;
     const offsetHeight = phaseProfile.offsetHeight + ignitionCinematic * 0.42 + travelStretch * 0.35;
 
     // Keep camera behind ship orientation so nose direction is always readable.
     const cloudShake = speedJerk * 0.08;
     const turbulenceSide = Math.sin(state.clock.elapsedTime * 3.4) * cloudShake;
     const turbulenceUp = Math.sin(state.clock.elapsedTime * 5.1 + 1.7) * cloudShake * 0.6;
-    const desiredCameraPos = _camDesired
-      .copy(playerPos)
-      .addScaledVector(smoothForwardRef.current, -offsetDistance)
+    // Base "behind + above" offset from the ship.
+    const behind = _camDesired
+      .copy(smoothForwardRef.current)
+      .multiplyScalar(-offsetDistance)
       .addScaledVector(rightDir, phaseProfile.sideOffset + turbulenceSide)
       .addScaledVector(worldUp, offsetHeight + turbulenceUp);
+    // Apply the user's orbit: yaw around world-up, pitch around the camera's
+    // right axis. Lets the player look around the ship NFS-style.
+    if (orbit.yaw !== 0) behind.applyAxisAngle(worldUp, orbit.yaw);
+    if (orbit.pitch !== 0) behind.applyAxisAngle(rightDir, orbit.pitch);
+    const desiredCameraPos = behind.add(playerPos);
 
     // Ultra-smooth exponential follow: k = 1 - exp(-delta * rate)
     // Tighter and snappier during flight phases for a more responsive feel
@@ -2822,6 +2849,42 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
       keysPressed.current.delete('Mouse0');
     };
 
+    // --- User-controllable view: right-drag to orbit the chase cam, wheel to
+    // zoom. Doesn't touch steering (that's left-button / mouse-look). ---
+    let orbiting = false;
+    let lastX = 0;
+    let lastY = 0;
+    const handleContextMenu = (e: MouseEvent) => {
+      // Suppress the browser menu so right-drag can orbit the camera.
+      e.preventDefault();
+    };
+    const handleOrbitDown = (e: MouseEvent) => {
+      if (e.button !== 2) return; // right button
+      orbiting = true;
+      cameraOrbitRef.current.active = true;
+      lastX = e.clientX;
+      lastY = e.clientY;
+    };
+    const handleOrbitMove = (e: MouseEvent) => {
+      if (!orbiting) return;
+      const dx = e.clientX - lastX;
+      const dy = e.clientY - lastY;
+      lastX = e.clientX;
+      lastY = e.clientY;
+      const o = cameraOrbitRef.current;
+      o.yaw += dx * 0.005;
+      o.pitch = Math.max(-1.1, Math.min(1.1, o.pitch + dy * 0.005));
+    };
+    const handleOrbitUp = (e: MouseEvent) => {
+      if (e.button !== 2) return;
+      orbiting = false;
+      cameraOrbitRef.current.active = false;
+    };
+    const handleWheel = (e: WheelEvent) => {
+      const o = cameraOrbitRef.current;
+      o.zoom = Math.max(0.55, Math.min(2.4, o.zoom + (e.deltaY > 0 ? 0.12 : -0.12)));
+    };
+
     // Device orientation for mobile: use gyroscope to fly
     const handleDeviceOrientation = (e: DeviceOrientationEvent) => {
       if (e.alpha !== null && e.beta !== null && e.gamma !== null) {
@@ -2838,6 +2901,11 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mousedown', handleMouseDown);
     window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener('mousedown', handleOrbitDown);
+    window.addEventListener('mousemove', handleOrbitMove);
+    window.addEventListener('mouseup', handleOrbitUp);
+    window.addEventListener('contextmenu', handleContextMenu);
+    window.addEventListener('wheel', handleWheel, { passive: true });
     window.addEventListener('deviceorientation', handleDeviceOrientation);
 
     // Testing console shortcut: Ctrl+Shift+T
@@ -2867,6 +2935,11 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mousedown', handleMouseDown);
       window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('mousedown', handleOrbitDown);
+      window.removeEventListener('mousemove', handleOrbitMove);
+      window.removeEventListener('mouseup', handleOrbitUp);
+      window.removeEventListener('contextmenu', handleContextMenu);
+      window.removeEventListener('wheel', handleWheel);
       window.removeEventListener('deviceorientation', handleDeviceOrientation);
       window.removeEventListener('keydown', handleTestConsole);
     };
