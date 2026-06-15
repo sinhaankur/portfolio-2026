@@ -2182,9 +2182,15 @@ const HERO_CRAFT: Record<string, HeroCraft[]> = {
   Earth: [
     { label: "ISS", model: "/models/iss.glb", altRatio: 1.066, incl: 0.9, speed: 0.2, sizeRatio: 0.10, phase: 0 },
     { label: "Hubble", model: "/models/hubble.glb", altRatio: 1.085, incl: 0.48, speed: 0.18, sizeRatio: 0.06, phase: 2.1 },
+    // JWST sits at Sun–Earth L2 (~1.5M km out, anti-sunward). At this scene
+    // scale a far ring around Earth reads it as the distant deep-space scope.
+    { label: "JWST", model: "/models/jwst.glb", altRatio: 9.0, incl: 0.2, speed: 0.04, sizeRatio: 0.14, phase: 3.5 },
+  ],
+  Mars: [
+    { label: "MRO", model: "/models/hubble.glb", altRatio: 1.3, incl: 0.95, speed: 0.16, sizeRatio: 0.07, phase: 1.0 },
   ],
 }
-HERO_CRAFT.Earth.forEach((c) => useGLTF.preload(c.model))
+Object.values(HERO_CRAFT).flat().forEach((c) => useGLTF.preload(c.model))
 
 function HeroSatellite({ craft, bodyRadius }: { craft: HeroCraft; bodyRadius: number }) {
   const ref = useRef<import("three").Group>(null)
