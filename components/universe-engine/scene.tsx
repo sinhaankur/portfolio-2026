@@ -2171,13 +2171,16 @@ function SatelliteShellPoints({
     <group>
       <points ref={ref} geometry={geometry}>
         <pointsMaterial
-          // Smaller, sharper points so the swarm reads as thousands of tiny
-          // craft rather than chunky blocks (was bodyRadius * 0.03).
-          size={Math.max(0.006, bodyRadius * 0.013)}
+          // Real altitude ratios keep LEO tight to Earth, so the swarm only
+          // fully resolves when you zoom in. Keep the points bright + a hair
+          // larger (additive) so the band is still perceptible from afar
+          // without faking the distance.
+          size={Math.max(0.008, bodyRadius * 0.016)}
           sizeAttenuation
           color={shell.color}
           transparent
-          opacity={0.95}
+          opacity={1.0}
+          blending={AdditiveBlending}
           depthWrite={false}
         />
       </points>
@@ -2193,19 +2196,23 @@ function SatelliteShellPoints({
  *  proportionate (Starlink dominates Earth LEO); altitudes are true ratios. */
 const SATELLITE_CATALOG: Record<string, SatelliteShell[]> = {
   Earth: [
+    // Altitudes are REAL ratios (orbit radius / Earth radius): LEO ~1.05–1.19,
+    // MEO ~4.2, GEO ~6.6. At normal zoom the LEO band hugs Earth tightly (as it
+    // truly does) — zoom into Earth to see the Starlink swarm resolve. Realism
+    // over exaggeration, per the true-ratio goal.
     // --- LEO (~400–1200 km) — densest, dominated by Starlink ---
-    { label: "Starlink (LEO)", altRatio: 1.086, count: 900, color: "#9fe0ff", incl: 1.0, speed: 0.18 },
-    { label: "OneWeb (LEO)", altRatio: 1.19, count: 240, color: "#a8c0ff", incl: 1.15, speed: 0.15 },
-    { label: "Iridium (LEO)", altRatio: 1.12, count: 90, color: "#c0d8ff", incl: 1.4, speed: 0.16 },
-    { label: "Earth-observation (sun-sync polar)", altRatio: 1.11, count: 130, color: "#bfeacb", incl: 1.55, speed: 0.16 },
-    { label: "ISS / Tiangong / Hubble (low orbit)", altRatio: 1.066, count: 90, color: "#ffffff", incl: 0.9, speed: 0.2 },
+    { label: "Starlink (LEO ~550 km)", altRatio: 1.086, count: 900, color: "#9fe0ff", incl: 1.0, speed: 0.18 },
+    { label: "OneWeb (LEO ~1200 km)", altRatio: 1.19, count: 240, color: "#a8c0ff", incl: 1.15, speed: 0.15 },
+    { label: "Iridium (LEO ~780 km)", altRatio: 1.12, count: 90, color: "#c0d8ff", incl: 1.4, speed: 0.16 },
+    { label: "Earth-observation (sun-sync polar ~700 km)", altRatio: 1.11, count: 130, color: "#bfeacb", incl: 1.55, speed: 0.16 },
+    { label: "ISS / Tiangong / Hubble (~420–540 km)", altRatio: 1.066, count: 90, color: "#ffffff", incl: 0.9, speed: 0.2 },
     // --- MEO (~20,000 km) — the navigation constellations ---
-    { label: "GPS (MEO)", altRatio: 4.17, count: 31, color: "#ffd27a", incl: 0.95, speed: 0.06 },
-    { label: "GLONASS (MEO)", altRatio: 4.0, count: 24, color: "#ffcaa0", incl: 1.1, speed: 0.062 },
-    { label: "Galileo (MEO)", altRatio: 4.7, count: 28, color: "#a0ffd0", incl: 0.98, speed: 0.055 },
-    { label: "BeiDou (MEO)", altRatio: 4.3, count: 30, color: "#ffb0e0", incl: 0.95, speed: 0.058 },
+    { label: "GPS (MEO ~20,200 km)", altRatio: 4.17, count: 31, color: "#ffd27a", incl: 0.95, speed: 0.06 },
+    { label: "GLONASS (MEO ~19,100 km)", altRatio: 4.0, count: 24, color: "#ffcaa0", incl: 1.1, speed: 0.062 },
+    { label: "Galileo (MEO ~23,200 km)", altRatio: 4.7, count: 28, color: "#a0ffd0", incl: 0.98, speed: 0.055 },
+    { label: "BeiDou (MEO ~21,500 km)", altRatio: 4.3, count: 30, color: "#ffb0e0", incl: 0.95, speed: 0.058 },
     // --- GEO (~35,786 km) — the equatorial comms/weather belt ---
-    { label: "Geostationary belt", altRatio: 6.61, count: 180, color: "#ff9a6b", incl: 0.05, speed: 0.02 },
+    { label: "Geostationary belt (~35,786 km)", altRatio: 6.61, count: 180, color: "#ff9a6b", incl: 0.05, speed: 0.02 },
   ],
   Mars: [
     { label: "Mars orbiters (MRO / MAVEN / Odyssey / TGO …)", altRatio: 1.3, count: 14, color: "#ffb89a", incl: 1.1, speed: 0.12 },
