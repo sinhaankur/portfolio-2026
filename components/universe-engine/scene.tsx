@@ -721,7 +721,7 @@ function NebulaClouds({ mobile = false }: { mobile?: boolean }) {
     const radius = GALAXY_RADIUS_SCENE
     const branches = 4
     const spin = 7
-    const count = mobile ? 30 : 64
+    const count = mobile ? 48 : 110
     const positions = new Float32Array(count * 3)
     const sizes = new Float32Array(count)
     const alphas = new Float32Array(count)
@@ -830,8 +830,8 @@ function MilkyWay({
   const geometry = useMemo(() => {
     // Mobile counts run ~40% of desktop to keep the GPU breathing. The
     // shader is single-draw, so per-star count is the dominant cost.
-    const armCount    = mobile ? 7200  : 18000
-    const bulgeCount  = mobile ? 2200  : 5200
+    const armCount    = mobile ? 9000  : 30000
+    const bulgeCount  = mobile ? 2800  : 7000
     const barCount    = mobile ? 900   : 2200
     // HII regions are distributed across a number of anchor clumps so they
     // read as discrete pink star-forming knots tracing the arms, not a haze.
@@ -871,6 +871,13 @@ function MilkyWay({
       const r = Math.pow(Math.random(), 1.6) * radius
       const branchAngle = ((i % branches) / branches) * Math.PI * 2
       const spinAngle = r * spin * 0.04
+      // Arm spurs/feathering — real spiral arms aren't smooth logarithmic
+      // curves; they branch into spurs + feathers. A small radius-varying sine
+      // perturbation on the angle gives that frayed, structured look instead of
+      // four clean ribbons.
+      const spur = Math.sin(r * 0.9 + branchAngle * 3.0) * 0.10
+        + Math.sin(r * 2.7) * 0.04
+      const armAngle = branchAngle + spinAngle + spur
 
       const randomness = 0.28
       const rx = Math.pow(Math.random(), 2.6) * (Math.random() < 0.5 ? 1 : -1) * randomness * r
@@ -878,9 +885,9 @@ function MilkyWay({
       const rz = Math.pow(Math.random(), 2.6) * (Math.random() < 0.5 ? 1 : -1) * randomness * r
 
       const i3 = i * 3
-      positions[i3]     = Math.cos(branchAngle + spinAngle) * r + rx
+      positions[i3]     = Math.cos(armAngle) * r + rx
       positions[i3 + 1] = ry
-      positions[i3 + 2] = Math.sin(branchAngle + spinAngle) * r + rz
+      positions[i3 + 2] = Math.sin(armAngle) * r + rz
 
       const sizeRoll = Math.pow(Math.random(), 3.5)
       sizes[i] = 1.0 + sizeRoll * 5
