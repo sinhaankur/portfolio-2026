@@ -658,6 +658,7 @@ function makeFocusHandler(
 function NebulaClouds({ mobile = false }: { mobile?: boolean }) {
   const pointsRef = useRef<Points>(null)
   const matRef = useRef<ShaderMaterial>(null)
+  const dustRef = useRef<Points>(null)
   const { gl } = useThree()
 
   const geometry = useMemo(() => {
@@ -711,7 +712,52 @@ function NebulaClouds({ mobile = false }: { mobile?: boolean }) {
     return geo
   }, [mobile])
 
+  // Dark dust lanes — light-absorbing interstellar dust threading the spiral
+  // arms, tightly hugging the galactic plane (the dark veins in real Milky Way
+  // photos). Same soft-billboard shader, but dark + normal-blended so it dims
+  // the star field behind it rather than glowing.
+  const dustGeometry = useMemo(() => {
+    const radius = GALAXY_RADIUS_SCENE
+    const branches = 4
+    const spin = 7
+    const count = mobile ? 30 : 64
+    const positions = new Float32Array(count * 3)
+    const sizes = new Float32Array(count)
+    const alphas = new Float32Array(count)
+    const colors = new Float32Array(count * 3)
+    let s = 9001
+    const rand = () => { s = (1664525 * s + 1013904223) >>> 0; return s / 4294967296 }
+    for (let i = 0; i < count; i++) {
+      const i3 = i * 3
+      const r = (0.22 + rand() * 0.72) * radius
+      const branch = Math.floor(rand() * branches)
+      const branchAngle = (branch / branches) * Math.PI * 2
+      const spinAngle = r * spin * 0.04
+      // Cluster along the arm with small offset; very thin in Y (plane-hugging).
+      positions[i3] = Math.cos(branchAngle + spinAngle) * r + (rand() - 0.5) * 4.0
+      positions[i3 + 1] = (rand() - 0.5) * 0.5
+      positions[i3 + 2] = Math.sin(branchAngle + spinAngle) * r + (rand() - 0.5) * 4.0
+      sizes[i] = 18 + rand() * 40
+      alphas[i] = 0.06 + rand() * 0.08
+      // Cold dark brown-grey dust.
+      colors[i3] = 0.06; colors[i3 + 1] = 0.05; colors[i3 + 2] = 0.05
+    }
+    const geo = new BufferGeometry()
+    geo.setAttribute("position", new BufferAttribute(positions, 3))
+    geo.setAttribute("aSize", new BufferAttribute(sizes, 1))
+    geo.setAttribute("aAlpha", new BufferAttribute(alphas, 1))
+    geo.setAttribute("aColor", new BufferAttribute(colors, 3))
+    return geo
+  }, [mobile])
+
   const uniforms = useMemo(
+    () => ({
+      uTime: { value: 0 },
+      uPixelRatio: { value: Math.min(gl.getPixelRatio(), 2) },
+    }),
+    [gl],
+  )
+  const dustUniforms = useMemo(
     () => ({
       uTime: { value: 0 },
       uPixelRatio: { value: Math.min(gl.getPixelRatio(), 2) },
@@ -727,20 +773,36 @@ function NebulaClouds({ mobile = false }: { mobile?: boolean }) {
     if (matRef.current) {
       ;(matRef.current.uniforms.uTime as { value: number }).value += delta
     }
+    if (dustRef.current) {
+      dustRef.current.rotation.y += delta * 0.0004 * (1 + timeWarpRef.current * 0.05)
+    }
   })
 
   return (
-    <points ref={pointsRef} geometry={geometry}>
-      <shaderMaterial
-        ref={matRef}
-        vertexShader={NEBULA_VERTEX_SHADER}
-        fragmentShader={NEBULA_FRAGMENT_SHADER}
-        uniforms={uniforms}
-        transparent
-        depthWrite={false}
-        blending={AdditiveBlending}
-      />
-    </points>
+    <group>
+      <points ref={pointsRef} geometry={geometry}>
+        <shaderMaterial
+          ref={matRef}
+          vertexShader={NEBULA_VERTEX_SHADER}
+          fragmentShader={NEBULA_FRAGMENT_SHADER}
+          uniforms={uniforms}
+          transparent
+          depthWrite={false}
+          blending={AdditiveBlending}
+        />
+      </points>
+      {/* Dark dust lanes — normal blend so they absorb/dim, not glow. */}
+      <points ref={dustRef} geometry={dustGeometry}>
+        <shaderMaterial
+          vertexShader={NEBULA_VERTEX_SHADER}
+          fragmentShader={NEBULA_FRAGMENT_SHADER}
+          uniforms={dustUniforms}
+          transparent
+          depthWrite={false}
+          blending={NormalBlending}
+        />
+      </points>
+    </group>
   )
 }
 
