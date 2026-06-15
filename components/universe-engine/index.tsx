@@ -54,7 +54,7 @@ import {
   scaleModeRef,
 } from "./astronomy"
 import { SceneContents } from "./scene"
-import { CloudToggle, DeepDiveToggle, GravityToggle, InfoPanel, ResetViewButton, SatelliteToggle, ScaleToggle, TimelineControl } from "./hud"
+import { CloudToggle, DeepDiveToggle, DestinationsMenu, GravityToggle, InfoPanel, ResetViewButton, SatelliteToggle, ScaleToggle, TimelineControl } from "./hud"
 import { MobileBodySheet } from "./mobile-sheet"
 import { StaticStarfield } from "./static-starfield"
 import { GalaxyMusic } from "../galaxy-music"
@@ -448,6 +448,7 @@ export function UniverseEngine({
               <CloudToggle active={showClouds} onToggle={() => setShowClouds(v => !v)} />
               <SatelliteToggle active={showSatellites} onToggle={() => setShowSatellites(v => !v)} />
               <ScaleToggle active={trueScale} onToggle={() => setTrueScale(v => !v)} />
+              <DestinationsMenu />
               <GravityToggle active={showGravityOverlay} onToggle={() => setShowGravityOverlay(v => !v)} />
               <DeepDiveToggle active={showDeepDive} onToggle={() => setShowDeepDive(v => !v)} />
             </div>

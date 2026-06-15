@@ -2616,10 +2616,35 @@ function PlanetBody({
   useEffect(() => {
     const onSkyFocus = (e: Event) => {
       const id = (e as CustomEvent<{ pointId: string | null }>).detail?.pointId
-      if (id !== `planet:${planet.raw.name}`) setFocused(false)
+      if (id !== `planet:${planet.raw.name}`) {
+        setFocused(false)
+        return
+      }
+      // This planet is the warp target — fly the camera to it. Mirrors the
+      // click handler: follow the planet's live world position (read from the
+      // orbital position group) so it stays framed as it orbits. This is what
+      // makes the "Jump to" destinations menu work across both scale modes.
+      setFocused(true)
+      const obj = positionRef.current
+      if (obj) {
+        const followDistance = Math.max(
+          planet.visualRadius * (planet.raw.hasRings ? 5 : 3.5),
+          0.5,
+        )
+        requestFollow(
+          () => {
+            const v = new Vector3()
+            obj.getWorldPosition(v)
+            return { x: v.x, y: v.y, z: v.z }
+          },
+          followDistance,
+          planet.raw.name,
+        )
+      }
     }
     window.addEventListener("universe:sky-focus", onSkyFocus)
     return () => window.removeEventListener("universe:sky-focus", onSkyFocus)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [planet.raw.name])
 
   const textureUrl = planet.raw.textureUrl

@@ -900,3 +900,61 @@ export function CloudToggle({
     </button>
   )
 }
+
+/** Jump-to / warp-navigation menu. Flies the camera to any major body by
+ *  dispatching the engine's focus event (the planet listens + follows its own
+ *  live position). Essential in True Scale mode where bodies are far apart —
+ *  you warp instead of flying through the void. */
+const JUMP_DESTINATIONS: { label: string; pointId: string }[] = [
+  { label: "Sun", pointId: "planet:Sun" },
+  { label: "Mercury", pointId: "planet:Mercury" },
+  { label: "Venus", pointId: "planet:Venus" },
+  { label: "Earth", pointId: "planet:Earth" },
+  { label: "Mars", pointId: "planet:Mars" },
+  { label: "Jupiter", pointId: "planet:Jupiter" },
+  { label: "Saturn", pointId: "planet:Saturn" },
+  { label: "Uranus", pointId: "planet:Uranus" },
+  { label: "Neptune", pointId: "planet:Neptune" },
+  { label: "Pluto", pointId: "planet:Pluto" },
+]
+
+export function DestinationsMenu() {
+  const [open, setOpen] = useState(false)
+  const jump = (pointId: string) => {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("universe:sky-focus", { detail: { pointId } }))
+    }
+    setOpen(false)
+  }
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="
+          inline-flex items-center gap-2 px-3.5 py-2.5 rounded-full border
+          border-foreground/25 bg-background/50 text-foreground/70 hover:text-foreground/90
+          backdrop-blur-sm transition-colors duration-300
+          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+        "
+      >
+        <span className="font-mono text-[10px] tracking-[0.2em] uppercase">Jump to ▸</span>
+      </button>
+      {open && (
+        <div className="absolute bottom-full mb-2 left-0 min-w-40 rounded-xl border border-foreground/15 bg-background/90 backdrop-blur-xl p-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.3)]">
+          {JUMP_DESTINATIONS.map((d) => (
+            <button
+              key={d.pointId}
+              type="button"
+              onClick={() => jump(d.pointId)}
+              className="block w-full text-left px-3 py-1.5 rounded-lg font-mono text-[10px] tracking-[0.18em] uppercase text-foreground/75 hover:bg-foreground/10 hover:text-foreground transition-colors"
+            >
+              {d.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
