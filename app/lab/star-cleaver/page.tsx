@@ -166,8 +166,12 @@ export default function HelionDriftExperience() {
 
   return (
     <div style={{ width: '100vw', height: '100vh', overflow: 'hidden', margin: 0, padding: 0 }}>
+      {/* Pre-launch backdrop: interactive solar system, but the engine's own
+          HUD is suppressed so it doesn't collide with this page's launch
+          chrome (timeline ↔ Launch button, reset/toggles ↔ info panel). The
+          page owns a single, clean chrome layer for a premium feel. */}
       <UniverseRuntimeFallback>
-        <UniverseEngine interactive showHud showMusic={false} />
+        <UniverseEngine interactive showHud={false} showMusic={false} />
       </UniverseRuntimeFallback>
       <div
         style={{
@@ -209,7 +213,7 @@ export default function HelionDriftExperience() {
           bottom: isMobile ? 'max(14px, env(safe-area-inset-bottom))' : '32px',
           left: '50%',
           transform: 'translateX(-50%)',
-          zIndex: 30,
+          zIndex: 55,
           textAlign: 'center',
           pointerEvents: 'none',
           width: isMobile ? 'calc(100vw - 24px)' : 'auto',
