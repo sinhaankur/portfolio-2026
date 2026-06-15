@@ -1,0 +1,31 @@
+# Space Assets (Blender)
+
+Game-bound 3D models of solar-system bodies and spacecraft, built in Blender.
+
+These are **for the future game** (Star Cleaver / Neural Game Engine), **not** the
+live website. The website's galaxy hero keeps its procedural GLSL planets in
+`components/universe-engine/` — do not wire these meshes into the live site.
+
+## Why these exist
+The universe engine renders planets/star/nebula procedurally (tiny web payload,
+date-accurate). That's right for the web but gives the game no real geometry to
+collide with, fly around, or light. This folder is the game's mesh source.
+
+## Contents
+- `space-assets.blend` — master Blender file (all assets, organised under the
+  `SpaceAssets` collection → `Spacecraft` / `SmallBodies`).
+- `*.glb` — per-asset exports for the R3F game engine (drop into `public/models/`).
+- `renders/` — reference stills.
+
+## Assets
+| Asset | File | Status | Notes |
+|-------|------|--------|-------|
+| Voyager probe | `voyager.glb` | base mesh | HGA dish, 3× RTG, magnetometer mast, scan platform + camera barrels, golden record. Detail pass pending. |
+
+## Pipeline
+Build at max detail in Blender → export GLB (`use_selection`, `+Y up`,
+modifiers applied) → copy chosen GLBs into `public/models/` for the game.
+
+## Texture reuse
+Bodies reuse the existing `public/textures/*.webp` maps so game + site stay
+visually consistent.
