@@ -2166,17 +2166,66 @@ const SATELLITE_CATALOG: Record<string, SatelliteShell[]> = {
   ],
 }
 
+/** Named hero satellites — real Blender models orbiting at their true altitude,
+ *  the recognizable craft among the procedural swarm. */
+type HeroCraft = {
+  label: string
+  model: string
+  altRatio: number
+  incl: number
+  speed: number
+  /** model scale relative to body radius */
+  sizeRatio: number
+  phase: number
+}
+const HERO_CRAFT: Record<string, HeroCraft[]> = {
+  Earth: [
+    { label: "ISS", model: "/models/iss.glb", altRatio: 1.066, incl: 0.9, speed: 0.2, sizeRatio: 0.10, phase: 0 },
+    { label: "Hubble", model: "/models/hubble.glb", altRatio: 1.085, incl: 0.48, speed: 0.18, sizeRatio: 0.06, phase: 2.1 },
+  ],
+}
+HERO_CRAFT.Earth.forEach((c) => useGLTF.preload(c.model))
+
+function HeroSatellite({ craft, bodyRadius }: { craft: HeroCraft; bodyRadius: number }) {
+  const ref = useRef<import("three").Group>(null)
+  const gltf = useGLTF(craft.model)
+  const cloned = useMemo(() => {
+    const c = gltf.scene.clone(true)
+    c.traverse((ch) => { if ((ch as import("three").Mesh).isMesh) { ch.frustumCulled = false } })
+    return c
+  }, [gltf.scene])
+  const r = bodyRadius * craft.altRatio
+  useFrame((_, delta) => {
+    if (!ref.current) return
+    ref.current.rotation.y += delta * craft.speed
+  })
+  return (
+    <group ref={ref} rotation={[craft.incl * 0.35, craft.phase, 0]}>
+      <group position={[r, 0, 0]} scale={bodyRadius * craft.sizeRatio}>
+        <primitive object={cloned} />
+      </group>
+    </group>
+  )
+}
+
 function SatelliteShells({
   shells,
+  heroCraft,
   bodyRadius,
 }: {
   shells: SatelliteShell[]
+  heroCraft?: HeroCraft[]
   bodyRadius: number
 }) {
   return (
     <group>
       {shells.map((s) => (
         <SatelliteShellPoints key={s.label} shell={s} bodyRadius={bodyRadius} />
+      ))}
+      {heroCraft?.map((c) => (
+        <Suspense key={c.label} fallback={null}>
+          <HeroSatellite craft={c} bodyRadius={bodyRadius} />
+        </Suspense>
       ))}
     </group>
   )
@@ -2915,7 +2964,11 @@ function PlanetBody({
               axial-tilt group so they don't spin with the surface). Revealed by
               the HUD "Satellites" toggle. */}
           {satShells && satsOn && (
-            <SatelliteShells shells={satShells} bodyRadius={planet.visualRadius} />
+            <SatelliteShells
+              shells={satShells}
+              heroCraft={HERO_CRAFT[planet.raw.name]}
+              bodyRadius={planet.visualRadius}
+            />
           )}
 
           {/* Hover-label — small floating name above the planet, helping
