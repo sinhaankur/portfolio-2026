@@ -2787,14 +2787,20 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
         {/* Selected mission world + floating orbital station start point. */}
         <MemoMissionStartScene worldIndex={gameState.worldIndex} />
 
-        {/* Blender-authored asteroid belt — stony + carbon rocks + comet nucleus
-            drifting around the scene. GLBs stream in via Suspense so they never
-            block first frame. Count scales down on weaker hardware. */}
+        {/* Blender-authored asteroids — stony + carbon rocks + comet nucleus.
+            In Defend Earth mode they become an incoming swarm drifting toward
+            Earth; otherwise an ambient orbiting belt. GLBs stream in via
+            Suspense so they never block first frame; count scales by hardware. */}
         <Suspense fallback={null}>
           <AsteroidField
             count={graphicsProfile.tier === 'ultra' ? 70 : graphicsProfile.universeMobile ? 24 : 48}
             beltRadius={260}
             beltWidth={120}
+            mode={gameState.gameMode === 'defend' ? 'defend' : 'belt'}
+            earthPosition={(() => {
+              const l = getMissionLayout(gameState.worldIndex);
+              return [l.planetPosition.x, l.planetPosition.y, l.planetPosition.z];
+            })()}
           />
         </Suspense>
 

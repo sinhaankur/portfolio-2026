@@ -109,24 +109,69 @@ function styleRock(scene: THREE.Object3D): THREE.Object3D {
   return cloned;
 }
 
-function Rock({ instance, baseMeshes }: { instance: AsteroidInstance; baseMeshes: THREE.Object3D[] }) {
+type FieldMode = 'belt' | 'defend';
+
+function Rock({
+  instance,
+  baseMeshes,
+  mode,
+  earthLocal,
+  beltRadius,
+}: {
+  instance: AsteroidInstance;
+  baseMeshes: THREE.Object3D[];
+  mode: FieldMode;
+  /** Earth position expressed in the field group's local space. */
+  earthLocal: THREE.Vector3;
+  beltRadius: number;
+}) {
   const groupRef = useRef<THREE.Group>(null);
   const styled = useMemo(() => styleRock(baseMeshes[instance.modelIndex]), [baseMeshes, instance.modelIndex]);
+  // Live position for defend mode (mutated each frame).
+  const posRef = useRef(instance.position.clone());
+  // Per-rock incoming speed (scene units/sec), seeded off the orbit speed.
+  const speed = useRef(40 + Math.abs(instance.orbitSpeed) * 1200);
+
+  // Reset a defend-mode rock to a fresh spawn far out, aimed at Earth.
+  const respawn = (g: THREE.Group) => {
+    const a = Math.random() * Math.PI * 2;
+    const r = beltRadius * (1.1 + Math.random() * 0.5);
+    posRef.current.set(
+      earthLocal.x + Math.cos(a) * r,
+      earthLocal.y + (Math.random() - 0.5) * beltRadius * 0.6,
+      earthLocal.z + Math.sin(a) * r,
+    );
+    g.position.copy(posRef.current);
+  };
 
   useFrame((_, delta) => {
     const g = groupRef.current;
     if (!g) return;
-    // tumble
+    // tumble (both modes)
     g.rotation.x += instance.spin.x * delta;
     g.rotation.y += instance.spin.y * delta;
     g.rotation.z += instance.spin.z * delta;
-    // slow orbital drift around belt centre
-    instance.orbitPhase += instance.orbitSpeed * delta;
-    g.position.set(
-      Math.cos(instance.orbitPhase) * instance.orbitRadius,
-      instance.orbitY,
-      Math.sin(instance.orbitPhase) * instance.orbitRadius,
-    );
+
+    if (mode === 'defend') {
+      // Drift toward Earth; respawn once it arrives so the swarm never empties.
+      const dir = earthLocal.clone().sub(posRef.current);
+      const dist = dir.length();
+      if (dist < 60) {
+        respawn(g);
+        return;
+      }
+      dir.normalize().multiplyScalar(speed.current * delta);
+      posRef.current.add(dir);
+      g.position.copy(posRef.current);
+    } else {
+      // Belt: slow orbital drift around belt centre.
+      instance.orbitPhase += instance.orbitSpeed * delta;
+      g.position.set(
+        Math.cos(instance.orbitPhase) * instance.orbitRadius,
+        instance.orbitY,
+        Math.sin(instance.orbitPhase) * instance.orbitRadius,
+      );
+    }
   });
 
   return (
@@ -142,21 +187,45 @@ export function AsteroidField({
   beltWidth = 90,
   seed = 1337,
   center = [0, 0, 0],
+  mode = 'belt',
+  earthPosition = [0, -140, -460],
 }: {
   count?: number;
   beltRadius?: number;
   beltWidth?: number;
   seed?: number;
   center?: [number, number, number];
+  /** 'belt' = ambient orbiting field; 'defend' = swarm drifting toward Earth. */
+  mode?: FieldMode;
+  /** World-space Earth position; asteroids in 'defend' mode home toward it. */
+  earthPosition?: [number, number, number];
 }) {
   const gltfs = ASTEROID_MODELS.map((path) => useGLTF(path));
   const baseMeshes = useMemo(() => gltfs.map((g) => g.scene), [gltfs]);
   const field = useMemo(() => buildField(count, beltRadius, beltWidth, seed), [count, beltRadius, beltWidth, seed]);
 
+  // Earth in the field group's local space (group is offset by `center`).
+  const earthLocal = useMemo(
+    () =>
+      new THREE.Vector3(
+        earthPosition[0] - center[0],
+        earthPosition[1] - center[1],
+        earthPosition[2] - center[2],
+      ),
+    [earthPosition, center],
+  );
+
   return (
     <group position={center}>
       {field.map((instance, i) => (
-        <Rock key={i} instance={instance} baseMeshes={baseMeshes} />
+        <Rock
+          key={i}
+          instance={instance}
+          baseMeshes={baseMeshes}
+          mode={mode}
+          earthLocal={earthLocal}
+          beltRadius={beltRadius}
+        />
       ))}
     </group>
   );
