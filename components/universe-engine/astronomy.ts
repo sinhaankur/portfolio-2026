@@ -67,6 +67,11 @@ export const timeWarpRef = { current: 1.0 }
  * Defaults to visible. */
 export const cloudsVisibleRef = { current: true }
 
+/* Satellite-shell visibility — when a body with human-made orbiters (Earth,
+ * Mars…) is focused, the HUD exposes a "Satellites" toggle that flips this.
+ * Module-scoped, same pattern as cloudsVisibleRef. Off by default. */
+export const satellitesVisibleRef = { current: false }
+
 /* --------------------------------------------------------------------------
  * Simulation clock — date-first, scrubbable
  *

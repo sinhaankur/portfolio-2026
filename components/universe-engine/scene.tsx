@@ -91,6 +91,7 @@ import {
   solveKepler,
   timeWarpRef,
   cloudsVisibleRef,
+  satellitesVisibleRef,
 } from "./astronomy"
 import { GALAXY_FRAGMENT_SHADER, GALAXY_VERTEX_SHADER } from "./shaders"
 
@@ -2061,6 +2062,127 @@ function BeltAsteroids({
 }
 
 /* ============================================================
+ * Satellite shells — human-made orbiters around a body.
+ *
+ * Real spacecraft number in the thousands (Starlink alone ~6,000), so each
+ * orbital regime is a procedural point-field at its true altitude ratio
+ * (orbit radius / body radius), color-coded, riding a slow rotation. Web-light:
+ * a few thousand points across a handful of shells, one draw each. Revealed on
+ * demand (the engine shows them when a body's satellites are toggled on).
+ *
+ * Altitudes are expressed as a multiple of the body's radius so they scale to
+ * each planet's visualRadius. Earth examples:
+ *   ISS  ~420 km  → 1.066 R⊕      Starlink ~550 km → 1.086 R⊕
+ *   GPS  ~20,200 km → 4.17 R⊕     GEO ~35,786 km   → 6.61 R⊕
+ * ============================================================ */
+export type SatelliteShell = {
+  label: string
+  /** orbit radius as a multiple of the body's radius */
+  altRatio: number
+  count: number
+  color: string
+  /** orbital inclination spread (radians) — how puffed the shell is in Y */
+  incl: number
+  speed: number
+}
+
+function SatelliteShellPoints({
+  shell,
+  bodyRadius,
+}: {
+  shell: SatelliteShell
+  bodyRadius: number
+}) {
+  const ref = useRef<Points>(null)
+  const geometry = useMemo(() => {
+    const r = bodyRadius * shell.altRatio
+    const positions = new Float32Array(shell.count * 3)
+    for (let i = 0; i < shell.count; i++) {
+      const a = Math.random() * Math.PI * 2
+      // Inclination: most sats cluster near their plane; spread by shell.incl.
+      const inc = (Math.random() - 0.5) * shell.incl
+      const ringR = r * Math.cos(inc)
+      positions[i * 3] = Math.cos(a) * ringR
+      positions[i * 3 + 1] = r * Math.sin(inc)
+      positions[i * 3 + 2] = Math.sin(a) * ringR
+    }
+    const geo = new BufferGeometry()
+    geo.setAttribute("position", new BufferAttribute(positions, 3))
+    return geo
+  }, [shell, bodyRadius])
+
+  // Faint orbit-path ring at the shell's altitude, so the orbital lane reads
+  // even when the points are sparse. Slightly tilted to suggest inclination.
+  const ringGeo = useMemo(() => {
+    const r = bodyRadius * shell.altRatio
+    const seg = 96
+    const pts = new Float32Array((seg + 1) * 3)
+    for (let i = 0; i <= seg; i++) {
+      const a = (i / seg) * Math.PI * 2
+      pts[i * 3] = Math.cos(a) * r
+      pts[i * 3 + 1] = 0
+      pts[i * 3 + 2] = Math.sin(a) * r
+    }
+    const geo = new BufferGeometry()
+    geo.setAttribute("position", new BufferAttribute(pts, 3))
+    return geo
+  }, [shell, bodyRadius])
+
+  useFrame((_, delta) => {
+    if (ref.current) ref.current.rotation.y += delta * shell.speed
+  })
+
+  return (
+    <group>
+      <points ref={ref} geometry={geometry}>
+        <pointsMaterial
+          size={Math.max(0.012, bodyRadius * 0.03)}
+          sizeAttenuation
+          color={shell.color}
+          transparent
+          opacity={0.9}
+          depthWrite={false}
+        />
+      </points>
+      {/* orbital-path ring (gentle inclination tilt) */}
+      <line geometry={ringGeo} rotation={[shell.incl * 0.35, 0, 0]}>
+        <lineBasicMaterial color={shell.color} transparent opacity={0.18} depthWrite={false} />
+      </line>
+    </group>
+  )
+}
+
+/** Real human-made orbiter populations by body. Counts are scaled-down but
+ *  proportionate (Starlink dominates Earth LEO); altitudes are true ratios. */
+const SATELLITE_CATALOG: Record<string, SatelliteShell[]> = {
+  Earth: [
+    { label: "LEO / Starlink", altRatio: 1.086, count: 900, color: "#9fe0ff", incl: 1.0, speed: 0.18 },
+    { label: "ISS / low orbit", altRatio: 1.066, count: 120, color: "#ffffff", incl: 0.9, speed: 0.2 },
+    { label: "MEO / GPS", altRatio: 4.17, count: 80, color: "#ffd27a", incl: 0.95, speed: 0.06 },
+    { label: "Geostationary", altRatio: 6.61, count: 110, color: "#ff9a6b", incl: 0.08, speed: 0.02 },
+  ],
+  Mars: [
+    { label: "Mars orbiters", altRatio: 1.3, count: 14, color: "#ffb89a", incl: 1.1, speed: 0.12 },
+  ],
+}
+
+function SatelliteShells({
+  shells,
+  bodyRadius,
+}: {
+  shells: SatelliteShell[]
+  bodyRadius: number
+}) {
+  return (
+    <group>
+      {shells.map((s) => (
+        <SatelliteShellPoints key={s.label} shell={s} bodyRadius={bodyRadius} />
+      ))}
+    </group>
+  )
+}
+
+/* ============================================================
  * Planets + Sun + Orbit Rings
  * ============================================================ */
 
@@ -2396,6 +2518,11 @@ function PlanetBody({
   // togglable via cloudsVisibleRef. uOpacity lerps with the planet's own
   // fade (so clouds appear/disappear with the textured globe) AND the toggle.
   const isEarth = planet.raw.name === "Earth"
+  // Human-made orbiters for this body (Earth, Mars…), revealed by the HUD
+  // "Satellites" toggle. Poll the module ref at low frequency so the shells
+  // appear/disappear without prop-drilling.
+  const satShells = SATELLITE_CATALOG[planet.raw.name]
+  const [satsOn, setSatsOn] = useState(false)
   const cloudMatRef = useRef<ShaderMaterial | null>(null)
   const cloudUniforms = useMemo(
     () => ({
@@ -2514,6 +2641,11 @@ function PlanetBody({
       _sunWorldPos.set(SUN_OFFSET_SCENE, 0, 0)
       _sunDirTmp.copy(_sunWorldPos).sub(_earthWorldPos).normalize()
       dayNightUniforms.uSunDir.value.copy(_sunDirTmp)
+    }
+    // Poll the satellites toggle (only matters for bodies with orbiters).
+    if (satShells) {
+      const want = satellitesVisibleRef.current
+      if (want !== satsOn) setSatsOn(want)
     }
     // Earth cloud shell — drift + sun direction + a fade that follows the
     // globe's reveal AND the cloud toggle (cloudsVisibleRef).
@@ -2778,6 +2910,13 @@ function PlanetBody({
               />
             )}
           </group>
+
+          {/* Human-made satellite shells — orbit the planet centre (outside the
+              axial-tilt group so they don't spin with the surface). Revealed by
+              the HUD "Satellites" toggle. */}
+          {satShells && satsOn && (
+            <SatelliteShells shells={satShells} bodyRadius={planet.visualRadius} />
+          )}
 
           {/* Hover-label — small floating name above the planet, helping
               discoverability without forcing users to wait for the corner

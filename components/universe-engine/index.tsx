@@ -50,9 +50,10 @@ import {
   followRef,
   requestFlyTo,
   cloudsVisibleRef,
+  satellitesVisibleRef,
 } from "./astronomy"
 import { SceneContents } from "./scene"
-import { CloudToggle, DeepDiveToggle, GravityToggle, InfoPanel, ResetViewButton, TimelineControl } from "./hud"
+import { CloudToggle, DeepDiveToggle, GravityToggle, InfoPanel, ResetViewButton, SatelliteToggle, TimelineControl } from "./hud"
 import { MobileBodySheet } from "./mobile-sheet"
 import { StaticStarfield } from "./static-starfield"
 import { GalaxyMusic } from "../galaxy-music"
@@ -99,6 +100,11 @@ export function UniverseEngine({
   useEffect(() => {
     cloudsVisibleRef.current = showClouds
   }, [showClouds])
+  // Human-made satellite shells (Earth/Mars orbiters) — drives the module ref.
+  const [showSatellites, setShowSatellites] = useState(false)
+  useEffect(() => {
+    satellitesVisibleRef.current = showSatellites
+  }, [showSatellites])
   const orbitRef = useRef<OrbitControlsImpl | null>(null)
   const { resolvedTheme } = useTheme()
   // Prop override wins; otherwise the engine flips to chart mode automatically
@@ -394,6 +400,7 @@ export function UniverseEngine({
                 pinch-zoom + drag + tap-to-explore. */}
             <div className="hidden md:flex items-center gap-2">
               <CloudToggle active={showClouds} onToggle={() => setShowClouds(v => !v)} />
+              <SatelliteToggle active={showSatellites} onToggle={() => setShowSatellites(v => !v)} />
               <GravityToggle active={showGravityOverlay} onToggle={() => setShowGravityOverlay(v => !v)} />
               <DeepDiveToggle active={showDeepDive} onToggle={() => setShowDeepDive(v => !v)} />
             </div>
