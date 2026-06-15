@@ -1349,7 +1349,7 @@ function MoonBody({
           interactive
             ? (e) => {
                 e.stopPropagation()
-                const followDistance = Math.max(moon.visualRadius * 6, 0.18)
+                const followDistance = Math.max(moon.visualRadius * 3.2, 0.09)
                 const obj = e.object
                 requestFollow(
                   () => {
@@ -1367,7 +1367,7 @@ function MoonBody({
           interactive
             ? (e) => {
                 e.stopPropagation()
-                const followDistance = Math.max(moon.visualRadius * 6, 0.18)
+                const followDistance = Math.max(moon.visualRadius * 3.2, 0.09)
                 const obj = e.object
                 requestFollow(
                   () => {

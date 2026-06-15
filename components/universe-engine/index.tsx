@@ -296,11 +296,12 @@ export function UniverseEngine({
           keyPanSpeed={8}
           enableDamping
           dampingFactor={0.08}
-          // minDistance lowered to 0.2 so users can zoom deep into Earth /
-          // Jupiter / the Sun — close enough to see the texture detail, not
-          // just the silhouette. Smaller bodies (moons, comets) also benefit
-          // since users follow-mode to them.
-          minDistance={0.2}
+          // minDistance lowered to 0.06 so users can zoom right into the small
+          // bodies — the Moon (visual radius ~0.05), Phobos, comets — close
+          // enough to read their surface detail, not just the silhouette. The
+          // larger bodies (Earth/Jupiter/Sun) were already fine; this only
+          // unlocks the close approach the tiny moons need.
+          minDistance={0.06}
           maxDistance={260}
           // Pause autoRotate while in follow mode — otherwise the
           // contemplative spin fights the user's drag and the camera
