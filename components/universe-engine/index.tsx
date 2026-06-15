@@ -320,151 +320,40 @@ export function UniverseEngine({
             </div>
           )}
 
-          {/* Deep Dive legend — explains what the user is seeing. */}
+          {/* Deep Dive legend — compact key for the orbital overlays. */}
           {showDeepDive && !mobile && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-              className="absolute bottom-6 left-8 md:left-12 z-30 pointer-events-none max-w-88"
+              className="absolute bottom-6 left-8 md:left-12 z-30 pointer-events-none max-w-72"
             >
-              <div className="overflow-hidden rounded-[1.375rem] border border-foreground/12 bg-background/72 shadow-[0_18px_48px_rgba(0,0,0,0.18)] backdrop-blur-xl">
-                <div className="h-px bg-linear-to-r from-transparent via-cyan-400/70 to-transparent" />
-                <div className="px-4 py-3 space-y-3">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <div className="font-mono text-[9px] tracking-[0.30em] uppercase text-foreground/45">
-                        Deep Dive
-                      </div>
-                      <div className="mt-1 text-[14px] font-sans tracking-[-0.015em] text-foreground leading-none">
-                        Orbital overlays + Hill spheres
-                      </div>
-                    </div>
-                    <div className="rounded-full border border-foreground/10 bg-foreground/4 px-2.5 py-1 font-mono text-[9px] tracking-[0.24em] uppercase text-foreground/60">
-                      live
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-2">
-                    <div className="flex items-center gap-2.5 rounded-2xl border border-foreground/8 bg-foreground/3 px-3 py-2">
-                      <span className="inline-block h-px w-4 rounded-full bg-cyan-400/80" />
-                      <div>
-                        <div className="font-mono text-[9px] tracking-[0.22em] uppercase text-foreground/45">
-                          Trail
-                        </div>
-                        <div className="font-mono text-[10px] text-foreground/75 leading-tight">
-                          Planet orbit trail
-                        </div>
-                      </div>
-                      <span className="ml-auto inline-flex h-4 w-4 items-center justify-center rounded-full border border-white/10 bg-white text-[8px] text-black">
-                        ●
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2.5 rounded-2xl border border-foreground/8 bg-foreground/3 px-3 py-2">
-                      <span className="inline-block h-1.5 w-1.5 rounded-full bg-white" />
-                      <div>
-                        <div className="font-mono text-[9px] tracking-[0.22em] uppercase text-foreground/45">
-                          Phase
-                        </div>
-                        <div className="font-mono text-[10px] text-foreground/75 leading-tight">
-                          Live phase marker
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2.5 rounded-2xl border border-foreground/8 bg-foreground/3 px-3 py-2">
-                      <span className="inline-block h-px w-4 bg-teal-300/80" />
-                      <div>
-                        <div className="font-mono text-[9px] tracking-[0.22em] uppercase text-foreground/45">
-                          Small body
-                        </div>
-                        <div className="font-mono text-[10px] text-foreground/75 leading-tight">
-                          Comet / asteroid / spacecraft path
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2.5 rounded-2xl border border-foreground/8 bg-foreground/3 px-3 py-2">
-                      <span className="inline-block h-2.5 w-2.5 rounded-full border border-cyan-300/45 bg-cyan-300/10" />
-                      <div>
-                        <div className="font-mono text-[9px] tracking-[0.22em] uppercase text-foreground/45">
-                          Sphere
-                        </div>
-                        <div className="font-mono text-[10px] text-foreground/75 leading-tight">
-                          Hill-radius boundary
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {showGravityOverlay && (
-                    <div className="rounded-2xl border border-foreground/8 bg-foreground/3 px-3 py-2.5 space-y-2">
-                      <div className="font-mono text-[9px] tracking-[0.24em] uppercase text-foreground/45">
-                        Gravity overlay
-                      </div>
-                      <div className="flex items-center gap-2.5">
-                        <span className="inline-block h-2.5 w-2.5 rounded-full border border-cyan-300/40 bg-cyan-300/10" />
-                        <span className="font-mono text-[10px] text-foreground/70 leading-tight">
-                          Influence sphere
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2.5">
-                        <span className="inline-block h-px w-4 rounded-full bg-cyan-400/65" />
-                        <span className="font-mono text-[10px] text-foreground/70 leading-tight">
-                          Net gravity vector
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  <p className="max-w-[20rem] font-sans text-[11px] leading-5 text-foreground/62">
-                    The SOI shells show each planet&apos;s Hill sphere. Inner planets keep a minimum visual size so the boundary stays readable at this camera distance.
-                  </p>
-
-                  <div className="rounded-2xl border border-foreground/8 bg-foreground/3 px-3 py-2.5 space-y-2.5">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="font-mono text-[9px] tracking-[0.24em] uppercase text-foreground/45">
-                        Physics lens
-                      </div>
-                      <div className="font-mono text-[9px] tracking-[0.2em] uppercase text-foreground/35">
-                        motion factors
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] gap-x-3 gap-y-2 font-mono text-[10px] leading-4 text-foreground/72">
-                      <div className="rounded-xl border border-foreground/8 bg-background/35 px-2.5 py-2">
-                        <div className="text-foreground/45 mb-1 tracking-[0.01em]">v² = GM(2/r − 1/a)</div>
-                        <div className="text-[9px] leading-4 text-foreground/58">
-                          orbital speed from mass, distance, and semi-major axis
-                        </div>
-                      </div>
-                      <div className="rounded-xl border border-foreground/8 bg-background/35 px-2.5 py-2">
-                        <div className="text-foreground/45 mb-1 tracking-[0.01em]">the path changes with:</div>
-                        <div className="text-[9px] leading-4 text-foreground/58">
-                          gravity, launch speed, eccentricity, inclination, nearby perturbations, and for comets, outgassing
-                        </div>
-                      </div>
-
-                      <div className="rounded-xl border border-foreground/8 bg-background/35 px-2.5 py-2">
-                        <div className="text-foreground/45 mb-1 tracking-[0.01em]">r_H = a · (m / 3M)^(1/3)</div>
-                        <div className="text-[9px] leading-4 text-foreground/58">
-                          Hill sphere: where a planet begins to dominate locally
-                        </div>
-                      </div>
-                      <div className="rounded-xl border border-foreground/8 bg-background/35 px-2.5 py-2">
-                        <div className="text-foreground/45 mb-1 tracking-[0.01em]">r_s = 2GM / c²</div>
-                        <div className="text-[9px] leading-4 text-foreground/58">
-                          Schwarzschild radius: the black-hole scale you can’t cross back out from
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="rounded-xl border border-cyan-400/10 bg-cyan-400/5 px-2.5 py-2 font-sans text-[11px] leading-5 text-foreground/58">
-                      Gravity is the main driver, but it is not the whole story: motion also shifts with speed, orbital shape, perturbations, outgassing, radiation pressure, and black-hole spin.
-                    </div>
-                  </div>
+              <div className="rounded-2xl border border-foreground/12 bg-background/70 backdrop-blur-xl px-4 py-3.5">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="font-mono text-[9px] tracking-[0.3em] uppercase text-foreground/45">
+                    Deep Dive
+                  </span>
+                  <span className="font-mono text-[8px] tracking-[0.24em] uppercase text-cyan-300/70">
+                    Orbital overlays
+                  </span>
                 </div>
+                <ul className="space-y-2 font-mono text-[10px] text-foreground/70">
+                  <li className="flex items-center gap-2.5">
+                    <span className="inline-block h-px w-4 rounded-full bg-cyan-400/80" />
+                    Planet + comet orbit paths
+                  </li>
+                  <li className="flex items-center gap-2.5">
+                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-white" />
+                    Live position marker
+                  </li>
+                  <li className="flex items-center gap-2.5">
+                    <span className="inline-block h-2.5 w-2.5 rounded-full border border-cyan-300/50 bg-cyan-300/10" />
+                    Hill sphere — local gravity boundary
+                  </li>
+                </ul>
+                <p className="mt-3 pt-2.5 border-t border-foreground/10 font-sans text-[10px] leading-4 text-foreground/45">
+                  Paths from real orbital elements (J2000). Hill radius r_H = a·(m/3M)<sup>1/3</sup>.
+                </p>
               </div>
             </motion.div>
           )}

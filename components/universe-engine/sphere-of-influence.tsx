@@ -48,7 +48,13 @@ function hillRadiusScene(planet: ScenePlanet): number {
   const mass = Math.max(planet.raw.deep?.massEarth ?? 0.1, 0.001)
   const ratio = mass / (3 * SUN_MASS_EARTH)
   const trueHill = planet.orbitRadius * Math.pow(ratio, 1 / 3)
-  return Math.max(MIN_VISUAL_HILL_RADIUS, trueHill)
+  // True Hill radii are tiny at this scene scale, so a flat floor made every
+  // inner planet show an identical bubble (uninformative + "looks off"). Blend
+  // the real value with a gentle mass-scaled minimum so the shells still
+  // DIFFER by planet — a more massive world reads as a bigger sphere — while
+  // staying visible. Jupiter ends up clearly the largest, Mercury the smallest.
+  const massFloor = MIN_VISUAL_HILL_RADIUS * (0.6 + 0.5 * Math.log10(1 + mass))
+  return Math.max(massFloor, trueHill)
 }
 
 function planetScenePosition(planet: ScenePlanet, simMs: number) {
