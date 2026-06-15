@@ -102,6 +102,22 @@ const STAR_DYNAMIC_PROFILES: Record<string, { twinkleHz: number; amplitude: numb
   "eta-carinae": { twinkleHz: 0.58, amplitude: 0.18, baseBias: 0.95 },
 }
 
+const PULSAR_DYNAMIC_PROFILES: Record<string, {
+  pulseHz: number
+  beamLengthMul: number
+  beamWidthMul: number
+  haloBias: number
+  beamColor: string
+}> = {
+  "psr-b1257-12": {
+    pulseHz: 7.2,
+    beamLengthMul: 8.8,
+    beamWidthMul: 1.0,
+    haloBias: 1.2,
+    beamColor: "#8dc8ff",
+  },
+}
+
 const COMET_DYNAMIC_PROFILES: Record<string, {
   activityMul: number
   comaPulseAmp: number
@@ -300,6 +316,19 @@ export function getStarDynamicProfile(pointId?: string) {
     twinkleHz: clampPositive(profile?.twinkleHz ?? 0.42, 0.08, 1.8),
     amplitude: clamp01(profile?.amplitude ?? 0.10),
     baseBias: clampPositive(profile?.baseBias ?? 1.0, 0.7, 1.4),
+  }
+}
+
+export function getPulsarDynamicProfile(pointId?: string) {
+  if (!pointId) return null
+  const profile = PULSAR_DYNAMIC_PROFILES[pointId]
+  if (!profile) return null
+  return {
+    pulseHz: clampPositive(profile.pulseHz, 0.4, 30),
+    beamLengthMul: clampPositive(profile.beamLengthMul, 2.5, 14),
+    beamWidthMul: clampPositive(profile.beamWidthMul, 0.5, 2.5),
+    haloBias: clampPositive(profile.haloBias, 0.6, 2.0),
+    beamColor: profile.beamColor,
   }
 }
 

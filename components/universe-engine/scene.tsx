@@ -271,6 +271,7 @@ import {
   getBlackHoleAffordance,
   getCometDynamicProfile,
   getCometAffordance,
+  getPulsarDynamicProfile,
   getSkyAffordance,
   getStarDynamicProfile,
 } from "./celestial-sub-engine"
@@ -465,8 +466,14 @@ function SceneClock() {
     // to run time backwards; at 0 the clock (and every body) freezes. The
     // timeline scrubber writes simMs directly, so this is the only place
     // that *advances* it during playback.
+    //
+    // Clamp delta: when the frameloop resumes after being paused off-screen,
+    // R3F reports the entire elapsed wall-clock gap as one delta — left
+    // unclamped that snaps every body forward by minutes. Capping at 0.1s
+    // (a dropped-frame's worth) keeps the resume seamless.
+    const dt = Math.min(delta, 0.1)
     simTimeRef.current.simMs +=
-      delta * TIME_WARP_DAYS_PER_SEC * timeWarpRef.current * 86_400_000
+      dt * TIME_WARP_DAYS_PER_SEC * timeWarpRef.current * 86_400_000
   })
   return null
 }
@@ -4831,6 +4838,95 @@ function ExoplanetSystem({
   )
 }
 
+function PulsarDetail({
+  size,
+  hovered,
+  invert,
+  pulseHz,
+  beamLengthMul,
+  beamWidthMul,
+  beamColor,
+}: {
+  size: number
+  hovered: boolean
+  invert: boolean
+  pulseHz: number
+  beamLengthMul: number
+  beamWidthMul: number
+  beamColor: string
+}) {
+  const spinRef = useRef<Group>(null)
+  const pulseRef = useRef(0)
+  const beamNearRef = useRef<import("three").MeshBasicMaterial>(null)
+  const beamFarRef = useRef<import("three").MeshBasicMaterial>(null)
+  const ringRef = useRef<import("three").MeshBasicMaterial>(null)
+
+  useFrame((_, delta) => {
+    pulseRef.current += delta
+    const phase = pulseRef.current * pulseHz * Math.PI * 2
+    const pulse = Math.max(0, Math.sin(phase))
+    if (spinRef.current) {
+      spinRef.current.rotation.y += delta * 3.2
+      spinRef.current.rotation.z = Math.sin(pulseRef.current * 0.8) * 0.1
+    }
+    if (beamNearRef.current) {
+      const target = (hovered ? 0.48 : 0.32) * (0.35 + pulse * 0.95)
+      beamNearRef.current.opacity += (target - beamNearRef.current.opacity) * (1 - Math.exp(-delta * 10))
+    }
+    if (beamFarRef.current) {
+      const target = (hovered ? 0.32 : 0.2) * (0.2 + pulse * 0.7)
+      beamFarRef.current.opacity += (target - beamFarRef.current.opacity) * (1 - Math.exp(-delta * 10))
+    }
+    if (ringRef.current) {
+      const target = (hovered ? 0.3 : 0.18) * (0.6 + pulse * 0.35)
+      ringRef.current.opacity += (target - ringRef.current.opacity) * (1 - Math.exp(-delta * 8))
+    }
+  })
+
+  const beamLength = size * beamLengthMul
+  const beamRadius = Math.max(size * 0.16 * beamWidthMul, 0.03)
+
+  return (
+    <group ref={spinRef} rotation={[0.62, 0, 0.44]}>
+      <mesh position={[0, beamLength * 0.5, 0]}>
+        <coneGeometry args={[beamRadius, beamLength, 20, 1, true]} />
+        <meshBasicMaterial
+          ref={beamNearRef}
+          color={beamColor}
+          transparent
+          opacity={0.01}
+          side={DoubleSide}
+          blending={invert ? NormalBlending : AdditiveBlending}
+          depthWrite={false}
+        />
+      </mesh>
+      <mesh position={[0, -beamLength * 0.5, 0]} rotation={[Math.PI, 0, 0]}>
+        <coneGeometry args={[beamRadius, beamLength, 20, 1, true]} />
+        <meshBasicMaterial
+          ref={beamFarRef}
+          color={beamColor}
+          transparent
+          opacity={0.01}
+          side={DoubleSide}
+          blending={invert ? NormalBlending : AdditiveBlending}
+          depthWrite={false}
+        />
+      </mesh>
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[Math.max(size * 0.72, 0.22), Math.max(size * 0.06, 0.018), 10, 42]} />
+        <meshBasicMaterial
+          ref={ringRef}
+          color={beamColor}
+          transparent
+          opacity={0.01}
+          blending={invert ? NormalBlending : AdditiveBlending}
+          depthWrite={false}
+        />
+      </mesh>
+    </group>
+  )
+}
+
 function SkyPointMesh({
   point,
   onHover,
@@ -4891,20 +4987,38 @@ function SkyPointMesh({
     () => (point.kind === "star" ? getStarDynamicProfile(point.id) : null),
     [point.kind, point.id],
   )
+  const pulsarDynamic = useMemo(
+    () => (point.kind === "exoplanet-host" ? getPulsarDynamicProfile(point.id) : null),
+    [point.kind, point.id],
+  )
+  const isPulsar = point.kind === "exoplanet-host" && !!pulsarDynamic
 
   useFrame((_, delta) => {
-    if (point.kind !== "star" || !starDynamic) return
+    if (point.kind !== "star" && !isPulsar) return
     const haloMat = starHaloMatRef.current
     const coreMat = starCoreMatRef.current
     if (!haloMat || !coreMat) return
 
     starPulseRef.current += delta
     const TAU = Math.PI * 2
-    const primary = Math.sin(starPulseRef.current * TAU * starDynamic.twinkleHz)
-    const secondary = Math.sin(starPulseRef.current * TAU * starDynamic.twinkleHz * 0.37 + 1.2)
-    const mod = 1 + primary * starDynamic.amplitude + secondary * starDynamic.amplitude * 0.35
-    const haloTarget = Math.max(0, Math.min(1, skyAffordance.haloOpacity * starDynamic.baseBias * mod))
-    const coreTarget = Math.max(0, Math.min(1, skyAffordance.coreOpacity * (0.92 + (mod - 1) * 0.45)))
+    let haloTarget = skyAffordance.haloOpacity
+    let coreTarget = skyAffordance.coreOpacity
+
+    if (point.kind === "star" && starDynamic) {
+      const primary = Math.sin(starPulseRef.current * TAU * starDynamic.twinkleHz)
+      const secondary = Math.sin(starPulseRef.current * TAU * starDynamic.twinkleHz * 0.37 + 1.2)
+      const mod = 1 + primary * starDynamic.amplitude + secondary * starDynamic.amplitude * 0.35
+      haloTarget = Math.max(0, Math.min(1, skyAffordance.haloOpacity * starDynamic.baseBias * mod))
+      coreTarget = Math.max(0, Math.min(1, skyAffordance.coreOpacity * (0.92 + (mod - 1) * 0.45)))
+    }
+
+    if (isPulsar && pulsarDynamic) {
+      const pulse = Math.max(0, Math.sin(starPulseRef.current * TAU * pulsarDynamic.pulseHz))
+      const pulseMix = 0.32 + pulse * 0.68
+      haloTarget = Math.max(0, Math.min(1, skyAffordance.haloOpacity * pulsarDynamic.haloBias * pulseMix))
+      coreTarget = Math.max(0, Math.min(1, skyAffordance.coreOpacity * (0.76 + pulse * 0.4)))
+    }
+
     const k = 1 - Math.exp(-delta * 7)
     haloMat.opacity += (haloTarget - haloMat.opacity) * k
     coreMat.opacity += (coreTarget - coreMat.opacity) * k
@@ -4919,11 +5033,11 @@ function SkyPointMesh({
     <group position={position}>
       {/* Diffuse halo — galaxies, nebulae, and bright stars get a soft halo.
           Black holes skip this (BlackHoleDetail handles its own visual). */}
-      {(point.kind === "galaxy" || point.kind === "nebula" || point.kind === "star") && (
+      {(point.kind === "galaxy" || point.kind === "nebula" || point.kind === "star" || isPulsar) && (
         <mesh>
           <sphereGeometry args={[visualSize * skyAffordance.haloRadiusMul, 16, 16]} />
           <meshBasicMaterial
-            ref={point.kind === "star" ? (starHaloMatRef as React.Ref<import("three").MeshBasicMaterial>) : undefined}
+            ref={(point.kind === "star" || isPulsar) ? (starHaloMatRef as React.Ref<import("three").MeshBasicMaterial>) : undefined}
             color={skyAffordance.halo}
             transparent
             opacity={skyAffordance.haloOpacity}
@@ -4943,7 +5057,7 @@ function SkyPointMesh({
             14,
           ]} />
           <meshBasicMaterial
-            ref={point.kind === "star" ? (starCoreMatRef as React.Ref<import("three").MeshBasicMaterial>) : undefined}
+            ref={(point.kind === "star" || isPulsar) ? (starCoreMatRef as React.Ref<import("three").MeshBasicMaterial>) : undefined}
             color={skyAffordance.core}
             transparent
             opacity={skyAffordance.coreOpacity}
@@ -4965,6 +5079,17 @@ function SkyPointMesh({
           our scale would cluster them invisibly tight. */}
       {point.kind === "exoplanet-host" && point.planets && detailActive && (
         <ExoplanetSystem planets={point.planets} invert={invert} />
+      )}
+      {isPulsar && pulsarDynamic && (
+        <PulsarDetail
+          size={visualSize}
+          hovered={detailActive}
+          invert={invert}
+          pulseHz={pulsarDynamic.pulseHz}
+          beamLengthMul={pulsarDynamic.beamLengthMul}
+          beamWidthMul={pulsarDynamic.beamWidthMul}
+          beamColor={pulsarDynamic.beamColor}
+        />
       )}
       {/* Galaxy hover detail — currently Andromeda only. Spiral arm point
           cloud + bulge + dust lane + companions M32 / M110 bloom in. */}
@@ -5035,6 +5160,7 @@ function SkyPointMesh({
             point.kind === "cluster"    ? "Star cluster" :
             point.kind === "black-hole" ? "Black hole" :
             point.kind === "star"       ? "Star" :
+            isPulsar                     ? "Pulsar host star" :
                                           "Exoplanet host star"
               const gravityMeasurement =
                 point.kind === "black-hole" && point.massSolar !== undefined

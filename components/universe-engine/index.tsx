@@ -81,6 +81,11 @@ export function UniverseEngine({
   const [mounted, setMounted] = useState(false)
   const [reducedMotion, setReducedMotion] = useState(false)
   const [mobile, setMobile] = useState(false)
+  // Gates the render loop: the hero is h-screen, so once the user scrolls past
+  // it the Canvas is fully off-screen yet keeps rendering at 60fps. Pausing the
+  // frameloop while hidden frees the GPU for the rest of the page.
+  const [onScreen, setOnScreen] = useState(true)
+  const containerRef = useRef<HTMLDivElement | null>(null)
   const [hovered, setHovered] = useState<BodyInfo | null>(null)
   // Sticky selection — mobile devices fire pointerover/pointerout in pairs on
   // each tap, so `hovered` clears immediately. `selectedBody` latches on the
@@ -110,6 +115,20 @@ export function UniverseEngine({
       mobileMq.removeEventListener("change", onMobile)
     }
   }, [])
+
+  // Pause the render loop when the engine scrolls out of view. A small
+  // negative rootMargin keeps it running through the scroll transition so the
+  // scene is already live when it re-enters, never caught mid-freeze.
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el || typeof IntersectionObserver === "undefined") return
+    const io = new IntersectionObserver(
+      ([entry]) => setOnScreen(entry.isIntersecting),
+      { rootMargin: "120px", threshold: 0 },
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [mounted])
 
   const onHover = useCallback<HoverHandler>((info) => {
     setHovered(info)
@@ -227,11 +246,16 @@ export function UniverseEngine({
   }
 
   return (
-    <div className="relative w-full h-full ue-engine-fade-in">
+    <div ref={containerRef} className="relative w-full h-full ue-engine-fade-in">
       <Canvas
         // Camera default: close to the solar system on the Orion Arm.
         camera={{ position: [SUN_OFFSET_SCENE + 4, 6, 13], fov: 50, near: 0.1, far: 1000 }}
-        dpr={[1, 2]}
+        // Cap device-pixel-ratio lower on phones — rendering this scene at full
+        // 2× on a mobile GPU is a real frame-rate + battery cost for little
+        // visible gain. Desktop keeps the crisp [1, 2] range.
+        dpr={mobile ? [1, 1.5] : [1, 2]}
+        // Stop drawing entirely while scrolled past the hero (see onScreen).
+        frameloop={onScreen ? "always" : "never"}
         gl={{ antialias: true, alpha: true, toneMappingExposure: 1.05 }}
         className="w-full h-full"
         // pointerEvents stays auto so hover hit-tests work in both passive and
