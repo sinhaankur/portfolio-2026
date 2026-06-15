@@ -2090,7 +2090,7 @@ function GameScene({
       gameState.playerEntity.metadata.muzzleFlashes = flashes.filter((flash) => flash.endTime > gameState.simTime);
 
       fireCooldownRef.current = Math.max(0, fireCooldownRef.current - clampedDelta);
-      if ((gameState.phase === 'exploration' || gameState.phase === 'combat') && isFiring && fireCooldownRef.current <= 0) {
+      if (gameState.phase === 'exploration' && isFiring && fireCooldownRef.current <= 0) {
         fireCooldownRef.current = FIRE_CADENCE;
         spawnPlayerVolley(forwardLocal.clone().normalize(), rightLocal.clone().normalize(), upLocal.clone().normalize());
       }

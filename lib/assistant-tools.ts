@@ -20,8 +20,10 @@ import {
   cancelFollow,
   cancelFlyTo,
   constellations,
+  daysSinceJ2000,
   flyToRef,
   followRef,
+  J2000_MS,
   namedBodies,
   planetsData,
   requestFlyTo,
@@ -134,7 +136,7 @@ export const ASSISTANT_TOOLS: Tool[] = [
   {
     name: "getCurrentSimDate",
     description:
-      "Get the current simulated date — what calendar date the engine is showing right now. The simulation advances at TIME_WARP_DAYS_PER_SEC × timeWarp; this returns the accumulated result as an ISO date string.",
+      "Get the current simulated date — what calendar date the engine is showing right now. Positions are a pure function of this instant. Returns the ISO date, the full ISO instant, days from the J2000 epoch, and the active time-warp multiplier.",
     input_schema: { type: "object", properties: {} },
   },
 
@@ -186,17 +188,17 @@ export const ASSISTANT_TOOLS: Tool[] = [
   {
     name: "setSimTime",
     description:
-      "Jump the simulation to a specific date by setting days from the page-load epoch. Use for 'what was X doing on date Y' — call getCurrentSimDate first to know the current offset.",
+      "Jump the simulation to a specific calendar date. The whole scene is date-accurate, so this places every planet and comet where it really was/will be. Use for 'what was X doing on date Y' or 'take me to Halley's next perihelion'.",
     input_schema: {
       type: "object",
       properties: {
-        daysFromEpoch: {
-          type: "number",
+        date: {
+          type: "string",
           description:
-            "Days from the simulation's start epoch. 0 = scene start time. Positive = future, negative = past.",
+            "ISO date or instant — e.g. \"2061-07-28\" or \"2061-07-28T12:00:00Z\". Past and future both work.",
         },
       },
-      required: ["daysFromEpoch"],
+      required: ["date"],
     },
   },
   {
@@ -384,12 +386,26 @@ function solveKepler(M: number, e: number): number {
  *  Returns x/y/z in scene units (matching the scene's sqrt-compression)
  *  and distanceFromSunAU in real AU. */
 function computeBodyPosition(body: NamedBody) {
-  // Same time math as NamedBodyMesh's useFrame.
-  const TIME_WARP_DAYS_PER_SEC_LOCAL = 10
-  const simDays = simTimeRef.current.days
-  const periodDays = isFinite(body.periodYears) ? body.periodYears * 365.25 : 73000
-  const phaseFraction = body.startPhase + (simDays / periodDays)
-  const phase = (phaseFraction % 1) * Math.PI * 2
+  // Date-driven mean anomaly — mirrors NamedBodyMesh's useFrame so the
+  // assistant's flyTo/follow lands the body where the scene draws it.
+  // Inclinations > 90° encode retrograde orbits; reverse the increment.
+  const simMs = simTimeRef.current.simMs
+  const direction = body.inclDeg > 90 ? -1 : 1
+  const periodDaysReal = isFinite(body.periodYears) ? body.periodYears * 365.25 : 73000
+  const perihelionMs = body.perihelionTT ? Date.parse(body.perihelionTT) : null
+  let phase: number
+  if (perihelionMs != null) {
+    // Real anchor: M = 0 exactly at perihelion, growing with days since it.
+    const daysSincePeri = (simMs - perihelionMs) / 86_400_000
+    phase = direction * 2 * Math.PI * daysSincePeri / periodDaysReal
+  } else {
+    // Approximate anchor off J2000 + a fixed startPhase offset.
+    const baseMeanAnomaly = body.startPhase * Math.PI * 2
+    phase =
+      baseMeanAnomaly +
+      direction * 2 * Math.PI * daysSinceJ2000(simMs) / periodDaysReal
+  }
+  phase = phase % (Math.PI * 2)
 
   const aAU = body.aAU
   const e = body.eccentricity
@@ -434,7 +450,6 @@ function computeBodyPosition(body: NamedBody) {
     xOut = xp * cO - zi * sO
     zOut = xp * sO + zi * cO
   }
-  void TIME_WARP_DAYS_PER_SEC_LOCAL
   return {
     xSceneUnits: Number(xOut.toFixed(3)),
     ySceneUnits: Number(yOut.toFixed(3)),
@@ -655,12 +670,11 @@ function runTool(toolName: string, input: ToolInput): unknown {
     }
 
     case "getCurrentSimDate": {
-      const days = simTimeRef.current.days
-      const epoch = simTimeRef.current.epochMs
-      const ms = epoch + days * 86_400_000
+      const ms = simTimeRef.current.simMs
       return {
         simDate: new Date(ms).toISOString().slice(0, 10),
-        daysFromEpoch: Number(days.toFixed(3)),
+        simInstant: new Date(ms).toISOString(),
+        daysFromJ2000: Number(daysSinceJ2000(ms).toFixed(3)),
         timeWarp: timeWarpRef.current,
       }
     }
@@ -745,9 +759,15 @@ function runTool(toolName: string, input: ToolInput): unknown {
     }
 
     case "setSimTime": {
-      const days = Number(input.daysFromEpoch ?? 0)
-      simTimeRef.current.days = days
-      return `Simulation time set to day ${days} from epoch.`
+      const iso = String(input.date ?? "").trim()
+      const ms = Date.parse(iso)
+      if (!iso || Number.isNaN(ms)) {
+        throw new Error(
+          `Invalid date "${iso}". Pass an ISO date like "2061-07-28" or a full ISO instant.`,
+        )
+      }
+      simTimeRef.current.simMs = ms
+      return `Simulation time set to ${new Date(ms).toISOString().slice(0, 10)}.`
     }
 
     case "resetView": {

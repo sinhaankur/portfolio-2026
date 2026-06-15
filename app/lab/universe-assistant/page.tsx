@@ -126,12 +126,11 @@ export default function UniverseAssistantPage() {
       </section>
 
       {/* Why this exists */}
-      <CaseSectionHeading
-        eyebrow="01"
-        title="Why this exists"
-        kicker="Demonstrating AI engineering on a surface that&apos;s already mine."
-      />
+      <CaseSectionHeading>Why this exists</CaseSectionHeading>
       <CaseProse>
+        <p className="font-serif italic text-foreground/90">
+          Demonstrating AI engineering on a surface that&apos;s already mine.
+        </p>
         <p>
           The Universe Engine is the heaviest piece of independent engineering
           on this portfolio — three months of iteration on real astronomy,
@@ -152,12 +151,11 @@ export default function UniverseAssistantPage() {
       </CaseProse>
 
       {/* Architecture */}
-      <CaseSectionHeading
-        eyebrow="02"
-        title="Architecture"
-        kicker="Static-site compatible. No server. Visitor&apos;s key, visitor&apos;s bill."
-      />
+      <CaseSectionHeading>Architecture</CaseSectionHeading>
       <CaseProse>
+        <p className="font-serif italic text-foreground/90">
+          Static-site compatible. No server. Visitor&apos;s key, visitor&apos;s bill.
+        </p>
         <p>
           Anthropic added <code>anthropic-dangerous-direct-browser-access</code>{" "}
           specifically for the BYO-key static-site use case. The SDK exposes
@@ -217,12 +215,11 @@ export default function UniverseAssistantPage() {
       </div>
 
       {/* Tool surface */}
-      <CaseSectionHeading
-        eyebrow="03"
-        title="Tool surface"
-        kicker="Eight read tools query the dataset; five action tools write to engine refs."
-      />
+      <CaseSectionHeading>Tool surface</CaseSectionHeading>
       <CaseProse>
+        <p className="font-serif italic text-foreground/90">
+          Eight read tools query the dataset; five action tools write to engine refs.
+        </p>
         <p>
           The read tools query the static dataset — <code>namedBodies</code>,{" "}
           <code>skyPoints</code>, <code>planetsData</code> — with no side
@@ -249,12 +246,11 @@ export default function UniverseAssistantPage() {
       </CaseProse>
 
       {/* Engineering decisions */}
-      <CaseSectionHeading
-        eyebrow="04"
-        title="Engineering decisions"
-        kicker="The choices worth defending."
-      />
+      <CaseSectionHeading>Engineering decisions</CaseSectionHeading>
       <CaseProse>
+        <p className="font-serif italic text-foreground/90">
+          The choices worth defending.
+        </p>
         <p>
           <strong className="text-foreground">Sonnet 4.6 over Opus 4.7 as
           default.</strong> Cost-quality balance for chat. Opus is selectable
@@ -301,11 +297,12 @@ export default function UniverseAssistantPage() {
       </CaseProse>
 
       {/* Lessons */}
-      <CaseSectionHeading
-        eyebrow="05"
-        title="What I&apos;d build next"
-        kicker="If this were the start of a product, not the end of an experiment."
-      />
+      <CaseSectionHeading>What I&apos;d build next</CaseSectionHeading>
+      <CaseProse>
+        <p className="font-serif italic text-foreground/90">
+          If this were the start of a product, not the end of an experiment.
+        </p>
+      </CaseProse>
       <CaseLessons lessons={lessons} />
 
       <CaseProse>

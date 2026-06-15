@@ -62,8 +62,8 @@ export class GameLoop {
       case 'briefing':
         // Briefing is UI-only, no gameplay
         break;
-      case 'title':
-        // Title screen, no gameplay
+      case 'nexus':
+        // Nexus station hub, no gameplay
         break;
       case 'upgrade':
         // Upgrade screen, no gameplay
@@ -148,8 +148,8 @@ export class GameLoop {
       if (this.gameState.wave >= 4) {
         // All 4 waves cleared
         if (this.gameState.worldIndex >= 6) {
-          // Game won (all 7 worlds)
-          this.gameState.phase = 'title';
+          // Game won (all 7 worlds) — return to the Nexus station hub.
+          this.gameState.phase = 'nexus';
         } else {
           // Next world
           this.gameState.worldIndex++;
@@ -359,7 +359,10 @@ export class GameLoop {
    */
   spawnWaveEnemies(enemyFactory: (config: any) => GameEntity) {
     const config = this.gameState.waveConfig;
-    config.enemyTypes.forEach(({ type, count }) => {
+    // Distribute the wave's total enemyCount across types by weight.
+    const totalWeight = config.enemyTypes.reduce((sum, t) => sum + t.weight, 0) || 1;
+    config.enemyTypes.forEach(({ type, weight }) => {
+      const count = Math.max(1, Math.round((weight / totalWeight) * config.enemyCount));
       for (let i = 0; i < count; i++) {
         const enemy = enemyFactory({
           type,

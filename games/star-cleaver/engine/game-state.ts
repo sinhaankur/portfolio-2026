@@ -13,6 +13,8 @@ export const IGNITION_STARTUP_DURATION = 0.3;
  */
 export function createInitialGameState(): GameState {
   const layout = getMissionLayout(0);
+  const initialWave = getWaveConfig(0, 1);
+  const initialDifficulty = getDifficultyScale(0, 1);
 
   return {
     phase: 'ignition',
@@ -65,7 +67,11 @@ export function createInitialGameState(): GameState {
     defendingPlanetHealth: 1.0,
     leaksThisWave: 0,
 
-    waveConfig: getWaveConfig(0, 1),
+    waveConfig: {
+      enemyCount: Math.ceil(initialWave.baseEnemyCount * initialDifficulty),
+      enemyTypes: initialWave.enemyTypes,
+      difficultyScale: initialDifficulty,
+    },
   };
 }
 
@@ -193,7 +199,7 @@ export function startCombat(state: GameState): GameState {
  * Handle player input: start charging fire.
  */
 export function startCharging(state: GameState): GameState {
-  if (state.phase !== 'combat') return state;
+  if (state.phase !== 'exploration') return state;
   return {
     ...state,
     phase: 'charging',
@@ -220,7 +226,7 @@ export function cancelCharge(state: GameState): GameState {
   if (state.phase !== 'charging') return state;
   return {
     ...state,
-    phase: 'combat',
+    phase: 'exploration',
     chargeLevel: 0,
   };
 }

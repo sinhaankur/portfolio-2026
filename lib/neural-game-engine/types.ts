@@ -1,5 +1,3 @@
-import type { THREE } from '@react-three/fiber';
-
 /**
  * Core entity type for all game objects (player, enemies, NPCs, projectiles).
  * Extends basic spatial + physics data, no direct mesh reference (decoupled).
@@ -86,7 +84,7 @@ export interface GameState {
   simTime: number; // cumulative seconds since game start
   waveStartTime: number;
   ignitionStartTime?: number; // when ignition sequence began (for timing animation)
-  selectedShip?: 'default-xwing' | 'alliance-xwing' | 't70-xwing' | 'x-blade'; // currently selected ship variant
+  selectedShip?: 'default-vanguard'; // currently selected procedural ship variant
   worldsCompleted: number; // total worlds beaten (for ship unlocks)
 
   playerEntity: GameEntity;
@@ -108,7 +106,7 @@ export interface GameState {
 
   waveConfig: {
     enemyCount: number;
-    enemyTypes: Array<{ type: string; count: number }>;
+    enemyTypes: Array<{ type: string; weight: number }>;
     difficultyScale: number; // 1 + (wave * 0.3)
   };
 

@@ -210,6 +210,9 @@ export type ConstellationId = string
 
 export type Constellation = {
   id: ConstellationId
+  /** IAU 3-letter code (e.g. "And", "Ori"). Present on the 88 generated
+   *  entries; the 7 hand-curated originals omit it. */
+  iauCode?: string
   name: string
   designation: string
   fact: string
