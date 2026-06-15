@@ -43,6 +43,29 @@ function buildStarClassification(spectralType: string | null): string {
   return `${broad} · ${spectralType.trim()}`
 }
 
+/** Curated lore for the most iconic stars — prepended to the auto-generated
+ *  data line so the headline stars read as more than a catalog entry. Keyed by
+ *  proper name (matches NAMED_STARS `n`). */
+const CURATED_STAR_FACTS: Record<string, string> = {
+  Sirius: "The brightest star in the night sky — a hot blue-white A-star just 8.6 ly away, with a white-dwarf companion (Sirius B, 'the Pup'). Its heliacal rising marked the Nile flood for ancient Egypt.",
+  Betelgeuse: "A red supergiant on Orion's shoulder, ~700× the Sun's radius — if placed at the Sun it would swallow Mars. Late in its life and will end as a supernova; its 2019–20 'Great Dimming' briefly had astronomers wondering if it was imminent.",
+  Rigel: "Orion's brilliant blue-white foot — a luminous supergiant ~120,000× the Sun's output, 860 ly away. Far younger and hotter than Betelgeuse across the constellation.",
+  Vega: "The 5th-brightest star and a former pole star (~12,000 BC; again ~13,700 AD via precession). Defined magnitude zero for the photometric scale, and its debris disk was early evidence for forming planetary systems.",
+  Polaris: "The North Star — sits within ~0.7° of the north celestial pole, so it barely moves as the sky wheels around it. A Cepheid variable + the navigator's anchor for centuries.",
+  Arcturus: "A K-type orange giant 37 ly away, the brightest star in the northern celestial hemisphere. Racing through the galaxy on a steep orbit — part of an ancient stream of stars from a long-ago merger.",
+  Aldebaran: "The fiery orange eye of Taurus — a red giant ~65 ly away. Appears among the Hyades cluster but is actually far closer, a chance line-of-sight alignment.",
+  Antares: "The 'rival of Mars' — a vast red supergiant at the heart of Scorpius, ~700× the Sun's radius and a future supernova. Its reddish hue genuinely resembles the planet.",
+  Canopus: "The 2nd-brightest star, a distant F-type supergiant. Spacecraft use it as a navigation reference ('Canopus star tracker') because it's bright and far from the ecliptic.",
+  Deneb: "One of the most luminous stars known — a blue-white supergiant ~1,400 ly away yet still 19th-brightest in our sky. The tail of Cygnus and a corner of the Summer Triangle.",
+  Altair: "A fast-spinning A-star just 17 ly away — rotating so quickly it's visibly flattened into an oblate spheroid. A corner of the Summer Triangle.",
+  Spica: "A hot blue binary in Virgo — the two stars orbit every 4 days, so close they distort each other into eggshapes. A standard for hot B-type stars.",
+  Procyon: "The 8th-brightest star, just 11.5 ly away, with a white-dwarf companion like Sirius. 'Procyon' = 'before the dog', as it rises before Sirius (the Dog Star).",
+  Capella: "Actually four stars — two yellow giants orbiting closely plus a distant red-dwarf pair. The brightest star in Auriga and one of the closest first-magnitude systems.",
+  Fomalhaut: "A young A-star girdled by a sharp-edged debris ring — Hubble imaged a candidate planet (Fomalhaut b) sculpting it, one of the first directly-imaged exoplanet candidates.",
+  Rigil: "Rigil Kentaurus (Alpha Centauri A) — the nearest bright star system at 4.3 ly. A near-twin of the Sun; with companion Toliman and the red dwarf Proxima it's our closest stellar neighbour.",
+  Toliman: "Alpha Centauri B — the Sun-like partner of Rigil Kentaurus, 4.3 ly away. The Alpha Centauri system is the prime target for interstellar mission concepts.",
+}
+
 function buildStarFact(opts: {
   name: string
   mag: number
@@ -52,6 +75,8 @@ function buildStarFact(opts: {
   hd: number | null
 }): string {
   const parts: string[] = []
+  const lore = CURATED_STAR_FACTS[opts.name]
+  if (lore) parts.push(lore)
   parts.push(`Apparent magnitude ${opts.mag.toFixed(2)}.`)
   if (opts.distLy != null) parts.push(`${opts.distLy.toFixed(1)} light-years from the Sun.`)
   if (opts.spectralType) parts.push(`Spectral type ${opts.spectralType.trim()}.`)

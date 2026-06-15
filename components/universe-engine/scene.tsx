@@ -4439,13 +4439,22 @@ function GalaxyDetail({
   const irregularBulgeMatRef = useRef<import("three").MeshBasicMaterial>(null)
   const companionMatRefs = useRef<Array<import("three").MeshBasicMaterial | null>>([])
 
-  // Only Andromeda for now — the others kind: "galaxy" stays as the
-  // existing diffuse halo. Adding Triangulum is a one-rotation change.
+  // The headline galaxies get the full procedural spiral / irregular model;
+  // everything else keeps the cheap diffuse halo. The spiral path covers the
+  // famous grand-design spirals (Andromeda, Triangulum, Whirlpool, Sombrero,
+  // Pinwheel, Bode's, Cigar); the irregular path covers the Magellanic Clouds.
   const isAndromeda = pointId === "m31"
   const isTriangulum = pointId === "m33"
   const isLmc = pointId === "lmc"
   const isSmc = pointId === "smc"
-  const isDetailedGalaxy = isAndromeda || isTriangulum || isLmc || isSmc
+  // Additional famous spirals — rendered with the same spiral model as M33.
+  const SPIRAL_GALAXY_IDS = new Set(["m51", "m104", "m101", "m81", "m82"])
+  const isExtraSpiral = SPIRAL_GALAXY_IDS.has(pointId)
+  // Spiral-model galaxies reuse the Triangulum render path. Folding the extra
+  // spirals in here means the geometry builders + tilt logic that key off
+  // "Triangulum" fire for them too, without duplicating the model.
+  const useSpiralModel = isTriangulum || isExtraSpiral
+  const isDetailedGalaxy = isAndromeda || isTriangulum || isLmc || isSmc || isExtraSpiral
 
   // Andromeda procedural model — built to the structural spec:
   //   - 30% of stars in a dense central bulge, exponential radial decay,
@@ -4565,15 +4574,15 @@ function GalaxyDetail({
   // Non-Andromeda galaxy detail: Triangulum gets a looser flocculent spiral,
   // while LMC/SMC are rendered as irregular clumpy dwarfs.
   const irregularGeometry = useMemo(() => {
-    if (!isTriangulum && !isLmc && !isSmc) return null
-    const numStars = isTriangulum ? 7000 : isLmc ? 6200 : 5000
+    if (!useSpiralModel && !isLmc && !isSmc) return null
+    const numStars = useSpiralModel ? 7000 : isLmc ? 6200 : 5000
     const positions = new Float32Array(numStars * 3)
     const colors = new Float32Array(numStars * 3)
 
     for (let i = 0; i < numStars; i++) {
       const i3 = i * 3
 
-      if (isTriangulum) {
+      if (useSpiralModel) {
         const armOffsets = [0, (2 * Math.PI) / 3, (4 * Math.PI) / 3]
         const a = 0.08
         const b = 0.18
@@ -4613,7 +4622,7 @@ function GalaxyDetail({
         positions[i3 + 2] = core[2] + (Math.random() - 0.5) * 0.30 - bridgePull * 0.12
       }
 
-      if (Math.random() < (isTriangulum ? 0.24 : isLmc ? 0.28 : 0.22)) {
+      if (Math.random() < (useSpiralModel ? 0.24 : isLmc ? 0.28 : 0.22)) {
         colors[i3] = 0.96
         colors[i3 + 1] = 0.56 + Math.random() * 0.12
         colors[i3 + 2] = 0.76 + Math.random() * 0.12
@@ -4628,14 +4637,14 @@ function GalaxyDetail({
     geo.setAttribute("position", new BufferAttribute(positions, 3))
     geo.setAttribute("color", new BufferAttribute(colors, 3))
     return geo
-  }, [isTriangulum, isLmc, isSmc])
+  }, [useSpiralModel, isLmc, isSmc])
 
   const irregularHaloGeometry = useMemo(() => {
-    if (!isTriangulum && !isLmc && !isSmc) return null
-    const numStars = isTriangulum ? 1600 : isLmc ? 1300 : 1100
+    if (!useSpiralModel && !isLmc && !isSmc) return null
+    const numStars = useSpiralModel ? 1600 : isLmc ? 1300 : 1100
     const positions = new Float32Array(numStars * 3)
     const colors = new Float32Array(numStars * 3)
-    const eccentricity = isTriangulum ? 0.92 : isLmc ? 0.84 : 0.78
+    const eccentricity = useSpiralModel ? 0.92 : isLmc ? 0.84 : 0.78
     for (let i = 0; i < numStars; i++) {
       const radius = Math.pow(Math.random(), 0.26) * (isSmc ? 1.0 : 1.2)
       const theta = Math.random() * Math.PI * 2
@@ -4651,7 +4660,7 @@ function GalaxyDetail({
     geo.setAttribute("position", new BufferAttribute(positions, 3))
     geo.setAttribute("color", new BufferAttribute(colors, 3))
     return geo
-  }, [isTriangulum, isLmc, isSmc])
+  }, [useSpiralModel, isLmc, isSmc])
 
   // Companion galaxy positions (Andromeda only — M32 + M110).
   // M32 sits south of the disc, M110 north-west; both are dwarf ellipticals.
@@ -4722,9 +4731,12 @@ function GalaxyDetail({
 
   if (!isDetailedGalaxy) return null
 
-  const tiltDeg = isAndromeda ? 77 : isTriangulum ? 54 : isLmc ? 35 : 20
-  const positionAngleDeg = isAndromeda ? 38 : isTriangulum ? 22 : isLmc ? 170 : 45
-  const detailScale = size * (isAndromeda ? 2.4 : isTriangulum ? 2.2 : isLmc ? 2.0 : 1.9)
+  // Per-galaxy projection. The extra famous spirals (Whirlpool/Sombrero/…)
+  // reuse a Triangulum-like tilt; Sombrero is shown near edge-on (its signature
+  // look), the rest closer to face-on so the arms read.
+  const tiltDeg = isAndromeda ? 77 : pointId === "m104" ? 80 : useSpiralModel ? 48 : isLmc ? 35 : 20
+  const positionAngleDeg = isAndromeda ? 38 : useSpiralModel ? 22 : isLmc ? 170 : 45
+  const detailScale = size * (isAndromeda ? 2.4 : useSpiralModel ? 2.2 : isLmc ? 2.0 : 1.9)
   const galaxyTilt = tiltDeg * DEG
   const galaxyAngle = positionAngleDeg * DEG
 
