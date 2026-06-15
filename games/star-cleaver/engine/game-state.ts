@@ -17,7 +17,9 @@ export function createInitialGameState(): GameState {
   const initialDifficulty = getDifficultyScale(0, 1);
 
   return {
-    phase: 'ignition',
+    // Open on the two-mode start screen: Exploration vs Defend Earth.
+    phase: 'mode-select',
+    gameMode: undefined,
     worldIndex: 0,
     wave: 1,
     score: 0,
@@ -147,6 +149,24 @@ export function startBriefing(state: GameState): GameState {
     phase: 'briefing',
     simTime: 0,
   };
+}
+
+/**
+ * Choose one of the two top-level game sections from the start screen.
+ *
+ *  - 'explore' → free-roam the solar system, no Defend-Earth threats.
+ *  - 'defend'  → Defend Earth: incoming asteroid swarm + enemy fleet.
+ *
+ * Both sections fly the same ship and reuse the ignition → exploration
+ * startup; the canvas keys off `gameMode` to decide whether to spawn the
+ * Defend-Earth threats. Routing through ignition keeps the existing startup
+ * cinematic intact for both modes.
+ */
+export function selectGameMode(state: GameState, mode: 'explore' | 'defend'): GameState {
+  return startIgnition({
+    ...state,
+    gameMode: mode,
+  });
 }
 
 /**

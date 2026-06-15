@@ -17,7 +17,8 @@ import {
 } from '../../../lib/neural-game-engine';
 // import { createNeuralAgent, type NeuralAgent } from '../../../lib/neural-game-engine/ai-agent';
 import { generateShip } from '../../../lib/ship-generator/procedural-ships';
-import { createInitialGameState, startIgnition, startExploration, formatScore, IGNITION_STARTUP_DURATION } from './game-state';
+import { createInitialGameState, startIgnition, startExploration, selectGameMode, formatScore, IGNITION_STARTUP_DURATION } from './game-state';
+import { ModeSelect } from './mode-select';
 import { HUD } from './hud';
 import { TestingConsole } from './testing-console';
 import { PlayerShipModel, ProceduralPlayerShipModel, SHIP_MODEL_BASIS_ROTATION, getPlayerShipTransform } from './player-ship-model';
@@ -3103,6 +3104,16 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
             <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-cyan-200/75">First Flight Guide</div>
             <div className="mt-1 text-sm text-white/85">{tutorialMessages[tutorialIndex]}</div>
           </div>
+        )}
+
+        {/* Mode-select start screen: Exploration vs Defend Earth */}
+        {gameState.phase === 'mode-select' && (
+          <ModeSelect
+            onSelect={(mode) => {
+              Object.assign(gameState, selectGameMode(gameState, mode));
+              bumpUi();
+            }}
+          />
         )}
 
         {/* Pause Overlay */}
