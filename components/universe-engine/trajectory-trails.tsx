@@ -42,49 +42,28 @@ const TRAIL_OPACITY = 0.22
 const TRAIL_COLOR = "#7ec8ff"
 const LIVE_DOT_COLOR = "#ffffff"
 
+
 /* --------------------------------------------------------------------------
- * Keplerian position in the solar-system frame
+ * Canonical planet placement — the SINGLE source of truth for both the trail
+ * and the live dot, mirroring exactly how PlanetMesh places the body in
+ * scene.tsx: local (r,0,0) inside an orbitRef rotated by (trueAnom+periRad)
+ * about Y, inside an outer group tilted by `inclination` about X. r uses the
+ * sqrt-compressed scene radius (planet.orbitRadius), NOT raw AU.
  * ------------------------------------------------------------------------ */
-
-function keplerianPosition(
-  a: number,
+function planetTrailPoint(
+  planet: ScenePlanet,
   e: number,
-  i: number,
-  node: number,
-  peri: number,
-  meanAnomaly: number,
-): Vector3 {
-  const E = e >= 1 ? meanAnomaly : solveKepler(meanAnomaly, e)
-  const trueAnom =
-    e >= 1
-      ? meanAnomaly
-      : eccentricToTrue(E, e)
-  const r = (a * (1 - e * e)) / Math.max(0.001, 1 + e * Math.cos(trueAnom))
-
-  // In-plane position
-  const xOrb = r * Math.cos(trueAnom)
-  const zOrb = -r * Math.sin(trueAnom)
-  const yOrb = 0
-
-  // Apply argument of periapsis (ω) around z
-  const cosP = Math.cos(peri)
-  const sinP = Math.sin(peri)
-  const xPeri = xOrb * cosP - zOrb * sinP
-  const zPeri = xOrb * sinP + zOrb * cosP
-
-  // Apply inclination (i) around x
-  const cosI = Math.cos(i)
-  const sinI = Math.sin(i)
-  const yIncl = yOrb * cosI - zPeri * sinI
-  const zIncl = yOrb * sinI + zPeri * cosI
-
-  // Apply longitude of ascending node (Ω) around y
-  const cosN = Math.cos(node)
-  const sinN = Math.sin(node)
-  const xNode = xPeri * cosN + zIncl * sinN
-  const zNode = -xPeri * sinN + zIncl * cosN
-
-  return new Vector3(xNode, yIncl, zNode)
+  periRad: number,
+  M: number,
+): [number, number, number] {
+  const trueAnom = e > 0.01 ? eccentricToTrue(solveKepler(M, e), e) : M
+  const r = (planet.orbitRadius * (1 - e * e)) / (1 + e * Math.cos(trueAnom))
+  const ang = trueAnom + periRad
+  const x = r * Math.cos(ang)
+  const zFlat = -r * Math.sin(ang)
+  const cosI = Math.cos(planet.inclination)
+  const sinI = Math.sin(planet.inclination)
+  return [x, -zFlat * sinI, zFlat * cosI]
 }
 
 /* --------------------------------------------------------------------------
@@ -100,21 +79,20 @@ function PlanetTrail({
 }) {
   const geometry = useMemo(() => {
     const e = planet.raw.deep?.eccentricity ?? 0
-    // Orient the ellipse by the real longitude of perihelion so the live
-    // dot (which uses the same offset) rides exactly on this path.
     const periRad = planet.raw.periDeg != null ? planet.raw.periDeg * DEG : 0
     const positions: number[] = []
+    // Trace the trail with the EXACT transform the live planet body uses in
+    // scene.tsx (see the PlanetMesh useFrame): the planet sits at local
+    // (r, 0, 0) inside an orbitRef rotated by (trueAnom + periRad) about Y,
+    // inside an outer group tilted by `inclination` about X. r uses the
+    // sqrt-compressed scene radius `planet.orbitRadius` — NOT a raw AU. The
+    // old local keplerianPosition used a different formulation + radius, which
+    // left the trail misaligned with the planet. Mirroring it exactly keeps
+    // the body provably on its own trail.
     for (let s = 0; s <= PLANET_TRAIL_SEGMENTS; s++) {
       const M = (s / PLANET_TRAIL_SEGMENTS) * Math.PI * 2
-      const pos = keplerianPosition(
-        planet.orbitRadius,
-        e,
-        planet.inclination,
-        0, // longNode — planets use simplified tilt-only orbits
-        periRad,
-        M,
-      )
-      positions.push(pos.x, pos.y, pos.z)
+      const [x, y, z] = planetTrailPoint(planet, e, periRad, M)
+      positions.push(x, y, z)
     }
     const geo = new BufferGeometry()
     geo.setAttribute("position", new Float32BufferAttribute(positions, 3))
@@ -218,22 +196,15 @@ function LiveOrbitDot({
   useFrame(() => {
     if (!meshRef.current) return
     const e = planet.raw.deep?.eccentricity ?? 0
-    // Date-driven so the live dot sits exactly on the planet as the
-    // timeline scrubs (previously free-ran off performance.now()).
     const periRad = planet.raw.periDeg != null ? planet.raw.periDeg * DEG : 0
+    // Date-driven mean anomaly → true anomaly, then the SAME transform the
+    // trail + live planet body use, so the dot rides exactly on its trail.
     const M =
       planet.raw.m0Deg != null
         ? meanAnomalyAt(planet.raw.m0Deg * DEG, planet.raw.periodDays, simTimeRef.current.simMs)
         : planet.raw.startPhase
-    const pos = keplerianPosition(
-      planet.orbitRadius,
-      e,
-      planet.inclination,
-      0,
-      periRad,
-      M,
-    )
-    meshRef.current.position.copy(pos)
+    const p = planetTrailPoint(planet, e, periRad, M)
+    meshRef.current.position.set(p[0], p[1], p[2])
   })
 
   return (
