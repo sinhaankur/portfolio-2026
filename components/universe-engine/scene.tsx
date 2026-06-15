@@ -63,6 +63,7 @@ import {
   SOLAR_SYSTEM_POSITION,
   SUN_INFO,
   SUN_OFFSET_SCENE,
+  GALAXY_RADIUS_SCENE,
   TIME_WARP_DAYS_PER_SEC,
   blackHoleHorizonGravityMetersPerSec2,
   buildScenePlanets,
@@ -998,11 +999,8 @@ function MilkyWay({
         />
       </points>
 
-      {/* Diffuse nebula / dust haze — soft glowing gas clouds between the
-          star points, tracing the arms. Hα-pink in star-forming zones, dusty
-          blue/amber elsewhere. Points-as-billboards with a very soft radial
-          falloff; additive so they layer into a volumetric haze. Skipped in
-          chart mode (would muddy the ink-on-cream map). */}
+      {/* Diffuse nebula / dust haze — soft glowing gas clouds tracing the
+          arms (Hα-pink, dusty blue, amber). Skipped in chart mode. */}
       {!invert && <NebulaClouds mobile={mobile} />}
 
       {/* Sgr A* — the Milky Way's 4.15 million-M☉ supermassive black hole.
