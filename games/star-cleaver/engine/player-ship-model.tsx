@@ -9,7 +9,11 @@ import { auditShipModel } from './ship-model-qa';
 import type { SelectedShip } from './ship-selector';
 import { GAMEPLAY_SHIP_RENDER_SCALE, PREVIEW_SHIP_RENDER_SCALE } from './scale-contract';
 
-const PLAYER_SHIP_MODEL_PATH = '/models/Test1glb.glb';
+// Active player ship: Blender-authored X-wing (blender/space-assets/xwing.glb).
+// Legacy Vanguard interceptor kept as a fallback reference.
+const PLAYER_SHIP_MODEL_PATH = '/models/xwing.glb';
+const LEGACY_SHIP_MODEL_PATH = '/models/Test1glb.glb';
+void LEGACY_SHIP_MODEL_PATH;
 // The authored GLB uses Y as its longitudinal axis; gameplay uses -Z forward.
 // Rotate imported GLB content so model-space aligns with game-space, then
 // rotate 180 degrees around heading so front/back reads correctly in gameplay.
