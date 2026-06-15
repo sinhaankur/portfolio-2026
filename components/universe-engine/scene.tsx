@@ -240,6 +240,48 @@ const CLOUD_FRAGMENT_SHADER = `
 `
 
 /* ============================================================
+ * Atmospheric scattering shell shader.
+ *
+ * Replaces the old flat additive halo with a sun-aware limb glow: a Fresnel
+ * term concentrates the glow at the silhouette (the limb), and a sun-facing
+ * term brightens the day side + adds a faint forward-scatter "blue hour"
+ * crescent at the terminator — the look of real Rayleigh scattering seen from
+ * space. uOpacity fades it in on hover/focus exactly like the old halo, so the
+ * idle wide view stays clean.
+ * ============================================================ */
+const ATMOS_VERTEX_SHADER = `
+  varying vec3 vWorldNormal;
+  varying vec3 vViewDir;
+  void main() {
+    vec4 wpos = modelMatrix * vec4(position, 1.0);
+    vWorldNormal = normalize(mat3(modelMatrix) * normal);
+    vViewDir = normalize(cameraPosition - wpos.xyz);
+    gl_Position = projectionMatrix * viewMatrix * wpos;
+  }
+`
+const ATMOS_FRAGMENT_SHADER = `
+  uniform vec3  uColor;
+  uniform vec3  uSunDir;
+  uniform float uOpacity;
+  uniform float uPower;   // Fresnel sharpness (higher = tighter limb)
+  varying vec3 vWorldNormal;
+  varying vec3 vViewDir;
+  void main() {
+    vec3 N = normalize(vWorldNormal);
+    // Fresnel: glow concentrates where the surface grazes the view (the limb).
+    float fres = pow(1.0 - max(dot(N, normalize(vViewDir)), 0.0), uPower);
+    // Sun term: brighten the day-facing limb, keep a soft floor so the whole
+    // limb still reads as a thin shell.
+    float sun = max(dot(N, normalize(uSunDir)), 0.0);
+    float lit = 0.25 + 0.95 * sun;
+    // Terminator forward-scatter: a subtle lift right at the day/night edge.
+    float terminator = smoothstep(0.0, 0.25, sun) * (1.0 - smoothstep(0.25, 0.6, sun));
+    float intensity = fres * lit + fres * terminator * 0.5;
+    gl_FragColor = vec4(uColor, clamp(intensity, 0.0, 1.0) * uOpacity);
+  }
+`
+
+/* ============================================================
  * Comet-tail shader.
  *
  * A real plasma/dust tail is a sparse plume — densest at the
@@ -1968,7 +2010,6 @@ function PlanetBody({
   const orbitRef = useRef<Group>(null)
   const texMeshRef = useRef<Mesh>(null)
   const texMatRef = useRef<import("three").MeshStandardMaterial>(null)
-  const atmosMatRef = useRef<import("three").MeshBasicMaterial>(null)
   /** Rotates in lockstep with the planet body — children inherit the spin
    *  so surface features (rover pins on Mars) stay glued to the right spot. */
   const surfaceRotRef = useRef<Group>(null)
@@ -2088,6 +2129,18 @@ function PlanetBody({
     [],
   )
 
+  // Atmospheric scattering shell uniforms — sun-aware Fresnel limb glow.
+  const atmosShaderRef = useRef<ShaderMaterial | null>(null)
+  const atmosUniforms = useMemo(
+    () => ({
+      uColor:   { value: new Color("#8ec5ff") },
+      uSunDir:  { value: new Vector3(1, 0, 0) },
+      uOpacity: { value: 0 },
+      uPower:   { value: 3.0 },
+    }),
+    [],
+  )
+
   // Date-driven mean anomaly. When the body has a real J2000 anchor
   // (m0Deg), its position is a pure function of the simulation date —
   // M(t) = M0 + 2π·(daysSinceJ2000 / period) — which is what makes the
@@ -2195,20 +2248,22 @@ function PlanetBody({
       const target = texture && cloudsVisibleRef.current ? 0.9 : 0
       cloudUniforms.uOpacity.value += (target - cloudUniforms.uOpacity.value) * k
     }
-    // Rocky-planet atmosphere glow — soft halo that fades in when the
-    // planet is hovered or focused. Sells the "look closer" moment.
-    // Per-planet intensity matches the actual atmospheric depth: Venus
-    // is dense + reflective (you see the cloud deck, not the surface),
-    // Earth's is iconic but thinner, Mars's is almost transparent.
-    if (atmosMatRef.current) {
+    // Rocky-planet atmospheric scattering shell — fades in on hover/focus.
+    // Per-planet peak intensity matches real atmospheric depth (Venus dense,
+    // Earth iconic-but-thinner, Mars almost transparent). The shader handles
+    // the sun-aware limb glow; here we just drive opacity + the sun direction.
+    if (atmosShaderRef.current) {
       const k = 1 - Math.exp(-delta * 8)
       const peakOpacity =
-        planet.raw.name === "Venus" ? (invert ? 0.32 : 0.50) :
-        planet.raw.name === "Earth" ? (invert ? 0.18 : 0.30) :
-        planet.raw.name === "Mars"  ? (invert ? 0.10 : 0.16) :
-        0.28
+        planet.raw.name === "Venus" ? (invert ? 0.40 : 0.65) :
+        planet.raw.name === "Earth" ? (invert ? 0.28 : 0.48) :
+        planet.raw.name === "Mars"  ? (invert ? 0.14 : 0.24) :
+        0.38
       const target = detailActive ? peakOpacity : 0
-      atmosMatRef.current.opacity += (target - atmosMatRef.current.opacity) * k
+      atmosUniforms.uOpacity.value += (target - atmosUniforms.uOpacity.value) * k
+      meshRef.current?.getWorldPosition(_earthWorldPos)
+      _sunWorldPos.set(SUN_OFFSET_SCENE, 0, 0)
+      atmosUniforms.uSunDir.value.copy(_sunDirTmp.copy(_sunWorldPos).sub(_earthWorldPos).normalize())
     }
   })
 
@@ -2230,6 +2285,14 @@ function PlanetBody({
     planet.raw.name === "Mars"  ? (invert ? "#4a2018" : "#ffa284") :
     null
   const hasAtmosphere = atmosphereColor !== null
+  // Feed the per-planet atmosphere colour + a tighter Fresnel for thin
+  // atmospheres into the scattering shader.
+  useEffect(() => {
+    if (atmosphereColor) atmosUniforms.uColor.value.set(atmosphereColor)
+    atmosUniforms.uPower.value =
+      planet.raw.name === "Mars" ? 4.0 :
+      planet.raw.name === "Venus" ? 2.4 : 3.0
+  }, [atmosphereColor, planet.raw.name, atmosUniforms])
   const atmosphereScale =
     planet.raw.name === "Venus" ? 1.060 :
     planet.raw.name === "Earth" ? 1.045 :
@@ -2325,18 +2388,20 @@ function PlanetBody({
               </group>
             )}
 
-            {/* Rocky-planet atmosphere halo — Earth's cyan, Venus's pale
-                yellow, Mars's faint salmon. Slightly larger sphere with
-                additive blending; the limb glow reads as the planet's
-                actual atmospheric scattering on approach. */}
+            {/* Rocky-planet atmospheric scattering shell — Earth's cyan,
+                Venus's pale yellow, Mars's faint salmon. A sun-aware Fresnel
+                limb glow (brightest on the day-facing limb, with a faint
+                terminator forward-scatter) instead of a flat halo, so it reads
+                as real Rayleigh scattering seen from space. */}
             {hasAtmosphere && atmosphereColor && (
               <mesh>
                 <sphereGeometry args={[planet.visualRadius * atmosphereScale, 64, 64]} />
-                <meshBasicMaterial
-                  ref={atmosMatRef as React.Ref<import("three").MeshBasicMaterial>}
-                  color={atmosphereColor}
+                <shaderMaterial
+                  ref={atmosShaderRef as React.Ref<ShaderMaterial>}
+                  vertexShader={ATMOS_VERTEX_SHADER}
+                  fragmentShader={ATMOS_FRAGMENT_SHADER}
+                  uniforms={atmosUniforms}
                   transparent
-                  opacity={0}
                   blending={invert ? NormalBlending : AdditiveBlending}
                   depthWrite={false}
                   side={DoubleSide}
