@@ -47,3 +47,6 @@ scripts/.cache/
 
 # Third-party reference models (heavy, not ours to redistribute)
 blender/space-assets/reference/
+
+# Blender backup saves
+*.blend1
