@@ -49,9 +49,10 @@ import {
   flyToRef,
   followRef,
   requestFlyTo,
+  cloudsVisibleRef,
 } from "./astronomy"
 import { SceneContents } from "./scene"
-import { DeepDiveToggle, GravityToggle, InfoPanel, ResetViewButton, TimelineControl } from "./hud"
+import { CloudToggle, DeepDiveToggle, GravityToggle, InfoPanel, ResetViewButton, TimelineControl } from "./hud"
 import { MobileBodySheet } from "./mobile-sheet"
 import { StaticStarfield } from "./static-starfield"
 import { GalaxyMusic } from "../galaxy-music"
@@ -93,6 +94,11 @@ export function UniverseEngine({
   const [selectedBody, setSelectedBody] = useState<BodyInfo | null>(null)
   const [showGravityOverlay, setShowGravityOverlay] = useState(false)
   const [showDeepDive, setShowDeepDive] = useState(false)
+  // Earth cloud-shell visibility — drives the module-scoped ref the scene reads.
+  const [showClouds, setShowClouds] = useState(true)
+  useEffect(() => {
+    cloudsVisibleRef.current = showClouds
+  }, [showClouds])
   const orbitRef = useRef<OrbitControlsImpl | null>(null)
   const { resolvedTheme } = useTheme()
   // Prop override wins; otherwise the engine flips to chart mode automatically
@@ -498,6 +504,7 @@ export function UniverseEngine({
                 would push the cluster into UPCOMING. Touch users still get
                 pinch-zoom + drag + tap-to-explore. */}
             <div className="hidden md:flex items-center gap-2">
+              <CloudToggle active={showClouds} onToggle={() => setShowClouds(v => !v)} />
               <GravityToggle active={showGravityOverlay} onToggle={() => setShowGravityOverlay(v => !v)} />
               <DeepDiveToggle active={showDeepDive} onToggle={() => setShowDeepDive(v => !v)} />
             </div>

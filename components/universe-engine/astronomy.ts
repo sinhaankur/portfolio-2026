@@ -61,6 +61,12 @@ export const TIME_WARP_DAYS_PER_SEC = BASE_TIME_WARP_DAYS_PER_SEC
 
 export const timeWarpRef = { current: 1.0 }
 
+/* Cloud-layer visibility — module-scoped so the HUD toggle can flip it
+ * without prop-drilling through the R3F tree (same pattern as timeWarpRef).
+ * Earth's procedural cloud shell reads this each frame and fades accordingly.
+ * Defaults to visible. */
+export const cloudsVisibleRef = { current: true }
+
 /* --------------------------------------------------------------------------
  * Simulation clock — date-first, scrubbable
  *

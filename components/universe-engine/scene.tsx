@@ -89,6 +89,7 @@ import {
   skyPoints,
   solveKepler,
   timeWarpRef,
+  cloudsVisibleRef,
 } from "./astronomy"
 import { GALAXY_FRAGMENT_SHADER, GALAXY_VERTEX_SHADER } from "./shaders"
 
@@ -167,6 +168,74 @@ const DAY_NIGHT_FRAGMENT_SHADER = `
       : dayColor * 0.04;
     vec3 color = mix(nightColor, dayColor, dayMix);
     gl_FragColor = vec4(color, uOpacity);
+  }
+`
+
+/* ============================================================
+ * Procedural cloud shell shader (Earth).
+ *
+ * No texture file: clouds are generated with fractal value noise (FBM) so
+ * the engine stays web-light. The shell sits just above the surface, drifts
+ * slowly (uTime), is lit by the Sun (clouds only show on the day side and
+ * fade through the terminator), and is fully toggleable via uOpacity (the
+ * "hide clouds" switch sets this to 0). Stylised, not a NASA cloud map, but
+ * it reads as a living weather layer over the globe.
+ * ============================================================ */
+const CLOUD_VERTEX_SHADER = `
+  varying vec2 vUv;
+  varying vec3 vWorldNormal;
+  void main() {
+    vUv = uv;
+    vWorldNormal = normalize(mat3(modelMatrix) * normal);
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`
+const CLOUD_FRAGMENT_SHADER = `
+  uniform vec3  uSunDir;
+  uniform float uOpacity;   // master fade-in (hover/focus) × toggle
+  uniform float uTime;      // slow cloud drift
+  uniform float uCoverage;  // 0..1 how much of the globe is clouded
+  varying vec2 vUv;
+  varying vec3 vWorldNormal;
+
+  // Hash + value noise + FBM — standard cheap procedural noise.
+  float hash(vec2 p) {
+    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+  }
+  float vnoise(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    vec2 u = f * f * (3.0 - 2.0 * f);
+    return mix(mix(hash(i + vec2(0.0,0.0)), hash(i + vec2(1.0,0.0)), u.x),
+               mix(hash(i + vec2(0.0,1.0)), hash(i + vec2(1.0,1.0)), u.x), u.y);
+  }
+  float fbm(vec2 p) {
+    float v = 0.0;
+    float a = 0.5;
+    for (int i = 0; i < 5; i++) {
+      v += a * vnoise(p);
+      p *= 2.0;
+      a *= 0.5;
+    }
+    return v;
+  }
+
+  void main() {
+    // Drift the cloud field slowly in longitude; stretch in U so bands read
+    // as latitudinal weather systems rather than blobs.
+    vec2 p = vec2(vUv.x * 6.0 + uTime * 0.012, vUv.y * 3.0);
+    float n = fbm(p);
+    // Coverage threshold carves cloud vs. clear sky with a soft edge.
+    float clouds = smoothstep(1.0 - uCoverage, 1.0 - uCoverage + 0.22, n);
+
+    // Day-side only: clouds catch sunlight, fade across the terminator.
+    float NdotL = dot(normalize(vWorldNormal), normalize(uSunDir));
+    float lit = smoothstep(-0.08, 0.18, NdotL);
+
+    float alpha = clouds * lit * uOpacity;
+    // Soft warm-white, slightly brighter where light grazes (limb).
+    vec3 col = vec3(1.0, 0.99, 0.96);
+    gl_FragColor = vec4(col, alpha);
   }
 `
 
@@ -2004,6 +2073,21 @@ function PlanetBody({
     if (nightTexture) dayNightUniforms.tNight.value = nightTexture
   }, [texture, nightTexture, dayNightUniforms])
 
+  // Procedural cloud shell — Earth only. Animated FBM noise lit by the Sun;
+  // togglable via cloudsVisibleRef. uOpacity lerps with the planet's own
+  // fade (so clouds appear/disappear with the textured globe) AND the toggle.
+  const isEarth = planet.raw.name === "Earth"
+  const cloudMatRef = useRef<ShaderMaterial | null>(null)
+  const cloudUniforms = useMemo(
+    () => ({
+      uSunDir:   { value: new Vector3(1, 0, 0) },
+      uOpacity:  { value: 0 },
+      uTime:     { value: 0 },
+      uCoverage: { value: 0.5 },
+    }),
+    [],
+  )
+
   // Date-driven mean anomaly. When the body has a real J2000 anchor
   // (m0Deg), its position is a pure function of the simulation date —
   // M(t) = M0 + 2π·(daysSinceJ2000 / period) — which is what makes the
@@ -2100,6 +2184,17 @@ function PlanetBody({
       _sunDirTmp.copy(_sunWorldPos).sub(_earthWorldPos).normalize()
       dayNightUniforms.uSunDir.value.copy(_sunDirTmp)
     }
+    // Earth cloud shell — drift + sun direction + a fade that follows the
+    // globe's reveal AND the cloud toggle (cloudsVisibleRef).
+    if (isEarth && cloudMatRef.current) {
+      cloudUniforms.uTime.value += delta * tw
+      meshRef.current?.getWorldPosition(_earthWorldPos)
+      _sunWorldPos.set(SUN_OFFSET_SCENE, 0, 0)
+      cloudUniforms.uSunDir.value.copy(_sunDirTmp.copy(_sunWorldPos).sub(_earthWorldPos).normalize())
+      const k = 1 - Math.exp(-delta * 6)
+      const target = texture && cloudsVisibleRef.current ? 0.9 : 0
+      cloudUniforms.uOpacity.value += (target - cloudUniforms.uOpacity.value) * k
+    }
     // Rocky-planet atmosphere glow — soft halo that fades in when the
     // planet is hovered or focused. Sells the "look closer" moment.
     // Per-planet intensity matches the actual atmospheric depth: Venus
@@ -2177,6 +2272,22 @@ function PlanetBody({
                 />
               </mesh>
             )}
+            {/* Earth's procedural cloud shell — sits just above the surface,
+                lit by the Sun, animated + toggleable. No texture file. */}
+            {isEarth && (
+              <mesh>
+                <sphereGeometry args={[planet.visualRadius * 1.02, 96, 96]} />
+                <shaderMaterial
+                  ref={cloudMatRef as React.Ref<ShaderMaterial>}
+                  vertexShader={CLOUD_VERTEX_SHADER}
+                  fragmentShader={CLOUD_FRAGMENT_SHADER}
+                  uniforms={cloudUniforms}
+                  transparent
+                  depthWrite={false}
+                />
+              </mesh>
+            )}
+
             {hasTexture && !useDayNightShader && texture && (
               <mesh ref={texMeshRef}>
                 <sphereGeometry args={[
