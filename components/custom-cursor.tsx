@@ -138,6 +138,10 @@ export function CustomCursor() {
   // the cursor reads correctly against a cream page.
   const isLight = themeMounted && resolvedTheme === "light"
   const inkColor = isLight ? "#0a0a0a" : "#ffffff"
+  // Framer Motion can't tween to the keyword "transparent" — it needs an rgba
+  // with 0 alpha so the alpha channel animates. Match inkColor's RGB so the
+  // ring fades cleanly to/from its filled state.
+  const inkTransparent = isLight ? "rgba(10,10,10,0)" : "rgba(255,255,255,0)"
   const accentColor = isLight ? "#b34a13" : "#ffd66b"
   const ringColor = state === "body" ? accentColor : inkColor
   // Drop-shadow tint matches the surrounding page so the reticle gets a soft
@@ -173,7 +177,7 @@ export function CustomCursor() {
           height: ringSize,
           borderWidth: state === "link" ? 0 : 1.5,
           borderColor: ringColor,
-          backgroundColor: state === "link" ? inkColor : "transparent",
+          backgroundColor: state === "link" ? inkColor : inkTransparent,
           opacity: ringOpacity,
         }}
         transition={{ type: "spring", stiffness: 450, damping: 28, mass: 0.5 }}
