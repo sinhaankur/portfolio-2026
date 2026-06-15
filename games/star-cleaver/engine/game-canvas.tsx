@@ -1440,6 +1440,25 @@ const _camLook = new THREE.Vector3();
 const _camVelDir = new THREE.Vector3();
 const _camTmp = new THREE.Vector3();
 
+/** A pair of lights that follow the player ship so it always reads as the
+ *  brightest, clearest object on screen. A warm key from above-front and a
+ *  cool rim from behind for separation against the void. */
+function ShipKeyLight({ gameState }: { gameState: GameState }) {
+  const keyRef = useRef<THREE.PointLight>(null);
+  const rimRef = useRef<THREE.PointLight>(null);
+  useFrame(() => {
+    const p = gameState.playerEntity.position;
+    if (keyRef.current) keyRef.current.position.set(p.x + 6, p.y + 10, p.z + 8);
+    if (rimRef.current) rimRef.current.position.set(p.x - 5, p.y + 2, p.z - 9);
+  });
+  return (
+    <>
+      <pointLight ref={keyRef} intensity={140} distance={70} decay={2} color={0xfff0d8} />
+      <pointLight ref={rimRef} intensity={90} distance={60} decay={2} color={0x88b4ff} />
+    </>
+  );
+}
+
 function CameraFollowController({
   gameState,
   cameraAssist,
@@ -2823,19 +2842,22 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
           />
         </Suspense>
 
-        {/* Scene lighting: cinematic + directional for exploring universe */}
-        <ambientLight intensity={0.4} color={0xffffff} />
+        {/* Scene lighting: brighter cinematic rig so the ship + space read with
+            depth (was too dim/flat). Warm key + cool fill + magenta accent, plus
+            a hemisphere fill to lift shadow sides off pure black. */}
+        <hemisphereLight args={[0x99bbff, 0x1a1f2e, 0.55]} />
+        <ambientLight intensity={0.62} color={0xffffff} />
         <directionalLight
           position={[80, 50, 60]}
-          intensity={graphicsProfile.tier === 'ultra' ? 1.08 : 1.0}
-          color={0xffffff}
+          intensity={graphicsProfile.tier === 'ultra' ? 1.85 : 1.7}
+          color={0xfff2e0}
           castShadow={graphicsProfile.shadows}
           shadow-mapSize-width={graphicsProfile.shadowMapSize}
           shadow-mapSize-height={graphicsProfile.shadowMapSize}
           shadow-bias={-0.00018}
         />
-        <directionalLight position={[-60, 30, -40]} intensity={0.5} color={0x3b82f6} />
-        <pointLight position={[0, 5, 10]} intensity={0.6} color={0xa855f7} />
+        <directionalLight position={[-60, 30, -40]} intensity={0.85} color={0x6aa0ff} />
+        <pointLight position={[0, 5, 10]} intensity={0.7} color={0xa855f7} />
 
         {/* Keep near-field clear in travel mode so no large blobs sit in front of the ship. */}
 
@@ -2843,6 +2865,10 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
         {gameState.playerEntity && (
           <MemoPlayerShipGroup gameState={gameState} showForwardDebug={showForwardDebug} />
         )}
+
+        {/* Hero key-light that rides with the ship so the X-wing is always
+            clearly lit no matter where it flies (fixes "ship hard to see"). */}
+        {gameState.playerEntity && <ShipKeyLight gameState={gameState} />}
 
         {/* Enemy ships */}
         {gameState.enemies.map((enemy) => (
