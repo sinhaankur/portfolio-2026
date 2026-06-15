@@ -1124,52 +1124,6 @@ function MilkyWay({
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
 
-      {/* Named spiral arms — the Milky Way's real major arms, plus a "you are
-          here" mark on the Orion Spur where the Sun lives. Positions trace the
-          same log-spiral the star field uses (branch angle + r·spin·0.04), at a
-          representative mid-arm radius. Labels only in dark mode + non-mobile to
-          avoid clutter on the chart view + small screens. */}
-      {!invert && !mobile && (() => {
-        const R = GALAXY_RADIUS_SCENE
-        const spin = 1.3
-        const arm = (branch: number, frac: number) => {
-          const r = frac * R
-          const ang = (branch / 4) * Math.PI * 2 + r * spin * 0.04
-          return [Math.cos(ang) * r, 0, Math.sin(ang) * r] as [number, number, number]
-        }
-        const arms: { pos: [number, number, number]; label: string; sub?: string }[] = [
-          { pos: arm(0, 0.62), label: "Perseus Arm" },
-          { pos: arm(1, 0.70), label: "Sagittarius Arm" },
-          { pos: arm(2, 0.66), label: "Scutum–Centaurus Arm" },
-          { pos: arm(3, 0.58), label: "Norma Arm" },
-          { pos: arm(0, 0.5), label: "You are here", sub: "Orion Spur · the Sun" },
-        ]
-        return (
-          <group>
-            {arms.map((a) => (
-              <Html
-                key={a.label}
-                position={a.pos}
-                center
-                distanceFactor={120}
-                zIndexRange={[5, 0]}
-                style={{ pointerEvents: "none" }}
-              >
-                <div className="select-none whitespace-nowrap text-center leading-tight">
-                  <div className="font-mono text-[11px] tracking-[0.18em] uppercase text-cyan-200/80">
-                    {a.label}
-                  </div>
-                  {a.sub && (
-                    <div className="font-mono text-[8px] tracking-[0.12em] uppercase text-amber-200/70 mt-0.5">
-                      {a.sub}
-                    </div>
-                  )}
-                </div>
-              </Html>
-            ))}
-          </group>
-        )
-      })()}
     </group>
   )
 }
