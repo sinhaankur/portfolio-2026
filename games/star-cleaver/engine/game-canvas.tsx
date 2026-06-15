@@ -25,7 +25,7 @@ import { PlayerShipModel, ProceduralPlayerShipModel, SHIP_MODEL_BASIS_ROTATION, 
 import type { SelectedShip } from './ship-selector';
 import { getMissionLayout } from './mission-layout';
 import { createEnemy } from './enemies';
-import { SpaceDust, DataCoreField, createDataCores, BoostShockwave, ImpactField } from './particles';
+import { SpaceDust, DataCoreField, createDataCores, BoostShockwave, ImpactField, DebrisField } from './particles';
 import { AsteroidField } from './asteroid-field';
 import type { DataCore } from './particles';
 import {
@@ -3062,6 +3062,11 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
 
         {/* Combat juice: weapon-impact + kill bursts at hit points (sim-driven) */}
         <ImpactField gameState={gameState} />
+
+        {/* Tumbling 3D wreckage chunks flung from each kill (Blender debris.glb) */}
+        <Suspense fallback={null}>
+          <DebrisField gameState={gameState} />
+        </Suspense>
 
         {/* Game logic integration */}
         <GameScene

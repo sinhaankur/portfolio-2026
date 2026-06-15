@@ -2,6 +2,7 @@
 
 import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
+import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import type { GameState } from '../../../lib/neural-game-engine';
 
@@ -379,3 +380,98 @@ export function ImpactField({ gameState }: { gameState: GameState }) {
     </instancedMesh>
   );
 }
+
+/* --------------------------------------------------------------------------
+ * DebrisField — tumbling 3D wreckage chunks spawned on each kill, completing
+ * the combat-juice loop. Watches the sim event queue for entity_killed and
+ * launches a handful of real Blender debris meshes (debris.glb) outward from
+ * the kill point, each spinning + drifting, fading out over ~1.4s. Pooled
+ * clones, no per-chunk React reconciliation.
+ * ------------------------------------------------------------------------ */
+const DEBRIS_MODEL = '/models/debris.glb';
+const DEBRIS_POOL = 40;
+const DEBRIS_PER_KILL = 5;
+const DEBRIS_LIFE = 1.4;
+
+type Chunk = {
+  group: THREE.Group;
+  vel: THREE.Vector3;
+  spin: THREE.Vector3;
+  born: number;
+  active: boolean;
+};
+
+export function DebrisField({ gameState }: { gameState: GameState }) {
+  const rootRef = useRef<THREE.Group>(null);
+  const gltf = useGLTF(DEBRIS_MODEL);
+  const seenRef = useRef<number>(0);
+  const poolRef = useRef<Chunk[]>([]);
+  const cursorRef = useRef(0);
+
+  // Build the pool once the GLB is available + the root is mounted.
+  const ensurePool = (root: THREE.Group) => {
+    if (poolRef.current.length > 0) return;
+    const sourceMeshes: THREE.Mesh[] = [];
+    gltf.scene.traverse((c) => { if ((c as THREE.Mesh).isMesh) sourceMeshes.push(c as THREE.Mesh); });
+    for (let i = 0; i < DEBRIS_POOL; i++) {
+      const g = new THREE.Group();
+      // Each pooled chunk is a single random source fragment.
+      const src = sourceMeshes[i % Math.max(1, sourceMeshes.length)];
+      if (src) {
+        const m = src.clone();
+        m.position.set(0, 0, 0);
+        g.add(m);
+      }
+      g.visible = false;
+      g.scale.setScalar(2.2);
+      root.add(g);
+      poolRef.current.push({ group: g, vel: new THREE.Vector3(), spin: new THREE.Vector3(), born: -1, active: false });
+    }
+  };
+
+  useFrame((_, delta) => {
+    const root = rootRef.current;
+    if (!root) return;
+    ensurePool(root);
+    const now = gameState.simTime;
+
+    // Spawn chunks for fresh kills.
+    for (const ev of gameState.events) {
+      if (ev.timestamp <= seenRef.current) continue;
+      if (ev.type !== 'entity_killed' || !ev.position) continue;
+      for (let k = 0; k < DEBRIS_PER_KILL; k++) {
+        const chunk = poolRef.current[cursorRef.current % DEBRIS_POOL];
+        cursorRef.current++;
+        if (!chunk) continue;
+        chunk.group.position.set(ev.position.x, ev.position.y, ev.position.z);
+        const dir = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize();
+        chunk.vel.copy(dir).multiplyScalar(8 + Math.random() * 14);
+        chunk.spin.set((Math.random() - 0.5) * 6, (Math.random() - 0.5) * 6, (Math.random() - 0.5) * 6);
+        chunk.born = now;
+        chunk.active = true;
+        chunk.group.visible = true;
+        chunk.group.scale.setScalar(1.4 + Math.random() * 1.6);
+      }
+    }
+    seenRef.current = now;
+
+    // Advance + fade active chunks.
+    for (const c of poolRef.current) {
+      if (!c.active) continue;
+      const age = now - c.born;
+      if (age >= DEBRIS_LIFE) {
+        c.active = false;
+        c.group.visible = false;
+        continue;
+      }
+      c.group.position.addScaledVector(c.vel, delta);
+      c.group.rotation.x += c.spin.x * delta;
+      c.group.rotation.y += c.spin.y * delta;
+      c.group.rotation.z += c.spin.z * delta;
+      c.vel.multiplyScalar(1 - delta * 0.6); // drag
+    }
+  });
+
+  return <group ref={rootRef} />;
+}
+useGLTF.preload(DEBRIS_MODEL);
