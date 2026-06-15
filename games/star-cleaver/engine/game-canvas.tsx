@@ -1454,6 +1454,10 @@ function CameraFollowController({
   const smoothLookRef = useRef(new THREE.Vector3());
   const smoothForwardRef = useRef(new THREE.Vector3(0, 0, -1));
   const lookAheadRef = useRef(new THREE.Vector3(0, 0, -1));
+  // Tracks whether the camera has been snapped to the ship for the current
+  // flight session. Reset whenever we leave flight (menus, briefing, station)
+  // so the next launch snaps cleanly instead of crawling from the old vantage.
+  const flightSnappedRef = useRef(false);
   const layout = useMemo(() => getMissionLayout(gameState.worldIndex), [gameState.worldIndex]);
 
   // Dynamic offset based on phase: flight cam behind ship during ignition/exploration, wide during briefing
@@ -1463,6 +1467,12 @@ function CameraFollowController({
   const phaseProfile = isFlightPhase ? CAMERA_PHASE_TUNING.flight : CAMERA_PHASE_TUNING.briefing;
 
   useFrame((state, delta) => {
+    // Any non-flight camera mode invalidates the flight snap; the next time we
+    // enter flight the camera will jump straight onto the ship.
+    if (!isFlightPhase || stationInspectActive) {
+      flightSnappedRef.current = false;
+    }
+
     if (stationInspectActive) {
       const center = layout.stationPosition;
       const t = state.clock.elapsedTime;
@@ -1553,6 +1563,15 @@ function CameraFollowController({
     if (catchUp.length() > maxCatchUp) {
       catchUp.setLength(maxCatchUp);
       desiredCameraPos.copy(smoothPosRef.current).add(catchUp);
+    }
+
+    // First flight frame after a menu/briefing: snap straight onto the ship so
+    // the camera never crawls across the system from its old parked vantage.
+    if (!flightSnappedRef.current) {
+      smoothPosRef.current.copy(desiredCameraPos);
+      smoothLookRef.current.copy(playerPos);
+      camera.position.copy(desiredCameraPos);
+      flightSnappedRef.current = true;
     }
 
     smoothPosRef.current.lerp(desiredCameraPos, k);
