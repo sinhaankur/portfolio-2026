@@ -21,6 +21,7 @@ collide with, fly around, or light. This folder is the game's mesh source.
 | Asset | File | Status | Notes |
 |-------|------|--------|-------|
 | Voyager probe | `voyager.glb` | base mesh | HGA dish, 3× RTG, magnetometer mast, scan platform + camera barrels, golden record. Detail pass pending. |
+| Sun + 8 planets | `bodies/*.glb` | textured | Real relative radii (sqrt-compressed, Earth = 1 unit) + axial tilts from `astronomy.ts`. Equirect webp maps applied. Sun is emissive. Saturn ships with alpha-mapped ring geometry. Subsurf on the large bodies for close-ups. |
 
 ## Pipeline
 Build at max detail in Blender → export GLB (`use_selection`, `+Y up`,
