@@ -269,7 +269,7 @@ export function UniverseEngine({
     <div ref={containerRef} className="relative w-full h-full ue-engine-fade-in">
       <Canvas
         // Camera default: close to the solar system on the Orion Arm.
-        camera={{ position: [SUN_OFFSET_SCENE + 4, 6, 13], fov: 50, near: 0.1, far: 1000 }}
+        camera={{ position: [SUN_OFFSET_SCENE + 4, 6, 13], fov: 50, near: 0.012, far: 1000 }}
         // Cap device-pixel-ratio lower on phones — rendering this scene at full
         // 2× on a mobile GPU is a real frame-rate + battery cost for little
         // visible gain. Desktop keeps the crisp [1, 2] range.
@@ -307,12 +307,12 @@ export function UniverseEngine({
           keyPanSpeed={8}
           enableDamping
           dampingFactor={0.08}
-          // minDistance lowered to 0.06 so users can zoom right into the small
-          // bodies — the Moon (visual radius ~0.05), Phobos, comets — close
-          // enough to read their surface detail, not just the silhouette. The
-          // larger bodies (Earth/Jupiter/Sun) were already fine; this only
-          // unlocks the close approach the tiny moons need.
-          minDistance={0.06}
+          // minDistance 0.02 (paired with camera near 0.012) lets you zoom in
+          // as close as the renderer allows — right down to a Starlink point in
+          // LEO, the Moon's surface, a comet nucleus — without near-plane
+          // clipping. "Zoom till possible." far stays 1000 so the depth-buffer
+          // ratio is still safe enough to avoid z-fighting on distant bodies.
+          minDistance={0.02}
           maxDistance={260}
           // Pause autoRotate while in follow mode — otherwise the
           // contemplative spin fights the user's drag and the camera
