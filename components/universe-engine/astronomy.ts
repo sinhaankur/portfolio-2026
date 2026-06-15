@@ -151,9 +151,13 @@ export function meanAnomalyAt(m0Rad: number, periodDays: number, simMs: number):
 export const REAL_NOW_MS = typeof Date !== "undefined" ? Date.now() : J2000_MS
 
 /** How far the scrubber can travel each side of the centre, in years.
- *  ±150 yrs comfortably covers every catalog waypoint (next Halley
- *  perihelion 2061, total eclipses through 2045, Voyager milestones). */
-export const TIMELINE_RANGE_YEARS = 150
+ *  Widened to ±10,000 yrs so the clock reads as effectively open-ended for
+ *  exploration — watch the planets wheel through millennia. The motion stays
+ *  visually plausible far out because positions are periodic mean-anomaly
+ *  propagation (M0 + 2π·days/period); it's not arcsecond-accurate at the
+ *  extremes (real orbits precess + perturb), but it reads true. Catalog
+ *  waypoints (Halley 2061, eclipses) still sit comfortably inside. */
+export const TIMELINE_RANGE_YEARS = 10000
 export const DAY_MS = 86_400_000
 export const YEAR_MS = 365.25 * DAY_MS
 

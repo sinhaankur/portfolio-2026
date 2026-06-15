@@ -1302,6 +1302,7 @@ function MoonBody({
             feature={feature}
             planetRadius={moon.visualRadius}
             invert={invert}
+            onHover={onHover}
           />
         ))}
       </mesh>
@@ -2466,10 +2467,12 @@ function RoverPin({
   feature,
   planetRadius,
   invert,
+  onHover,
 }: {
   feature: SurfaceFeature
   planetRadius: number
   invert: boolean
+  onHover?: HoverHandler
 }) {
   const [isHovered, setIsHovered] = useState(false)
   const latRad = feature.lat * DEG
@@ -2517,42 +2520,47 @@ function RoverPin({
         onPointerOver={(e) => {
           e.stopPropagation()
           setIsHovered(true)
+          // Route the rich detail to the standard left InfoPanel (like planets,
+          // stars, comets) instead of a big centred floating tooltip. The pin
+          // keeps a tiny name label for the in-3D location cue.
+          const statusLabel =
+            feature.status === "natural" ? "Surface feature" :
+            feature.status === "active" ? "Mission · active" :
+            feature.status === "lost" ? "Mission · lost" : "Mission · completed"
+          const agencyDate = [feature.agency !== "—" ? feature.agency : null, feature.date !== "natural" ? feature.date : null]
+            .filter(Boolean).join(" · ")
+          onHover?.({
+            name: feature.name,
+            classification: agencyDate ? `${statusLabel} · ${agencyDate}` : statusLabel,
+            fact: feature.fact,
+          })
         }}
-        onPointerOut={() => setIsHovered(false)}
+        onPointerOut={() => { setIsHovered(false); onHover?.(null) }}
       >
         <sphereGeometry args={[hitRadius, 8, 8]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
+      {/* Just a small name tag at the pin — the full detail (agency, date,
+          fact) now shows in the standard left InfoPanel via onHover, so this
+          is only the in-3D location cue, not a big centred popup. */}
       {isHovered && (
         <Html
           position={[0, pinRadius * 3, 0]}
           center
-          distanceFactor={4}
+          distanceFactor={5}
           zIndexRange={[20, 0]}
           style={{ pointerEvents: "none" }}
         >
           <div
             className={`
               whitespace-nowrap select-none pointer-events-none
-              font-mono text-[9px] tracking-[0.25em] uppercase
-              px-2.5 py-1.5 rounded-md backdrop-blur-sm
-              ${
-                invert
-                  ? "bg-white/90 border border-foreground/30 text-foreground"
-                  : "bg-black/75 border border-white/25 text-white"
-              }
+              font-mono text-[9px] tracking-[0.22em] uppercase
+              px-2 py-1 rounded
+              ${invert ? "bg-white/90 text-foreground" : "bg-black/75 text-white"}
             `}
-            style={{ animation: "ue-label-in 220ms ease-out both", maxWidth: "18rem" }}
+            style={{ animation: "ue-label-in 220ms ease-out both" }}
           >
-            <div className="text-[10px] tracking-[0.22em] mb-1 opacity-90">
-              {feature.name}
-            </div>
-            <div className="text-[8px] tracking-[0.18em] opacity-65 mb-1.5">
-              {feature.agency} · {feature.date} · {feature.status}
-            </div>
-            <div className="font-sans normal-case tracking-normal text-[10px] leading-snug opacity-85 whitespace-normal">
-              {feature.fact}
-            </div>
+            {feature.name}
           </div>
         </Html>
       )}
@@ -2958,6 +2966,7 @@ function PlanetBody({
                     feature={feature}
                     planetRadius={planet.visualRadius}
                     invert={invert}
+                    onHover={onHover}
                   />
                 ))}
               </group>
