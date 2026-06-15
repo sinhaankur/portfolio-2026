@@ -55,6 +55,8 @@ export interface GameEvent {
   target?: string; // entity id that was affected
   amount?: number; // damage, score, etc.
   timestamp: number; // sim seconds
+  /** World-space position where it happened — used to spawn impact/kill FX. */
+  position?: { x: number; y: number; z: number };
 }
 
 /**

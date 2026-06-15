@@ -304,3 +304,78 @@ export function BoostShockwave({ gameState }: { gameState: GameState }) {
     </mesh>
   );
 }
+
+/* --------------------------------------------------------------------------
+ * ImpactField — combat juice. Watches the sim event queue for hits + kills and
+ * spawns short-lived billboard bursts at the impact point: a bright additive
+ * flash that expands and fades. Kills get a bigger, warmer blast; plain hits a
+ * small sharp spark. Pooled InstancedMesh, no per-burst React reconciliation.
+ * ------------------------------------------------------------------------ */
+const IMPACT_POOL = 48;
+const _impDummy = new THREE.Object3D();
+const _impColor = new THREE.Color();
+
+type Burst = { x: number; y: number; z: number; born: number; life: number; size: number; kill: boolean };
+
+export function ImpactField({ gameState }: { gameState: GameState }) {
+  const meshRef = useRef<THREE.InstancedMesh>(null);
+  const burstsRef = useRef<Burst[]>([]);
+  const seenRef = useRef<number>(0); // sim-time watermark: only consume newer events
+
+  useFrame((state) => {
+    const mesh = meshRef.current;
+    if (!mesh) return;
+    const now = gameState.simTime;
+
+    // Ingest fresh hit/kill events as new bursts.
+    for (const ev of gameState.events) {
+      if (ev.timestamp <= seenRef.current) continue;
+      if (!ev.position) continue;
+      if (ev.type !== 'entity_killed' && ev.type !== 'entity_damaged') continue;
+      const kill = ev.type === 'entity_killed';
+      burstsRef.current.push({
+        x: ev.position.x, y: ev.position.y, z: ev.position.z,
+        born: now, life: kill ? 0.6 : 0.28, size: kill ? 5.5 : 1.6, kill,
+      });
+    }
+    seenRef.current = now;
+    if (burstsRef.current.length > IMPACT_POOL) {
+      burstsRef.current.splice(0, burstsRef.current.length - IMPACT_POOL);
+    }
+
+    // Animate + render bursts as camera-facing additive quads.
+    const cam = state.camera;
+    let slot = 0;
+    const survivors: Burst[] = [];
+    for (const b of burstsRef.current) {
+      const age = now - b.born;
+      if (age >= b.life) continue;
+      survivors.push(b);
+      if (slot >= IMPACT_POOL) continue;
+      const t = age / b.life;            // 0..1
+      const grow = b.size * (0.4 + t * 1.6);
+      const fade = 1 - t;
+      _impDummy.position.set(b.x, b.y, b.z);
+      _impDummy.quaternion.copy(cam.quaternion); // billboard
+      _impDummy.scale.setScalar(grow * (0.6 + fade * 0.4));
+      _impDummy.updateMatrix();
+      mesh.setMatrixAt(slot, _impDummy.matrix);
+      // Kills flash warm orange → red; hits a sharp cyan-white spark.
+      if (b.kill) _impColor.setRGB(1, 0.5 + 0.4 * fade, 0.18 * fade);
+      else _impColor.setRGB(0.7 + 0.3 * fade, 0.9, 1.0);
+      mesh.setColorAt(slot, _impColor);
+      slot += 1;
+    }
+    burstsRef.current = survivors;
+    mesh.count = slot;
+    mesh.instanceMatrix.needsUpdate = true;
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+  });
+
+  return (
+    <instancedMesh ref={meshRef} args={[undefined, undefined, IMPACT_POOL]} frustumCulled={false}>
+      <planeGeometry args={[1, 1]} />
+      <meshBasicMaterial transparent opacity={0.9} blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} />
+    </instancedMesh>
+  );
+}

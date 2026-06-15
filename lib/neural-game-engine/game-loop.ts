@@ -36,6 +36,13 @@ export class GameLoop {
   ): GameState {
     this.gameState.simTime += deltaTime;
 
+    // Prune the event queue: FX/HUD consumers only need very recent events, and
+    // the array would otherwise grow unbounded across a run. Keep ~2s worth.
+    if (this.gameState.events.length > 64) {
+      const cutoff = this.gameState.simTime - 2;
+      this.gameState.events = this.gameState.events.filter((e) => e.timestamp >= cutoff);
+    }
+
     // --- Phase-specific logic ---
     switch (this.gameState.phase) {
       case 'ignition':
@@ -252,6 +259,7 @@ export class GameLoop {
         target: enemyHit.id,
         amount: damage,
         timestamp: this.gameState.simTime,
+        position: { x: enemyHit.position.x, y: enemyHit.position.y, z: enemyHit.position.z },
       });
 
       if (enemyHit.health <= 0) {
@@ -265,6 +273,7 @@ export class GameLoop {
           target: enemyHit.id,
           amount: scoreReward,
           timestamp: this.gameState.simTime,
+          position: { x: enemyHit.position.x, y: enemyHit.position.y, z: enemyHit.position.z },
         });
       }
 
