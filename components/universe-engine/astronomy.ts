@@ -2016,6 +2016,68 @@ export function magToVisualRadius(mag: number): number {
  * editorial-free.
  */
 const skyPointsCurated: SkyPoint[] = [
+  // ----- Iconic galaxies — curated rich facts that override the generic
+  //       auto-generated catalog stubs (deduped by id at the skyPoints merge). -----
+  {
+    id: "m51",
+    name: "Whirlpool Galaxy",
+    designation: "M51 · NGC 5194",
+    kind: "galaxy",
+    raHours: 13.498,
+    decDeg: 47.195,
+    magnitude: 8.4,
+    distance: "31 million ly",
+    fact: "The first galaxy recognised as a spiral (Lord Rosse, 1845). A textbook grand-design spiral caught mid-interaction with its smaller companion NGC 5195, whose gravity is amplifying the sweeping arms. A favourite Hubble target.",
+    visualSize: 3,
+  },
+  {
+    id: "m104",
+    name: "Sombrero Galaxy",
+    designation: "M104 · NGC 4594",
+    kind: "galaxy",
+    raHours: 12.6665,
+    decDeg: -11.623,
+    magnitude: 8.6,
+    distance: "29 million ly",
+    fact: "Edge-on spiral with a vast glowing bulge and a sharp dark dust lane that gives it the look of a wide-brimmed hat. Hosts a ~1-billion-solar-mass supermassive black hole at its core.",
+    visualSize: 3,
+  },
+  {
+    id: "m101",
+    name: "Pinwheel Galaxy",
+    designation: "M101 · NGC 5457",
+    kind: "galaxy",
+    raHours: 14.0535,
+    decDeg: 54.349,
+    magnitude: 7.9,
+    distance: "21 million ly",
+    fact: "A face-on grand-design spiral nearly twice the Milky Way's diameter. Its sweeping, slightly lopsided arms are studded with giant star-forming HII regions — the lopsidedness from past gravitational encounters.",
+    visualSize: 3.4,
+  },
+  {
+    id: "m81",
+    name: "Bode's Galaxy",
+    designation: "M81 · NGC 3031",
+    kind: "galaxy",
+    raHours: 9.9259,
+    decDeg: 69.065,
+    magnitude: 6.9,
+    distance: "12 million ly",
+    fact: "A grand-design spiral and the bright anchor of the nearby M81 Group. Gravitationally locked with the starbursting Cigar Galaxy (M82) next door — their encounter is fuelling M82's frenzy of star formation.",
+    visualSize: 3,
+  },
+  {
+    id: "m82",
+    name: "Cigar Galaxy",
+    designation: "M82 · NGC 3034",
+    kind: "galaxy",
+    raHours: 9.9313,
+    decDeg: 69.679,
+    magnitude: 8.4,
+    distance: "12 million ly",
+    fact: "The archetypal starburst galaxy — forming stars ~10× faster than the Milky Way after a close pass with M81. A superwind of hydrogen blasts thousands of light-years out of its core, glowing red in Hα.",
+    visualSize: 2.4,
+  },
   // ----- Galaxies (Local Group + neighbours) -----
   {
     id: "m31",
@@ -2790,9 +2852,14 @@ const skyPointsCurated: SkyPoint[] = [
  * The auto-generated catalog has been pre-filtered to skip those
  * 8 Messier IDs (see scripts/fetch-deep-sky.mjs).
  */
+// Curated entries win over the auto-generated catalog: when a famous object
+// (M51 Whirlpool, M104 Sombrero…) appears in both, the hand-written rich-fact
+// version overrides the generic "Galaxy in X. apparent magnitude N." stub.
+// Dedup by id, curated first.
+const _curatedIds = new Set(skyPointsCurated.map((p) => p.id))
 export const skyPoints: SkyPoint[] = [
   ...skyPointsCurated,
-  ...DEEP_SKY_CATALOG,
+  ...DEEP_SKY_CATALOG.filter((p) => !_curatedIds.has(p.id)),
 ]
 
 /** Total catalog size — curated + auto-generated. */
