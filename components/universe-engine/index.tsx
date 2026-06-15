@@ -364,6 +364,40 @@ export function UniverseEngine({
             </motion.div>
           )}
 
+          {/* Satellites legend — color key for the orbital shells, shown while
+              the Satellites layer is on. */}
+          {showSatellites && !mobile && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+              className="absolute bottom-6 right-8 md:right-12 z-30 pointer-events-none max-w-64"
+            >
+              <div className="rounded-2xl border border-foreground/12 bg-background/70 backdrop-blur-xl px-4 py-3.5">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="font-mono text-[9px] tracking-[0.3em] uppercase text-foreground/45">Satellites</span>
+                  <span className="font-mono text-[8px] tracking-[0.24em] uppercase text-cyan-300/70">Real orbits</span>
+                </div>
+                <ul className="space-y-1.5 font-mono text-[10px] text-foreground/70">
+                  {[
+                    ["#9fe0ff", "LEO · Starlink / OneWeb / ISS"],
+                    ["#bfeacb", "Polar · Earth-observation"],
+                    ["#ffd27a", "MEO · GPS / GLONASS / Galileo"],
+                    ["#ff9a6b", "GEO · comms + weather belt"],
+                  ].map(([c, label]) => (
+                    <li key={label} className="flex items-center gap-2.5">
+                      <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: c as string }} />
+                      {label}
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-3 pt-2.5 border-t border-foreground/10 font-sans text-[10px] leading-4 text-foreground/45">
+                  Named craft (ISS, Hubble, Tiangong, GPS, JWST) ride their real altitudes. Focus the Moon or Mars for their orbiters.
+                </p>
+              </div>
+            </motion.div>
+          )}
+
           {showDeepDive && mobile && (
             // bottom-44 keeps it clear of the bottom-20 timeline bar on phones.
             <div className="absolute bottom-44 left-4 right-4 z-30 pointer-events-none">

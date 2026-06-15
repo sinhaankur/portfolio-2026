@@ -1142,6 +1142,10 @@ function MoonBody({
   const orbitRef = useRef<Group>(null)
   const bodyRef = useRef<Mesh>(null)
   const haloRef = useRef<Mesh>(null)
+  // The Moon has real human-made orbiters (LRO, etc.). When the Satellites
+  // toggle is on, show a small shell scaled to the Moon's surface.
+  const isLuna = moon.name.startsWith("Moon")
+  const [moonSatsOn, setMoonSatsOn] = useState(false)
   const haloMatRef = useRef<import("three").MeshBasicMaterial>(null)
   /** Mesh ref on the textured moon surface — needed to read world position
    *  for the day/night shader's sun-direction uniform. */
@@ -1197,6 +1201,11 @@ function MoonBody({
     // Date-driven so moons stay in lockstep with the scrubbable clock.
     if (orbitRef.current) {
       orbitRef.current.rotation.y = meanAnomalyAt(startPhase, moon.periodDays, simTimeRef.current.simMs)
+    }
+    // Poll the satellites toggle for the Moon's orbiter shell.
+    if (isLuna) {
+      const want = satellitesVisibleRef.current
+      if (want !== moonSatsOn) setMoonSatsOn(want)
     }
 
     // Lerp the moon's visual emphasis when the parent planet is hovered.
@@ -1288,6 +1297,23 @@ function MoonBody({
           />
         ))}
       </mesh>
+
+      {/* Lunar orbiter shell — LRO, Chang'e relays, Lunar Gateway-era craft.
+          Real altitudes hug the surface (LRO ~50 km over a 1,737 km Moon →
+          ~1.03 R), so the shell sits tight to the body. Shown when Satellites
+          is toggled on. */}
+      {isLuna && moonSatsOn && (
+        <group position={[moon.orbitRadius, 0, 0]}>
+          <SatelliteShells
+            shells={[
+              { label: "Low lunar orbit (LRO …)", altRatio: 1.05, count: 40, color: "#dfe8ff", incl: 1.4, speed: 0.22 },
+              { label: "Lunar relay / frozen orbit", altRatio: 1.35, count: 14, color: "#ffd9a0", incl: 1.1, speed: 0.12 },
+            ]}
+            bodyRadius={moon.visualRadius}
+          />
+        </group>
+      )}
+
       <mesh
         position={[moon.orbitRadius, 0, 0]}
         onPointerOver={(e) => {
@@ -2136,11 +2162,13 @@ function SatelliteShellPoints({
     <group>
       <points ref={ref} geometry={geometry}>
         <pointsMaterial
-          size={Math.max(0.012, bodyRadius * 0.03)}
+          // Smaller, sharper points so the swarm reads as thousands of tiny
+          // craft rather than chunky blocks (was bodyRadius * 0.03).
+          size={Math.max(0.006, bodyRadius * 0.013)}
           sizeAttenuation
           color={shell.color}
           transparent
-          opacity={0.9}
+          opacity={0.95}
           depthWrite={false}
         />
       </points>
@@ -2156,13 +2184,22 @@ function SatelliteShellPoints({
  *  proportionate (Starlink dominates Earth LEO); altitudes are true ratios. */
 const SATELLITE_CATALOG: Record<string, SatelliteShell[]> = {
   Earth: [
-    { label: "LEO / Starlink", altRatio: 1.086, count: 900, color: "#9fe0ff", incl: 1.0, speed: 0.18 },
-    { label: "ISS / low orbit", altRatio: 1.066, count: 120, color: "#ffffff", incl: 0.9, speed: 0.2 },
-    { label: "MEO / GPS", altRatio: 4.17, count: 80, color: "#ffd27a", incl: 0.95, speed: 0.06 },
-    { label: "Geostationary", altRatio: 6.61, count: 110, color: "#ff9a6b", incl: 0.08, speed: 0.02 },
+    // --- LEO (~400–1200 km) — densest, dominated by Starlink ---
+    { label: "Starlink (LEO)", altRatio: 1.086, count: 900, color: "#9fe0ff", incl: 1.0, speed: 0.18 },
+    { label: "OneWeb (LEO)", altRatio: 1.19, count: 240, color: "#a8c0ff", incl: 1.15, speed: 0.15 },
+    { label: "Iridium (LEO)", altRatio: 1.12, count: 90, color: "#c0d8ff", incl: 1.4, speed: 0.16 },
+    { label: "Earth-observation (sun-sync polar)", altRatio: 1.11, count: 130, color: "#bfeacb", incl: 1.55, speed: 0.16 },
+    { label: "ISS / Tiangong / Hubble (low orbit)", altRatio: 1.066, count: 90, color: "#ffffff", incl: 0.9, speed: 0.2 },
+    // --- MEO (~20,000 km) — the navigation constellations ---
+    { label: "GPS (MEO)", altRatio: 4.17, count: 31, color: "#ffd27a", incl: 0.95, speed: 0.06 },
+    { label: "GLONASS (MEO)", altRatio: 4.0, count: 24, color: "#ffcaa0", incl: 1.1, speed: 0.062 },
+    { label: "Galileo (MEO)", altRatio: 4.7, count: 28, color: "#a0ffd0", incl: 0.98, speed: 0.055 },
+    { label: "BeiDou (MEO)", altRatio: 4.3, count: 30, color: "#ffb0e0", incl: 0.95, speed: 0.058 },
+    // --- GEO (~35,786 km) — the equatorial comms/weather belt ---
+    { label: "Geostationary belt", altRatio: 6.61, count: 180, color: "#ff9a6b", incl: 0.05, speed: 0.02 },
   ],
   Mars: [
-    { label: "Mars orbiters", altRatio: 1.3, count: 14, color: "#ffb89a", incl: 1.1, speed: 0.12 },
+    { label: "Mars orbiters (MRO / MAVEN / Odyssey / TGO …)", altRatio: 1.3, count: 14, color: "#ffb89a", incl: 1.1, speed: 0.12 },
   ],
 }
 
@@ -2180,14 +2217,17 @@ type HeroCraft = {
 }
 const HERO_CRAFT: Record<string, HeroCraft[]> = {
   Earth: [
-    { label: "ISS", model: "/models/iss.glb", altRatio: 1.066, incl: 0.9, speed: 0.2, sizeRatio: 0.10, phase: 0 },
-    { label: "Hubble", model: "/models/hubble.glb", altRatio: 1.085, incl: 0.48, speed: 0.18, sizeRatio: 0.06, phase: 2.1 },
+    // sizeRatio bumped so the real craft stand out from the procedural swarm.
+    { label: "ISS", model: "/models/iss.glb", altRatio: 1.066, incl: 0.9, speed: 0.2, sizeRatio: 0.16, phase: 0 },
+    { label: "Tiangong", model: "/models/tiangong.glb", altRatio: 1.062, incl: 0.74, speed: 0.21, sizeRatio: 0.12, phase: 1.6 },
+    { label: "Hubble", model: "/models/hubble.glb", altRatio: 1.085, incl: 0.48, speed: 0.18, sizeRatio: 0.10, phase: 2.1 },
+    { label: "GPS", model: "/models/gps-sat.glb", altRatio: 4.17, incl: 0.95, speed: 0.06, sizeRatio: 0.18, phase: 0.7 },
     // JWST sits at Sun–Earth L2 (~1.5M km out, anti-sunward). At this scene
     // scale a far ring around Earth reads it as the distant deep-space scope.
-    { label: "JWST", model: "/models/jwst.glb", altRatio: 9.0, incl: 0.2, speed: 0.04, sizeRatio: 0.14, phase: 3.5 },
+    { label: "JWST", model: "/models/jwst.glb", altRatio: 9.0, incl: 0.2, speed: 0.04, sizeRatio: 0.18, phase: 3.5 },
   ],
   Mars: [
-    { label: "MRO", model: "/models/hubble.glb", altRatio: 1.3, incl: 0.95, speed: 0.16, sizeRatio: 0.07, phase: 1.0 },
+    { label: "MRO", model: "/models/hubble.glb", altRatio: 1.3, incl: 0.95, speed: 0.16, sizeRatio: 0.1, phase: 1.0 },
   ],
 }
 Object.values(HERO_CRAFT).flat().forEach((c) => useGLTF.preload(c.model))
