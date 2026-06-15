@@ -140,7 +140,7 @@ export default function SnowtintCaseStudy() {
                 persona who uses it.
               </>
             }
-            cta={{ label: "Request the deck", href: "mailto:sinhaankur827@gmail.com?subject=Case%20study%20deck%20request", external: false }}
+            deck={{ label: "Open the deck", href: "/decks/snowtint/ipress.pdf" }}
           />
 
           <ProjectStory
@@ -179,7 +179,7 @@ export default function SnowtintCaseStudy() {
                 problem in three places.
               </>
             }
-            cta={{ label: "Request the deck", href: "mailto:sinhaankur827@gmail.com?subject=Case%20study%20deck%20request", external: false }}
+            deck={{ label: "Open the deck", href: "/decks/snowtint/campus-select.pdf" }}
           />
 
           <ProjectStory
@@ -218,7 +218,7 @@ export default function SnowtintCaseStudy() {
                 redoing both.
               </>
             }
-            cta={{ label: "Request the deck", href: "mailto:sinhaankur827@gmail.com?subject=Case%20study%20deck%20request", external: false }}
+            deck={{ label: "Open the deck", href: "/decks/snowtint/jcvd.pdf" }}
           />
         </div>
       </section>

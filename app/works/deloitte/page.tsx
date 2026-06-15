@@ -117,7 +117,7 @@ export default function DeloitteCaseStudy() {
                 wrong-shape information architecture is wasted work.
               </>
             }
-            cta={{ label: "Request the deck", href: "mailto:sinhaankur827@gmail.com?subject=Case%20study%20deck%20request", external: false }}
+            deck={{ label: "Open the deck", href: "/decks/deloitte/unilever-buyers-console.pdf" }}
           />
 
           <ProjectStory
@@ -158,7 +158,7 @@ export default function DeloitteCaseStudy() {
                 their cost.
               </>
             }
-            cta={{ label: "Request the deck", href: "mailto:sinhaankur827@gmail.com?subject=Case%20study%20deck%20request", external: false }}
+            deck={{ label: "Open the deck", href: "/decks/deloitte/ceat-salesforce.pdf" }}
           />
 
           <ProjectStory
@@ -198,7 +198,7 @@ export default function DeloitteCaseStudy() {
                 the map saves the extra month on revisions.
               </>
             }
-            cta={{ label: "Request the deck", href: "mailto:sinhaankur827@gmail.com?subject=Case%20study%20deck%20request", external: false }}
+            deck={{ label: "Open the deck", href: "/decks/deloitte/fab-letter-of-credit.pdf" }}
           />
 
           <ProjectStory
@@ -236,7 +236,7 @@ export default function DeloitteCaseStudy() {
                 to agree on what these words mean."
               </>
             }
-            cta={{ label: "Request the deck", href: "mailto:sinhaankur827@gmail.com?subject=Case%20study%20deck%20request", external: false }}
+            deck={{ label: "Open the deck", href: "/decks/deloitte/unilever-supply-chain-e2e.pdf" }}
           />
         </div>
       </section>

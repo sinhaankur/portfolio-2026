@@ -12,6 +12,7 @@ import { ReadabilityNudge } from "@/components/readability-nudge"
 import { Container } from "@/components/container"
 import { ScrollProgress } from "@/components/case-study/scroll-progress"
 import { CaseStudyToc } from "@/components/case-study/case-study-toc"
+import { DeckViewer } from "@/components/case-study/deck-viewer"
 
 type CaseStudyLayoutProps = {
   eyebrow: string
@@ -265,6 +266,8 @@ type ProjectStoryProps = {
   learned: ReactNode
   image?: { src: string; alt: string }
   cta?: { label: string; href: string; external?: boolean }
+  /** View-only deck: opens the PDF inline in a modal instead of linking out. */
+  deck?: { label: string; href: string }
 }
 
 export function ProjectStory({
@@ -277,6 +280,7 @@ export function ProjectStory({
   learned,
   image,
   cta,
+  deck,
 }: ProjectStoryProps) {
   return (
     <details className="group case-story border border-border rounded-md overflow-hidden bg-background open:bg-secondary/20 transition-colors">
@@ -331,7 +335,11 @@ export function ProjectStory({
           <StoryBlock label="Approach">{approach}</StoryBlock>
           <StoryBlock label="What I learned">{learned}</StoryBlock>
         </div>
-        {cta && (
+        {deck ? (
+          <div className="mt-8">
+            <DeckViewer href={deck.href} label={deck.label} title={headline} />
+          </div>
+        ) : cta ? (
           <div className="mt-8">
             <a
               href={cta.href}
@@ -352,7 +360,7 @@ export function ProjectStory({
               {cta.label} →
             </a>
           </div>
-        )}
+        ) : null}
       </div>
     </details>
   )

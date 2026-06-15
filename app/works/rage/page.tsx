@@ -126,7 +126,7 @@ export default function RageCaseStudy() {
                 session; every one that didn't, skipped that step.
               </>
             }
-            cta={{ label: "Request the deck", href: "mailto:sinhaankur827@gmail.com?subject=Case%20study%20deck%20request", external: false }}
+            deck={{ label: "Open the deck", href: "/decks/rage/citibank-sign-on-account.pdf" }}
           />
 
           <ProjectStory
@@ -164,7 +164,7 @@ export default function RageCaseStudy() {
                 turns findings into decisions.
               </>
             }
-            cta={{ label: "Request the deck", href: "mailto:sinhaankur827@gmail.com?subject=Case%20study%20deck%20request", external: false }}
+            deck={{ label: "Open the deck", href: "/decks/rage/citibank-credit-card-loan.pdf" }}
           />
 
           <ProjectStory
@@ -200,7 +200,7 @@ export default function RageCaseStudy() {
                 will tolerate a long form if they can see it ending.
               </>
             }
-            cta={{ label: "Request the deck", href: "mailto:sinhaankur827@gmail.com?subject=Case%20study%20deck%20request", external: false }}
+            deck={{ label: "Open the deck", href: "/decks/rage/citibank-merchant-engagement-form.pdf" }}
           />
 
           <ProjectStory
@@ -236,7 +236,7 @@ export default function RageCaseStudy() {
                 recovery from a misread.
               </>
             }
-            cta={{ label: "Request the deck", href: "mailto:sinhaankur827@gmail.com?subject=Case%20study%20deck%20request", external: false }}
+            deck={{ label: "Open the deck", href: "/decks/rage/citibank-scan-information.pdf" }}
           />
 
           <ProjectStory
@@ -274,7 +274,7 @@ export default function RageCaseStudy() {
                 predict which mode a visitor is in.
               </>
             }
-            cta={{ label: "Request the deck", href: "mailto:sinhaankur827@gmail.com?subject=Case%20study%20deck%20request", external: false }}
+            deck={{ label: "Open the deck", href: "/decks/rage/wedding-marrygold.pdf" }}
           />
         </div>
       </section>
