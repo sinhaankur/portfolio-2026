@@ -1,6 +1,7 @@
 'use client';
 
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { useGLTF } from '@react-three/drei';
 import { Suspense, memo, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import * as THREE from 'three';
 
@@ -1172,7 +1173,11 @@ function MissionStartScene({ worldIndex }: { worldIndex: number }) {
         position={[layout.stationPosition.x, layout.stationPosition.y, layout.stationPosition.z]}
         scale={[layout.stationScale, layout.stationScale, layout.stationScale]}
       >
-        <group ref={stationRigRef} rotation={[0, Math.PI * 0.12, 0]}>
+        {/* Detailed Blender station replaces the procedural block below. The
+            old rig is kept mounted but hidden (visible=false) so its animation
+            refs stay valid and the swap is fully revertible. */}
+        <StationModel scale={9} />
+        <group ref={stationRigRef} rotation={[0, Math.PI * 0.12, 0]} visible={false}>
           {/* === MAIN HULL — wide horizontal block === */}
           <mesh>
             <boxGeometry args={[28, 10, 42]} />
@@ -1439,6 +1444,36 @@ const _camCatchUp = new THREE.Vector3();
 const _camLook = new THREE.Vector3();
 const _camVelDir = new THREE.Vector3();
 const _camTmp = new THREE.Vector3();
+
+const STATION_MODEL_PATH = '/models/station.glb';
+
+/** Detailed Blender orbital station (hub, docking ring, solar arrays, masts).
+ *  Replaces the old procedural block. Self-rotates slowly; clones + lightly
+ *  styles materials so emissive windows/panels stay lit in the game's rig. */
+function StationModel({ scale = 9 }: { scale?: number }) {
+  const gltf = useGLTF(STATION_MODEL_PATH);
+  const ringRef = useRef<THREE.Group>(null);
+  const styled = useMemo(() => {
+    const c = gltf.scene.clone(true);
+    c.traverse((child) => {
+      if (child instanceof THREE.Mesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+        child.frustumCulled = false;
+      }
+    });
+    return c;
+  }, [gltf.scene]);
+  useFrame((_, delta) => {
+    if (ringRef.current) ringRef.current.rotation.y += delta * 0.04;
+  });
+  return (
+    <group ref={ringRef} scale={scale}>
+      <primitive object={styled} />
+    </group>
+  );
+}
+useGLTF.preload(STATION_MODEL_PATH);
 
 /** A pair of lights that follow the player ship so it always reads as the
  *  brightest, clearest object on screen. A warm key from above-front and a
