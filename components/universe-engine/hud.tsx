@@ -830,6 +830,40 @@ export function SatelliteToggle({
   )
 }
 
+/** Toggle between Explore (compressed) and True Scale (real ratios). When
+ *  active = true, the engine is in True Scale mode. */
+export function ScaleToggle({
+  active,
+  onToggle,
+}: {
+  active: boolean
+  onToggle: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-pressed={active}
+      title={active ? "True scale — real distances + ratios" : "Explore scale — compressed so the whole system fits"}
+      className={`
+        inline-flex items-center gap-2 px-3.5 py-2.5 rounded-full border
+        backdrop-blur-sm transition-colors duration-300
+        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+        ${
+          active
+            ? "border-accent/60 bg-accent/10 text-accent"
+            : "border-foreground/25 bg-background/50 text-foreground/70 hover:text-foreground/90"
+        }
+      `}
+    >
+      <span className={`relative flex h-2 w-2 rounded-full ${active ? "bg-accent" : "bg-foreground/40"}`} />
+      <span className="font-mono text-[10px] tracking-[0.2em] uppercase">
+        {active ? "True Scale" : "Explore Scale"}
+      </span>
+    </button>
+  )
+}
+
 /** Toggle Earth's procedural cloud shell on/off. Mirrors GravityToggle's
  *  look; `active` = clouds visible. */
 export function CloudToggle({

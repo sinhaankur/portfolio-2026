@@ -51,9 +51,10 @@ import {
   requestFlyTo,
   cloudsVisibleRef,
   satellitesVisibleRef,
+  scaleModeRef,
 } from "./astronomy"
 import { SceneContents } from "./scene"
-import { CloudToggle, DeepDiveToggle, GravityToggle, InfoPanel, ResetViewButton, SatelliteToggle, TimelineControl } from "./hud"
+import { CloudToggle, DeepDiveToggle, GravityToggle, InfoPanel, ResetViewButton, SatelliteToggle, ScaleToggle, TimelineControl } from "./hud"
 import { MobileBodySheet } from "./mobile-sheet"
 import { StaticStarfield } from "./static-starfield"
 import { GalaxyMusic } from "../galaxy-music"
@@ -105,6 +106,13 @@ export function UniverseEngine({
   useEffect(() => {
     satellitesVisibleRef.current = showSatellites
   }, [showSatellites])
+  // Scale mode: "explore" (compressed, default) vs "true" (real ratios). Writes
+  // the module ref AND bumps a key so the scene subtree remounts and re-lays
+  // every body at the new scale.
+  const [trueScale, setTrueScale] = useState(false)
+  useEffect(() => {
+    scaleModeRef.current = trueScale ? "true" : "explore"
+  }, [trueScale])
   const orbitRef = useRef<OrbitControlsImpl | null>(null)
   const { resolvedTheme } = useTheme()
   // Prop override wins; otherwise the engine flips to chart mode automatically
@@ -275,6 +283,9 @@ export function UniverseEngine({
         style={{ pointerEvents: "auto" }}
       >
         <SceneContents
+          // Remount when the scale mode flips so every body re-lays at the new
+          // scale (orbit radii are computed at build time via compressRadius).
+          key={trueScale ? "scale-true" : "scale-explore"}
           enableMotion={!reducedMotion}
           onHover={onHover}
           onResetView={handleReset}
@@ -436,6 +447,7 @@ export function UniverseEngine({
             <div className="hidden md:flex items-center gap-2">
               <CloudToggle active={showClouds} onToggle={() => setShowClouds(v => !v)} />
               <SatelliteToggle active={showSatellites} onToggle={() => setShowSatellites(v => !v)} />
+              <ScaleToggle active={trueScale} onToggle={() => setTrueScale(v => !v)} />
               <GravityToggle active={showGravityOverlay} onToggle={() => setShowGravityOverlay(v => !v)} />
               <DeepDiveToggle active={showDeepDive} onToggle={() => setShowDeepDive(v => !v)} />
             </div>

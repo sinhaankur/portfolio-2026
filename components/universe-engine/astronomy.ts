@@ -335,9 +335,27 @@ export function eccentricToTrue(E: number, e: number): number {
  *  and outer solar system both stay legible in one frame. */
 export const SCENE_SCALE = 3
 
-/** Compress a real heliocentric radius (AU) into scene units. */
+/* Scale mode — "explore" (default, sqrt-compressed so the whole solar system
+ * is legible in one frame) vs "true" (linear AU, real ratios — honest about the
+ * void, paired with warp navigation). Module-scoped ref, same pattern as
+ * cloudsVisibleRef, so the HUD toggle flips it without prop-drilling. The
+ * renderers read compressRadius each frame, so flipping this re-lays the whole
+ * system on the next frame. */
+export type ScaleMode = "explore" | "true"
+export const scaleModeRef: { current: ScaleMode } = { current: "explore" }
+
+/** Scene units per AU in true-scale mode. Earth (1 AU) lands at the same ~3
+ *  units as explore mode so the inner system stays framed; the outer planets
+ *  then spread to their real linear ratios (Neptune 30 AU → 90 units), which
+ *  is the whole point — true spacing, mostly void between bodies. */
+export const TRUE_SCALE_AU = 3
+
+/** Compress a real heliocentric radius (AU) into scene units. In explore mode
+ *  this is sqrt-compressed; in true-scale mode it's linear AU (real ratios). */
 export function compressRadius(rAU: number): number {
-  return Math.sqrt(Math.max(rAU, 0)) * SCENE_SCALE
+  const r = Math.max(rAU, 0)
+  if (scaleModeRef.current === "true") return r * TRUE_SCALE_AU
+  return Math.sqrt(r) * SCENE_SCALE
 }
 
 /**
@@ -792,7 +810,10 @@ export const planetsData: Planet[] = [
 
 export function buildScenePlanets(): ScenePlanet[] {
   return planetsData.map((p) => {
-    const orbitRadius = Math.sqrt(p.aAU) * 3
+    // Use the shared compressRadius so the planets honour the active scale mode
+    // (explore = sqrt-compressed; true = linear AU). Rebuilt when the mode flips
+    // (the renderer remounts on a scaleMode key), so the whole system re-lays.
+    const orbitRadius = compressRadius(p.aAU)
     // Visual size is sqrt-scaled from real Earth-radii so the giants don't
     // visually dwarf the inner planets, then floored at 0.13 scene units so
     // tiny bodies like Pluto stay findable on their orbit ring instead of
