@@ -905,17 +905,41 @@ export function CloudToggle({
  *  dispatching the engine's focus event (the planet listens + follows its own
  *  live position). Essential in True Scale mode where bodies are far apart —
  *  you warp instead of flying through the void. */
-const JUMP_DESTINATIONS: { label: string; pointId: string }[] = [
-  { label: "Sun", pointId: "planet:Sun" },
-  { label: "Mercury", pointId: "planet:Mercury" },
-  { label: "Venus", pointId: "planet:Venus" },
-  { label: "Earth", pointId: "planet:Earth" },
-  { label: "Mars", pointId: "planet:Mars" },
-  { label: "Jupiter", pointId: "planet:Jupiter" },
-  { label: "Saturn", pointId: "planet:Saturn" },
-  { label: "Uranus", pointId: "planet:Uranus" },
-  { label: "Neptune", pointId: "planet:Neptune" },
-  { label: "Pluto", pointId: "planet:Pluto" },
+const JUMP_DESTINATIONS: { section: string; items: { label: string; pointId: string }[] }[] = [
+  {
+    section: "Planets",
+    items: [
+      { label: "Sun", pointId: "planet:Sun" },
+      { label: "Mercury", pointId: "planet:Mercury" },
+      { label: "Venus", pointId: "planet:Venus" },
+      { label: "Earth", pointId: "planet:Earth" },
+      { label: "Mars", pointId: "planet:Mars" },
+      { label: "Jupiter", pointId: "planet:Jupiter" },
+      { label: "Saturn", pointId: "planet:Saturn" },
+      { label: "Uranus", pointId: "planet:Uranus" },
+      { label: "Neptune", pointId: "planet:Neptune" },
+      { label: "Pluto", pointId: "planet:Pluto" },
+    ],
+  },
+  {
+    section: "Comets & small bodies",
+    items: [
+      { label: "Halley's Comet", pointId: "named:Halley's Comet" },
+      { label: "Comet NEOWISE", pointId: "named:Comet NEOWISE" },
+      { label: "Apophis", pointId: "named:Apophis" },
+      { label: "Bennu", pointId: "named:Bennu" },
+      { label: "ʻOumuamua", pointId: "named:'Oumuamua" },
+    ],
+  },
+  {
+    section: "Dwarf planets",
+    items: [
+      { label: "Ceres", pointId: "named:Ceres" },
+      { label: "Eris", pointId: "named:Eris" },
+      { label: "Makemake", pointId: "named:Makemake" },
+      { label: "Sedna", pointId: "named:Sedna" },
+    ],
+  },
 ]
 
 export function DestinationsMenu() {
@@ -942,16 +966,23 @@ export function DestinationsMenu() {
         <span className="font-mono text-[10px] tracking-[0.2em] uppercase">Jump to ▸</span>
       </button>
       {open && (
-        <div className="absolute bottom-full mb-2 left-0 min-w-40 rounded-xl border border-foreground/15 bg-background/90 backdrop-blur-xl p-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.3)]">
-          {JUMP_DESTINATIONS.map((d) => (
-            <button
-              key={d.pointId}
-              type="button"
-              onClick={() => jump(d.pointId)}
-              className="block w-full text-left px-3 py-1.5 rounded-lg font-mono text-[10px] tracking-[0.18em] uppercase text-foreground/75 hover:bg-foreground/10 hover:text-foreground transition-colors"
-            >
-              {d.label}
-            </button>
+        <div className="absolute bottom-full mb-2 left-0 min-w-48 max-h-[60vh] overflow-y-auto rounded-xl border border-foreground/15 bg-background/90 backdrop-blur-xl p-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.3)]">
+          {JUMP_DESTINATIONS.map((group) => (
+            <div key={group.section} className="mb-1 last:mb-0">
+              <div className="px-3 pt-1.5 pb-1 font-mono text-[8px] tracking-[0.24em] uppercase text-foreground/40">
+                {group.section}
+              </div>
+              {group.items.map((d) => (
+                <button
+                  key={d.pointId}
+                  type="button"
+                  onClick={() => jump(d.pointId)}
+                  className="block w-full text-left px-3 py-1.5 rounded-lg font-mono text-[10px] tracking-[0.18em] uppercase text-foreground/75 hover:bg-foreground/10 hover:text-foreground transition-colors"
+                >
+                  {d.label}
+                </button>
+              ))}
+            </div>
           ))}
         </div>
       )}
