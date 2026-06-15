@@ -44,3 +44,6 @@ next-env.d.ts
 # Data-fetch script cache (raw CSVs the build scripts download).
 # The trimmed output goes to lib/data/ and IS committed.
 scripts/.cache/
+
+# Third-party reference models (heavy, not ours to redistribute)
+blender/space-assets/reference/
