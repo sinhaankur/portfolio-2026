@@ -259,6 +259,10 @@ export function HUD({ gameState, showForwardDebug = false, onShipSelect, waypoin
                   />
                 </div>
 
+                {/* Essentials only — a premium HUD shows what the pilot needs,
+                    not a debug dump. Speed/heading, flight state, assist, route,
+                    and weapon heat when it matters. The old deep-telemetry chip
+                    wall (gas/push/jerk/gravity/boundary…) is gone. */}
                 <div className="grid w-full grid-cols-2 gap-2 text-center sm:flex sm:flex-wrap sm:justify-center">
                   <div className="rounded-full border border-foreground/12 bg-foreground/4 px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] text-foreground/70 sm:text-[9px] sm:tracking-[0.14em]">
                     SPD {Math.round(speed)} · HDG {heading}°
@@ -266,44 +270,24 @@ export function HUD({ gameState, showForwardDebug = false, onShipSelect, waypoin
                   <div className={`rounded-full border px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] sm:text-[9px] sm:tracking-[0.14em] ${stopAssistActive ? 'border-amber-300/35 bg-amber-500/10 text-amber-100/90' : nearStop ? 'border-green-300/35 bg-green-500/10 text-green-100/90' : 'border-foreground/15 bg-foreground/5 text-foreground/70'}`}>
                     STATE {flightStateLabel}
                   </div>
-                  <div className="rounded-full border border-cyan-300/18 bg-cyan-400/7 px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] text-cyan-100/85 sm:text-[9px] sm:tracking-[0.14em]">
-                    DRIVE {interstellarDrive.toUpperCase()}
+                  <div className={`rounded-full border px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] sm:text-[9px] sm:tracking-[0.14em] ${flightAssistActive ? 'border-cyan-300/25 bg-cyan-400/7 text-cyan-100/85' : 'border-foreground/12 bg-foreground/4 text-foreground/65'}`}>
+                    ASSIST {flightAssistActive ? 'ON' : 'OFF'}
                   </div>
                   <div className="rounded-full border border-foreground/12 bg-foreground/4 px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] text-foreground/60 sm:text-[9px] sm:tracking-[0.14em]">
-                    THR {Math.round(throttle * 100)}% · BRK {brakeActive ? 'ON' : 'OFF'}
+                    ROUTE {routeName.toUpperCase()} {routeProgress}
                   </div>
-                  <div className={`rounded-full border px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] sm:text-[9px] sm:tracking-[0.14em] ${flightAssistActive ? 'border-cyan-300/25 bg-cyan-400/7 text-cyan-100/85' : 'border-foreground/12 bg-foreground/4 text-foreground/65'}`}>
-                    ASSIST {flightAssistActive ? 'ON' : 'OFF'} · STOP {stopLock ? 'LOCK' : 'OPEN'}
-                  </div>
-                  {!simpleJourneyMode && (
-                    <>
-                      <div className="rounded-full border border-foreground/12 bg-foreground/4 px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] text-foreground/60 sm:text-[9px] sm:tracking-[0.14em]">
-                        GAS {Math.round(gasCloudDensity * 100)}% · PUSH {Math.round(accelKick * 100)}%
-                      </div>
-                      <div className="rounded-full border border-foreground/12 bg-foreground/4 px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] text-foreground/60 sm:text-[9px] sm:tracking-[0.14em]">
-                        JERK {Math.round(speedJerk * 100)}% · {weaponPreset.toUpperCase()}
-                      </div>
-                      <div className="rounded-full border border-foreground/12 bg-foreground/4 px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] text-foreground/60 sm:text-[9px] sm:tracking-[0.14em]">
-                        GRAVITY {Math.round(gravityLoad * 100)}% · BOUNDARY {Math.round(boundaryLoad * 100)}%
-                      </div>
-                      <div className="col-span-2 rounded-full border border-foreground/12 bg-foreground/4 px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] text-foreground/60 sm:text-[9px] sm:tracking-[0.14em]">
-                        ROUTE {routeName.toUpperCase()} {routeProgress} · WEAPONS {weaponMode.toUpperCase()}
-                      </div>
-                      <div className={`col-span-2 rounded-full border border-foreground/15 bg-foreground/5 px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] sm:text-[9px] sm:tracking-[0.14em] ${weaponOverheated ? 'text-red-300/95' : 'text-foreground/60'}`}>
-                        HEAT {Math.round(weaponHeat * 100)}% · {weaponStatus} · NOSE LOCKED TO FLIGHT VECTOR
-                      </div>
-                    </>
+                  {/* Weapon heat only surfaces when it's actually a concern. */}
+                  {!simpleJourneyMode && (weaponOverheated || weaponHeat > 0.5) && (
+                    <div className={`rounded-full border px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] sm:text-[9px] sm:tracking-[0.14em] ${weaponOverheated ? 'border-red-300/40 bg-red-500/15 text-red-200/95' : 'border-amber-300/30 bg-amber-500/10 text-amber-100/90'}`}>
+                      HEAT {Math.round(weaponHeat * 100)}% · {weaponStatus}
+                    </div>
                   )}
-                  {simpleJourneyMode && (
-                    <>
-                      <div className="col-span-2 rounded-full border border-foreground/12 bg-foreground/4 px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] text-foreground/60 sm:text-[9px] sm:tracking-[0.14em]">
-                        ROUTE {routeName.toUpperCase()} {routeProgress}
-                      </div>
-                    </>
+                  {/* Hazard warning only when there is one. */}
+                  {gravityWarning && (
+                    <div className="col-span-2 rounded-full border border-red-300/30 bg-red-500/10 px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] text-red-200/95 sm:text-[9px] sm:tracking-[0.14em]">
+                      {gravityWarning}
+                    </div>
                   )}
-                  <div className={`col-span-2 rounded-full border px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] sm:text-[9px] sm:tracking-[0.14em] ${gravityWarning ? 'border-red-300/30 bg-red-500/10 text-red-200/95' : 'border-foreground/15 bg-foreground/5 text-foreground/55'}`}>
-                    {gravityWarning || `NEAREST MASS ${nearestHazard.toUpperCase() || 'UNKNOWN'} ${nearestHazardDistance > 0 ? `· ${nearestHazardDistance}u` : ''}`}
-                  </div>
                 </div>
               </div>
             ) : (
