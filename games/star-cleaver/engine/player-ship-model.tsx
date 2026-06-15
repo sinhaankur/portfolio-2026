@@ -14,10 +14,11 @@ import { GAMEPLAY_SHIP_RENDER_SCALE, PREVIEW_SHIP_RENDER_SCALE } from './scale-c
 const PLAYER_SHIP_MODEL_PATH = '/models/xwing.glb';
 const LEGACY_SHIP_MODEL_PATH = '/models/Test1glb.glb';
 void LEGACY_SHIP_MODEL_PATH;
-// The authored GLB uses Y as its longitudinal axis; gameplay uses -Z forward.
-// Rotate imported GLB content so model-space aligns with game-space, then
-// rotate 180 degrees around heading so front/back reads correctly in gameplay.
-export const SHIP_MODEL_BASIS_ROTATION: [number, number, number] = [Math.PI / 2, Math.PI, 0];
+// The reference X-wing GLB was exported +Y-forward / +Z-up in Blender with
+// export_yup=true, so in three-space it already arrives nose -Z (game forward)
+// and up +Y — no basis rotation needed. (The old [π/2, π, 0] was for the
+// hand-built ship and tipped this model onto its back.)
+export const SHIP_MODEL_BASIS_ROTATION: [number, number, number] = [0, 0, 0];
 
 type PlayerShipMode = 'game' | 'preview';
 type ShipVariant = 'default-vanguard';
