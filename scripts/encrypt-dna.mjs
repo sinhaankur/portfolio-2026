@@ -58,6 +58,26 @@ const KEY_LEN = 32 // AES-256
 const SALT_LEN = 16
 const IV_LEN = 12 // GCM standard
 
+// ---- trait panel ------------------------------------------------------------
+// rsID -> trait id. Interpretations live in lib/dna-traits.ts (client side);
+// we only extract the genotype here. Keep this list in sync with that module.
+const TRAIT_RSIDS = {
+  rs4988235: "lactose",
+  rs762551: "caffeine",
+  rs671: "alcohol-flush",
+  rs1229984: "alcohol-metab",
+  rs9939609: "carb-weight",
+  rs7903146: "blood-sugar",
+  rs1726866: "bitter-taste",
+  rs174547: "fatty-acids",
+  rs1801133: "folate",
+  rs10741657: "vitamin-d",
+  rs2282679: "vitamin-d-binding",
+  rs1799945: "iron",
+  rs4680: "dopamine",
+  rs17822931: "earwax",
+}
+
 // ---- derive abstract summary from the raw CSV -------------------------------
 async function deriveSummary(path) {
   const chromOrder = [
@@ -69,6 +89,7 @@ async function deriveSummary(path) {
   const genotypeClasses = { homozygous: 0, heterozygous: 0, noCall: 0 }
   const SAMPLE_SIZE = 1200 // helix rungs
   const sample = [] // reservoir sample of { c, g } (chrom, genotype letters)
+  const traits = {} // id -> genotype (only for panel rsIDs)
   let total = 0
 
   const rl = createInterface({
@@ -82,9 +103,15 @@ async function deriveSummary(path) {
     // "rsid","chrom","pos","RESULT"
     const m = line.split(",")
     if (m.length < 4) continue
+    const rsid = m[0].replace(/"/g, "").trim()
     const chrom = m[1].replace(/"/g, "").trim()
     const geno = m[3].replace(/"/g, "").trim().toUpperCase()
     if (!chrom || !geno) continue
+
+    // Capture panel markers (genotype only — the rsID is NOT stored in output).
+    if (TRAIT_RSIDS[rsid] && /^[ACGT]{2}$/.test(geno)) {
+      traits[TRAIT_RSIDS[rsid]] = geno
+    }
 
     counts.set(chrom, (counts.get(chrom) || 0) + 1)
     total++
@@ -128,11 +155,12 @@ async function deriveSummary(path) {
       derivedAt: new Date().toISOString(),
       totalSnps: total,
       note:
-        "Aggregate + sampled statistics only. Not the raw genome. Cannot be used to reconstruct loci or look up individual SNPs.",
+        "Aggregate stats + a curated diet/wellness trait panel (genotype only, rsIDs stripped). Not the raw genome; cannot reconstruct loci or arbitrary SNPs.",
     },
     chromosomes,
     genotypeClasses,
     sample, // [{ c, g }] — drives the helix rungs
+    traits, // id -> genotype, for the curated panel (see lib/dna-traits.ts)
   }
 }
 
@@ -179,7 +207,7 @@ const absCsv = resolve(csvPath)
 console.log(`Reading ${absCsv} …`)
 const summary = await deriveSummary(absCsv)
 console.log(
-  `Derived: ${summary.meta.totalSnps.toLocaleString()} SNPs across ${summary.chromosomes.length} chromosomes, ${summary.sample.length} sampled rungs.`,
+  `Derived: ${summary.meta.totalSnps.toLocaleString()} SNPs across ${summary.chromosomes.length} chromosomes, ${summary.sample.length} sampled rungs, ${Object.keys(summary.traits).length} trait markers.`,
 )
 
 if (!password) password = await promptPassword()

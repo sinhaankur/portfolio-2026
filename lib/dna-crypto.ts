@@ -33,6 +33,8 @@ export type DnaSummary = {
     noCall: number
   }
   sample: { c: string; g: string }[]
+  /** Curated trait panel: marker id -> genotype. May be absent on old blobs. */
+  traits?: Record<string, string>
 }
 
 function base64ToBytes(b64: string): Uint8Array {

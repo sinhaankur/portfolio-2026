@@ -9,6 +9,7 @@
 import dynamic from "next/dynamic"
 import { motion } from "framer-motion"
 import type { DnaSummary } from "@/lib/dna-crypto"
+import { DnaTraits } from "./dna-traits"
 
 // Helix is R3F (~Three.js) — lazy-load so the gate + panels paint first.
 const DnaHelix = dynamic(
@@ -87,6 +88,11 @@ export function DnaVisualization({ data }: { data: DnaSummary }) {
           </div>
         </div>
       </section>
+
+      {/* Trait panel — diet / wellness insights */}
+      {data.traits && Object.keys(data.traits).length > 0 && (
+        <DnaTraits traits={data.traits} />
+      )}
 
       {/* Helix */}
       <section>
