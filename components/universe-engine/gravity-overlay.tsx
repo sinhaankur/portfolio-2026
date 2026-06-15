@@ -32,6 +32,7 @@ import {
   InstancedMesh,
   Matrix4,
   MeshBasicMaterial,
+  PlaneGeometry,
   Quaternion,
   SphereGeometry,
   Vector3,
@@ -545,6 +546,74 @@ function LagrangePoints({ planets, invert }: { planets: ScenePlanet[]; invert: b
 }
 
 /* --------------------------------------------------------------------------
+ * Gravity-well grid — the iconic "rubber sheet" spacetime curvature.
+ *
+ * A flat wireframe grid on the ecliptic whose vertices dip downward toward
+ * −Σ(mass / dist), carving funnels around the Sun + planets. This is the
+ * intuitive picture of gravity everyone recognises — far more visceral than a
+ * flat arrow field. Depths are log-compressed so the Sun's deep well and a
+ * planet's shallow dimple both read without the Sun's well swallowing the grid.
+ * ------------------------------------------------------------------------ */
+const WELL_GRID = 64            // vertices per side
+const WELL_EXTENT = 34          // scene units across
+const WELL_DEPTH_SCALE = 2.6    // how deep the funnels dip
+const WELL_BASE_Y = 0.04
+
+function GravityWellGrid({ planets, invert }: { planets: ScenePlanet[]; invert: boolean }) {
+  const meshRef = useRef<THREE.Mesh>(null)
+
+  // Build a flat grid geometry once; we displace Y per-frame.
+  const geometry = useMemo(() => {
+    const geo = new PlaneGeometry(WELL_EXTENT, WELL_EXTENT, WELL_GRID, WELL_GRID)
+    geo.rotateX(-Math.PI / 2) // lie flat on the ecliptic (XZ plane)
+    return geo
+  }, [])
+
+  useFrame(() => {
+    const mesh = meshRef.current
+    if (!mesh) return
+    const simMs = simTimeRef.current.simMs
+    const pos = mesh.geometry.attributes.position
+    // Gather wells: Sun + planets (local frame).
+    const wells: Array<{ x: number; z: number; m: number }> = [
+      { x: 0, z: 0, m: SUN_MASS_EARTH },
+    ]
+    for (const p of planets) {
+      const wp = planetScenePosition(p, simMs)
+      wells.push({ x: wp.x, z: wp.z, m: p.raw.deep?.massEarth ?? 0.1 })
+    }
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i)
+      const z = pos.getZ(i)
+      let depth = 0
+      for (const w of wells) {
+        const dx = x - w.x
+        const dz = z - w.z
+        const d = Math.sqrt(dx * dx + dz * dz) + 0.25 // softening
+        depth += w.m / d
+      }
+      // Log-compress so the Sun's huge well + tiny planet dimples coexist.
+      const y = WELL_BASE_Y - Math.log10(1 + depth * 0.0006) * WELL_DEPTH_SCALE
+      pos.setY(i, y)
+    }
+    pos.needsUpdate = true
+    mesh.geometry.computeVertexNormals()
+  })
+
+  return (
+    <mesh ref={meshRef} geometry={geometry}>
+      <meshBasicMaterial
+        color={invert ? "#9a6a3a" : "#4a78b8"}
+        wireframe
+        transparent
+        opacity={invert ? 0.22 : 0.16}
+        depthWrite={false}
+      />
+    </mesh>
+  )
+}
+
+/* --------------------------------------------------------------------------
  * Public export
  * ------------------------------------------------------------------------ */
 
@@ -561,6 +630,7 @@ export function GravityOverlay({
 
   return (
     <group>
+      <GravityWellGrid planets={planets} invert={invert} />
       <InfluenceSpheres planets={planets} invert={invert} />
       <VectorField planets={planets} invert={invert} />
       <LagrangePoints planets={planets} invert={invert} />
