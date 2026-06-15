@@ -1918,6 +1918,87 @@ function Belt({
 }
 
 /* ============================================================
+ * Belt asteroids — real Blender rock meshes scattered along a belt ring.
+ *
+ * The point-cloud Belt handles the thousands of distant specks; this adds a
+ * few dozen actual rocky meshes (the Blender asteroid/comet-nucleus GLBs) for
+ * the chunky bodies the eye catches up close. The 3 GLBs load once and are
+ * cloned cheaply, so the cost is geometry-shared, not 40× a megabyte. Rides
+ * the same slow belt rotation. Skipped in chart mode (keeps the ink map clean).
+ * ============================================================ */
+const BELT_ROCK_MODELS = [
+  "/models/asteroid-stony.glb",
+  "/models/asteroid-carbon.glb",
+  "/models/comet-nucleus.glb",
+] as const
+BELT_ROCK_MODELS.forEach((p) => useGLTF.preload(p))
+
+function BeltAsteroids({
+  innerRadius,
+  outerRadius,
+  count,
+  thickness,
+  rotationSpeed,
+  baseScale,
+  seed = 1,
+}: {
+  innerRadius: number
+  outerRadius: number
+  count: number
+  thickness: number
+  rotationSpeed: number
+  baseScale: number
+  seed?: number
+}) {
+  const ref = useRef<import("three").Group>(null)
+  const gltfs = BELT_ROCK_MODELS.map((p) => useGLTF(p))
+
+  // Deterministic scatter so the belt is stable across re-renders.
+  const placements = useMemo(() => {
+    let s = seed
+    const rand = () => {
+      s = (1664525 * s + 1013904223) >>> 0
+      return s / 4294967296
+    }
+    const out: {
+      model: number
+      pos: [number, number, number]
+      rot: [number, number, number]
+      scale: number
+    }[] = []
+    for (let i = 0; i < count; i++) {
+      const r = innerRadius + rand() * (outerRadius - innerRadius)
+      const a = rand() * Math.PI * 2
+      out.push({
+        model: Math.floor(rand() * BELT_ROCK_MODELS.length),
+        pos: [Math.cos(a) * r, (rand() - 0.5) * thickness, Math.sin(a) * r],
+        rot: [rand() * Math.PI * 2, rand() * Math.PI * 2, rand() * Math.PI * 2],
+        scale: baseScale * (0.4 + rand() * 1.3),
+      })
+    }
+    return out
+  }, [innerRadius, outerRadius, count, thickness, baseScale, seed])
+
+  useFrame((_, delta) => {
+    if (ref.current) ref.current.rotation.y += delta * rotationSpeed
+  })
+
+  return (
+    <group ref={ref}>
+      {placements.map((p, i) => (
+        <Clone
+          key={i}
+          object={gltfs[p.model].scene}
+          position={p.pos}
+          rotation={p.rot}
+          scale={p.scale}
+        />
+      ))}
+    </group>
+  )
+}
+
+/* ============================================================
  * Planets + Sun + Orbit Rings
  * ============================================================ */
 
@@ -2754,10 +2835,12 @@ function SolarSystem({
   onHover,
   invert = false,
   interactive = false,
+  mobile = false,
 }: {
   onHover: HoverHandler
   invert?: boolean
   interactive?: boolean
+  mobile?: boolean
 }) {
   const sunRef = useRef<Mesh>(null)
   const coronaRef = useRef<Mesh>(null)
@@ -2972,6 +3055,22 @@ function SolarSystem({
         onHover={onHover}
         invert={invert}
       />
+      {/* Real Blender rock meshes scattered through the asteroid belt — the
+          chunky bodies the eye catches; the point cloud above carries the
+          thousands of distant specks. Streams in via Suspense; off in chart. */}
+      {!invert && (
+        <Suspense fallback={null}>
+          <BeltAsteroids
+            innerRadius={4.45}
+            outerRadius={5.37}
+            count={mobile ? 26 : 48}
+            thickness={0.12}
+            rotationSpeed={0.05}
+            baseScale={0.05}
+            seed={7}
+          />
+        </Suspense>
+      )}
 
       {/* Kuiper Belt — 30–50 AU → 16.43–21.21 scene units */}
       <Belt
@@ -2986,6 +3085,21 @@ function SolarSystem({
         onHover={onHover}
         invert={invert}
       />
+      {/* Real icy bodies through the Kuiper Belt — sparser + larger than the
+          asteroid belt (Pluto-class chunks out here). */}
+      {!invert && (
+        <Suspense fallback={null}>
+          <BeltAsteroids
+            innerRadius={16.43}
+            outerRadius={21.21}
+            count={mobile ? 16 : 30}
+            thickness={0.35}
+            rotationSpeed={0.012}
+            baseScale={0.09}
+            seed={42}
+          />
+        </Suspense>
+      )}
     </group>
   )
 }
@@ -5634,7 +5748,7 @@ export function SceneContents({
         <MilkyWay onHover={onHover} mobile={mobile} invert={invert} interactive={interactive} />
       </group>
       <group position={SOLAR_SYSTEM_POSITION}>
-        <SolarSystem onHover={onHover} invert={invert} interactive={interactive} />
+        <SolarSystem onHover={onHover} invert={invert} interactive={interactive} mobile={mobile} />
         <GravityOverlay show={showGravityOverlay} invert={invert} />
         <TrajectoryTrails show={showDeepDive} invert={invert} />
         <SphereOfInfluence show={showDeepDive} invert={invert} />
