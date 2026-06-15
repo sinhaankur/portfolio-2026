@@ -1,12 +1,12 @@
 export const CAMERA_PHASE_TUNING = {
   flight: {
-    // Hero framing: ship sits large + low-front in the frame against the
-    // backdrop. Distance scaled for the bigger (1.7x) ship; a wider FOV gives
-    // a cinematic sense of speed and space.
-    offsetDistance: 7.6,
-    offsetHeight: 2.0,
-    sideOffset: 0.5,
-    baseFov: 60,
+    // NFS / Everspace chase cam: camera sits directly BEHIND + slightly ABOVE
+    // the ship, centred (no side offset), looking down the nose. The ship
+    // sits lower-centre in frame with the world ahead.
+    offsetDistance: 9.0,
+    offsetHeight: 2.6,
+    sideOffset: 0,
+    baseFov: 62,
     nonAssistFollowRate: 6.2,
   },
   briefing: {
