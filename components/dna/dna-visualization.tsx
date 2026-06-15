@@ -10,6 +10,8 @@ import dynamic from "next/dynamic"
 import { motion } from "framer-motion"
 import type { DnaSummary } from "@/lib/dna-crypto"
 import { DnaTraits } from "./dna-traits"
+import { DnaInheritance } from "./dna-inheritance"
+import { DnaLegacyNote } from "./dna-legacy-note"
 
 // Helix is R3F (~Three.js) — lazy-load so the gate + panels paint first.
 const DnaHelix = dynamic(
@@ -92,6 +94,11 @@ export function DnaVisualization({ data }: { data: DnaSummary }) {
       {/* Trait panel — diet / wellness insights */}
       {data.traits && Object.keys(data.traits).length > 0 && (
         <DnaTraits traits={data.traits} />
+      )}
+
+      {/* Inheritance — what passes to the next generation */}
+      {data.traits && Object.keys(data.traits).length > 0 && (
+        <DnaInheritance traits={data.traits} />
       )}
 
       {/* Helix */}
@@ -179,6 +186,9 @@ export function DnaVisualization({ data }: { data: DnaSummary }) {
           ))}
         </ul>
       </section>
+
+      {/* A note, forward — legacy framing (author-written) */}
+      <DnaLegacyNote />
 
       {/* Provenance */}
       <section className="rounded-md border border-border bg-secondary/20 p-6 md:p-8">
