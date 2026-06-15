@@ -69,6 +69,34 @@ export function DnaInheritance({ traits }: { traits: Record<string, string> }) {
         the part of you that carries forward.
       </p>
 
+      {/* Certain-pass portrait — what your side contributes for sure */}
+      {(() => {
+        const certain = rows.filter((r) => r.homozygous && r.marker.certainPass)
+        if (!certain.length) return null
+        return (
+          <div className="mb-8 rounded-lg border border-accent/30 bg-accent/5 p-6 md:p-8">
+            <p className="font-mono text-[10px] tracking-widest uppercase text-accent mb-4">
+              Inherited from you, for certain
+            </p>
+            <p className="font-sans text-sm md:text-base text-foreground/80 leading-relaxed mb-5 max-w-2xl">
+              Where your two copies match, there&apos;s no coin flip — every child
+              gets that copy from you. From your side, that means:
+            </p>
+            <ul className="space-y-3">
+              {certain.map((r) => (
+                <li key={r.marker.id} className="flex gap-3">
+                  <span aria-hidden className="text-accent mt-1 shrink-0">→</span>
+                  <p className="font-sans text-sm md:text-base text-foreground/85 leading-relaxed">
+                    <span className="text-foreground">{r.marker.title}.</span>{" "}
+                    {r.marker.certainPass}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )
+      })()}
+
       {/* Split summary */}
       <div className="grid grid-cols-2 gap-px bg-border border border-border rounded-md overflow-hidden mb-8">
         <div className="bg-background p-5">

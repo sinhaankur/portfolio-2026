@@ -53,6 +53,13 @@ export type TraitMarker = {
    * Optional — only where there's an honest, simple inheritance story.
    */
   inherit?: string
+  /**
+   * When you are HOMOZYGOUS at this marker (you pass the same allele to every
+   * child), a short, certain statement of what your side contributes. Only set
+   * where the single-allele consequence is clean and honest. Shown in the
+   * "inherited for certain" portrait.
+   */
+  certainPass?: string
 }
 
 /** Sort the two alleles so "GA" and "AG" both match the "AG" key. */
@@ -75,6 +82,7 @@ export const TRAIT_MARKERS: TraitMarker[] = [
       AG: { label: "Likely tolerant", detail: "One persistence copy — usually enough to digest dairy, though tolerance can vary.", tone: "neutral" },
       GG: { label: "Likely lactose intolerant", detail: "No persistence variant — lactase production often declines after childhood, so dairy may cause discomfort. Common across much of the world.", tone: "notable", feels: "This is a leading reason for bloating, gas, cramps, or loose stools an hour or two after milk, soft cheese, or ice cream. Hard/aged cheeses and yogurt are usually easier (less lactose).", tip: "Try a 2-week dairy swap (lactose-free milk, hard cheese, yogurt) and see if bloating settles. A lactase enzyme tablet before dairy can help when you do indulge." },
     },
+    certainPass: "You always pass the non-persistence allele — so a child needs the tolerance copy from their other parent to comfortably digest dairy as an adult.",
   },
   {
     id: "caffeine",
@@ -88,6 +96,7 @@ export const TRAIT_MARKERS: TraitMarker[] = [
       AC: { label: "Slow metabolizer", detail: "You clear caffeine more slowly — effects linger longer, so afternoon coffee is more likely to affect sleep.", tone: "notable" },
       CC: { label: "Slow metabolizer", detail: "Caffeine stays in your system noticeably longer — sensitivity and sleep disruption are more likely.", tone: "notable" },
     },
+    certainPass: "You always pass a fast-metabolizer copy — your children will lean toward clearing caffeine quickly.",
   },
   {
     id: "alcohol-flush",
@@ -102,6 +111,7 @@ export const TRAIT_MARKERS: TraitMarker[] = [
       AG: { label: "Partial flush response", detail: "One reduced-activity copy — alcohol can cause flushing, faster intoxication, and stronger hangovers.", tone: "notable" },
       AA: { label: "Strong flush response", detail: "Very low ALDH2 activity — alcohol causes pronounced flushing and discomfort, and tolerance is typically low.", tone: "notable" },
     },
+    certainPass: "You always pass the normal-activity allele — your children won't get the alcohol-flush variant from your side.",
   },
   {
     id: "alcohol-metab",
@@ -142,6 +152,7 @@ export const TRAIT_MARKERS: TraitMarker[] = [
       CT: { label: "Mild sensitivity", detail: "One copy linked to slightly less efficient blood-sugar handling — fibre and balanced meals help.", tone: "neutral" },
       TT: { label: "Higher sensitivity", detail: "Two copies linked to less efficient blood-sugar regulation — pairing carbs with protein/fibre and staying active is especially worthwhile.", tone: "notable", feels: "Big refined-carb meals (white rice, bread, sweets) may hit you with an energy spike then a crash, hunger again soon after, and — over time — easier belly/visceral fat gain than the average person. This is one of the more relevant 'why tummy fat' variants you carry.", tip: "Eat carbs alongside protein, fat, or fibre rather than alone; favour whole over refined; a short walk after meals blunts the sugar spike noticeably." },
     },
+    certainPass: "You always pass the carb-sensitivity allele — each child inherits one copy from you, so balanced, whole-carb habits are worth teaching early.",
   },
   {
     id: "bitter-taste",
