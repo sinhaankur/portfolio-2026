@@ -2209,6 +2209,20 @@ const SATELLITE_CATALOG: Record<string, SatelliteShell[]> = {
   Mars: [
     { label: "Mars orbiters (MRO / MAVEN / Odyssey / TGO …)", altRatio: 1.3, count: 14, color: "#ffb89a", incl: 1.1, speed: 0.12 },
   ],
+  // Real (or historic) orbiters at the other planets — counts reflect reality:
+  // these worlds have had only a handful of visiting spacecraft, never swarms.
+  Mercury: [
+    { label: "Mercury orbit (BepiColombo · MESSENGER, hist.)", altRatio: 1.5, count: 2, color: "#cdbfae", incl: 1.0, speed: 0.1 },
+  ],
+  Venus: [
+    { label: "Venus orbit (Akatsuki · Venus Express, hist.)", altRatio: 1.45, count: 2, color: "#ffe6a8", incl: 0.9, speed: 0.1 },
+  ],
+  Jupiter: [
+    { label: "Jupiter orbit (Juno · Galileo, hist.)", altRatio: 1.6, count: 2, color: "#ffd9b0", incl: 1.3, speed: 0.07 },
+  ],
+  Saturn: [
+    { label: "Saturn orbit (Cassini, hist. 1997–2017)", altRatio: 1.7, count: 1, color: "#ffe9c0", incl: 0.6, speed: 0.05 },
+  ],
 }
 
 /** Named hero satellites — real Blender models orbiting at their true altitude,
@@ -2240,8 +2254,19 @@ const HERO_CRAFT: Record<string, HeroCraft[]> = {
 }
 Object.values(HERO_CRAFT).flat().forEach((c) => useGLTF.preload(c.model))
 
-function HeroSatellite({ craft, bodyRadius }: { craft: HeroCraft; bodyRadius: number }) {
+function HeroSatellite({
+  craft,
+  bodyRadius,
+  onHover,
+  interactive = false,
+}: {
+  craft: HeroCraft
+  bodyRadius: number
+  onHover?: HoverHandler
+  interactive?: boolean
+}) {
   const ref = useRef<import("three").Group>(null)
+  const craftRef = useRef<import("three").Group>(null)
   const gltf = useGLTF(craft.model)
   const cloned = useMemo(() => {
     const c = gltf.scene.clone(true)
@@ -2253,10 +2278,43 @@ function HeroSatellite({ craft, bodyRadius }: { craft: HeroCraft; bodyRadius: nu
     if (!ref.current) return
     ref.current.rotation.y += delta * craft.speed
   })
+
+  // Follow this craft: lock the camera onto its live world position so the
+  // viewer rides along as it orbits — same gesture as moons/comets. The getter
+  // reads the inner group's world position each frame (it's inside the spinning
+  // orbit group), so the follow stays glued as the craft circles the body.
+  const startFollow = (e: { stopPropagation: () => void }) => {
+    e.stopPropagation()
+    const obj = craftRef.current
+    if (!obj) return
+    requestFollow(
+      () => {
+        const v = new Vector3()
+        obj.getWorldPosition(v)
+        return { x: v.x, y: v.y, z: v.z }
+      },
+      Math.max(bodyRadius * craft.sizeRatio * 6, 0.12),
+      craft.label,
+    )
+  }
+
   return (
     <group ref={ref} rotation={[craft.incl * 0.35, craft.phase, 0]}>
-      <group position={[r, 0, 0]} scale={bodyRadius * craft.sizeRatio}>
+      <group ref={craftRef} position={[r, 0, 0]} scale={bodyRadius * craft.sizeRatio}>
         <primitive object={cloned} />
+        {/* Invisible hit-sphere so the small craft is easy to hover/click. */}
+        <mesh
+          onPointerOver={(e) => {
+            e.stopPropagation()
+            onHover?.({ name: craft.label, classification: "Human-made spacecraft", fact: `${craft.label} — a real orbiter, riding its true altitude around the body. Click to follow it.`, followable: interactive })
+          }}
+          onPointerOut={() => onHover?.(null)}
+          onClick={interactive ? startFollow : undefined}
+          onDoubleClick={interactive ? startFollow : undefined}
+        >
+          <sphereGeometry args={[2.2, 12, 12]} />
+          <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+        </mesh>
       </group>
     </group>
   )
@@ -2266,10 +2324,14 @@ function SatelliteShells({
   shells,
   heroCraft,
   bodyRadius,
+  onHover,
+  interactive = false,
 }: {
   shells: SatelliteShell[]
   heroCraft?: HeroCraft[]
   bodyRadius: number
+  onHover?: HoverHandler
+  interactive?: boolean
 }) {
   return (
     <group>
@@ -2278,7 +2340,7 @@ function SatelliteShells({
       ))}
       {heroCraft?.map((c) => (
         <Suspense key={c.label} fallback={null}>
-          <HeroSatellite craft={c} bodyRadius={bodyRadius} />
+          <HeroSatellite craft={c} bodyRadius={bodyRadius} onHover={onHover} interactive={interactive} />
         </Suspense>
       ))}
     </group>
@@ -3022,6 +3084,8 @@ function PlanetBody({
               shells={satShells}
               heroCraft={HERO_CRAFT[planet.raw.name]}
               bodyRadius={planet.visualRadius}
+              onHover={onHover}
+              interactive={interactive}
             />
           )}
 
