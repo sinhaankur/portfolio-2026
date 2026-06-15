@@ -203,6 +203,25 @@ export function HUD({ gameState, showForwardDebug = false, onShipSelect, waypoin
         </div>
       </div>
 
+      {/* Aiming reticle — center-screen crosshair so the player can read where
+          their cannons fire. Shown only in flight. Tints warm in attack mode
+          (tighter combat handling), cool otherwise. */}
+      {isExplorationPhase && (() => {
+        const reticleColor = attackMode ? '#ffb46b' : '#8ce6ff';
+        return (
+          <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30 pointer-events-none">
+            <svg width="56" height="56" viewBox="0 0 56 56" className="drop-shadow-[0_0_3px_rgba(0,0,0,0.6)]">
+              <circle cx="28" cy="28" r="15" fill="none" stroke={reticleColor} strokeOpacity="0.45" strokeWidth="1" />
+              <line x1="28" y1="4" x2="28" y2="12" stroke={reticleColor} strokeOpacity="0.8" strokeWidth="1.5" />
+              <line x1="28" y1="44" x2="28" y2="52" stroke={reticleColor} strokeOpacity="0.8" strokeWidth="1.5" />
+              <line x1="4" y1="28" x2="12" y2="28" stroke={reticleColor} strokeOpacity="0.8" strokeWidth="1.5" />
+              <line x1="44" y1="28" x2="52" y2="28" stroke={reticleColor} strokeOpacity="0.8" strokeWidth="1.5" />
+              <circle cx="28" cy="28" r="1.5" fill={reticleColor} fillOpacity="0.9" />
+            </svg>
+          </div>
+        );
+      })()}
+
       {/* Pause indicator */}
       {gameState.phase === 'paused' && (
         <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none">

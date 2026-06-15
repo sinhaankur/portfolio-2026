@@ -231,6 +231,41 @@ function buildEntry(catKey, catNum, row) {
   }
 }
 
+// Build a SkyPoint for a bulk NGC/IC object keyed by its own catalog name
+// (e.g. "NGC 1300"), rather than a Messier/Caldwell number.
+function buildEntryFromName(row) {
+  const kind = TYPE_TO_KIND[row.type]
+  if (!kind) return null
+  const raH = parseRA(row.ra)
+  const decD = parseDec(row.dec)
+  if (raH === null || decD === null) return null
+  const mag = pickMagnitude(row)
+  const constName = CONSTELLATION_NAMES[row.constellation] || row.constellation || "an unnamed constellation"
+  const typeLabel = TYPE_LABEL[row.type] || "Deep-sky object"
+  const common = (row.common || "").trim()
+  // Normalise "NGC0224" → "NGC 224" for display.
+  const pretty = (row.name || "").replace(/^([A-Z]+)0*(\d+)/, "$1 $2").trim()
+  const displayName = common || pretty || row.name
+  const designation = common && common !== pretty ? `${pretty} · ${common}` : pretty
+  const factParts = [`${typeLabel} in ${constName}`]
+  if (mag !== null) factParts.push(`apparent magnitude ${mag.toFixed(1)}`)
+  const fact = factParts.join(". ") + "."
+  const baseSize = kind === "galaxy" ? 1.3 : kind === "nebula" ? 1.5 : 1.0
+  const magBoost = mag !== null && isFinite(mag) ? Math.max(0, (10 - mag) * 0.05) : 0
+  return {
+    id: (row.name || pretty).toLowerCase().replace(/\s+/g, ""),
+    name: displayName,
+    designation,
+    kind,
+    raHours: +raH.toFixed(4),
+    decDeg: +decD.toFixed(3),
+    magnitude: mag !== null ? +mag.toFixed(2) : 99,
+    distance: "—",
+    fact,
+    visualSize: +(baseSize + magBoost).toFixed(2),
+  }
+}
+
 async function main() {
   const csv1 = await fetchCSV(OPENNGC_MAIN)
   const csv2 = await fetchCSV(OPENNGC_ADDENDUM).catch(() => "")
@@ -271,14 +306,34 @@ async function main() {
   console.log(`Caldwell: ${caldwell.size}`)
 
   const entries = []
+  const usedNames = new Set() // OpenNGC primary name, to dedup the bulk pass
   for (const [num, row] of [...messier].sort((a, b) => a[0] - b[0])) {
     const e = buildEntry("M", num, row)
-    if (e) entries.push(e)
+    if (e) { entries.push(e); usedNames.add(row.name) }
   }
   for (const [num, row] of [...caldwell].sort((a, b) => a[0] - b[0])) {
     const e = buildEntry("C", num, row)
-    if (e) entries.push(e)
+    if (e) { entries.push(e); usedNames.add(row.name) }
   }
+
+  // --- Bulk catalog pass: cover the broader NGC/IC sky, not just the
+  // Messier + Caldwell highlights. Capped by brightness because EACH sky point
+  // is a stateful React component with its own per-frame useFrame in the engine
+  // (SkyPointMesh) — thousands would blow the frame budget. Mag ≤ 10 yields a
+  // bounded set (hundreds–~1.5k) that meaningfully fills the sky while staying
+  // web-performant. Bump cautiously + re-test FPS if going fainter.
+  const BULK_MAG_LIMIT = 10.0
+  let bulkCount = 0
+  for (const row of rows) {
+    if (!row.name || usedNames.has(row.name)) continue
+    const kind = TYPE_TO_KIND[row.type]
+    if (!kind) continue
+    const mag = pickMagnitude(row)
+    if (mag === null || !isFinite(mag) || mag > BULK_MAG_LIMIT) continue
+    const e = buildEntryFromName(row)
+    if (e) { entries.push(e); usedNames.add(row.name); bulkCount++ }
+  }
+  console.log(`Bulk NGC/IC (mag ≤ ${BULK_MAG_LIMIT}): ${bulkCount}`)
 
   console.log(`Built ${entries.length} SkyPoint entries`)
 
@@ -288,10 +343,11 @@ async function main() {
  * Source: OpenNGC (https://github.com/mattiaverga/OpenNGC), MIT-licensed.
  * Re-run with: pnpm data:deepsky
  *
- * Messier IDs already curated with editorial copy in
- * components/universe-engine/astronomy.ts (M1, M13, M16, M31, M33,
- * M42, M45, M57) are intentionally OMITTED here so the curated
- * entries win when both sets are merged.
+ * Contents: Messier + Caldwell highlights, then a bulk NGC/IC pass of every
+ * galaxy / nebula / cluster brighter than the magnitude cap — broad sky
+ * coverage rendered as procedural points. Messier IDs already curated with
+ * editorial copy in components/universe-engine/astronomy.ts (M1, M13, M16,
+ * M31, M33, M42, M45, M57) are OMITTED so the curated entries win on merge.
  */
 `
 

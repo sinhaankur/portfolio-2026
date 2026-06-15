@@ -4,6 +4,10 @@ import { useState, useEffect } from "react"
 import { Download } from "lucide-react"
 import { SignalTuner } from "./signal-tuner"
 
+// Baked at build time via next.config (NEXT_PUBLIC_BUILD_TIME). Falls back to
+// now in dev. Reflects each deploy, not the visitor's clock.
+const BUILD_TIME = process.env.NEXT_PUBLIC_BUILD_TIME || new Date().toISOString()
+
 const socials: Array<{ label: string; href: string; download?: boolean }> = [
   { label: "Email", href: "mailto:sinhaankur@ymail.com" },
   { label: "LinkedIn", href: "https://linkedin.com/in/sinhaankur27" },
@@ -173,6 +177,16 @@ export function Footer() {
             >
               ALL RIGHTS RESERVED
             </a>
+          </p>
+
+          {/* Last-updated — baked at build time so it reflects each deploy. */}
+          <p className="mt-2 font-mono text-[10px] tracking-[0.18em] uppercase text-muted-foreground/60">
+            Last updated{" "}
+            {new Date(BUILD_TIME).toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+            })}
           </p>
         </div>
       </div>

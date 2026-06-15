@@ -1,5 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Bake the build timestamp so the footer can show "last updated" per deploy.
+  env: {
+    NEXT_PUBLIC_BUILD_TIME: new Date().toISOString(),
+  },
+
   // Static export so GitHub Pages can serve the built site directly.
   // The whole portfolio is genuinely static — no SSR, no API routes, no middleware —
   // so we don't lose anything by exporting.
