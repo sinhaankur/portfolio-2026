@@ -25,11 +25,12 @@ const BASE_LAYOUTS: MissionLayout[] = [
     stationPosition: deriveEarthOrbitStationPosition(new THREE.Vector3(0, -140, -460), 112),
     stationScale: 1.42,
     stationStyle: 'civic',
-    // Spawn close enough that Earth fills the backdrop below-ahead and the
-    // station reads nearby — every launch frame has a clear hero subject +
-    // sense of scale instead of an empty void. Slightly above the ecliptic so
-    // the blue limb of Earth curves across the lower frame.
-    spawnPosition: new THREE.Vector3(0, 40, -150),
+    // Story opening: the ship starts DOCKED at the fabrication station, then
+    // launches out. Spawn just off the station (which sits ≈(60.8,-57.4,-394.6)
+    // in world space) offset outward/up so the station fills part of the frame
+    // behind-beside the ship and Earth is the backdrop ahead. Far enough off
+    // the structure that the camera never ends up buried inside it.
+    spawnPosition: new THREE.Vector3(78, -38, -362),
     // Keep yaw at 0 so gameplay forward (-Z) aligns with ship nose.
     spawnRotation: new THREE.Vector3(0, 0, 0),
   },

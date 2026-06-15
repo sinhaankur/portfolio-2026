@@ -1176,7 +1176,7 @@ function MissionStartScene({ worldIndex }: { worldIndex: number }) {
         {/* Detailed Blender station replaces the procedural block below. The
             old rig is kept mounted but hidden (visible=false) so its animation
             refs stay valid and the swap is fully revertible. */}
-        <StationModel scale={9} />
+        <StationModel scale={3.4} />
         <group ref={stationRigRef} rotation={[0, Math.PI * 0.12, 0]} visible={false}>
           {/* === MAIN HULL — wide horizontal block === */}
           <mesh>
@@ -1611,8 +1611,11 @@ function CameraFollowController({
     const followRate = isFlightPhase ? assistConfig.follow : phaseProfile.nonAssistFollowRate;
     const k = 1 - Math.exp(-delta * followRate);
 
-    // Cap catch-up speed to prevent sudden snaps when heading changes quickly.
-    const maxCatchUp = 42 * delta;
+    // Cap catch-up to smooth sudden heading changes — but the cap MUST exceed
+    // the ship's actual speed or the camera falls permanently behind when you
+    // accelerate (ship tops out ~1560 u/s; the old flat 42 u/s cap could never
+    // keep up). Scale the cap with current speed + a generous floor.
+    const maxCatchUp = (Math.max(speed * 1.6, 60) + 80) * delta;
     const catchUp = _camCatchUp.copy(desiredCameraPos).sub(smoothPosRef.current);
     if (catchUp.length() > maxCatchUp) {
       catchUp.setLength(maxCatchUp);
@@ -2072,7 +2075,11 @@ function GameScene({
 
       const forwardThrottle = Math.max(0, throttleRef.current);
       const interstellarBlend = attackMode ? 0 : Math.max(0, Math.min(1, forwardThrottle * 0.62 + boostSpoolRef.current * 0.84));
-      const maxForwardSpeed = attackMode ? 42 : 280 + interstellarBlend * 1280;
+      // Speed tuned for the scene scale (Earth ~200 units away): a readable
+      // cruise + a strong-but-controllable boost, so the ship reads as a hero
+      // gliding through space rather than teleporting off-screen. Was 280 +
+      // blend*1280 (up to 1560 u/s), which crossed the whole scene in <1s.
+      const maxForwardSpeed = attackMode ? 42 : 120 + interstellarBlend * 360;
       const maxReverseSpeed = attackMode ? -14 : -21;
 
       const throttleSpeed =
