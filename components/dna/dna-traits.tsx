@@ -1,16 +1,21 @@
 "use client"
 
 /**
- * DnaTraits — the curated diet/wellness trait panel.
+ * DnaTraits — the curated trait panel (diet, wellness, physical, health).
  *
  * Reads the decrypted `traits` map (marker id -> genotype), looks each up in
- * the TRAIT_MARKERS definitions, and renders a result card per marker. Grouped
- * into Diet & Nutrition and Wellness. Carries a non-negotiable "not medical
- * advice" disclaimer — these are informational genetics, not a clinical test.
+ * TRAIT_MARKERS, and renders a result card per marker with progressive
+ * disclosure: headline verdict, then how it shows up day-to-day (`feels`), an
+ * actionable tip, and a next-generation inheritance note where one exists.
+ *
+ * Category tabs + text search keep the growing panel navigable. The "health"
+ * group carries its own stronger disclaimer (tendencies, not risk/diagnosis;
+ * a genotyping chip can't resolve cancer/cardiac mutations).
  */
 
+import { useMemo, useState } from "react"
 import { motion } from "framer-motion"
-import { AlertCircle } from "lucide-react"
+import { AlertCircle, Search, Baby } from "lucide-react"
 import {
   TRAIT_MARKERS,
   normalizeGenotype,
@@ -24,6 +29,14 @@ type Resolved = {
   genotype: string
   outcome: TraitOutcome | null
 }
+
+const CATEGORY_LABELS: Record<TraitCategory, string> = {
+  diet: "Diet & Nutrition",
+  wellness: "Wellness",
+  physical: "Physical traits",
+  health: "Health tendencies",
+}
+const CATEGORY_ORDER: TraitCategory[] = ["diet", "wellness", "physical", "health"]
 
 function resolve(traits: Record<string, string>): Resolved[] {
   return TRAIT_MARKERS.flatMap((marker) => {
@@ -41,7 +54,7 @@ function TraitCard({ r, i }: { r: Resolved; i: number }) {
       initial={{ opacity: 0, y: 12 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-40px" }}
-      transition={{ duration: 0.4, delay: Math.min(i * 0.04, 0.4) }}
+      transition={{ duration: 0.4, delay: Math.min(i * 0.03, 0.3) }}
       className="group rounded-md border border-border bg-background open:bg-secondary/20 transition-colors"
     >
       <summary
@@ -68,47 +81,70 @@ function TraitCard({ r, i }: { r: Resolved; i: number }) {
           {r.outcome?.label ?? "No call"}
         </span>
       </summary>
-      <div className="px-5 pb-5 pt-1 border-t border-border/60">
-        <p className="font-sans text-xs text-muted-foreground mb-3 mt-3">
-          {r.marker.about}
-        </p>
+      <div className="px-5 pb-5 pt-1 border-t border-border/60 space-y-4">
+        <p className="font-sans text-xs text-muted-foreground mt-3">{r.marker.about}</p>
         <p className="font-sans text-sm md:text-base text-foreground/85 leading-relaxed">
           {r.outcome?.detail ??
             "Your genotype at this marker isn't one of the well-characterised forms, so no interpretation is shown."}
         </p>
+        {r.outcome?.feels && (
+          <div className="rounded-md bg-secondary/40 px-4 py-3">
+            <p className="font-mono text-[10px] tracking-widest uppercase text-accent mb-1.5">
+              How it shows up
+            </p>
+            <p className="font-sans text-sm text-foreground/80 leading-relaxed">{r.outcome.feels}</p>
+          </div>
+        )}
+        {r.outcome?.tip && (
+          <div className="rounded-md border border-accent/25 px-4 py-3">
+            <p className="font-mono text-[10px] tracking-widest uppercase text-accent mb-1.5">
+              What helps
+            </p>
+            <p className="font-sans text-sm text-foreground/80 leading-relaxed">{r.outcome.tip}</p>
+          </div>
+        )}
+        {r.marker.inherit && (
+          <div className="flex gap-2.5">
+            <Baby className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" aria-hidden />
+            <p className="font-sans text-xs text-muted-foreground leading-relaxed">
+              <span className="text-foreground/70">Passing it on — </span>
+              {r.marker.inherit}
+            </p>
+          </div>
+        )}
       </div>
     </motion.details>
   )
 }
 
-function Group({
-  title,
-  items,
-}: {
-  title: string
-  items: Resolved[]
-}) {
-  if (!items.length) return null
-  return (
-    <div>
-      <h3 className="font-mono text-[10px] tracking-widest uppercase text-accent mb-4">
-        {title}
-      </h3>
-      <div className="space-y-2.5">
-        {items.map((r, i) => (
-          <TraitCard key={r.marker.id} r={r} i={i} />
-        ))}
-      </div>
-    </div>
-  )
-}
-
 export function DnaTraits({ traits }: { traits: Record<string, string> }) {
-  const resolved = resolve(traits)
+  const resolved = useMemo(() => resolve(traits), [traits])
+  const [active, setActive] = useState<TraitCategory | "all">("all")
+  const [query, setQuery] = useState("")
+
+  const present = CATEGORY_ORDER.filter((c) =>
+    resolved.some((r) => r.marker.category === c),
+  )
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return resolved.filter((r) => {
+      if (active !== "all" && r.marker.category !== active) return false
+      if (!q) return true
+      return (
+        r.marker.title.toLowerCase().includes(q) ||
+        r.marker.gene.toLowerCase().includes(q) ||
+        (r.outcome?.label.toLowerCase().includes(q) ?? false) ||
+        (r.outcome?.feels?.toLowerCase().includes(q) ?? false)
+      )
+    })
+  }, [resolved, active, query])
+
   if (!resolved.length) return null
 
-  const byCat = (c: TraitCategory) =>
-    resolved.filter((r) => r.marker.category === c)
+  const groups = present
+    .map((c) => ({ cat: c, items: filtered.filter((r) => r.marker.category === c) }))
+    .filter((g) => g.items.length)
 
   return (
     <section>
@@ -119,28 +155,102 @@ export function DnaTraits({ traits }: { traits: Record<string, string> }) {
         </h2>
       </div>
       <p className="max-w-2xl mb-6 font-sans text-sm md:text-base text-foreground/75 leading-relaxed">
-        A curated panel of well-studied diet, nutrition, and wellness markers,
-        read from your actual genotypes. Tap any trait to expand. {resolved.length}{" "}
-        markers found in your data.
+        {resolved.length} well-studied markers read from your actual genotypes —
+        across diet, wellness, physical traits, and broad health tendencies. Tap
+        any trait to expand: what it means, how it shows up day-to-day, what
+        helps, and how it passes to the next generation.
       </p>
 
-      {/* Disclaimer — non-negotiable. */}
-      <div className="mb-10 flex gap-3 rounded-md border border-accent/30 bg-accent/5 p-4">
+      {/* General disclaimer */}
+      <div className="mb-6 flex gap-3 rounded-md border border-accent/30 bg-accent/5 p-4">
         <AlertCircle className="h-4 w-4 text-accent shrink-0 mt-0.5" aria-hidden />
         <p className="font-sans text-xs md:text-sm text-foreground/75 leading-relaxed">
           <strong>Not medical advice.</strong> A genotyping array is not a
-          clinical test. These are informational, well-replicated common
-          variants about diet and wellness — not disease risk, diagnoses, or
-          carrier status. Genes are one input among many; lifestyle and
-          environment usually matter more. Talk to a clinician for anything
-          health-related.
+          clinical test. These are informational common variants — genes are one
+          input among many, and lifestyle usually matters more. For anything
+          health-related, talk to a clinician.
         </p>
       </div>
 
-      <div className="space-y-12">
-        <Group title="Diet & Nutrition" items={byCat("diet")} />
-        <Group title="Wellness" items={byCat("wellness")} />
+      {/* Controls — category tabs + search */}
+      <div className="mb-8 flex flex-col sm:flex-row gap-3 sm:items-center">
+        <div className="flex flex-wrap gap-2">
+          {(["all", ...present] as const).map((c) => {
+            const label = c === "all" ? "All" : CATEGORY_LABELS[c]
+            const on = active === c
+            return (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setActive(c)}
+                data-cursor-hover
+                className={`
+                  font-mono text-[10px] tracking-widest uppercase px-3 py-2 rounded-full border min-h-9
+                  transition-colors
+                  ${on ? "border-accent bg-accent/10 text-accent" : "border-border text-foreground/70 hover:border-foreground/40"}
+                `}
+              >
+                {label}
+              </button>
+            )
+          })}
+        </div>
+        <div className="relative sm:ml-auto sm:w-56">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" aria-hidden />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search traits…"
+            aria-label="Search traits"
+            className="
+              w-full rounded-full border border-border bg-background pl-9 pr-4 py-2
+              font-sans text-sm text-foreground placeholder:text-muted-foreground
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+              focus-visible:ring-offset-2 focus-visible:ring-offset-background
+            "
+          />
+        </div>
       </div>
+
+      {groups.length === 0 ? (
+        <p className="font-sans text-sm text-muted-foreground py-8 text-center">
+          No traits match “{query}”.
+        </p>
+      ) : (
+        <div className="space-y-12">
+          {groups.map(({ cat, items }) => (
+            <div key={cat}>
+              <h3 className="font-mono text-[10px] tracking-widest uppercase text-accent mb-4">
+                {CATEGORY_LABELS[cat]}
+              </h3>
+
+              {/* Stronger, section-specific warning for health tendencies */}
+              {cat === "health" && (
+                <div className="mb-4 flex gap-3 rounded-md border border-[#f06c8d]/40 bg-[#f06c8d]/5 p-4">
+                  <AlertCircle className="h-4 w-4 text-[#f06c8d] shrink-0 mt-0.5" aria-hidden />
+                  <p className="font-sans text-xs md:text-sm text-foreground/80 leading-relaxed">
+                    <strong>Read this first.</strong> These are <em>tendencies</em>,
+                    not risk scores or diagnoses. A consumer genotyping chip{" "}
+                    <strong>cannot</strong> reliably assess cancer or serious heart
+                    disease — it misses almost all of the rare BRCA and cardiac
+                    mutations that actually matter, so a reassuring result here is{" "}
+                    <em>not</em> a clean bill of health. Anything flagged worth
+                    acting on must be confirmed by a clinician on a validated test.
+                    Raw DTC data also carries real error rates.
+                  </p>
+                </div>
+              )}
+
+              <div className="space-y-2.5">
+                {items.map((r, i) => (
+                  <TraitCard key={r.marker.id} r={r} i={i} />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </section>
   )
 }

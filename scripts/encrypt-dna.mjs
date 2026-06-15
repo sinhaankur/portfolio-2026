@@ -76,6 +76,17 @@ const TRAIT_RSIDS = {
   rs1799945: "iron",
   rs4680: "dopamine",
   rs17822931: "earwax",
+  // physical
+  rs12913832: "eye-color",
+  rs1393350: "freckles",
+  rs12203592: "pigment",
+  rs8192678: "endurance",
+  rs6265: "bdnf-memory",
+  // health tendencies (polygenic, caveated)
+  rs7412: "apoe-lipid",
+  rs662799: "triglycerides",
+  rs1801282: "t2d-ppar",
+  rs6025: "clotting-fvl",
 }
 
 // ---- derive abstract summary from the raw CSV -------------------------------
