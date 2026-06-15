@@ -32,11 +32,20 @@ type Resolved = {
 
 const CATEGORY_LABELS: Record<TraitCategory, string> = {
   diet: "Diet & Nutrition",
+  fitness: "Fitness & Training",
+  skin: "Skin care",
   wellness: "Wellness",
   physical: "Physical traits",
   health: "Health tendencies",
 }
-const CATEGORY_ORDER: TraitCategory[] = ["diet", "wellness", "physical", "health"]
+const CATEGORY_ORDER: TraitCategory[] = [
+  "diet",
+  "fitness",
+  "skin",
+  "wellness",
+  "physical",
+  "health",
+]
 
 function resolve(traits: Record<string, string>): Resolved[] {
   return TRAIT_MARKERS.flatMap((marker) => {

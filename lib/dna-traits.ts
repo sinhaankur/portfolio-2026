@@ -21,7 +21,13 @@
  *   on the forward (+) strand to match MyHeritage build37.
  */
 
-export type TraitCategory = "diet" | "wellness" | "physical" | "health"
+export type TraitCategory =
+  | "diet"
+  | "fitness"
+  | "skin"
+  | "wellness"
+  | "physical"
+  | "health"
 
 export type TraitOutcome = {
   /** Short verdict shown as the headline result, e.g. "Likely lactose intolerant". */
@@ -397,5 +403,207 @@ export const TRAIT_MARKERS: TraitMarker[] = [
       TT: { label: "Two copies", detail: "Two copies — notably higher clotting tendency. Confirm clinically; do not act on raw chip data alone.", tone: "notable" },
     },
     inherit: "Factor V Leiden is inherited simply — each parent passes one F5 copy, so a carrier parent has a 50% chance of passing the variant to each child.",
+  },
+
+  // -------------------------------------------------------------- fitness ----
+  {
+    id: "fuel-type",
+    rsid: "rs4253778",
+    category: "fitness",
+    title: "Training fuel & fibre type",
+    gene: "PPARA",
+    about:
+      "A regulator of how muscle uses fat vs. carbohydrate for fuel — linked to endurance vs. power/strength leaning.",
+    outcomes: {
+      GG: { label: "Endurance-fuel leaning", detail: "The common genotype — associated with efficient fat-burning and a lean toward aerobic/endurance performance.", tone: "neutral", feels: "Steady-state cardio and higher-rep work likely feel sustainable; you fuel well on fat during longer efforts.", tip: "Zone-2 cardio (long, conversational-pace sessions) pays off for you. Still strength train 2×/week for muscle and bone — endurance leaning isn't an excuse to skip it." },
+      CG: { label: "Mixed", detail: "One of each — a blend of endurance and power/strength tendencies.", tone: "neutral", tip: "You can train either direction; periodise — blocks of endurance, blocks of strength — to develop both." },
+      CC: { label: "Power/strength leaning", detail: "Associated with greater reliance on carbohydrate fuel and a lean toward strength/power.", tone: "neutral", tip: "Lower-rep, heavier strength work and short intervals suit you; make sure carbs are available around hard sessions." },
+    },
+  },
+  {
+    id: "training-response",
+    rsid: "rs1042713",
+    category: "fitness",
+    title: "Fat-burning & training response",
+    gene: "ADRB2",
+    about:
+      "A receptor that governs how readily stored fat is mobilised during exercise and how the body responds to training.",
+    outcomes: {
+      AA: { label: "Strong responder", detail: "Associated with efficient fat mobilisation during exercise.", tone: "neutral", feels: "Fasted/morning cardio may feel effective for you." },
+      AG: { label: "Typical responder", detail: "Intermediate fat-mobilisation response — the common pattern.", tone: "neutral", feels: "Standard response to cardio; consistency matters more than timing.", tip: "Don't over-rotate on 'fat-burning zone' myths — total energy balance and consistency drive fat loss, not a magic heart-rate window." },
+      GG: { label: "Gradual responder", detail: "Associated with slower fat mobilisation — fat loss may need a bit more patience and volume.", tone: "neutral", tip: "Lean on diet for fat loss and use training for fitness/muscle; results compound with consistency." },
+    },
+  },
+  {
+    id: "tendon-injury",
+    rsid: "rs1800012",
+    category: "fitness",
+    title: "Tendon & ligament resilience",
+    gene: "COL1A1",
+    about:
+      "A collagen-gene variant linked to connective-tissue strength and soft-tissue injury risk (sprains, tendon issues).",
+    outcomes: {
+      CC: { label: "Protective collagen", detail: "Associated with more robust connective tissue and somewhat lower soft-tissue injury risk.", tone: "neutral" },
+      CA: { label: "Resilient (carrier)", detail: "One protective copy — generally favourable connective-tissue resilience.", tone: "neutral", feels: "Decent tissue resilience, but ramp load sensibly — genes don't beat a bad training spike.", tip: "Warm up properly, progress load gradually (~10%/week), and don't skip eccentric/strength work for tendons." },
+      AA: { label: "Standard", detail: "The common genotype without the protective association — normal injury risk; technique and load management matter most.", tone: "neutral" },
+    },
+  },
+  {
+    id: "lactate",
+    rsid: "rs1049434",
+    category: "fitness",
+    title: "Lactate clearance",
+    gene: "MCT1 (SLC16A1)",
+    about:
+      "Affects how fast muscle clears lactate — relevant to high-intensity work and how quickly you recover between hard efforts.",
+    outcomes: {
+      TT: { label: "Efficient clearer", detail: "Associated with better lactate transport — you may handle and recover from high-intensity intervals relatively well.", tone: "neutral", feels: "Repeated sprints / HIIT sets may feel manageable; the 'burn' clears faster.", tip: "You can tolerate interval training well — use it, but still respect recovery days." },
+      CT: { label: "Intermediate", detail: "Average lactate-clearing capacity.", tone: "neutral" },
+      CC: { label: "Gradual clearer", detail: "Associated with slower lactate clearance — high-intensity efforts may fatigue you faster and need more recovery.", tone: "neutral", tip: "Build an aerobic base first; add intervals gradually and give yourself full recovery between hard sessions." },
+    },
+  },
+  {
+    id: "strength-response",
+    rsid: "rs699",
+    category: "fitness",
+    title: "Strength-training response",
+    gene: "AGT",
+    about:
+      "An angiotensinogen variant associated with muscle-growth and strength response to resistance training.",
+    outcomes: {
+      AA: { label: "Strong response", detail: "Associated with a greater muscle/strength response to resistance training.", tone: "neutral", tip: "Your body rewards lifting — progressive overload with enough protein (~1.6 g/kg) will show results." },
+      AG: { label: "Good response", detail: "Intermediate — a solid strength-training response.", tone: "neutral", feels: "You build strength at a healthy, typical rate with consistent lifting.", tip: "Stick to progressive overload and adequate protein; consistency beats program-hopping." },
+      GG: { label: "Steady response", detail: "Associated with a more gradual strength response — gains come, just patiently.", tone: "neutral", tip: "Don't chase fast numbers; longer, consistent training blocks and protein win here." },
+    },
+  },
+
+  // ----------------------------------------------------------------- skin ----
+  {
+    id: "oxidative-aging",
+    rsid: "rs4880",
+    category: "skin",
+    title: "Antioxidant defense (skin aging)",
+    gene: "SOD2",
+    about:
+      "SOD2 neutralises free radicals in cells. This variant affects how efficiently you clear oxidative stress — a driver of skin aging.",
+    outcomes: {
+      AA: { label: "Strong defense", detail: "Associated with efficient mitochondrial antioxidant activity.", tone: "neutral" },
+      AG: { label: "Typical defense", detail: "Intermediate antioxidant capacity.", tone: "neutral" },
+      GG: { label: "Lean on antioxidants", detail: "Associated with comparatively lower SOD2 antioxidant efficiency — oxidative stress (sun, pollution, smoking) may age skin a little faster.", tone: "notable", feels: "Skin may show sun/pollution wear sooner if unprotected.", tip: "Daily SPF is your highest-leverage move. A vitamin-C serum in the morning and antioxidant-rich diet (colourful veg, berries) genuinely help here; avoid smoking." },
+    },
+  },
+  {
+    id: "catalase",
+    rsid: "rs1001179",
+    category: "skin",
+    title: "Hydrogen-peroxide clearance",
+    gene: "CAT",
+    about:
+      "Catalase breaks down hydrogen peroxide (an oxidant linked to greying and skin stress). This variant affects its level.",
+    outcomes: {
+      CC: { label: "Higher catalase", detail: "Associated with robust catalase activity — good oxidant clearance.", tone: "neutral", feels: "A point in your favour for oxidative-stress handling in skin and hair." },
+      CT: { label: "Intermediate", detail: "Average catalase activity.", tone: "neutral" },
+      TT: { label: "Lower catalase", detail: "Associated with reduced catalase — slightly less oxidant buffering.", tone: "neutral", tip: "Antioxidant skincare (vitamin C/E) and sun protection compensate well." },
+    },
+  },
+  {
+    id: "detox-gst",
+    rsid: "rs1695",
+    category: "skin",
+    title: "Detox & pollution defense",
+    gene: "GSTP1",
+    about:
+      "GSTP1 helps neutralise environmental toxins and pollution byproducts that stress skin.",
+    outcomes: {
+      AA: { label: "Standard activity", detail: "The common genotype — typical detox-enzyme activity.", tone: "neutral", feels: "Average ability to clear pollution-related oxidative load.", tip: "Cleanse off the day's pollution at night and use antioxidants; basic habits cover this." },
+      AG: { label: "Altered activity", detail: "One variant copy — modestly changed enzyme activity.", tone: "neutral" },
+      GG: { label: "Reduced activity", detail: "Associated with lower GSTP1 activity — skin may be a touch more reactive to pollution/irritants.", tone: "notable", tip: "Gentle, fragrance-free products, nightly cleansing, and antioxidants help if your skin reacts to city air." },
+    },
+  },
+  {
+    id: "uv-pigment",
+    rsid: "rs1800440",
+    category: "skin",
+    title: "UV response & tanning",
+    gene: "TYR",
+    about:
+      "A pigment-gene variant influencing how skin responds to UV — burning vs. tanning and melanoma-relevant sun sensitivity.",
+    outcomes: {
+      AA: { label: "Tans more easily", detail: "Associated with a more protective tanning response.", tone: "neutral" },
+      AG: { label: "Intermediate", detail: "Mixed sun response.", tone: "neutral" },
+      TT: { label: "Sun-sensitive lean", detail: "Associated with a tendency to burn rather than tan at this marker — sun protection matters more.", tone: "notable", feels: "Skin likely pinks/burns before it tans.", tip: "Non-negotiable daily SPF 30+, reapply outdoors, hats and shade at midday. This is the biggest lever for both aging and skin-cancer prevention." },
+    },
+  },
+  {
+    id: "p53-skin",
+    rsid: "rs1042522",
+    category: "skin",
+    title: "Cellular repair (P53)",
+    gene: "TP53",
+    about:
+      "TP53 is the cell's master 'repair-or-retire damaged cells' switch — relevant to how skin handles UV/oxidative damage over time.",
+    outcomes: {
+      GG: { label: "Arginine form", detail: "The more common form, associated with efficient triggering of damaged-cell cleanup.", tone: "neutral" },
+      CG: { label: "Mixed form", detail: "One of each — a blend of the two repair-response styles.", tone: "neutral", feels: "Typical cellular-repair response; nothing to flag.", tip: "Sun protection and not smoking matter far more than this variant for keeping skin healthy long-term." },
+      CC: { label: "Proline form", detail: "Associated with a different DNA-repair response profile — subtle effects, well within normal.", tone: "neutral" },
+    },
+  },
+
+  // -------------------------------------------------- diet (expansion) -------
+  {
+    id: "fat-cell",
+    rsid: "rs1421085",
+    category: "diet",
+    title: "Fat-cell programming (FTO causal)",
+    gene: "FTO",
+    about:
+      "The actual causal variant in the FTO obesity locus — it shifts fat cells away from calorie-burning beige fat toward calorie-storing white fat.",
+    outcomes: {
+      TT: { label: "Burn-leaning", detail: "The favourable genotype — fat cells lean toward energy-burning rather than storage.", tone: "neutral", feels: "Less genetic push toward fat storage; appetite and storage are more under your control." },
+      CT: { label: "Intermediate", detail: "One risk copy — a modest shift toward fat storage and higher appetite.", tone: "neutral" },
+      CC: { label: "Store-leaning", detail: "Two risk copies — fat cells lean toward storage and appetite signalling runs higher. Diet and activity still dominate the outcome.", tone: "notable", feels: "May feel hungrier and store fat (incl. belly) more easily.", tip: "Protein-forward meals, resistance training (more beige-fat activity), and a regular sleep schedule push back against this." },
+    },
+  },
+  {
+    id: "appetite-mc4r",
+    rsid: "rs17782313",
+    category: "diet",
+    title: "Appetite & snacking drive",
+    gene: "MC4R",
+    about:
+      "A variant near the brain's master appetite-control gene, linked to satiety, snacking, and preference for energy-dense food.",
+    outcomes: {
+      TT: { label: "Steady appetite", detail: "The common genotype — not associated with the increased-appetite effect.", tone: "neutral", feels: "Your hunger cues are likely reliable; you can mostly trust fullness.", tip: "Eat to your hunger, keep protein and fibre up, and you won't fight your biology much here." },
+      CT: { label: "Higher snack drive", detail: "One copy associated with a bit more snacking and appetite for rich food.", tone: "neutral", tip: "Pre-plan snacks, keep tempting food out of sight, and front-load protein at meals." },
+      CC: { label: "Strong appetite drive", detail: "Two copies associated with stronger appetite and pull toward energy-dense food.", tone: "notable", tip: "Structure beats willpower: regular protein-rich meals, a stocked fridge of easy healthy options, and good sleep blunt the drive." },
+    },
+  },
+  {
+    id: "fat-response",
+    rsid: "rs5082",
+    category: "diet",
+    title: "Dietary fat response",
+    gene: "APOA2 / CELSR2 region",
+    about:
+      "A variant linked to how your weight and lipids respond to a high-saturated-fat diet.",
+    outcomes: {
+      AA: { label: "Fat-sensitive", detail: "Associated with greater weight response to high saturated-fat intake.", tone: "notable", tip: "Favour unsaturated fats (olive oil, nuts, fish) over heavy saturated fat (butter, fatty red meat)." },
+      AG: { label: "Intermediate", detail: "Moderate sensitivity to dietary saturated fat.", tone: "neutral", feels: "A Mediterranean-style fat balance suits you well.", tip: "Lean on olive oil, nuts, and fish; keep saturated fat moderate." },
+      GG: { label: "Less sensitive", detail: "Associated with a smaller weight response to saturated fat — though heart-healthy fats are still the better choice.", tone: "neutral" },
+    },
+  },
+  {
+    id: "hdl-cetp",
+    rsid: "rs2070895",
+    category: "diet",
+    title: "Good-cholesterol (HDL) tendency",
+    gene: "LIPC",
+    about:
+      "A variant associated with HDL ('good' cholesterol) levels and how they respond to diet and exercise.",
+    outcomes: {
+      GG: { label: "Typical HDL", detail: "The common genotype — standard HDL tendency.", tone: "neutral", feels: "Your HDL responds normally to the usual levers.", tip: "Aerobic exercise, olive oil, and oily fish nudge HDL up; these work well regardless of genotype." },
+      AG: { label: "Slightly higher HDL", detail: "One copy associated with marginally higher HDL.", tone: "neutral" },
+      AA: { label: "Higher HDL lean", detail: "Associated with a tendency toward higher HDL — generally favourable.", tone: "neutral" },
+    },
   },
 ]

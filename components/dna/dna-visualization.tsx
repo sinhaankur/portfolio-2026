@@ -12,6 +12,7 @@ import type { DnaSummary } from "@/lib/dna-crypto"
 import { DnaTraits } from "./dna-traits"
 import { DnaInheritance } from "./dna-inheritance"
 import { DnaLegacyNote } from "./dna-legacy-note"
+import { DnaRadar } from "./dna-radar"
 
 // Helix is R3F (~Three.js) — lazy-load so the gate + panels paint first.
 const DnaHelix = dynamic(
@@ -90,6 +91,11 @@ export function DnaVisualization({ data }: { data: DnaSummary }) {
           </div>
         </div>
       </section>
+
+      {/* Radar — category profile at a glance */}
+      {data.traits && Object.keys(data.traits).length > 0 && (
+        <DnaRadar traits={data.traits} />
+      )}
 
       {/* Trait panel — diet / wellness insights */}
       {data.traits && Object.keys(data.traits).length > 0 && (

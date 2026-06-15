@@ -87,6 +87,23 @@ const TRAIT_RSIDS = {
   rs662799: "triglycerides",
   rs1801282: "t2d-ppar",
   rs6025: "clotting-fvl",
+  // fitness & training
+  rs4253778: "fuel-type",
+  rs1042713: "training-response",
+  rs1800012: "tendon-injury",
+  rs1049434: "lactate",
+  rs699: "strength-response",
+  // skin care
+  rs4880: "oxidative-aging",
+  rs1001179: "catalase",
+  rs1695: "detox-gst",
+  rs1800440: "uv-pigment",
+  rs1042522: "p53-skin",
+  // diet expansion
+  rs1421085: "fat-cell",
+  rs17782313: "appetite-mc4r",
+  rs5082: "fat-response",
+  rs2070895: "hdl-cetp",
 }
 
 // ---- derive abstract summary from the raw CSV -------------------------------
