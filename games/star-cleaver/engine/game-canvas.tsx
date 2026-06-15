@@ -1926,16 +1926,48 @@ function GameScene({
 
       // --- Combat encounters: spawn + advance hostile patrols while cruising.
       if (gameState.phase === 'exploration') {
+        const defendMode = gameState.gameMode === 'defend';
         encounterTimerRef.current -= clampedDelta;
-        if (
-          encounterTimerRef.current <= 0 &&
-          forwardSpeedRef.current > ENCOUNTER_MIN_SPEED
-        ) {
-          encounterTimerRef.current = ENCOUNTER_INTERVAL_S;
+        // Defend Earth spawns waves on a timer regardless of speed (you're
+        // holding a line, not cruising); exploration spawns patrols only while
+        // moving. Defend waves also come faster.
+        const wantSpawn = defendMode
+          ? encounterTimerRef.current <= 0
+          : encounterTimerRef.current <= 0 && forwardSpeedRef.current > ENCOUNTER_MIN_SPEED;
+        if (wantSpawn) {
+          encounterTimerRef.current = defendMode ? ENCOUNTER_INTERVAL_S * 0.5 : ENCOUNTER_INTERVAL_S;
           spawnEncounter(forwardLocal, rightLocal, upLocal);
         }
 
-        // Drift live hostiles toward the player; cull dead or far-behind ones.
+        // Defend Earth: incoming threats chip away at the planet. When an
+        // enemy slips past the player and reaches Earth, it damages the planet
+        // and is consumed. At zero health, the homeworld falls → defeat.
+        if (defendMode) {
+          const earth = getMissionLayout(gameState.worldIndex).planetPosition;
+          const earthRadius = getMissionLayout(gameState.worldIndex).planetRadius;
+          for (const enemy of gameState.enemies) {
+            if (!enemy.active) continue;
+            const dx = earth.x - enemy.position.x;
+            const dy = earth.y - enemy.position.y;
+            const dz = earth.z - enemy.position.z;
+            if (dx * dx + dy * dy + dz * dz < (earthRadius * 1.4) ** 2) {
+              gameState.defendingPlanetHealth = Math.max(0, gameState.defendingPlanetHealth - 0.06);
+              enemy.active = false;
+              entityManagerRef.current?.remove(enemy.id);
+            }
+          }
+          if (gameState.defendingPlanetHealth <= 0) {
+            gameState.phase = 'defeat';
+            gameState.waveStartTime = gameState.simTime;
+          }
+        }
+
+        // Drift live hostiles toward their target; cull dead or far-behind.
+        // Exploration: all hostiles hunt the player. Defend Earth: most press
+        // toward the planet (the thing you protect), so you must intercept.
+        const defendTarget = defendMode
+          ? getMissionLayout(gameState.worldIndex).planetPosition
+          : null;
         if (gameState.enemies.length > 0) {
           const survivors: GameEntity[] = [];
           for (const enemy of gameState.enemies) {
@@ -1943,14 +1975,23 @@ function GameScene({
               entityManagerRef.current?.remove(enemy.id);
               continue;
             }
+            // In defend mode, enemies that aren't snipers make for Earth;
+            // snipers still stalk the player. Exploration: everyone hunts you.
+            const huntEarth =
+              defendTarget !== null && enemy.metadata?.class !== 'sniper';
+            const tx = huntEarth ? defendTarget!.x : gameState.playerEntity.position.x;
+            const ty = huntEarth ? defendTarget!.y : gameState.playerEntity.position.y;
+            const tz = huntEarth ? defendTarget!.z : gameState.playerEntity.position.z;
             const toPlayer = _enemyToPlayer.set(
-              gameState.playerEntity.position.x - enemy.position.x,
-              gameState.playerEntity.position.y - enemy.position.y,
-              gameState.playerEntity.position.z - enemy.position.z
+              tx - enemy.position.x,
+              ty - enemy.position.y,
+              tz - enemy.position.z
             );
             const dist = toPlayer.length();
-            // Cull patrols the player has long since outrun.
-            if (dist > ENCOUNTER_DESPAWN_BEHIND) {
+            // Cull patrols the player has long since outrun — but only for
+            // player-hunting enemies. Earth-bound attackers spawn far from
+            // the planet by design, so distance-to-Earth must not cull them.
+            if (!huntEarth && dist > ENCOUNTER_DESPAWN_BEHIND) {
               entityManagerRef.current?.remove(enemy.id);
               continue;
             }

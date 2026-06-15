@@ -166,6 +166,8 @@ export function selectGameMode(state: GameState, mode: 'explore' | 'defend'): Ga
   return startIgnition({
     ...state,
     gameMode: mode,
+    // Defend Earth starts the homeworld at full health each run.
+    defendingPlanetHealth: 1.0,
   });
 }
 
