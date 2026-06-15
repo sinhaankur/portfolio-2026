@@ -1,9 +1,12 @@
 export const CAMERA_PHASE_TUNING = {
   flight: {
-    offsetDistance: 5.8,
-    offsetHeight: 1.58,
-    sideOffset: 0.56,
-    baseFov: 55,
+    // Hero framing: ship sits large + low-front in the frame against the
+    // backdrop. Distance scaled for the bigger (1.7x) ship; a wider FOV gives
+    // a cinematic sense of speed and space.
+    offsetDistance: 7.6,
+    offsetHeight: 2.0,
+    sideOffset: 0.5,
+    baseFov: 60,
     nonAssistFollowRate: 6.2,
   },
   briefing: {
