@@ -23,7 +23,9 @@ import { TestingConsole } from './testing-console';
 import { PlayerShipModel, ProceduralPlayerShipModel, SHIP_MODEL_BASIS_ROTATION, getPlayerShipTransform } from './player-ship-model';
 import type { SelectedShip } from './ship-selector';
 import { getMissionLayout } from './mission-layout';
+import { createEnemy } from './enemies';
 import { SpaceDust, DataCoreField, createDataCores, BoostShockwave } from './particles';
+import { AsteroidField } from './asteroid-field';
 import type { DataCore } from './particles';
 import {
   canInspectStation,
@@ -414,6 +416,24 @@ const _gravityAccel = new THREE.Vector3();
 const _hazardDelta = new THREE.Vector3();
 const _outward = new THREE.Vector3();
 
+/* --------------------------------------------------------------------------
+ * Combat encounters — periodic hostile patrols the player can engage while
+ * cruising. The enemy/projectile/score machinery already lives in the game
+ * loop (checkProjectileCollisions → score + kill events); this just seeds
+ * targets into the world ahead of the flight path and gives them simple
+ * drift-toward-player movement. Kept deliberately light so exploration stays
+ * the primary mode — patrols are a threat to shoot, not a wave gauntlet.
+ * ------------------------------------------------------------------------ */
+const ENCOUNTER_INTERVAL_S = 14; // seconds between patrol spawns
+const ENCOUNTER_MIN_SPEED = 6; // player must be moving to trigger an encounter
+const ENCOUNTER_SPAWN_AHEAD = 140; // scene units ahead along the flight vector
+const ENCOUNTER_SPAWN_SPREAD = 26; // lateral scatter of a patrol cluster
+const ENCOUNTER_DESPAWN_BEHIND = 260; // cull patrols that fall this far behind
+const ENCOUNTER_MAX_LIVE = 9; // hard cap on simultaneous hostiles
+const ENEMY_DRIFT_SPEED = 9; // units/sec each hostile closes on the player
+const _encounterSpawn = new THREE.Vector3();
+const _encounterLateral = new THREE.Vector3();
+const _enemyToPlayer = new THREE.Vector3();
 
 const SHIP_THRUSTER_PRESETS: Record<SelectedShip, {
   lateral: number;
@@ -1630,6 +1650,8 @@ function GameScene({
   const uiSyncAccumRef = useRef(0);
   const lastSyncedPhaseRef = useRef(gameState.phase);
   const hazardsCacheRef = useRef<{ worldIndex: number; hazards: GravityHazard[] } | null>(null);
+  const encounterTimerRef = useRef(ENCOUNTER_INTERVAL_S * 0.5); // first patrol comes a touch sooner
+  const enemyIdCounterRef = useRef(0);
   const frameCountRef = useRef(0);
   const forwardSpeedRef = useRef(0);
   const throttleRef = useRef(0.34);
@@ -1639,6 +1661,44 @@ function GameScene({
   const fireCooldownRef = useRef(0);
   const cannonCycleRef = useRef(0);
   const smoothedInputRef = useRef({ pitch: 0, yaw: 0, roll: 0 });
+
+  // Seed a small hostile patrol ahead of the flight vector. Each ship is
+  // registered with the entity manager so the existing projectile-collision
+  // path (game-loop) scores kills automatically.
+  const spawnEncounter = (forward: THREE.Vector3, right: THREE.Vector3, up: THREE.Vector3) => {
+    const em = entityManagerRef.current;
+    if (!em) return;
+
+    const liveCount = gameState.enemies.filter((e) => e.active).length;
+    if (liveCount >= ENCOUNTER_MAX_LIVE) return;
+
+    const headroom = ENCOUNTER_MAX_LIVE - liveCount;
+    const count = Math.min(headroom, 2 + Math.floor(Math.random() * 3)); // 2–4
+
+    const base = _encounterSpawn
+      .copy(forward)
+      .multiplyScalar(ENCOUNTER_SPAWN_AHEAD)
+      .add(gameState.playerEntity.position as THREE.Vector3);
+
+    for (let i = 0; i < count; i++) {
+      const lateral = _encounterLateral
+        .copy(right)
+        .multiplyScalar((Math.random() - 0.5) * ENCOUNTER_SPAWN_SPREAD * 2)
+        .addScaledVector(up, (Math.random() - 0.5) * ENCOUNTER_SPAWN_SPREAD);
+
+      // Mostly fighters; an occasional sniper to vary the threat.
+      const type = Math.random() < 0.25 ? 'sniper' : 'fighter';
+      const id = `enemy_${enemyIdCounterRef.current++}`;
+      const { entity } = createEnemy(type, id, {
+        x: base.x + lateral.x,
+        y: base.y + lateral.y,
+        z: base.z + lateral.z,
+      });
+
+      em.register(entity);
+      gameState.enemies.push(entity);
+    }
+  };
 
   const spawnPlayerVolley = (forward: THREE.Vector3, right: THREE.Vector3, up: THREE.Vector3) => {
     if (!entityManagerRef.current) return;
@@ -1755,11 +1815,6 @@ function GameScene({
     // matters after restarts where helpers may swap nested references).
     gameLoopRef.current.setState(gameState);
 
-    // Travel-only mode: ensure enemy list remains empty while cruising.
-    if (gameState.phase === 'exploration' && gameState.enemies.length > 0) {
-      gameState.enemies.length = 0;
-    }
-
     // Cap delta at 0.1 to prevent spiral of death
     const clampedDelta = Math.min(delta, 0.1);
 
@@ -1777,6 +1832,77 @@ function GameScene({
       const forwardLocal = _forwardLocal.set(0, 0, -1).applyQuaternion(_playerQuat);
       const rightLocal = _rightLocal.set(1, 0, 0).applyQuaternion(_playerQuat);
       const upLocal = _upLocal.set(0, 1, 0).applyQuaternion(_playerQuat);
+
+      // --- Combat encounters: spawn + advance hostile patrols while cruising.
+      if (gameState.phase === 'exploration') {
+        encounterTimerRef.current -= clampedDelta;
+        if (
+          encounterTimerRef.current <= 0 &&
+          forwardSpeedRef.current > ENCOUNTER_MIN_SPEED
+        ) {
+          encounterTimerRef.current = ENCOUNTER_INTERVAL_S;
+          spawnEncounter(forwardLocal, rightLocal, upLocal);
+        }
+
+        // Drift live hostiles toward the player; cull dead or far-behind ones.
+        if (gameState.enemies.length > 0) {
+          const survivors: GameEntity[] = [];
+          for (const enemy of gameState.enemies) {
+            if (!enemy.active) {
+              entityManagerRef.current?.remove(enemy.id);
+              continue;
+            }
+            const toPlayer = _enemyToPlayer.set(
+              gameState.playerEntity.position.x - enemy.position.x,
+              gameState.playerEntity.position.y - enemy.position.y,
+              gameState.playerEntity.position.z - enemy.position.z
+            );
+            const dist = toPlayer.length();
+            // Cull patrols the player has long since outrun.
+            if (dist > ENCOUNTER_DESPAWN_BEHIND) {
+              entityManagerRef.current?.remove(enemy.id);
+              continue;
+            }
+            if (dist > 0.001) {
+              toPlayer.multiplyScalar(ENEMY_DRIFT_SPEED / dist);
+              enemy.velocity.x = toPlayer.x;
+              enemy.velocity.y = toPlayer.y;
+              enemy.velocity.z = toPlayer.z;
+              enemy.position.x += toPlayer.x * clampedDelta;
+              enemy.position.y += toPlayer.y * clampedDelta;
+              enemy.position.z += toPlayer.z * clampedDelta;
+              // Face the player so the model nose tracks the approach.
+              enemy.rotation.y = Math.atan2(toPlayer.x, toPlayer.z);
+              enemy.rotation.x = -Math.asin(Math.max(-1, Math.min(1, toPlayer.y / ENEMY_DRIFT_SPEED)));
+            }
+            survivors.push(enemy);
+          }
+          if (survivors.length !== gameState.enemies.length) {
+            gameState.enemies = survivors;
+          }
+        }
+
+        // Retire spent bolts: consumed on hit, or older than their travel
+        // window. Without this the projectiles array grows unbounded.
+        if (gameState.projectiles.length > 0) {
+          const liveBolts = gameState.projectiles.filter((p) => {
+            if (!p.active) {
+              entityManagerRef.current?.remove(p.id);
+              return false;
+            }
+            const bornAt = Number(p.metadata?.bornAt ?? gameState.simTime);
+            if (gameState.simTime - bornAt > 2.5) {
+              p.active = false;
+              entityManagerRef.current?.remove(p.id);
+              return false;
+            }
+            return true;
+          });
+          if (liveBolts.length !== gameState.projectiles.length) {
+            gameState.projectiles = liveBolts;
+          }
+        }
+      }
 
       const attackMode = Boolean(gameState.playerEntity.metadata?.attackMode);
       const turnSpeed = attackMode ? 2.1 : 1.6;
@@ -2659,6 +2785,17 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
 
         {/* Selected mission world + floating orbital station start point. */}
         <MemoMissionStartScene worldIndex={gameState.worldIndex} />
+
+        {/* Blender-authored asteroid belt — stony + carbon rocks + comet nucleus
+            drifting around the scene. GLBs stream in via Suspense so they never
+            block first frame. Count scales down on weaker hardware. */}
+        <Suspense fallback={null}>
+          <AsteroidField
+            count={graphicsProfile.tier === 'ultra' ? 70 : graphicsProfile.universeMobile ? 24 : 48}
+            beltRadius={260}
+            beltWidth={120}
+          />
+        </Suspense>
 
         {/* Scene lighting: cinematic + directional for exploring universe */}
         <ambientLight intensity={0.4} color={0xffffff} />
