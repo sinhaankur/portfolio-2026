@@ -63,11 +63,6 @@ const products: Product[] = [
   },
 ]
 
-const trilogyLinks = [
-  { label: "Helm", href: "https://sinhaankur.github.io/Helm/" },
-  { label: "Sentinel", href: "https://sinhaankur.github.io/Human-in-the-Loop/" },
-  { label: "Recourse", href: "https://sinhaankur.github.io/Recourse/" },
-]
 
 export function Lab() {
   const prefersReducedMotion = useReducedMotion()
@@ -417,49 +412,6 @@ export function Lab() {
 
         {/* Trilogy — slim inline strip rather than its own bordered band.
             Three small chips linking to the live demos. */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="border-t border-border pt-8 md:pt-10"
-        >
-          <div className="grid gap-4 md:grid-cols-[auto_1fr] md:items-baseline md:gap-10">
-            <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-muted-foreground whitespace-nowrap">
-              Human–AI trilogy ·
-            </p>
-            <div>
-              <p className="font-sans text-sm md:text-base text-foreground/80 leading-relaxed mb-4 max-w-2xl">
-                Three connected code prototypes — Helm, Sentinel, Recourse —
-                exploring how humans stay in command of AI agents. Shared
-                vocabulary, distinct trust surfaces.
-              </p>
-              <ul className="flex gap-2 flex-wrap">
-                {trilogyLinks.map((link) => (
-                  <li key={link.label}>
-                    <a
-                      href={link.href}
-                      target="_blank"
-                      rel="noreferrer noopener"
-                      data-cursor-hover
-                      className="
-                        inline-flex items-center gap-1.5 px-3 py-1.5
-                        border border-border rounded-full
-                        font-mono text-[10px] tracking-widest uppercase
-                        text-foreground/85 hover:text-foreground hover:border-accent/60
-                        transition-colors duration-300
-                        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
-                      "
-                    >
-                      {link.label}
-                      <ArrowUpRight className="w-3 h-3" aria-hidden="true" />
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </motion.div>
       </div>
     </section>
   )

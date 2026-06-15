@@ -104,7 +104,7 @@ export default async function OGImage() {
         >
           <div style={{ display: "flex", maxWidth: "780px", lineHeight: 1.5 }}>
             Code prototypes for keeping humans in command of agentic AI —
-            Helm · Sentinel · Recourse · Unhosted.
+            Unhosted, the Universe Engine, and more.
           </div>
           <div
             style={{

@@ -42,7 +42,7 @@ const principles: Principle[] = [
     title: "The seam is the design.",
     body:
       "The moment of decision, override, and trust — where a human meets an AI agent — that's the surface I work on. Not the model, not the wrapper. The seam.",
-    appliedIn: "Helm · Sentinel · Recourse · Unhosted",
+    appliedIn: "Unhosted · the Universe Engine · agentic-AI prototypes",
     Glyph: SeamGlyph,
   },
   {
@@ -50,7 +50,7 @@ const principles: Principle[] = [
     title: "Uncertainty must be legible.",
     body:
       "An AI's claim is only trustworthy if you can read how sure it is — and the basis must be checkable. Confidence without calibration is a lie with a UI on top.",
-    appliedIn: "Helm's approval gate · Sentinel's diff view",
+    appliedIn: "approval gates · diff-review surfaces",
     Glyph: DialGlyph,
   },
   {
@@ -58,7 +58,7 @@ const principles: Principle[] = [
     title: "Reversibility is the policy axis.",
     body:
       "Not \"safety\" — that's a category, not a control. The right question is: can the human undo what the agent just did, within how many seconds? That's the real surface area.",
-    appliedIn: "Helm's reversibility chip · Recourse's audit trail",
+    appliedIn: "reversibility chips · audit trails",
     Glyph: ReversibleGlyph,
   },
   {

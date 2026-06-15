@@ -56,7 +56,7 @@ const SITE_URL = "https://www.sinhaankur.com"
 const SITE_NAME = "Ankur Sinha"
 const SITE_TAGLINE = "Principal UX Designer · Human–AI Interaction"
 const SITE_DESCRIPTION =
-  "Principal UX Designer working on human-in-the-loop interfaces for agentic AI. Helm, Sentinel, Recourse — code prototypes for keeping humans in command."
+  "Principal UX Designer working on human-in-the-loop interfaces for agentic AI — code prototypes for keeping humans in command of AI agents."
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
