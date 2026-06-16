@@ -69,7 +69,6 @@ export function Lab() {
 
   return (
     <section
-      id="lab"
       aria-labelledby="lab-heading"
       className="relative py-24 md:py-32 px-6 md:px-12 border-t border-border"
     >

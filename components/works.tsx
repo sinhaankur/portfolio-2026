@@ -99,7 +99,6 @@ export function Works() {
 
   return (
     <section
-      id="works"
       aria-labelledby="works-heading"
       className="relative py-24 md:py-32 px-6 md:px-12"
     >

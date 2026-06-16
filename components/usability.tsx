@@ -34,7 +34,6 @@ const topics = [
 export function Usability() {
   return (
     <section
-      id="usability"
       aria-labelledby="usability-heading"
       className="relative py-24 md:py-32 px-6 md:px-12 border-t border-border"
     >

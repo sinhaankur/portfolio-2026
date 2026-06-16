@@ -434,13 +434,13 @@ export function UniverseEngine({
             </div>
           )}
 
-          {/* HUD cluster — horizontal row, anchored bottom-right alongside
-              UPCOMING (which lives at bottom-6 right-6). The previous stacked
-              layout placed the music chip at bottom-24+, which on shorter
-              viewports collided with the "INTERACTION" italic baseline. Sitting
-              on the same baseline as UPCOMING keeps the chip out of the
-              typography zone entirely, with a horizontal gap to UPCOMING. */}
-          <div className="absolute bottom-6 right-44 md:right-56 z-30 pointer-events-auto flex flex-row items-center gap-2">
+          {/* HUD cluster — anchored bottom-right alongside UPCOMING (which lives
+              at bottom-6 right-6). On phones the cluster sits ABOVE the UPCOMING
+              pill (bottom-20, flush to right-6) so the two can never collide
+              horizontally no matter how wide the UPCOMING label gets. On desktop
+              it returns to the same baseline as UPCOMING, sitting to its left
+              with a horizontal gap (right-56). */}
+          <div className="absolute bottom-20 right-6 md:bottom-6 md:right-56 z-30 pointer-events-auto flex flex-row items-center gap-2">
             {/* Overlay toggles stay desktop-only — too wide on phones, they
                 would push the cluster into UPCOMING. Touch users still get
                 pinch-zoom + drag + tap-to-explore. */}

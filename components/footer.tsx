@@ -34,7 +34,7 @@ export function Footer() {
   }, [])
 
   return (
-    <footer id="contact" className="relative">
+    <footer className="relative">
       {/* Contact section — split row on desktop, stacked on mobile.
           Left: eyebrow + headline + intro copy.
           Right: the SignalTuner panel (the new primary action).

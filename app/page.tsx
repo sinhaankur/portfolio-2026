@@ -1,15 +1,11 @@
 import { Navbar } from "@/components/navbar"
 import { Hero } from "@/components/hero"
 import { About } from "@/components/about"
-import { Works } from "@/components/works"
-import { Lab } from "@/components/lab"
-import { Usability } from "@/components/usability"
-import { TechMarquee } from "@/components/tech-marquee"
-import { Footer } from "@/components/footer"
 import { CustomCursor } from "@/components/custom-cursor"
 import { SmoothScroll } from "@/components/smooth-scroll"
 import { SectionBlend } from "@/components/section-blend"
 import { UpcomingBadge } from "@/components/upcoming-badge"
+import { HomeBelowFold } from "@/components/home-below-fold"
 
 export default function Home() {
   return (
@@ -17,14 +13,12 @@ export default function Home() {
       <CustomCursor />
       <Navbar />
       <main id="main">
+        {/* Above the fold — eager so first paint is immediate. */}
         <Hero />
         <SectionBlend />
         <About />
-        <Works />
-        <Lab />
-        <Usability />
-        <TechMarquee />
-        <Footer />
+        {/* Below the fold — code-split + render-deferred until near viewport. */}
+        <HomeBelowFold />
       </main>
       <UpcomingBadge href="/upcoming" label="Upcoming" />
     </SmoothScroll>
