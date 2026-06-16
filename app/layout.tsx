@@ -11,6 +11,7 @@ import { Inter, Instrument_Serif, JetBrains_Mono, Fraunces } from "next/font/goo
 import { ThemeProvider } from "@/components/theme-provider"
 import { DisplayPrefsProvider } from "@/components/display-prefs"
 import { VisitorAnalytics } from "@/components/analytics/visitor-analytics"
+import { Preloader } from "@/components/preloader"
 import "./globals.css"
 
 // Google Tag Manager container — feeds GA4 + any future marketing tags from
@@ -290,6 +291,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           disableTransitionOnChange={false}
         >
           <DisplayPrefsProvider>
+            <Preloader />
             <a href="#main" className="skip-link">
               Skip to main content
             </a>
