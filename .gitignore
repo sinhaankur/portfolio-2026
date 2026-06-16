@@ -65,3 +65,7 @@ blender/space-assets/glb-backup/
 blender/space-assets/*.glb
 blender/space-assets/bodies/
 blender/space-assets/small-bodies/
+
+# Celestial globes: the packed .blend files embed 8K textures (80-130MB each).
+# Rebuild them from scripts/render-celestial-globes.py + the maps/ folder.
+blender/space-assets/celestial/*.blend
