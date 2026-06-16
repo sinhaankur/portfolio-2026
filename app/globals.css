@@ -316,10 +316,11 @@
 /* Case-study prose — generous line-height, accent links, restrained inline styling */
 .prose-case-study {
   font-family: var(--font-sans);
-  font-size: 1.05rem;
-  line-height: 1.75;
-  color: color-mix(in oklch, var(--foreground) 90%, transparent);
-  max-width: 48rem;
+  font-size: 1.075rem;
+  line-height: 1.78;
+  color: color-mix(in oklch, var(--foreground) 92%, transparent);
+  max-width: 46rem; /* slightly tighter measure — ~70 chars reads easier */
+  letter-spacing: 0.001em;
 }
 
 .prose-case-study p {
@@ -411,6 +412,22 @@ html.motion-reduced .noise-overlay {
 /* Larger text — bumps the rem base so the whole type ramp scales together. */
 html.text-larger {
   font-size: 18px;
+}
+
+/* Baseline readability lift (applies everywhere, not just reading mode).
+   Line-height is the single biggest legibility lever, so give body copy a
+   comfortable default leading without touching the design's intentional
+   contrast/measure. Scoped to `main` so chrome (navbar/footer/labels) is
+   unaffected, and excludes mono/eyebrow labels which want tight tracking. */
+main p,
+main li {
+  line-height: 1.7;
+}
+@media (max-width: 640px) {
+  main p,
+  main li {
+    line-height: 1.72; /* a touch more air on small screens */
+  }
 }
 
 /* When the user opts back into the native cursor, the custom reticle bails out

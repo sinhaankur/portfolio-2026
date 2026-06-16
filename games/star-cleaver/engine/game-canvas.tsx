@@ -24,6 +24,7 @@ import { TestingConsole } from './testing-console';
 import { PlayerShipModel, ProceduralPlayerShipModel, SHIP_MODEL_BASIS_ROTATION, getPlayerShipTransform } from './player-ship-model';
 import type { SelectedShip } from './ship-selector';
 import { getMissionLayout } from './mission-layout';
+import { MissionPlanet } from './mission-planet';
 import { createEnemy } from './enemies';
 import { SpaceDust, DataCoreField, createDataCores, BoostShockwave, ImpactField, DebrisField } from './particles';
 import { AsteroidField } from './asteroid-field';
@@ -1164,22 +1165,14 @@ function MissionStartScene({ worldIndex }: { worldIndex: number }) {
 
   return (
     <group>
-      {/* Defended planet */}
+      {/* Defended planet — procedural Earth (continents, clouds, day/night,
+          atmosphere rim) instead of a flat blue sphere. */}
       <group position={[layout.planetPosition.x, layout.planetPosition.y, layout.planetPosition.z]}>
-        <mesh>
-          <sphereGeometry args={[layout.planetRadius, 48, 48]} />
-          <meshStandardMaterial color={layout.planetColor} roughness={0.88} metalness={0.06} />
-        </mesh>
-        <mesh>
-          <sphereGeometry args={[layout.planetRadius * 1.05, 48, 48]} />
-          <meshBasicMaterial
-            color={layout.atmosphereColor}
-            transparent
-            opacity={0.07}
-            side={THREE.DoubleSide}
-            depthWrite={false}
-          />
-        </mesh>
+        <MissionPlanet
+          radius={layout.planetRadius}
+          oceanColor={layout.planetColor}
+          atmoColor={layout.atmosphereColor}
+        />
       </group>
 
       {/* Orbital station — Star Wars outpost style */}

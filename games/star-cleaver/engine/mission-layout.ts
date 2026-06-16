@@ -15,14 +15,18 @@ export interface MissionLayout {
 
 const BASE_LAYOUTS: MissionLayout[] = [
   {
-    // Earth-like planet, station nearby
-    planetPosition: new THREE.Vector3(0, -140, -460),
-    planetRadius: 112,
-    planetColor: 0x3b82f6, // blue for Earth
+    // Earth-like planet. Pushed back and down a touch from the old
+    // (y=-140, z=-460) so its surface no longer fills the frame as a flat wall,
+    // while keeping the station/spawn opening coherent (station is derived from
+    // this position, spawn sits just off it). The bigger fix is the textured
+    // surface below — a featureless blue sphere this close read as a wall.
+    planetPosition: new THREE.Vector3(0, -185, -560),
+    planetRadius: 118,
+    planetColor: 0x2f6fd6, // ocean blue for Earth
     atmosphereColor: 0x8ec5ff,
     // Physically-derived low Earth orbit placement (scaled from real values):
     // 550 km altitude, 51.6 deg inclination (ISS-like orbital plane).
-    stationPosition: deriveEarthOrbitStationPosition(new THREE.Vector3(0, -140, -460), 112),
+    stationPosition: deriveEarthOrbitStationPosition(new THREE.Vector3(0, -185, -560), 118),
     stationScale: 1.42,
     stationStyle: 'civic',
     // Story opening: the ship starts DOCKED at the fabrication station, then
