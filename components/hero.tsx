@@ -26,6 +26,27 @@ export function Hero() {
   const prefersReducedMotion = useReducedMotion()
   const [interactive, setInteractive] = useState(false)
   const [tvBrowserFallback, setTvBrowserFallback] = useState(false)
+  const [infoOpen, setInfoOpen] = useState(false)
+  const infoRef = useRef<HTMLDivElement>(null)
+
+  // Dismiss the "⋯" info popover on outside click / Escape.
+  useEffect(() => {
+    if (!infoOpen) return
+    const onDown = (e: PointerEvent) => {
+      if (infoRef.current && !infoRef.current.contains(e.target as Node)) {
+        setInfoOpen(false)
+      }
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setInfoOpen(false)
+    }
+    window.addEventListener("pointerdown", onDown)
+    window.addEventListener("keydown", onKey)
+    return () => {
+      window.removeEventListener("pointerdown", onDown)
+      window.removeEventListener("keydown", onKey)
+    }
+  }, [infoOpen])
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start start", "end start"],
@@ -110,7 +131,7 @@ export function Hero() {
           label, since there's room. Positioned in the gap between the navbar
           and the hero typography (mobile) or in the top-right cluster (desktop). */}
       {!tvBrowserFallback && (
-      <div className="absolute top-16 right-4 md:top-24 md:right-12 z-30 pointer-events-auto">
+      <div ref={infoRef} className="absolute top-20 right-4 md:top-28 md:right-12 z-30 pointer-events-auto flex items-center gap-2">
         <button
           type="button"
           onClick={() => setInteractive((v) => !v)}
@@ -146,14 +167,55 @@ export function Hero() {
             </>
           )}
         </button>
-        <div className="mt-3 hidden md:block max-w-[20rem] rounded-2xl border border-foreground/15 bg-background/45 px-4 py-3 backdrop-blur-sm">
-          <p className="font-mono text-[10px] tracking-[0.24em] uppercase text-foreground/65">
-            Home Hero · UX Scale
-          </p>
-          <p className="mt-1 text-[11px] leading-relaxed text-foreground/70">
-            Distances and body sizes are perceptually compressed here for readability, motion, and exploration.
-          </p>
-        </div>
+
+        {/* "⋯" info button — collapses the scale explainer so it doesn't crowd
+            the navbar. Tap to reveal; dismisses on outside-click / Esc. */}
+        <button
+          type="button"
+          onClick={() => setInfoOpen((v) => !v)}
+          data-cursor-hover
+          aria-expanded={infoOpen}
+          aria-label="About this view"
+          title="About this view"
+          className="
+            inline-flex items-center justify-center
+            h-11 w-11 md:h-9 md:w-9 shrink-0
+            border border-foreground/25 rounded-full
+            bg-background/40 backdrop-blur-sm
+            text-foreground/75 hover:text-foreground hover:border-accent/60
+            transition-colors duration-300
+            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+            focus-visible:ring-offset-2 focus-visible:ring-offset-background
+            touch-manipulation
+          "
+        >
+          <span aria-hidden="true" className="text-base leading-none tracking-widest">⋯</span>
+        </button>
+
+        {infoOpen && (
+          <motion.div
+            initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            role="dialog"
+            aria-label="About this view"
+            className="
+              absolute top-full right-0 mt-3
+              w-[min(20rem,calc(100vw-2rem))]
+              rounded-2xl border border-foreground/15 bg-background/80 backdrop-blur-md
+              px-4 py-3
+              shadow-[0_12px_40px_-16px_rgba(0,0,0,0.7)]
+            "
+          >
+            <p className="font-mono text-[10px] tracking-[0.24em] uppercase text-foreground/65">
+              Home Hero · UX Scale
+            </p>
+            <p className="mt-1 text-[11px] leading-relaxed text-foreground/70">
+              Distances and body sizes are perceptually compressed here for
+              readability, motion, and exploration.
+            </p>
+          </motion.div>
+        )}
       </div>
       )}
 
