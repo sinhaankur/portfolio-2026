@@ -25,6 +25,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/works/deloitte",    priority: 0.8, changeFrequency: "monthly" },
     { path: "/works/snowtint",    priority: 0.8, changeFrequency: "monthly" },
     { path: "/works/rage",        priority: 0.8, changeFrequency: "monthly" },
+    { path: "/lab/celestial",     priority: 0.7, changeFrequency: "monthly" },
     { path: "/skills",            priority: 0.7, changeFrequency: "monthly" },
     { path: "/usability",         priority: 0.6, changeFrequency: "monthly" },
     { path: "/upcoming",          priority: 0.5, changeFrequency: "weekly"  },

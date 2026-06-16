@@ -326,6 +326,70 @@ export function Lab() {
           </Link>
         </motion.div>
 
+        {/* Celestial — Blender renders of real worlds */}
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.12 }}
+          className="mb-14 md:mb-16"
+        >
+          <Link
+            href="/lab/celestial"
+            data-cursor-hover
+            aria-label="Celestial — photoreal Mars & Moon rendered in Blender"
+            className="
+              group relative block overflow-hidden
+              border border-border rounded-2xl
+              bg-card hover:border-accent/60 transition-colors duration-300
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+              focus-visible:ring-offset-4 focus-visible:ring-offset-background
+              p-7 md:p-10 lg:p-12
+            "
+          >
+            {/* Mars peeking from the corner */}
+            <img
+              src="/img/space/mars-globe.webp"
+              alt=""
+              aria-hidden="true"
+              loading="lazy"
+              className="pointer-events-none absolute -right-16 -top-16 w-56 md:w-72 opacity-40 md:opacity-60 transition-transform duration-700 group-hover:scale-105"
+            />
+            <div className="relative">
+              <div className="flex flex-wrap items-center gap-2 mb-6">
+                <span className="font-mono text-[10px] tracking-[0.25em] uppercase px-2.5 py-1 border border-border text-foreground/85 rounded-full">
+                  Blender · 3D
+                </span>
+                <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 border border-border text-foreground/75 rounded-full">
+                  Open data
+                </span>
+              </div>
+
+              <h3 className="font-display text-3xl md:text-4xl lg:text-5xl font-light tracking-[-0.02em] leading-[1.05] text-foreground">
+                Celestial — <span className="italic">real worlds, rendered true.</span>
+              </h3>
+
+              <p className="mt-5 max-w-2xl font-sans text-base md:text-lg text-foreground/80 leading-relaxed">
+                Photoreal Mars and the Moon, modelled in Blender from public
+                NASA/USGS surface maps — with the facts and features that make each
+                world what it is. Editable scenes and renders, open for anyone.
+              </p>
+
+              <div className="mt-7 inline-flex items-center gap-2 font-mono text-[10px] tracking-[0.25em] uppercase text-foreground/85 group-hover:text-accent transition-colors">
+                Explore the worlds
+                <motion.span
+                  aria-hidden="true"
+                  whileHover={prefersReducedMotion ? undefined : { rotate: 45 }}
+                  transition={{ duration: 0.3 }}
+                  className="inline-flex"
+                >
+                  <ArrowUpRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                </motion.span>
+              </div>
+            </div>
+          </Link>
+        </motion.div>
+
         {/* Supporting open-source products — single eyebrow lifted from
             each card to the section level. Cards are now leaner: name,
             tagline, blurb, optional highlight, stack tags. No per-card
