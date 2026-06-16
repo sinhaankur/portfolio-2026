@@ -8,7 +8,7 @@
  * tile that shows the photoreal Blender globe + data for the picked world.
  */
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import dynamic from "next/dynamic"
 import { motion, AnimatePresence } from "framer-motion"
@@ -36,6 +36,19 @@ const GlobeViewer = dynamic(
 export function CelestialExplorer() {
   const [openName, setOpenName] = useState<string | null>(null)
   const open = BODIES.find((b) => b.name === openName) ?? null
+
+  // Auto-warp to Earth once the engine has mounted. At true scale the system
+  // opens into mostly-empty space with a tiny distant Sun — framing Earth gives
+  // an immediate, legible "you are here" rather than a blank starfield. Reuses
+  // the engine's existing focus channel (same event the Destinations menu fires).
+  useEffect(() => {
+    const t = setTimeout(() => {
+      window.dispatchEvent(
+        new CustomEvent("universe:sky-focus", { detail: { pointId: "planet:Earth" } }),
+      )
+    }, 1400)
+    return () => clearTimeout(t)
+  }, [])
 
   return (
     <>
