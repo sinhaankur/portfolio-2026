@@ -61,6 +61,14 @@ export const TIME_WARP_DAYS_PER_SEC = BASE_TIME_WARP_DAYS_PER_SEC
 
 export const timeWarpRef = { current: 1.0 }
 
+/**
+ * Extra time-rate multiplier applied on top of `timeWarpRef`. The /lab/celestial
+ * explorer sets this below 1 for a calm, slow "study it" drift; the home hero
+ * leaves it at 1. The TimelineControl scrubber still overrides by writing simMs
+ * directly, so users can always fast-forward.
+ */
+export const timeScaleRef = { current: 1.0 }
+
 /* Cloud-layer visibility — module-scoped so the HUD toggle can flip it
  * without prop-drilling through the R3F tree (same pattern as timeWarpRef).
  * Earth's procedural cloud shell reads this each frame and fades accordingly.

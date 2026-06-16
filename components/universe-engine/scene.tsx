@@ -90,6 +90,7 @@ import {
   skyPoints,
   solveKepler,
   timeWarpRef,
+  timeScaleRef,
   cloudsVisibleRef,
   satellitesVisibleRef,
 } from "./astronomy"
@@ -622,7 +623,7 @@ function SceneClock() {
     // (a dropped-frame's worth) keeps the resume seamless.
     const dt = Math.min(delta, 0.1)
     simTimeRef.current.simMs +=
-      dt * TIME_WARP_DAYS_PER_SEC * timeWarpRef.current * 86_400_000
+      dt * TIME_WARP_DAYS_PER_SEC * timeWarpRef.current * timeScaleRef.current * 86_400_000
   })
   return null
 }
@@ -6119,6 +6120,45 @@ function SkyPoints({
   )
 }
 
+/**
+ * SolarBackdrop — a faint, static field of distant stars used only in
+ * `solarOnly` mode (the /lab/celestial explorer), where the full HYG starfield,
+ * Milky Way, and constellations are hidden. Just enough points for depth and a
+ * sense of space, with none of the catalog weight or sky labels.
+ */
+function SolarBackdrop({ invert }: { invert: boolean }) {
+  const geom = useMemo(() => {
+    const N = 1400
+    const positions = new Float32Array(N * 3)
+    const R = 6000
+    for (let i = 0; i < N; i++) {
+      // uniform on a far sphere shell
+      const u = Math.random() * 2 - 1
+      const theta = Math.random() * Math.PI * 2
+      const r = R * (0.85 + Math.random() * 0.15)
+      const s = Math.sqrt(1 - u * u)
+      positions[i * 3] = r * s * Math.cos(theta)
+      positions[i * 3 + 1] = r * u
+      positions[i * 3 + 2] = r * s * Math.sin(theta)
+    }
+    const g = new BufferGeometry()
+    g.setAttribute("position", new BufferAttribute(positions, 3))
+    return g
+  }, [])
+  return (
+    <points geometry={geom} frustumCulled={false}>
+      <pointsMaterial
+        size={2.2}
+        sizeAttenuation={false}
+        color={invert ? "#3a3a44" : "#cdd3e0"}
+        transparent
+        opacity={invert ? 0.5 : 0.7}
+        depthWrite={false}
+      />
+    </points>
+  )
+}
+
 /* ============================================================
  * Public scene composition — mounted inside the <Canvas>.
  * ============================================================ */
@@ -6132,6 +6172,7 @@ export function SceneContents({
   interactive = false,
   showGravityOverlay = false,
   showDeepDive = false,
+  solarOnly = false,
 }: {
   enableMotion: boolean
   onHover: HoverHandler
@@ -6144,6 +6185,9 @@ export function SceneContents({
   showGravityOverlay?: boolean
   /** Show exact orbital trajectory trails and live position dots. */
   showDeepDive?: boolean
+  /** Focus on our solar system only — hide constellations, named stars, the
+   *  Milky Way, deep-sky/exoplanet points. Used by /lab/celestial. */
+  solarOnly?: boolean
 }) {
   const { scene } = useThree()
   useEffect(() => {
@@ -6162,16 +6206,25 @@ export function SceneContents({
           form naturally from the data — the hand-drawn constellation
           line figures just trace what's already there. Skipped in
           invert/chart mode, matching the previous drei <Stars> behaviour. */}
-      <BrightStarField invert={invert} mobile={mobile} enableMotion={enableMotion} />
+      {/* Deep-space layers — hidden in solarOnly (the /lab/celestial explorer),
+          which focuses purely on our solar system. */}
+      {!solarOnly && (
+        <BrightStarField invert={invert} mobile={mobile} enableMotion={enableMotion} />
+      )}
 
       {/* Hover layer for the 358 stars with proper names (Sirius, Vega,
           Betelgeuse, Polaris…). Invisible pointer-eventable spheres
           sized by magnitude; hover lights up the existing InfoPanel
           with apparent mag, distance, spectral type, catalog IDs. */}
-      <NamedStarHoverLayer onHover={onHover} invert={invert} />
-      <group rotation={[GALACTIC_PLANE_TILT_RAD, 0, 0]}>
-        <MilkyWay onHover={onHover} mobile={mobile} invert={invert} interactive={interactive} />
-      </group>
+      {!solarOnly && <NamedStarHoverLayer onHover={onHover} invert={invert} />}
+      {!solarOnly && (
+        <group rotation={[GALACTIC_PLANE_TILT_RAD, 0, 0]}>
+          <MilkyWay onHover={onHover} mobile={mobile} invert={invert} interactive={interactive} />
+        </group>
+      )}
+      {/* Calm, faint backdrop so solar-only space still has depth without the
+          full HYG catalog / constellations. */}
+      {solarOnly && <SolarBackdrop invert={invert} />}
       <group position={SOLAR_SYSTEM_POSITION}>
         <SolarSystem onHover={onHover} invert={invert} interactive={interactive} mobile={mobile} />
         <GravityOverlay show={showGravityOverlay} invert={invert} />
@@ -6181,9 +6234,9 @@ export function SceneContents({
             so their orbits sit around the same Sun the planets do. */}
         <NamedBodies onHover={onHover} invert={invert} interactive={interactive} />
       </group>
-      <Constellations onHover={onHover} onResetView={onResetView} invert={invert} />
+      {!solarOnly && <Constellations onHover={onHover} onResetView={onResetView} invert={invert} />}
       {/* Deep-sky targets + exoplanet hosts — share the sky-shell with constellations. */}
-      <SkyPoints onHover={onHover} invert={invert} interactive={interactive} />
+      {!solarOnly && <SkyPoints onHover={onHover} invert={invert} interactive={interactive} />}
       {enableMotion && <ShootingStars count={mobile ? 3 : 6} invert={invert} />}
       <ambientLight intensity={invert ? 0.55 : 0.18} />
     </>

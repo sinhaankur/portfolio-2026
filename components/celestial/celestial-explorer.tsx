@@ -43,7 +43,7 @@ export function CelestialExplorer() {
       <main className="fixed inset-0 overflow-hidden bg-background text-foreground">
         {/* Live solar system fills the screen */}
         <div className="absolute inset-0">
-          <UniverseEngine interactive showHud showMusic={false} defaultTrueScale />
+          <UniverseEngine interactive showHud showMusic={false} defaultTrueScale solarOnly />
         </div>
 
         {/* Back link */}
@@ -71,44 +71,51 @@ export function CelestialExplorer() {
           </p>
         </div>
 
-        {/* Body rail along the bottom */}
-        <div className="absolute bottom-0 left-0 right-0 z-20 pointer-events-none">
-          <div className="pointer-events-auto mx-auto max-w-5xl px-3 pb-3 md:pb-5">
-            <div className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              <ul className="flex items-end gap-3 md:gap-4 min-w-max md:justify-center py-2">
-                {BODIES.map((b) => {
-                  const px = 26 + (b.relSize ?? 0.6) * 22
-                  const on = b.name === openName
-                  return (
-                    <li key={b.name} className="shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => setOpenName(on ? null : b.name)}
-                        data-cursor-hover
-                        title={b.name}
-                        aria-pressed={on}
-                        className="group flex flex-col items-center gap-1.5 focus-visible:outline-none"
+        {/* Body rail — vertical strip on the left (desktop), horizontal strip
+            under the title (mobile). Kept OUT of the bottom band so it never
+            collides with the engine's HUD (timeline centre-bottom, chips
+            bottom-right) or the detail tile (right side). Hidden while a body
+            is open on mobile to free the screen. */}
+        <div
+          className={`absolute z-20 pointer-events-none
+            left-0 right-0 top-40 px-4
+            md:left-3 md:right-auto md:top-1/2 md:-translate-y-1/2 md:px-0
+            ${open ? "hidden md:block" : ""}`}
+        >
+          <div className="pointer-events-auto md:max-h-[70vh] overflow-x-auto md:overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <ul className="flex md:flex-col items-center gap-3 md:gap-2.5 min-w-max md:min-w-0 py-1">
+              {BODIES.map((b) => {
+                const px = 26 + (b.relSize ?? 0.6) * 18
+                const on = b.name === openName
+                return (
+                  <li key={b.name} className="shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setOpenName(on ? null : b.name)}
+                      data-cursor-hover
+                      title={b.name}
+                      aria-pressed={on}
+                      className="group flex md:flex-row flex-col items-center gap-1.5 md:gap-2.5 focus-visible:outline-none"
+                    >
+                      <span
+                        className="rounded-full overflow-hidden border transition-all duration-300 group-hover:scale-110 shrink-0"
+                        style={{
+                          width: px, height: px,
+                          borderColor: on ? "var(--accent)" : "transparent",
+                          boxShadow: on ? `0 0 18px -2px ${b.accent}` : "none",
+                        }}
                       >
-                        <span
-                          className="rounded-full overflow-hidden border transition-all duration-300 group-hover:scale-110"
-                          style={{
-                            width: px, height: px,
-                            borderColor: on ? "var(--accent)" : "transparent",
-                            boxShadow: on ? `0 0 18px -2px ${b.accent}` : "none",
-                          }}
-                        >
-                          <img src={b.img} alt={b.name} loading="lazy"
-                               className="w-full h-full object-cover" style={{ background: b.accent }} />
-                        </span>
-                        <span className={`font-mono text-[8px] md:text-[9px] tracking-widest uppercase transition-colors ${on ? "text-accent" : "text-foreground/55 group-hover:text-foreground"}`}>
-                          {b.name}
-                        </span>
-                      </button>
-                    </li>
-                  )
-                })}
-              </ul>
-            </div>
+                        <img src={b.img} alt={b.name} loading="lazy"
+                             className="w-full h-full object-cover" style={{ background: b.accent }} />
+                      </span>
+                      <span className={`font-mono text-[8px] md:text-[10px] tracking-widest uppercase transition-colors ${on ? "text-accent" : "text-foreground/55 group-hover:text-foreground"}`}>
+                        {b.name}
+                      </span>
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
           </div>
         </div>
 

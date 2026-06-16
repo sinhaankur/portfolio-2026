@@ -52,6 +52,7 @@ import {
   cloudsVisibleRef,
   satellitesVisibleRef,
   scaleModeRef,
+  timeScaleRef,
 } from "./astronomy"
 import { SceneContents } from "./scene"
 import { CloudToggle, DeepDiveToggle, DestinationsMenu, GravityToggle, InfoPanel, ResetViewButton, SatelliteToggle, ScaleToggle, TimelineControl } from "./hud"
@@ -78,6 +79,11 @@ export type UniverseEngineProps = {
    * layout. Defaults to false. The Scale toggle still flips it at runtime.
    */
   defaultTrueScale?: boolean
+  /**
+   * Focus purely on our solar system — hide constellations, named stars, the
+   * Milky Way, and deep-sky/exoplanet points. Used by /lab/celestial.
+   */
+  solarOnly?: boolean
 }
 
 export function UniverseEngine({
@@ -86,6 +92,7 @@ export function UniverseEngine({
   showMusic = true,
   invert: invertProp,
   defaultTrueScale = false,
+  solarOnly = false,
 }: UniverseEngineProps) {
   // Set the module-scoped scale ref synchronously on first render so the very
   // first scene mount already lays bodies out at true ratios (the effect below
@@ -93,6 +100,15 @@ export function UniverseEngine({
   if (typeof window !== "undefined" && defaultTrueScale) {
     scaleModeRef.current = "true"
   }
+  // Calm, slow drift for the solar-only explorer; restore on unmount so the
+  // home hero keeps its normal pace.
+  useEffect(() => {
+    if (!solarOnly) return
+    timeScaleRef.current = 0.12
+    return () => {
+      timeScaleRef.current = 1.0
+    }
+  }, [solarOnly])
   const [mounted, setMounted] = useState(false)
   const [reducedMotion, setReducedMotion] = useState(false)
   const [mobile, setMobile] = useState(false)
@@ -306,6 +322,7 @@ export function UniverseEngine({
           interactive={interactive}
           showGravityOverlay={showGravityOverlay}
           showDeepDive={showDeepDive}
+          solarOnly={solarOnly}
         />
 
         <OrbitControls
