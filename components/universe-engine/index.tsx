@@ -130,7 +130,9 @@ export function UniverseEngine({
     cloudsVisibleRef.current = showClouds
   }, [showClouds])
   // Human-made satellite shells (Earth/Mars orbiters) — drives the module ref.
-  const [showSatellites, setShowSatellites] = useState(false)
+  // The solar-only explorer is all about satellites, so show them by default
+  // there; the home hero keeps them off until toggled.
+  const [showSatellites, setShowSatellites] = useState(solarOnly)
   useEffect(() => {
     satellitesVisibleRef.current = showSatellites
   }, [showSatellites])

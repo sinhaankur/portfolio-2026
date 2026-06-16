@@ -2245,20 +2245,41 @@ type HeroCraft = {
   /** model scale relative to body radius */
   sizeRatio: number
   phase: number
+  /** Real-world detail surfaced in the InfoPanel on hover/focus. */
+  agency?: string      // launching country / agency (with flag)
+  orbit?: string       // orbit type + altitude + inclination + period
+  launched?: string    // launch date / year
+  size?: string        // physical dimensions
+  fact?: string        // one-line description
 }
 const HERO_CRAFT: Record<string, HeroCraft[]> = {
   Earth: [
     // sizeRatio bumped so the real craft stand out from the procedural swarm.
-    { label: "ISS", model: "/models/iss.glb", altRatio: 1.066, incl: 0.9, speed: 0.2, sizeRatio: 0.16, phase: 0 },
-    { label: "Tiangong", model: "/models/tiangong.glb", altRatio: 1.062, incl: 0.74, speed: 0.21, sizeRatio: 0.12, phase: 1.6 },
-    { label: "Hubble", model: "/models/hubble.glb", altRatio: 1.085, incl: 0.48, speed: 0.18, sizeRatio: 0.10, phase: 2.1 },
-    { label: "GPS", model: "/models/gps-sat.glb", altRatio: 4.17, incl: 0.95, speed: 0.06, sizeRatio: 0.18, phase: 0.7 },
+    { label: "ISS", model: "/models/sat-iss.glb", altRatio: 1.066, incl: 0.9, speed: 0.2, sizeRatio: 0.18, phase: 0,
+      agency: "🌍 Multinational (NASA · Roscosmos · ESA · JAXA · CSA)", orbit: "LEO · ~420 km · 51.6° · ~92 min", launched: "1998 (first module)", size: "109 × 73 m",
+      fact: "The largest human structure in space — a continuously crewed laboratory since 2000, assembled from modules over a decade." },
+    { label: "Tiangong", model: "/models/tiangong.glb", altRatio: 1.062, incl: 0.74, speed: 0.21, sizeRatio: 0.12, phase: 1.6,
+      agency: "🇨🇳 CMSA (China)", orbit: "LEO · ~390 km · 41.5° · ~92 min", launched: "2021 (Tianhe core)", size: "~55 m, ~3 modules",
+      fact: "China's modular space station, completed in 2022 — the second continuously inhabited station in orbit." },
+    { label: "Hubble", model: "/models/sat-hubble.glb", altRatio: 1.085, incl: 0.48, speed: 0.18, sizeRatio: 0.11, phase: 2.1,
+      agency: "🇺🇸 NASA · 🇪🇺 ESA", orbit: "LEO · ~535 km · 28.5° · ~95 min", launched: "1990 (STS-31)", size: "13.2 m long · 4.2 m dia",
+      fact: "The space telescope that rewrote astronomy — serviced five times by Shuttle crews, still observing after 35 years." },
+    { label: "GPS", model: "/models/sat-gps.glb", altRatio: 4.17, incl: 0.95, speed: 0.06, sizeRatio: 0.2, phase: 0.7,
+      agency: "🇺🇸 US Space Force", orbit: "MEO · ~20,200 km · 55° · ~12 hr", launched: "1978 (first) · Block III now", size: "~2.5 m bus · ~18 m span",
+      fact: "A constellation of ~31 satellites; any point on Earth sees at least four, which is how your phone knows where it is." },
     // JWST sits at Sun–Earth L2 (~1.5M km out, anti-sunward). At this scene
     // scale a far ring around Earth reads it as the distant deep-space scope.
-    { label: "JWST", model: "/models/jwst.glb", altRatio: 9.0, incl: 0.2, speed: 0.04, sizeRatio: 0.18, phase: 3.5 },
+    { label: "JWST", model: "/models/sat-jwst.glb", altRatio: 9.0, incl: 0.2, speed: 0.04, sizeRatio: 0.2, phase: 3.5,
+      agency: "🇺🇸 NASA · 🇪🇺 ESA · 🇨🇦 CSA", orbit: "Sun–Earth L2 · ~1.5M km", launched: "2021 (Ariane 5)", size: "21 × 14 m sunshield",
+      fact: "The largest space telescope ever flown — its gold mirror sees the first galaxies in infrared, shaded by a tennis-court sunshield." },
+    { label: "Sputnik 1", model: "/models/sat-sputnik.glb", altRatio: 1.12, incl: 1.1, speed: 0.24, sizeRatio: 0.09, phase: 4.4,
+      agency: "🇷🇺 USSR", orbit: "LEO · 215–939 km · 65.1° · ~96 min", launched: "4 Oct 1957", size: "0.58 m sphere",
+      fact: "The first artificial satellite — a polished sphere with four antennas that beeped for 21 days and began the Space Age." },
   ],
   Mars: [
-    { label: "MRO", model: "/models/hubble.glb", altRatio: 1.3, incl: 0.95, speed: 0.16, sizeRatio: 0.1, phase: 1.0 },
+    { label: "MRO", model: "/models/sat-hubble.glb", altRatio: 1.3, incl: 0.95, speed: 0.16, sizeRatio: 0.1, phase: 1.0,
+      agency: "🇺🇸 NASA", orbit: "Mars orbit · ~250–320 km", launched: "2005", size: "~6.5 m span",
+      fact: "Mars Reconnaissance Orbiter — its HiRISE camera returns the sharpest images of the Martian surface." },
   ],
 }
 Object.values(HERO_CRAFT).flat().forEach((c) => useGLTF.preload(c.model))
@@ -2315,7 +2336,21 @@ function HeroSatellite({
         <mesh
           onPointerOver={(e) => {
             e.stopPropagation()
-            onHover?.({ name: craft.label, classification: "Human-made spacecraft", fact: `${craft.label} — a real orbiter, riding its true altitude around the body. Click to follow it.`, followable: interactive })
+            // Build a rich, real-data fact: description + agency/orbit/size/launch.
+            const lines = [
+              craft.fact,
+              craft.agency && `Built by: ${craft.agency}`,
+              craft.orbit && `Orbit: ${craft.orbit}`,
+              craft.size && `Size: ${craft.size}`,
+              craft.launched && `Launched: ${craft.launched}`,
+              interactive && "Click to follow it around its orbit.",
+            ].filter(Boolean)
+            onHover?.({
+              name: craft.label,
+              classification: craft.agency ? `Human-made satellite · ${craft.agency.replace(/^[^A-Za-z]+/, "").split(" (")[0]}` : "Human-made spacecraft",
+              fact: lines.join("\n"),
+              followable: interactive,
+            })
           }}
           onPointerOut={() => onHover?.(null)}
           onClick={interactive ? startFollow : undefined}
