@@ -370,9 +370,9 @@ export function Lab() {
               </h3>
 
               <p className="mt-5 max-w-2xl font-sans text-base md:text-lg text-foreground/80 leading-relaxed">
-                Photoreal Mars and the Moon, modelled in Blender from public
-                NASA/USGS surface maps — with the facts and features that make each
-                world what it is. Editable scenes and renders, open for anyone.
+                The Sun and every planet, modelled in Blender from real NASA/USGS
+                data — photoreal and interactive. Rotate each world in your browser;
+                editable scenes and renders, open for anyone.
               </p>
 
               <div className="mt-7 inline-flex items-center gap-2 font-mono text-[10px] tracking-[0.25em] uppercase text-foreground/85 group-hover:text-accent transition-colors">
