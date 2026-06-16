@@ -2248,37 +2248,41 @@ type HeroCraft = {
   /** Real-world detail surfaced in the InfoPanel on hover/focus. */
   agency?: string      // launching country / agency (with flag)
   orbit?: string       // orbit type + altitude + inclination + period
-  launched?: string    // launch date / year
+  launched?: string    // launch date / year (human-readable)
   size?: string        // physical dimensions
   fact?: string        // one-line description
+  /** Launch instant (Unix ms). The craft only exists in the scene once the
+   *  simulation clock passes this date — scrubbing the timeline back before it
+   *  removes it, so the space age unfolds as you scrub forward from 1957. */
+  launchMs?: number
 }
 const HERO_CRAFT: Record<string, HeroCraft[]> = {
   Earth: [
     // sizeRatio bumped so the real craft stand out from the procedural swarm.
     { label: "ISS", model: "/models/sat-iss.glb", altRatio: 1.066, incl: 0.9, speed: 0.2, sizeRatio: 0.18, phase: 0,
-      agency: "🌍 Multinational (NASA · Roscosmos · ESA · JAXA · CSA)", orbit: "LEO · ~420 km · 51.6° · ~92 min", launched: "1998 (first module)", size: "109 × 73 m",
+      agency: "🌍 Multinational (NASA · Roscosmos · ESA · JAXA · CSA)", orbit: "LEO · ~420 km · 51.6° · ~92 min", launched: "1998 (first module)", size: "109 × 73 m", launchMs: Date.UTC(1998, 10, 20),
       fact: "The largest human structure in space — a continuously crewed laboratory since 2000, assembled from modules over a decade." },
     { label: "Tiangong", model: "/models/tiangong.glb", altRatio: 1.062, incl: 0.74, speed: 0.21, sizeRatio: 0.12, phase: 1.6,
-      agency: "🇨🇳 CMSA (China)", orbit: "LEO · ~390 km · 41.5° · ~92 min", launched: "2021 (Tianhe core)", size: "~55 m, ~3 modules",
+      agency: "🇨🇳 CMSA (China)", orbit: "LEO · ~390 km · 41.5° · ~92 min", launched: "2021 (Tianhe core)", size: "~55 m, ~3 modules", launchMs: Date.UTC(2021, 3, 29),
       fact: "China's modular space station, completed in 2022 — the second continuously inhabited station in orbit." },
     { label: "Hubble", model: "/models/sat-hubble.glb", altRatio: 1.085, incl: 0.48, speed: 0.18, sizeRatio: 0.11, phase: 2.1,
-      agency: "🇺🇸 NASA · 🇪🇺 ESA", orbit: "LEO · ~535 km · 28.5° · ~95 min", launched: "1990 (STS-31)", size: "13.2 m long · 4.2 m dia",
+      agency: "🇺🇸 NASA · 🇪🇺 ESA", orbit: "LEO · ~535 km · 28.5° · ~95 min", launched: "1990 (STS-31)", size: "13.2 m long · 4.2 m dia", launchMs: Date.UTC(1990, 3, 24),
       fact: "The space telescope that rewrote astronomy — serviced five times by Shuttle crews, still observing after 35 years." },
     { label: "GPS", model: "/models/sat-gps.glb", altRatio: 4.17, incl: 0.95, speed: 0.06, sizeRatio: 0.2, phase: 0.7,
-      agency: "🇺🇸 US Space Force", orbit: "MEO · ~20,200 km · 55° · ~12 hr", launched: "1978 (first) · Block III now", size: "~2.5 m bus · ~18 m span",
+      agency: "🇺🇸 US Space Force", orbit: "MEO · ~20,200 km · 55° · ~12 hr", launched: "1978 (first) · Block III now", size: "~2.5 m bus · ~18 m span", launchMs: Date.UTC(1978, 1, 22),
       fact: "A constellation of ~31 satellites; any point on Earth sees at least four, which is how your phone knows where it is." },
     // JWST sits at Sun–Earth L2 (~1.5M km out, anti-sunward). At this scene
     // scale a far ring around Earth reads it as the distant deep-space scope.
     { label: "JWST", model: "/models/sat-jwst.glb", altRatio: 9.0, incl: 0.2, speed: 0.04, sizeRatio: 0.2, phase: 3.5,
-      agency: "🇺🇸 NASA · 🇪🇺 ESA · 🇨🇦 CSA", orbit: "Sun–Earth L2 · ~1.5M km", launched: "2021 (Ariane 5)", size: "21 × 14 m sunshield",
+      agency: "🇺🇸 NASA · 🇪🇺 ESA · 🇨🇦 CSA", orbit: "Sun–Earth L2 · ~1.5M km", launched: "2021 (Ariane 5)", size: "21 × 14 m sunshield", launchMs: Date.UTC(2021, 11, 25),
       fact: "The largest space telescope ever flown — its gold mirror sees the first galaxies in infrared, shaded by a tennis-court sunshield." },
     { label: "Sputnik 1", model: "/models/sat-sputnik.glb", altRatio: 1.12, incl: 1.1, speed: 0.24, sizeRatio: 0.09, phase: 4.4,
-      agency: "🇷🇺 USSR", orbit: "LEO · 215–939 km · 65.1° · ~96 min", launched: "4 Oct 1957", size: "0.58 m sphere",
+      agency: "🇷🇺 USSR", orbit: "LEO · 215–939 km · 65.1° · ~96 min", launched: "4 Oct 1957", size: "0.58 m sphere", launchMs: Date.UTC(1957, 9, 4),
       fact: "The first artificial satellite — a polished sphere with four antennas that beeped for 21 days and began the Space Age." },
   ],
   Mars: [
     { label: "MRO", model: "/models/sat-hubble.glb", altRatio: 1.3, incl: 0.95, speed: 0.16, sizeRatio: 0.1, phase: 1.0,
-      agency: "🇺🇸 NASA", orbit: "Mars orbit · ~250–320 km", launched: "2005", size: "~6.5 m span",
+      agency: "🇺🇸 NASA", orbit: "Mars orbit · ~250–320 km", launched: "2005", size: "~6.5 m span", launchMs: Date.UTC(2005, 7, 12),
       fact: "Mars Reconnaissance Orbiter — its HiRISE camera returns the sharpest images of the Martian surface." },
   ],
 }
@@ -2304,7 +2308,18 @@ function HeroSatellite({
     return c
   }, [gltf.scene])
   const r = bodyRadius * craft.altRatio
+  // Launch-date gating: the craft only exists once the simulation clock passes
+  // its launch instant. Polled in-frame so scrubbing the timeline reveals/hides
+  // it — the space age unfolds as you move from 1957 forward. Bodies without a
+  // launchMs (legacy) are always present.
+  const [launched, setLaunched] = useState(
+    craft.launchMs == null || simTimeRef.current.simMs >= craft.launchMs,
+  )
   useFrame((_, delta) => {
+    if (craft.launchMs != null) {
+      const isUp = simTimeRef.current.simMs >= craft.launchMs
+      if (isUp !== launched) setLaunched(isUp)
+    }
     if (!ref.current) return
     ref.current.rotation.y += delta * craft.speed
   })
@@ -2330,7 +2345,7 @@ function HeroSatellite({
 
   return (
     <group ref={ref} rotation={[craft.incl * 0.35, craft.phase, 0]}>
-      <group ref={craftRef} position={[r, 0, 0]} scale={bodyRadius * craft.sizeRatio}>
+      <group ref={craftRef} position={[r, 0, 0]} scale={bodyRadius * craft.sizeRatio} visible={launched}>
         <primitive object={cloned} />
         {/* Invisible hit-sphere so the small craft is easy to hover/click. */}
         <mesh

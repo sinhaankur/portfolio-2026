@@ -79,8 +79,9 @@ export function CelestialExplorer() {
           </h1>
           <p className="mt-2 font-sans text-xs md:text-sm text-foreground/70 leading-relaxed">
             Shown at <span className="text-accent">true scale</span> — real
-            distance ratios. Drag, zoom, and warp to a body; pick a world below
-            for the photoreal detail.
+            distance ratios. Focus Earth and scrub the timeline back to{" "}
+            <span className="text-accent">1957</span> to watch satellites launch
+            into orbit as the space age unfolds.
           </p>
         </div>
 
