@@ -5,6 +5,7 @@ import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { CustomCursor } from "@/components/custom-cursor"
 import { Container } from "@/components/container"
+import { BodyRender } from "@/components/celestial/body-render"
 
 export const metadata: Metadata = {
   title: "Celestial — photoreal Mars & Moon, rendered in Blender · Ankur Sinha",
@@ -16,6 +17,7 @@ type Body = {
   name: string
   tagline: string
   img: string
+  glb: string
   blurb: string
   facts: { label: string; value: string }[]
   features: { name: string; note: string }[]
@@ -27,6 +29,7 @@ const BODIES: Body[] = [
     name: "Mars",
     tagline: "The Red Planet · 4th from the Sun",
     img: "/img/space/mars-globe.webp",
+    glb: "/models/mars-globe.glb",
     accent: "#c1502e",
     blurb:
       "A cold desert world half Earth's size, wrapped in a thin CO₂ atmosphere. Its rust comes from iron oxide in the regolith. Mars holds the tallest volcano and the deepest canyon in the solar system — and, beneath the surface and poles, water ice.",
@@ -49,6 +52,7 @@ const BODIES: Body[] = [
     name: "Moon",
     tagline: "Earth's only natural satellite",
     img: "/img/space/moon-globe.webp",
+    glb: "/models/moon-globe.glb",
     accent: "#9ca3af",
     blurb:
       "Born ~4.5 billion years ago, likely from a giant impact on the early Earth. It's tidally locked, so we always see the same face. Its dark plains are ancient lava flows (maria); the bright highlands are older, cratered crust. No atmosphere means every impact is preserved.",
@@ -100,9 +104,9 @@ export default function CelestialPage() {
             </p>
             <p className="mt-6 font-sans text-base md:text-lg text-foreground/80 leading-relaxed">
               These aren&apos;t stock art. Each globe is a Blender scene built from
-              real equirectangular surface imagery, lit by a single sun, with relief
-              from the maps themselves. The editable <code className="font-mono text-sm text-accent">.blend</code> files
-              and renders are in the repo — open for anyone to view, learn from, and reuse.
+              real surface imagery and elevation data, with relief baked into the
+              geometry. Tap <span className="text-accent">View in 3D</span> on any
+              world to rotate it yourself — the same model, streamed to your browser.
             </p>
           </header>
 
@@ -111,24 +115,13 @@ export default function CelestialPage() {
             {BODIES.map((body) => (
               <section key={body.name} aria-labelledby={`${body.name}-heading`}>
                 <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
-                  {/* Render */}
-                  <div className="relative">
-                    <div
-                      aria-hidden
-                      className="absolute inset-0 rounded-full blur-3xl opacity-25"
-                      style={{ background: `radial-gradient(circle, ${body.accent}, transparent 70%)` }}
-                    />
-                    <img
-                      src={body.img}
-                      alt={`Photoreal ${body.name} globe rendered in Blender`}
-                      loading="lazy"
-                      decoding="async"
-                      className="relative w-full h-auto max-w-[520px] mx-auto"
-                    />
-                    <p className="relative mt-3 text-center font-mono text-[10px] tracking-widest uppercase text-muted-foreground">
-                      Blender render · NASA/USGS surface map
-                    </p>
-                  </div>
+                  {/* Render — poster still that swaps to interactive 3D on tap */}
+                  <BodyRender
+                    poster={body.img}
+                    glb={body.glb}
+                    name={body.name}
+                    accent={body.accent}
+                  />
 
                   {/* Data */}
                   <div>
