@@ -71,21 +71,25 @@ export function CelestialExplorer() {
           </p>
         </div>
 
-        {/* Body rail — vertical strip on the left (desktop), horizontal strip
-            under the title (mobile). Kept OUT of the bottom band so it never
-            collides with the engine's HUD (timeline centre-bottom, chips
-            bottom-right) or the detail tile (right side). Hidden while a body
-            is open on mobile to free the screen. */}
+        {/* Body rail.
+            DESKTOP: vertical strip on the RIGHT edge, vertically centred — the
+            engine's HUD lives along the bottom (timeline centre, reset/info
+            left, music/legend right-bottom) and top-centre (explore badge), so
+            the right-middle edge is the one clear band. The detail tile (z-30)
+            slides over it from the right when a body is open.
+            MOBILE: a horizontal strip pinned just ABOVE the engine's bottom HUD
+            band, clear of the top-centre badge; hidden while a tile is open. */}
         <div
           className={`absolute z-20 pointer-events-none
-            left-0 right-0 top-40 px-4
-            md:left-3 md:right-auto md:top-1/2 md:-translate-y-1/2 md:px-0
-            ${open ? "hidden md:block" : ""}`}
+            left-0 right-0 bottom-32 px-3
+            md:left-auto md:right-2 md:bottom-auto md:top-1/2 md:-translate-y-1/2 md:px-0
+            ${open ? "hidden md:hidden" : ""}`}
         >
-          <div className="pointer-events-auto md:max-h-[70vh] overflow-x-auto md:overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <ul className="flex md:flex-col items-center gap-3 md:gap-2.5 min-w-max md:min-w-0 py-1">
+          <div className="pointer-events-auto md:max-h-[64vh] overflow-x-auto md:overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <ul className="flex md:flex-col items-center gap-2.5 md:gap-3 min-w-max md:min-w-0 py-1 md:px-1">
               {BODIES.map((b) => {
-                const px = 26 + (b.relSize ?? 0.6) * 18
+                // Min 44px touch target (mobile-first); larger bodies a touch bigger.
+                const px = Math.max(44, 40 + (b.relSize ?? 0.6) * 16)
                 const on = b.name === openName
                 return (
                   <li key={b.name} className="shrink-0">
@@ -95,20 +99,21 @@ export function CelestialExplorer() {
                       data-cursor-hover
                       title={b.name}
                       aria-pressed={on}
-                      className="group flex md:flex-row flex-col items-center gap-1.5 md:gap-2.5 focus-visible:outline-none"
+                      aria-label={`Show ${b.name} details`}
+                      className="group flex md:flex-row-reverse flex-col items-center gap-1 md:gap-2.5 focus-visible:outline-none"
                     >
                       <span
-                        className="rounded-full overflow-hidden border transition-all duration-300 group-hover:scale-110 shrink-0"
+                        className="rounded-full overflow-hidden border-2 transition-all duration-300 group-hover:scale-110 shrink-0"
                         style={{
                           width: px, height: px,
-                          borderColor: on ? "var(--accent)" : "transparent",
+                          borderColor: on ? "var(--accent)" : "rgba(255,255,255,0.15)",
                           boxShadow: on ? `0 0 18px -2px ${b.accent}` : "none",
                         }}
                       >
-                        <img src={b.img} alt={b.name} loading="lazy"
+                        <img src={b.img} alt="" aria-hidden loading="lazy"
                              className="w-full h-full object-cover" style={{ background: b.accent }} />
                       </span>
-                      <span className={`font-mono text-[8px] md:text-[10px] tracking-widest uppercase transition-colors ${on ? "text-accent" : "text-foreground/55 group-hover:text-foreground"}`}>
+                      <span className={`font-mono text-[9px] md:text-[10px] tracking-widest uppercase transition-colors ${on ? "text-accent" : "text-foreground/80 group-hover:text-foreground"}`}>
                         {b.name}
                       </span>
                     </button>
@@ -128,7 +133,7 @@ export function CelestialExplorer() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 40 }}
               transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-              className="absolute z-30 top-4 right-4 bottom-24 md:top-6 md:right-6 md:bottom-28 w-[calc(100%-2rem)] sm:w-[24rem] md:w-[26rem] overflow-y-auto rounded-xl border border-border bg-background/85 backdrop-blur-md shadow-[0_24px_80px_-24px_rgba(0,0,0,0.7)]"
+              className="absolute z-40 top-4 right-4 bottom-32 md:top-6 md:right-6 md:bottom-32 w-[calc(100%-2rem)] sm:w-[24rem] md:w-[26rem] overflow-y-auto rounded-xl border border-border bg-background/90 backdrop-blur-md shadow-[0_24px_80px_-24px_rgba(0,0,0,0.7)]"
             >
               <div className="sticky top-0 flex items-center justify-between gap-3 px-5 py-3 border-b border-border bg-background/80 backdrop-blur">
                 <p className="font-mono text-[10px] tracking-[0.25em] uppercase text-accent">{open.tagline}</p>
