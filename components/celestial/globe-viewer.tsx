@@ -25,7 +25,7 @@ function Globe({ src }: { src: string }) {
   return <primitive ref={ref} object={scene} />
 }
 
-export function GlobeViewer({ src, sunAngle = 0.6 }: { src: string; sunAngle?: number }) {
+export function GlobeViewer({ src }: { src: string; poster?: string }) {
   return (
     <Canvas
       camera={{ position: [0, 0, 2.6], fov: 45 }}
@@ -33,21 +33,23 @@ export function GlobeViewer({ src, sunAngle = 0.6 }: { src: string; sunAngle?: n
       gl={{ antialias: true, alpha: true }}
       className="touch-none"
     >
-      <ambientLight intensity={0.25} />
-      <directionalLight
-        position={[Math.cos(sunAngle) * 5, 2, Math.sin(sunAngle) * 5]}
-        intensity={3}
-      />
+      {/* Full, wrap-around lighting — the whole body stays lit (no dark side),
+          with light from several directions so it still reads as 3D. */}
+      <ambientLight intensity={1.15} />
+      <directionalLight position={[5, 2, 5]} intensity={1.6} />
+      <directionalLight position={[-5, 1, -4]} intensity={1.1} />
+      <directionalLight position={[0, -4, 3]} intensity={0.7} />
       <Suspense fallback={null}>
         <Globe src={src} />
       </Suspense>
       <OrbitControls
         enablePan={false}
-        minDistance={1.6}
-        maxDistance={5}
+        minDistance={1.08}
+        maxDistance={6}
         enableDamping
         dampingFactor={0.08}
-        rotateSpeed={0.5}
+        rotateSpeed={0.42}
+        zoomSpeed={0.7}
       />
     </Canvas>
   )
