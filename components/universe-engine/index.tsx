@@ -73,6 +73,11 @@ export type UniverseEngineProps = {
    * light mode automatically.
    */
   invert?: boolean
+  /**
+   * Boot in true-scale (real ratio) mode rather than the compressed "explore"
+   * layout. Defaults to false. The Scale toggle still flips it at runtime.
+   */
+  defaultTrueScale?: boolean
 }
 
 export function UniverseEngine({
@@ -80,7 +85,14 @@ export function UniverseEngine({
   showHud = true,
   showMusic = true,
   invert: invertProp,
+  defaultTrueScale = false,
 }: UniverseEngineProps) {
+  // Set the module-scoped scale ref synchronously on first render so the very
+  // first scene mount already lays bodies out at true ratios (the effect below
+  // keeps it in sync afterwards).
+  if (typeof window !== "undefined" && defaultTrueScale) {
+    scaleModeRef.current = "true"
+  }
   const [mounted, setMounted] = useState(false)
   const [reducedMotion, setReducedMotion] = useState(false)
   const [mobile, setMobile] = useState(false)
@@ -109,7 +121,7 @@ export function UniverseEngine({
   // Scale mode: "explore" (compressed, default) vs "true" (real ratios). Writes
   // the module ref AND bumps a key so the scene subtree remounts and re-lays
   // every body at the new scale.
-  const [trueScale, setTrueScale] = useState(false)
+  const [trueScale, setTrueScale] = useState(defaultTrueScale)
   useEffect(() => {
     scaleModeRef.current = trueScale ? "true" : "explore"
   }, [trueScale])

@@ -43,7 +43,7 @@ export function CelestialExplorer() {
       <main className="fixed inset-0 overflow-hidden bg-background text-foreground">
         {/* Live solar system fills the screen */}
         <div className="absolute inset-0">
-          <UniverseEngine interactive showHud showMusic={false} />
+          <UniverseEngine interactive showHud showMusic={false} defaultTrueScale />
         </div>
 
         {/* Back link */}
@@ -65,7 +65,8 @@ export function CelestialExplorer() {
             Explore the <span className="italic">solar system</span>.
           </h1>
           <p className="mt-2 font-sans text-xs md:text-sm text-foreground/70 leading-relaxed">
-            Drag to look around, scroll to zoom, tap any body. Pick a world below
+            Shown at <span className="text-accent">true scale</span> — real
+            distance ratios. Drag, zoom, and warp to a body; pick a world below
             for the photoreal detail.
           </p>
         </div>
