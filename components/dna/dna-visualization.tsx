@@ -6,6 +6,7 @@
  * the decrypted abstract summary (no raw loci).
  */
 
+import { useState } from "react"
 import dynamic from "next/dynamic"
 import { motion } from "framer-motion"
 import type { DnaSummary } from "@/lib/dna-crypto"
@@ -25,6 +26,7 @@ function fmt(n: number) {
 }
 
 export function DnaVisualization({ data }: { data: DnaSummary }) {
+  const [helixView, setHelixView] = useState<"3d" | "illustrated">("3d")
   const maxSnps = Math.max(...data.chromosomes.map((c) => c.snps))
   const { homozygous, heterozygous, noCall } = data.genotypeClasses
   const totalCalls = homozygous + heterozygous + noCall || 1
@@ -32,10 +34,10 @@ export function DnaVisualization({ data }: { data: DnaSummary }) {
   const homPct = ((homozygous / totalCalls) * 100).toFixed(1)
 
   const legend = [
-    { base: "A", color: "#f5b942", pair: "T" },
-    { base: "C", color: "#4ad6c4", pair: "G" },
-    { base: "G", color: "#7c6cf0", pair: "C" },
-    { base: "T", color: "#f06c8d", pair: "A" },
+    { base: "A", name: "Adenine", color: "#f5b942", pair: "T" },
+    { base: "C", name: "Cytosine", color: "#4ad6c4", pair: "G" },
+    { base: "G", name: "Guanine", color: "#7c6cf0", pair: "C" },
+    { base: "T", name: "Thymine", color: "#f06c8d", pair: "A" },
   ]
 
   return (
@@ -107,26 +109,94 @@ export function DnaVisualization({ data }: { data: DnaSummary }) {
         <DnaInheritance traits={data.traits} />
       )}
 
-      {/* Helix */}
+      {/* Helix — switchable between the live 3D render and the illustration */}
       <section>
-        <div className="flex items-baseline gap-4 mb-6">
-          <span aria-hidden className="block w-12 h-px bg-accent" />
-          <h2 className="font-display text-2xl md:text-3xl font-light tracking-[-0.01em]">
-            The double helix
-          </h2>
+        <div className="flex flex-wrap items-baseline justify-between gap-4 mb-6">
+          <div className="flex items-baseline gap-4">
+            <span aria-hidden className="block w-12 h-px bg-accent" />
+            <h2 className="font-display text-2xl md:text-3xl font-light tracking-[-0.01em]">
+              The double helix
+            </h2>
+          </div>
+          {/* View switcher */}
+          <div className="inline-flex rounded-full border border-border p-0.5 bg-background">
+            {([
+              ["3d", "3D interactive"],
+              ["illustrated", "Illustrated"],
+            ] as const).map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setHelixView(key)}
+                data-cursor-hover
+                aria-pressed={helixView === key}
+                className={`
+                  font-mono text-[10px] tracking-widest uppercase px-3 py-2 rounded-full min-h-9
+                  transition-colors
+                  ${helixView === key ? "bg-accent/15 text-accent" : "text-muted-foreground hover:text-foreground"}
+                `}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
-        <p className="max-w-2xl mb-6 font-sans text-sm md:text-base text-foreground/75 leading-relaxed">
-          A live render of {fmt(data.sample.length)} sampled base pairs from your
-          genome. Each rung is one pair; colour encodes the nucleotide
-          (<span className="text-[#f5b942]">A</span>,{" "}
-          <span className="text-[#4ad6c4]">C</span>,{" "}
-          <span className="text-[#7c6cf0]">G</span>,{" "}
-          <span className="text-[#f06c8d]">T</span>). Thicker rungs mark
-          heterozygous pairs — the spots where your two inherited copies differ.
+
+        <p className="max-w-2xl mb-5 font-sans text-sm md:text-base text-foreground/75 leading-relaxed">
+          {helixView === "3d" ? (
+            <>
+              A live render of {fmt(data.sample.length)} sampled base pairs from
+              your genome. Each rung is one pair; colour encodes the nucleotide.
+              Thicker rungs mark heterozygous pairs — the spots where your two
+              inherited copies differ.
+            </>
+          ) : (
+            <>
+              The classic double-helix diagram. Two sugar-phosphate backbones
+              twist around base pairs; each pair is two complementary nucleotides
+              bonded across the middle (A–T, C–G). The order of these letters
+              along the strand is the genetic code.
+            </>
+          )}
         </p>
-        <div className="relative h-[60vh] min-h-[420px] w-full rounded-lg border border-border bg-secondary/20 overflow-hidden">
-          <DnaHelix sample={data.sample} />
-        </div>
+
+        {/* Per-base legend — explains each nucleotide / strand */}
+        <ul className="mb-6 grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          {legend.map((l) => (
+            <li
+              key={l.base}
+              className="flex items-center gap-2.5 rounded-md border border-border bg-background px-3 py-2"
+            >
+              <span
+                aria-hidden
+                className="h-3.5 w-3.5 rounded-sm shrink-0"
+                style={{ backgroundColor: l.color }}
+              />
+              <span className="font-mono text-[11px] leading-tight">
+                <span style={{ color: l.color }}>{l.base}</span>
+                <span className="text-muted-foreground"> · {l.name}</span>
+                <br />
+                <span className="text-muted-foreground/70">pairs {l.pair}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+
+        {helixView === "3d" ? (
+          <div className="relative h-[60vh] min-h-[420px] w-full rounded-lg border border-border bg-secondary/20 overflow-hidden">
+            <DnaHelix sample={data.sample} />
+          </div>
+        ) : (
+          <div className="relative w-full rounded-lg border border-border bg-secondary/20 overflow-hidden grid place-items-center py-6">
+            <img
+              src="/img/dna/helix-illustrated.png"
+              alt="Illustrated double helix: two backbones with colour-coded base-pair rungs (A amber, C teal, G violet, T rose)"
+              loading="lazy"
+              decoding="async"
+              className="max-h-[60vh] w-auto"
+            />
+          </div>
+        )}
       </section>
 
       {/* Stat strip */}
