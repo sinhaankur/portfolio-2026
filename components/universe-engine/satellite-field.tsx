@@ -14,6 +14,12 @@
  * the launch timeline). Mounted inside Earth's group so it inherits Earth's
  * world transform; sizes are in Earth-radii (earthVisualRadius prop).
  *
+ * Selection / isolate: when one satellite is picked (search or click), the swarm
+ * hides (shader uIsolate), a real LEOPARD CubeSat GLB rides that satellite's live
+ * SGP4 position (oriented along travel), its full orbital path draws as a line,
+ * and the camera follows. Only one detailed mesh ever exists, and the full
+ * catalogue sweep is skipped while isolated — cheap enough for mobile.
+ *
  * Honest limitation: TLEs are current-epoch, so positions are accurate for
  * ~now; scrubbing deep into the past still shows satellites appearing on their
  * real launch dates but on their present orbits (surfaced in the UI copy).
