@@ -31,19 +31,42 @@ import { useGLTF, Line } from "@react-three/drei"
 import * as THREE from "three"
 import { simTimeRef, requestFollow, focusDepthRef } from "./astronomy"
 
-// Real CubeSat model (LEOPARD, built in Blender) shown for the SELECTED satellite
-// — the 15.7k swarm stays a points field; only the focused one gets geometry.
-const SAT_MODEL_URL = "/models/satellite-leopard.glb"
-useGLTF.preload(SAT_MODEL_URL)
+/**
+ * Satellite archetypes — a small library of real-design Blender models picked by
+ * the selected satellite's name / operator / orbit, so "every satellite has its
+ * own design" without 15.7k individual meshes. The swarm stays a points field;
+ * only the focused craft gets geometry, and which model it gets depends on what
+ * it actually is.
+ *
+ *  realSpanM   real-world deployed span (m) — drives TRUE 1:1 scale vs Earth
+ *  nativeSpan  the GLB's native width in model units (measured at export)
+ *  k           scale coefficient: trueScale = k * earthVisualRadius
+ */
+type ArchetypeId = "cubesat" | "starlink" | "gps" | "comsat"
+type Archetype = { url: string; label: string; realSpanM: number; nativeSpan: number; k: number }
+function mkArch(url: string, label: string, realSpanM: number, nativeSpan: number): Archetype {
+  return { url, label, realSpanM, nativeSpan, k: realSpanM / 1000 / 6371 / nativeSpan }
+}
+const ARCHETYPES: Record<ArchetypeId, Archetype> = {
+  cubesat:  mkArch("/models/satellite-leopard.glb", "CubeSat",            1.7, 15.84),
+  starlink: mkArch("/models/satellite-starlink.glb", "Starlink flat-pack", 30, 8.31),
+  gps:      mkArch("/models/satellite-gps.glb",      "Navigation craft",   17, 11.42),
+  comsat:   mkArch("/models/satellite-dish.glb",     "Dish comsat",        35, 12.22),
+}
+for (const a of Object.values(ARCHETYPES)) useGLTF.preload(a.url)
 
-// True-scale sizing. The LEOPARD GLB's native width (deployed solar wings) is
-// ~15.84 model units; the real craft spans ~1.7 m. To render it 1:1 against
-// Earth we need: scale = (spanKm / earthRadiusKm) * earthVisualRadius / nativeSpan.
-const SAT_REAL_SPAN_M = 1.7
-const SAT_GLB_NATIVE_SPAN = 15.84
-// coefficient k such that trueScale = k * earthVisualRadius  (≈ 1.68e-8).
-// 6371 = Earth radius km (also defined as EARTH_RADIUS_KM below for the SGP4 path).
-const SAT_TRUE_SCALE_K = SAT_REAL_SPAN_M / 1000 / 6371 / SAT_GLB_NATIVE_SPAN
+/** Pick an archetype from the satellite's name, operator, and orbit altitude. */
+export function classifyArchetype(name: string, owner: string, altKm: number): ArchetypeId {
+  const n = name.toUpperCase()
+  if (n.includes("STARLINK")) return "starlink"
+  if (n.includes("GPS") || n.includes("GLONASS") || n.includes("GALILEO") ||
+      n.includes("NAVSTAR") || n.includes("BEIDOU") || n.includes("IRNSS") || n.includes("QZS"))
+    return "gps"
+  // navigation lives at MEO (~19,000–23,000 km); comms/weather at GEO (~35,786 km)
+  if (altKm > 30000) return "comsat"
+  if (altKm > 15000) return "gps"
+  return "cubesat"
+}
 
 /**
  * Selection bridge — the explorer's search box (DOM) writes the chosen NORAD id
@@ -51,6 +74,10 @@ const SAT_TRUE_SCALE_K = SAT_REAL_SPAN_M / 1000 / 6371 / SAT_GLB_NATIVE_SPAN
  * Module-scoped ref mirrors the engine's flyToRef/followRef loose-coupling.
  */
 export const selectedSatRef: { current: number | null } = { current: null }
+
+/** The chosen archetype label for the selected satellite (e.g. "Starlink
+ *  flat-pack"), so the DOM search card can name what kind of craft it is. */
+export const selectedArchetypeRef: { current: string | null } = { current: null }
 
 export type SatMeta = { id: number; name: string; owner: string; launchMs: number }
 
@@ -161,6 +188,9 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
   const lastSelected = useRef<number | null>(null)
   // Orbit-path polyline for the selected satellite (recomputed on selection).
   const [orbitPts, setOrbitPts] = useState<THREE.Vector3[] | null>(null)
+  // Which archetype model the selected satellite uses (chosen on selection).
+  const [arch, setArch] = useState<Archetype>(ARCHETYPES.cubesat)
+  const archRef = useRef<Archetype>(ARCHETYPES.cubesat)
   // NORAD id → buffer index, for fast selection lookup.
   const idToIndex = useMemo(() => {
     const m = new Map<number, number>()
@@ -275,7 +305,7 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
             const world = new THREE.Vector3()
             marker.getWorldPosition(world)
             const dist = camera.position.distanceTo(world)
-            const span = SAT_TRUE_SCALE_K * earthVisualRadius * SAT_GLB_NATIVE_SPAN
+            const span = archRef.current.k * earthVisualRadius * archRef.current.nativeSpan
             // fade band: full halo beyond span*60, gone by span*8 (craft takes over)
             const fade = Math.min(1, Math.max(0, (dist / span - 8) / 52))
             // local scale ÷ marker's world scale so the screen size is distance-stable
@@ -287,19 +317,35 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
             halo.visible = fade > 0.01
           }
         }
-        // On a NEW selection: follow + recompute the orbit polyline once, and
+        // On a NEW selection: pick the archetype, follow, recompute the orbit, and
         // tighten the camera near-plane / zoom floor so the user can dolly right
         // up to the true-1:1 craft (FlyToController reads focusDepthRef).
         if (sel !== lastSelected.current) {
           lastSelected.current = sel
           setOrbitPts(computeOrbit(rec))
-          // true on-screen span of the model, in scene units
-          const span = SAT_TRUE_SCALE_K * earthVisualRadius * SAT_GLB_NATIVE_SPAN
+
+          // altitude (km) from a fresh propagate → drives archetype choice
+          const meta = sats.find((s) => s.id === sel)
+          let altKm = 0
+          {
+            let rr: { position?: { x: number; y: number; z: number } } | false = false
+            try { rr = lib.propagate(rec, date) } catch { rr = false }
+            const pp = rr && rr.position
+            if (pp) altKm = Math.sqrt(pp.x * pp.x + pp.y * pp.y + pp.z * pp.z) - EARTH_RADIUS_KM
+          }
+          const a = ARCHETYPES[classifyArchetype(meta?.name ?? "", meta?.owner ?? "", altKm)]
+          archRef.current = a
+          setArch(a)
+
+          // true on-screen span of THIS archetype's model, in scene units
+          const span = a.k * earthVisualRadius * a.nativeSpan
           // Let the camera approach to ~0.8× the craft's size; near-plane half that.
           focusDepthRef.current = {
             near: Math.max(span * 0.5, 1e-6),
             minDistance: Math.max(span * 0.8, 2e-6),
           }
+          // expose the chosen archetype label to the search card (DOM side)
+          selectedArchetypeRef.current = a.label
           const m = marker
           requestFollow(
             () => {
@@ -310,7 +356,7 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
             // fly in to a few craft-widths away — close enough to read the craft,
             // far enough to take it in. (Was 0.6 Earth-radii = a fifth of Earth.)
             Math.max(span * 6, 3e-6),
-            sats.find((s) => s.id === sel)?.name,
+            meta?.name,
           )
         }
       }
@@ -344,12 +390,13 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
         />
       </points>
 
-      {/* Selected satellite, riding its live SGP4 position. The CubeSat model is
-          at TRUE 1:1 scale vs Earth — invisibly small from afar — so a locator
-          halo (haloRef) marks the spot when you're far and shrinks to nothing as
-          you approach, revealing the real craft. Hidden until a selection is set. */}
+      {/* Selected satellite, riding its live SGP4 position. The model (one of four
+          archetypes chosen by what the craft actually is) is at TRUE 1:1 scale vs
+          Earth — invisibly small from afar — so a locator halo (haloRef) marks the
+          spot when far and shrinks to nothing as you approach, revealing the real
+          craft. Hidden until a selection is set. */}
       <group ref={markerRef} visible={false}>
-        <SatModel scale={SAT_TRUE_SCALE_K * earthVisualRadius} />
+        <SatModel url={arch.url} scale={arch.k * earthVisualRadius} />
         <mesh ref={haloRef}>
           <sphereGeometry args={[1, 16, 16]} />
           <meshBasicMaterial color="#ffd24a" transparent opacity={0.85} toneMapped={false} depthWrite={false} />
@@ -364,9 +411,10 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
   )
 }
 
-/** The LEOPARD CubeSat GLB, reused (cloned) for whichever satellite is selected. */
-function SatModel({ scale }: { scale: number }) {
-  const { scene } = useGLTF(SAT_MODEL_URL)
-  const cloned = useMemo(() => scene.clone(), [scene])
+/** The chosen archetype GLB, cloned for the selected satellite. Cloning keys on
+ *  the url so switching archetypes swaps the mesh. */
+function SatModel({ url, scale }: { url: string; scale: number }) {
+  const { scene } = useGLTF(url)
+  const cloned = useMemo(() => scene.clone(), [scene, url])
   return <primitive object={cloned} scale={scale} />
 }

@@ -14,7 +14,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Search, X, Crosshair } from "lucide-react"
-import { loadSatelliteCatalog, selectedSatRef, type SatMeta } from "@/components/universe-engine/satellite-field"
+import { loadSatelliteCatalog, selectedSatRef, selectedArchetypeRef, type SatMeta } from "@/components/universe-engine/satellite-field"
 
 const OWNER_LABEL: Record<string, string> = {
   US: "🇺🇸 United States", PRC: "🇨🇳 China", CIS: "🇷🇺 Russia / CIS",
@@ -30,11 +30,20 @@ export function SatelliteSearch() {
   const [catalog, setCatalog] = useState<SatMeta[] | null>(null)
   const [q, setQ] = useState("")
   const [selected, setSelected] = useState<SatMeta | null>(null)
+  // Archetype label ("Starlink flat-pack" etc.) — the R3F field decides it from
+  // the satellite's orbit + name, so we poll the bridge ref while one is picked.
+  const [archetype, setArchetype] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     loadSatelliteCatalog().then(setCatalog)
   }, [])
+
+  useEffect(() => {
+    if (!selected) { setArchetype(null); return }
+    const id = setInterval(() => setArchetype(selectedArchetypeRef.current), 200)
+    return () => clearInterval(id)
+  }, [selected])
 
   const results = useMemo(() => {
     const query = q.trim().toLowerCase()
@@ -60,6 +69,7 @@ export function SatelliteSearch() {
   function clearSel() {
     setSelected(null)
     selectedSatRef.current = null
+    selectedArchetypeRef.current = null
   }
 
   return (
@@ -139,6 +149,12 @@ export function SatelliteSearch() {
                 <dt className="text-muted-foreground">NORAD ID</dt>
                 <dd className="text-foreground tabular-nums">{selected.id}</dd>
               </div>
+              {archetype && (
+                <div className="flex justify-between gap-3">
+                  <dt className="text-muted-foreground">Craft type</dt>
+                  <dd className="text-foreground text-right">{archetype}</dd>
+                </div>
+              )}
               <div className="flex justify-between gap-3">
                 <dt className="text-muted-foreground">Shown at</dt>
                 <dd className="text-foreground text-right">true 1:1 scale</dd>
