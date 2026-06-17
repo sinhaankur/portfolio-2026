@@ -16,6 +16,8 @@ import { ArrowLeft, X, Rotate3d } from "lucide-react"
 import { CustomCursor } from "@/components/custom-cursor"
 import { StaticStarfield } from "@/components/universe-engine/static-starfield"
 import { BODIES } from "@/lib/celestial-data"
+import { SatelliteSearch } from "./satellite-search"
+import { selectedSatRef } from "@/components/universe-engine/satellite-field"
 
 const UniverseEngine = dynamic(
   () => import("@/components/universe-engine").then((m) => m.UniverseEngine),
@@ -67,7 +69,10 @@ export function CelestialExplorer() {
         new CustomEvent("universe:sky-focus", { detail: { pointId: "planet:Earth" } }),
       )
     }, 1400)
-    return () => clearTimeout(t)
+    return () => {
+      clearTimeout(t)
+      selectedSatRef.current = null // drop any followed satellite on leave
+    }
   }, [])
 
   return (
@@ -90,6 +95,13 @@ export function CelestialExplorer() {
           <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-1" />
           The Lab
         </Link>
+
+        {/* Satellite search — find + follow any of the ~15.7k real satellites.
+            Top-right, clear of the back link (top-left), rail (right-middle), and
+            the engine's bottom HUD. */}
+        <div className="absolute top-4 right-4 md:top-6 md:right-6 z-40">
+          <SatelliteSearch />
+        </div>
 
         {/* Title tile */}
         <div className="absolute top-16 left-4 md:top-20 md:left-6 z-20 max-w-[18rem] pointer-events-none">

@@ -22,7 +22,28 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useFrame } from "@react-three/fiber"
 import * as THREE from "three"
-import { simTimeRef } from "./astronomy"
+import { simTimeRef, requestFollow } from "./astronomy"
+
+/**
+ * Selection bridge — the explorer's search box (DOM) writes the chosen NORAD id
+ * here; SatelliteField (R3F) reads it to highlight + follow + ring the satellite.
+ * Module-scoped ref mirrors the engine's flyToRef/followRef loose-coupling.
+ */
+export const selectedSatRef: { current: number | null } = { current: null }
+
+export type SatMeta = { id: number; name: string; owner: string; launchMs: number }
+
+// Shared catalogue cache so the search box and the field don't double-fetch.
+let _catalogPromise: Promise<SatMeta[]> | null = null
+export function loadSatelliteCatalog(): Promise<SatMeta[]> {
+  if (!_catalogPromise) {
+    _catalogPromise = fetch("/data/satellites.json")
+      .then((r) => r.json())
+      .then((d) => (d.sats as SatMeta[]).map((s) => ({ id: s.id, name: s.name, owner: s.owner, launchMs: s.launchMs })))
+      .catch(() => [])
+  }
+  return _catalogPromise
+}
 
 // satellite.js is imported DYNAMICALLY (below), not at the top level — a static
 // import drags it into the Turbopack build graph and hangs `next build`. Loading
@@ -111,6 +132,15 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     return () => { cancelled = true }
   }, [])
 
+  const markerRef = useRef<THREE.Group>(null)
+  const lastSelected = useRef<number | null>(null)
+  // NORAD id → buffer index, for fast selection lookup.
+  const idToIndex = useMemo(() => {
+    const m = new Map<number, number>()
+    sats?.forEach((s, i) => m.set(s.id, i))
+    return m
+  }, [sats])
+
   const geometry = useMemo(() => {
     if (!sats || sats.length === 0) return null
     const n = sats.length
@@ -156,24 +186,67 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
       arr[i * 3 + 2] = -p.y * kmToScene
     }
     pos.needsUpdate = true
+
+    // --- selected satellite: position the highlight marker + (re)follow ---
+    const sel = selectedSatRef.current
+    const marker = markerRef.current
+    if (sel != null && marker) {
+      const idx = idToIndex.get(sel)
+      if (idx != null) {
+        marker.position.set(arr[idx * 3], arr[idx * 3 + 1], arr[idx * 3 + 2])
+        marker.visible = true
+        // Follow on a new selection — getter reads the marker's live world pos
+        // each frame so the camera rides along its orbit.
+        if (sel !== lastSelected.current) {
+          lastSelected.current = sel
+          const m = marker
+          requestFollow(
+            () => {
+              const v = new THREE.Vector3()
+              m.getWorldPosition(v)
+              return { x: v.x, y: v.y, z: v.z }
+            },
+            Math.max(earthVisualRadius * 0.6, 0.08),
+            sats.find((s) => s.id === sel)?.name,
+          )
+        }
+      }
+    } else if (marker) {
+      marker.visible = false
+      lastSelected.current = null
+    }
   })
 
   if (!geometry) return null
 
   return (
-    <points ref={pointsRef} geometry={geometry} frustumCulled={false}>
-      <shaderMaterial
-        ref={matRef}
-        vertexShader={VERT}
-        fragmentShader={FRAG}
-        transparent
-        depthWrite={false}
-        uniforms={{
-          uTimeMs: { value: simTimeRef.current.simMs },
-          uSize: { value: 90 },
-          uPixelRatio: { value: typeof window !== "undefined" ? Math.min(window.devicePixelRatio, 2) : 1 },
-        }}
-      />
-    </points>
+    <>
+      <points ref={pointsRef} geometry={geometry} frustumCulled={false}>
+        <shaderMaterial
+          ref={matRef}
+          vertexShader={VERT}
+          fragmentShader={FRAG}
+          transparent
+          depthWrite={false}
+          uniforms={{
+            uTimeMs: { value: simTimeRef.current.simMs },
+            uSize: { value: 90 },
+            uPixelRatio: { value: typeof window !== "undefined" ? Math.min(window.devicePixelRatio, 2) : 1 },
+          }}
+        />
+      </points>
+      {/* Highlight marker for the searched/selected satellite — a small glowing
+          ring + dot the camera follows. Hidden until a selection is set. */}
+      <group ref={markerRef} visible={false}>
+        <mesh>
+          <sphereGeometry args={[earthVisualRadius * 0.03, 12, 12]} />
+          <meshBasicMaterial color="#ffd24a" toneMapped={false} />
+        </mesh>
+        <mesh rotation={[Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[earthVisualRadius * 0.06, earthVisualRadius * 0.075, 32]} />
+          <meshBasicMaterial color="#ffd24a" transparent opacity={0.8} side={THREE.DoubleSide} toneMapped={false} />
+        </mesh>
+      </group>
+    </>
   )
 }

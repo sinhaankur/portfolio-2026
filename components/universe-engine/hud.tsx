@@ -384,8 +384,20 @@ export function InfoPanel({ info }: { info: BodyInfo | null }) {
 /** Available playback speeds (days of sim-time per second of real time,
  *  as a multiplier on the base TIME_WARP_DAYS_PER_SEC). The transport
  *  remembers the last non-zero magnitude so Play resumes at the chosen
- *  speed and Reverse flips its sign. */
-const SPEED_STEPS = [0.25, 1, 4, 20, 100] as const
+ *  speed and Reverse flips its sign.
+ *
+ *  LIVE = real-time: 1 simulated second per real second. As a multiplier on
+ *  TIME_WARP_DAYS_PER_SEC (= 365.25/24 days/sec at 1×) that's
+ *  (1/86400) / (365.25/24) ≈ 7.6e-7 — the sky moves exactly as it does right
+ *  now. Used for the satellite explorer's "watch it live" mode. */
+const LIVE_SPEED = (1 / 86400) / (365.25 / 24)
+const SPEED_STEPS = [LIVE_SPEED, 0.25, 1, 4, 20, 100] as const
+
+/** Label a speed step: "LIVE" for real-time, else "N×" sim-days/sec feel. */
+function speedLabel(s: number): string {
+  if (s === LIVE_SPEED) return "LIVE"
+  return `${s}×`
+}
 
 function formatSimDate(ms: number): { date: string; time: string } {
   const d = new Date(ms)
@@ -447,7 +459,7 @@ export function TimelineControl() {
   // we write simMs immediately and reflect it back.
   const [simMs, setSimMsState] = useState<number>(() => getSimMs())
   const [warp, setWarp] = useState<number>(() => timeWarpRef.current)
-  const [speedIdx, setSpeedIdx] = useState<number>(1) // default 1×
+  const [speedIdx, setSpeedIdx] = useState<number>(2) // default 1× (index 0=LIVE, 1=0.25×)
   const [waypointsOpen, setWaypointsOpen] = useState(false)
   const draggingRef = useRef(false)
 
@@ -551,15 +563,16 @@ export function TimelineControl() {
           <button
             type="button"
             onClick={cycleSpeed}
-            aria-label={`Playback speed ${speed}×, tap to change`}
-            className="
-              min-h-8 px-2.5 rounded-full border border-foreground/25
-              font-mono text-[10px] tracking-widest text-foreground/85 tabular-nums
+            aria-label={`Playback speed ${speedLabel(speed)}, tap to change`}
+            className={`
+              min-h-8 px-2.5 rounded-full border
+              font-mono text-[10px] tracking-widest tabular-nums
               hover:border-accent/60 hover:text-foreground transition-colors
               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
-            "
+              ${speed === LIVE_SPEED ? "border-accent/70 text-accent" : "border-foreground/25 text-foreground/85"}
+            `}
           >
-            {speed}×
+            {speedLabel(speed)}
           </button>
         </div>
       </div>
