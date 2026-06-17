@@ -120,7 +120,7 @@ export function Hero() {
           {tvBrowserFallback ? (
             <StaticStarfield />
           ) : (
-            <UniverseEngine interactive={interactive} showMusic={true} />
+            <UniverseEngine interactive={interactive} showMusic={true} minimalControls />
           )}
         </UniverseRuntimeFallback>
       </div>

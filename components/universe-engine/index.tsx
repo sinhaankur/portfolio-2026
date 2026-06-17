@@ -84,6 +84,13 @@ export type UniverseEngineProps = {
    * Milky Way, and deep-sky/exoplanet points. Used by /lab/celestial.
    */
   solarOnly?: boolean
+  /**
+   * Hide the advanced toggle cluster (clouds, satellites, scale, destinations,
+   * gravity, deep-dive). Keeps the experience calm on the home hero, where those
+   * power-user controls overwhelm the first impression. The dedicated explorer
+   * (/lab/celestial) leaves them on. Defaults to false (show everything).
+   */
+  minimalControls?: boolean
 }
 
 export function UniverseEngine({
@@ -93,6 +100,7 @@ export function UniverseEngine({
   invert: invertProp,
   defaultTrueScale = false,
   solarOnly = false,
+  minimalControls = false,
 }: UniverseEngineProps) {
   // Set the module-scoped scale ref synchronously on first render so the very
   // first scene mount already lays bodies out at true ratios (the effect below
@@ -475,14 +483,19 @@ export function UniverseEngine({
             {/* Overlay toggles stay desktop-only — too wide on phones, they
                 would push the cluster into UPCOMING. Touch users still get
                 pinch-zoom + drag + tap-to-explore. */}
-            <div className="hidden md:flex items-center gap-2">
-              <CloudToggle active={showClouds} onToggle={() => setShowClouds(v => !v)} />
-              <SatelliteToggle active={showSatellites} onToggle={() => setShowSatellites(v => !v)} />
-              <ScaleToggle active={trueScale} onToggle={() => setTrueScale(v => !v)} />
-              <DestinationsMenu />
-              <GravityToggle active={showGravityOverlay} onToggle={() => setShowGravityOverlay(v => !v)} />
-              <DeepDiveToggle active={showDeepDive} onToggle={() => setShowDeepDive(v => !v)} />
-            </div>
+            {/* Advanced power-user toggles — hidden on the home hero
+                (minimalControls) so the landing feels calm; shown in the
+                dedicated explorer. */}
+            {!minimalControls && (
+              <div className="hidden md:flex items-center gap-2">
+                <CloudToggle active={showClouds} onToggle={() => setShowClouds(v => !v)} />
+                <SatelliteToggle active={showSatellites} onToggle={() => setShowSatellites(v => !v)} />
+                <ScaleToggle active={trueScale} onToggle={() => setTrueScale(v => !v)} />
+                <DestinationsMenu />
+                <GravityToggle active={showGravityOverlay} onToggle={() => setShowGravityOverlay(v => !v)} />
+                <DeepDiveToggle active={showDeepDive} onToggle={() => setShowDeepDive(v => !v)} />
+              </div>
+            )}
             {showMusic && <GalaxyMusic />}
           </div>
 
