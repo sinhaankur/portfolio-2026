@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <title>Cavern Dash — Simple Games</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#f5f5f0">
+  <link rel="icon" href="../img/logo.png">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link href="css/retro.css" rel="stylesheet">
+  <style>
+    html, body { margin: 0; min-height: 100dvh; overflow-x: hidden; }
+    body {
+      display: flex; flex-direction: column; align-items: center; gap: 0.75rem;
+      padding:
+        max(0.75rem, env(safe-area-inset-top))
+        max(0.75rem, env(safe-area-inset-right))
+        max(0.75rem, env(safe-area-inset-bottom))
+        max(0.75rem, env(safe-area-inset-left));
+    }
+    .game-topbar { width: min(100%, 760px); display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+    .back-link {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      font-family: "Space Mono", monospace; font-size: 0.75rem;
+      letter-spacing: 0.15em; text-transform: uppercase;
+      color: hsl(var(--foreground)); text-decoration: none;
+      padding: 0.5rem 0.8rem; min-height: 40px;
+      border: 2px solid hsl(var(--border)); background: hsl(var(--card));
+      box-shadow: 3px 3px 0 hsl(var(--border));
+    }
+    .back-link:active { transform: translate(2px, 2px); box-shadow: none; }
+    .game-container {
+      background: hsl(var(--card)); color: hsl(var(--card-foreground));
+      border: 3px solid hsl(var(--border)); box-shadow: var(--shadow-lg);
+      padding: clamp(0.75rem, 2vw, 1.5rem);
+      display: flex; flex-direction: column; align-items: center;
+      gap: clamp(0.6rem, 1.5vw, 1rem); width: min(100%, 760px);
+    }
+    .game-container h1 {
+      font-family: "DM Sans", sans-serif; font-weight: 700;
+      font-size: clamp(1.25rem, 4vw, 1.875rem);
+      letter-spacing: -0.02em; margin: 0; text-transform: uppercase;
+    }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; width: 100%; }
+    .stat {
+      border: 2px solid hsl(var(--border)); background: hsl(var(--card));
+      padding: 0.4rem 0.5rem; text-align: center; box-shadow: 3px 3px 0 hsl(var(--border));
+    }
+    .stat label { display: block; font-family: "Space Mono", monospace; font-size: 0.58rem; letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.7; }
+    .stat span { display: block; font-family: "Space Mono", monospace; font-size: clamp(0.9rem, 2.4vw, 1.25rem); font-weight: 700; margin-top: 0.15rem; }
+    canvas#game {
+      width: 100%; max-width: 720px; height: auto; aspect-ratio: 5 / 3;
+      background: #0d1020; border: 3px solid hsl(var(--border));
+      box-shadow: var(--shadow); touch-action: none; image-rendering: pixelated; display: block;
+    }
+    .game-container .retro-btn { width: 100%; max-width: 320px; }
+    .hint { font-family: "Space Mono", monospace; font-size: 0.66rem; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.65; text-align: center; }
+
+    /* Touch controls — left/right pad + jump */
+    .touch { display: none; width: 100%; gap: 0.5rem; }
+    .touch .pad { display: flex; gap: 0.5rem; }
+    .touch .retro-btn.ctrl { min-height: 64px; font-size: 1.5rem; font-weight: 700; flex: 1; touch-action: manipulation; }
+    .touch .jump { flex: 1.2; }
+    @media (pointer: coarse) { .touch { display: flex; } }
+
+    .message-box {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      background: hsl(var(--card)); color: hsl(var(--card-foreground));
+      border: 3px solid hsl(var(--border)); box-shadow: var(--shadow-lg);
+      padding: 1.75rem; text-align: center; z-index: 100; display: none;
+      max-width: min(92%, 440px); width: 100%; font-family: "DM Sans", sans-serif;
+    }
+    .message-box h2 { margin: 0 0 0.5rem; font-size: 1.6rem; letter-spacing: -0.02em; }
+    .message-box p { margin: 0 0 1.25rem; font-size: 1.05rem; line-height: 1.45; }
+    .message-box .retro-btn { width: 100%; }
+  </style>
+</head>
+<body>
+  <header class="game-topbar">
+    <a href="Gamelist.html" class="back-link">← Games</a>
+    <button id="themeToggle" class="retro-icon-btn" title="Toggle Dark/Light Mode" aria-label="Toggle theme">🌙</button>
+  </header>
+
+  <div class="game-container">
+    <h1>Cavern Dash</h1>
+    <div class="stats-row">
+      <div class="stat"><label>Level</label><span id="level">1</span></div>
+      <div class="stat"><label>Gems</label><span id="gems">0/0</span></div>
+      <div class="stat"><label>Lives</label><span id="lives">3</span></div>
+      <div class="stat"><label>Score</label><span id="score">0</span></div>
+    </div>
+    <canvas id="game" width="600" height="360"></canvas>
+    <button id="startButton" class="retro-btn retro-btn--primary">Start Game</button>
+    <p class="hint">← → or A/D to move · ↑ / W / Space to jump · grab every gem + the 🏆, then reach the door 🚪</p>
+
+    <div class="touch" aria-label="On-screen controls">
+      <div class="pad">
+        <button class="retro-btn ctrl" id="leftBtn" aria-label="Move left">◀</button>
+        <button class="retro-btn ctrl" id="rightBtn" aria-label="Move right">▶</button>
+      </div>
+      <button class="retro-btn ctrl jump retro-btn--primary" id="jumpBtn" aria-label="Jump">JUMP ▲</button>
+    </div>
+  </div>
+
+  <div id="messageBox" class="message-box">
+    <h2 id="messageTitle">Cavern Dash</h2>
+    <p id="messageText"></p>
+    <button id="restartButton" class="retro-btn retro-btn--primary">Play</button>
+  </div>
+
+<script>
+/* ================================================================
+   CAVERN DASH — Simple Games
+   ----------------------------------------------------------------
+   A Dangerous-Dave-style pixel platformer. Every level shares the
+   SAME tileset + look; layouts change and difficulty ramps (more
+   gems, spikes, enemies, longer jumps). Collect all gems + the
+   trophy, then reach the door to clear the level.
+
+   Tiles (ASCII level maps):
+     #  brick (solid)      =  one-way-ish platform (solid here)
+     *  spike (deadly)     o  gem (collect)      T  trophy
+     D  door / exit        @  player spawn       ^  enemy spawn
+     (space) empty
+   Pixel-art is drawn directly to the canvas (no image assets).
+   ================================================================ */
+(function () {
+  "use strict";
+  const TILE = 24;                       // world tile size in px (canvas units)
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d");
+  ctx.imageSmoothingEnabled = false;
+
+  // ---- Level maps. All the same width (25) so the camera + look stay consistent.
+  // Difficulty ramps: more spikes/enemies/gems, trickier jumps, later levels.
+  const LEVELS = [
+    [
+      "#########################",
+      "#@      o     o         #",
+      "#   ###    ##     ###   #",
+      "#         o          o  #",
+      "#  ###   ###  ^   ##     #",
+      "#               ####   o#",
+      "#  o   ^   ###          T#",
+      "# ###     * *    ###  ####",
+      "#      ###   ###        D#",
+      "#####**###***###***##*####",
+      "#########################",
+    ],
+    [
+      "#########################",
+      "#@   o    ^      o   o  T#",
+      "# ##   ###   ###   ##  ##",
+      "#   o        *        o  #",
+      "#  ###  ^  ###  ###  ##  #",
+      "#     *      o       *   #",
+      "# ###   ###    ###  ### o#",
+      "#   ^      **      ^     #",
+      "# ##   ###   ###    ## ###",
+      "#o  * *   o  * *  o  *  D#",
+      "##**####***###***####**###",
+      "#########################",
+    ],
+    [
+      "#########################",
+      "#@  o ^  o  ^  o  ^  o  T#",
+      "###  ##  ##  ##  ##  ## ##",
+      "#  *      *      *      o#",
+      "# ### ^ ### ^ ### ^ ###  #",
+      "#   o     o      o    *  #",
+      "###  ## *  ## *  ## *  ###",
+      "#  ^    o     o    ^   o #",
+      "# ### ### ### ### ### ## #",
+      "#o * * * o * * o * * * oD#",
+      "##*##**##**##**##**##**###",
+      "#########################",
+    ],
+  ];
+
+  const COLS = LEVELS[0][0].length;
+  const ROWS = LEVELS[0].length;
+  // Camera viewport (in tiles) — world is wider/taller than the view on small screens.
+  // Here world fits the 25×12 view at TILE=24 → 600×288; canvas is 600×360, scale to fit.
+  canvas.width = COLS * TILE;            // 600
+  canvas.height = ROWS * TILE;           // 288
+  canvas.style.aspectRatio = COLS + " / " + ROWS;
+
+  // ---- Game state
+  let level = 0, lives = 3, score = 0;
+  let running = false, ended = false;
+  let solids, spikes, gems, trophy, door, enemies, player, gemsTotal, gemsGot, hasTrophy;
+  let keys = { left: false, right: false, jump: false };
+
+  const el = {
+    level: document.getElementById("level"),
+    gems: document.getElementById("gems"),
+    lives: document.getElementById("lives"),
+    score: document.getElementById("score"),
+    start: document.getElementById("startButton"),
+    box: document.getElementById("messageBox"),
+    title: document.getElementById("messageTitle"),
+    text: document.getElementById("messageText"),
+    restart: document.getElementById("restartButton"),
+  };
+
+  function loadLevel(i) {
+    const map = LEVELS[i];
+    solids = []; spikes = []; gems = []; enemies = [];
+    trophy = null; door = null; hasTrophy = false; gemsGot = 0;
+    for (let r = 0; r < map.length; r++) {
+      for (let c = 0; c < map[r].length; c++) {
+        const ch = map[r][c];
+        const x = c * TILE, y = r * TILE;
+        if (ch === "#" || ch === "=") solids.push({ x, y, w: TILE, h: TILE, kind: ch });
+        else if (ch === "*") spikes.push({ x, y, w: TILE, h: TILE });
+        else if (ch === "o") gems.push({ x: x + TILE / 2, y: y + TILE / 2, got: false });
+        else if (ch === "T") trophy = { x: x + TILE / 2, y: y + TILE / 2, got: false };
+        else if (ch === "D") door = { x, y, w: TILE, h: TILE };
+        else if (ch === "@") player = makePlayer(x, y);
+        else if (ch === "^") enemies.push(makeEnemy(x, y));
+      }
+    }
+    gemsTotal = gems.length;
+    if (!player) player = makePlayer(TILE, TILE);
+    updateHud();
+  }
+
+  function makePlayer(x, y) {
+    return { x: x + 3, y: y + 2, w: TILE - 6, h: TILE - 3, vx: 0, vy: 0, onGround: false, face: 1, animT: 0 };
+  }
+  function makeEnemy(x, y) {
+    return { x: x + 3, y: y + 4, w: TILE - 6, h: TILE - 6, dir: Math.random() < 0.5 ? -1 : 1, x0: x, animT: 0 };
+  }
+
+  // ---- Physics constants
+  const GRAV = 0.6, MOVE = 0.9, FRICTION = 0.78, MAXVX = 4.2, JUMP = 11.2, ENEMY_SPD = 1.1;
+
+  function aabb(a, b) {
+    return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+  }
+
+  function moveAxis(ent, dx, dy) {
+    // move on X then Y, resolving against solids
+    ent.x += dx;
+    for (const s of solids) {
+      if (aabb(ent, s)) {
+        if (dx > 0) ent.x = s.x - ent.w;
+        else if (dx < 0) ent.x = s.x + s.w;
+        ent.vx = 0;
+      }
+    }
+    ent.y += dy;
+    ent.onGround = false;
+    for (const s of solids) {
+      if (aabb(ent, s)) {
+        if (dy > 0) { ent.y = s.y - ent.h; ent.onGround = true; ent.vy = 0; }
+        else if (dy < 0) { ent.y = s.y + s.h; ent.vy = 0; }
+      }
+    }
+  }
+
+  function step() {
+    // input → player velocity
+    if (keys.left) { player.vx -= MOVE; player.face = -1; }
+    if (keys.right) { player.vx += MOVE; player.face = 1; }
+    if (!keys.left && !keys.right) player.vx *= FRICTION;
+    player.vx = Math.max(-MAXVX, Math.min(MAXVX, player.vx));
+    if (keys.jump && player.onGround) { player.vy = -JUMP; player.onGround = false; }
+    player.vy += GRAV;
+    player.vy = Math.min(player.vy, 16);
+    moveAxis(player, player.vx, 0);
+    moveAxis(player, 0, player.vy);
+    player.animT += Math.abs(player.vx) * 0.2;
+
+    // fell out of the world
+    if (player.y > canvas.height + 40) return die("You fell into the dark.");
+
+    // enemies patrol; reverse at walls/ledges
+    for (const e of enemies) {
+      e.x += e.dir * ENEMY_SPD;
+      e.animT += 0.15;
+      let hit = false;
+      for (const s of solids) { if (aabb(e, s)) { hit = true; break; } }
+      // ledge check: is there ground just ahead-below?
+      const probe = { x: e.x + (e.dir > 0 ? e.w + 1 : -1), y: e.y + e.h + 2, w: 1, h: 2 };
+      let ground = false;
+      for (const s of solids) { if (aabb(probe, s)) { ground = true; break; } }
+      if (hit || !ground) { e.dir *= -1; e.x += e.dir * (ENEMY_SPD + 1); }
+      // collide with player
+      if (aabb(player, e)) {
+        // stomp: player falling onto enemy's head
+        if (player.vy > 1 && player.y + player.h - e.y < 14) {
+          e.dead = true; player.vy = -JUMP * 0.6; score += 50; updateHud();
+        } else {
+          return die("A critter got you.");
+        }
+      }
+    }
+    enemies = enemies.filter((e) => !e.dead);
+
+    // spikes
+    for (const sp of spikes) {
+      if (aabb(player, { x: sp.x + 3, y: sp.y + 8, w: sp.w - 6, h: sp.h - 8 })) return die("Spikes!");
+    }
+
+    // gems
+    for (const g of gems) {
+      if (!g.got && Math.abs(player.x + player.w / 2 - g.x) < 16 && Math.abs(player.y + player.h / 2 - g.y) < 16) {
+        g.got = true; gemsGot++; score += 25; updateHud();
+      }
+    }
+    // trophy
+    if (trophy && !trophy.got && Math.abs(player.x + player.w / 2 - trophy.x) < 18 && Math.abs(player.y + player.h / 2 - trophy.y) < 18) {
+      trophy.got = true; hasTrophy = true; score += 100; updateHud();
+    }
+    // door — only when all gems + trophy collected
+    if (door && gemsGot >= gemsTotal && (!trophy || hasTrophy) && aabb(player, door)) {
+      return nextLevel();
+    }
+  }
+
+  function die(msg) {
+    lives--; updateHud();
+    if (lives <= 0) { running = false; ended = true; showBox("Game Over", msg + " No lives left. Final score " + score + ".", "Play again"); return; }
+    // respawn at level start, keep collected progress
+    const saveGems = gems.map((g) => g.got), saveTrophy = trophy ? trophy.got : false;
+    const sgot = gemsGot, sscore = score;
+    loadLevel(level);
+    gems.forEach((g, i) => { if (saveGems[i]) g.got = true; });
+    if (trophy) trophy.got = saveTrophy;
+    hasTrophy = saveTrophy; gemsGot = sgot; score = sscore;
+    updateHud();
+    flash(msg);
+  }
+
+  let flashMsg = "", flashT = 0;
+  function flash(m) { flashMsg = m; flashT = 90; }
+
+  function nextLevel() {
+    score += 200;
+    if (level + 1 >= LEVELS.length) {
+      running = false; ended = true;
+      showBox("You Escaped!", "All caverns cleared. Final score " + score + ". A true cavern runner.", "Play again");
+      return;
+    }
+    level++;
+    loadLevel(level);
+    flash("Level " + (level + 1));
+  }
+
+  function updateHud() {
+    el.level.textContent = level + 1;
+    el.gems.textContent = gemsGot + "/" + gemsTotal;
+    el.lives.textContent = Math.max(0, lives);
+    el.score.textContent = score;
+  }
+
+  // ---- Rendering (pixel art drawn directly) ----
+  function px(x, y, w, h, color) { ctx.fillStyle = color; ctx.fillRect(x | 0, y | 0, w | 0, h | 0); }
+
+  function drawBrick(x, y) {
+    px(x, y, TILE, TILE, "#5a4636");
+    px(x, y, TILE, 3, "#6f5946");
+    // mortar lines
+    px(x, y + TILE / 2, TILE, 2, "#3c2f24");
+    px(x + TILE / 2, y, 2, TILE / 2, "#3c2f24");
+    px(x, y + TILE / 2, TILE / 4, 2, "#3c2f24");
+    px(x + (TILE * 3) / 4, y + TILE / 2, TILE / 4, 2, "#3c2f24");
+  }
+  function drawSpike(x, y) {
+    px(x, y + TILE - 4, TILE, 4, "#444a55");
+    ctx.fillStyle = "#c9ced8";
+    for (let i = 0; i < 3; i++) {
+      const bx = x + i * (TILE / 3);
+      ctx.beginPath();
+      ctx.moveTo(bx, y + TILE);
+      ctx.lineTo(bx + TILE / 6, y + 6);
+      ctx.lineTo(bx + TILE / 3, y + TILE);
+      ctx.closePath(); ctx.fill();
+    }
+  }
+  function drawGem(g) {
+    if (g.got) return;
+    const t = Date.now() / 300, bob = Math.sin(t + g.x) * 2;
+    const cx = g.x, cy = g.y + bob;
+    ctx.fillStyle = "#28e0d0";
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - 7); ctx.lineTo(cx + 6, cy); ctx.lineTo(cx, cy + 7); ctx.lineTo(cx - 6, cy);
+    ctx.closePath(); ctx.fill();
+    px(cx - 2, cy - 3, 2, 2, "#bafff7");
+  }
+  function drawTrophy(tr) {
+    if (!tr || tr.got) return;
+    const bob = Math.sin(Date.now() / 280) * 2, x = tr.x, y = tr.y + bob;
+    px(x - 7, y - 8, 14, 9, "#f0c020");      // cup
+    px(x - 9, y - 7, 3, 5, "#f0c020");        // handles
+    px(x + 6, y - 7, 3, 5, "#f0c020");
+    px(x - 3, y + 1, 6, 4, "#caa018");        // stem
+    px(x - 6, y + 5, 12, 3, "#caa018");       // base
+    px(x - 4, y - 6, 3, 3, "#fff3b0");        // shine
+  }
+  function drawDoor(d) {
+    const open = gemsGot >= gemsTotal && (!trophy || hasTrophy);
+    px(d.x + 3, d.y + 2, TILE - 6, TILE - 2, open ? "#2a6f4a" : "#3a3550");
+    px(d.x + 3, d.y + 2, TILE - 6, 3, open ? "#3a8f60" : "#4a4566");
+    if (open) { // glowing exit
+      ctx.fillStyle = "rgba(120,255,180,0.5)";
+      ctx.fillRect(d.x + 6, d.y + 5, TILE - 12, TILE - 6);
+      px(d.x + TILE - 9, d.y + TILE / 2, 2, 4, "#bfffd9");
+    } else {
+      px(d.x + TILE - 9, d.y + TILE / 2, 2, 4, "#9a95b5"); // knob
+      // lock hint
+      px(d.x + TILE/2 - 3, d.y + TILE/2 - 2, 6, 6, "#f0c020");
+    }
+  }
+  function drawPlayer(p) {
+    const x = p.x, y = p.y, f = p.face;
+    const stepF = p.onGround && Math.abs(p.vx) > 0.5 ? Math.floor(p.animT) % 2 : 0;
+    // body (explorer: red shirt, blue legs, skin head)
+    px(x + 2, y + 8, p.w - 4, 7, "#d23b3b");     // shirt
+    px(x + 3, y + 15, 4, 4 + stepF, "#2d5bb0");   // left leg
+    px(x + p.w - 7, y + 15, 4, 4 - stepF, "#2d5bb0"); // right leg
+    px(x + 4, y + 1, p.w - 8, 7, "#e8b890");      // head
+    px(x + 4, y, p.w - 8, 3, "#7a4a28");          // hair/cap
+    // eye (faces direction)
+    px(f > 0 ? x + p.w - 7 : x + 4, y + 3, 2, 2, "#1a1a1a");
+    // arm
+    px(f > 0 ? x + p.w - 4 : x, y + 9, 3, 5, "#e8b890");
+  }
+  function drawEnemy(e) {
+    const x = e.x, y = e.y, wob = Math.sin(e.animT) * 1.5;
+    px(x, y + 2, e.w, e.h - 2, "#8a3ad0");        // blob body
+    px(x + 1, y + wob, e.w - 2, 4, "#a050e0");    // top wobble
+    px(x + 3, y + 6, 3, 3, "#fff");               // eyes
+    px(x + e.w - 6, y + 6, 3, 3, "#fff");
+    px(x + 4, y + 7, 2, 2, "#1a1a1a");
+    px(x + e.w - 5, y + 7, 2, 2, "#1a1a1a");
+    // feet
+    px(x, y + e.h - 1, 3, 2, "#5a1f8a");
+    px(x + e.w - 3, y + e.h - 1, 3, 2, "#5a1f8a");
+  }
+
+  function draw() {
+    // cave background gradient + faint grid
+    const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    g.addColorStop(0, "#141a2e"); g.addColorStop(1, "#0a0c16");
+    ctx.fillStyle = g; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    for (const s of solids) drawBrick(s.x, s.y);
+    for (const sp of spikes) drawSpike(sp.x, sp.y);
+    for (const gem of gems) drawGem(gem);
+    drawTrophy(trophy);
+    if (door) drawDoor(door);
+    for (const e of enemies) drawEnemy(e);
+    if (player) drawPlayer(player);
+
+    if (flashT > 0) {
+      ctx.fillStyle = "rgba(0,0,0,0.55)";
+      const bw = Math.min(canvas.width - 40, 320), bh = 44;
+      ctx.fillRect((canvas.width - bw) / 2, canvas.height / 2 - bh / 2, bw, bh);
+      ctx.fillStyle = "#fff"; ctx.font = "bold 18px 'DM Sans', sans-serif";
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(flashMsg, canvas.width / 2, canvas.height / 2);
+      flashT--;
+    }
+  }
+
+  function loop() {
+    if (running) step();
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  // ---- UI flow
+  function showBox(title, text, btn) {
+    el.title.textContent = title; el.text.textContent = text;
+    el.restart.textContent = btn; el.box.style.display = "block";
+  }
+  function hideBox() { el.box.style.display = "none"; }
+
+  function startGame() {
+    level = 0; lives = 3; score = 0; ended = false;
+    loadLevel(0); hideBox(); el.start.style.display = "none"; running = true;
+    flash("Level 1");
+  }
+
+  el.start.addEventListener("click", startGame);
+  el.restart.addEventListener("click", startGame);
+
+  // ---- Input
+  const keymap = {
+    ArrowLeft: "left", KeyA: "left", ArrowRight: "right", KeyD: "right",
+    ArrowUp: "jump", KeyW: "jump", Space: "jump",
+  };
+  addEventListener("keydown", (e) => {
+    const k = keymap[e.code]; if (!k) return;
+    e.preventDefault(); keys[k] = true;
+    if (!running && !ended && e.code === "Space") startGame();
+  });
+  addEventListener("keyup", (e) => { const k = keymap[e.code]; if (k) keys[k] = false; });
+
+  function bindHold(id, key) {
+    const b = document.getElementById(id);
+    const on = (e) => { e.preventDefault(); keys[key] = true; };
+    const off = (e) => { e.preventDefault(); keys[key] = false; };
+    b.addEventListener("touchstart", on, { passive: false });
+    b.addEventListener("touchend", off); b.addEventListener("touchcancel", off);
+    b.addEventListener("mousedown", on); b.addEventListener("mouseup", off); b.addEventListener("mouseleave", off);
+  }
+  bindHold("leftBtn", "left"); bindHold("rightBtn", "right"); bindHold("jumpBtn", "jump");
+
+  // ---- Theme toggle (matches the other games)
+  (function () {
+    const root = document.documentElement, t = document.getElementById("themeToggle");
+    function apply(theme) {
+      root.setAttribute("data-theme", theme);
+      t.textContent = theme === "dark" ? "☀" : "🌙";
+      try { localStorage.setItem("games-theme", theme); } catch (e) {}
+      const m = document.querySelector('meta[name="theme-color"]');
+      if (m) m.setAttribute("content", theme === "dark" ? "#0a0a0a" : "#f5f5f0");
+    }
+    let saved; try { saved = localStorage.getItem("games-theme"); } catch (e) {}
+    apply(saved === "dark" ? "dark" : "light");
+    t.addEventListener("click", () => apply(root.getAttribute("data-theme") === "dark" ? "light" : "dark"));
+  })();
+
+  // first paint + idle attract
+  loadLevel(0); running = false;
+  showBox("Cavern Dash", "Grab every gem and the 🏆, then reach the door 🚪. Stomp critters, dodge spikes. Same cavern, three levels — each one nastier.", "Play");
+  loop();
+})();
+</script>
+</body>
+</html>

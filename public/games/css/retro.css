@@ -425,6 +425,29 @@ a { color: hsl(var(--accent)); }
 @keyframes gp-warp { from { transform: translateZ(0) scale(0.5); opacity: 0; } 30% { opacity: 1; } to { transform: scale(2.4); opacity: 0; } }
 @keyframes gp-bank { 0%,100% { transform: translate(-50%,-50%) rotate(-8deg); } 50% { transform: translate(-50%,-50%) rotate(8deg); } }
 
+/* — Cavern Dash: a brick floor, a gem, and a hopping explorer — */
+.gp-cavern { background: linear-gradient(180deg,#141a2e,#0a0c16); }
+.gp-cavern .floor { position: absolute; left: 0; right: 0; bottom: 0; height: 22%; background:
+  repeating-linear-gradient(90deg,#5a4636 0 22px,#3c2f24 22px 24px),
+  linear-gradient(#6f5946,#5a4636); border-top: 3px solid #3c2f24; }
+.gp-cavern .hero {
+  position: absolute; bottom: 22%; left: 18%; width: 9%; aspect-ratio: 3/4;
+  background: linear-gradient(#7a4a28 0 22%, #e8b890 22% 46%, #d23b3b 46% 74%, #2d5bb0 74% 100%);
+  animation: gp-hop 1.4s ease-in-out infinite;
+}
+.gp-cavern .gem {
+  position: absolute; bottom: 30%; right: 24%; width: 7%; aspect-ratio: 1; background: #28e0d0;
+  transform: rotate(45deg); animation: gp-gembob 1.8s ease-in-out infinite;
+}
+.gp-cavern .cup {
+  position: absolute; bottom: 26%; right: 9%; width: 9%; aspect-ratio: 1;
+  background: #f0c020; clip-path: polygon(15% 0,85% 0,72% 55%,28% 55%); animation: gp-gembob 2.1s ease-in-out infinite;
+}
+@keyframes gp-hop { 0%,100% { bottom: 22%; } 45% { bottom: 38%; } }
+@keyframes gp-gembob { 0%,100% { transform: translateY(0) rotate(45deg); } 50% { transform: translateY(-4px) rotate(45deg); } }
+.gp-cavern .cup { animation-name: gp-cupbob; }
+@keyframes gp-cupbob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+
 /* Make the whole card a click target (the <a> wraps the card). */
 .retro-card-link { text-decoration: none; color: inherit; display: block; height: 100%; }
 .retro-card-link > .retro-card { height: 100%; }
