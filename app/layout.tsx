@@ -55,9 +55,9 @@ const jetbrains = JetBrains_Mono({
 
 const SITE_URL = "https://www.sinhaankur.com"
 const SITE_NAME = "Ankur Sinha"
-const SITE_TAGLINE = "Principal UX Designer · Human–AI Interaction"
+const SITE_TAGLINE = "Design × Engineering × AI"
 const SITE_DESCRIPTION =
-  "Principal UX Designer working on human-in-the-loop interfaces for agentic AI — code prototypes for keeping humans in command of AI agents."
+  "Designer-engineer who designs and ships AI products end to end — human-in-the-loop interfaces for agentic AI, built as working code, not just mockups."
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -70,11 +70,12 @@ export const metadata: Metadata = {
   creator: SITE_NAME,
   applicationName: SITE_NAME,
   keywords: [
-    "UX Designer",
-    "Principal Designer",
+    "AI Engineer",
+    "Design Engineer",
     "Human–AI Interaction",
     "Agentic AI",
-    "Design Engineer",
+    "Full-stack Engineer",
+    "UX Designer",
     "Portfolio",
     "Ankur Sinha",
   ],
@@ -150,7 +151,7 @@ const personSchema = {
   "@type": "Person",
   name: "Ankur Sinha",
   url: SITE_URL,
-  jobTitle: "Principal UX Designer",
+  jobTitle: "Designer-Engineer (AI)",
   description: SITE_DESCRIPTION,
   knowsAbout: [
     "Human–AI Interaction",
@@ -233,7 +234,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
                 Ankur Sinha
               </p>
               <h1 className="font-serif text-3xl md:text-5xl leading-tight mb-6">
-                Principal UX Designer · Human–AI Interaction
+                Design × Engineering × AI
               </h1>
               <p className="text-base md:text-lg leading-relaxed text-foreground/85 mb-8">
                 Engineer-turned-designer in Toronto. Currently Principal UX at

@@ -3,7 +3,6 @@
 import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 import { StaticStarfield } from '@/components/universe-engine/static-starfield';
-import { useIsMobile } from '@/hooks/use-mobile';
 import { UniverseRuntimeFallback } from '@/components/universe-engine/runtime-fallback';
 
 const UniverseEngine = dynamic(() => import('@/components/universe-engine').then((mod) => mod.UniverseEngine), {
@@ -29,7 +28,6 @@ export default function HelionDriftExperience() {
   const [gameReady, setGameReady] = useState(false);
   const [gameLoadTimedOut, setGameLoadTimedOut] = useState(false);
   const [launchError, setLaunchError] = useState<string | null>(null);
-  const isMobile = useIsMobile();
 
   const canUseWebGL = () => {
     if (typeof window === 'undefined') return true;
@@ -74,59 +72,25 @@ export default function HelionDriftExperience() {
 
   if (showGame) {
     return (
-      <div style={{ width: '100vw', height: '100vh', overflow: 'hidden', margin: 0, padding: 0 }}>
+      <div className="relative h-screen w-screen overflow-hidden bg-background">
         <UniverseRuntimeFallback>
           <GameCanvas onReady={() => setGameReady(true)} />
         </UniverseRuntimeFallback>
 
         {gameLoadTimedOut && !gameReady && (
-          <div
-            style={{
-              position: 'fixed',
-              inset: 0,
-              zIndex: 45,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              pointerEvents: 'none',
-              padding: '16px',
-            }}
-          >
-            <div
-              style={{
-                pointerEvents: 'auto',
-                maxWidth: '500px',
-                borderRadius: '16px',
-                border: '1px solid rgba(255,255,255,0.25)',
-                background: 'rgba(0,0,0,0.78)',
-                backdropFilter: 'blur(12px)',
-                padding: '16px',
-                textAlign: 'center',
-                color: 'rgba(255,255,255,0.9)',
-              }}
-            >
-              <p style={{ margin: 0, fontFamily: 'monospace', fontSize: '10px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)' }}>
+          <div className="fixed inset-0 z-[45] grid place-items-center p-4 pointer-events-none">
+            <div className="pointer-events-auto max-w-md rounded-2xl border border-foreground/20 bg-background/85 backdrop-blur-xl p-5 text-center text-foreground/90">
+              <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-foreground/60">
                 Launch interrupted
               </p>
-              <p style={{ margin: '10px 0 0', fontSize: '14px', lineHeight: 1.5 }}>
+              <p className="mt-2.5 text-sm leading-relaxed">
                 WebGL initialization took too long or failed in this environment.
               </p>
               <button
                 type="button"
                 onClick={handleBackToUniverse}
-                style={{
-                  marginTop: '14px',
-                  padding: '8px 14px',
-                  border: '1px solid rgba(255,255,255,0.35)',
-                  borderRadius: '8px',
-                  background: 'rgba(0,0,0,0.5)',
-                  color: '#fff',
-                  fontFamily: 'monospace',
-                  fontSize: '11px',
-                  letterSpacing: '0.1em',
-                  textTransform: 'uppercase',
-                  cursor: 'pointer',
-                }}
+                data-cursor-hover
+                className="mt-3.5 inline-flex items-center rounded-full border border-foreground/30 bg-background/40 px-4 py-2 font-mono text-[11px] tracking-[0.1em] uppercase text-foreground backdrop-blur-sm transition-colors hover:bg-foreground hover:text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               >
                 Back to Universe
               </button>
@@ -136,22 +100,8 @@ export default function HelionDriftExperience() {
 
         <button
           onClick={handleBackToUniverse}
-          style={{
-            position: 'fixed',
-            top: isMobile ? 'max(12px, env(safe-area-inset-top))' : '16px',
-            left: isMobile ? '12px' : '16px',
-            zIndex: 50,
-            padding: isMobile ? '10px 14px' : '8px 16px',
-            background: 'rgba(0, 0, 0, 0.7)',
-            color: '#fff',
-            border: '1px solid rgba(255, 255, 255, 0.3)',
-            borderRadius: '8px',
-            fontSize: isMobile ? '11px' : '12px',
-            cursor: 'pointer',
-            fontFamily: 'monospace',
-            letterSpacing: isMobile ? '0.08em' : '0.1em',
-            textTransform: 'uppercase',
-          }}
+          data-cursor-hover
+          className="fixed left-3 top-[max(12px,env(safe-area-inset-top))] z-50 inline-flex min-h-11 items-center rounded-full border border-foreground/30 bg-background/50 px-4 py-2.5 font-mono text-[11px] tracking-[0.1em] uppercase text-foreground backdrop-blur-sm transition-colors hover:bg-foreground hover:text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent md:left-4 md:top-4 md:text-xs"
         >
           ← Back to Universe
         </button>
@@ -160,7 +110,7 @@ export default function HelionDriftExperience() {
   }
 
   return (
-    <div style={{ width: '100vw', height: '100vh', overflow: 'hidden', margin: 0, padding: 0 }}>
+    <div className="relative h-screen w-screen overflow-hidden bg-background">
       {/* Pre-launch backdrop: interactive solar system, but the engine's own
           HUD is suppressed so it doesn't collide with this page's launch
           chrome (timeline ↔ Launch button, reset/toggles ↔ info panel). The
@@ -168,107 +118,32 @@ export default function HelionDriftExperience() {
       <UniverseRuntimeFallback>
         <UniverseEngine interactive showHud={false} showMusic={false} />
       </UniverseRuntimeFallback>
-      <div
-        style={{
-          position: 'fixed',
-          top: isMobile ? 'max(12px, env(safe-area-inset-top))' : '16px',
-          right: isMobile ? '12px' : '16px',
-          left: isMobile ? '12px' : 'auto',
-          zIndex: 30,
-          maxWidth: isMobile ? 'none' : '320px',
-          padding: isMobile ? '10px 12px' : '12px 14px',
-          background: 'rgba(0, 0, 0, 0.58)',
-          color: 'rgba(255, 255, 255, 0.92)',
-          border: '1px solid rgba(255, 255, 255, 0.16)',
-          borderRadius: '14px',
-          backdropFilter: 'blur(12px)',
-          pointerEvents: 'none',
-        }}
-      >
-        <div
-          style={{
-            fontFamily: 'monospace',
-            fontSize: isMobile ? '9px' : '10px',
-            letterSpacing: isMobile ? '0.16em' : '0.22em',
-            textTransform: 'uppercase',
-            color: 'rgba(255, 255, 255, 0.62)',
-            marginBottom: '6px',
-          }}
-        >
+
+      {/* Lab-engine note — top-right info panel */}
+      <div className="pointer-events-none fixed left-3 right-3 top-[max(12px,env(safe-area-inset-top))] z-30 rounded-2xl border border-foreground/15 bg-background/70 p-3 backdrop-blur-xl md:left-auto md:right-4 md:top-4 md:max-w-80 md:p-3.5">
+        <div className="mb-1.5 font-mono text-[9px] tracking-[0.16em] uppercase text-foreground/55 md:text-[10px] md:tracking-[0.22em]">
           Lab Engine · Science First
         </div>
-        <p style={{ margin: 0, fontSize: isMobile ? '11px' : '12px', lineHeight: 1.5, color: 'rgba(255, 255, 255, 0.78)' }}>
+        <p className="text-[11px] leading-relaxed text-foreground/75 md:text-xs">
           This is the more detailed lab-side Universe Engine. It uses real astronomy data and stricter scale behavior than the home hero, and this is the version Helion Drift launches from.
         </p>
       </div>
-      {/* Overlay hint for game discovery */}
-      <div
-        style={{
-          position: 'fixed',
-          bottom: isMobile ? 'max(14px, env(safe-area-inset-bottom))' : '32px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          zIndex: 55,
-          textAlign: 'center',
-          pointerEvents: 'none',
-          width: isMobile ? 'calc(100vw - 24px)' : 'auto',
-          maxWidth: isMobile ? '420px' : 'none',
-        }}
-      >
+
+      {/* Launch CTA — bottom-center */}
+      <div className="pointer-events-none fixed bottom-[max(14px,env(safe-area-inset-bottom))] left-1/2 z-[55] w-[calc(100vw-24px)] max-w-[420px] -translate-x-1/2 text-center md:bottom-8 md:w-auto md:max-w-none">
         <button
           onClick={handleLaunchGame}
-          style={{
-            pointerEvents: 'auto',
-            width: isMobile ? '100%' : 'auto',
-            padding: isMobile ? '12px 16px' : '12px 24px',
-            background: 'rgba(0, 0, 0, 0.6)',
-            color: '#fff',
-            border: '1px solid rgba(255, 255, 255, 0.3)',
-            borderRadius: '8px',
-            fontSize: isMobile ? '11px' : '12px',
-            cursor: 'pointer',
-            fontFamily: 'monospace',
-            letterSpacing: isMobile ? '0.08em' : '0.1em',
-            textTransform: 'uppercase',
-            transition: 'all 0.3s ease',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(0, 0, 0, 0.8)';
-            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.5)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(0, 0, 0, 0.6)';
-            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
-          }}
+          data-cursor-hover
+          className="pointer-events-auto inline-flex w-full min-h-11 items-center justify-center rounded-full border border-foreground/30 bg-background/50 px-6 py-3 font-mono text-[11px] tracking-[0.1em] uppercase text-foreground backdrop-blur-sm transition-colors hover:bg-foreground hover:text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent md:w-auto md:text-xs"
         >
           Launch Helion Drift
         </button>
         {launchError && (
-          <p
-            style={{
-              margin: '8px 0 0',
-              fontSize: isMobile ? '10px' : '11px',
-              lineHeight: 1.5,
-              color: 'rgba(255, 170, 170, 0.95)',
-              maxWidth: isMobile ? '100%' : '420px',
-              fontFamily: 'monospace',
-              letterSpacing: '0.03em',
-            }}
-          >
+          <p className="mx-auto mt-2 max-w-full font-mono text-[10px] leading-relaxed tracking-[0.03em] text-destructive md:max-w-[420px] md:text-[11px]">
             {launchError}
           </p>
         )}
-        <p
-          style={{
-            margin: '10px 0 0',
-            fontSize: isMobile ? '10px' : '11px',
-            lineHeight: 1.5,
-            color: 'rgba(255, 255, 255, 0.72)',
-            maxWidth: isMobile ? '100%' : '320px',
-            fontFamily: 'monospace',
-            letterSpacing: '0.04em',
-          }}
-        >
+        <p className="mx-auto mt-2.5 max-w-full font-mono text-[10px] leading-relaxed tracking-[0.04em] text-foreground/70 md:max-w-80 md:text-[11px]">
           One-click launch. Start beside Earth and fly immediately in exploration mode.
         </p>
       </div>

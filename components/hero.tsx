@@ -110,7 +110,7 @@ export function Hero() {
     >
       {/* Visually-hidden semantic H1 — gives screen readers a clean page title */}
       <h1 id="hero-name" className="sr-only">
-        Ankur Sinha — Principal UX Designer, Human–AI Interaction
+        Ankur Sinha — Design × Engineering × AI. I design and ship AI products end to end.
       </h1>
 
       {/* Universe engine — galaxy + solar system + constellations.
@@ -273,15 +273,18 @@ export function Hero() {
           transition={{ duration: 1, delay: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
         >
           <p className="font-mono text-xs tracking-[0.3em] text-muted-foreground mb-2">
-            01 — DISCIPLINE
+            ANKUR SINHA
           </p>
           <p
             aria-hidden="true"
             className="font-display text-4xl md:text-6xl lg:text-7xl font-light tracking-[-0.02em] leading-[1.02] text-balance"
           >
-            PRINCIPAL
+            DESIGN × ENGINEERING
             <br />
-            <span className="italic">DESIGNER</span>
+            <span className="italic">× AI</span>
+          </p>
+          <p className="mt-4 max-w-sm font-sans text-sm md:text-base leading-relaxed text-foreground/70">
+            I design and ship AI products end to end.
           </p>
         </motion.div>
 
@@ -340,11 +343,11 @@ export function Hero() {
           </p>
           <p
             aria-hidden="true"
-            className="font-display text-3xl md:text-5xl lg:text-6xl font-light tracking-[-0.02em] leading-[1.02] text-balance"
+            className="font-display text-2xl md:text-4xl font-light tracking-[-0.02em] leading-[1.05] text-balance text-foreground/85"
           >
-            HUMAN–AI
+            Human–AI
             <br />
-            <span className="italic">INTERACTION</span>
+            <span className="italic">interaction</span>
           </p>
         </motion.div>
       </motion.div>
