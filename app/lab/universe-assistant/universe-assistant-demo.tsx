@@ -16,7 +16,7 @@ const UniverseEngine = dynamic(
     ),
   {
     ssr: false,
-    loading: () => <StaticStarfield />,
+    loading: () => <StaticStarfield loading />,
   },
 )
 

@@ -255,6 +255,43 @@
   .ue-engine-fade-in { animation: none; opacity: 1; }
 }
 
+/* Universe engine — living loading fallback (StaticStarfield).
+   Pure-CSS so it stays featherweight on first paint. Each star layer twinkles
+   on its own cadence and drifts slowly for parallax, so the lazy-load reads as
+   "alive + loading" rather than a frozen image. */
+@keyframes ue-star-twinkle {
+  0%, 100% { opacity: var(--ue-star-min, 0.4); }
+  50%      { opacity: var(--ue-star-max, 0.85); }
+}
+@keyframes ue-star-drift {
+  from { background-position: 0 0; }
+  to   { background-position: var(--ue-drift-x, 60px) var(--ue-drift-y, 40px); }
+}
+.ue-star-layer {
+  animation:
+    ue-star-twinkle var(--ue-twinkle, 4s) ease-in-out infinite,
+    ue-star-drift var(--ue-drift, 90s) linear infinite alternate;
+}
+/* Loading pulse — a soft breathing dot + label used over the starfield. */
+@keyframes ue-loading-pulse {
+  0%, 100% { opacity: 0.45; transform: scale(0.9); }
+  50%      { opacity: 1; transform: scale(1.15); }
+}
+.ue-loading-dot { animation: ue-loading-pulse 1.6s ease-in-out infinite; }
+@keyframes ue-loading-fade {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 0.95; }
+}
+.ue-loading-label { animation: ue-loading-fade 2.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .ue-star-layer,
+  .ue-loading-dot,
+  .ue-loading-label { animation: none; }
+}
+html.motion-reduced .ue-star-layer,
+html.motion-reduced .ue-loading-dot,
+html.motion-reduced .ue-loading-label { animation: none; }
+
 /* Marquee animation */
 @keyframes marquee-left {
   from {

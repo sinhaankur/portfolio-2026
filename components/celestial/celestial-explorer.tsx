@@ -21,7 +21,7 @@ import { selectedSatRef } from "@/components/universe-engine/satellite-field"
 
 const UniverseEngine = dynamic(
   () => import("@/components/universe-engine").then((m) => m.UniverseEngine),
-  { ssr: false, loading: () => <StaticStarfield /> },
+  { ssr: false, loading: () => <StaticStarfield loading /> },
 )
 const GlobeViewer = dynamic(
   () => import("./globe-viewer").then((m) => m.GlobeViewer),

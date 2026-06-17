@@ -10,12 +10,7 @@ const UniverseEngine = dynamic(() => import('@/components/universe-engine').then
   ssr: false,
   loading: () => (
     <div style={{ width: '100vw', height: '100vh', position: 'relative', background: '#000' }}>
-      <StaticStarfield />
-      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <p style={{ color: 'rgba(255, 255, 255, 0.82)', fontFamily: 'monospace', fontSize: '12px', letterSpacing: '0.18em', textTransform: 'uppercase' }}>
-          Loading Universe
-        </p>
-      </div>
+      <StaticStarfield loading />
     </div>
   ),
 });
@@ -23,8 +18,8 @@ const UniverseEngine = dynamic(() => import('@/components/universe-engine').then
 const GameCanvas = dynamic(() => import('@/games/star-cleaver/engine/game-canvas'), {
   ssr: false,
   loading: () => (
-    <div style={{ width: '100vw', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#000' }}>
-      <p style={{ color: '#fff' }}>Loading Helion Drift...</p>
+    <div style={{ width: '100vw', height: '100vh', position: 'relative', background: '#000' }}>
+      <StaticStarfield loading />
     </div>
   ),
 });
