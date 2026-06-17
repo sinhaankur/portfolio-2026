@@ -118,7 +118,7 @@ export default function CognitiveTwinPage() {
       period="June 2026 · active build"
       role="Architect · Designer · Engineer"
       tags={["Agent systems", "Local-first", "Security", "Multimodal", "Private repo"]}
-      backTo={{ label: "Back to The Lab", href: "/#lab" }}
+      backTo={{ label: "Back to The Lab", href: "/lab" }}
       intro={
         <>
           <p>

@@ -88,7 +88,7 @@ export function CelestialExplorer() {
 
         {/* Back link */}
         <Link
-          href="/#lab"
+          href="/lab"
           data-cursor-hover
           className="absolute top-4 left-4 md:top-6 md:left-6 z-30 group inline-flex items-center gap-2 font-mono text-[10px] tracking-widest uppercase text-foreground/75 hover:text-foreground bg-background/40 backdrop-blur-sm border border-border rounded-full px-3 py-2 transition-colors"
         >

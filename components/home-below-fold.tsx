@@ -16,7 +16,8 @@ import dynamic from "next/dynamic"
 import { LazyMount } from "./lazy-mount"
 
 const Works = dynamic(() => import("./works").then((m) => m.Works))
-const Lab = dynamic(() => import("./lab").then((m) => m.Lab))
+// The Lab now lives on its own /lab page (linked from the navbar) rather than as
+// a long home-scroll section.
 const Usability = dynamic(() => import("./usability").then((m) => m.Usability))
 const TechMarquee = dynamic(() =>
   import("./tech-marquee").then((m) => m.TechMarquee),
@@ -28,9 +29,6 @@ export function HomeBelowFold() {
     <>
       <LazyMount minHeight={600} anchorId="works">
         <Works />
-      </LazyMount>
-      <LazyMount minHeight={600} anchorId="lab">
-        <Lab />
       </LazyMount>
       <LazyMount minHeight={500} anchorId="usability">
         <Usability />

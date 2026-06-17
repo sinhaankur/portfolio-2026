@@ -118,7 +118,7 @@ export default function UniverseAssistantPage() {
           call into the live engine refs.
         </p>
       }
-      backTo={{ label: "Back to lab", href: "/#lab" }}
+      backTo={{ label: "Back to lab", href: "/lab" }}
     >
       {/* Working demo */}
       <section className="my-12 md:my-16">

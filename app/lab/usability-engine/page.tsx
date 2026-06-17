@@ -95,7 +95,7 @@ export default function UsabilityEngineCaseStudy() {
       period="2026 · live on this site"
       role="Designer · Engineer"
       tags={["UX research", "Heuristic evaluation", "Local LLM", "Open source"]}
-      backTo={{ label: "Back to The Lab", href: "/#lab" }}
+      backTo={{ label: "Back to The Lab", href: "/lab" }}
       intro={
         <>
           <p>
@@ -436,7 +436,7 @@ export default function UsabilityEngineCaseStudy() {
         </Link>
       </section>
 
-      <CaseNextLinks prev={{ label: "Back to The Lab", href: "/#lab" }} />
+      <CaseNextLinks prev={{ label: "Back to The Lab", href: "/lab" }} />
     </CaseStudyLayout>
   )
 }

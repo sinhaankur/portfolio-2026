@@ -50,7 +50,10 @@ server-component data fetching that breaks static export.
 
 App-router routes under [`app/`](./app):
 
-- `/` — home (Hero galaxy + About + Works + Lab + Usability summary + Stack & Beliefs + Footer).
+- `/` — home (Hero galaxy + About + Works + Usability summary + Stack & Beliefs + Footer).
+- `/lab` — **The Lab index page** (flagship + supporting open-source projects). Moved
+  off the home scroll into its own route 2026-06-17; navbar "Lab" → `/lab`, and lab
+  case studies link back to `/lab` (not `/#lab`). Renders `components/lab.tsx`.
 - `/works/oracle`, `/works/deloitte`, `/works/snowtint`, `/works/rage` — company case studies.
 - `/lab/unhosted` — Unhosted (flagship open-source project case study).
 - `/lab/usability-engine` — Usability Engine case study (design rationale +
@@ -64,8 +67,9 @@ App-router routes under [`app/`](./app):
 ## Component conventions
 
 - Section eyebrow numbering on home: `01 — DISCIPLINE`, `02 — DOMAIN`,
-  `03 — PHILOSOPHY`, `04 — EXPERIENCE`, `05 — THE LAB`, `06 — HOW I WORK`,
-  `07 — STACK & BELIEFS`, `08 — CONTACT`. Keep them in order if you add a new section.
+  `03 — PHILOSOPHY`, `04 — EXPERIENCE`, `06 — HOW I WORK`, `07 — STACK & BELIEFS`,
+  `08 — CONTACT`. (`05 — THE LAB` now lives on the standalone `/lab` page, so the
+  home sequence skips 05.) Keep them in order if you add a new section.
 - All sections wrap content in `max-w-6xl px-6 md:px-12` (or the `Container`
   primitive) so nothing stretches edge-to-edge on wide displays.
 - Type ramp: `Inter` (sans), `Fraunces` (display + italic moments, with `opsz`/`SOFT`/`WONK`

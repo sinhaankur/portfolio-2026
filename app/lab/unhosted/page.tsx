@@ -150,7 +150,7 @@ export default function UnhostedCaseStudy() {
       period="2024 – Present · pre-alpha"
       role="Founder · Lead designer · Engineer"
       tags={["Open source", "Distributed systems", "Local AI", "Apache 2.0"]}
-      backTo={{ label: "Back to The Lab", href: "/#lab" }}
+      backTo={{ label: "Back to The Lab", href: "/lab" }}
       intro={
         <>
           <p>
@@ -452,7 +452,7 @@ export default function UnhostedCaseStudy() {
         </a>
       </section>
 
-      <CaseNextLinks prev={{ label: "Back to The Lab", href: "/#lab" }} />
+      <CaseNextLinks prev={{ label: "Back to The Lab", href: "/lab" }} />
     </CaseStudyLayout>
   )
 }

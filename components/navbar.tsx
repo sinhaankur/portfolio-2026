@@ -11,7 +11,7 @@ import { DisplayMenu } from "./display-menu"
 // The Games link opens the retro webgames index (preserved as static HTML under /public/games).
 const navLinks = [
   { label: "Works", href: "#works" },
-  { label: "Lab", href: "#lab" },
+  { label: "Lab", href: "/lab" },
   { label: "Skills", href: "/skills" },
   { label: "Usability", href: "/usability" },
   { label: "Games", href: "/games/Gamelist.html" },
