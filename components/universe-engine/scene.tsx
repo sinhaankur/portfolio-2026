@@ -20,6 +20,7 @@ import { Suspense, useRef, useMemo, useEffect, useState } from "react"
 import { useFrame, useThree } from "@react-three/fiber"
 import { Clone, Html, useGLTF } from "@react-three/drei"
 import { BrightStarField } from "./bright-star-field"
+import { SatelliteField } from "./satellite-field"
 import { NamedStarHoverLayer } from "./named-star-hover-layer"
 import { GravityOverlay } from "./gravity-overlay"
 import { TrajectoryTrails } from "./trajectory-trails"
@@ -2653,11 +2654,15 @@ function PlanetBody({
   onHover,
   invert = false,
   interactive = false,
+  solarOnly = false,
 }: {
   planet: ScenePlanet
   onHover: HoverHandler
   invert?: boolean
   interactive?: boolean
+  /** In the solar-only explorer, Earth shows the full ~15.7k real-satellite
+   *  catalogue (too heavy for the passive hero). */
+  solarOnly?: boolean
 }) {
   const meshRef = useRef<Mesh>(null)
   const orbitRef = useRef<Group>(null)
@@ -3203,6 +3208,14 @@ function PlanetBody({
             />
           )}
 
+          {/* Real ~15.7k-satellite catalogue (SGP4) — Earth only, in the
+              solar-only explorer, when satellites are toggled on. */}
+          {isEarth && solarOnly && satsOn && (
+            <Suspense fallback={null}>
+              <SatelliteField earthVisualRadius={planet.visualRadius} />
+            </Suspense>
+          )}
+
           {/* Hover-label — small floating name above the planet, helping
               discoverability without forcing users to wait for the corner
               InfoPanel to update. Stays outside the axial-tilt group so
@@ -3322,11 +3335,13 @@ function SolarSystem({
   invert = false,
   interactive = false,
   mobile = false,
+  solarOnly = false,
 }: {
   onHover: HoverHandler
   invert?: boolean
   interactive?: boolean
   mobile?: boolean
+  solarOnly?: boolean
 }) {
   const sunRef = useRef<Mesh>(null)
   const coronaRef = useRef<Mesh>(null)
@@ -3525,6 +3540,7 @@ function SolarSystem({
           onHover={onHover}
           invert={invert}
           interactive={interactive}
+          solarOnly={solarOnly}
         />
       ))}
 
@@ -6298,7 +6314,7 @@ export function SceneContents({
           full HYG catalog / constellations. */}
       {solarOnly && <SolarBackdrop invert={invert} />}
       <group position={SOLAR_SYSTEM_POSITION}>
-        <SolarSystem onHover={onHover} invert={invert} interactive={interactive} mobile={mobile} />
+        <SolarSystem onHover={onHover} invert={invert} interactive={interactive} mobile={mobile} solarOnly={solarOnly} />
         <GravityOverlay show={showGravityOverlay} invert={invert} />
         <TrajectoryTrails show={showDeepDive} invert={invert} />
         <SphereOfInfluence show={showDeepDive} invert={invert} />
