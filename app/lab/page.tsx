@@ -8,7 +8,7 @@ import { UpcomingBadge } from "@/components/upcoming-badge"
 export const metadata: Metadata = {
   title: "Lab · Ankur Sinha",
   description:
-    "Side projects shipped as working software — Unhosted, the Usability Engine, the Universe Engine Assistant, Celestial, and more. Each one is a design argument built as real code.",
+    "Self-directed AI exploration — not client work. Unhosted, the Usability Engine, the Universe Engine Assistant, Celestial, and more: a UX designer learning the human–AI seam by building it as working code.",
 }
 
 export default function LabPage() {

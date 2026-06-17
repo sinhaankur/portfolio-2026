@@ -110,7 +110,7 @@ export function Hero() {
     >
       {/* Visually-hidden semantic H1 — gives screen readers a clean page title */}
       <h1 id="hero-name" className="sr-only">
-        Ankur Sinha — Design × Engineering × AI. I design and ship AI products end to end.
+        Ankur Sinha — UX designer by craft, exploring AI by building it. Design × Engineering × AI.
       </h1>
 
       {/* Universe engine — galaxy + solar system + constellations.
@@ -284,7 +284,7 @@ export function Hero() {
             <span className="italic">× AI</span>
           </p>
           <p className="mt-4 max-w-sm font-sans text-sm md:text-base leading-relaxed text-foreground/70">
-            I design and ship AI products end to end.
+            UX designer by craft — exploring AI by building it.
           </p>
         </motion.div>
 

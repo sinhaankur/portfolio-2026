@@ -82,17 +82,18 @@ export function Lab() {
           className="mb-14 md:mb-20 max-w-3xl"
         >
           <p className="font-mono text-xs tracking-[0.3em] text-muted-foreground mb-4">
-            05 — THE LAB
+            THE LAB — EXPLORATION
           </p>
           <h2
             id="lab-heading"
             className="font-display text-3xl md:text-5xl lg:text-6xl font-light italic tracking-[-0.01em] leading-[1.05]"
           >
-            What I build when nobody's asking.
+            How I'm learning AI — by building it.
           </h2>
           <p className="mt-6 font-sans text-base md:text-lg text-foreground/75 max-w-2xl leading-relaxed">
-            Side projects I code in evenings + weekends. Each is the
-            design argument shipped as working software.
+            Self-directed experiments, not client work. Each is a way to learn
+            the human–AI seam hands-on — the design argument shipped as working
+            software, in evenings and weekends.
           </p>
         </motion.div>
 

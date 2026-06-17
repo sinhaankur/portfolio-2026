@@ -57,7 +57,7 @@ const SITE_URL = "https://www.sinhaankur.com"
 const SITE_NAME = "Ankur Sinha"
 const SITE_TAGLINE = "Design × Engineering × AI"
 const SITE_DESCRIPTION =
-  "Designer-engineer who designs and ships AI products end to end — human-in-the-loop interfaces for agentic AI, built as working code, not just mockups."
+  "UX designer by craft, exploring AI by building it. Years of product design (Oracle, Deloitte, and more) plus a lab of human-in-the-loop AI experiments shipped as working code."
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -70,12 +70,12 @@ export const metadata: Metadata = {
   creator: SITE_NAME,
   applicationName: SITE_NAME,
   keywords: [
-    "AI Engineer",
+    "UX Designer",
+    "Product Designer",
     "Design Engineer",
     "Human–AI Interaction",
     "Agentic AI",
-    "Full-stack Engineer",
-    "UX Designer",
+    "AI prototyping",
     "Portfolio",
     "Ankur Sinha",
   ],
@@ -151,7 +151,7 @@ const personSchema = {
   "@type": "Person",
   name: "Ankur Sinha",
   url: SITE_URL,
-  jobTitle: "Designer-Engineer (AI)",
+  jobTitle: "UX Designer",
   description: SITE_DESCRIPTION,
   knowsAbout: [
     "Human–AI Interaction",
