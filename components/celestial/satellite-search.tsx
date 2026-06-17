@@ -139,9 +139,15 @@ export function SatelliteSearch() {
                 <dt className="text-muted-foreground">NORAD ID</dt>
                 <dd className="text-foreground tabular-nums">{selected.id}</dd>
               </div>
+              <div className="flex justify-between gap-3">
+                <dt className="text-muted-foreground">Shown at</dt>
+                <dd className="text-foreground text-right">true 1:1 scale</dd>
+              </div>
             </dl>
             <p className="mt-3 font-sans text-[11px] text-muted-foreground leading-relaxed">
-              Position from live SGP4 orbit data — accurate for the current epoch.
+              Position + altitude from live SGP4 orbit data (current epoch). The
+              craft is drawn at its real size against Earth — a satellite is tens of
+              millions of times smaller than the planet, so <strong className="text-foreground/80">zoom right in</strong> to see it.
             </p>
           </motion.div>
         )}

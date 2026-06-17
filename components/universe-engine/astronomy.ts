@@ -356,6 +356,18 @@ export const SCENE_SCALE = 3
 export type ScaleMode = "explore" | "true"
 export const scaleModeRef: { current: ScaleMode } = { current: "explore" }
 
+/* Per-focus deep-zoom — when a satellite (or any tiny body) is focused, we
+ * temporarily tighten the camera near-plane and OrbitControls zoom floor so the
+ * user can dolly right up to a true-1:1-scale craft against Earth's limb, then
+ * restore the defaults on deselect. The Canvas/OrbitControls boot with these
+ * DEFAULT_* values (index.tsx), and FlyToController reads focusDepthRef each
+ * frame to apply/restore. Same module-ref pattern as scaleModeRef. */
+export const DEFAULT_CAMERA_NEAR = 0.012
+export const DEFAULT_MIN_DISTANCE = 0.02
+export const focusDepthRef: {
+  current: { near: number; minDistance: number } | null
+} = { current: null }
+
 /** Scene units per AU in true-scale mode. Earth (1 AU) lands at the same ~3
  *  units as explore mode so the inner system stays framed; the outer planets
  *  then spread to their real linear ratios (Neptune 30 AU → 90 units), which

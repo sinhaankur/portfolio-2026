@@ -26,15 +26,24 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from "react"
-import { useFrame } from "@react-three/fiber"
+import { useFrame, useThree } from "@react-three/fiber"
 import { useGLTF, Line } from "@react-three/drei"
 import * as THREE from "three"
-import { simTimeRef, requestFollow } from "./astronomy"
+import { simTimeRef, requestFollow, focusDepthRef } from "./astronomy"
 
 // Real CubeSat model (LEOPARD, built in Blender) shown for the SELECTED satellite
 // — the 15.7k swarm stays a points field; only the focused one gets geometry.
 const SAT_MODEL_URL = "/models/satellite-leopard.glb"
 useGLTF.preload(SAT_MODEL_URL)
+
+// True-scale sizing. The LEOPARD GLB's native width (deployed solar wings) is
+// ~15.84 model units; the real craft spans ~1.7 m. To render it 1:1 against
+// Earth we need: scale = (spanKm / earthRadiusKm) * earthVisualRadius / nativeSpan.
+const SAT_REAL_SPAN_M = 1.7
+const SAT_GLB_NATIVE_SPAN = 15.84
+// coefficient k such that trueScale = k * earthVisualRadius  (≈ 1.68e-8).
+// 6371 = Earth radius km (also defined as EARTH_RADIUS_KM below for the SGP4 path).
+const SAT_TRUE_SCALE_K = SAT_REAL_SPAN_M / 1000 / 6371 / SAT_GLB_NATIVE_SPAN
 
 /**
  * Selection bridge — the explorer's search box (DOM) writes the chosen NORAD id
@@ -147,6 +156,8 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
   }, [])
 
   const markerRef = useRef<THREE.Group>(null)
+  const haloRef = useRef<THREE.Mesh>(null)
+  const { camera } = useThree()
   const lastSelected = useRef<number | null>(null)
   // Orbit-path polyline for the selected satellite (recomputed on selection).
   const [orbitPts, setOrbitPts] = useState<THREE.Vector3[] | null>(null)
@@ -254,11 +265,41 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
             if (ahead.distanceToSquared(cur) > 1e-9) marker.lookAt(ahead)
           }
           marker.visible = true
+
+          // Locator halo: subtends a ~constant small screen size when far (so you
+          // can FIND the otherwise-invisible 1:1 craft), then shrinks + fades to
+          // nothing as you approach, letting the real model emerge. Sized in the
+          // marker's LOCAL space (it's the group child) from the camera distance.
+          const halo = haloRef.current
+          if (halo) {
+            const world = new THREE.Vector3()
+            marker.getWorldPosition(world)
+            const dist = camera.position.distanceTo(world)
+            const span = SAT_TRUE_SCALE_K * earthVisualRadius * SAT_GLB_NATIVE_SPAN
+            // fade band: full halo beyond span*60, gone by span*8 (craft takes over)
+            const fade = Math.min(1, Math.max(0, (dist / span - 8) / 52))
+            // local scale ÷ marker's world scale so the screen size is distance-stable
+            const worldScale = marker.getWorldScale(new THREE.Vector3()).x || 1
+            const haloLocal = (dist * 0.015 * fade) / worldScale
+            halo.scale.setScalar(haloLocal)
+            const mat = halo.material as THREE.MeshBasicMaterial
+            mat.opacity = 0.85 * fade
+            halo.visible = fade > 0.01
+          }
         }
-        // On a NEW selection: follow + recompute the orbit polyline once.
+        // On a NEW selection: follow + recompute the orbit polyline once, and
+        // tighten the camera near-plane / zoom floor so the user can dolly right
+        // up to the true-1:1 craft (FlyToController reads focusDepthRef).
         if (sel !== lastSelected.current) {
           lastSelected.current = sel
           setOrbitPts(computeOrbit(rec))
+          // true on-screen span of the model, in scene units
+          const span = SAT_TRUE_SCALE_K * earthVisualRadius * SAT_GLB_NATIVE_SPAN
+          // Let the camera approach to ~0.8× the craft's size; near-plane half that.
+          focusDepthRef.current = {
+            near: Math.max(span * 0.5, 1e-6),
+            minDistance: Math.max(span * 0.8, 2e-6),
+          }
           const m = marker
           requestFollow(
             () => {
@@ -266,14 +307,20 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
               m.getWorldPosition(v)
               return { x: v.x, y: v.y, z: v.z }
             },
-            Math.max(earthVisualRadius * 0.6, 0.08),
+            // fly in to a few craft-widths away — close enough to read the craft,
+            // far enough to take it in. (Was 0.6 Earth-radii = a fifth of Earth.)
+            Math.max(span * 6, 3e-6),
             sats.find((s) => s.id === sel)?.name,
           )
         }
       }
     } else if (marker) {
       marker.visible = false
-      if (lastSelected.current !== null) { lastSelected.current = null; setOrbitPts(null) }
+      if (lastSelected.current !== null) {
+        lastSelected.current = null
+        setOrbitPts(null)
+        focusDepthRef.current = null   // restore normal near-plane / zoom limits
+      }
     }
   })
 
@@ -297,13 +344,15 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
         />
       </points>
 
-      {/* Selected satellite: the real LEOPARD CubeSat model + a faint locator ring,
-          riding its live SGP4 position. Hidden until a selection is set. */}
+      {/* Selected satellite, riding its live SGP4 position. The CubeSat model is
+          at TRUE 1:1 scale vs Earth — invisibly small from afar — so a locator
+          halo (haloRef) marks the spot when you're far and shrinks to nothing as
+          you approach, revealing the real craft. Hidden until a selection is set. */}
       <group ref={markerRef} visible={false}>
-        <SatModel scale={earthVisualRadius * 0.012} />
-        <mesh rotation={[Math.PI / 2, 0, 0]}>
-          <ringGeometry args={[earthVisualRadius * 0.07, earthVisualRadius * 0.085, 40]} />
-          <meshBasicMaterial color="#ffd24a" transparent opacity={0.55} side={THREE.DoubleSide} toneMapped={false} />
+        <SatModel scale={SAT_TRUE_SCALE_K * earthVisualRadius} />
+        <mesh ref={haloRef}>
+          <sphereGeometry args={[1, 16, 16]} />
+          <meshBasicMaterial color="#ffd24a" transparent opacity={0.85} toneMapped={false} depthWrite={false} />
         </mesh>
       </group>
 

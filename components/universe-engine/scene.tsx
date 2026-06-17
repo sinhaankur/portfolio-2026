@@ -94,6 +94,9 @@ import {
   timeScaleRef,
   cloudsVisibleRef,
   satellitesVisibleRef,
+  focusDepthRef,
+  DEFAULT_CAMERA_NEAR,
+  DEFAULT_MIN_DISTANCE,
 } from "./astronomy"
 import { GALAXY_FRAGMENT_SHADER, GALAXY_VERTEX_SHADER } from "./shaders"
 
@@ -468,6 +471,19 @@ function FlyToController({ interactive }: { interactive: boolean }) {
 
   useFrame((_, delta) => {
     if (!controls) return
+
+    // Per-focus deep-zoom: tighten the near-plane + zoom floor while a tiny body
+    // (a satellite) is focused so the camera can dolly up to a true-1:1 craft;
+    // restore the defaults the moment focus clears. Only touch the camera when a
+    // value actually changes (updateProjectionMatrix isn't free).
+    const fd = focusDepthRef.current
+    const wantNear = fd ? fd.near : DEFAULT_CAMERA_NEAR
+    const wantMin = fd ? fd.minDistance : DEFAULT_MIN_DISTANCE
+    if (camera.near !== wantNear) {
+      camera.near = wantNear
+      camera.updateProjectionMatrix()
+    }
+    if (controls.minDistance !== wantMin) controls.minDistance = wantMin
 
     const follow = followRef.current
     // Follow mode wins over fly mode if both somehow set (requestFlyTo and
