@@ -33,9 +33,29 @@ const GlobeViewer = dynamic(
   },
 )
 
+// Bodies the Universe Engine can fly the camera to (its planet/sun focus
+// channel keys on these exact names). Moon/asteroid/comet aren't planet-focusable.
+const ENGINE_FOCUSABLE = new Set([
+  "Sun", "Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto",
+])
+
 export function CelestialExplorer() {
   const [openName, setOpenName] = useState<string | null>(null)
   const open = BODIES.find((b) => b.name === openName) ?? null
+
+  // Pick a body: open its detail tile AND fly the engine camera to it (so
+  // distant bodies like Pluto are actually findable at true scale, not just a
+  // far speck). Reuses the engine's focus channel — same event the Destinations
+  // menu fires.
+  function pick(name: string) {
+    const next = name === openName ? null : name
+    setOpenName(next)
+    if (next && ENGINE_FOCUSABLE.has(next)) {
+      window.dispatchEvent(
+        new CustomEvent("universe:sky-focus", { detail: { pointId: `planet:${next}` } }),
+      )
+    }
+  }
 
   // Auto-warp to Earth once the engine has mounted. At true scale the system
   // opens into mostly-empty space with a tiny distant Sun — framing Earth gives
@@ -54,8 +74,10 @@ export function CelestialExplorer() {
     <>
       <CustomCursor />
       <main className="fixed inset-0 overflow-hidden bg-background text-foreground">
-        {/* Live solar system fills the screen */}
-        <div className="absolute inset-0">
+        {/* Live solar system fills the screen. touch-none hands all touch
+            gestures to the engine's OrbitControls (the page is fixed/non-scroll
+            here) so drag-to-rotate + pinch-zoom are seamless on mobile. */}
+        <div className="absolute inset-0 touch-none">
           <UniverseEngine interactive showHud showMusic={false} defaultTrueScale solarOnly />
         </div>
 
@@ -99,7 +121,7 @@ export function CelestialExplorer() {
             md:left-auto md:right-2 md:bottom-auto md:top-1/2 md:-translate-y-1/2 md:px-0
             ${open ? "hidden md:hidden" : ""}`}
         >
-          <div className="pointer-events-auto md:max-h-[64vh] overflow-x-auto md:overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="pointer-events-auto w-fit max-w-full mx-auto md:mx-0 md:max-h-[64vh] overflow-x-auto md:overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <ul className="flex md:flex-col items-center gap-2.5 md:gap-3 min-w-max md:min-w-0 py-1 md:px-1">
               {BODIES.map((b) => {
                 // Min 44px touch target (mobile-first); larger bodies a touch bigger.
@@ -109,7 +131,7 @@ export function CelestialExplorer() {
                   <li key={b.name} className="shrink-0">
                     <button
                       type="button"
-                      onClick={() => setOpenName(on ? null : b.name)}
+                      onClick={() => pick(b.name)}
                       data-cursor-hover
                       title={b.name}
                       aria-pressed={on}
