@@ -5,11 +5,17 @@
  * case studies, the Lab, and the astronomy-engine data stay English for now.
  * No i18n library: one typed dictionary, looked up per locale.
  *
- * ⚠️ TRANSLATIONS BELOW ARE AI-DRAFTED AND NEED A FLUENT REVIEW.
- *    Arabic + Japanese were drafted by Claude; nuance (esp. the
- *    "Design × Engineering × AI" positioning and the manifesto voice) should be
- *    checked by a native/fluent speaker before being treated as final.
- *    English is the canonical source (verbatim from the live components).
+ * ⚠️ TRANSLATIONS ARE AI-DRAFTED. English is the canonical source (verbatim from
+ *    the live components). A first review pass (2026-06-18) fixed the clear issues:
+ *      • JA name was "アンクル" (= "uncle"!) → corrected to "アンクール・シンハ".
+ *      • JA: em-dash mid-sentence → 「。」; aboutEyebrow フィロソフィー → 哲学.
+ *      • AR heroValue "بالحرفة" → "في الأساس" (more natural).
+ *    STILL WANTS A NATIVE-SPEAKER CHECK (nuance/tone, not correctness blockers):
+ *      • The manifesto bodies (principle1–4) in BOTH languages — they carry the
+ *        most idiom ("the seam", "reversibility is the policy axis", "a lie with a
+ *        UI on top"); my renderings are faithful but may not be the most natural.
+ *      • AR name transliteration "أنكور سينها" — confirm preferred spelling.
+ *      • "Design × Engineering × AI" headline phrasing in both.
  */
 
 export type Locale = "en" | "ar" | "ja"
@@ -122,7 +128,7 @@ const ar: Dict = {
   name: "أنكور سينها",
   heroLine1: "تصميم × هندسة",
   heroLine2: "× ذكاء اصطناعي",
-  heroValue: "مصمم تجربة مستخدم بالحرفة — أستكشف الذكاء الاصطناعي ببنائه.",
+  heroValue: "مصمّم تجربة مستخدم في الأساس — أستكشف الذكاء الاصطناعي ببنائه.",
   heroDomainEyebrow: "المجال",
   heroDomain1: "تفاعل الإنسان",
   heroDomain2: "والذكاء الاصطناعي",
@@ -156,15 +162,15 @@ const ja: Dict = {
   navUsability: "ユーザビリティ",
   navGames: "ゲーム",
   navContact: "連絡先",
-  name: "アンクル・シンハ",
+  name: "アンクール・シンハ",
   heroLine1: "デザイン × エンジニアリング",
   heroLine2: "× AI",
-  heroValue: "本職はUXデザイナー — つくることでAIを探求しています。",
+  heroValue: "本職はUXデザイナー。つくることでAIを探求しています。",
   heroDomainEyebrow: "領域",
   heroDomain1: "人間とAIの",
   heroDomain2: "インタラクション",
   ctaEnterWork: "実績を見る",
-  aboutEyebrow: "フィロソフィー",
+  aboutEyebrow: "哲学",
   aboutHeading: "仕事への向き合い方。",
   principle1: "継ぎ目こそがデザイン。",
   principle1Body:
