@@ -8,7 +8,7 @@ import { CustomCursor } from "@/components/custom-cursor"
 export const metadata: Metadata = {
   title: "Upcoming · Ankur Sinha",
   description:
-    "Work in flight, ideas cooking, threads being researched. A public roadmap of what's next from Ankur Sinha — Principal UX Designer, Human–AI Interaction.",
+    "Work in flight, ideas cooking, threads being researched. A public roadmap of what's next from Ankur Sinha — UX designer, exploring AI by building it.",
 }
 
 export default function UpcomingPage() {

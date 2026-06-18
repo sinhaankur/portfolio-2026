@@ -11,7 +11,7 @@ import { ImageResponse } from "next/og"
 
 // Generated at build time; `output: "export"` requires force-static.
 export const dynamic = "force-static"
-export const alt = "Ankur Sinha — Principal UX Designer · Human–AI Interaction"
+export const alt = "Ankur Sinha — Design × Engineering × AI"
 export const size = { width: 1200, height: 630 }
 export const contentType = "image/png"
 
@@ -74,7 +74,7 @@ export default async function OGImage() {
               color: "#fafafa",
             }}
           >
-            Principal UX Designer
+            Design × Engineering × AI
           </div>
           <div
             style={{
@@ -87,7 +87,7 @@ export default async function OGImage() {
               color: "rgba(250,250,250,0.85)",
             }}
           >
-            Human–AI Interaction.
+            UX by craft — exploring AI by building it.
           </div>
         </div>
 
