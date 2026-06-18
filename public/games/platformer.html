@@ -165,7 +165,7 @@
   const LEVELS = [
     [
       "#########################",
-      "#@      o     o         #",
+      "#@      o     o       W #",
       "#   ###    ##     ###   #",
       "#         o          o  #",
       "#  ###   ###  ^   ##     #",
@@ -218,7 +218,24 @@
   let level = 0, lives = 3, score = 0;
   let running = false, ended = false;
   let solids, spikes, gems, trophy, door, enemies, player, gemsTotal, gemsGot, hasTrophy;
+  let warps = [], inBonus = false;
   let keys = { left: false, right: false, jump: false };
+
+  // Hidden bonus room reached via a 'W' warp pad (Dave-style secret). Loaded with
+  // its own gems + a return pad 'R' that completes the level as a reward shortcut.
+  const BONUS = [
+    "#########################",
+    "#   o o o o o o o o o    #",
+    "#                        #",
+    "#   ==================   #",
+    "#    o o o o o o o o     #",
+    "#                        #",
+    "#   o o o      o o o     #",
+    "#                        #",
+    "#@      =======        R #",
+    "####===####***####===####",
+    "#########################",
+  ];
 
   const el = {
     level: document.getElementById("level"),
@@ -233,8 +250,17 @@
   };
 
   function loadLevel(i) {
-    const map = LEVELS[i];
-    solids = []; spikes = []; gems = []; enemies = [];
+    // i is a level index; loadMap() does the actual tile parsing so bonus rooms
+    // (which aren't in LEVELS) can be loaded the same way.
+    inBonus = false;
+    loadMap(LEVELS[i]);
+  }
+
+  // Parse any tile map (main level or bonus room) into the live world.
+  // Tiles: # brick · * spike · o gem · T trophy · D door · @ spawn · ^ enemy
+  //        W hidden warp pad (→ bonus room) · R return pad (bonus → exit)
+  function loadMap(map) {
+    solids = []; spikes = []; gems = []; enemies = []; warps = [];
     trophy = null; door = null; hasTrophy = false; gemsGot = 0;
     for (let r = 0; r < map.length; r++) {
       for (let c = 0; c < map[r].length; c++) {
@@ -247,6 +273,8 @@
         else if (ch === "D") door = { x, y, w: TILE, h: TILE };
         else if (ch === "@") player = makePlayer(x, y);
         else if (ch === "^") enemies.push(makeEnemy(x, y));
+        else if (ch === "W") warps.push({ x: x + 4, y: y + 4, w: TILE - 8, h: TILE - 8, kind: "warp" });
+        else if (ch === "R") warps.push({ x: x + 4, y: y + 4, w: TILE - 8, h: TILE - 8, kind: "return" });
       }
     }
     gemsTotal = gems.length;
@@ -254,15 +282,30 @@
     updateHud();
   }
 
+  // Enter the hidden bonus room (Dave-style warp). Remember the level to come
+  // back to. The bonus has its own gems + a return pad that completes the level.
+  function enterBonus() {
+    inBonus = true;
+    loadMap(BONUS);
+    flash("✦ Secret Warp Zone ✦");
+  }
+
   function makePlayer(x, y) {
-    return { x: x + 3, y: y + 2, w: TILE - 6, h: TILE - 3, vx: 0, vy: 0, onGround: false, face: 1, animT: 0 };
+    return { x: x + 3, y: y + 2, w: TILE - 6, h: TILE - 3, vx: 0, vy: 0, onGround: false, face: 1, animT: 0,
+             coyote: 0, jumpBuf: 0, jumpHeld: false };
   }
   function makeEnemy(x, y) {
     return { x: x + 3, y: y + 4, w: TILE - 6, h: TILE - 6, dir: Math.random() < 0.5 ? -1 : 1, x0: x, animT: 0 };
   }
 
-  // ---- Physics constants
-  const GRAV = 0.6, MOVE = 0.9, FRICTION = 0.78, MAXVX = 4.2, JUMP = 11.2, ENEMY_SPD = 1.1;
+  // ---- Physics constants — tuned for a crisp "Dave"/Mario feel: snappy ground
+  // accel, quick stop, a strong but controllable jump with variable height
+  // (release early = shorter hop), plus coyote-time + jump-buffer so jumps near
+  // edges / pressed just before landing still fire. Less air-float than before.
+  const GRAV = 0.72, MOVE = 1.15, FRICTION = 0.70, MAXVX = 4.6, JUMP = 12.0, ENEMY_SPD = 1.1;
+  const COYOTE_FRAMES = 6;     // can still jump this many frames after leaving ground
+  const JUMPBUF_FRAMES = 6;    // a jump press is remembered this many frames
+  const JUMP_CUT = 0.45;       // releasing jump while rising cuts upward velocity
 
   function aabb(a, b) {
     return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
@@ -294,7 +337,19 @@
     if (keys.right) { player.vx += MOVE; player.face = 1; }
     if (!keys.left && !keys.right) player.vx *= FRICTION;
     player.vx = Math.max(-MAXVX, Math.min(MAXVX, player.vx));
-    if (keys.jump && player.onGround) { player.vy = -JUMP; player.onGround = false; }
+
+    // --- crisp jump: coyote-time + jump-buffer + variable height ---
+    if (player.onGround) player.coyote = COYOTE_FRAMES; else if (player.coyote > 0) player.coyote--;
+    // a fresh jump press fills the buffer (edge-detected against jumpHeld)
+    if (keys.jump && !player.jumpHeld) player.jumpBuf = JUMPBUF_FRAMES;
+    else if (player.jumpBuf > 0) player.jumpBuf--;
+    player.jumpHeld = keys.jump;
+    if (player.jumpBuf > 0 && player.coyote > 0) {
+      player.vy = -JUMP; player.onGround = false; player.coyote = 0; player.jumpBuf = 0;
+    }
+    // release while rising → cut the jump short (tap = small hop, hold = full)
+    if (!keys.jump && player.vy < 0) player.vy *= JUMP_CUT;
+
     player.vy += GRAV;
     player.vy = Math.min(player.vy, 16);
     moveAxis(player, player.vx, 0);
@@ -345,6 +400,15 @@
     // door — only when all gems + trophy collected
     if (door && gemsGot >= gemsTotal && (!trophy || hasTrophy) && aabb(player, door)) {
       return nextLevel();
+    }
+
+    // warp pads — 'W' (in a level) drops you into the secret bonus room; 'R' (in
+    // the bonus room) banks the bonus gems and completes the level as a shortcut.
+    for (const wp of warps) {
+      if (aabb(player, wp)) {
+        if (wp.kind === "warp" && !inBonus) { score += 50; return enterBonus(); }
+        if (wp.kind === "return" && inBonus) { score += 150; return nextLevel(); }
+      }
     }
   }
 
@@ -471,6 +535,21 @@
     px(x + 3, y + 6, 3, 3, "#fff"); px(x + e.w - 6, y + 6, 3, 3, "#fff");
     px(x + 4, y + 7, 2, 2, "#1a1a1a"); px(x + e.w - 5, y + 7, 2, 2, "#1a1a1a");
   }
+  function drawWarp(wp) {
+    // a pulsing swirl portal — return pads are warm gold, warp pads are violet
+    const cx = wp.x + wp.w / 2, cy = wp.y + wp.h / 2;
+    const t = Date.now() / 300;
+    const ret = wp.kind === "return";
+    const hue = ret ? "255,210,80" : "150,90,255";
+    for (let r = 0; r < 3; r++) {
+      const rad = 4 + r * 4 + (Math.sin(t + r) + 1) * 2;
+      ctx.strokeStyle = `rgba(${hue},${0.7 - r * 0.2})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(cx, cy, rad, t + r, t + r + Math.PI * 1.5); ctx.stroke();
+    }
+    ctx.fillStyle = `rgba(${hue},0.9)`;
+    ctx.beginPath(); ctx.arc(cx, cy, 2.5, 0, Math.PI * 2); ctx.fill();
+  }
 
   function draw() {
     // cave background gradient + faint grid
@@ -479,6 +558,7 @@
     ctx.fillStyle = g; ctx.fillRect(0, 0, canvas.width, canvas.height);
     for (const s of solids) drawBrick(s.x, s.y);
     for (const sp of spikes) drawSpike(sp.x, sp.y);
+    for (const wp of warps) drawWarp(wp);
     for (const gem of gems) drawGem(gem);
     drawTrophy(trophy);
     if (door) drawDoor(door);
