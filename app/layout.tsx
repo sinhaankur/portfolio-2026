@@ -146,24 +146,35 @@ export const viewport: Viewport = {
 }
 
 // JSON-LD Person schema for Google's knowledge panel + LinkedIn previews.
+// sameAs is the entity-resolution signal: it tells search engines these profiles
+// are the same person, so searching "Ankur Sinha" can consolidate into one entity.
 const personSchema = {
   "@context": "https://schema.org",
   "@type": "Person",
   name: "Ankur Sinha",
   url: SITE_URL,
+  image: `${SITE_URL}/opengraph-image`,
   jobTitle: "UX Designer",
   description: SITE_DESCRIPTION,
+  address: {
+    "@type": "PostalAddress",
+    addressLocality: "Toronto",
+    addressRegion: "ON",
+    addressCountry: "CA",
+  },
   knowsAbout: [
+    "UX Design",
+    "Product Design",
     "Human–AI Interaction",
     "Agentic AI",
-    "UX Design",
     "Design Engineering",
     "Prototyping",
     "Distributed Systems",
   ],
   sameAs: [
+    "https://www.linkedin.com/in/sinhaankur27",
+    "https://github.com/sinhaankur",
     "https://github.com/unhosted-ai",
-    "https://www.linkedin.com/in/sinhaankur/",
   ],
 }
 
@@ -179,13 +190,11 @@ export default function RootLayout({
       className={`${inter.variable} ${fraunces.variable} ${instrument.variable} ${jetbrains.variable}`}
     >
       <head>
-        {/* Preconnect to the SoundCloud widget origin — the galaxy hero's
-            music chip embeds it on user opt-in. Preconnecting saves the
-            DNS + TLS handshake (~150–300 ms on slow networks) for the
-            inevitable click. */}
-        <link rel="preconnect" href="https://w.soundcloud.com" />
-        <link rel="preconnect" href="https://api.soundcloud.com" />
-        <link rel="dns-prefetch" href="https://api-widget.soundcloud.com" />
+        {/* SoundCloud music now loads ONLY after the user clicks play (deferred),
+            so we no longer hold open full preconnects on every page. A light
+            dns-prefetch still shaves the eventual click latency without warming
+            a TLS connection most visitors never use. */}
+        <link rel="dns-prefetch" href="https://w.soundcloud.com" />
         {/* Preconnect to GTM so the container fetch isn't gated on a fresh
             DNS + TLS handshake. */}
         <link rel="preconnect" href="https://www.googletagmanager.com" />

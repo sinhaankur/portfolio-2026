@@ -10,7 +10,7 @@ const BUILD_TIME = process.env.NEXT_PUBLIC_BUILD_TIME || new Date().toISOString(
 
 const socials: Array<{ label: string; href: string; download?: boolean }> = [
   { label: "Email", href: "mailto:sinhaankur@ymail.com" },
-  { label: "LinkedIn", href: "https://linkedin.com/in/sinhaankur27" },
+  { label: "LinkedIn", href: "https://www.linkedin.com/in/sinhaankur27" },
   { label: "GitHub", href: "https://github.com/sinhaankur" },
   { label: "Resume", href: "/ankur-sinha-resume.pdf", download: true },
 ]
