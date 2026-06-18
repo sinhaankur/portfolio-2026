@@ -49,7 +49,7 @@ const timeline: Experience[] = [
     period: "Feb 2020 – Present",
     duration: "5+ years",
     blurb:
-      "Lead designer for cloud database tooling and AI orchestration surfaces. Cross-tool consistency across the data lifecycle. Specifics under NDA.",
+      "Database tooling is where DBAs live all day — yet the surfaces had drifted apart. I lead UX across Oracle's cloud data lifecycle, pulling fragmented tools into one coherent system (and now its AI-orchestration layer). Specifics under NDA.",
     tags: ["Enterprise", "Data tooling", "AI orchestration"],
     current: true,
     href: "/works/oracle",
