@@ -131,6 +131,35 @@
   const ctx = canvas.getContext("2d");
   ctx.imageSmoothingEnabled = false;
 
+  // ---- Blender-rendered 2.5D sprites. Loaded async; every draw call falls back
+  // to the original flat pixel art until the image is ready, so the game never
+  // shows blank. SPRITE_DATA may be injected (base64 data-URIs) by the offline
+  // single-file build; otherwise we load from /games/sprites/*.png.
+  const SPRITE_NAMES = [
+    "brick", "spike", "door_locked", "door_open", "gem", "trophy",
+    "hero_idle", "hero_run1", "hero_run2", "hero_jump",
+    "enemy_idle", "enemy_walk1", "enemy_walk2",
+  ];
+  const IMG = {};
+  const SPRITE_DATA = (typeof window !== "undefined" && window.__SPRITE_DATA__) || null;
+  for (const n of SPRITE_NAMES) {
+    const im = new Image();
+    im.src = SPRITE_DATA ? SPRITE_DATA[n] : `sprites/${n}.png`;
+    IMG[n] = im;
+  }
+  const has = (n) => IMG[n] && IMG[n].complete && IMG[n].naturalWidth > 0;
+  // draw a sprite into a logical box (dw×dh) centred horizontally on (cx) with its
+  // BOTTOM at (by); flipX mirrors for left-facing. Sprites are authored a bit
+  // taller than their tile so 3D tops/overhangs read — we scale to fit the box.
+  function spr(name, cx, by, dw, dh, flipX) {
+    const im = IMG[name];
+    ctx.save();
+    ctx.translate(cx, by);
+    if (flipX) ctx.scale(-1, 1);
+    ctx.drawImage(im, -dw / 2, -dh, dw, dh);
+    ctx.restore();
+  }
+
   // ---- Level maps. All the same width (25) so the camera + look stay consistent.
   // Difficulty ramps: more spikes/enemies/gems, trickier jumps, later levels.
   const LEVELS = [
@@ -359,29 +388,29 @@
   function px(x, y, w, h, color) { ctx.fillStyle = color; ctx.fillRect(x | 0, y | 0, w | 0, h | 0); }
 
   function drawBrick(x, y) {
+    if (has("brick")) { spr("brick", x + TILE / 2, y + TILE, TILE, TILE, false); return; }
     px(x, y, TILE, TILE, "#5a4636");
     px(x, y, TILE, 3, "#6f5946");
-    // mortar lines
     px(x, y + TILE / 2, TILE, 2, "#3c2f24");
     px(x + TILE / 2, y, 2, TILE / 2, "#3c2f24");
     px(x, y + TILE / 2, TILE / 4, 2, "#3c2f24");
     px(x + (TILE * 3) / 4, y + TILE / 2, TILE / 4, 2, "#3c2f24");
   }
   function drawSpike(x, y) {
+    if (has("spike")) { spr("spike", x + TILE / 2, y + TILE, TILE, TILE, false); return; }
     px(x, y + TILE - 4, TILE, 4, "#444a55");
     ctx.fillStyle = "#c9ced8";
     for (let i = 0; i < 3; i++) {
       const bx = x + i * (TILE / 3);
       ctx.beginPath();
-      ctx.moveTo(bx, y + TILE);
-      ctx.lineTo(bx + TILE / 6, y + 6);
-      ctx.lineTo(bx + TILE / 3, y + TILE);
+      ctx.moveTo(bx, y + TILE); ctx.lineTo(bx + TILE / 6, y + 6); ctx.lineTo(bx + TILE / 3, y + TILE);
       ctx.closePath(); ctx.fill();
     }
   }
   function drawGem(g) {
     if (g.got) return;
-    const t = Date.now() / 300, bob = Math.sin(t + g.x) * 2;
+    const bob = Math.sin(Date.now() / 300 + g.x) * 2;
+    if (has("gem")) { spr("gem", g.x, g.y + bob + 8, 16, 16, false); return; }
     const cx = g.x, cy = g.y + bob;
     ctx.fillStyle = "#28e0d0";
     ctx.beginPath();
@@ -392,52 +421,55 @@
   function drawTrophy(tr) {
     if (!tr || tr.got) return;
     const bob = Math.sin(Date.now() / 280) * 2, x = tr.x, y = tr.y + bob;
-    px(x - 7, y - 8, 14, 9, "#f0c020");      // cup
-    px(x - 9, y - 7, 3, 5, "#f0c020");        // handles
-    px(x + 6, y - 7, 3, 5, "#f0c020");
-    px(x - 3, y + 1, 6, 4, "#caa018");        // stem
-    px(x - 6, y + 5, 12, 3, "#caa018");       // base
-    px(x - 4, y - 6, 3, 3, "#fff3b0");        // shine
+    if (has("trophy")) { spr("trophy", x, y + 11, 22, 22, false); return; }
+    px(x - 7, y - 8, 14, 9, "#f0c020");
+    px(x - 9, y - 7, 3, 5, "#f0c020"); px(x + 6, y - 7, 3, 5, "#f0c020");
+    px(x - 3, y + 1, 6, 4, "#caa018"); px(x - 6, y + 5, 12, 3, "#caa018");
+    px(x - 4, y - 6, 3, 3, "#fff3b0");
   }
   function drawDoor(d) {
     const open = gemsGot >= gemsTotal && (!trophy || hasTrophy);
+    const name = open ? "door_open" : "door_locked";
+    if (has(name)) {
+      spr(name, d.x + TILE / 2, d.y + TILE, TILE + 4, TILE + 4, false);
+      if (open) { // soft glow halo behind the open door
+        ctx.save(); ctx.globalAlpha = 0.4 + Math.sin(Date.now() / 240) * 0.15;
+        ctx.fillStyle = "rgba(120,255,180,0.6)";
+        ctx.fillRect(d.x + 5, d.y + 4, TILE - 10, TILE - 5); ctx.restore();
+      }
+      return;
+    }
     px(d.x + 3, d.y + 2, TILE - 6, TILE - 2, open ? "#2a6f4a" : "#3a3550");
     px(d.x + 3, d.y + 2, TILE - 6, 3, open ? "#3a8f60" : "#4a4566");
-    if (open) { // glowing exit
-      ctx.fillStyle = "rgba(120,255,180,0.5)";
-      ctx.fillRect(d.x + 6, d.y + 5, TILE - 12, TILE - 6);
-      px(d.x + TILE - 9, d.y + TILE / 2, 2, 4, "#bfffd9");
-    } else {
-      px(d.x + TILE - 9, d.y + TILE / 2, 2, 4, "#9a95b5"); // knob
-      // lock hint
-      px(d.x + TILE/2 - 3, d.y + TILE/2 - 2, 6, 6, "#f0c020");
-    }
+    if (open) { ctx.fillStyle = "rgba(120,255,180,0.5)"; ctx.fillRect(d.x + 6, d.y + 5, TILE - 12, TILE - 6); }
+    else { px(d.x + TILE / 2 - 3, d.y + TILE / 2 - 2, 6, 6, "#f0c020"); }
   }
   function drawPlayer(p) {
     const x = p.x, y = p.y, f = p.face;
+    // pick frame from state
+    let frame = "hero_idle";
+    if (!p.onGround) frame = "hero_jump";
+    else if (Math.abs(p.vx) > 0.5) frame = (Math.floor(p.animT) % 2) ? "hero_run2" : "hero_run1";
+    if (has(frame)) {
+      // sprite drawn a touch taller than the body box so legs/cap read; bottom at feet
+      const dw = p.w + 14, dh = p.h + 14;
+      spr(frame, x + p.w / 2, y + p.h + 2, dw, dh, f < 0);
+      return;
+    }
     const stepF = p.onGround && Math.abs(p.vx) > 0.5 ? Math.floor(p.animT) % 2 : 0;
-    // body (explorer: red shirt, blue legs, skin head)
-    px(x + 2, y + 8, p.w - 4, 7, "#d23b3b");     // shirt
-    px(x + 3, y + 15, 4, 4 + stepF, "#2d5bb0");   // left leg
-    px(x + p.w - 7, y + 15, 4, 4 - stepF, "#2d5bb0"); // right leg
-    px(x + 4, y + 1, p.w - 8, 7, "#e8b890");      // head
-    px(x + 4, y, p.w - 8, 3, "#7a4a28");          // hair/cap
-    // eye (faces direction)
+    px(x + 2, y + 8, p.w - 4, 7, "#d23b3b");
+    px(x + 3, y + 15, 4, 4 + stepF, "#2d5bb0"); px(x + p.w - 7, y + 15, 4, 4 - stepF, "#2d5bb0");
+    px(x + 4, y + 1, p.w - 8, 7, "#e8b890"); px(x + 4, y, p.w - 8, 3, "#7a4a28");
     px(f > 0 ? x + p.w - 7 : x + 4, y + 3, 2, 2, "#1a1a1a");
-    // arm
-    px(f > 0 ? x + p.w - 4 : x, y + 9, 3, 5, "#e8b890");
   }
   function drawEnemy(e) {
-    const x = e.x, y = e.y, wob = Math.sin(e.animT) * 1.5;
-    px(x, y + 2, e.w, e.h - 2, "#8a3ad0");        // blob body
-    px(x + 1, y + wob, e.w - 2, 4, "#a050e0");    // top wobble
-    px(x + 3, y + 6, 3, 3, "#fff");               // eyes
-    px(x + e.w - 6, y + 6, 3, 3, "#fff");
-    px(x + 4, y + 7, 2, 2, "#1a1a1a");
-    px(x + e.w - 5, y + 7, 2, 2, "#1a1a1a");
-    // feet
-    px(x, y + e.h - 1, 3, 2, "#5a1f8a");
-    px(x + e.w - 3, y + e.h - 1, 3, 2, "#5a1f8a");
+    const x = e.x, y = e.y;
+    const frame = (Math.floor(e.animT) % 2) ? "enemy_walk1" : "enemy_walk2";
+    if (has(frame)) { spr(frame, x + e.w / 2, y + e.h + 2, e.w + 10, e.h + 10, e.dir < 0); return; }
+    const wob = Math.sin(e.animT) * 1.5;
+    px(x, y + 2, e.w, e.h - 2, "#8a3ad0"); px(x + 1, y + wob, e.w - 2, 4, "#a050e0");
+    px(x + 3, y + 6, 3, 3, "#fff"); px(x + e.w - 6, y + 6, 3, 3, "#fff");
+    px(x + 4, y + 7, 2, 2, "#1a1a1a"); px(x + e.w - 5, y + 7, 2, 2, "#1a1a1a");
   }
 
   function draw() {
