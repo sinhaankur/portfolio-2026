@@ -91,7 +91,9 @@
     </div>
     <canvas id="game" width="600" height="360"></canvas>
     <button id="startButton" class="retro-btn retro-btn--primary">Start Game</button>
-    <p class="hint">← → or A/D to move · ↑ / W / Space to jump · grab every gem + the 🏆, then reach the door 🚪</p>
+    <p class="hint">← → or A/D to move · ↑ / W / Space to jump · grab every gem + the 🏆, then reach the door 🚪 · find the hidden warp ✦</p>
+    <button id="downloadBtn" class="retro-btn" type="button">⬇ Download &amp; play offline (free)</button>
+    <p class="hint" id="dlNote">Saves the whole game as one file — open it anytime, no internet, no install.</p>
 
     <div class="touch" aria-label="On-screen controls">
       <div class="pad">
@@ -619,6 +621,62 @@
     b.addEventListener("mousedown", on); b.addEventListener("mouseup", off); b.addEventListener("mouseleave", off);
   }
   bindHold("leftBtn", "left"); bindHold("rightBtn", "right"); bindHold("jumpBtn", "jump");
+
+  // ---- Offline single-file download ----------------------------------------
+  // Builds a fully self-contained copy of THIS game: inlines retro.css, swaps the
+  // Google-Fonts link for a system-font stack, and embeds every sprite as a
+  // base64 data-URI (so it needs no network). Downloads as cavern-dash.html.
+  (function () {
+    const btn = document.getElementById("downloadBtn");
+    const note = document.getElementById("dlNote");
+    if (!btn) return;
+    btn.addEventListener("click", async () => {
+      const orig = btn.textContent;
+      btn.disabled = true; btn.textContent = "Packing…";
+      try {
+        // 1) this page's own source
+        let html = await (await fetch(location.href)).text();
+        // 2) inline retro.css
+        let css = "";
+        try { css = await (await fetch("css/retro.css")).text(); } catch (e) {}
+        html = html.replace(/<link[^>]+css\/retro\.css[^>]*>/, css ? `<style>\n${css}\n</style>` : "");
+        // 3) drop the external Google Fonts link → system stack via injected CSS
+        html = html.replace(/<link[^>]+fonts\.googleapis\.com[^>]*>/g, "");
+        html = html.replace("</head>",
+          `<style>:root{--font-fallback:1}
+            body,h1,h2,p,button,.hint{font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif !important}
+            .retro-btn,.stat label,.stat span,.hint,[class*="mono"]{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace !important}
+          </style></head>`);
+        // 4) embed sprites as base64 and inject a SPRITE_DATA map the loader reads
+        const data = {};
+        await Promise.all(SPRITE_NAMES.map(async (n) => {
+          const blob = await (await fetch(IMG[n].src)).blob();
+          data[n] = await new Promise((res) => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(blob); });
+        }));
+        html = html.replace("</head>", `<script>window.__SPRITE_DATA__=${JSON.stringify(data)};<\/script></head>`);
+        // 5) remove the download UI from the offline copy (no network there)
+        html = html.replace(/<button id="downloadBtn"[\s\S]*?<\/button>/, "");
+        html = html.replace(/<p class="hint" id="dlNote">[\s\S]*?<\/p>/, "");
+        // 6) make the back-link go home online, harmless offline
+        html = html.replace('href="Gamelist.html"', 'href="https://www.sinhaankur.com/games/Gamelist.html"');
+
+        const blob = new Blob([html], { type: "text/html" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = "cavern-dash.html";
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+        btn.textContent = "✓ Downloaded — play offline!";
+        if (note) note.textContent = "Saved as cavern-dash.html. Open it anytime, even with no internet.";
+      } catch (err) {
+        btn.textContent = "Download failed — try again";
+        console.error(err);
+      } finally {
+        btn.disabled = false;
+        setTimeout(() => { btn.textContent = orig; }, 4000);
+      }
+    });
+  })();
 
   // ---- Theme toggle (matches the other games)
   (function () {
