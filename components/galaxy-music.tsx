@@ -60,14 +60,17 @@ export function GalaxyMusic() {
   const [ready, setReady] = useState(false)
   const [playing, setPlaying] = useState(false)
   const [loadError, setLoadError] = useState(false)
+  // PERF: the SoundCloud iframe + Widget API (~120 KB, 10 cross-origin requests,
+  // third-party cookies) used to load on mount on every page that shows the music
+  // chip — before the user ever opts in. We now defer ALL of it until the first
+  // click, so the home/celestial/star-cleaver first load carries none of it.
+  // Playback stays strictly opt-in (CLAUDE.md), and now so does the loading.
+  const [activated, setActivated] = useState(false)
 
+  // Bind the widget only once the iframe has been mounted (after first click).
   useEffect(() => {
+    if (!activated) return
     let cancelled = false
-    // Failsafe: the SoundCloud Widget READY event is occasionally flaky
-    // (it never fires if the API binds before the cross-origin iframe has
-    // posted back). Don't let that leave the button disabled forever —
-    // enable it after a short grace period and let the first click drive
-    // playback, which forces the widget to initialise anyway.
     let readyFallback: ReturnType<typeof setTimeout> | null = null
 
     const bindWidget = (SC: SCAPI) => {
@@ -80,46 +83,37 @@ export function GalaxyMusic() {
         if (readyFallback) clearTimeout(readyFallback)
         widget.setVolume(45)
         setReady(true)
-        if (queuedActionRef.current === "play") {
-          widget.play()
-        } else if (queuedActionRef.current === "pause") {
-          widget.pause()
-        }
+        if (queuedActionRef.current === "play") widget.play()
+        else if (queuedActionRef.current === "pause") widget.pause()
         queuedActionRef.current = null
       })
-      widget.bind(SC.Widget.Events.PLAY, () => {
-        if (!cancelled) setPlaying(true)
-      })
-      widget.bind(SC.Widget.Events.PAUSE, () => {
-        if (!cancelled) setPlaying(false)
-      })
-      widget.bind(SC.Widget.Events.FINISH, () => {
-        if (!cancelled) setPlaying(false)
-      })
+      widget.bind(SC.Widget.Events.PLAY, () => { if (!cancelled) setPlaying(true) })
+      widget.bind(SC.Widget.Events.PAUSE, () => { if (!cancelled) setPlaying(false) })
+      widget.bind(SC.Widget.Events.FINISH, () => { if (!cancelled) setPlaying(false) })
       // If READY hasn't arrived in 2.5s, enable the control anyway.
-      readyFallback = setTimeout(() => {
-        if (!cancelled) setReady(true)
-      }, 2500)
+      readyFallback = setTimeout(() => { if (!cancelled) setReady(true) }, 2500)
     }
 
     loadSoundCloudAPI()
       .then(bindWidget)
-      .catch(() => {
-        if (!cancelled) setLoadError(true)
-      })
+      .catch(() => { if (!cancelled) setLoadError(true) })
 
     return () => {
       cancelled = true
       if (readyFallback) clearTimeout(readyFallback)
-      try {
-        widgetRef.current?.pause()
-      } catch {
-        /* widget may already be torn down */
-      }
+      try { widgetRef.current?.pause() } catch { /* already torn down */ }
     }
-  }, [])
+  }, [activated])
 
   const toggle = () => {
+    // First click: mount the iframe + load the API, and queue play. The bind
+    // effect picks up `activated` and starts playback once READY fires.
+    if (!activated) {
+      queuedActionRef.current = "play"
+      setPlaying(true)        // optimistic — corrected by PLAY/PAUSE binds
+      setActivated(true)
+      return
+    }
     const widget = widgetRef.current
     if (!widget) return
     if (!widgetReadyRef.current) {
@@ -129,15 +123,8 @@ export function GalaxyMusic() {
       return
     }
     // Optimistically flip the icon — the PLAY/PAUSE binds will correct it.
-    // Some browsers won't deliver the bound events until the first user
-    // gesture, so driving the icon off local intent keeps the UI honest.
-    if (playing) {
-      widget.pause()
-      setPlaying(false)
-    } else {
-      widget.play()
-      setPlaying(true)
-    }
+    if (playing) { widget.pause(); setPlaying(false) }
+    else { widget.play(); setPlaying(true) }
   }
 
   // Iframe is loaded but kept visually hidden — we control playback via the widget API.
@@ -150,36 +137,39 @@ export function GalaxyMusic() {
 
   return (
     <>
-      {/* Hidden audio source. Kept off-screen (not zero-area) so browsers
-          still fully initialise the cross-origin iframe — a 1×1 / display:none
-          frame can be deprioritised, which stops the Widget API from ever
-          becoming ready. We give it real dimensions and push it off-screen. */}
-      <iframe
-        ref={iframeRef}
-        src={embedSrc}
-        width="320"
-        height="166"
-        title="Ambient music — Ludovico Einaudi, Experience (Reimagined)"
-        aria-hidden="true"
-        allow="autoplay"
-        tabIndex={-1}
-        style={{
-          position: "fixed",
-          width: 320,
-          height: 166,
-          opacity: 0,
-          pointerEvents: "none",
-          border: 0,
-          left: -10000,
-          top: 0,
-        }}
-      />
+      {/* Hidden audio source — only mounted AFTER the first click (activated), so
+          the cross-origin iframe + its requests/cookies never load on a passive
+          page visit. Kept off-screen (not zero-area) so browsers still fully
+          initialise the iframe — a 1×1 / display:none frame can be deprioritised,
+          which stops the Widget API from ever becoming ready. */}
+      {activated && (
+        <iframe
+          ref={iframeRef}
+          src={embedSrc}
+          width="320"
+          height="166"
+          title="Ambient music — Ludovico Einaudi, Experience (Reimagined)"
+          aria-hidden="true"
+          allow="autoplay"
+          tabIndex={-1}
+          style={{
+            position: "fixed",
+            width: 320,
+            height: 166,
+            opacity: 0,
+            pointerEvents: "none",
+            border: 0,
+            left: -10000,
+            top: 0,
+          }}
+        />
+      )}
 
       {/* Compact icon-only toggle — stacks above the time-warp slider in galaxy-scene */}
       <button
         type="button"
         onClick={toggle}
-        disabled={!ready}
+        disabled={activated && !ready}
         aria-pressed={playing}
         title={
           playing
