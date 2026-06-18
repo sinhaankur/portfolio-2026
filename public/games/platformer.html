@@ -164,46 +164,49 @@
 
   // ---- Level maps. All the same width (25) so the camera + look stay consistent.
   // Difficulty ramps: more spikes/enemies/gems, trickier jumps, later levels.
+  // Difficulty ramps gently across the three levels (same cavern look). Spikes are
+  // sparse with safe footing between them; enemies are few. Tuned to be fair after
+  // playtest said it was too hard.
   const LEVELS = [
     [
       "#########################",
       "#@      o     o       W #",
       "#   ###    ##     ###   #",
       "#         o          o  #",
-      "#  ###   ###  ^   ##     #",
-      "#               ####   o#",
-      "#  o   ^   ###          T#",
-      "# ###     * *    ###  ####",
+      "#  ###   ###      ##     #",
+      "#             ^ ####   o#",
+      "#  o       ###         T#",
+      "# ###       *    ###  ####",
       "#      ###   ###        D#",
-      "#####**###***###***##*####",
+      "#######   ###   ###  #####",
       "#########################",
     ],
     [
       "#########################",
-      "#@   o    ^      o   o  T#",
+      "#@   o          o   o  T#",
       "# ##   ###   ###   ##  ##",
-      "#   o        *        o  #",
+      "#   o                 o  #",
       "#  ###  ^  ###  ###  ##  #",
-      "#     *      o       *   #",
+      "#            o          #",
       "# ###   ###    ###  ### o#",
-      "#   ^      **      ^     #",
+      "#          *       ^     #",
       "# ##   ###   ###    ## ###",
-      "#o  * *   o  * *  o  *  D#",
-      "##**####***###***####**###",
+      "#o       o  * *   o     D#",
+      "####   ###   ###   #######",
       "#########################",
     ],
     [
       "#########################",
-      "#@  o ^  o  ^  o  ^  o  T#",
+      "#@  o    o     o     o  T#",
       "###  ##  ##  ##  ##  ## ##",
-      "#  *      *      *      o#",
-      "# ### ^ ### ^ ### ^ ###  #",
-      "#   o     o      o    *  #",
-      "###  ## *  ## *  ## *  ###",
-      "#  ^    o     o    ^   o #",
+      "#         *            o#",
+      "# ###   ### ^ ###   ###  #",
+      "#   o     o      o      #",
+      "###  ##    ## *  ##    ###",
+      "#  ^      o     o       o#",
       "# ### ### ### ### ### ## #",
-      "#o * * * o * * o * * * oD#",
-      "##*##**##**##**##**##**###",
+      "#o     * *    o    * *  D#",
+      "###  ##   ###   ##   #####",
       "#########################",
     ],
   ];
@@ -304,7 +307,9 @@
   // accel, quick stop, a strong but controllable jump with variable height
   // (release early = shorter hop), plus coyote-time + jump-buffer so jumps near
   // edges / pressed just before landing still fire. Less air-float than before.
-  const GRAV = 0.72, MOVE = 1.15, FRICTION = 0.70, MAXVX = 4.6, JUMP = 12.0, ENEMY_SPD = 1.1;
+  // Tuned from playtest: jump was floaty (↑gravity, snappier fall, keep height),
+  // movement was fast/slippery (↓top speed, ↓accel, more grip), enemies too fast.
+  const GRAV = 0.95, MOVE = 0.95, FRICTION = 0.55, MAXVX = 3.6, JUMP = 12.6, ENEMY_SPD = 0.8;
   const COYOTE_FRAMES = 6;     // can still jump this many frames after leaving ground
   const JUMPBUF_FRAMES = 6;    // a jump press is remembered this many frames
   const JUMP_CUT = 0.45;       // releasing jump while rising cuts upward velocity
