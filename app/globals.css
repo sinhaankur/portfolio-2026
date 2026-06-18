@@ -139,6 +139,29 @@
     @apply bg-background text-foreground;
   }
 
+  /* Localized shells — applied only when <html lang> is set by the /ar /ja pages.
+     English (lang="en") is untouched and keeps the Latin type system. */
+  html[lang="ar"] {
+    direction: rtl;
+  }
+  html[lang="ar"] body {
+    /* Arabic face for body + UI; the Latin display fonts don't carry Arabic. */
+    font-family: var(--font-ar), "Noto Sans Arabic", "Segoe UI", system-ui, sans-serif;
+  }
+  /* Use the Arabic face for headings/labels too (Fraunces/JetBrains have no AR). */
+  html[lang="ar"] h1, html[lang="ar"] h2, html[lang="ar"] h3,
+  html[lang="ar"] .font-display, html[lang="ar"] .font-mono, html[lang="ar"] .font-serif {
+    font-family: var(--font-ar), "Noto Sans Arabic", system-ui, sans-serif !important;
+  }
+  html[lang="ja"] body {
+    font-family: var(--font-jp), "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Yu Gothic", system-ui, sans-serif;
+  }
+  /* Japanese for headings/mono labels (Latin display faces lack kana/kanji). */
+  html[lang="ja"] h1, html[lang="ja"] h2, html[lang="ja"] h3,
+  html[lang="ja"] .font-display, html[lang="ja"] .font-mono, html[lang="ja"] .font-serif {
+    font-family: var(--font-jp), "Noto Sans JP", system-ui, sans-serif !important;
+  }
+
   /* Light mode — give the page a faint paper grain so the cream tokens
      don't read as flat CSS. The texture is a low-octave SVG turbulence
      blended low so it shows up on retina without crawling at viewport

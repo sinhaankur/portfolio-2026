@@ -29,6 +29,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/skills",            priority: 0.7, changeFrequency: "monthly" },
     { path: "/usability",         priority: 0.6, changeFrequency: "monthly" },
     { path: "/upcoming",          priority: 0.5, changeFrequency: "weekly"  },
+    { path: "/ar",                priority: 0.6, changeFrequency: "monthly" },
+    { path: "/ja",                priority: 0.6, changeFrequency: "monthly" },
   ]
 
   return routes.map(({ path, priority, changeFrequency }) => ({

@@ -7,7 +7,7 @@
 import type React from "react"
 import type { Metadata, Viewport } from "next"
 import Script from "next/script"
-import { Inter, Instrument_Serif, JetBrains_Mono, Fraunces } from "next/font/google"
+import { Inter, Instrument_Serif, JetBrains_Mono, Fraunces, Noto_Sans_Arabic, Noto_Sans_JP } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
 import { DisplayPrefsProvider } from "@/components/display-prefs"
 import { VisitorAnalytics } from "@/components/analytics/visitor-analytics"
@@ -50,6 +50,20 @@ const instrument = Instrument_Serif({
 const jetbrains = JetBrains_Mono({
   subsets: ["latin"],
   variable: "--font-jetbrains",
+  display: "swap",
+})
+
+// Arabic + Japanese faces for the localized /ar and /ja shells. Loaded globally
+// (so the switcher works from any page) but only applied via [lang="ar"|"ja"] in
+// globals.css, so English pages keep the Latin type system unchanged.
+const notoArabic = Noto_Sans_Arabic({
+  subsets: ["arabic"],
+  variable: "--font-ar",
+  display: "swap",
+})
+const notoJP = Noto_Sans_JP({
+  subsets: ["latin"], // JP glyphs ship regardless; "latin" keeps the requested subset valid
+  variable: "--font-jp",
   display: "swap",
 })
 
@@ -187,7 +201,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${inter.variable} ${fraunces.variable} ${instrument.variable} ${jetbrains.variable}`}
+      className={`${inter.variable} ${fraunces.variable} ${instrument.variable} ${jetbrains.variable} ${notoArabic.variable} ${notoJP.variable}`}
     >
       <head>
         {/* SoundCloud music now loads ONLY after the user clicks play (deferred),
