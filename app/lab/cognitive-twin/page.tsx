@@ -9,9 +9,9 @@ import {
 } from "@/components/case-study/case-study-layout"
 
 export const metadata: Metadata = {
-  title: "Cognitive Twin Agent — secure single-user local assistant runtime · Ankur Sinha",
+  title: "Cognitive Twin Agent — a local-first personal AI runtime · Ankur Sinha",
   description:
-    "A secure single-user local assistant runtime: multimodal sensing, keychain-backed encryption, consent-gated connectors, calibration, sentiment benchmarking, and menu-bar control.",
+    "An in-progress local-first personal AI agent: multimodal sensing, keychain-backed encryption, consent-gated connectors, calibration, sentiment benchmarking, and menu-bar control. Built in the spirit of local-first agent research like OpenJarvis.",
 }
 
 type RuntimeRow = {
@@ -78,19 +78,14 @@ const shipped: { title: string; body: string }[] = [
 
 const journeySteps: { stage: string; detail: string }[] = [
   {
-    stage: "Discover and qualify",
+    stage: "Install and provision",
     detail:
-      "The user validates fit for a local-first, single-user runtime with explicit consent boundaries.",
-  },
-  {
-    stage: "Purchase and provision",
-    detail:
-      "Access is granted only through paid licensing and private repository provisioning.",
+      "A one-command setup prepares the local environment, model runtime, and starter weights — local-first from the first run.",
   },
   {
     stage: "Activate and secure",
     detail:
-      "The assistant is initialized for an approved OS user, token-authenticated, and keychain-backed.",
+      "The assistant is initialized for the host OS user, token-authenticated, and keychain-backed.",
   },
   {
     stage: "Connect and calibrate",
@@ -112,26 +107,39 @@ const journeySteps: { stage: string; detail: string }[] = [
 export default function CognitiveTwinPage() {
   return (
     <CaseStudyLayout
-      eyebrow="Lab — AI Systems · 2026"
+      eyebrow="Lab — AI Systems · 2026 · in progress"
       title="Cognitive Twin Agent"
-      subtitle="A secure single-user local assistant that can run continuously, sense context, and map day-to-day work into actionable plans."
-      period="June 2026 · active build"
+      subtitle="A local-first personal AI agent that runs continuously, senses context, and maps day-to-day work into actionable plans — on a machine I control."
+      period="2026 · active build"
       role="Architect · Designer · Engineer"
-      tags={["Agent systems", "Local-first", "Security", "Multimodal", "Private repo"]}
+      tags={["Agent systems", "Local-first", "Multimodal", "Privacy", "Work in progress"]}
       backTo={{ label: "Back to The Lab", href: "/lab" }}
       intro={
         <>
           <p>
             This project started as a digital-twin prompt architecture and evolved into
-            an application runtime: always-on daemon, user-specific access controls,
-            multimodal perception, and day-mapping connectors. The goal is no longer
-            just response style. The goal is <strong>reliable operational behavior</strong>
-            on a machine I control.
+            an application runtime: an always-on daemon, multimodal perception, and
+            day-mapping connectors. The goal is no longer just response style — it&rsquo;s{" "}
+            <strong>reliable operational behavior</strong> on a machine I control,
+            calling the cloud only when it&rsquo;s genuinely the better tool.
           </p>
           <p>
-            The same principles remain: local-first context, behavioral rehearsal, and
-            deterministic guardrails. What changed is delivery shape: from framework notes
-            to a secured, connector-aware assistant surface that can run like a daily companion.
+            It sits in the same lineage as recent local-first agent research — work like
+            Stanford&rsquo;s{" "}
+            <a
+              href="https://github.com/open-jarvis/OpenJarvis"
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              OpenJarvis
+            </a>
+            , whose benchmarks show local models already handling the large majority of
+            everyday queries. That&rsquo;s the bet this build is making too: keep context,
+            sensing, and trust on-device by default.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Active build — the codebase is private while it stabilises. What follows is
+            where the architecture stands today.
           </p>
         </>
       }
@@ -147,10 +155,28 @@ export default function CognitiveTwinPage() {
             "
           >
             <Lock className="w-4 h-4" aria-hidden="true" />
-            github.com/sinhaankur/cognitive-twin-agent · private
+            cognitive-twin-agent · private while in build
           </span>
           <a
-            href="mailto:ankursinha.ai@gmail.com?subject=Cognitive%20Twin%20Agent%20Access"
+            href="https://github.com/open-jarvis/OpenJarvis"
+            target="_blank"
+            rel="noreferrer noopener"
+            data-cursor-hover
+            className="
+              inline-flex items-center gap-2
+              px-4 py-2.5 rounded-full
+              border border-border bg-background hover:border-accent/60
+              transition-colors duration-300
+              font-mono text-[10px] tracking-[0.2em] uppercase text-foreground/85
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+              focus-visible:ring-offset-4 focus-visible:ring-offset-background
+            "
+          >
+            <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />
+            Prior art: OpenJarvis
+          </a>
+          <a
+            href="mailto:ankursinha.ai@gmail.com?subject=Cognitive%20Twin%20Agent"
             data-cursor-hover
             className="
               inline-flex items-center gap-2
@@ -163,23 +189,34 @@ export default function CognitiveTwinPage() {
             "
           >
             <Mail className="w-3.5 h-3.5" aria-hidden="true" />
-            Request access
-            <ExternalLink className="w-3 h-3 opacity-60" aria-hidden="true" />
+            Get in touch
           </a>
         </div>
       </section>
 
       <section>
-        <CaseSectionHeading>Access model</CaseSectionHeading>
+        <CaseSectionHeading>Why local-first</CaseSectionHeading>
         <CaseProse>
           <p>
-            Cognitive Twin Agent is offered as a <strong>paid, individual-user system</strong>.
-            It is intentionally private because the runtime is built around user-scoped trust,
-            local control, and explicit consent boundaries.
+            Most personal assistants route everything through a cloud API. That is the
+            wrong default for something that watches your screen, hears your room, and
+            reads your calendar. The thesis here — shared with local-first agent research
+            like{" "}
+            <a
+              href="https://github.com/open-jarvis/OpenJarvis"
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              OpenJarvis
+            </a>{" "}
+            — is that on-device models are now good enough to handle the large majority of
+            everyday work, so the cloud should be the exception, not the rule.
           </p>
           <p>
-            Private repository visibility is not treated as a usage license. Usage rights are
-            granted only after commercial terms are confirmed and payment is complete.
+            This is my own build, not a fork of any framework. OpenJarvis is prior art I
+            point to for the local-first case; the architecture, security model, and
+            multimodal pipeline below are mine. The aim is a daily companion where context,
+            sensing, and trust stay on a machine I control.
           </p>
         </CaseProse>
       </section>
