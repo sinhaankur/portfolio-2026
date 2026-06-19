@@ -163,7 +163,7 @@ export function Footer() {
           <p className="font-mono text-xs tracking-widest text-muted-foreground">
             ©{" "}{new Date().getFullYear()}{" "}ANKUR SINHA · {" "}
             <a
-              href="https://github.com/sinhaankur/Portfolio/blob/main/LICENSE"
+              href="https://github.com/sinhaankur/portfolio-2026/blob/main/LICENSE"
               target="_blank"
               rel="noreferrer noopener"
               data-cursor-hover

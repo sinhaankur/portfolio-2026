@@ -10,7 +10,7 @@
  * may not be redistributed, repurposed, or used as the basis for another
  * portfolio, template, or product without prior written permission.
  *
- * https://github.com/sinhaankur/Portfolio/blob/main/LICENSE
+ * https://github.com/sinhaankur/portfolio-2026/blob/main/LICENSE
  *
  * ---
  * Universe Engine — public entry.

@@ -3,7 +3,7 @@
 /**
  * Copyright (c) 2026 Ankur Sinha. All rights reserved.
  * Part of the Universe Engine — see ./index.tsx for the full notice.
- * https://github.com/sinhaankur/Portfolio/blob/main/LICENSE
+ * https://github.com/sinhaankur/portfolio-2026/blob/main/LICENSE
  *
  * Universe Engine — R3F scene graph.
  *

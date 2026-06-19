@@ -143,7 +143,7 @@ export default function UsabilityEngineCaseStudy() {
             <ArrowUpRight className="w-3 h-3 opacity-70" aria-hidden="true" />
           </Link>
           <a
-            href="https://github.com/sinhaankur/Portfolio/tree/main/components/usability-engine"
+            href="https://github.com/sinhaankur/portfolio-2026/tree/main/components/usability-engine"
             target="_blank"
             rel="noreferrer noopener"
             data-cursor-hover
@@ -161,7 +161,7 @@ export default function UsabilityEngineCaseStudy() {
             usability-engine source
           </a>
           <a
-            href="https://github.com/sinhaankur/Portfolio/blob/main/components/usability-engine/heuristics.ts"
+            href="https://github.com/sinhaankur/portfolio-2026/blob/main/components/usability-engine/heuristics.ts"
             target="_blank"
             rel="noreferrer noopener"
             data-cursor-hover

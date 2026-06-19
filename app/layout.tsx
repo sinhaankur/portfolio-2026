@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2026 Ankur Sinha. All rights reserved.
  * Licensed under the terms in /LICENSE — proprietary, not OSI-approved.
- * https://github.com/sinhaankur/Portfolio/blob/main/LICENSE
+ * https://github.com/sinhaankur/portfolio-2026/blob/main/LICENSE
  */
 
 import type React from "react"
