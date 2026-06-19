@@ -1,9 +1,48 @@
 "use client"
 
-import type { ReactNode } from "react"
+import type { ComponentType, ReactNode } from "react"
 import Link from "next/link"
 import { motion, useReducedMotion } from "framer-motion"
-import { ArrowLeft } from "lucide-react"
+import {
+  ArrowLeft,
+  Archive,
+  Bot,
+  Boxes,
+  Code2,
+  Database,
+  DatabaseZap,
+  GitCompareArrows,
+  KeyRound,
+  Map as MapIcon,
+  PackageCheck,
+  ShieldCheck,
+  Sparkles,
+  Workflow,
+} from "lucide-react"
+import type { LucideProps } from "lucide-react"
+
+/**
+ * Icon registry for ProjectStory. Server-component case-study pages can't pass a
+ * function (a lucide component) across the client boundary, so they pass a string
+ * name and we resolve it here. Add new glyphs as services need them.
+ */
+const STORY_ICONS: Record<string, ComponentType<LucideProps>> = {
+  archive: Archive,
+  bot: Bot,
+  boxes: Boxes,
+  code: Code2,
+  database: Database,
+  "database-zap": DatabaseZap,
+  "git-compare": GitCompareArrows,
+  key: KeyRound,
+  map: MapIcon,
+  "package-check": PackageCheck,
+  shield: ShieldCheck,
+  sparkles: Sparkles,
+  workflow: Workflow,
+}
+
+export type StoryIconName = keyof typeof STORY_ICONS
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { CustomCursor } from "@/components/custom-cursor"
@@ -265,6 +304,13 @@ type ProjectStoryProps = {
   approach: ReactNode
   learned: ReactNode
   image?: { src: string; alt: string }
+  /**
+   * Optional icon shown in the summary row, passed by NAME (see STORY_ICONS) so
+   * server-component pages can use it across the client boundary. Used for
+   * text-only cards to give each service a visual anchor — e.g. "database" for a
+   * DB service. Ignored when `image` is present.
+   */
+  icon?: StoryIconName
   cta?: { label: string; href: string; external?: boolean }
   /** View-only deck: opens the PDF inline in a modal instead of linking out. */
   deck?: { label: string; href: string }
@@ -279,9 +325,11 @@ export function ProjectStory({
   approach,
   learned,
   image,
+  icon,
   cta,
   deck,
 }: ProjectStoryProps) {
+  const Icon = icon ? STORY_ICONS[icon] : undefined
   return (
     <details className="group case-story border border-border rounded-md overflow-hidden bg-background open:bg-secondary/20 transition-colors">
       <summary
@@ -295,7 +343,7 @@ export function ProjectStory({
         <span className="font-mono text-xs tracking-widest text-accent pt-1.5 w-8 shrink-0">
           0{index + 1}
         </span>
-        {image && (
+        {image ? (
           <img
             src={image.src}
             alt={image.alt}
@@ -305,7 +353,19 @@ export function ProjectStory({
             height={96}
             className="hidden sm:block w-20 h-20 md:w-24 md:h-24 object-cover rounded-md border border-border shrink-0 bg-secondary/40"
           />
-        )}
+        ) : Icon ? (
+          <span
+            aria-hidden="true"
+            className="
+              hidden sm:flex w-20 h-20 md:w-24 md:h-24 shrink-0 items-center justify-center
+              rounded-md border border-border bg-secondary/40
+              text-accent
+              group-open:border-accent/50 transition-colors
+            "
+          >
+            <Icon className="w-8 h-8 md:w-9 md:h-9" strokeWidth={1.5} />
+          </span>
+        ) : null}
         <div className="flex-1 min-w-0">
           <p className="font-sans text-lg md:text-2xl text-foreground leading-snug">
             {headline}

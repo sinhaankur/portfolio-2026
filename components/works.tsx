@@ -45,12 +45,12 @@ type Experience = {
 const timeline: Experience[] = [
   {
     company: "Oracle",
-    role: "Principal UX Designer · Cloud Database Tooling & AI Orchestration",
+    role: "Principal UX Designer · Database-as-a-Service & Database Tools",
     period: "Feb 2020 – Present",
-    duration: "5+ years",
+    duration: "6+ years",
     blurb:
-      "Database tooling is where DBAs live all day — yet the surfaces had drifted apart. I lead UX across Oracle's cloud data lifecycle, pulling fragmented tools into one coherent system (and now its AI-orchestration layer). Specifics under NDA.",
-    tags: ["Enterprise", "Data tooling", "AI orchestration"],
+      "Database tooling is where DBAs live all day. I lead UX across two worlds at Oracle — the DBaaS services (provisioning, encryption, disaster recovery) and the Database Tools portfolio (Spatial Studio, developer experience, query and migration tooling) — pulling fragmented surfaces into one coherent system. Specifics under NDA.",
+    tags: ["Enterprise", "Cloud Database", "Developer experience"],
     current: true,
     href: "/works/oracle",
   },
