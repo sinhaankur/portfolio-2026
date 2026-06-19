@@ -592,6 +592,10 @@ export default function OracleCaseStudy() {
                 pattern library.
               </>
             }
+            cta={{
+              label: "Request a walkthrough",
+              href: "mailto:sinhaankur827@gmail.com?subject=MCP%20Toolsets%20walkthrough",
+            }}
           />
 
           <ProjectStory
@@ -627,6 +631,10 @@ export default function OracleCaseStudy() {
                 starting your own.
               </>
             }
+            cta={{
+              label: "Request a walkthrough",
+              href: "mailto:sinhaankur827@gmail.com?subject=DMS%20walkthrough",
+            }}
           />
         </div>
       </section>
