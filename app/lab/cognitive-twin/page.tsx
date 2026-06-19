@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { Lock, Mail, ExternalLink } from "lucide-react"
+import { Github, ExternalLink } from "lucide-react"
 import {
   CaseStudyLayout,
   CaseSectionHeading,
@@ -11,7 +11,7 @@ import {
 export const metadata: Metadata = {
   title: "Cognitive Twin Agent — a local-first personal AI runtime · Ankur Sinha",
   description:
-    "An in-progress local-first personal AI agent: multimodal sensing, keychain-backed encryption, consent-gated connectors, calibration, sentiment benchmarking, and menu-bar control. Built in the spirit of local-first agent research like OpenJarvis.",
+    "An open-source (MIT) local-first personal AI agent: a local Ollama model, a skill system, and a bounded tool-calling loop that turns 'do X' into real actions — privately, on hardware you own. Built in the spirit of local-first agent research like OpenJarvis.",
 }
 
 type RuntimeRow = {
@@ -22,85 +22,85 @@ type RuntimeRow = {
 
 const runtimeRows: RuntimeRow[] = [
   {
-    layer: "Secure identity",
-    detail: "OS user allowlist + token verification",
-    why: "Assistant stays user-specific and cannot run under an unapproved account.",
+    layer: "Local model",
+    detail: "Ollama over its HTTP API (stdlib only), any tool-capable model",
+    why: "Reasoning stays on-device by default — no cloud dependency for the core loop.",
   },
   {
-    layer: "Encrypted state",
-    detail: "Fernet at-rest encryption + key material in OS keychain",
-    why: "Security state remains local while reducing plaintext exposure risk.",
+    layer: "Persona",
+    detail: "system_dna.md drives voice and behaviour",
+    why: "The twin reasons in a consistent, owned character rather than a generic assistant.",
   },
   {
-    layer: "Perception",
-    detail: "Camera, audio, activity signals with explicit sensor consent",
-    why: "Turns raw context into probabilistic state hints without over-claiming certainty.",
+    layer: "Skill system",
+    detail: "Skill contract + registry → tool specs (now · list_dir · read_file · daily_digest)",
+    why: "Turns “do X” into real, typed actions the model can call; new skills are a few lines.",
   },
   {
-    layer: "Task graph",
-    detail: "Consent-gated Google Calendar, Notion, and Todoist connectors",
-    why: "Maps day-to-day tasks and meetings into actionable planning context.",
+    layer: "Agent loop",
+    detail: "persona + tools → model → run tool → feed result back → repeat, with a step limit",
+    why: "A bounded loop where skill errors are fed back to recover — guardrails over autonomy.",
   },
   {
-    layer: "Reliability",
-    detail: "Calibration profiles + local sentiment benchmark pipeline",
-    why: "Replaces static heuristics with measured thresholds and trackable model quality.",
+    layer: "Local context",
+    detail: "Workspace tasks.md + a dropped-in .ics fold into the daily digest (no OAuth)",
+    why: "Useful day-mapping today without sending anything off-device.",
   },
   {
-    layer: "Application shell",
-    detail: "Always-on daemon + lightweight macOS menu-bar controller",
-    why: "Makes the twin usable like a real assistant, not only a terminal script.",
+    layer: "Future layers",
+    detail: "OAuth connectors, IPC, menubar, multimodal sensing (scaffolding in src/)",
+    why: "Kept as the next layers to harden onto the working core, not yet wired into the agent.",
   },
 ]
 
 const shipped: { title: string; body: string }[] = [
   {
-    title: "Secure daemon core",
-    body: "A local runner now supports init, status, consent management, and authenticated day-planning loops for approved users only.",
+    title: "Local model client",
+    body: "Talks to Ollama over its HTTP API using only the Python standard library — no heavy SDK, no API key, no cloud round-trip for the core loop.",
   },
   {
-    title: "Multimodal pipeline",
-    body: "Voice transcription uses faster-whisper with model caching and automatic CPU/GPU device selection. Camera and activity inputs feed a fused confidence-scored state.",
+    title: "Skill system",
+    body: "A small Skill contract + registry compiles Python functions into tool specs the model can call. Built-ins: now, list_dir, read_file (sandboxed), and daily_digest. Adding one is a decorator and a few lines.",
   },
   {
-    title: "Calibration and benchmark",
-    body: "Thresholds can be re-trained from recorded sessions, and sentiment quality is benchmarked via a local report so behavior tuning is auditable.",
+    title: "Bounded tool-calling loop",
+    body: "Persona + tools → model → run the tool → feed the result back → repeat, under a step limit. Skill errors are returned to the model to recover from rather than crashing the run — deterministic guardrails over an autonomous loop.",
   },
   {
-    title: "Connector consent boundaries",
-    body: "Google Calendar, Notion, and Todoist access are each behind explicit grant/revoke toggles, with local file fallback when consent is missing.",
+    title: "Local day-mapping",
+    body: "daily_digest folds a workspace tasks.md and a dropped-in .ics calendar into a summary of your day — useful context with zero OAuth and nothing leaving the machine.",
   },
   {
-    title: "Menu-bar control",
-    body: "A compact desktop controller can start and stop the daemon, trigger quick voice runs, and open latest output for fast operational feedback.",
+    title: "CLI + tested plumbing",
+    body: "One-shot and interactive REPL entrypoints (python -m cognitive_twin), model selection, and a pytest suite that drives the loop with a mock client so the tool-calling plumbing is provable without a live model.",
   },
 ]
 
 const journeySteps: { stage: string; detail: string }[] = [
   {
-    stage: "Install and provision",
+    stage: "Install a model",
     detail:
-      "A one-command setup prepares the local environment, model runtime, and starter weights — local-first from the first run.",
+      "Pull a tool-capable model with Ollama (e.g. qwen2.5:3b or llama3.2) — local-first from the very first run.",
   },
   {
-    stage: "Activate and secure",
+    stage: "Run the agent",
     detail:
-      "The assistant is initialized for the host OS user, token-authenticated, and keychain-backed.",
+      "python -m cognitive_twin \"…\" for a one-shot, or no args for an interactive REPL. The core needs no Python dependencies.",
   },
   {
-    stage: "Connect and calibrate",
+    stage: "Give it local context",
     detail:
-      "Calendar, tasks, and notes are consent-gated; thresholds are calibrated from real usage.",
+      "Drop a tasks.md and a .ics into the workspace; daily_digest folds them into a summary of your day — no OAuth, nothing off-device.",
   },
   {
-    stage: "Run daily",
+    stage: "Teach it skills",
     detail:
-      "The daemon maps meetings and tasks into focused plans via policy-routed model tiers.",
+      "Add a skill with a decorator and a small JSON schema; the registry exposes it to the model as a callable tool.",
   },
   {
-    stage: "Govern and improve",
+    stage: "Ahead",
     detail:
-      "Memory, routing, and multi-device trust policies remain explicit, auditable, and revocable.",
+      "Harden the scaffolded layers onto the core — OAuth connectors, a menubar shell, and multimodal sensing — with consent and trust made explicit as each lands.",
   },
 ]
 
@@ -138,25 +138,34 @@ export default function CognitiveTwinPage() {
             sensing, and trust on-device by default.
           </p>
           <p className="text-sm text-muted-foreground">
-            Active build — the codebase is private while it stabilises. What follows is
-            where the architecture stands today.
+            Working MVP, open source under MIT — a local model, a skill system, and a
+            bounded agent loop you can run today. What follows is where the architecture
+            stands, and the layers still ahead.
           </p>
         </>
       }
     >
       <section aria-label="Project links" className="-mt-8 md:-mt-12">
         <div className="flex flex-wrap items-center gap-3">
-          <span
+          <a
+            href="https://github.com/sinhaankur/cognitive-twin-agent"
+            target="_blank"
+            rel="noreferrer noopener"
+            data-cursor-hover
             className="
               inline-flex items-center gap-2.5
               px-5 py-3 rounded-full
-              border border-border bg-secondary/30
+              border border-border bg-secondary/30 hover:border-accent/60
+              transition-colors duration-300
               font-mono text-xs tracking-[0.2em] uppercase text-foreground/85
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+              focus-visible:ring-offset-4 focus-visible:ring-offset-background
             "
           >
-            <Lock className="w-4 h-4" aria-hidden="true" />
-            cognitive-twin-agent · private while in build
-          </span>
+            <Github className="w-4 h-4" aria-hidden="true" />
+            cognitive-twin-agent · open source (MIT)
+            <ExternalLink className="w-3 h-3 opacity-60" aria-hidden="true" />
+          </a>
           <a
             href="https://github.com/open-jarvis/OpenJarvis"
             target="_blank"
@@ -174,22 +183,6 @@ export default function CognitiveTwinPage() {
           >
             <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />
             Prior art: OpenJarvis
-          </a>
-          <a
-            href="mailto:ankursinha.ai@gmail.com?subject=Cognitive%20Twin%20Agent"
-            data-cursor-hover
-            className="
-              inline-flex items-center gap-2
-              px-4 py-2.5 rounded-full
-              border border-border bg-background hover:border-accent/60
-              transition-colors duration-300
-              font-mono text-[10px] tracking-[0.2em] uppercase text-foreground/85
-              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
-              focus-visible:ring-offset-4 focus-visible:ring-offset-background
-            "
-          >
-            <Mail className="w-3.5 h-3.5" aria-hidden="true" />
-            Get in touch
           </a>
         </div>
       </section>
@@ -213,10 +206,10 @@ export default function CognitiveTwinPage() {
             everyday work, so the cloud should be the exception, not the rule.
           </p>
           <p>
-            This is my own build, not a fork of any framework. OpenJarvis is prior art I
-            point to for the local-first case; the architecture, security model, and
-            multimodal pipeline below are mine. The aim is a daily companion where context,
-            sensing, and trust stay on a machine I control.
+            This is my own build, not a fork of any framework — an original implementation
+            in the same spirit. OpenJarvis is prior art I point to for the local-first case;
+            the persona, skill system, and bounded agent loop below are mine. The aim is a
+            daily companion where context and reasoning stay on a machine I control.
           </p>
         </CaseProse>
       </section>
@@ -225,14 +218,18 @@ export default function CognitiveTwinPage() {
         <CaseSectionHeading>What it is now</CaseSectionHeading>
         <CaseProse>
           <p>
-            The twin is now built as a private desktop-grade runtime. A secure daemon
-            writes ongoing outputs locally, a menu-bar controller handles start/stop and
-            quick triggers, and connectors build a daily task graph from tools I already use.
+            Today it&rsquo;s a working command-line agent: a local model (via Ollama), a
+            persona loaded from <code>system_dna.md</code>, a registry of skills the model
+            can call, and a bounded loop that turns a request into real actions. You can run{" "}
+            <code>python -m cognitive_twin &quot;summarize my day&quot;</code> and it reads a
+            local <code>tasks.md</code> and calendar file to answer — nothing leaves the
+            machine.
           </p>
           <p>
-            It does not expose a public endpoint. Identity is scoped to allowed OS users,
-            tokens are verified before execution, and state encryption is backed by the host
-            keychain. The architecture keeps convenience and safety in the same frame.
+            The runnable core lives in the <code>cognitive_twin/</code> package. An earlier{" "}
+            <code>src/</code> tree holds scaffolding for the layers ahead — OAuth connectors,
+            IPC, a menubar, and multimodal sensing — kept deliberately so the working agent
+            can stay small while those harden on top of it.
           </p>
         </CaseProse>
       </section>
@@ -279,27 +276,30 @@ export default function CognitiveTwinPage() {
       </section>
 
       <section>
-        <CaseSectionHeading>Security posture</CaseSectionHeading>
+        <CaseSectionHeading>Trust &amp; safety</CaseSectionHeading>
         <CaseProse>
           <p>
-            The security axis is explicit: user allowlist, authenticated runs,
-            keychain-backed encryption, per-connector consent toggles, and reversible
-            action pathways. The system defaults to local fallback data when an integration
-            lacks permission.
+            The trust story starts with where the work happens: on-device, against a local
+            model, with no cloud round-trip and no API key for the core loop. File-reading
+            skills are sandboxed to the workspace, and the only &ldquo;integrations&rdquo;
+            today are local files you place yourself — a <code>tasks.md</code> and a{" "}
+            <code>.ics</code> — so there are no third-party tokens to leak.
           </p>
           <p>
-            This avoids the common trap where assistants become useful by becoming
-            overly permissive. Here, usefulness is constrained by explicit consent and
-            clear boundaries.
+            The agent loop is the other half: it&rsquo;s bounded by a step limit, and a
+            failing skill returns its error to the model to recover from instead of crashing
+            the run. The heavier trust machinery for the connector era — explicit per-connector
+            consent, authenticated runs, keychain-backed secrets — is scaffolded for when
+            those layers land, not claimed as shipped.
           </p>
         </CaseProse>
         <CasePullQuote>
-          A personal assistant is only personal when the trust boundary is local, explicit, and inspectable.
+          A personal assistant is only personal when the work — and the trust boundary — stays local.
         </CasePullQuote>
       </section>
 
       <section>
-        <CaseSectionHeading>What shipped in this phase</CaseSectionHeading>
+        <CaseSectionHeading>What works today</CaseSectionHeading>
         <CaseLessons lessons={shipped} />
       </section>
 
@@ -325,14 +325,16 @@ export default function CognitiveTwinPage() {
         <CaseSectionHeading>How it works</CaseSectionHeading>
         <CaseProse>
           <p>
-            Input enters a security gate (user allowlist + token), passes through connector and
-            sensor consent checks, and is fused into planning context with confidence scoring.
-            A policy-routed model tier drafts the plan, and approval-gated actions preserve
-            human control before execution.
+            A request goes to the local model together with the persona and the list of
+            available skills as tool specs. If the model calls a tool, the loop runs it,
+            feeds the result back, and lets the model continue — repeating until it has an
+            answer or hits the step limit. A skill that errors returns its message to the
+            model to recover from rather than ending the run.
           </p>
           <p>
-            This creates a practical loop: contextual planning with strict boundaries,
-            local auditability, and predictable behavior over time.
+            The result is a small, legible loop: local reasoning, typed tools, and bounded
+            autonomy — the kind of predictable behaviour you want before adding sensing and
+            connectors on top.
           </p>
         </CaseProse>
       </section>
