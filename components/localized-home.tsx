@@ -127,13 +127,14 @@ export function LocalizedHome({ locale }: { locale: Locale }) {
         </div>
       </section>
 
-      {/* ── Footer CTA + back to English ── */}
+      {/* ── Footer CTA + back to English ── (start-aligned to match the page;
+          mirrors automatically in RTL) ── */}
       <footer className="relative py-20 md:py-28 px-6 md:px-12 border-t border-border">
-        <div className="mx-auto w-full max-w-6xl text-center">
+        <div className="mx-auto w-full max-w-6xl">
           <h2 className="font-display text-3xl md:text-5xl font-light italic tracking-[-0.01em] mb-8">
             {t.footerCTA}
           </h2>
-          <div className="flex flex-wrap items-center justify-center gap-4">
+          <div className="flex flex-wrap items-center gap-4">
             <a
               href="mailto:sinhaankur@ymail.com"
               data-cursor-hover
@@ -144,12 +145,13 @@ export function LocalizedHome({ locale }: { locale: Locale }) {
             <Link
               href="/"
               data-cursor-hover
-              className="inline-flex items-center min-h-11 px-6 py-3 rounded-full border border-border font-mono text-xs tracking-[0.2em] uppercase text-foreground/70 hover:text-foreground transition-colors"
+              className="inline-flex items-center gap-2 min-h-11 px-6 py-3 rounded-full border border-border font-mono text-xs tracking-[0.2em] uppercase text-foreground/70 hover:text-foreground transition-colors"
             >
-              {t.viewEnglishSite} →
+              {t.viewEnglishSite}
+              <span aria-hidden className="rtl:rotate-180">→</span>
             </Link>
           </div>
-          <p className="mt-10 mx-auto max-w-xl font-sans text-xs text-muted-foreground leading-relaxed">
+          <p className="mt-10 max-w-xl font-sans text-xs text-muted-foreground leading-relaxed">
             {t.langNote}
           </p>
         </div>
