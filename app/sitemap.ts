@@ -31,6 +31,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/upcoming",          priority: 0.5, changeFrequency: "weekly"  },
     { path: "/ar",                priority: 0.6, changeFrequency: "monthly" },
     { path: "/ja",                priority: 0.6, changeFrequency: "monthly" },
+    { path: "/games/dave-3d",     priority: 0.5, changeFrequency: "monthly" },
   ]
 
   return routes.map(({ path, priority, changeFrequency }) => ({
