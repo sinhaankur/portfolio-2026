@@ -6,7 +6,7 @@ import { SmoothScroll } from "@/components/smooth-scroll"
 import { SectionBlend } from "@/components/section-blend"
 import { UpcomingBadge } from "@/components/upcoming-badge"
 import { HomeBelowFold } from "@/components/home-below-fold"
-import { LocaleSuggest } from "@/components/locale-suggest"
+import { LocaleRedirect } from "@/components/locale-redirect"
 
 export default function Home() {
   return (
@@ -22,9 +22,10 @@ export default function Home() {
         <HomeBelowFold />
       </main>
       <UpcomingBadge href="/upcoming" label="Upcoming" />
-      {/* Gentle "based on location" language nudge — suggests AR/JA to matching
-          visitors with a one-click switch (no auto-redirect). */}
-      <LocaleSuggest current="en" />
+      {/* Automatic location-based language: Arabic/Japanese visitors are routed to
+          /ar or /ja (browser language → geo-IP fallback). No manual switcher; the
+          localized pages keep a small "English" link as the escape hatch. */}
+      <LocaleRedirect />
     </SmoothScroll>
   )
 }

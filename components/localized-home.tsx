@@ -14,7 +14,6 @@ import Link from "next/link"
 import { StaticStarfield } from "./universe-engine/static-starfield"
 import { UniverseRuntimeFallback } from "./universe-engine/runtime-fallback"
 import { LocaleHtml } from "./locale-html"
-import { LanguageSwitcher } from "./language-switcher"
 import { getDict, type Locale } from "@/lib/i18n"
 
 const UniverseEngine = dynamic(
@@ -45,9 +44,16 @@ export function LocalizedHome({ locale }: { locale: Locale }) {
           >
             {t.name}
           </Link>
-          <div className="pointer-events-auto">
-            <LanguageSwitcher current={locale} />
-          </div>
+          {/* Escape hatch — auto language is location-based with no switcher, so a
+              misdetected visitor must still be able to reach English. */}
+          <Link
+            href="/"
+            data-cursor-hover
+            lang="en"
+            className="pointer-events-auto inline-flex items-center min-h-9 px-3 rounded-full border border-border bg-background/50 backdrop-blur-sm font-mono text-[11px] tracking-wider text-foreground/80 hover:text-foreground hover:bg-secondary/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          >
+            English
+          </Link>
         </div>
 
         {/* Headline block — start-aligned so it mirrors correctly in RTL */}

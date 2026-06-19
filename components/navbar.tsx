@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { ThemeToggle } from "./theme-toggle"
 import { DisplayMenu } from "./display-menu"
-import { LanguageSwitcher } from "./language-switcher"
 
 // Anchor-based links use a leading "#" — when we're not on "/", clicking these
 // needs to route to "/#anchor" instead of just looking for an in-page id.
@@ -137,9 +136,8 @@ export function Navbar() {
             })}
           </ul>
 
-          {/* Theme toggle + accessibility menu + language */}
+          {/* Theme toggle + accessibility menu */}
           <div className="hidden md:flex items-center gap-2">
-            <LanguageSwitcher />
             <DisplayMenu />
             <ThemeToggle />
           </div>
@@ -226,7 +224,6 @@ export function Navbar() {
                 transition={{ delay: 0.4 }}
                 className="mt-8 flex items-center gap-3"
               >
-                <LanguageSwitcher />
                 <DisplayMenu />
                 <ThemeToggle />
               </motion.div>
