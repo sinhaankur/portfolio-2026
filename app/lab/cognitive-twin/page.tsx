@@ -42,6 +42,11 @@ const runtimeRows: RuntimeRow[] = [
     why: "A bounded loop where skill errors are fed back to recover — guardrails over autonomy.",
   },
   {
+    layer: "Model routing",
+    detail: "A policy file picks a local model per request by task complexity, risk, and device state",
+    why: "The right local model for the job — fast one for quick asks, a deeper one for risky planning — never the cloud.",
+  },
+  {
     layer: "Local context",
     detail: "Workspace tasks.md + a dropped-in .ics fold into the daily digest (no OAuth)",
     why: "Useful day-mapping today without sending anything off-device.",
@@ -65,6 +70,10 @@ const shipped: { title: string; body: string }[] = [
   {
     title: "Bounded tool-calling loop",
     body: "Persona + tools → model → run the tool → feed the result back → repeat, under a step limit. Skill errors are returned to the model to recover from rather than crashing the run — deterministic guardrails over an autonomous loop.",
+  },
+  {
+    title: "Policy-driven model routing",
+    body: "A JSON policy picks a local model per request — a small heuristic classifies each prompt by complexity and risk, then the first matching rule wins (a fast model for quick asks, a deeper one for risky planning, a low-power one on battery). Routing never leaves the machine, and --route-explain shows exactly why each model was chosen.",
   },
   {
     title: "Local day-mapping",
@@ -210,6 +219,14 @@ export default function CognitiveTwinPage() {
             in the same spirit. OpenJarvis is prior art I point to for the local-first case;
             the persona, skill system, and bounded agent loop below are mine. The aim is a
             daily companion where context and reasoning stay on a machine I control.
+          </p>
+          <p>
+            One idea I took directly from that line of research is <strong>routing the
+            right local model to each task</strong> instead of sending everything to one
+            big model. Here that&rsquo;s a JSON policy: a quick model for simple asks, a
+            deeper one when a request is complex and risky, a low-power one on battery — and
+            an explicit guardrail that keeps it all on-device. The classifier behind it is a
+            transparent heuristic, not a black box, so every routing decision is inspectable.
           </p>
         </CaseProse>
       </section>
