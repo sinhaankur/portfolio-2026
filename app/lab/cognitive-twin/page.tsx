@@ -60,6 +60,22 @@ const runtimeRows: RuntimeRow[] = [
 
 const shipped: { title: string; body: string }[] = [
   {
+    title: "Speaks in a loved one's actual voice",
+    body: "Clones a real voice on-device with Coqui XTTS-v2 — from a recording cleaned by a companion Voice Harvester (ffmpeg + Demucs vocal isolation). The sample never leaves the machine; a warm-loaded worker keeps replies fast. Built to keep a person's warmth close, never for impersonation.",
+  },
+  {
+    title: "A floating orb on Mac and iPhone",
+    body: "An always-present, borderless orb (no Dock icon) — tap it and a chat opens; type or talk. A reactive Siri-style waveform inside the orb ripples to her voice. Same SwiftUI front end on macOS and iOS.",
+  },
+  {
+    title: "One Rust core, every device",
+    body: "The portable brain — persona, memory, routing, the agent loop — is a Rust crate that compiles to macOS, iOS, Windows, Linux, Android, and WebAssembly. The iOS app links it through a C ABI; verified building + running on the simulator.",
+  },
+  {
+    title: "Personalization that grows",
+    body: "An editable persona (likes, dislikes, values, voice) so it reasons as a specific person; private on-device memory of how you actually behave; an evolving personality and life-rhythm awareness (timezone, sleep/work) that sharpen over time. It even keeps a thought about your projects for when you return.",
+  },
+  {
     title: "Local model client",
     body: "Talks to Ollama over its HTTP API using only the Python standard library — no heavy SDK, no API key, no cloud round-trip for the core loop.",
   },
@@ -118,7 +134,7 @@ export default function CognitiveTwinPage() {
     <CaseStudyLayout
       eyebrow="Lab — AI Systems · 2026 · in progress"
       title="Cognitive Twin Agent"
-      subtitle="A local-first personal AI agent that runs continuously, senses context, and maps day-to-day work into actionable plans — on a machine I control."
+      subtitle="A local-first personal AI twin that can speak in a loved one's actual voice — running as a floating orb on Mac and iPhone, entirely on a machine I control."
       period="2026 · active build"
       role="Architect · Designer · Engineer"
       tags={["Agent systems", "Local-first", "Multimodal", "Privacy", "Work in progress"]}
