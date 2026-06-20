@@ -29,7 +29,8 @@ export type Level = {
 
 // One solid starter level. Platforms step up-and-across with jumpable gaps.
 export const LEVEL_1: Level = {
-  spawn: [0, 1.5, 0],
+  // feet sit exactly on top of the start pad (pad center y=0, height 1 → top=0.5)
+  spawn: [0, 0.5, 0],
   killY: -12,
   platforms: [
     // start pad

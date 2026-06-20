@@ -9,8 +9,8 @@ import * as THREE from "three"
 export type Phase = "playing" | "won"
 
 export const game = {
-  // live player world position (camera follows this)
-  playerPos: new THREE.Vector3(0, 1.5, 0),
+  // live player world position (camera follows this) — feet on the start pad
+  playerPos: new THREE.Vector3(0, 0.5, 0),
   playerYaw: 0, // facing, radians
   gemsTotal: 0,
   gemsGot: 0,

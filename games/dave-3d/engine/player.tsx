@@ -32,12 +32,18 @@ const JUMP_CUT = 0.5      // releasing jump while rising cuts velocity
 const RADIUS = 0.45       // player half-width (x/z)
 const HEIGHT = 1.9        // player full height (feet→head)
 
+// AABB overlap between the player and a box. The player's feet are at `py`, so
+// the player occupies the vertical span [py, py + HEIGHT]; the box occupies
+// [by - sy/2, by + sy/2]. Standard interval overlap on all three axes.
 function aabbOverlap(px: number, py: number, pz: number, b: Box): boolean {
   const [bx, by, bz] = b.pos
   const [sx, sy, sz] = b.size
+  const footTop = py + HEIGHT
+  const boxBottom = by - sy / 2
+  const boxTop = by + sy / 2
   return (
     Math.abs(px - bx) < RADIUS + sx / 2 &&
-    py < by + sy / 2 + HEIGHT && py + 0 > by - sy / 2 &&  // vertical span (feet at py)
+    py < boxTop && footTop > boxBottom &&   // vertical spans overlap
     Math.abs(pz - bz) < RADIUS + sz / 2
   )
 }
@@ -83,11 +89,9 @@ export function Player({ level = LEVEL_1 }: { level?: Level }) {
     const moving = wish.lengthSq() > 1e-4
     if (moving) wish.normalize().multiplyScalar(MOVE_SPEED)
 
-    // accelerate horizontal velocity toward wish (snappy)
-    v.x = THREE.MathUtils.damp(v.x, wish.x, ACCEL / MOVE_SPEED, dt) // approach
-    v.z = THREE.MathUtils.damp(v.z, wish.z, ACCEL / MOVE_SPEED, dt)
-    // damp() with that lambda is gentle; do an extra lerp for responsiveness
-    const k = 1 - Math.exp(-12 * dt)
+    // accelerate horizontal velocity toward the wish velocity (snappy, frame-rate
+    // independent). One exponential approach — not two fighting each other.
+    const k = 1 - Math.exp(-(ACCEL / MOVE_SPEED) * dt)
     v.x += (wish.x - v.x) * k
     v.z += (wish.z - v.z) * k
 
