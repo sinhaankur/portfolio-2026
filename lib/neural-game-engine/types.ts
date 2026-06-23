@@ -78,10 +78,11 @@ export interface MemoryBuffer {
  * Enough to serialize/deserialize for save/load.
  */
 export interface GameState {
-  phase: 'mode-select' | 'opening' | 'nexus' | 'briefing' | 'ignition' | 'exploration' | 'combat' | 'charging' | 'firing' | 'victory' | 'defeat' | 'upgrade' | 'paused';
-  /** Which of the two top-level game sections the player chose.
-   *  'explore' = free-roam the solar system; 'defend' = Defend Earth combat. */
-  gameMode?: 'explore' | 'defend';
+  phase: 'mode-select' | 'opening' | 'nexus' | 'briefing' | 'ignition' | 'exploration' | 'combat' | 'charging' | 'firing' | 'victory' | 'defeat' | 'upgrade' | 'outfitting' | 'paused';
+  /** Which top-level game section the player chose.
+   *  'explore' = free-roam the solar system; 'defend' = Defend Earth combat;
+   *  'run'     = roguelike Deep Run (the core loop — see ROGUELIKE.md). */
+  gameMode?: 'explore' | 'defend' | 'run';
   worldIndex: number; // 0–6: Earth → Kepler-186f
   wave: number; // 1–4 per world
   score: number;

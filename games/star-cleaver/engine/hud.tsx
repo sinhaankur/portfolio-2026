@@ -73,6 +73,12 @@ export function HUD({ gameState, showForwardDebug = false, onShipSelect, waypoin
   const gravityLoad = Number(gameState.playerEntity.metadata?.gravityLoad ?? 0);
   const boundaryLoad = Number(gameState.playerEntity.metadata?.boundaryLoad ?? 0);
   const gravityWarning = String(gameState.playerEntity.metadata?.gravityWarning ?? '');
+  // Deep Run status
+  const runMode = gameState.gameMode === 'run';
+  const runSalvage = Number(gameState.playerEntity.metadata?.runSalvage ?? 0);
+  const runSectorName = String(gameState.playerEntity.metadata?.runSectorName ?? '');
+  const runSectorCleared = Boolean(gameState.playerEntity.metadata?.runSectorCleared);
+  const runLiveEnemies = Number(gameState.playerEntity.metadata?.runLiveEnemies ?? 0);
   const nearestHazard = String(gameState.playerEntity.metadata?.nearestHazard ?? '');
   const nearestHazardDistance = Number(gameState.playerEntity.metadata?.nearestHazardDistance ?? 0);
   const simpleJourneyMode = Boolean(gameState.playerEntity.metadata?.simpleJourneyMode);
@@ -162,13 +168,27 @@ export function HUD({ gameState, showForwardDebug = false, onShipSelect, waypoin
       {/* Top bar: world info, health, score */}
       <div className="fixed top-0 inset-x-0 z-40 pointer-events-none">
         <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center px-3 sm:px-6 py-3 sm:py-4 max-w-6xl mx-auto">
-          {/* Left: World info */}
+          {/* Left: World info — or Deep Run sector + salvage */}
           <div className="font-mono text-[9px] sm:text-[11px] tracking-[0.14em] sm:tracking-[0.25em] uppercase text-foreground/85 drop-shadow-md">
-            <div>{worldName}</div>
-            {simpleJourneyMode && (
-              <div className="mt-1 inline-flex rounded-full border border-cyan-300/35 bg-cyan-400/10 px-2 py-1 text-[8px] tracking-[0.18em] text-cyan-100/90">
-                SIMPLE JOURNEY
-              </div>
+            {runMode ? (
+              <>
+                <div className="text-emerald-300/90">{runSectorName}</div>
+                <div className="mt-1 text-amber-300/90 tabular-nums">
+                  ◆ {runSalvage.toLocaleString()} salvage
+                </div>
+                <div className="mt-0.5 text-foreground/55 text-[8px] sm:text-[9px]">
+                  {runSectorCleared ? 'sector clear' : `${runLiveEnemies} hostile${runLiveEnemies === 1 ? '' : 's'}`}
+                </div>
+              </>
+            ) : (
+              <>
+                <div>{worldName}</div>
+                {simpleJourneyMode && (
+                  <div className="mt-1 inline-flex rounded-full border border-cyan-300/35 bg-cyan-400/10 px-2 py-1 text-[8px] tracking-[0.18em] text-cyan-100/90">
+                    SIMPLE JOURNEY
+                  </div>
+                )}
+              </>
             )}
           </div>
 
@@ -202,6 +222,23 @@ export function HUD({ gameState, showForwardDebug = false, onShipSelect, waypoin
           </div>
         </div>
       </div>
+
+      {/* Deep Run — jump gate prompt when the sector is cleared */}
+      {runMode && runSectorCleared && (
+        <div className="fixed left-1/2 top-[18%] z-40 -translate-x-1/2 text-center pointer-events-none px-4">
+          <div className="font-mono text-[10px] sm:text-xs tracking-[0.3em] uppercase text-emerald-300/90 mb-2 animate-pulse">
+            Sector clear · jump gate online
+          </div>
+          <div className="flex items-center justify-center gap-3 font-mono text-[10px] sm:text-[11px] tracking-[0.14em] uppercase">
+            <span className="rounded-lg border border-emerald-400/45 bg-emerald-400/10 px-3 py-2 text-emerald-100">
+              [G] Jump deeper
+            </span>
+            <span className="rounded-lg border border-amber-300/45 bg-amber-400/10 px-3 py-2 text-amber-100">
+              [T] Extract &amp; bank
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Aiming reticle — center-screen crosshair so the player can read where
           their cannons fire. Shown only in flight. Tints warm in attack mode

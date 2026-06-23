@@ -3,6 +3,7 @@
 /**
  * Mode-select start screen — the two top-level sections of the game.
  *
+ *   Deep Run     → roguelike: push outward, scavenge salvage, extract or die.
  *   Exploration  → free-roam the solar system.
  *   Defend Earth → combat: incoming asteroid swarm + enemy fleet.
  *
@@ -11,7 +12,7 @@
  * the canvas wires to `selectGameMode(...)`.
  */
 
-type GameMode = 'explore' | 'defend';
+type GameMode = 'explore' | 'defend' | 'run';
 
 const MODES: {
   id: GameMode;
@@ -21,8 +22,16 @@ const MODES: {
   accent: string;
 }[] = [
   {
+    id: 'run',
+    eyebrow: '01 — DEEP RUN',
+    name: 'Deep Run',
+    description:
+      'The real fight. Launch into hostile space, scavenge salvage from every kill, and gamble each jump — push deeper for more, or extract to bank it. Die and you lose the run; spend banked salvage to come back stronger.',
+    accent: '#7af0c0',
+  },
+  {
     id: 'explore',
-    eyebrow: '01 — FREE ROAM',
+    eyebrow: '02 — FREE ROAM',
     name: 'Exploration',
     description:
       'Fly the solar system at your own pace. Real planets, the asteroid belt, and deep-sky beyond — no threats, just the void to cross.',
@@ -30,7 +39,7 @@ const MODES: {
   },
   {
     id: 'defend',
-    eyebrow: '02 — COMBAT',
+    eyebrow: '03 — COMBAT',
     name: 'Defend Earth',
     description:
       'Hold the line. Incoming asteroid swarms and an enemy fleet bear down on Earth — intercept and clear every wave before they hit home.',
@@ -40,24 +49,24 @@ const MODES: {
 
 export function ModeSelect({ onSelect }: { onSelect: (mode: GameMode) => void }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 backdrop-blur-md pointer-events-auto">
-      <div className="text-center max-w-3xl px-6 space-y-8">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 backdrop-blur-md pointer-events-auto overflow-y-auto py-8">
+      <div className="text-center max-w-4xl px-6 space-y-8">
         <div className="space-y-2">
           <div className="font-mono text-[10px] tracking-[0.25em] uppercase text-cyan-400 mb-4">
             Choose your mission
           </div>
           <h2 className="font-serif text-3xl md:text-4xl text-foreground leading-tight italic">
-            Two ways into the dark.
+            Three ways into the dark.
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {MODES.map((mode) => (
             <button
               key={mode.id}
               onClick={() => onSelect(mode.id)}
               className="group text-left rounded-xl border border-white/10 bg-white/[0.03] p-6 transition-colors hover:border-white/30 hover:bg-white/[0.06] focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
-              style={{ minHeight: 220 }}
+              style={{ minHeight: 240 }}
             >
               <div
                 className="font-mono text-[10px] tracking-[0.22em] uppercase mb-3"

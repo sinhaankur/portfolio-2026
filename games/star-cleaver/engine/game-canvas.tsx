@@ -19,6 +19,23 @@ import {
 // import { createNeuralAgent, type NeuralAgent } from '../../../lib/neural-game-engine/ai-agent';
 import { createInitialGameState, startIgnition, startExploration, selectGameMode, formatScore, IGNITION_STARTUP_DURATION } from './game-state';
 import { ModeSelect } from './mode-select';
+import { Outfitting, type RunSummary } from './outfitting';
+import {
+  loadMeta,
+  newRun,
+  buyUpgrade,
+  bankRun,
+  recordDeath,
+  shipModsFor,
+  sectorEnemyCount,
+  sectorThreatScale,
+  salvagePerKill,
+  sectorClearBonus,
+  sectorName,
+  type MetaState,
+  type RunState,
+  type UpgradeId,
+} from './run-state';
 import { HUD } from './hud';
 import { TestingConsole } from './testing-console';
 import { PlayerShipModel, ProceduralPlayerShipModel, SHIP_MODEL_BASIS_ROTATION, getPlayerShipTransform } from './player-ship-model';
@@ -1779,6 +1796,8 @@ function GameScene({
   assistedFlight,
   updateEngineAudio,
   joystickRef,
+  metaRef,
+  onRunEnd,
 }: {
   gameState: GameState;
   onUiSync: () => void;
@@ -1789,6 +1808,10 @@ function GameScene({
   assistedFlight: boolean;
   updateEngineAudio?: (speed: number, throttle: number, boost: boolean, boostSpool: number) => void;
   joystickRef?: React.MutableRefObject<{ active: boolean; originX: number; originY: number; dx: number; dy: number }>;
+  /** persistent meta-progression (Deep Run). null in the other modes. */
+  metaRef?: React.MutableRefObject<MetaState>;
+  /** called when a run ends (death or extract) to show Outfitting. */
+  onRunEnd?: (summary: RunSummary) => void;
 }) {
   const { camera, scene } = useThree();
   const gameLoopRef = useRef<GameLoop | null>(null);
@@ -1809,6 +1832,11 @@ function GameScene({
   const fireCooldownRef = useRef(0);
   const cannonCycleRef = useRef(0);
   const smoothedInputRef = useRef({ pitch: 0, yaw: 0, roll: 0 });
+  // Deep Run loop: tracks whether the current sector's enemies have been
+  // spawned yet (so we seed a sector exactly once on entry), and the last
+  // event index we processed for salvage-on-kill.
+  const sectorSpawnedRef = useRef(false);
+  const lastEventLenRef = useRef(0);
 
   // Seed a small hostile patrol ahead of the flight vector. Each ship is
   // registered with the entity manager so the existing projectile-collision
@@ -1843,6 +1871,43 @@ function GameScene({
         z: base.z + lateral.z,
       });
 
+      em.register(entity);
+      gameState.enemies.push(entity);
+    }
+  };
+
+  // Deep Run: seed an entire sector's hostiles at once, scaled by depth. Unlike
+  // the cruise-patrol spawner, this fixes the count (so "clear the sector" is a
+  // real objective) and scales enemy health/damage with sector depth.
+  const spawnSector = (forward: THREE.Vector3, right: THREE.Vector3, up: THREE.Vector3, sectorIndex: number) => {
+    const em = entityManagerRef.current;
+    if (!em) return;
+    const count = sectorEnemyCount(sectorIndex);
+    const threat = sectorThreatScale(sectorIndex);
+    const base = _encounterSpawn
+      .copy(forward)
+      .multiplyScalar(ENCOUNTER_SPAWN_AHEAD * 1.2)
+      .add(gameState.playerEntity.position as THREE.Vector3);
+    for (let i = 0; i < count; i++) {
+      const lateral = _encounterLateral
+        .copy(right)
+        .multiplyScalar((Math.random() - 0.5) * ENCOUNTER_SPAWN_SPREAD * 3)
+        .addScaledVector(up, (Math.random() - 0.5) * ENCOUNTER_SPAWN_SPREAD * 2);
+      // deeper sectors mix in tougher snipers
+      const sniperChance = Math.min(0.5, 0.18 + sectorIndex * 0.07);
+      const type = Math.random() < sniperChance ? 'sniper' : 'fighter';
+      const id = `enemy_${enemyIdCounterRef.current++}`;
+      const { entity } = createEnemy(type, id, {
+        x: base.x + lateral.x,
+        y: base.y + lateral.y,
+        z: base.z + lateral.z,
+      });
+      // scale durability + bite with depth
+      entity.health = Math.round(entity.health * threat);
+      entity.maxHealth = entity.health;
+      if (entity.metadata) {
+        entity.metadata.damage = Math.round((Number(entity.metadata.damage) || 10) * threat);
+      }
       em.register(entity);
       gameState.enemies.push(entity);
     }
@@ -1901,7 +1966,8 @@ function GameScene({
         type: 'projectile',
         active: true,
         metadata: {
-          damage: 22,
+          // Deep Run: cannons upgrade scales weapon damage.
+          damage: Math.round(22 * (metaRef ? shipModsFor(metaRef.current).damageMult : 1)),
           scoreReward: 120,
           source: 'wing-cannon',
           bornAt: gameState.simTime,
@@ -1984,13 +2050,94 @@ function GameScene({
       // --- Combat encounters: spawn + advance hostile patrols while cruising.
       if (gameState.phase === 'exploration') {
         const defendMode = gameState.gameMode === 'defend';
+        const runMode = gameState.gameMode === 'run';
+
+        // ===== DEEP RUN core loop =====
+        if (runMode) {
+          const meta = metaRef?.current;
+          const md = (gameState.playerEntity.metadata ??= {});
+          let run = md.run as RunState | undefined;
+          if (!run || !run.active) {
+            run = newRun();
+            // Apply permanent upgrades to the ship for this run + count the run.
+            if (meta && metaRef) {
+              const mods = shipModsFor(meta);
+              gameState.playerEntity.maxHealth = mods.maxHealth;
+              gameState.playerEntity.health = mods.maxHealth;
+              gameState.playerMaxHealth = mods.maxHealth;
+              metaRef.current = { ...meta, totalRuns: meta.totalRuns + 1 };
+            }
+            run.hullAtEntry = 1;
+            md.run = run;
+            sectorSpawnedRef.current = false;
+            lastEventLenRef.current = gameState.events.length;
+          }
+
+          // Seed this sector's hostiles exactly once on entry.
+          if (!sectorSpawnedRef.current) {
+            spawnSector(forwardLocal, rightLocal, upLocal, run.sectorIndex);
+            sectorSpawnedRef.current = true;
+            run.sectorCleared = false;
+          }
+
+          // Salvage on kill: scan new 'entity_killed' events since last frame.
+          for (let i = lastEventLenRef.current; i < gameState.events.length; i++) {
+            const ev = gameState.events[i];
+            if (ev.type === 'entity_killed') {
+              run.runSalvage += salvagePerKill(run.sectorIndex);
+              run.runKills += 1;
+            }
+          }
+          lastEventLenRef.current = gameState.events.length;
+
+          // Sector cleared → activate the jump gate (once spawned + all dead).
+          const liveEnemies = gameState.enemies.filter((e) => e.active).length;
+          if (sectorSpawnedRef.current && liveEnemies === 0 && !run.sectorCleared) {
+            run.sectorCleared = true;
+            run.runSalvage += sectorClearBonus(run.sectorIndex);
+          }
+
+          // Player input at the gate: G = jump deeper, T = extract.
+          if (run.sectorCleared) {
+            if (keysPressed.current.has('KeyG')) {
+              keysPressed.current.delete('KeyG');
+              run.sectorIndex += 1;
+              run.sectorCleared = false;
+              sectorSpawnedRef.current = false; // next frame seeds the new sector
+              run.hullAtEntry = gameState.playerEntity.health / gameState.playerEntity.maxHealth;
+            } else if (keysPressed.current.has('KeyT')) {
+              keysPressed.current.delete('KeyT');
+              run.active = false;
+              if (meta && metaRef) metaRef.current = bankRun(meta, run, true);
+              onRunEnd?.({
+                extracted: true,
+                sectorReached: run.sectorIndex,
+                sectorName: sectorName(run.sectorIndex),
+                kills: run.runKills,
+                salvageBanked: run.runSalvage,
+              });
+              gameState.phase = 'outfitting';
+            }
+          }
+
+          // expose run status to the HUD
+          md.runSalvage = run.runSalvage;
+          md.runSectorIndex = run.sectorIndex;
+          md.runSectorName = sectorName(run.sectorIndex);
+          md.runSectorCleared = run.sectorCleared;
+          md.runLiveEnemies = liveEnemies;
+        }
+
         encounterTimerRef.current -= clampedDelta;
         // Defend Earth spawns waves on a timer regardless of speed (you're
         // holding a line, not cruising); exploration spawns patrols only while
-        // moving. Defend waves also come faster.
-        const wantSpawn = defendMode
-          ? encounterTimerRef.current <= 0
-          : encounterTimerRef.current <= 0 && forwardSpeedRef.current > ENCOUNTER_MIN_SPEED;
+        // moving. Defend waves also come faster. Deep Run manages its own
+        // sector spawns, so the cruise-patrol spawner is disabled there.
+        const wantSpawn = runMode
+          ? false
+          : defendMode
+            ? encounterTimerRef.current <= 0
+            : encounterTimerRef.current <= 0 && forwardSpeedRef.current > ENCOUNTER_MIN_SPEED;
         if (wantSpawn) {
           encounterTimerRef.current = defendMode ? ENCOUNTER_INTERVAL_S * 0.5 : ENCOUNTER_INTERVAL_S;
           spawnEncounter(forwardLocal, rightLocal, upLocal);
@@ -2201,7 +2348,11 @@ function GameScene({
         throttleRef.current >= 0
           ? forwardThrottle * maxForwardSpeed
           : throttleRef.current * Math.abs(maxReverseSpeed);
-      const boostSpeedBonus = boostSpoolRef.current * (attackMode ? 26 : 210 + interstellarBlend * 520);
+      // Deep Run: the Tuned Drive upgrade scales boost + acceleration.
+      const driveMult = gameState.gameMode === 'run' && metaRef
+        ? shipModsFor(metaRef.current).driveMult
+        : 1;
+      const boostSpeedBonus = boostSpoolRef.current * (attackMode ? 26 : 210 + interstellarBlend * 520) * driveMult;
       const targetSpeed =
         throttleSpeed + (forwardThrottle > 0 ? boostSpeedBonus : 0);
 
@@ -2210,7 +2361,7 @@ function GameScene({
       }
 
       const accelLimit =
-        (attackMode ? 44 : 160 + interstellarBlend * 320) + boostSpoolRef.current * (attackMode ? 26 : 420);
+        ((attackMode ? 44 : 160 + interstellarBlend * 320) + boostSpoolRef.current * (attackMode ? 26 : 420)) * driveMult;
       const decelLimit = isBraking ? (attackMode ? 78 : 94) : attackMode ? 42 : 56;
       const speedDelta = targetSpeed - forwardSpeedRef.current;
       const maxUpStep = accelLimit * clampedDelta;
@@ -2364,7 +2515,23 @@ function GameScene({
           ? `Hull lost near ${fatalSource}`
           : 'Hull integrity lost';
         gameState.metadata.routeMessageUntil = gameState.simTime + 4;
-        gameState.phase = 'defeat';
+        // Deep Run: death loses the run's un-banked cargo and routes to
+        // Outfitting (spend what you'd already banked); other modes → defeat.
+        const run = gameState.playerEntity.metadata?.run as RunState | undefined;
+        if (gameState.gameMode === 'run' && run?.active) {
+          run.active = false;
+          if (metaRef) metaRef.current = recordDeath(metaRef.current, run);
+          onRunEnd?.({
+            extracted: false,
+            sectorReached: run.sectorIndex,
+            sectorName: sectorName(run.sectorIndex),
+            kills: run.runKills,
+            salvageBanked: 0,
+          });
+          gameState.phase = 'outfitting';
+        } else {
+          gameState.phase = 'defeat';
+        }
         gameState.waveStartTime = gameState.simTime;
       }
 
@@ -2468,6 +2635,10 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
   const [dataCores, setDataCores] = useState<DataCore[]>(() =>
     createDataCores(ROUTE_DEFINITIONS.flatMap((r) => r.waypoints))
   );
+  // Deep Run: persistent meta-progression (banked salvage + upgrades) and the
+  // summary of the run that just ended (shown on the Outfitting screen).
+  const metaRef = useRef<MetaState>(loadMeta());
+  const [runSummary, setRunSummary] = useState<RunSummary | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
   const keysPressed = useRef<Set<string>>(new Set());
@@ -3115,6 +3286,11 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
           assistedFlight={assistedFlight}
           updateEngineAudio={updateEngineAudio}
           joystickRef={joystickRef}
+          metaRef={metaRef}
+          onRunEnd={(summary) => {
+            setRunSummary(summary);
+            bumpUi();
+          }}
         />
 
         {/* Camera follow: chase the player ship */}
@@ -3371,11 +3547,41 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
           </div>
         )}
 
-        {/* Mode-select start screen: Exploration vs Defend Earth */}
+        {/* Mode-select start screen: Deep Run / Exploration / Defend Earth */}
         {gameState.phase === 'mode-select' && (
           <ModeSelect
             onSelect={(mode) => {
               Object.assign(gameState, selectGameMode(gameState, mode));
+              bumpUi();
+            }}
+          />
+        )}
+
+        {/* Deep Run: between-runs Outfitting (spend salvage, relaunch) */}
+        {gameState.phase === 'outfitting' && (
+          <Outfitting
+            meta={metaRef.current}
+            summary={runSummary}
+            onBuy={(id: UpgradeId) => {
+              metaRef.current = buyUpgrade(metaRef.current, id);
+              bumpUi();
+            }}
+            onLaunch={() => {
+              // fresh run: clear the player's run state + relaunch via ignition
+              if (gameState.playerEntity.metadata) {
+                delete gameState.playerEntity.metadata.run;
+              }
+              Object.assign(gameState, selectGameMode(gameState, 'run'));
+              setRunSummary(null);
+              bumpUi();
+            }}
+            onQuit={() => {
+              if (gameState.playerEntity.metadata) {
+                delete gameState.playerEntity.metadata.run;
+              }
+              gameState.phase = 'mode-select';
+              gameState.gameMode = undefined;
+              setRunSummary(null);
               bumpUi();
             }}
           />

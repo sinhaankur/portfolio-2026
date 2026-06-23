@@ -162,7 +162,7 @@ export function startBriefing(state: GameState): GameState {
  * Defend-Earth threats. Routing through ignition keeps the existing startup
  * cinematic intact for both modes.
  */
-export function selectGameMode(state: GameState, mode: 'explore' | 'defend'): GameState {
+export function selectGameMode(state: GameState, mode: 'explore' | 'defend' | 'run'): GameState {
   return startIgnition({
     ...state,
     gameMode: mode,
