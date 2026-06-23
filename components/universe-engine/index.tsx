@@ -56,6 +56,7 @@ import {
 } from "./astronomy"
 import { SceneContents } from "./scene"
 import { CloudToggle, DeepDiveToggle, DestinationsMenu, GravityToggle, InfoPanel, ResetViewButton, SatelliteToggle, ScaleToggle, TimelineControl } from "./hud"
+import { LearnTicker } from "./learn-ticker"
 import { MobileBodySheet } from "./mobile-sheet"
 import { StaticStarfield } from "./static-starfield"
 import { GalaxyMusic } from "../galaxy-music"
@@ -376,6 +377,10 @@ export function UniverseEngine({
               <InfoPanel info={hovered} />
             </div>
           )}
+
+          {/* Ambient teaching — rotating real facts about the bodies. Steps aside
+              while a body is focused so it never collides with its info panel. */}
+          <LearnTicker suppressed={Boolean(hovered)} />
 
           {/* Deep Dive legend — compact key for the orbital overlays. */}
           {showDeepDive && !mobile && (
