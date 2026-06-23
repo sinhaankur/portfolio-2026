@@ -6,7 +6,7 @@
  * timeline (Planck epoch → today). Mounts client-only on the static export.
  */
 
-import { useRef } from "react"
+import { Suspense, useRef } from "react"
 import { Canvas } from "@react-three/fiber"
 import * as THREE from "three"
 import { T_LOG_MIN } from "./timeline"
@@ -25,7 +25,10 @@ export function BigBangEngine() {
         gl={{ antialias: true }}
         onCreated={({ scene }) => { scene.background = new THREE.Color("#04040a") }}
       >
-        <BigBangScene tLogRef={tLogRef} />
+        {/* textures are Blender-baked and loaded via useLoader (suspends) */}
+        <Suspense fallback={null}>
+          <BigBangScene tLogRef={tLogRef} />
+        </Suspense>
       </Canvas>
       <BigBangHud tLogRef={tLogRef} />
     </div>
