@@ -210,14 +210,45 @@ export function recordDeath(meta: MetaState, run: RunState): MetaState {
   return next;
 }
 
-/** Sector names for flavour — cycles through the story-bible order. */
-export const SECTOR_NAMES = [
-  'Asteroid Belt',
-  'Jovian Approach',
-  'Saturnian Rings',
-  'Kuiper Verge',
-  'Plutonian Dark',
+/**
+ * Sectors are real regions of the Solar System, in outward order — so a Deep Run
+ * is literally a tour from the Belt to the dark edge. Each carries a REAL fact +
+ * key figures, surfaced on arrival, so playing the game teaches the universe
+ * (the product vision: games as the on-ramp to understanding it).
+ */
+export interface SectorInfo {
+  name: string;
+  fact: string;
+}
+
+export const SECTORS: SectorInfo[] = [
+  {
+    name: 'Asteroid Belt',
+    fact: 'Between Mars and Jupiter — millions of rocky bodies, yet their total mass is under 4% of the Moon. The gaps would surprise you: ships in fiction dodge boulders, but real probes cross it without ever seeing one.',
+  },
+  {
+    name: 'Jovian Approach',
+    fact: 'Jupiter is so massive (318 Earths) it doesn’t orbit the Sun’s centre — both orbit a point just above the Sun’s surface. Its magnetosphere is the largest structure in the Solar System, 20× wider than the Sun itself.',
+  },
+  {
+    name: 'Saturnian Rings',
+    fact: 'Saturn’s rings span ~280,000 km but are often only ~10 metres thick — proportionally thinner than a sheet of paper. They’re almost pure water ice, and may be younger than the dinosaurs.',
+  },
+  {
+    name: 'Kuiper Verge',
+    fact: 'Beyond Neptune lies the Kuiper Belt — a vast ring of icy worlds including Pluto. Sunlight out here is ~1000× fainter than on Earth; noon would look like deep dusk.',
+  },
+  {
+    name: 'Plutonian Dark',
+    fact: 'Pluto’s “heart”, Sputnik Planitia, is a 1000-km basin of nitrogen ice that slowly churns like a lava lamp over millions of years. A year on Pluto lasts 248 Earth years.',
+  },
 ];
+
+export const SECTOR_NAMES = SECTORS.map((s) => s.name);
+
+export function sectorInfo(sectorIndex: number): SectorInfo {
+  return SECTORS[Math.min(sectorIndex, SECTORS.length - 1)];
+}
 
 export function sectorName(sectorIndex: number): string {
   return SECTOR_NAMES[Math.min(sectorIndex, SECTOR_NAMES.length - 1)] +

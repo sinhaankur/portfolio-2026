@@ -32,6 +32,7 @@ import {
   salvagePerKill,
   sectorClearBonus,
   sectorName,
+  sectorInfo,
   type MetaState,
   type RunState,
   type UpgradeId,
@@ -1930,9 +1931,13 @@ function GameScene({
         .copy(right)
         .multiplyScalar((Math.random() - 0.5) * ENCOUNTER_SPAWN_SPREAD * 3)
         .addScaledVector(up, (Math.random() - 0.5) * ENCOUNTER_SPAWN_SPREAD * 2);
-      // deeper sectors mix in tougher snipers
-      const sniperChance = Math.min(0.5, 0.18 + sectorIndex * 0.07);
-      const type = Math.random() < sniperChance ? 'sniper' : 'fighter';
+      // Enemy mix scales with depth: snipers (precise, lead shots) thicken, and
+      // fast low-HP swarm drones start appearing from sector 2+ for group
+      // pressure — so deeper sectors feel distinct, not just numerically harder.
+      const roll = Math.random();
+      const sniperChance = Math.min(0.45, 0.16 + sectorIndex * 0.06);
+      const swarmChance = sectorIndex >= 2 ? Math.min(0.4, (sectorIndex - 1) * 0.12) : 0;
+      const type = roll < swarmChance ? 'swarm' : roll < swarmChance + sniperChance ? 'sniper' : 'fighter';
       const id = `enemy_${enemyIdCounterRef.current++}`;
       const { entity } = createEnemy(type, id, {
         x: base.x + lateral.x,
@@ -2150,11 +2155,15 @@ function GameScene({
             lastEventLenRef.current = gameState.events.length;
           }
 
-          // Seed this sector's hostiles exactly once on entry.
+          // Seed this sector's hostiles exactly once on entry, and surface a
+          // REAL fact about this region so each jump teaches the Solar System.
           if (!sectorSpawnedRef.current) {
             spawnSector(forwardLocal, rightLocal, upLocal, run.sectorIndex);
             sectorSpawnedRef.current = true;
             run.sectorCleared = false;
+            const info = sectorInfo(run.sectorIndex);
+            md.sectorFact = info.fact;
+            md.sectorFactUntil = gameState.simTime + 11; // show for ~11s on arrival
           }
 
           // Salvage on kill: scan new 'entity_killed' events since last frame.

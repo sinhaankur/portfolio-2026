@@ -81,6 +81,10 @@ export function HUD({ gameState, showForwardDebug = false, onShipSelect, waypoin
   const runLiveEnemies = Number(gameState.playerEntity.metadata?.runLiveEnemies ?? 0);
   const incomingFire = Number(gameState.playerEntity.metadata?.incomingFire ?? 0);
   const combatWarning = healthPercent <= 25 ? 'HULL CRITICAL' : incomingFire > 0.05 ? 'INCOMING FIRE' : '';
+  // Deep Run teaching: a real fact about the sector's body, shown briefly on arrival.
+  const sectorFact = String(gameState.playerEntity.metadata?.sectorFact ?? '');
+  const sectorFactUntil = Number(gameState.playerEntity.metadata?.sectorFactUntil ?? 0);
+  const showSectorFact = runMode && sectorFact.length > 0 && sectorFactUntil > gameState.simTime;
   const nearestHazard = String(gameState.playerEntity.metadata?.nearestHazard ?? '');
   const nearestHazardDistance = Number(gameState.playerEntity.metadata?.nearestHazardDistance ?? 0);
   const simpleJourneyMode = Boolean(gameState.playerEntity.metadata?.simpleJourneyMode);
@@ -238,6 +242,22 @@ export function HUD({ gameState, showForwardDebug = false, onShipSelect, waypoin
             <span className="rounded-lg border border-amber-300/45 bg-amber-400/10 px-3 py-2 text-amber-100">
               [T] Extract &amp; bank
             </span>
+          </div>
+        </div>
+      )}
+
+      {/* Deep Run — sector "lesson": a real fact about this region of space,
+          shown briefly on arrival so each jump teaches the Solar System. Hidden
+          once the sector is cleared so it never overlaps the jump-gate prompt. */}
+      {showSectorFact && !runSectorCleared && (
+        <div className="fixed left-1/2 top-[12%] z-30 w-[min(92vw,34rem)] -translate-x-1/2 px-3 pointer-events-none">
+          <div className="rounded-2xl border border-cyan-300/20 bg-background/65 px-4 py-3 backdrop-blur-md text-center">
+            <div className="font-mono text-[9px] tracking-[0.26em] uppercase text-cyan-300/70 mb-1.5">
+              {runSectorName}
+            </div>
+            <p className="text-[12px] leading-relaxed text-foreground/85 md:text-[13px]">
+              {sectorFact}
+            </p>
           </div>
         </div>
       )}

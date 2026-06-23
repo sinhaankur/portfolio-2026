@@ -50,18 +50,19 @@ can drift.
 
 ## Phase 2 — Content: more sectors, more variety
 
-- [ ] **2.1 Wire `swarm` enemies into Deep Run spawns.**
-  Swarm type exists (`enemies.ts`) but Deep Run only spawns fighter/sniper. Mix
-  swarms into deeper sectors (fast, low-HP, group pressure) via `spawnSector`.
-  *Accept:* build green; swarms appear at depth (state/screenshot).
-  *Files:* `game-canvas.tsx` (spawnSector), `run-state.ts` (mix weights by depth).
+- [x] **2.1 Wire `swarm` enemies into Deep Run spawns.** (shipped — see commit)
+  `spawnSector` now mixes type by depth: snipers thicken with depth, fast low-HP
+  swarm drones appear from sector 2+. Build green. Feel → Ankur.
 
-- [ ] **2.2 Sector variety / biomes.**
-  Each sector reads distinctly: tie `SECTOR_NAMES` to a real body (Belt → Jupiter
-  → Saturn → Kuiper → Pluto) and vary backdrop/hazard density/asteroid field per
-  sector. Reuse Universe bodies + `AsteroidField`.
-  *Accept:* build green; visibly different sectors across jumps (screenshots).
-  *Files:* `game-canvas.tsx`, `run-state.ts`, `mission-layout.ts`.
+- [~] **2.2 Sector variety + teaching.** (partial — see commit)
+  DONE: each sector is a real region (Belt→Jupiter→Saturn→Kuiper→Pluto) with a
+  REAL fact surfaced on arrival as a HUD "lesson" card (`SECTORS` in run-state),
+  so each jump teaches the Solar System (the product vision). Verified headless:
+  fact card shows on entry, no collisions, no errors.
+  STILL TODO: vary the actual backdrop/asteroid-field/hazards per sector visually
+  (right now the scenery is the same each jump).
+  *Files:* `run-state.ts`, `game-canvas.tsx`, `hud.tsx`; backdrop work →
+  `mission-layout.ts` + `AsteroidField`.
 
 - [ ] **2.3 Salvage as visible pickups.** `🎮`
   In addition to kill-salvage, drop floating salvage pickups (re-skin the
