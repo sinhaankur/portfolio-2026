@@ -391,6 +391,70 @@ export function Lab() {
           </Link>
         </motion.div>
 
+        {/* Big Bang — the cosmic timeline, real-time + scientifically accurate */}
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.12 }}
+          className="mb-14 md:mb-16"
+        >
+          <Link
+            href="/lab/big-bang"
+            data-cursor-hover
+            aria-label="Big Bang — the cosmic timeline, real-time and scientifically accurate"
+            className="
+              group relative block overflow-hidden
+              border border-border rounded-2xl
+              bg-card hover:border-accent/60 transition-colors duration-300
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+              focus-visible:ring-offset-4 focus-visible:ring-offset-background
+              p-7 md:p-10 lg:p-12
+            "
+          >
+            {/* a soft radial 'first light' glow in the corner */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute -right-20 -top-20 w-72 h-72 rounded-full opacity-50 md:opacity-70 transition-transform duration-700 group-hover:scale-105"
+              style={{ background: "radial-gradient(circle, rgba(255,220,160,0.55), rgba(122,77,242,0.25) 45%, transparent 70%)" }}
+            />
+            <div className="relative">
+              <div className="flex flex-wrap items-center gap-2 mb-6">
+                <span className="font-mono text-[10px] tracking-[0.25em] uppercase px-2.5 py-1 border border-border text-foreground/85 rounded-full">
+                  Real-time · 3D
+                </span>
+                <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 border border-border text-foreground/75 rounded-full">
+                  Cosmology
+                </span>
+              </div>
+
+              <h3 className="font-display text-3xl md:text-4xl lg:text-5xl font-light tracking-[-0.02em] leading-[1.05] text-foreground">
+                The Big Bang — <span className="italic">13.8 billion years, to scale.</span>
+              </h3>
+
+              <p className="mt-5 max-w-2xl font-sans text-base md:text-lg text-foreground/80 leading-relaxed">
+                Scrub the whole history of the universe — from the Planck epoch
+                (10⁻⁴³ s) to today — across a real, logarithmic cosmic timeline.
+                Inflation, the quark soup, first light, the first stars, galaxies:
+                each epoch with its true timestamp and temperature, the unknown
+                parts honestly marked.
+              </p>
+
+              <div className="mt-7 inline-flex items-center gap-2 font-mono text-[10px] tracking-[0.25em] uppercase text-foreground/85 group-hover:text-accent transition-colors">
+                Watch it unfold
+                <motion.span
+                  aria-hidden="true"
+                  whileHover={prefersReducedMotion ? undefined : { rotate: 45 }}
+                  transition={{ duration: 0.3 }}
+                  className="inline-flex"
+                >
+                  <ArrowUpRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                </motion.span>
+              </div>
+            </div>
+          </Link>
+        </motion.div>
+
         {/* Supporting open-source products — single eyebrow lifted from
             each card to the section level. Cards are now leaner: name,
             tagline, blurb, optional highlight, stack tags. No per-card
