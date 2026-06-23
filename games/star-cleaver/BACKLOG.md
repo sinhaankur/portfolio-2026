@@ -38,13 +38,11 @@ can drift.
   `incomingFire` signal. Modest (no nausea), additive on camera position.
   Kill-punch deferred to the kill-confirm pass (1.4). Intensity → Ankur.
 
-- [ ] **1.4 Kill-confirm feedback.**
-  On an enemy kill: brighter flash + a bigger debris burst + a distinct
-  explosion sound (currently only the player *volley* has audio — kills are
-  silent). Add a WebAudio explosion ping like `playVolleyAudio`.
-  *Accept:* build green; kill events produce the sound (code review) + visible
-  burst in a screenshot.
-  *Files:* `game-canvas.tsx` (audio), `particles.tsx` (ImpactField/DebrisField tuning).
+- [x] **1.4 Kill-confirm feedback.** (shipped — see commit below)
+  Enemy kills now: a WebAudio explosion (filtered-noise burst + low thump), a
+  brief camera kill-punch (distinct from the rattling hit-shake), and a bigger
+  ImpactField burst (size 5.5→7, longer life). Fires off `entity_killed` events
+  in ALL combat modes via an onKill hook. Sound/feel → Ankur to confirm in play.
 
 - [x] **1.5 Hostile threat readout in the HUD.** (shipped — see commit below)
   "⚠ INCOMING FIRE" / "⚠ HULL CRITICAL" warning in the existing warning slot,

@@ -1728,6 +1728,16 @@ function CameraFollowController({
       camera.position.y += Math.sin(t * 113 + 2.1) * jolt;
     }
 
+    // Kill punch — a softer, higher-frequency snap when you destroy a hostile,
+    // so kills feel rewarding (distinct from the rattling hit-shake). (1.4)
+    const killPunch = Number(gameState.playerEntity.metadata?.killPunch ?? 0);
+    if (killPunch > 0.01) {
+      const t = state.clock.elapsedTime;
+      const p = killPunch * 0.1;
+      camera.position.x += Math.sin(t * 140) * p;
+      camera.position.y += Math.cos(t * 155) * p;
+    }
+
     // Look ahead down the NOSE, not the drift velocity. In manual mode velocity
     // lags the heading (inertial drift), so aiming the camera at the velocity
     // made turns feel disconnected — you'd look where you were sliding, not
@@ -1819,6 +1829,7 @@ function GameScene({
   joystickRef,
   metaRef,
   onRunEnd,
+  onKill,
 }: {
   gameState: GameState;
   onUiSync: () => void;
@@ -1833,6 +1844,8 @@ function GameScene({
   metaRef?: React.MutableRefObject<MetaState>;
   /** called when a run ends (death or extract) to show Outfitting. */
   onRunEnd?: (summary: RunSummary) => void;
+  /** fired once per enemy kill (any combat mode) for the explosion sound. */
+  onKill?: () => void;
 }) {
   const { camera, scene } = useThree();
   const gameLoopRef = useRef<GameLoop | null>(null);
@@ -1858,6 +1871,9 @@ function GameScene({
   // event index we processed for salvage-on-kill.
   const sectorSpawnedRef = useRef(false);
   const lastEventLenRef = useRef(0);
+  // General kill-confirm scan (all combat modes) — separate from the run-mode
+  // salvage scan so the explosion sound + camera punch fire everywhere.
+  const lastKillScanRef = useRef(0);
 
   // Seed a small hostile patrol ahead of the flight vector. Each ship is
   // registered with the entity manager so the existing projectile-collision
@@ -2708,6 +2724,26 @@ function GameScene({
     // Three.js visuals read it directly each frame; no React state involved.
     gameLoopRef.current.update(clampedDelta);
 
+    // Kill-confirm (all combat modes): scan fresh kill events → explosion sound
+    // + a brief camera kill-punch signal (read by CameraFollowController). The
+    // ImpactField/DebrisField already render the burst off the same events.
+    if (gameState.events.length < lastKillScanRef.current) {
+      lastKillScanRef.current = 0; // events array was reset (new wave/run)
+    }
+    let killsThisFrame = 0;
+    for (let i = lastKillScanRef.current; i < gameState.events.length; i++) {
+      if (gameState.events[i]?.type === 'entity_killed') killsThisFrame++;
+    }
+    lastKillScanRef.current = gameState.events.length;
+    if (killsThisFrame > 0) {
+      onKill?.();
+      const md = (gameState.playerEntity.metadata ??= {});
+      md.killPunch = Math.min(1, Number(md.killPunch ?? 0) + 0.6 * killsThisFrame);
+    } else {
+      const md = gameState.playerEntity.metadata;
+      if (md && md.killPunch) md.killPunch = Math.max(0, Number(md.killPunch) - clampedDelta * 3);
+    }
+
     // Low-frequency React sync: phase changes flush immediately (menus,
     // overlays), everything else repaints on the UI_SYNC_INTERVAL cadence.
     uiSyncAccumRef.current += delta;
@@ -2881,6 +2917,52 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
 
     osc.start(now);
     osc.stop(now + 0.1);
+  };
+
+  // Kill-confirm explosion: a short filtered-noise burst + a low body thump, so
+  // destroying a hostile lands with a satisfying punch instead of going silent.
+  const playExplosionAudio = () => {
+    if (typeof window === 'undefined') return;
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = audioContextRef.current ?? new AudioCtx();
+    audioContextRef.current = ctx;
+    if (ctx.state === 'suspended') void ctx.resume();
+    const now = ctx.currentTime;
+
+    // noise burst (the crack/debris)
+    const dur = 0.34;
+    const buffer = ctx.createBuffer(1, Math.floor(ctx.sampleRate * dur), ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < data.length; i++) {
+      const t = i / data.length;
+      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - t, 2); // decaying noise
+    }
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+    const noiseFilter = ctx.createBiquadFilter();
+    noiseFilter.type = 'lowpass';
+    noiseFilter.frequency.setValueAtTime(2200, now);
+    noiseFilter.frequency.exponentialRampToValueAtTime(300, now + dur);
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.0001, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.32, now + 0.012);
+    noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+    noise.connect(noiseFilter); noiseFilter.connect(noiseGain); noiseGain.connect(ctx.destination);
+
+    // low body thump
+    const thump = ctx.createOscillator();
+    const thumpGain = ctx.createGain();
+    thump.type = 'sine';
+    thump.frequency.setValueAtTime(140, now);
+    thump.frequency.exponentialRampToValueAtTime(46, now + 0.22);
+    thumpGain.gain.setValueAtTime(0.0001, now);
+    thumpGain.gain.exponentialRampToValueAtTime(0.28, now + 0.015);
+    thumpGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.26);
+    thump.connect(thumpGain); thumpGain.connect(ctx.destination);
+
+    noise.start(now); noise.stop(now + dur);
+    thump.start(now); thump.stop(now + 0.28);
   };
 
   useEffect(() => {
@@ -3405,6 +3487,7 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
             setRunSummary(summary);
             bumpUi();
           }}
+          onKill={playExplosionAudio}
         />
 
         {/* Camera follow: chase the player ship */}

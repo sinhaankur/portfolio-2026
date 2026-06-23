@@ -336,7 +336,7 @@ export function ImpactField({ gameState }: { gameState: GameState }) {
       const kill = ev.type === 'entity_killed';
       burstsRef.current.push({
         x: ev.position.x, y: ev.position.y, z: ev.position.z,
-        born: now, life: kill ? 0.6 : 0.28, size: kill ? 5.5 : 1.6, kill,
+        born: now, life: kill ? 0.7 : 0.28, size: kill ? 7.0 : 1.6, kill,
       });
     }
     seenRef.current = now;
