@@ -46,26 +46,30 @@ export function BigBangHud({ tLogRef }: { tLogRef: React.MutableRefObject<number
 
   return (
     <>
-      {/* Epoch info panel — top-left */}
-      <div className="pointer-events-none fixed left-0 top-0 p-5 md:p-8 max-w-md z-20">
+      {/* Epoch info panel — top-left. On mobile it's compact (essential epoch
+          identity only) so it never grows down into the bottom scrubber; the
+          longer prose appears from md+ where there's room. */}
+      <div className="pointer-events-none fixed left-0 top-0 p-4 md:p-8 max-w-[88vw] sm:max-w-sm md:max-w-md z-20">
         <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-white/50 mb-2">
           {String(index + 1).padStart(2, "0")} / {EPOCHS.length} · cosmic timeline
         </p>
-        <h2 className="font-display text-3xl md:text-5xl font-light text-white leading-[1.05]">
+        <h2 className="font-display text-2xl sm:text-3xl md:text-5xl font-light text-white leading-[1.05]">
           {epoch.name}
         </h2>
-        <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 font-mono text-xs text-white/70">
+        <div className="mt-2 md:mt-3 flex flex-wrap gap-x-5 gap-y-1 font-mono text-[11px] md:text-xs text-white/70">
           <span>t = {epoch.timeLabel}</span>
           <span>T ≈ {epoch.tempLabel}</span>
         </div>
-        <p className="mt-4 font-serif italic text-lg md:text-xl text-white/90">
+        <p className="mt-3 md:mt-4 font-serif italic text-base sm:text-lg md:text-xl text-white/90">
           {epoch.headline}
         </p>
-        <p className="mt-3 font-sans text-sm md:text-base text-white/70 leading-relaxed">
+        {/* full description only where vertical space allows (avoids colliding
+            with the bottom scrubber on phones) */}
+        <p className="mt-3 font-sans text-sm md:text-base text-white/70 leading-relaxed hidden sm:block">
           {epoch.detail}
         </p>
         {epoch.speculative && (
-          <p className="mt-3 font-mono text-[10px] tracking-wider uppercase text-amber-300/80">
+          <p className="mt-2 md:mt-3 font-mono text-[10px] tracking-wider uppercase text-amber-300/80">
             ⚠ beyond tested physics — theoretical
           </p>
         )}
@@ -89,22 +93,50 @@ export function BigBangHud({ tLogRef }: { tLogRef: React.MutableRefObject<number
                 className="w-full accent-white cursor-pointer"
                 aria-label="Scrub cosmic time"
               />
-              {/* epoch ticks */}
-              <div className="relative mt-1 h-3">
+              {/* epoch ticks. The log axis crams the late-universe epochs into
+                  the rightmost ~8% (recombination→today), so per-tick tap targets
+                  would overlap and clip off-screen on a phone. Instead: the dots
+                  stay purely VISUAL markers (the full-width range input above is
+                  the scrub affordance, reliable on touch), and reliable epoch
+                  JUMPING is offered through the dedicated chip row below. */}
+              <div className="relative mt-1 h-2" aria-hidden="true">
                 {EPOCHS.map((e) => {
                   const t = (Math.log10(e.timeSeconds) - T_LOG_MIN) / (T_LOG_MAX - T_LOG_MIN)
+                  const active = e.id === epoch.id
                   return (
                     <span key={e.id}
                       title={`${e.name} · ${e.timeLabel}`}
-                      onClick={() => { setPlaying(false); setProgress(Math.max(0, Math.min(1, t))) }}
-                      className="absolute -translate-x-1/2 w-1 h-1 rounded-full bg-white/40 hover:bg-white cursor-pointer"
-                      style={{ left: `${t * 100}%` }}
+                      className={`absolute top-0 -translate-x-1/2 w-1.5 h-1.5 rounded-full transition-colors ${active ? "bg-white" : "bg-white/35"}`}
+                      style={{ left: `${Math.max(1, Math.min(99, t * 100))}%` }}
                     />
                   )
                 })}
               </div>
+
+              {/* Jump chips — horizontally scrollable on phones so every epoch
+                  has a real ≥44px tap target regardless of log-axis crowding. */}
+              <div className="mt-2 -mx-1 flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {EPOCHS.map((e) => {
+                  const t = (Math.log10(e.timeSeconds) - T_LOG_MIN) / (T_LOG_MAX - T_LOG_MIN)
+                  const active = e.id === epoch.id
+                  return (
+                    <button key={e.id}
+                      aria-label={`Jump to ${e.name}`}
+                      aria-current={active ? "true" : undefined}
+                      onClick={() => { setPlaying(false); setProgress(Math.max(0, Math.min(1, t))) }}
+                      className={`shrink-0 rounded-full border px-3 py-1.5 font-mono text-[10px] tracking-wide whitespace-nowrap transition-colors ${
+                        active
+                          ? "border-white/70 bg-white/15 text-white"
+                          : "border-white/15 text-white/55 hover:border-white/40 hover:text-white/90"
+                      }`}
+                    >
+                      {e.name}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
-            <span className="shrink-0 font-mono text-xs text-white/60 w-28 text-right">
+            <span className="hidden sm:block shrink-0 font-mono text-xs text-white/60 w-28 text-right">
               {epoch.timeLabel}
             </span>
           </div>

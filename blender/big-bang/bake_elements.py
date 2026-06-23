@@ -40,11 +40,11 @@ def reset_scene():
         sc.cycles.device = "GPU"
     except Exception:
         sc.cycles.device = "CPU"
-    sc.cycles.samples = 128
+    sc.cycles.samples = 256          # finer micro-detail, less noise
     sc.render.film_transparent = True
     sc.render.image_settings.file_format = "WEBP"
     sc.render.image_settings.color_mode = "RGBA"
-    sc.render.image_settings.quality = 92
+    sc.render.image_settings.quality = 96
 
 
 def cam_ortho(size=2.2):

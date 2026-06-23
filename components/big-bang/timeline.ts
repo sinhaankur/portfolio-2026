@@ -128,8 +128,8 @@ export const EPOCHS: Epoch[] = [
   {
     id: "darkages",
     name: "Cosmic Dark Ages",
-    timeSeconds: 4.7e15, // ~150 Myr
-    timeLabel: "~0.4 – 150 million years",
+    timeSeconds: 1.6e15, // ~50 Myr (precedes the first stars)
+    timeLabel: "~0.4 – 100 million years",
     tempK: 60,
     tempLabel: "~60 K",
     headline: "Darkness, before the first stars.",
@@ -167,6 +167,22 @@ export const EPOCHS: Epoch[] = [
       "collide over billions of years into the grand spirals and ellipticals we " +
       "see now. The cosmic web — filaments and voids — takes shape.",
     visual: { palette: ["#d6c4ff", "#8a6cff", "#160f2e"], density: 0.6, chaos: 0.35 },
+  },
+  {
+    id: "solarsystem",
+    name: "Our Solar System",
+    timeSeconds: 2.9e17, // ~9.2 Gyr after the Big Bang (≈ 4.6 Gyr ago)
+    timeLabel: "~9.2 billion years",
+    tempK: 4,
+    tempLabel: "~4 K",
+    headline: "A cloud collapses — the Sun, the Earth, and us.",
+    detail:
+      "In one arm of the Milky Way, a cloud enriched by earlier dying stars " +
+      "collapses. The Sun ignites at its centre; the leftover disk clumps into the " +
+      "planets — Mercury through Neptune — and, on the third rock, Earth. Every atom " +
+      "heavier than helium in your body was forged in stars that lived and died " +
+      "before this moment.",
+    visual: { palette: ["#ffe6b0", "#ffae5c", "#2a3a7a"], density: 0.72, chaos: 0.28 },
   },
   {
     id: "today",
