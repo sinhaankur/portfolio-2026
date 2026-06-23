@@ -40,6 +40,15 @@ next-env.d.ts
 .vscode/
 .claude/
 .idea/
+# ...but DO version the build-agent definitions + slash commands so the Helion
+# build agent persists across machines and is part of the repo's tooling.
+# Re-include the .claude dir, then keep only agents/ + commands/ — settings and
+# skills stay ignored. (Git can't re-include a child if its parent stays excluded,
+# so .claude/ must be negated first, then the unwanted children re-ignored.)
+!.claude/
+.claude/*
+!.claude/agents/
+!.claude/commands/
 
 # downloaded 3D asset variants kept locally for reference but not shipped
 # (the variant we actually ship lives in public/models/)
