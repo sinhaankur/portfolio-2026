@@ -29,7 +29,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { useFrame, useThree } from "@react-three/fiber"
 import { useGLTF, Line } from "@react-three/drei"
 import * as THREE from "three"
-import { simTimeRef, requestFollow, focusDepthRef } from "./astronomy"
+import { simTimeRef, requestFollow, focusDepthRef, daysSinceJ2000 } from "./astronomy"
 
 /**
  * Satellite archetypes — a small library of real-design Blender models picked by
@@ -119,10 +119,19 @@ const DEFAULT_COLOR: [number, number, number] = [0.7, 0.75, 0.85]
 
 type Sat = { id: number; name: string; owner: string; launchMs: number; l1: string; l2: string }
 
+// Launch-gating uses days-since-J2000 (small → exact in a float32 shader uniform).
+// Reuse the engine's canonical J2000 epoch + day helper (see astronomy.ts).
+const msToJ2000Day = (ms: number) => daysSinceJ2000(ms)
+
 const VERT = /* glsl */ `
-  attribute float aLaunchMs;
+  // NOTE: launch gating uses DAYS-since-J2000, not epoch-milliseconds. A GLSL
+  // float is 32-bit (~24-bit mantissa, exact only to ~16.7M), so epoch-ms values
+  // (~1.8e12 today) lose ~10^5 ms of precision — enough to corrupt the
+  // 'launched yet?' comparison and leak pre-Space-Age satellites. Days-since-J2000
+  // (|value| < ~25,000) is exact in float32, so the gate is reliable.
+  attribute float aLaunchDay;   // days since J2000 (2000-01-01 12:00 UTC)
   attribute vec3 aColor;
-  uniform float uTimeMs;
+  uniform float uTimeDay;       // current sim time, days since J2000
   uniform float uSize;
   uniform float uPixelRatio;
   uniform float uIsolate;   // 1.0 = a satellite is selected → hide the whole swarm
@@ -132,7 +141,7 @@ const VERT = /* glsl */ `
     vColor = aColor;
     // Launch gating: not yet launched → collapse to zero size.
     // Isolate: when one satellite is selected we hide the rest (show only the GLB).
-    vHidden = (aLaunchMs > uTimeMs || uIsolate > 0.5) ? 1.0 : 0.0;
+    vHidden = (aLaunchDay > uTimeDay || uIsolate > 0.5) ? 1.0 : 0.0;
     vec4 mv = modelViewMatrix * vec4(position, 1.0);
     gl_Position = projectionMatrix * mv;
     float s = vHidden > 0.5 ? 0.0 : uSize * uPixelRatio * (1.0 / -mv.z);
@@ -227,18 +236,19 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     sats.forEach((s, i) => {
       const c = OWNER_COLOR[s.owner] ?? DEFAULT_COLOR
       colors[i * 3] = c[0]; colors[i * 3 + 1] = c[1]; colors[i * 3 + 2] = c[2]
-      launch[i] = s.launchMs
+      // store launch as days-since-J2000 (small → exact in the float32 attribute)
+      launch[i] = msToJ2000Day(s.launchMs)
     })
     const g = new THREE.BufferGeometry()
     g.setAttribute("position", new THREE.BufferAttribute(positions, 3))
     g.setAttribute("aColor", new THREE.BufferAttribute(colors, 3))
-    g.setAttribute("aLaunchMs", new THREE.BufferAttribute(launch, 1))
+    g.setAttribute("aLaunchDay", new THREE.BufferAttribute(launch, 1))
     g.boundingSphere = new THREE.Sphere(new THREE.Vector3(), earthVisualRadius * 12)
     return g
   }, [sats, earthVisualRadius])
 
   useFrame(() => {
-    if (matRef.current) matRef.current.uniforms.uTimeMs.value = simTimeRef.current.simMs
+    if (matRef.current) matRef.current.uniforms.uTimeDay.value = msToJ2000Day(simTimeRef.current.simMs)
     const lib = sgp4.current
     if (!geometry || !sats || !lib) return
     const sel = selectedSatRef.current
@@ -382,7 +392,7 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
           transparent
           depthWrite={false}
           uniforms={{
-            uTimeMs: { value: simTimeRef.current.simMs },
+            uTimeDay: { value: msToJ2000Day(simTimeRef.current.simMs) },
             uSize: { value: 90 },
             uPixelRatio: { value: typeof window !== "undefined" ? Math.min(window.devicePixelRatio, 2) : 1 },
             uIsolate: { value: 0 },
