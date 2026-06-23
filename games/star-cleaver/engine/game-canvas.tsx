@@ -450,6 +450,10 @@ const ENCOUNTER_SPAWN_SPREAD = 26; // lateral scatter of a patrol cluster
 const ENCOUNTER_DESPAWN_BEHIND = 260; // cull patrols that fall this far behind
 const ENCOUNTER_MAX_LIVE = 9; // hard cap on simultaneous hostiles
 const ENEMY_DRIFT_SPEED = 9; // units/sec each hostile closes on the player
+const ENEMY_FIRE_RANGE = 170; // hostiles open fire within this distance
+const ENEMY_BOLT_SPEED = 95; // units/sec for enemy projectiles
+const ENEMY_BOLT_RADIUS = 0.32; // generous so hits register against the player
+const PLAYER_HIT_RADIUS = 2.2; // player collision radius for incoming bolts
 const _encounterSpawn = new THREE.Vector3();
 const _encounterLateral = new THREE.Vector3();
 const _enemyToPlayer = new THREE.Vector3();
@@ -1056,11 +1060,15 @@ function ProjectileField({ gameState }: { gameState: GameState }) {
       _projDummy.scale.setScalar(pulse);
       _projDummy.updateMatrix();
 
+      const isEnemyBolt = proj.metadata?.isEnemyBolt === true;
       const isWingCannon = proj.metadata?.source === 'wing-cannon';
+      // enemy fire reads hostile-red; player cannons stay cyan; misc = amber
+      const coreHex = isEnemyBolt ? 0xff5a44 : isWingCannon ? 0x9de8ff : 0xffff00;
+      const haloHex = isEnemyBolt ? 0xff3322 : isWingCannon ? 0x52c9ff : 0xffcc00;
       core.setMatrixAt(slot, _projDummy.matrix);
-      core.setColorAt(slot, _projColor.setHex(isWingCannon ? 0x9de8ff : 0xffff00));
+      core.setColorAt(slot, _projColor.setHex(coreHex));
       halo.setMatrixAt(slot, _projDummy.matrix);
-      halo.setColorAt(slot, _projColor.setHex(isWingCannon ? 0x52c9ff : 0xffcc00));
+      halo.setColorAt(slot, _projColor.setHex(haloHex));
       slot += 1;
     }
 
@@ -1707,6 +1715,19 @@ function CameraFollowController({
       camera.position.z += Math.sin(t * 53 + 2.7) * shakeIntensity * 0.35;
     }
 
+    // Combat HIT shake — a short sharp jolt when the player is taking fire, so
+    // damage is felt, not just a number ticking down. Driven by the decaying
+    // `incomingFire` signal set in the sim when an enemy bolt connects. Kept
+    // modest (no nausea) and additive on top of position so it never fights the
+    // follow. (Backlog 1.3)
+    const incomingFire = Number(gameState.playerEntity.metadata?.incomingFire ?? 0);
+    if (incomingFire > 0.01) {
+      const t = state.clock.elapsedTime;
+      const jolt = incomingFire * incomingFire * 0.22; // ease-in so small hits barely shake
+      camera.position.x += Math.sin(t * 91) * jolt;
+      camera.position.y += Math.sin(t * 113 + 2.1) * jolt;
+    }
+
     // Look ahead down the NOSE, not the drift velocity. In manual mode velocity
     // lags the heading (inertial drift), so aiming the camera at the velocity
     // made turns feel disconnected — you'd look where you were sliding, not
@@ -1911,6 +1932,46 @@ function GameScene({
       em.register(entity);
       gameState.enemies.push(entity);
     }
+  };
+
+  // Enemy fire: spawn a hostile bolt aimed at the player. Snipers lead the
+  // target (aim where the ship WILL be) so they're a real threat; fighters fire
+  // straight at the current position. Stored on gameState.projectiles with
+  // team 'enemy' + isEnemyBolt so the sim loop can resolve hits on the player.
+  const spawnEnemyBolt = (enemy: GameEntity) => {
+    const em = entityManagerRef.current;
+    if (!em) return;
+    const md = enemy.metadata ?? {};
+    const isSniper = md.class === 'sniper';
+    const px = gameState.playerEntity.position.x;
+    const py = gameState.playerEntity.position.y;
+    const pz = gameState.playerEntity.position.z;
+    // lead the target for snipers using the player's current velocity
+    const lead = isSniper ? 0.9 : 0;
+    const aimX = px + gameState.playerEntity.velocity.x * lead;
+    const aimY = py + gameState.playerEntity.velocity.y * lead;
+    const aimZ = pz + gameState.playerEntity.velocity.z * lead;
+    let dx = aimX - enemy.position.x;
+    let dy = aimY - enemy.position.y;
+    let dz = aimZ - enemy.position.z;
+    const d = Math.hypot(dx, dy, dz) || 1;
+    dx /= d; dy /= d; dz /= d;
+    const dmg = Number(md.damage) || 10;
+    const bolt: GameEntity = {
+      id: `enemy_bolt_${enemyIdCounterRef.current++}`,
+      position: { x: enemy.position.x + dx * 1.2, y: enemy.position.y + dy * 1.2, z: enemy.position.z + dz * 1.2 },
+      velocity: { x: dx * ENEMY_BOLT_SPEED, y: dy * ENEMY_BOLT_SPEED, z: dz * ENEMY_BOLT_SPEED },
+      rotation: { x: 0, y: Math.atan2(dx, dz), z: 0 },
+      health: 1,
+      maxHealth: 1,
+      radius: ENEMY_BOLT_RADIUS,
+      team: 'enemy',
+      type: 'projectile',
+      active: true,
+      metadata: { damage: dmg, isEnemyBolt: true, bornAt: gameState.simTime, sniper: isSniper },
+    };
+    em.register(bolt);
+    gameState.projectiles.push(bolt);
   };
 
   const spawnPlayerVolley = (forward: THREE.Vector3, right: THREE.Vector3, up: THREE.Vector3) => {
@@ -2211,6 +2272,22 @@ function GameScene({
               enemy.rotation.y = Math.atan2(toPlayer.x, toPlayer.z);
               enemy.rotation.x = -Math.asin(Math.max(-1, Math.min(1, toPlayer.y / ENEMY_DRIFT_SPEED)));
             }
+
+            // --- Enemy fire: hostiles shoot back when facing + in range. Gives
+            // combat real teeth so the roguelike's "death loses your run" stakes
+            // actually bite. (Deep Run + Defend; not pure free-roam Explore.)
+            if (gameState.gameMode !== 'explore' && dist < ENEMY_FIRE_RANGE) {
+              const md = (enemy.metadata ??= {});
+              const cd = Number(md.fireCooldown ?? Math.random() * 1.2);
+              const next = cd - clampedDelta;
+              if (next <= 0) {
+                const rate = Number(md.fireRate) || 0.5; // shots/sec-ish weight
+                md.fireCooldown = (0.9 + Math.random() * 0.6) / Math.max(0.15, rate);
+                spawnEnemyBolt(enemy);
+              } else {
+                md.fireCooldown = next;
+              }
+            }
             survivors.push(enemy);
           }
           if (survivors.length !== gameState.enemies.length) {
@@ -2459,6 +2536,43 @@ function GameScene({
           fatalSource = hazard.label;
         }
       });
+
+      // --- Incoming enemy fire: resolve enemy bolts hitting the player. Folds
+      // into hullDamageThisFrame, so taking fire actually drains the hull (and,
+      // in Deep Run, can end the run). Consumed bolts are deactivated.
+      let tookFireThisFrame = 0;
+      if (gameState.projectiles.length > 0) {
+        for (const p of gameState.projectiles) {
+          if (!p.active || !p.metadata?.isEnemyBolt) continue;
+          const bdx = p.position.x - playerPosVec.x;
+          const bdy = p.position.y - playerPosVec.y;
+          const bdz = p.position.z - playerPosVec.z;
+          const hitR = PLAYER_HIT_RADIUS + p.radius;
+          if (bdx * bdx + bdy * bdy + bdz * bdz <= hitR * hitR) {
+            const dmg = Number(p.metadata.damage) || 10;
+            hullDamageThisFrame += dmg;
+            tookFireThisFrame += dmg;
+            p.active = false;
+            entityManagerRef.current?.remove(p.id);
+            // record a hit event so the camera shake / HUD can react (item 1.3)
+            gameState.events.push({
+              type: 'entity_damaged',
+              source: p.id,
+              target: gameState.playerEntity.id,
+              amount: dmg,
+              timestamp: gameState.simTime,
+              position: { x: playerPosVec.x, y: playerPosVec.y, z: playerPosVec.z },
+            });
+          }
+        }
+      }
+      if (!gameState.playerEntity.metadata) gameState.playerEntity.metadata = {};
+      // decay an incoming-fire signal for HUD/feedback
+      const prevFire = Number(gameState.playerEntity.metadata.incomingFire ?? 0);
+      gameState.playerEntity.metadata.incomingFire = Math.max(
+        tookFireThisFrame > 0 ? 1 : 0,
+        prevFire - clampedDelta * 2.5
+      );
 
       gameState.playerEntity.velocity.x += gravityAcceleration.x * clampedDelta;
       gameState.playerEntity.velocity.y += gravityAcceleration.y * clampedDelta;

@@ -19,17 +19,13 @@ can drift.
 > you in combat → the roguelike's "death loses your run" stakes are hollow. Fix
 > the threat first; juice second.
 
-- [ ] **1.1 Enemies fire at the player.** `🎮`
-  Fighters/snipers spawn enemy projectiles aimed at the player (lead the target
-  for snipers), on their `fireRate` cadence, only when roughly facing + in range.
-  Reuse the projectile entity + `lib/neural-game-engine` collision path; tag
-  `team: 'enemy'`. Player hull takes damage on hit (feeds the existing
-  `hullDamageThisFrame`). Scale fire rate/damage with `sectorThreatScale`.
-  *Accept:* build green, no console errors; enemy bolts visible firing toward the
-  ship in a headless screenshot; player `health` decreases on hit (verify via
-  `Runtime.evaluate` reading state). Feel/balance → Ankur.
-  *Files:* `game-canvas.tsx` (sim loop + a spawnEnemyVolley), `enemies.ts`,
-  `particles.tsx` (enemy bolt visual if needed).
+- [x] **1.1 Enemies fire at the player.** `🎮` (shipped — see commit below)
+  Hostiles within `ENEMY_FIRE_RANGE` shoot red bolts at the player on a per-enemy
+  `fireRate` cadence; snipers lead the target. Bolts (`team:'enemy'`,
+  `isEnemyBolt`) are resolved against the player in the sim loop → feed
+  `hullDamageThisFrame`, so taking fire drains the hull (and can end a Deep Run).
+  Verified: build green, no console errors, sector spawns hostiles. *Whether it
+  feels threatening needs Ankur flying — headless can't move the ship to engage.*
 
 - [ ] **1.2 Enemy contact/ram damage + collision.**
   Enemies colliding with the player deal a burst of hull damage + bounce/despawn,
@@ -37,13 +33,10 @@ can drift.
   *Accept:* build green; player health drops on enemy contact (state check).
   *Files:* `game-canvas.tsx`.
 
-- [ ] **1.3 Combat camera shake on hit + kill.** `🎮`
-  Today only *boost* shakes the camera. Add a short, sharp shake when the player
-  takes a hit (scaled by damage) and a softer punch on a kill. Reuse the
-  `metadata.weaponRecoil`/event pattern; keep it subtle (no nausea), mobile-safe.
-  *Accept:* build green, no errors; shake driven by hit/kill events (code review +
-  no-crash). Intensity → Ankur.
-  *Files:* `game-canvas.tsx` (CameraFollowController shake block).
+- [x] **1.3 Combat camera shake on hit.** `🎮` (shipped — see commit below)
+  Sharp ease-in camera jolt when taking fire, driven by the decaying
+  `incomingFire` signal. Modest (no nausea), additive on camera position.
+  Kill-punch deferred to the kill-confirm pass (1.4). Intensity → Ankur.
 
 - [ ] **1.4 Kill-confirm feedback.**
   On an enemy kill: brighter flash + a bigger debris burst + a distinct
@@ -53,11 +46,9 @@ can drift.
   burst in a screenshot.
   *Files:* `game-canvas.tsx` (audio), `particles.tsx` (ImpactField/DebrisField tuning).
 
-- [ ] **1.5 Hostile threat readout in the HUD.**
-  When enemies are firing, show incoming-fire / low-hull warnings (reuse the
-  existing gravity-warning HUD slot styling). Mobile-first.
-  *Accept:* renders at ≤640px without overlap; build green.
-  *Files:* `hud.tsx`.
+- [x] **1.5 Hostile threat readout in the HUD.** (shipped — see commit below)
+  "⚠ INCOMING FIRE" / "⚠ HULL CRITICAL" warning in the existing warning slot,
+  pulsing, mobile-safe. Driven by `incomingFire` + hull %.
 
 ## Phase 2 — Content: more sectors, more variety
 

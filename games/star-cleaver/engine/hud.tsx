@@ -79,6 +79,8 @@ export function HUD({ gameState, showForwardDebug = false, onShipSelect, waypoin
   const runSectorName = String(gameState.playerEntity.metadata?.runSectorName ?? '');
   const runSectorCleared = Boolean(gameState.playerEntity.metadata?.runSectorCleared);
   const runLiveEnemies = Number(gameState.playerEntity.metadata?.runLiveEnemies ?? 0);
+  const incomingFire = Number(gameState.playerEntity.metadata?.incomingFire ?? 0);
+  const combatWarning = healthPercent <= 25 ? 'HULL CRITICAL' : incomingFire > 0.05 ? 'INCOMING FIRE' : '';
   const nearestHazard = String(gameState.playerEntity.metadata?.nearestHazard ?? '');
   const nearestHazardDistance = Number(gameState.playerEntity.metadata?.nearestHazardDistance ?? 0);
   const simpleJourneyMode = Boolean(gameState.playerEntity.metadata?.simpleJourneyMode);
@@ -323,6 +325,12 @@ export function HUD({ gameState, showForwardDebug = false, onShipSelect, waypoin
                   {gravityWarning && (
                     <div className="col-span-2 rounded-full border border-red-300/30 bg-red-500/10 px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] text-red-200/95 sm:text-[9px] sm:tracking-[0.14em]">
                       {gravityWarning}
+                    </div>
+                  )}
+                  {/* Combat warning — incoming fire / critical hull (item 1.5) */}
+                  {combatWarning && (
+                    <div className="col-span-2 animate-pulse rounded-full border border-red-400/50 bg-red-500/20 px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.14em] text-red-100 sm:text-[9px] sm:tracking-[0.16em]">
+                      ⚠ {combatWarning}
                     </div>
                   )}
                 </div>
