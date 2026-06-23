@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { canonicalPath } from "@/lib/seo"
 import { Github, ExternalLink } from "lucide-react"
 import {
   CaseStudyLayout,
@@ -9,7 +10,8 @@ import {
 } from "@/components/case-study/case-study-layout"
 
 export const metadata: Metadata = {
-  title: "Cognitive Twin Agent — a local-first personal AI runtime · Ankur Sinha",
+  ...canonicalPath("/lab/cognitive-twin"),
+  title: "Cognitive Twin Agent — a local-first personal AI runtime",
   description:
     "An open-source (MIT) local-first personal AI agent: a local Ollama model, a skill system, and a bounded tool-calling loop that turns 'do X' into real actions — privately, on hardware you own. Built in the spirit of local-first agent research like OpenJarvis.",
 }

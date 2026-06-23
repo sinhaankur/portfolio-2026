@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { canonicalPath } from "@/lib/seo"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { CustomCursor } from "@/components/custom-cursor"
@@ -8,7 +9,8 @@ import { Container } from "@/components/container"
 import { UsabilityEngine } from "@/components/usability-engine"
 
 export const metadata: Metadata = {
-  title: "Usability — A practitioner's guide · Ankur Sinha",
+  ...canonicalPath("/usability"),
+  title: "Usability — A practitioner's guide",
   description:
     "An interactive usability engine — twelve heuristics for websites, applications, forms, and mobile surfaces, each with a story, a self-audit question, and a live good-vs-bad demo. Pick a surface to audit; the engine filters and recommends.",
 }

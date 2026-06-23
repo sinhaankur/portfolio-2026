@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { canonicalPath } from "@/lib/seo"
 import { Github, ExternalLink } from "lucide-react"
 import {
   CaseStudyLayout,
@@ -10,7 +11,8 @@ import {
 } from "@/components/case-study/case-study-layout"
 
 export const metadata: Metadata = {
-  title: "Unhosted — AI that lives where you do · Ankur Sinha",
+  ...canonicalPath("/lab/unhosted"),
+  title: "Unhosted — AI that lives where you do",
   description:
     "Frontier-class AI inference on hardware you own. Three trust modes — local, trusted, public — pooled into one inference cluster. Founder + lead designer + engineer: Ankur Sinha.",
 }

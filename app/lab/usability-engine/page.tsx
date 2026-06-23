@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { canonicalPath } from "@/lib/seo"
 import Link from "next/link"
 import { Github, ExternalLink, ArrowUpRight } from "lucide-react"
 import {
@@ -11,7 +12,8 @@ import {
 } from "@/components/case-study/case-study-layout"
 
 export const metadata: Metadata = {
-  title: "Usability Engine — an audit catalog you can run · Ankur Sinha",
+  ...canonicalPath("/lab/usability-engine"),
+  title: "Usability Engine — an audit catalog you can run",
   description:
     "Nielsen's 10 heuristics rewritten for modern product surfaces, plus two extensions for AI agents. Twelve self-audit questions, twelve LLM prompts, twelve interactive good-vs-bad demos. Designer + engineer: Ankur Sinha.",
 }

@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { canonicalPath } from "@/lib/seo"
 import {
   CaseStudyLayout,
   CaseSectionHeading,
@@ -12,7 +13,8 @@ import {
 } from "@/components/case-study/case-study-layout"
 
 export const metadata: Metadata = {
-  title: "Oracle — Principal UX Designer · Ankur Sinha",
+  ...canonicalPath("/works/oracle"),
+  title: "Oracle — Principal UX Designer",
   description:
     "Six years of UX across OCI Database-as-a-Service and the Database Tools portfolio — provisioning, encryption, disaster recovery, developer experience, and the human-in-the-loop layer for AI-assisted database work.",
 }

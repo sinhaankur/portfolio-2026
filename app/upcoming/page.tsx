@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { canonicalPath } from "@/lib/seo"
 import Link from "next/link"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
@@ -6,7 +7,8 @@ import { UpcomingLanes } from "@/components/upcoming-lanes"
 import { CustomCursor } from "@/components/custom-cursor"
 
 export const metadata: Metadata = {
-  title: "Upcoming · Ankur Sinha",
+  ...canonicalPath("/upcoming"),
+  title: "Upcoming",
   description:
     "Work in flight, ideas cooking, threads being researched. A public roadmap of what's next from Ankur Sinha — UX designer, exploring AI by building it.",
 }

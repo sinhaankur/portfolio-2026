@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { canonicalPath } from "@/lib/seo"
 import {
   CaseStudyLayout,
   CaseSectionHeading,
@@ -8,8 +9,9 @@ import {
 import { UniverseAssistantDemo } from "./universe-assistant-demo"
 
 export const metadata: Metadata = {
+  ...canonicalPath("/lab/universe-assistant"),
   title:
-    "Universe Engine Assistant — fullscreen real-astronomy simulation with AI copilot · Ankur Sinha",
+    "Universe Engine Assistant — fullscreen real-astronomy simulation with AI copilot",
   description:
     "A universe-first fullscreen experience with an optional AI copilot. Explore real-astronomy simulation data and use natural language to steer camera/time only when needed. Tool use, prompt caching, browser-direct streaming. Designer + engineer: Ankur Sinha.",
 }

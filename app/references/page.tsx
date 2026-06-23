@@ -1,10 +1,12 @@
 import type { Metadata } from "next"
+import { canonicalPath } from "@/lib/seo"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { CustomCursor } from "@/components/custom-cursor"
 
 export const metadata: Metadata = {
-  title: "References & Data Sources · Ankur Sinha",
+  ...canonicalPath("/references"),
+  title: "References & Data Sources",
   description:
     "Every astronomy dataset, catalog, texture, and library behind the Universe Engine — with attribution and links. NASA, ESA, JPL, OpenNGC, HYG, IAU, and more.",
 }

@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { canonicalPath } from "@/lib/seo"
 import {
   CaseStudyLayout,
   CaseSectionHeading,
@@ -12,7 +13,8 @@ import {
 } from "@/components/case-study/case-study-layout"
 
 export const metadata: Metadata = {
-  title: "Snowtint — Lead UX Designer · Ankur Sinha",
+  ...canonicalPath("/works/snowtint"),
+  title: "Snowtint — Lead UX Designer",
   description:
     "First role with explicit ownership of UX outcomes. Three different products across two years — iPress (Mac), Campus Select, and JCVD with Jean-Claude Van Damme.",
 }

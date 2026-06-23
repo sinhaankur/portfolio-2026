@@ -35,8 +35,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/games/dave-3d",     priority: 0.5, changeFrequency: "monthly" },
   ]
 
+  // Emit trailing slashes to match `trailingSlash: true` (and the per-page
+  // canonicals). Without this, Google requests the slash-less sitemap URL, hits
+  // a 301 → trailing-slash URL, and excludes it as "Page with redirect" — which
+  // is exactly what kept these pages out of the index.
+  const withSlash = (p: string) => (p === "/" || p.endsWith("/") ? p : `${p}/`)
+
   return routes.map(({ path, priority, changeFrequency }) => ({
-    url: `${SITE_URL}${path}`,
+    url: `${SITE_URL}${withSlash(path)}`,
     lastModified,
     changeFrequency,
     priority,

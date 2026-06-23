@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { canonicalPath } from "@/lib/seo"
 import {
   CaseStudyLayout,
   CaseSectionHeading,
@@ -12,7 +13,8 @@ import {
 } from "@/components/case-study/case-study-layout"
 
 export const metadata: Metadata = {
-  title: "Deloitte — Assistant Manager UX · Ankur Sinha",
+  ...canonicalPath("/works/deloitte"),
+  title: "Deloitte — Assistant Manager UX",
   description:
     "Two years at Deloitte Design Studio Bangalore — UX consulting for Unilever, FAB, Vodafone, CEAT, and Deloitte Digital across supply chain, retail banking, telecom, and CRM.",
 }

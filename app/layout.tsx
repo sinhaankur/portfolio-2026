@@ -94,7 +94,11 @@ export const metadata: Metadata = {
     "Ankur Sinha",
   ],
   alternates: {
-    canonical: SITE_URL,
+    // Homepage self-canonical (trailing slash to match `trailingSlash: true`).
+    // Sub-pages MUST override this with their own route via `canonicalMetadata()`
+    // (see lib/seo.ts) — otherwise they inherit the homepage canonical and Google
+    // de-duplicates every page into "/", refusing to index them.
+    canonical: "/",
   },
   openGraph: {
     type: "website",

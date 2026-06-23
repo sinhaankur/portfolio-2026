@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { canonicalPath } from "@/lib/seo"
 import {
   CaseStudyLayout,
   CaseSectionHeading,
@@ -12,7 +13,8 @@ import {
 } from "@/components/case-study/case-study-layout"
 
 export const metadata: Metadata = {
-  title: "Rage Communication — Junior UX Designer · Ankur Sinha",
+  ...canonicalPath("/works/rage"),
+  title: "Rage Communication — Junior UX Designer",
   description:
     "First UX role on Rage Communication's DDH team — usability testing, persona-driven user interviews, and visual design across Citibank India mobile banking and Wedding & MarryGold.",
 }
