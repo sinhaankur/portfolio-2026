@@ -12,9 +12,21 @@
 import { useEffect, useRef, useState } from "react"
 import { EPOCHS, epochAtLog, progressToLog, T_LOG_MIN, T_LOG_MAX } from "./timeline"
 
+// Optional deep-link: `#t=0.97` opens the timeline parked at that 0..1 progress
+// (and skips the auto-play sweep), so a specific moment — e.g. the Solar System
+// forming — can be linked directly.
+function readHashProgress(): number | null {
+  if (typeof window === "undefined") return null
+  const m = window.location.hash.match(/t=([0-9.]+)/)
+  if (!m) return null
+  const v = parseFloat(m[1])
+  return Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : null
+}
+
 export function BigBangHud({ tLogRef }: { tLogRef: React.MutableRefObject<number> }) {
-  const [progress, setProgress] = useState(0.0) // 0..1 slider
-  const [playing, setPlaying] = useState(true)
+  const hashStart = readHashProgress()
+  const [progress, setProgress] = useState(hashStart ?? 0.0) // 0..1 slider
+  const [playing, setPlaying] = useState(hashStart === null)
   const raf = useRef<number | null>(null)
   const last = useRef<number>(0)
 

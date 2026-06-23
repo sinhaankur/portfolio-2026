@@ -18,9 +18,19 @@
  */
 
 import { useMemo, useRef } from "react"
-import { useFrame, useLoader } from "@react-three/fiber"
+import { useFrame, useLoader, useThree } from "@react-three/fiber"
 import * as THREE from "three"
 import { epochAtLog, type Epoch } from "./timeline"
+import { SolarSystemFormation } from "./solar-system-formation"
+
+// log-time where the Solar System formation takes over. The abstract cosmic
+// field fades out across this window so it hands off cleanly to the real
+// mini-system instead of overlapping it. (Mirrors solar-system-formation.tsx.)
+const T_SOLAR_LOG = Math.log10(2.9e17)
+// finish the abstract→system handoff just as the "Our Solar System" epoch label
+// appears, so the boxy galaxy/nebula clutter is gone before the payoff reads.
+const HANDOFF_START = T_SOLAR_LOG - 0.32
+const HANDOFF_END = T_SOLAR_LOG - 0.02
 
 const COUNT = 9000
 
@@ -96,6 +106,9 @@ export function BigBangScene({ tLogRef }: { tLogRef: React.MutableRefObject<numb
     const tLog = tLogRef.current
     const { pal0, pal1, pal2, density, chaos } = visualAt(tLog)
 
+    // hand off to the Solar System: fade the abstract field out as formation begins.
+    const fieldFade = 1 - THREE.MathUtils.clamp((tLog - HANDOFF_START) / (HANDOFF_END - HANDOFF_START), 0, 1)
+
     // expansion factor: tiny at the Planck epoch, large by "today".
     const p = progress01(tLog)
     const expansion = 0.15 + Math.pow(p, 0.6) * 9.5
@@ -124,15 +137,20 @@ export function BigBangScene({ tLogRef }: { tLogRef: React.MutableRefObject<numb
       const f = r0
       const c = f < 0.5 ? pal0.clone().lerp(pal1, f * 2)
                         : pal1.clone().lerp(pal2, (f - 0.5) * 2)
-      // dim particles that "don't exist yet" at low density
-      const vis = r0 < density ? 1 : 0.12
+      // dim particles that "don't exist yet" at low density; fade the whole
+      // field out as the Solar System forms (handoff).
+      const vis = (r0 < density ? 1 : 0.12) * fieldFade
       col[i * 3] = c.r * vis; col[i * 3 + 1] = c.g * vis; col[i * 3 + 2] = c.b * vis
     }
     geo.attributes.position.needsUpdate = true
     geo.attributes.color.needsUpdate = true
 
     // particles shrink as space expands (so early = big hot blobs, late = fine stars)
-    if (mat.current) mat.current.size = THREE.MathUtils.lerp(0.55, 0.09, p)
+    if (mat.current) {
+      mat.current.size = THREE.MathUtils.lerp(0.55, 0.09, p)
+      mat.current.opacity = 0.95 * fieldFade
+      if (points.current) points.current.visible = fieldFade > 0.01
+    }
 
     // gentle auto-rotation
     if (points.current) points.current.rotation.y += 0.0008
@@ -161,8 +179,37 @@ export function BigBangScene({ tLogRef }: { tLogRef: React.MutableRefObject<numb
       <NebulaField tLogRef={tLogRef} />
       {/* a soft central glow that's intense early (the hot dense universe) */}
       <CoreGlow tLogRef={tLogRef} starTex={starTex} />
+      {/* the payoff: our Solar System condensing out of the cooled universe */}
+      <SolarSystemFormation starTex={starTex} tLogRef={tLogRef} />
+      {/* gentle dolly-in to frame the forming system on the last beat */}
+      <CameraRig tLogRef={tLogRef} />
     </>
   )
+}
+
+/**
+ * Camera rig: holds the wide cosmic framing for most of history, then performs a
+ * slow, eased dolly-in + slight downward tilt as the Solar System condenses, so
+ * the payoff fills the frame instead of sitting small in the distance. Fully
+ * driven by `tLogRef`, so scrubbing back pulls the camera back out.
+ */
+function CameraRig({ tLogRef }: { tLogRef: React.MutableRefObject<number> }) {
+  const { camera } = useThree()
+  const WIDE = useMemo(() => new THREE.Vector3(0, 0, 26), [])
+  const CLOSE = useMemo(() => new THREE.Vector3(0, 7.5, 14.5), [])
+  const target = useMemo(() => new THREE.Vector3(), [])
+
+  useFrame(() => {
+    const tLog = tLogRef.current
+    // ease from wide → close across the formation handoff window (+ a bit past)
+    const raw = THREE.MathUtils.clamp((tLog - HANDOFF_START) / ((HANDOFF_END + 0.3) - HANDOFF_START), 0, 1)
+    const e = raw * raw * (3 - 2 * raw)
+    target.lerpVectors(WIDE, CLOSE, e)
+    // converge briskly so scrubbing/deep-links land framed, but still smooth
+    camera.position.lerp(target, 0.14)
+    camera.lookAt(0, 0, 0)
+  })
+  return null
 }
 
 /**
@@ -240,9 +287,14 @@ function NebulaField({ tLogRef }: { tLogRef: React.MutableRefObject<number> }) {
   }, [])
 
   useFrame(() => {
-    // structure epochs: p ~ 0.78 (dark ages) → 1.0 (today). Fade in across that.
-    const p = progress01(tLogRef.current)
-    const a = THREE.MathUtils.clamp((p - 0.74) / 0.18, 0, 1)
+    // structure epochs: p ~ 0.78 (dark ages) → 1.0 (today). Fade in across that,
+    // then fade BACK OUT as the Solar System forms so the boxy billboards don't
+    // clutter the clean mini-system payoff.
+    const tLog = tLogRef.current
+    const p = progress01(tLog)
+    const fadeIn = THREE.MathUtils.clamp((p - 0.74) / 0.18, 0, 1)
+    const formFade = 1 - THREE.MathUtils.clamp((tLog - HANDOFF_START) / (HANDOFF_END - HANDOFF_START), 0, 1)
+    const a = fadeIn * formFade
     if (group.current) {
       group.current.visible = a > 0.001
       group.current.children.forEach((c) => {
