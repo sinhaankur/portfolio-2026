@@ -1463,6 +1463,8 @@ const _camCatchUp = new THREE.Vector3();
 const _camLook = new THREE.Vector3();
 const _camVelDir = new THREE.Vector3();
 const _camTmp = new THREE.Vector3();
+const _camTmp2 = new THREE.Vector3();
+const _camUpVec = new THREE.Vector3();
 
 const STATION_MODEL_PATH = '/models/station.glb';
 
@@ -1527,6 +1529,8 @@ function CameraFollowController({
   const smoothLookRef = useRef(new THREE.Vector3());
   const smoothForwardRef = useRef(new THREE.Vector3(0, 0, -1));
   const lookAheadRef = useRef(new THREE.Vector3(0, 0, -1));
+  const camRollRef = useRef(0); // smoothed camera bank (rad) for lean-into-turns
+  const prevPlayerPosRef = useRef<THREE.Vector3 | null>(null); // for velocity feed-forward
   // Tracks whether the camera has been snapped to the ship for the current
   // flight session. Reset whenever we leave flight (menus, briefing, station)
   // so the next launch snaps cleanly instead of crawling from the old vantage.
@@ -1544,6 +1548,7 @@ function CameraFollowController({
     // enter flight the camera will jump straight onto the ship.
     if (!isFlightPhase || stationInspectActive) {
       flightSnappedRef.current = false;
+      prevPlayerPosRef.current = null;
     }
 
     if (stationInspectActive) {
@@ -1562,6 +1567,9 @@ function CameraFollowController({
       const lookTarget = _camLook.set(center.x, center.y + 6, center.z);
       const lookK = 1 - Math.exp(-delta * CAMERA_PHASE_TUNING.stationInspect.lookRate);
       smoothLookRef.current.lerp(lookTarget, lookK);
+      // ensure no leftover bank from flight mode tilts the orbit cam
+      camera.up.set(0, 1, 0);
+      camRollRef.current = 0;
       camera.lookAt(smoothLookRef.current);
 
       const perspective = camera as THREE.PerspectiveCamera;
@@ -1645,25 +1653,29 @@ function CameraFollowController({
     const followRate = isFlightPhase ? assistConfig.follow : phaseProfile.nonAssistFollowRate;
     const k = 1 - Math.exp(-delta * followRate);
 
-    // Cap catch-up to smooth sudden heading changes — but the cap MUST exceed
-    // the ship's actual speed or the camera falls permanently behind when you
-    // accelerate (ship tops out ~1560 u/s; the old flat 42 u/s cap could never
-    // keep up). Scale the cap with current speed + a generous floor.
-    const maxCatchUp = (Math.max(speed * 1.6, 60) + 80) * delta;
-    const catchUp = _camCatchUp.copy(desiredCameraPos).sub(smoothPosRef.current);
-    if (catchUp.length() > maxCatchUp) {
-      catchUp.setLength(maxCatchUp);
-      desiredCameraPos.copy(smoothPosRef.current).add(catchUp);
-    }
-
     // First flight frame after a menu/briefing: snap straight onto the ship so
     // the camera never crawls across the system from its old parked vantage.
     if (!flightSnappedRef.current) {
       smoothPosRef.current.copy(desiredCameraPos);
       smoothLookRef.current.copy(playerPos);
       camera.position.copy(desiredCameraPos);
+      prevPlayerPosRef.current = playerPos.clone();
       flightSnappedRef.current = true;
     }
+
+    // VELOCITY FEED-FORWARD: advance the camera by the ship's actual displacement
+    // this frame BEFORE smoothing. Without this, a pure lerp leaves a steady-state
+    // lag proportional to speed — at interstellar velocity the ship outruns the
+    // camera and flies off-screen (the bug). Feeding the displacement forward
+    // means the lerp only has to correct for OFFSET changes (turns, accel), so
+    // the ship stays pinned in frame at any speed while turns still ease in.
+    if (prevPlayerPosRef.current) {
+      const shipDelta = _camCatchUp.copy(playerPos).sub(prevPlayerPosRef.current);
+      smoothPosRef.current.add(shipDelta);
+    }
+    prevPlayerPosRef.current = prevPlayerPosRef.current
+      ? prevPlayerPosRef.current.copy(playerPos)
+      : playerPos.clone();
 
     smoothPosRef.current.lerp(desiredCameraPos, k);
     camera.position.copy(smoothPosRef.current);
@@ -1678,36 +1690,61 @@ function CameraFollowController({
       camera.position.z += Math.sin(t * 53 + 2.7) * shakeIntensity * 0.35;
     }
 
-    // Look slightly ahead and above the player for better anticipation and visibility
-    const lookAheadDistance = Math.sqrt(
-      gameState.playerEntity.velocity.x ** 2 +
-      gameState.playerEntity.velocity.y ** 2 +
-      gameState.playerEntity.velocity.z ** 2
-    ) * 0.13;
+    // Look ahead down the NOSE, not the drift velocity. In manual mode velocity
+    // lags the heading (inertial drift), so aiming the camera at the velocity
+    // made turns feel disconnected — you'd look where you were sliding, not
+    // where you were pointing. Anticipating the nose keeps turns tight and
+    // readable (arcade feel). We still bias slightly toward velocity at very
+    // high speed so fast straight-line travel reads forward.
+    // Keep the look-ahead modest relative to the follow distance so the ship
+    // stays framed in the lower-centre (a big look-ahead aims past the ship and
+    // pushes it off the bottom of the screen).
+    const lookAheadDistance = Math.min(speed * 0.05, 6) + boostSpool * 0.8;
 
     const lookTarget = _camLook.copy(playerPos).add(_camTmp.set(0, 0.7, 0));
-    if (lookAheadDistance > 0.1) {
-      const velocityDir = _camVelDir.set(
+    // Blend the smoothed nose forward with a touch of velocity direction.
+    const velLen = speed;
+    const aimDir = _camVelDir.copy(smoothForwardRef.current);
+    if (velLen > 0.1) {
+      const velocityDir = _camTmp2.set(
         gameState.playerEntity.velocity.x,
         gameState.playerEntity.velocity.y,
         gameState.playerEntity.velocity.z
-      ).normalize();
-      const lookVelK = 1 - Math.exp(-delta * 6.5);
-      lookAheadRef.current.lerp(velocityDir, lookVelK).normalize();
-      lookTarget.addScaledVector(lookAheadRef.current, lookAheadDistance + boostSpool * 1.2);
-    } else {
-      lookTarget.addScaledVector(smoothForwardRef.current, 2.2);
+      ).multiplyScalar(1 / velLen);
+      // mostly nose (0.8), a little velocity (0.2) so high-speed cruise reads fwd
+      aimDir.multiplyScalar(0.8).addScaledVector(velocityDir, 0.2).normalize();
     }
+    const lookVelK = 1 - Math.exp(-delta * 9.0);
+    lookAheadRef.current.lerp(aimDir, lookVelK).normalize();
+    lookTarget.addScaledVector(lookAheadRef.current, Math.max(2.2, lookAheadDistance));
 
     const lookK = 1 - Math.exp(-delta * assistConfig.look);
     smoothLookRef.current.lerp(lookTarget, lookK);
+
+    // Bank the CAMERA into turns so hard steering feels dynamic instead of flat.
+    // Roll the camera's up-vector toward the turn (opposite the yaw input), eased
+    // so it's smooth. This rides on top of the ship's own visual bank, selling
+    // the arcade "lean into the corner" feel.
+    const turnSignal = Number(gameState.playerEntity.metadata?.rcsYaw ?? 0);
+    const targetRoll = THREE.MathUtils.clamp(turnSignal, -1, 1) * 0.32; // ~18° max
+    const rollK = 1 - Math.exp(-delta * 5.0);
+    camRollRef.current += (targetRoll - camRollRef.current) * rollK;
+    // build a banked up-vector: world-up rolled about the camera forward axis
+    const camFwd = _camTmp.copy(smoothLookRef.current).sub(camera.position).normalize();
+    _camUpVec.copy(worldUp).applyAxisAngle(camFwd, camRollRef.current);
+    camera.up.copy(_camUpVec);
     camera.lookAt(smoothLookRef.current);
 
-    // Dynamic FOV gives a clear sensation of acceleration and boost.
+    // Dynamic FOV gives a clear sensation of acceleration and boost. Tie a chunk
+    // of it to ACCELERATION (accelKick) + throttle spool, not just raw speed —
+    // raw speed pins the FOV instantly at interstellar velocities, so you lose
+    // the surge-on-throttle sensation. accelKick fades as you reach top speed,
+    // giving a satisfying push when you hit the gas and a settle when you cruise.
     const targetFov =
       phaseProfile.baseFov +
-      Math.min(speed / 5.6, 10) +
-      boostSpool * 5.5 +
+      Math.min(speed / 9.0, 6) +
+      accelKick * 7.0 +
+      boostSpool * 6.5 +
       (boostActive ? 1.5 : 0) +
       speedJerk * 2.4;
     const currentFov = (camera as THREE.PerspectiveCamera).fov ?? 55;
@@ -2057,7 +2094,8 @@ function GameScene({
       }
 
       const attackMode = Boolean(gameState.playerEntity.metadata?.attackMode);
-      const turnSpeed = attackMode ? 2.1 : 1.6;
+      // Quicker base turn rate for a responsive arcade feel (was 2.1 / 1.6).
+      const turnSpeed = attackMode ? 2.5 : 2.0;
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       const ignitionSequenceActive = gameState.phase === 'ignition';
 
@@ -2108,7 +2146,9 @@ function GameScene({
       yawInput = applyDeadzone(Math.max(-1, Math.min(1, yawInput)));
       rollInput = applyDeadzone(Math.max(-1, Math.min(1, rollInput)));
 
-      const turnK = 1 - Math.exp(-clampedDelta * 10.5);
+      // Snappier steering response: input ramps up fast (immediate) but still
+      // eases, so turns feel connected/precise rather than mushy. Was 10.5.
+      const turnK = 1 - Math.exp(-clampedDelta * 16.0);
       smoothedInputRef.current.pitch += (pitchInput - smoothedInputRef.current.pitch) * turnK;
       smoothedInputRef.current.yaw += (yawInput - smoothedInputRef.current.yaw) * turnK;
       smoothedInputRef.current.roll += (rollInput - smoothedInputRef.current.roll) * turnK;
@@ -2204,13 +2244,16 @@ function GameScene({
         gameState.playerEntity.velocity.y = desiredForwardVelocity.y;
         gameState.playerEntity.velocity.z = desiredForwardVelocity.z;
       } else {
-        // Manual mode keeps inertial drift and only gently steers velocity toward the nose.
+        // Manual mode keeps inertial drift but steers velocity toward the nose a
+        // bit more eagerly (was 1.15) so turns translate into actual direction
+        // change quickly — the floaty "sliding past the turn" lag was a big part
+        // of the off feel. Still inertial, just more responsive.
         const vel = _velScratch.set(
           gameState.playerEntity.velocity.x,
           gameState.playerEntity.velocity.y,
           gameState.playerEntity.velocity.z
         );
-        const steerK = 1 - Math.exp(-clampedDelta * 1.15);
+        const steerK = 1 - Math.exp(-clampedDelta * 2.4);
         vel.lerp(desiredForwardVelocity, steerK);
         gameState.playerEntity.velocity.x = vel.x;
         gameState.playerEntity.velocity.y = vel.y;
