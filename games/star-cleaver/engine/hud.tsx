@@ -178,11 +178,12 @@ export function HUD({ gameState, showForwardDebug = false, onShipSelect, waypoin
           <div className="font-mono text-[9px] sm:text-[11px] tracking-[0.14em] sm:tracking-[0.25em] uppercase text-foreground/85 drop-shadow-md">
             {runMode ? (
               <>
-                <div className="text-emerald-300/90">{runSectorName}</div>
-                <div className="mt-1 text-amber-300/90 tabular-nums">
-                  ◆ {runSalvage.toLocaleString()} salvage
+                <div className="text-foreground/80">{runSectorName}</div>
+                <div className="mt-1.5 flex items-center gap-1.5 text-amber-300/90 tabular-nums normal-case tracking-normal">
+                  <span className="text-amber-300/70">◆</span>
+                  {runSalvage.toLocaleString()}
                 </div>
-                <div className="mt-0.5 text-foreground/55 text-[8px] sm:text-[9px]">
+                <div className="mt-1 text-foreground/40 text-[8px] sm:text-[9px]">
                   {runSectorCleared ? 'sector clear' : `${runLiveEnemies} hostile${runLiveEnemies === 1 ? '' : 's'}`}
                 </div>
               </>
@@ -324,22 +325,12 @@ export function HUD({ gameState, showForwardDebug = false, onShipSelect, waypoin
                   />
                 </div>
 
-                {/* Essentials only — a premium HUD shows what the pilot needs,
-                    not a debug dump. Speed/heading, flight state, assist, route,
-                    and weapon heat when it matters. The old deep-telemetry chip
-                    wall (gas/push/jerk/gravity/boundary…) is gone. */}
-                <div className="grid w-full grid-cols-2 gap-2 text-center sm:flex sm:flex-wrap sm:justify-center">
-                  <div className="rounded-full border border-foreground/12 bg-foreground/4 px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] text-foreground/70 sm:text-[9px] sm:tracking-[0.14em]">
+                {/* Minimal/cinematic: just speed + heading always; everything
+                    else (flight state, assist toggle, route) lives in the gear
+                    settings or is implied. Warnings still surface conditionally. */}
+                <div className="flex w-full flex-wrap justify-center gap-2 text-center">
+                  <div className="rounded-full px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.16em] text-foreground/55 tabular-nums sm:text-[9px] sm:tracking-[0.2em]">
                     SPD {Math.round(speed)} · HDG {heading}°
-                  </div>
-                  <div className={`rounded-full border px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] sm:text-[9px] sm:tracking-[0.14em] ${stopAssistActive ? 'border-amber-300/35 bg-amber-500/10 text-amber-100/90' : nearStop ? 'border-green-300/35 bg-green-500/10 text-green-100/90' : 'border-foreground/15 bg-foreground/5 text-foreground/70'}`}>
-                    STATE {flightStateLabel}
-                  </div>
-                  <div className={`rounded-full border px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] sm:text-[9px] sm:tracking-[0.14em] ${flightAssistActive ? 'border-cyan-300/25 bg-cyan-400/7 text-cyan-100/85' : 'border-foreground/12 bg-foreground/4 text-foreground/65'}`}>
-                    ASSIST {flightAssistActive ? 'ON' : 'OFF'}
-                  </div>
-                  <div className="rounded-full border border-foreground/12 bg-foreground/4 px-2.5 py-1 text-[8px] font-mono uppercase tracking-[0.12em] text-foreground/60 sm:text-[9px] sm:tracking-[0.14em]">
-                    ROUTE {routeName.toUpperCase()} {routeProgress}
                   </div>
                   {/* Weapon heat only surfaces when it's actually a concern. */}
                   {!simpleJourneyMode && (weaponOverheated || weaponHeat > 0.5) && (
