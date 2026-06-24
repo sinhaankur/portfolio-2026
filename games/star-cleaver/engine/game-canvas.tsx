@@ -916,6 +916,145 @@ const ENEMY_MODEL_PATHS: Record<string, string> = {
 };
 Object.values(ENEMY_MODEL_PATHS).forEach((p) => useGLTF.preload(p));
 
+/* --------------------------------------------------------------------------
+ * TargetingReticles — combat HUD in 3D space. Draws four corner brackets that
+ * billboard toward the camera on every active hostile (constant screen size via
+ * distance scaling), tinted by threat. The NEAREST in-front hostile is the
+ * "locked" target: it gets a brighter full bracket + a small lead indicator
+ * (where to put your nose to hit it, given its velocity and the bolt speed).
+ * Pure scene geometry — no DOM/React thrash. This is the single biggest "real
+ * combat game vs tech demo" tell.
+ * ----------------------------------------------------------------------------*/
+const _trCamPos = new THREE.Vector3();
+const _trToEnemy = new THREE.Vector3();
+const _trLead = new THREE.Vector3();
+const RETICLE_POOL = 12;
+const ENEMY_BOLT_SPEED_REF = 95; // matches ENEMY_BOLT_SPEED for lead math symmetry
+
+// One bracket = 4 small L-shaped corners on a unit square, as line segments.
+function makeBracketGeometry(): THREE.BufferGeometry {
+  const a = 0.5, arm = 0.18;
+  const segs: number[] = [];
+  const corner = (cx: number, cy: number, dx: number, dy: number) => {
+    segs.push(cx, cy, 0, cx + dx * arm, cy, 0);
+    segs.push(cx, cy, 0, cx, cy + dy * arm, 0);
+  };
+  corner(-a, a, 1, -1); corner(a, a, -1, -1);
+  corner(-a, -a, 1, 1); corner(a, -a, -1, 1);
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(segs, 3));
+  return g;
+}
+
+function TargetingReticles({ gameState }: { gameState: GameState }) {
+  const { camera } = useThree();
+  const groupRef = useRef<THREE.Group>(null);
+  const bracketGeo = useMemo(makeBracketGeometry, []);
+  // a small pool of reusable bracket line objects + the lock ring + lead marker
+  const pool = useRef<THREE.LineSegments[]>([]);
+  const lockRef = useRef<THREE.Mesh>(null);
+  const leadRef = useRef<THREE.Mesh>(null);
+
+  useFrame(() => {
+    const grp = groupRef.current;
+    if (!grp) return;
+    camera.getWorldPosition(_trCamPos);
+    const px = gameState.playerEntity.position.x;
+    const py = gameState.playerEntity.position.y;
+    const pz = gameState.playerEntity.position.z;
+
+    // pick the nearest active hostile that's roughly in front of the camera
+    const active = gameState.enemies.filter((e) => e.active);
+    let lockTarget: GameEntity | null = null;
+    let lockDist = Infinity;
+
+    let slot = 0;
+    for (const e of active) {
+      if (slot >= RETICLE_POOL) break;
+      const seg = pool.current[slot];
+      if (!seg) { slot++; continue; }
+      _trToEnemy.set(e.position.x - _trCamPos.x, e.position.y - _trCamPos.y, e.position.z - _trCamPos.z);
+      const camDist = _trToEnemy.length();
+      seg.position.set(e.position.x, e.position.y, e.position.z);
+      seg.quaternion.copy(camera.quaternion); // billboard
+      // constant on-screen size: scale with distance from camera
+      const s = Math.max(0.6, camDist * 0.045) + (e.radius || 0.8);
+      seg.scale.setScalar(s);
+      seg.visible = true;
+      const mat = seg.material as THREE.LineBasicMaterial;
+      const boss = e.metadata?.class === 'boss';
+      mat.color.setHex(boss ? 0xff8a3a : 0xff5a52);
+      mat.opacity = 0.5;
+      // nearest to the PLAYER (not camera) = lock candidate
+      const pd = Math.hypot(e.position.x - px, e.position.y - py, e.position.z - pz);
+      if (pd < lockDist) { lockDist = pd; lockTarget = e; }
+      slot++;
+    }
+    for (let i = slot; i < pool.current.length; i++) {
+      if (pool.current[i]) pool.current[i].visible = false;
+    }
+
+    // Lock highlight + lead indicator on the nearest hostile
+    const lock = lockRef.current;
+    const lead = leadRef.current;
+    if (lockTarget && lockDist < 240) {
+      const e = lockTarget;
+      _trToEnemy.set(e.position.x - _trCamPos.x, e.position.y - _trCamPos.y, e.position.z - _trCamPos.z);
+      const camDist = _trToEnemy.length();
+      const s = Math.max(0.6, camDist * 0.045) + (e.radius || 0.8);
+      if (lock) {
+        lock.visible = true;
+        lock.position.set(e.position.x, e.position.y, e.position.z);
+        lock.quaternion.copy(camera.quaternion);
+        lock.scale.setScalar(s * 1.5);
+        (lock.material as THREE.MeshBasicMaterial).opacity = 0.32 + Math.sin(gameState.simTime * 6) * 0.12;
+      }
+      // lead point: where the target will be when a bolt reaches it
+      const tof = lockDist / 210; // player bolt speed ≈ 210
+      _trLead.set(
+        e.position.x + e.velocity.x * tof,
+        e.position.y + e.velocity.y * tof,
+        e.position.z + e.velocity.z * tof,
+      );
+      void ENEMY_BOLT_SPEED_REF;
+      if (lead) {
+        lead.visible = true;
+        lead.position.copy(_trLead);
+        lead.quaternion.copy(camera.quaternion);
+        lead.scale.setScalar(Math.max(0.3, camDist * 0.02));
+      }
+    } else {
+      if (lock) lock.visible = false;
+      if (lead) lead.visible = false;
+    }
+  });
+
+  return (
+    <group ref={groupRef}>
+      {Array.from({ length: RETICLE_POOL }).map((_, i) => (
+        <lineSegments
+          key={i}
+          geometry={bracketGeo}
+          visible={false}
+          ref={(el: THREE.LineSegments | null) => { if (el) pool.current[i] = el; }}
+        >
+          <lineBasicMaterial transparent opacity={0.5} depthTest={false} toneMapped={false} />
+        </lineSegments>
+      ))}
+      {/* lock ring on the nearest target */}
+      <mesh ref={lockRef} visible={false} renderOrder={999}>
+        <ringGeometry args={[0.62, 0.7, 40]} />
+        <meshBasicMaterial color={0x7af0ff} transparent opacity={0.4} depthTest={false} toneMapped={false} />
+      </mesh>
+      {/* lead-aim marker (where to shoot) */}
+      <mesh ref={leadRef} visible={false} renderOrder={999}>
+        <ringGeometry args={[0.28, 0.4, 4]} />
+        <meshBasicMaterial color={0x7af0ff} transparent opacity={0.85} depthTest={false} toneMapped={false} />
+      </mesh>
+    </group>
+  );
+}
+
 function EnemyShipGroup({ enemy }: { enemy: GameEntity }) {
   const groupRef = useRef<THREE.Group>(null);
   const factionClass = (enemy.metadata?.class ?? 'fighter') as any;
@@ -3411,6 +3550,10 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
         {gameState.enemies.map((enemy) => (
           <EnemyShipGroup key={enemy.id} enemy={enemy} />
         ))}
+
+        {/* Targeting reticles — billboarded brackets on every hostile, with a
+            highlighted lock + lead indicator on the nearest target. */}
+        <TargetingReticles gameState={gameState} />
 
         {/* Projectiles: high-energy plasma bolts (instanced, sim-driven) */}
         <ProjectileField gameState={gameState} />
