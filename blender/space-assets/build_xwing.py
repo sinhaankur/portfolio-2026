@@ -258,7 +258,7 @@ def build_ship(mats):
     ROOT_X = 0.46             # pivot sits at the fuselage flank
     ROOT_Z = 0.0
     WING_SPAN = 1.95
-    SPLAY = math.radians(34)
+    SPLAY = math.radians(48)  # wide S-foil spread → reads as a clear 'X' from behind (chase cam)
 
     def add_local(make, pivot, name, mat, smooth=False, bevel=0.0):
         """make() returns a primitive whose geometry is authored in the pivot's
