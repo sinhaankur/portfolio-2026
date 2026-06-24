@@ -2744,6 +2744,7 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
   const [showTutorial, setShowTutorial] = useState(false);
   const [tutorialIndex, setTutorialIndex] = useState(0);
   const [showControlsHelp, setShowControlsHelp] = useState(false);
+  const [showSettings, setShowSettings] = useState(false); // gear-collapsed settings sheet
   const [stationExploreMode, setStationExploreMode] = useState(false);
   const [dataCores, setDataCores] = useState<DataCore[]>(() =>
     createDataCores(ROUTE_DEFINITIONS.flatMap((r) => r.waypoints))
@@ -3577,9 +3578,21 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
           Back
         </a>
 
-        <div className="pointer-events-auto fixed right-3 top-3 z-50 rounded-xl border border-white/20 bg-black/55 px-3 py-2 backdrop-blur-sm">
-          <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-white/70">Flight Assist</div>
-          <div className="mt-2 flex items-center gap-2">
+        {/* Gear — collapses all settings/debug controls off the flight HUD so
+            the cockpit reads clean. The dense panel only appears on demand. */}
+        <button
+          type="button"
+          onClick={() => setShowSettings((v) => !v)}
+          aria-label="Settings"
+          className="pointer-events-auto fixed right-3 top-3 z-50 grid h-9 w-9 place-items-center rounded-xl border border-white/15 bg-black/40 text-white/70 backdrop-blur-sm transition-colors hover:text-white hover:border-white/35"
+        >
+          <span className="text-[15px] leading-none">{showSettings ? '✕' : '⚙'}</span>
+        </button>
+
+        {showSettings && (
+        <div className="pointer-events-auto fixed right-3 top-14 z-50 w-[min(86vw,18rem)] rounded-2xl border border-white/12 bg-background/80 px-4 py-3.5 backdrop-blur-xl space-y-3">
+          <div className="font-mono text-[9px] uppercase tracking-[0.24em] text-foreground/50">Flight Assist</div>
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => setAssistedFlight((v) => !v)}
@@ -3675,6 +3688,7 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
             </div>
           )}
         </div>
+        )}
 
         {showControlsHelp && (
           <div className="pointer-events-auto fixed left-1/2 top-1/2 z-60 w-[min(92vw,34rem)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-cyan-200/30 bg-black/80 px-5 py-4 text-white backdrop-blur-md">

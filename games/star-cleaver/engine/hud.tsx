@@ -198,33 +198,39 @@ export function HUD({ gameState, showForwardDebug = false, onShipSelect, waypoin
             )}
           </div>
 
-          {/* Center: Player health bar with animation and gradient */}
-          <div className="flex flex-col items-center sm:items-center gap-1.5 sm:gap-2">
-            <div className="text-foreground/55 font-mono text-[8px] sm:text-[9px] tracking-[0.14em] sm:tracking-[0.2em] uppercase">
-              HULL
-            </div>
-            <div className="relative w-[min(92vw,16rem)] sm:w-64 h-3 rounded-full bg-linear-to-r from-cyan-900/60 to-cyan-400/20 shadow-inner overflow-hidden border border-foreground/25">
-              <div
-                className="absolute left-0 top-0 h-full rounded-full bg-linear-to-r from-green-400 via-yellow-300 to-red-500 transition-all duration-500 shadow-lg"
-                style={{ width: `${healthPercent}%`, boxShadow: '0 0 8px 2px rgba(34,211,238,0.25)' }}
-              />
-              <div className="absolute inset-0 flex items-center justify-center font-mono text-[10px] text-white/80 drop-shadow">
-                {Math.round(healthPercent)}%
+          {/* Center: HULL — a single thin bar. One calm accent normally; it only
+              shifts warm when low, so the HUD stays quiet until it matters
+              (no permanent rainbow). */}
+          {(() => {
+            const low = healthPercent <= 30;
+            const mid = healthPercent <= 60;
+            const barColor = low ? 'bg-red-400' : mid ? 'bg-amber-300' : 'bg-cyan-300';
+            return (
+              <div className="flex items-center gap-2.5">
+                <span className="font-mono text-[8px] sm:text-[9px] tracking-[0.22em] uppercase text-foreground/45">Hull</span>
+                <div className="relative h-[3px] w-[min(60vw,13rem)] sm:w-52 overflow-hidden rounded-full bg-foreground/12">
+                  <div
+                    className={`absolute left-0 top-0 h-full rounded-full transition-all duration-300 ${barColor}`}
+                    style={{ width: `${healthPercent}%` }}
+                  />
+                </div>
+                <span className={`font-mono text-[9px] sm:text-[10px] tabular-nums ${low ? 'text-red-300' : 'text-foreground/60'}`}>
+                  {Math.round(healthPercent)}
+                </span>
               </div>
-            </div>
-            <div className="text-foreground/70 font-mono text-[8px] sm:text-[9px]">
-              {Math.ceil(gameState.playerEntity.health)} / {gameState.playerMaxHealth}
-            </div>
-          </div>
+            );
+          })()}
 
-          {/* Right: Score */}
+          {/* Right: Score — quiet, tabular. */}
           <div className="text-left sm:text-right">
-            <div className="font-mono text-[11px] sm:text-[13px] tracking-[0.12em] sm:tracking-widest uppercase text-foreground/85 tabular-nums drop-shadow">
+            <div className="font-mono text-[10px] sm:text-[12px] tracking-[0.1em] sm:tracking-widest uppercase text-foreground/70 tabular-nums">
               {formatScore(gameState.score)}
             </div>
-            <div className="text-foreground/55 font-mono text-[9px] sm:text-[11px] tracking-[0.12em] sm:tracking-[0.2em] mt-1">
-              ×{gameState.comboMultiplier.toFixed(1)}
-            </div>
+            {gameState.comboMultiplier > 1.05 && (
+              <div className="text-foreground/45 font-mono text-[9px] tracking-[0.12em] mt-0.5">
+                ×{gameState.comboMultiplier.toFixed(1)}
+              </div>
+            )}
           </div>
         </div>
       </div>
