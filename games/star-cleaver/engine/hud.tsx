@@ -85,6 +85,7 @@ export function HUD({ gameState, showForwardDebug = false, onShipSelect, waypoin
   const bossActive = Boolean(gameState.playerEntity.metadata?.bossActive);
   const bossHpFrac = Number(gameState.playerEntity.metadata?.bossHpFrac ?? 0);
   const bossName = String(gameState.playerEntity.metadata?.bossName ?? 'capital');
+  const bossCharging = Number(gameState.playerEntity.metadata?.bossCharging ?? 0);
   // Deep Run teaching: a real fact about the sector's body, shown briefly on arrival.
   const sectorFact = String(gameState.playerEntity.metadata?.sectorFact ?? '');
   const sectorFactUntil = Number(gameState.playerEntity.metadata?.sectorFactUntil ?? 0);
@@ -253,6 +254,18 @@ export function HUD({ gameState, showForwardDebug = false, onShipSelect, waypoin
               style={{ width: `${Math.round(bossHpFrac * 100)}%` }}
             />
           </div>
+          {/* telegraphed volley warning — a charge meter that fills before the
+              boss fires its fan, so the player has a beat to dodge. */}
+          {bossCharging > 0.01 && (
+            <div className="mt-1.5">
+              <div className="font-mono text-[8px] sm:text-[9px] tracking-[0.2em] uppercase text-amber-300 animate-pulse">
+                ⚠ incoming volley
+              </div>
+              <div className="relative mt-1 h-[2px] w-full overflow-hidden rounded-full bg-amber-950/50">
+                <div className="absolute left-0 top-0 h-full bg-amber-300" style={{ width: `${Math.round(bossCharging * 100)}%` }} />
+              </div>
+            </div>
+          )}
         </div>
       )}
 

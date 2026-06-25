@@ -2120,7 +2120,7 @@ function GameScene({
   // target (aim where the ship WILL be) so they're a real threat; fighters fire
   // straight at the current position. Stored on gameState.projectiles with
   // team 'enemy' + isEnemyBolt so the sim loop can resolve hits on the player.
-  const spawnEnemyBolt = (enemy: GameEntity) => {
+  const spawnEnemyBolt = (enemy: GameEntity, spread = 0) => {
     const em = entityManagerRef.current;
     if (!em) return;
     const md = enemy.metadata ?? {};
@@ -2138,6 +2138,13 @@ function GameScene({
     let dz = aimZ - enemy.position.z;
     const d = Math.hypot(dx, dy, dz) || 1;
     dx /= d; dy /= d; dz /= d;
+    // optional horizontal fan (boss spread volley): rotate the aim about world-up
+    if (spread !== 0) {
+      const cs = Math.cos(spread), sn = Math.sin(spread);
+      const nx = dx * cs - dz * sn;
+      const nz = dx * sn + dz * cs;
+      dx = nx; dz = nz;
+    }
     const dmg = Number(md.damage) || 10;
     const bolt: GameEntity = {
       id: `enemy_bolt_${enemyIdCounterRef.current++}`,
@@ -2337,9 +2344,10 @@ function GameScene({
           md.bossSector = isBossSector;
 
           // Salvage on kill: scan new 'entity_killed' events since last frame.
+          // Skip synthetic boss-detonation fragments (they're pure FX, not kills).
           for (let i = lastEventLenRef.current; i < gameState.events.length; i++) {
             const ev = gameState.events[i];
-            if (ev.type === 'entity_killed') {
+            if (ev.type === 'entity_killed' && ev.source !== 'boss_detonation') {
               run.runSalvage += salvagePerKill(run.sectorIndex);
               run.runKills += 1;
             }
@@ -2354,6 +2362,10 @@ function GameScene({
             md.bossActive = true;
             md.bossHpFrac = Math.max(0, frac);
             md.bossName = String(boss.metadata.variant ?? 'capital');
+            // charge wind-up 0..1 → HUD "incoming volley" telegraph the player can dodge
+            const ch = Number(boss.metadata.charge ?? 0);
+            const chMax = Number(boss.metadata.chargeMax ?? 0.7);
+            md.bossCharging = ch > 0 ? 1 - ch / chMax : 0;
             // phase up at <60% and <30% hull. Compute fire rate from a STABLE
             // base captured once (multiplying the live value would compound).
             if (boss.metadata.baseFireRate === undefined) {
@@ -2493,11 +2505,38 @@ function GameScene({
             // --- Enemy fire: hostiles shoot back when facing + in range. Gives
             // combat real teeth so the roguelike's "death loses your run" stakes
             // actually bite. (Deep Run + Defend; not pure free-roam Explore.)
-            if (gameState.gameMode !== 'explore' && dist < ENEMY_FIRE_RANGE) {
+            const isBoss = enemy.metadata?.class === 'boss';
+            const fireRange = isBoss ? ENEMY_FIRE_RANGE * 1.6 : ENEMY_FIRE_RANGE;
+            if (gameState.gameMode !== 'explore' && dist < fireRange) {
               const md = (enemy.metadata ??= {});
               const cd = Number(md.fireCooldown ?? Math.random() * 1.2);
               const next = cd - clampedDelta;
-              if (next <= 0) {
+              if (isBoss) {
+                // Boss fires a TELEGRAPHED spread: a brief charge wind-up (read by
+                // the HUD/model as a warning flash) then a fan of bolts, so it's a
+                // readable, dodgeable threat rather than a bullet hose.
+                const charge = Number(md.charge ?? 0);
+                if (next <= 0 && charge <= 0) {
+                  md.charge = 0.7; // wind-up seconds
+                  md.chargeMax = 0.7;
+                }
+                if (charge > 0) {
+                  const c2 = charge - clampedDelta;
+                  md.charge = c2;
+                  if (c2 <= 0) {
+                    // release the fan: 3–5 bolts spread by depth phase
+                    const phase = Number(md.phase) || 1;
+                    const n = 2 + phase; // 3,4,5 bolts
+                    for (let s = 0; s < n; s++) {
+                      spawnEnemyBolt(enemy, (s - (n - 1) / 2) * 0.14);
+                    }
+                    const rate = Number(md.fireRate) || 0.4;
+                    md.fireCooldown = (1.1 + Math.random() * 0.5) / Math.max(0.15, rate);
+                  }
+                } else {
+                  md.fireCooldown = next;
+                }
+              } else if (next <= 0) {
                 const rate = Number(md.fireRate) || 0.5; // shots/sec-ish weight
                 md.fireCooldown = (0.9 + Math.random() * 0.6) / Math.max(0.15, rate);
                 spawnEnemyBolt(enemy);
@@ -2932,14 +2971,47 @@ function GameScene({
       lastKillScanRef.current = 0; // events array was reset (new wave/run)
     }
     let killsThisFrame = 0;
+    let bossKilled = false;
+    let bossKillPos: { x: number; y: number; z: number } | null = null;
     for (let i = lastKillScanRef.current; i < gameState.events.length; i++) {
-      if (gameState.events[i]?.type === 'entity_killed') killsThisFrame++;
+      const ev = gameState.events[i];
+      if (ev?.type !== 'entity_killed') continue;
+      killsThisFrame++;
+      if (typeof ev.target === 'string' && ev.target.startsWith('boss_')) {
+        bossKilled = true;
+        bossKillPos = ev.position ?? null;
+      }
     }
     lastKillScanRef.current = gameState.events.length;
     if (killsThisFrame > 0) {
       onKill?.();
       const md = (gameState.playerEntity.metadata ??= {});
       md.killPunch = Math.min(1, Number(md.killPunch ?? 0) + 0.6 * killsThisFrame);
+      // Boss death = a big, slow detonation: extra explosion sounds, a hard
+      // camera punch, and a fan of synthetic kill bursts so the ImpactField/
+      // DebrisField throw a large wreckage cloud at the boss's last position.
+      if (bossKilled) {
+        md.killPunch = 1;
+        md.bossActive = false;
+        onKill?.(); onKill?.();
+        if (bossKillPos) {
+          for (let b = 0; b < 7; b++) {
+            gameState.events.push({
+              type: 'entity_killed',
+              source: 'boss_detonation',
+              target: `boss_frag_${b}`,
+              amount: 0,
+              timestamp: gameState.simTime,
+              position: {
+                x: bossKillPos.x + (Math.random() - 0.5) * 6,
+                y: bossKillPos.y + (Math.random() - 0.5) * 6,
+                z: bossKillPos.z + (Math.random() - 0.5) * 6,
+              },
+            });
+          }
+          lastKillScanRef.current = gameState.events.length; // don't re-scan our own frags
+        }
+      }
     } else {
       const md = gameState.playerEntity.metadata;
       if (md && md.killPunch) md.killPunch = Math.max(0, Number(md.killPunch) - clampedDelta * 3);
