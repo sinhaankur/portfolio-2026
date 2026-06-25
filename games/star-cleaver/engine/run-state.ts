@@ -216,33 +216,61 @@ export function recordDeath(meta: MetaState, run: RunState): MetaState {
  * key figures, surfaced on arrival, so playing the game teaches the universe
  * (the product vision: games as the on-ramp to understanding it).
  */
+export interface SectorBackdrop {
+  /** dominant body colour (hex). Real-body palette so the tour reads true. */
+  bodyColor: number;
+  /** secondary surface tone (rocky highlights / gas bands / ice). */
+  landColor: number;
+  /** atmospheric rim colour (hex). */
+  atmoColor: number;
+  /** body radius in scene units (gas giants huge, belt/pluto small). */
+  bodyRadius: number;
+  /** Saturn-style rings around the body. */
+  rings: boolean;
+  /** asteroid-field density multiplier for the sector (belt = thick). */
+  asteroidDensity: number;
+  /** ambient star/light tint — sunlight reddens/dims with distance. */
+  lightTint: number;
+  lightIntensity: number;
+}
+
 export interface SectorInfo {
   name: string;
   fact: string;
+  backdrop: SectorBackdrop;
 }
 
 export const SECTORS: SectorInfo[] = [
   {
     name: 'Asteroid Belt',
     fact: 'Between Mars and Jupiter — millions of rocky bodies, yet their total mass is under 4% of the Moon. The gaps would surprise you: ships in fiction dodge boulders, but real probes cross it without ever seeing one.',
+    backdrop: { bodyColor: 0x9a8f7e, landColor: 0x6f6457, atmoColor: 0x6b5f4d, bodyRadius: 64, rings: false, asteroidDensity: 1.8, lightTint: 0xfff2dc, lightIntensity: 1.0 },
   },
   {
     name: 'Jovian Approach',
     fact: 'Jupiter is so massive (318 Earths) it doesn’t orbit the Sun’s centre — both orbit a point just above the Sun’s surface. Its magnetosphere is the largest structure in the Solar System, 20× wider than the Sun itself.',
+    backdrop: { bodyColor: 0xcaa472, landColor: 0x9c6f44, atmoColor: 0xe8c89a, bodyRadius: 190, rings: false, asteroidDensity: 0.5, lightTint: 0xffe9c4, lightIntensity: 0.78 },
   },
   {
     name: 'Saturnian Rings',
     fact: 'Saturn’s rings span ~280,000 km but are often only ~10 metres thick — proportionally thinner than a sheet of paper. They’re almost pure water ice, and may be younger than the dinosaurs.',
+    backdrop: { bodyColor: 0xd8c89a, landColor: 0xb89a6a, atmoColor: 0xeadcb4, bodyRadius: 150, rings: true, asteroidDensity: 0.9, lightTint: 0xffe6bd, lightIntensity: 0.62 },
   },
   {
     name: 'Kuiper Verge',
     fact: 'Beyond Neptune lies the Kuiper Belt — a vast ring of icy worlds including Pluto. Sunlight out here is ~1000× fainter than on Earth; noon would look like deep dusk.',
+    backdrop: { bodyColor: 0x4a6db8, landColor: 0x3a5596, atmoColor: 0x6f8fd0, bodyRadius: 70, rings: false, asteroidDensity: 1.3, lightTint: 0xcfd8ff, lightIntensity: 0.42 },
   },
   {
     name: 'Plutonian Dark',
     fact: 'Pluto’s “heart”, Sputnik Planitia, is a 1000-km basin of nitrogen ice that slowly churns like a lava lamp over millions of years. A year on Pluto lasts 248 Earth years.',
+    backdrop: { bodyColor: 0xc8a378, landColor: 0x8f6f52, atmoColor: 0x8a7560, bodyRadius: 40, rings: false, asteroidDensity: 0.6, lightTint: 0xbcc4e0, lightIntensity: 0.3 },
   },
 ];
+
+export function sectorBackdrop(sectorIndex: number): SectorBackdrop {
+  return SECTORS[Math.min(sectorIndex, SECTORS.length - 1)].backdrop;
+}
 
 export const SECTOR_NAMES = SECTORS.map((s) => s.name);
 

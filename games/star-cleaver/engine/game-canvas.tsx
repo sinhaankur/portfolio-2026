@@ -33,6 +33,7 @@ import {
   sectorClearBonus,
   sectorName,
   sectorInfo,
+  sectorBackdrop,
   type MetaState,
   type RunState,
   type UpgradeId,
@@ -1557,6 +1558,49 @@ function MissionStartScene({ worldIndex }: { worldIndex: number }) {
  */
 // Station + world geometry is static per mission; skip it on HUD syncs.
 const MemoMissionStartScene = memo(MissionStartScene);
+
+/* --------------------------------------------------------------------------
+ * SectorBackdrop — the Deep Run world. Instead of the fixed Earth+station, each
+ * sector shows its REAL body (Belt rubble → banded Jupiter → ringed Saturn →
+ * Kuiper ice → distant Pluto), sized + tinted from run-state SECTORS, with the
+ * ambient light dimming/reddening as you travel outward. This makes a run look
+ * like an actual journey through the Solar System.
+ * ----------------------------------------------------------------------------*/
+function SectorBackdrop({ sectorIndex }: { sectorIndex: number }) {
+  const bd = useMemo(() => sectorBackdrop(sectorIndex), [sectorIndex]);
+  const layout = useMemo(() => getMissionLayout(0), []);
+  const pos = layout.planetPosition;
+  const ringsRef = useRef<THREE.Mesh>(null);
+  useFrame((_s, delta) => {
+    if (ringsRef.current) ringsRef.current.rotation.z += delta * 0.02;
+  });
+  return (
+    <group>
+      {/* Sector body */}
+      <group position={[pos.x, pos.y, pos.z]}>
+        <MissionPlanet radius={bd.bodyRadius} oceanColor={bd.bodyColor} landColor={bd.landColor} atmoColor={bd.atmoColor} />
+        {/* Saturn-style rings */}
+        {bd.rings && (
+          <mesh ref={ringsRef} rotation={[Math.PI / 2.3, 0, 0]}>
+            <ringGeometry args={[bd.bodyRadius * 1.35, bd.bodyRadius * 2.25, 96]} />
+            <meshStandardMaterial
+              color={0xe8dcb8}
+              roughness={0.8}
+              metalness={0.1}
+              transparent
+              opacity={0.7}
+              side={THREE.DoubleSide}
+            />
+          </mesh>
+        )}
+      </group>
+      {/* Ambient light tinted + dimmed by distance from the Sun. */}
+      <hemisphereLight args={[bd.lightTint, 0x080a14, bd.lightIntensity]} />
+      <directionalLight position={[pos.x + 200, pos.y + 120, pos.z + 80]} intensity={bd.lightIntensity * 1.1} color={bd.lightTint} />
+    </group>
+  );
+}
+const MemoSectorBackdrop = memo(SectorBackdrop);
 
 // Scratch objects for the camera follow math (per-frame, never retained).
 const _camPlayerPos = new THREE.Vector3();
@@ -3498,8 +3542,13 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
         {/* Must mount AFTER the universe so its fog override wins. */}
         <GameFog />
 
-        {/* Selected mission world + floating orbital station start point. */}
-        <MemoMissionStartScene worldIndex={gameState.worldIndex} />
+        {/* Backdrop: Deep Run shows the current sector's real body (a journey
+            outward); Explore/Defend keep the Earth + start station. */}
+        {gameState.gameMode === 'run' ? (
+          <MemoSectorBackdrop sectorIndex={Number(gameState.playerEntity.metadata?.runSectorIndex ?? 0)} />
+        ) : (
+          <MemoMissionStartScene worldIndex={gameState.worldIndex} />
+        )}
 
         {/* Blender-authored asteroids — stony + carbon rocks + comet nucleus.
             In Defend Earth mode they become an incoming swarm drifting toward
@@ -3507,7 +3556,14 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
             Suspense so they never block first frame; count scales by hardware. */}
         <Suspense fallback={null}>
           <AsteroidField
-            count={graphicsProfile.tier === 'ultra' ? 70 : graphicsProfile.universeMobile ? 24 : 48}
+            count={(() => {
+              const base = graphicsProfile.tier === 'ultra' ? 70 : graphicsProfile.universeMobile ? 24 : 48;
+              // Deep Run: belt sectors are thick with rock, gas-giant sectors sparse.
+              const dens = gameState.gameMode === 'run'
+                ? sectorBackdrop(Number(gameState.playerEntity.metadata?.runSectorIndex ?? 0)).asteroidDensity
+                : 1;
+              return Math.round(base * dens);
+            })()}
             beltRadius={260}
             beltWidth={120}
             mode={gameState.gameMode === 'defend' ? 'defend' : 'belt'}

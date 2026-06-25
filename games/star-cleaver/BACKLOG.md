@@ -54,15 +54,16 @@ can drift.
   `spawnSector` now mixes type by depth: snipers thicken with depth, fast low-HP
   swarm drones appear from sector 2+. Build green. Feel → Ankur.
 
-- [~] **2.2 Sector variety + teaching.** (partial — see commit)
-  DONE: each sector is a real region (Belt→Jupiter→Saturn→Kuiper→Pluto) with a
-  REAL fact surfaced on arrival as a HUD "lesson" card (`SECTORS` in run-state),
-  so each jump teaches the Solar System (the product vision). Verified headless:
-  fact card shows on entry, no collisions, no errors.
-  STILL TODO: vary the actual backdrop/asteroid-field/hazards per sector visually
-  (right now the scenery is the same each jump).
-  *Files:* `run-state.ts`, `game-canvas.tsx`, `hud.tsx`; backdrop work →
-  `mission-layout.ts` + `AsteroidField`.
+- [x] **2.2 Sector variety + teaching.** (shipped — see commit)
+  Each sector is a real region (Belt→Jupiter→Saturn→Kuiper→Pluto) with a REAL
+  fact on arrival AND a distinct VISUAL backdrop: per-sector body colour + land
+  tone + size + Saturn-style rings + asteroid density + ambient light that dims/
+  reddens outward (`SECTORS[].backdrop` in run-state; `SectorBackdrop` component;
+  `MissionPlanet` gained a `landColor` prop so bodies aren't all green-Earth).
+  Deep Run swaps the Earth+station backdrop for the sector body. Verified
+  headless: Belt reads rocky (not green Earth), no errors. Deeper sectors share
+  the path (Jupiter bands / Saturn rings) — confirm in play.
+  STILL OPTIONAL: per-sector gravity-hazard tuning (2.4).
 
 - [ ] **2.3 Salvage as visible pickups.** `🎮`
   In addition to kill-salvage, drop floating salvage pickups (re-skin the

@@ -97,11 +97,15 @@ export function MissionPlanet({
   radius,
   oceanColor,
   atmoColor,
+  landColor = 0x3d7a45,
   sunDir = new THREE.Vector3(0.6, 0.4, 0.7),
 }: {
   radius: number;
   oceanColor: number;
   atmoColor: number;
+  /** secondary surface tone (Earth: green land; other bodies: their second
+   *  hue — rocky highlights, gas-giant bands, ice). Defaults to Earth green. */
+  landColor?: number;
   sunDir?: THREE.Vector3;
 }) {
   const matRef = useRef<THREE.ShaderMaterial>(null);
@@ -113,12 +117,12 @@ export function MissionPlanet({
       uTime: { value: 0 },
       uSunDir: { value: sunDir.clone().normalize() },
       uOcean: { value: ocean },
-      uLand: { value: new THREE.Color(0x3d7a45) },
+      uLand: { value: new THREE.Color(landColor) },
       uAtmo: { value: atmo },
       uCamPos: { value: new THREE.Vector3() },
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [oceanColor, atmoColor]);
+  }, [oceanColor, atmoColor, landColor]);
 
   useFrame((state) => {
     if (!matRef.current) return;
