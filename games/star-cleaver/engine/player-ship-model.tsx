@@ -170,96 +170,28 @@ function createProceduralPlayerShip(shipId: SelectedShip, mode: PlayerShipMode):
 }
 
 function cloneAndStyleShipModel(scene: THREE.Object3D) {
+	// Render the ship with the CLEAN materials it was authored with in Blender
+	// (grey hull, cyan engine cores, glass canopy, red cannon tips). The old
+	// name-based override pass repainted everything — graph-paper textures on the
+	// wings and washed-out orange-glow "balloon" engines — which looked crappy
+	// in-game. We now only set up shadows/culling and leave the GLB materials be.
 	const cloned = scene.clone(true);
 
 	cloned.traverse((child) => {
 		if (!(child instanceof THREE.Mesh)) return;
-
 		child.castShadow = true;
 		child.receiveShadow = true;
 		child.frustumCulled = false;
 
-		const meshName = (child.name || '').toLowerCase();
-		const currentMaterial = child.material;
-
-		const styleMaterial = (material: THREE.Material, index = 0) => {
-			if (!(material instanceof THREE.MeshStandardMaterial || material instanceof THREE.MeshPhysicalMaterial)) {
-				return material;
+		const tune = (m: THREE.Material) => {
+			if (m instanceof THREE.MeshStandardMaterial || m instanceof THREE.MeshPhysicalMaterial) {
+				// modest env reflection so metal/hull catch scene light without blowing out
+				m.envMapIntensity = m.envMapIntensity > 0 ? m.envMapIntensity : 1.0;
 			}
-
-			const mat = material.clone();
-			const partKey = `${meshName}-${index}`;
-
-			const looksLikeEngine = /engine|thruster|exhaust|nozzle/.test(partKey);
-			const looksLikeCockpit = /cockpit|canopy|glass|window/.test(partKey);
-			const looksLikeWing = /wing|fin|foil/.test(partKey);
-			const looksLikeWeapon = /laser|gun|barrel|cannon/.test(partKey);
-			const textureSet = getShipTextureSet();
-			const wearTint = /nose|fuselage|hull|wing|intake|panel/.test(partKey) ? 0.11 : 0.05;
-
-			const applyWear = (base: THREE.Color, extraWear = 0) => {
-				const worn = base.clone();
-				worn.offsetHSL(-0.01, -0.02, -(wearTint + extraWear));
-				return worn;
-			};
-
-			if (looksLikeCockpit) {
-				mat.color = applyWear(new THREE.Color('#a9c7df'), 0.01);
-				mat.roughness = 0.1;
-				mat.metalness = 0.08;
-				mat.transparent = true;
-				mat.opacity = 0.7;
-				if (mat instanceof THREE.MeshPhysicalMaterial) {
-					mat.transmission = 0.66;
-					mat.thickness = 0.38;
-					mat.clearcoat = 0.9;
-					mat.clearcoatRoughness = 0.08;
-				}
-				mat.emissive = new THREE.Color('#1f3143');
-				mat.emissiveIntensity = 0.03;
-			} else if (looksLikeEngine) {
-				mat.color = applyWear(new THREE.Color('#2f3842'), 0.0);
-				mat.roughness = 0.22;
-				mat.metalness = 0.96;
-				mat.emissive = new THREE.Color('#ff9a6b');
-				mat.emissiveIntensity = 1.55;
-			} else if (looksLikeWeapon) {
-				mat.color = applyWear(new THREE.Color('#404954'), 0.02);
-				mat.roughness = 0.24;
-				mat.metalness = 0.94;
-				mat.emissive = new THREE.Color('#1b2230');
-				mat.emissiveIntensity = 0.08;
-			} else if (looksLikeWing) {
-				mat.color = applyWear(new THREE.Color('#e3ddd2'), 0.05);
-				mat.roughness = 0.72;
-				mat.metalness = 0.12;
-				mat.emissive = new THREE.Color('#202a36');
-				mat.emissiveIntensity = 0.03;
-			} else {
-				mat.color = applyWear(new THREE.Color('#ece6da'), 0.07);
-				mat.roughness = 0.66;
-				mat.metalness = 0.18;
-				mat.emissive = new THREE.Color('#2b3645');
-				mat.emissiveIntensity = 0.04;
-			}
-
-			if (textureSet && !looksLikeCockpit && !looksLikeEngine) {
-				const repeat = looksLikeWing ? [2.6, 1.8] : looksLikeWeapon ? [3.2, 2.2] : [4.2, 3.0];
-				mat.map = cloneTextureWithRepeat(textureSet.color, repeat[0], repeat[1]);
-				mat.roughnessMap = cloneTextureWithRepeat(textureSet.roughness, repeat[0], repeat[1]);
-				mat.metalnessMap = cloneTextureWithRepeat(textureSet.metalness, repeat[0], repeat[1]);
-			}
-
-			mat.envMapIntensity = Math.max(looksLikeEngine || looksLikeWeapon ? 1.95 : 1.35, mat.envMapIntensity || (looksLikeEngine || looksLikeWeapon ? 2.05 : 1.55));
-			mat.needsUpdate = true;
-			return mat;
+			return m;
 		};
-
-		if (Array.isArray(currentMaterial)) {
-			child.material = currentMaterial.map((mat, idx) => styleMaterial(mat, idx));
-		} else if (currentMaterial) {
-			child.material = styleMaterial(currentMaterial, 0);
-		}
+		if (Array.isArray(child.material)) child.material.forEach(tune);
+		else if (child.material) tune(child.material);
 	});
 
 	return cloned;
