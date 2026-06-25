@@ -132,6 +132,8 @@ export function Player({ level = LEVEL_1 }: { level?: Level }) {
       }
     }
     // Y
+    const wasAir = !onGround.current
+    const vyBeforeLand = v.y
     p.y += v.y * dt
     onGround.current = false
     for (const b of level.platforms) {
@@ -149,6 +151,13 @@ export function Player({ level = LEVEL_1 }: { level?: Level }) {
         }
       }
     }
+    // landing this frame? spike landImpact by how hard we hit (drives the
+    // squash on the character + a small camera shake).
+    if (onGround.current && wasAir && vyBeforeLand < -2) {
+      game.landImpact = Math.min(1, Math.abs(vyBeforeLand) / 14)
+    } else {
+      game.landImpact = Math.max(0, game.landImpact - dt * 4)
+    }
 
     // fell off → respawn
     if (p.y < level.killY) {
@@ -165,6 +174,12 @@ export function Player({ level = LEVEL_1 }: { level?: Level }) {
       yaw.current += d * (1 - Math.exp(-14 * dt))
     }
 
+    // motion signals (read by the character animator + camera juice)
+    const hSpeed = Math.hypot(v.x, v.z)
+    game.playerSpeed = hSpeed
+    game.playerVY = v.y
+    game.playerAir = !onGround.current
+
     // commit to the transform + shared state
     if (ref.current) {
       ref.current.position.copy(p)
@@ -178,8 +193,83 @@ export function Player({ level = LEVEL_1 }: { level?: Level }) {
 
   return (
     <group ref={ref}>
+      {/* The model has no rig/clips, so Dave is brought to life PROCEDURALLY:
+          run bob + lean, jump stretch, landing squash, idle breathing. */}
+      <DaveModel model={model} />
+    </group>
+  )
+}
+
+/**
+ * DaveModel — procedural "rig-less" character animation. The GLB is a single
+ * static mesh (no skeleton), so instead of skeletal clips we animate the model's
+ * transform from the live motion signals in `game`:
+ *   - idle: gentle breathing scale + sway
+ *   - run:  vertical bob + side-to-side waddle + forward lean, paced by speed
+ *   - jump: stretch tall when rising, tuck when falling
+ *   - land: squash on impact (driven by landImpact), springing back
+ * Volume-preserving squash/stretch (x,z compensate y) keeps it from looking like
+ * a balloon. Everything is eased so it reads smooth, not snappy.
+ */
+function DaveModel({ model }: { model: THREE.Object3D }) {
+  const inner = useRef<THREE.Group>(null)
+  const phase = useRef(0)      // run-cycle phase
+  const sx = useRef(1); const sy = useRef(1); const sz = useRef(1)
+  const lean = useRef(0)
+
+  useFrame((state, dtRaw) => {
+    const g = inner.current
+    if (!g) return
+    const dt = Math.min(dtRaw, 1 / 30)
+    const t = state.clock.elapsedTime
+    const speed = game.playerSpeed
+    const air = game.playerAir
+    const vy = game.playerVY
+    const land = game.landImpact
+    const runT = Math.min(1, speed / 7.5) // 0..1 how fast we're running
+
+    // run cycle advances with speed; freezes when still
+    phase.current += dt * (6 + runT * 7) * runT
+
+    // --- target squash/stretch ---
+    let tSy = 1, tSx = 1
+    if (air) {
+      // stretch tall rising, tuck slightly falling
+      const stretch = THREE.MathUtils.clamp(vy * 0.018, -0.12, 0.16)
+      tSy = 1 + stretch
+      tSx = 1 - stretch * 0.6
+    } else {
+      // idle breathing + running bob baked into vertical scale
+      const breathe = Math.sin(t * 1.6) * 0.015 * (1 - runT)
+      const bob = Math.abs(Math.sin(phase.current)) * 0.06 * runT
+      tSy = 1 + breathe - bob * 0.5
+      tSx = 1 - breathe * 0.5 + bob * 0.25
+    }
+    // landing squash overrides — a quick flatten that springs back
+    if (land > 0.02) {
+      tSy = 1 - land * 0.32
+      tSx = 1 + land * 0.22
+    }
+    // volume-ish preservation: z follows x
+    const ease = 1 - Math.exp(-(air ? 18 : 14) * dt)
+    sy.current += (tSy - sy.current) * ease
+    sx.current += (tSx - sx.current) * ease
+    sz.current = sx.current
+    g.scale.set(0.72 * sx.current, 0.72 * sy.current, 0.72 * sz.current)
+
+    // --- run bob (vertical hop) + waddle (z-roll) + forward lean ---
+    const hop = air ? 0 : Math.abs(Math.sin(phase.current)) * 0.12 * runT
+    g.position.y = hop
+    const waddle = air ? 0 : Math.sin(phase.current) * 0.12 * runT
+    const tLean = air ? THREE.MathUtils.clamp(-vy * 0.01, -0.12, 0.12) : runT * 0.18
+    lean.current += (tLean - lean.current) * (1 - Math.exp(-10 * dt))
+    g.rotation.set(lean.current, 0, waddle)
+  })
+
+  return (
+    <group ref={inner}>
       {/* dave.glb origin is at feet; scale to ~1.7 units tall (model is ~2.4) */}
-      <primitive object={model} scale={0.72} />
+      <primitive object={model} />
     </group>
   )
 }

@@ -12,6 +12,11 @@ export const game = {
   // live player world position (camera follows this) — feet on the start pad
   playerPos: new THREE.Vector3(0, 0.5, 0),
   playerYaw: 0, // facing, radians
+  // motion signals for procedural character + camera juice (written by Player):
+  playerSpeed: 0,       // horizontal speed (units/s)
+  playerVY: 0,          // vertical velocity (units/s)
+  playerAir: false,     // true while airborne
+  landImpact: 0,        // 0..1 spike on landing, decays — drives squash + cam shake
   gemsTotal: 0,
   gemsGot: 0,
   hasTrophy: false,

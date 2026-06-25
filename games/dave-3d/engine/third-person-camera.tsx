@@ -49,7 +49,7 @@ export function ThirdPersonCamera() {
     }
   }, [gl])
 
-  useFrame((_, dt) => {
+  useFrame((state, dt) => {
     const target = game.playerPos
     // desired camera position: behind by orbitYaw, raised, pulled back by DIST
     const horiz = DIST * Math.cos(pitch.current)
@@ -60,7 +60,29 @@ export function ThirdPersonCamera() {
     )
     const k = 1 - Math.exp(-8 * dt)
     camera.position.lerp(desired, k)
-    // look slightly above the player's feet, with a touch of forward look-ahead
+
+    // --- juice: a short shake on hard landings (driven by landImpact). ---
+    const land = game.landImpact
+    if (land > 0.02) {
+      const t = state.clock.elapsedTime
+      const amp = land * 0.18
+      camera.position.y += Math.sin(t * 90) * amp
+      camera.position.x += Math.sin(t * 73 + 1.3) * amp * 0.6
+    }
+
+    // --- juice: subtle FOV kick with horizontal speed → sense of pace. ---
+    const persp = camera as THREE.PerspectiveCamera
+    if (persp.isPerspectiveCamera) {
+      const targetFov = 55 + Math.min(game.playerSpeed / 7.5, 1) * 7
+      const fk = 1 - Math.exp(-5 * dt)
+      const next = persp.fov + (targetFov - persp.fov) * fk
+      if (Math.abs(next - persp.fov) > 0.01) {
+        persp.fov = next
+        persp.updateProjectionMatrix()
+      }
+    }
+
+    // look slightly above the player's feet, with a touch of velocity look-ahead
     lookAt.current.set(target.x, target.y + 1.2, target.z)
     camera.lookAt(lookAt.current)
   })

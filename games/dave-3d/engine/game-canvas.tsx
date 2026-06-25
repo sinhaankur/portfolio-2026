@@ -21,6 +21,7 @@ export default function GameCanvas() {
   // restartKey remounts the scene subtree to fully reset positions/collectibles
   const [restartKey, setRestartKey] = useState(0)
   const [mobile, setMobile] = useState(false)
+  const [revealed, setRevealed] = useState(false) // smooth fade-in (no snap)
 
   useEffect(() => {
     game.gemsTotal = LEVEL_1.gems.length
@@ -49,6 +50,11 @@ export default function GameCanvas() {
         onCreated={({ scene }) => {
           scene.fog = new THREE.Fog("#0c0f1a", 40, 110)
           scene.background = new THREE.Color("#0c0f1a")
+          // reveal a beat after the first frames + textures settle, so the
+          // world fades up smoothly instead of snapping in.
+          requestAnimationFrame(() =>
+            requestAnimationFrame(() => window.setTimeout(() => setRevealed(true), 220)),
+          )
         }}
       >
         <Suspense fallback={null}>
@@ -59,6 +65,13 @@ export default function GameCanvas() {
           <ThirdPersonCamera />
         </Suspense>
       </Canvas>
+
+      {/* Smooth reveal curtain — fades out once the scene is live (no pop). */}
+      <div
+        className="pointer-events-none fixed inset-0 bg-[#0c0f1a] transition-opacity duration-[900ms] ease-out"
+        style={{ opacity: revealed ? 0 : 1 }}
+        aria-hidden="true"
+      />
 
       <Hud onRestart={restart} />
     </div>
