@@ -320,6 +320,19 @@ export function UniverseEngine({
         // pointerEvents stays auto so hover hit-tests work in both passive and
         // explore modes; OrbitControls.enabled gates drag/zoom independently.
         style={{ pointerEvents: "auto" }}
+        onCreated={({ gl }) => {
+          // Tell the intro preloader the universe is actually live, so it can
+          // hand off without a snap. Wait two RAFs + a beat so the first real
+          // frames (and texture decodes) have painted under the curtain.
+          gl.domElement.addEventListener("webglcontextlost", () => {}, { once: true })
+          requestAnimationFrame(() =>
+            requestAnimationFrame(() => {
+              window.setTimeout(() => {
+                window.dispatchEvent(new CustomEvent("universe-ready"))
+              }, 250)
+            })
+          )
+        }}
       >
         <SceneContents
           // Remount when the scale mode flips so every body re-lays at the new
