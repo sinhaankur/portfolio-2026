@@ -81,6 +81,10 @@ export function HUD({ gameState, showForwardDebug = false, onShipSelect, waypoin
   const runLiveEnemies = Number(gameState.playerEntity.metadata?.runLiveEnemies ?? 0);
   const incomingFire = Number(gameState.playerEntity.metadata?.incomingFire ?? 0);
   const combatWarning = healthPercent <= 25 ? 'HULL CRITICAL' : incomingFire > 0.05 ? 'INCOMING FIRE' : '';
+  // Deep Run boss: name + HP fraction → a prominent boss bar.
+  const bossActive = Boolean(gameState.playerEntity.metadata?.bossActive);
+  const bossHpFrac = Number(gameState.playerEntity.metadata?.bossHpFrac ?? 0);
+  const bossName = String(gameState.playerEntity.metadata?.bossName ?? 'capital');
   // Deep Run teaching: a real fact about the sector's body, shown briefly on arrival.
   const sectorFact = String(gameState.playerEntity.metadata?.sectorFact ?? '');
   const sectorFactUntil = Number(gameState.playerEntity.metadata?.sectorFactUntil ?? 0);
@@ -235,6 +239,22 @@ export function HUD({ gameState, showForwardDebug = false, onShipSelect, waypoin
           </div>
         </div>
       </div>
+
+      {/* Deep Run — boss HP bar (the run's climax). Prominent, top-center,
+          distinct from the player hull; bar reddens as the capital ship breaks. */}
+      {runMode && bossActive && (
+        <div className="fixed left-1/2 top-[8%] z-40 w-[min(92vw,30rem)] -translate-x-1/2 px-3 text-center pointer-events-none">
+          <div className="font-mono text-[10px] sm:text-[11px] tracking-[0.28em] uppercase text-red-300/90 mb-1.5">
+            ✦ {bossName} ✦
+          </div>
+          <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-red-950/60 border border-red-400/30">
+            <div
+              className="absolute left-0 top-0 h-full rounded-full bg-gradient-to-r from-red-500 to-red-300 transition-all duration-200"
+              style={{ width: `${Math.round(bossHpFrac * 100)}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Deep Run — jump gate prompt when the sector is cleared */}
       {runMode && runSectorCleared && (

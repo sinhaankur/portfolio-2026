@@ -44,7 +44,7 @@ import { PlayerShipModel, ProceduralPlayerShipModel, SHIP_MODEL_BASIS_ROTATION, 
 import type { SelectedShip } from './ship-selector';
 import { getMissionLayout } from './mission-layout';
 import { MissionPlanet } from './mission-planet';
-import { createEnemy } from './enemies';
+import { createEnemy, createBoss } from './enemies';
 import { SpaceDust, DataCoreField, createDataCores, BoostShockwave, ImpactField, DebrisField } from './particles';
 import { AsteroidField } from './asteroid-field';
 import type { DataCore } from './particles';
@@ -2092,6 +2092,30 @@ function GameScene({
     }
   };
 
+  // Boss sector: one big multi-phase hostile instead of a swarm. Variant +
+  // durability scale with depth so the climax keeps escalating. The existing
+  // sector-clear logic (all enemies dead → jump gate) gates the run on the kill.
+  const spawnBoss = (forward: THREE.Vector3, sectorIndex: number) => {
+    const em = entityManagerRef.current;
+    if (!em) return;
+    const variants = ['warbird', 'decimator', 'apex', 'reaper', 'tyrant', 'sovereign', 'annihilator'];
+    const variant = variants[Math.min(Math.floor(sectorIndex / 3), variants.length - 1)];
+    const threat = sectorThreatScale(sectorIndex);
+    const pos = _encounterSpawn
+      .copy(forward)
+      .multiplyScalar(ENCOUNTER_SPAWN_AHEAD * 1.4)
+      .add(gameState.playerEntity.position as THREE.Vector3);
+    const id = `boss_${enemyIdCounterRef.current++}`;
+    const { entity } = createBoss(id, { x: pos.x, y: pos.y, z: pos.z }, variant);
+    entity.health = Math.round(entity.health * threat);
+    entity.maxHealth = entity.health;
+    if (entity.metadata) {
+      entity.metadata.damage = Math.round((Number(entity.metadata.damage) || 25) * threat);
+    }
+    em.register(entity);
+    gameState.enemies.push(entity);
+  };
+
   // Enemy fire: spawn a hostile bolt aimed at the player. Snipers lead the
   // target (aim where the ship WILL be) so they're a real threat; fighters fire
   // straight at the current position. Stored on gameState.projectiles with
@@ -2294,14 +2318,23 @@ function GameScene({
 
           // Seed this sector's hostiles exactly once on entry, and surface a
           // REAL fact about this region so each jump teaches the Solar System.
+          // Every 3rd sector (2, 5, 8…) is a BOSS sector — the run's climax.
+          const isBossSector = run.sectorIndex > 0 && (run.sectorIndex + 1) % 3 === 0;
           if (!sectorSpawnedRef.current) {
-            spawnSector(forwardLocal, rightLocal, upLocal, run.sectorIndex);
+            if (isBossSector) {
+              spawnBoss(forwardLocal, run.sectorIndex);
+            } else {
+              spawnSector(forwardLocal, rightLocal, upLocal, run.sectorIndex);
+            }
             sectorSpawnedRef.current = true;
             run.sectorCleared = false;
             const info = sectorInfo(run.sectorIndex);
-            md.sectorFact = info.fact;
+            md.sectorFact = isBossSector
+              ? `⚠ CAPITAL HOSTILE INBOUND — ${info.name}. Break it to clear the sector.`
+              : info.fact;
             md.sectorFactUntil = gameState.simTime + 11; // show for ~11s on arrival
           }
+          md.bossSector = isBossSector;
 
           // Salvage on kill: scan new 'entity_killed' events since last frame.
           for (let i = lastEventLenRef.current; i < gameState.events.length; i++) {
@@ -2313,11 +2346,33 @@ function GameScene({
           }
           lastEventLenRef.current = gameState.events.length;
 
+          // Boss: multi-phase aggression + HUD HP bar. As its hull drops it
+          // speeds up and fires faster (a real escalating climax).
+          const boss = gameState.enemies.find((e) => e.active && e.metadata?.class === 'boss');
+          if (boss && boss.metadata) {
+            const frac = boss.health / boss.maxHealth;
+            md.bossActive = true;
+            md.bossHpFrac = Math.max(0, frac);
+            md.bossName = String(boss.metadata.variant ?? 'capital');
+            // phase up at <60% and <30% hull. Compute fire rate from a STABLE
+            // base captured once (multiplying the live value would compound).
+            if (boss.metadata.baseFireRate === undefined) {
+              boss.metadata.baseFireRate = Number(boss.metadata.fireRate) || 0.35;
+            }
+            const phase = frac < 0.3 ? 3 : frac < 0.6 ? 2 : 1;
+            boss.metadata.phase = phase;
+            boss.metadata.fireRate = Number(boss.metadata.baseFireRate) * (1 + (phase - 1) * 0.4);
+          } else {
+            md.bossActive = false;
+          }
+
           // Sector cleared → activate the jump gate (once spawned + all dead).
           const liveEnemies = gameState.enemies.filter((e) => e.active).length;
           if (sectorSpawnedRef.current && liveEnemies === 0 && !run.sectorCleared) {
             run.sectorCleared = true;
-            run.runSalvage += sectorClearBonus(run.sectorIndex);
+            // Boss sectors pay a big bonus — the run's climax should feel rewarding.
+            const bonus = sectorClearBonus(run.sectorIndex) * (isBossSector ? 3 : 1);
+            run.runSalvage += bonus;
           }
 
           // Player input at the gate: G = jump deeper, T = extract.

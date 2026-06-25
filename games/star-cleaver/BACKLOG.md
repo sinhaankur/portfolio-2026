@@ -80,13 +80,16 @@ can drift.
 
 ## Phase 3 — The boss (run climax)
 
-- [ ] **3.1 Boss encounter at a milestone sector.** `🎮` `🗣`
-  Every N sectors, spawn a boss (the `createBoss` variants already exist:
-  warbird/decimator/…). Multi-phase, telegraphed attacks, a real HP bar in the
-  HUD. Clearing it gives a big salvage bonus + a guaranteed jump-or-extract.
-  *Accept:* build green, no errors; boss spawns + HP bar renders (screenshot/state).
-  Fight feel + any boss barks → Ankur.
-  *Files:* `game-canvas.tsx`, `enemies.ts`, `hud.tsx`, (boss GLB already in `public/models/`).
+- [x] **3.1 Boss encounter at a milestone sector.** `🎮` (shipped — see commit)
+  Every 3rd sector (2, 5, 8…) spawns a single BOSS instead of a swarm —
+  depth-scaled variant (warbird→…→annihilator), durability ×sectorThreatScale.
+  Multi-phase aggression: fire rate ramps as its hull drops (<60%, <30%), from a
+  captured baseFireRate so it doesn't compound. Prominent red boss HP bar in the
+  HUD (top-center), and a 3× salvage clear bonus. Existing "all enemies dead →
+  jump gate" naturally gates the run on the kill. Verified: build green, no
+  runtime errors, boss bar correctly hidden on non-boss sectors. The FIGHT (feel,
+  difficulty) needs Ankur — headless can't fly to sector 2.
+  STILL OPTIONAL: telegraphed special attacks, boss barks (`🗣`).
 
 ## Phase 4 — Balance & feel pass (mostly play-test-gated)
 
