@@ -86,6 +86,9 @@ function Gems({ level }: { level: Level }) {
         got.current[i] = true
         child.visible = false
         game.gemsGot += 1
+        // juice: sparkle burst + coin pop at the gem
+        game.fx.collectAt = t
+        game.fx.collectPos.copy(child.position)
       }
     })
   })

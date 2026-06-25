@@ -67,9 +67,10 @@ export function Player({ level = LEVEL_1 }: { level?: Level }) {
     vel.current.set(0, 0, 0)
   }, [level])
 
-  useFrame((_, dtRaw) => {
+  useFrame((state, dtRaw) => {
     if (game.phase !== "playing") { tickInput(); return }
     const dt = Math.min(dtRaw, 1 / 30) // clamp big frames so physics stays stable
+    const now = state.clock.elapsedTime
     const p = pos.current
     const v = vel.current
 
@@ -105,6 +106,7 @@ export function Player({ level = LEVEL_1 }: { level?: Level }) {
       onGround.current = false
       coyote.current = 0
       buffer.current = 0
+      game.fx.jumpAt = now // whoosh
     }
     if (!input.jump && v.y > 0) v.y *= JUMP_CUT > 0 ? Math.pow(JUMP_CUT, dt * 60) : 1
 
@@ -155,6 +157,10 @@ export function Player({ level = LEVEL_1 }: { level?: Level }) {
     // squash on the character + a small camera shake).
     if (onGround.current && wasAir && vyBeforeLand < -2) {
       game.landImpact = Math.min(1, Math.abs(vyBeforeLand) / 14)
+      // dust puff at the feet (thud SFX + particle burst)
+      game.fx.landAt = now
+      game.fx.landPos.set(p.x, p.y, p.z)
+      game.fx.landPower = game.landImpact
     } else {
       game.landImpact = Math.max(0, game.landImpact - dt * 4)
     }

@@ -17,6 +17,13 @@ export const game = {
   playerVY: 0,          // vertical velocity (units/s)
   playerAir: false,     // true while airborne
   landImpact: 0,        // 0..1 spike on landing, decays — drives squash + cam shake
+  // one-shot juice events: bumped/stamped by the player/gems, consumed by the
+  // FX + SFX systems each frame (so they fire exactly once).
+  fx: {
+    jumpAt: -1,                                 // sim-time of last jump (whoosh)
+    landAt: -1, landPos: new THREE.Vector3(), landPower: 0,  // dust puff
+    collectAt: -1, collectPos: new THREE.Vector3(),          // gem sparkle + pop
+  },
   gemsTotal: 0,
   gemsGot: 0,
   hasTrophy: false,

@@ -13,6 +13,7 @@ import { LEVEL_1 } from "./level"
 import { World } from "./world"
 import { Player } from "./player"
 import { ThirdPersonCamera } from "./third-person-camera"
+import { Juice } from "./juice"
 import { Hud } from "./hud"
 import { bindKeyboard, resetInput } from "./controls"
 import { game, resetGame } from "./state"
@@ -62,6 +63,8 @@ export default function GameCanvas() {
             <World level={LEVEL_1} />
             <Player level={LEVEL_1} />
           </group>
+          {/* dust puffs, gem sparkles + procedural SFX (jump/land/coin) */}
+          <Juice />
           <ThirdPersonCamera />
         </Suspense>
       </Canvas>
