@@ -274,8 +274,12 @@ function DaveModel({ model }: { model: THREE.Object3D }) {
 
   return (
     <group ref={inner}>
-      {/* dave.glb origin is at feet; scale to ~1.7 units tall (model is ~2.4) */}
-      <primitive object={model} />
+      {/* dave.glb is CENTER-origin (verts span ~-0.42..+0.43 in Y), not
+          feet-at-origin — so without this lift, placing the group on a platform
+          buried Dave's lower half in it. Raise the mesh by its scaled
+          half-height so the feet rest at the group origin (which physics puts on
+          the platform surface). 0.42 (model min Y) × 0.72 (scale) ≈ 0.30. */}
+      <primitive object={model} position={[0, 0.42 * 0.72, 0]} />
     </group>
   )
 }
