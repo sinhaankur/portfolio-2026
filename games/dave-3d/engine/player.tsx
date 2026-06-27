@@ -274,12 +274,17 @@ function DaveModel({ model }: { model: THREE.Object3D }) {
 
   return (
     <group ref={inner}>
-      {/* dave.glb is CENTER-origin (verts span ~-0.42..+0.43 in Y), not
-          feet-at-origin — so without this lift, placing the group on a platform
-          buried Dave's lower half in it. Raise the mesh by its scaled
-          half-height so the feet rest at the group origin (which physics puts on
-          the platform surface). 0.42 (model min Y) × 0.72 (scale) ≈ 0.30. */}
-      <primitive object={model} position={[0, 0.42 * 0.72, 0]} />
+      {/* dave.glb was authored LYING DOWN along Z (extents X1.4 Y0.87 Z2.44 —
+          the long axis is Z, the head-to-feet axis), so unrotated he renders
+          face-down on the ground. Stand him upright: rotate -90° about X so his
+          long Z axis becomes vertical Y. Then lift by his scaled half-height so
+          the feet sit at the group origin (which physics puts on the platform).
+          Half-length along the standing axis ≈ 1.22 × 0.72 ≈ 0.88. */}
+      <primitive
+        object={model}
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[0, 1.22 * 0.72, 0]}
+      />
     </group>
   )
 }
