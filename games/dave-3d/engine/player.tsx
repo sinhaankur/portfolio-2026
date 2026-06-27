@@ -10,18 +10,14 @@
  * + yaw into `game` so the camera + world (collection) can read it.
  */
 
-import { useEffect, useMemo, useRef } from "react"
+import { useEffect, useRef } from "react"
 import { useFrame, useThree } from "@react-three/fiber"
-import { useGLTF } from "@react-three/drei"
 import * as THREE from "three"
 import { LEVEL_1, type Level, type Box } from "./level"
 import { input, tickInput } from "./controls"
 import { game } from "./state"
 
-const MODEL = "/models/dave.glb"
-useGLTF.preload(MODEL)
-
-// tuned feel (mirrors the 2D version's Dave-feel)
+// tuned platformer feel (crisp jump: coyote-time + jump-buffer + variable height)
 const GRAVITY = 26
 const MOVE_SPEED = 7.5
 const ACCEL = 60          // ground responsiveness
@@ -49,8 +45,6 @@ function aabbOverlap(px: number, py: number, pz: number, b: Box): boolean {
 }
 
 export function Player({ level = LEVEL_1 }: { level?: Level }) {
-  const { scene } = useGLTF(MODEL)
-  const model = useMemo(() => scene.clone(), [scene])
   const ref = useRef<THREE.Group>(null)
   const camera = useThree((s) => s.camera)
 
@@ -199,26 +193,31 @@ export function Player({ level = LEVEL_1 }: { level?: Level }) {
 
   return (
     <group ref={ref}>
-      {/* The model has no rig/clips, so Dave is brought to life PROCEDURALLY:
-          run bob + lean, jump stretch, landing squash, idle breathing. */}
-      <DaveModel model={model} />
+      {/* Original, built-in-code chunky platformer hero (no external model).
+          Brought to life PROCEDURALLY: run bob + lean, jump stretch, landing
+          squash, idle breathing. */}
+      <HeroModel />
     </group>
   )
 }
 
 /**
- * DaveModel — procedural "rig-less" character animation. The GLB is a single
- * static mesh (no skeleton), so instead of skeletal clips we animate the model's
- * transform from the live motion signals in `game`:
+ * HeroModel — an ORIGINAL chunky platformer hero built from primitives in code
+ * (no external model), brought to life PROCEDURALLY from the live motion signals
+ * in `game`:
  *   - idle: gentle breathing scale + sway
  *   - run:  vertical bob + side-to-side waddle + forward lean, paced by speed
  *   - jump: stretch tall when rising, tuck when falling
  *   - land: squash on impact (driven by landImpact), springing back
  * Volume-preserving squash/stretch (x,z compensate y) keeps it from looking like
- * a balloon. Everything is eased so it reads smooth, not snappy.
+ * a balloon. The character's legs also pump while running, arms swing.
  */
-function DaveModel({ model }: { model: THREE.Object3D }) {
+function HeroModel() {
   const inner = useRef<THREE.Group>(null)
+  const legL = useRef<THREE.Group>(null)
+  const legR = useRef<THREE.Group>(null)
+  const armL = useRef<THREE.Group>(null)
+  const armR = useRef<THREE.Group>(null)
   const phase = useRef(0)      // run-cycle phase
   const sx = useRef(1); const sy = useRef(1); const sz = useRef(1)
   const lean = useRef(0)
@@ -270,21 +269,114 @@ function DaveModel({ model }: { model: THREE.Object3D }) {
     const tLean = air ? THREE.MathUtils.clamp(-vy * 0.01, -0.12, 0.12) : runT * 0.18
     lean.current += (tLean - lean.current) * (1 - Math.exp(-10 * dt))
     g.rotation.set(lean.current, 0, waddle)
+
+    // --- limbs: legs pump + arms swing while running; tuck in the air ---
+    const swing = Math.sin(phase.current) * 0.9 * runT
+    if (air) {
+      // tuck legs up a touch, arms slightly back when airborne
+      if (legL.current) legL.current.rotation.x = -0.3
+      if (legR.current) legR.current.rotation.x = -0.3
+      if (armL.current) armL.current.rotation.x = 0.4
+      if (armR.current) armR.current.rotation.x = 0.4
+    } else {
+      if (legL.current) legL.current.rotation.x = swing
+      if (legR.current) legR.current.rotation.x = -swing
+      if (armL.current) armL.current.rotation.x = -swing * 0.8
+      if (armR.current) armR.current.rotation.x = swing * 0.8
+    }
   })
 
+  // palette — a friendly, readable explorer
+  const skin = "#e8b893"
+  const shirt = "#d2483f"   // red
+  const pants = "#3a5a8c"   // blue
+  const boots = "#39322c"
+  const cap = "#caa23a"     // gold cap
+  const eye = "#202020"
+
+  // The hero is built feet-at-origin, standing on +Y, facing -Z (game forward).
+  // Heights below are in local units; the whole thing is ~1.8 tall.
   return (
     <group ref={inner}>
-      {/* dave.glb was authored LYING DOWN along Z (extents X1.4 Y0.87 Z2.44 —
-          the long axis is Z, the head-to-feet axis), so unrotated he renders
-          face-down on the ground. Stand him upright: rotate -90° about X so his
-          long Z axis becomes vertical Y. Then lift by his scaled half-height so
-          the feet sit at the group origin (which physics puts on the platform).
-          Half-length along the standing axis ≈ 1.22 × 0.72 ≈ 0.88. */}
-      <primitive
-        object={model}
-        rotation={[-Math.PI / 2, 0, 0]}
-        position={[0, 1.22 * 0.72, 0]}
-      />
+      {/* LEGS — pivot at the hip so they swing from the top */}
+      <group ref={legL} position={[-0.16, 0.55, 0]}>
+        <mesh castShadow position={[0, -0.28, 0]}>
+          <boxGeometry args={[0.22, 0.56, 0.24]} />
+          <meshStandardMaterial color={pants} roughness={0.85} />
+        </mesh>
+        <mesh castShadow position={[0, -0.6, 0.04]}>
+          <boxGeometry args={[0.24, 0.16, 0.34]} />
+          <meshStandardMaterial color={boots} roughness={0.7} />
+        </mesh>
+      </group>
+      <group ref={legR} position={[0.16, 0.55, 0]}>
+        <mesh castShadow position={[0, -0.28, 0]}>
+          <boxGeometry args={[0.22, 0.56, 0.24]} />
+          <meshStandardMaterial color={pants} roughness={0.85} />
+        </mesh>
+        <mesh castShadow position={[0, -0.6, 0.04]}>
+          <boxGeometry args={[0.24, 0.16, 0.34]} />
+          <meshStandardMaterial color={boots} roughness={0.7} />
+        </mesh>
+      </group>
+
+      {/* TORSO */}
+      <mesh castShadow position={[0, 0.92, 0]}>
+        <boxGeometry args={[0.56, 0.62, 0.36]} />
+        <meshStandardMaterial color={shirt} roughness={0.8} />
+      </mesh>
+      {/* belt */}
+      <mesh position={[0, 0.62, 0]}>
+        <boxGeometry args={[0.58, 0.1, 0.38]} />
+        <meshStandardMaterial color={boots} roughness={0.6} />
+      </mesh>
+
+      {/* ARMS — pivot at the shoulder */}
+      <group ref={armL} position={[-0.34, 1.18, 0]}>
+        <mesh castShadow position={[0, -0.26, 0]}>
+          <boxGeometry args={[0.16, 0.5, 0.18]} />
+          <meshStandardMaterial color={shirt} roughness={0.8} />
+        </mesh>
+        <mesh castShadow position={[0, -0.54, 0]}>
+          <boxGeometry args={[0.17, 0.14, 0.19]} />
+          <meshStandardMaterial color={skin} roughness={0.7} />
+        </mesh>
+      </group>
+      <group ref={armR} position={[0.34, 1.18, 0]}>
+        <mesh castShadow position={[0, -0.26, 0]}>
+          <boxGeometry args={[0.16, 0.5, 0.18]} />
+          <meshStandardMaterial color={shirt} roughness={0.8} />
+        </mesh>
+        <mesh castShadow position={[0, -0.54, 0]}>
+          <boxGeometry args={[0.17, 0.14, 0.19]} />
+          <meshStandardMaterial color={skin} roughness={0.7} />
+        </mesh>
+      </group>
+
+      {/* HEAD */}
+      <mesh castShadow position={[0, 1.46, 0]}>
+        <boxGeometry args={[0.42, 0.42, 0.4]} />
+        <meshStandardMaterial color={skin} roughness={0.7} />
+      </mesh>
+      {/* eyes (face -Z forward) */}
+      <mesh position={[-0.1, 1.5, -0.21]}>
+        <boxGeometry args={[0.07, 0.09, 0.02]} />
+        <meshStandardMaterial color={eye} />
+      </mesh>
+      <mesh position={[0.1, 1.5, -0.21]}>
+        <boxGeometry args={[0.07, 0.09, 0.02]} />
+        <meshStandardMaterial color={eye} />
+      </mesh>
+      {/* cap */}
+      <mesh castShadow position={[0, 1.7, 0.02]}>
+        <boxGeometry args={[0.46, 0.16, 0.44]} />
+        <meshStandardMaterial color={cap} roughness={0.6} />
+      </mesh>
+      {/* cap brim, out the front */}
+      <mesh position={[0, 1.66, -0.26]}>
+        <boxGeometry args={[0.42, 0.06, 0.16]} />
+        <meshStandardMaterial color={cap} roughness={0.6} />
+      </mesh>
     </group>
   )
 }
