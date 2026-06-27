@@ -81,7 +81,9 @@ export function Player({ level = LEVEL_1 }: { level?: Level }) {
   const sideOn = level.style === "side"
 
   useFrame((state, dtRaw) => {
-    if (game.phase !== "playing") { tickInput(); return }
+    // Freeze physics + input while not actively running (start screen / paused) or
+    // when the level is cleared / won.
+    if (!game.running || game.phase !== "playing") { tickInput(); return }
     const dt = Math.min(dtRaw, 1 / 30) // clamp big frames so physics stays stable
     const now = state.clock.elapsedTime
     const p = pos.current

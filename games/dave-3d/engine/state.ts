@@ -32,6 +32,9 @@ export const game = {
   gemsTotal: 0,
   gemsGot: 0,
   hasTrophy: false,
+  // ── run gating: physics + input only advance while `running` is true. False
+  //    during the start/how-to-play screen and while paused. ──
+  running: false,
   // ── campaign progression ──
   levelIndex: 0,        // 0-based index into LEVELS (0..9)
   sideOn: false,        // true on side-on Dave screens (drives the camera mode)
