@@ -212,17 +212,17 @@ const L1: Level = fromTiles(
   // 0123456789012345678   (every row is exactly 19 chars)
   [
     "###################", // 0  top wall
-    "#o   .   C   .   *#", // 1  purple ball, gem, CUP, gem, ruby
-    "#    ##  ##  ##   #", // 2  pedestals under the row-1 diamonds + cup pedestal
-    "#  .   .   .   .  #", // 3  diamonds for the middle pedestals
-    "#  ##  ##  ##  ## #", // 4  middle pedestals (offset checkerboard)
+    "#o .   .   C   . *#", // 1  ball, upper diamonds, CUP (centre), ruby
+    "#  ##  ##  ##  ## #", // 2  upper pedestals (cup sits on the col-11 one)
+    "#.   .   .   .   .#", // 3  middle + edge diamonds
+    "#    ##  ##  ##   #", // 4  middle pedestals (offset checkerboard)
     "#                 #", // 5
-    "# .    .          #", // 6  two low diamonds (left)
+    "# .     .         #", // 6  two low diamonds
     "#                 #", // 7
-    "#                 #", // 8
+    "#          D      #", // 8  door — rests on the right lower platform
     "#                 #", // 9
-    "# ######  ####### #", // 10 two long lower platforms
-    "#P@      ##D      #", // 11 pipe + spawn (left), door on a step (centre-right)
+    "# ######   ########", // 10 two long lower platforms (gap cols 8-10)
+    "#P@               #", // 11 pipe + spawn (bottom-left)
     "###################", // 12 floor
   ],
   { name: "1 — The Cavern", brick: "#b3361f" },
