@@ -15,17 +15,20 @@ import { game } from "./state"
 
 export function ThirdPersonCamera() {
   const { camera, gl } = useThree()
-  const orbitYaw = useRef(0.0)     // free yaw around the player (held, no decay)
-  const pitch = useRef(0.5)        // free pitch (held)
-  const dist = useRef(9)           // zoom distance (scroll/pinch)
+  // Free-orbit 3rd-person. Default sits the camera BEHIND Dave on +Z (yaw 0),
+  // looking along -Z at the side-on level, with a gentle downward pitch. Drag
+  // orbits yaw+pitch and HOLDS the angle; scroll/pinch zooms.
+  const orbitYaw = useRef(0)       // free yaw around the player (held, no decay)
+  const pitch = useRef(0.32)       // free pitch (held)
+  const dist = useRef(12)          // zoom distance (scroll/pinch)
   const dragging = useRef(false)
   const last = useRef({ x: 0, y: 0 })
   const pinch = useRef(0)          // last 2-touch distance
   const tmp = useRef(new THREE.Vector3())
   const lookAt = useRef(new THREE.Vector3())
 
-  const MIN_DIST = 4
-  const MAX_DIST = 22
+  const MIN_DIST = 5
+  const MAX_DIST = 28
   const PITCH_MIN = -0.35   // allow looking slightly UP from below
   const PITCH_MAX = 1.45    // allow near top-down
 
@@ -79,6 +82,7 @@ export function ThirdPersonCamera() {
 
   useFrame((state, dt) => {
     const target = game.playerPos
+
     // spherical orbit: full yaw + pitch around the player at the zoom distance,
     // so the camera can sit anywhere on the sphere (any side, overhead, low).
     const d = dist.current

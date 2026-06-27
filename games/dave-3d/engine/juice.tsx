@@ -26,6 +26,7 @@ export function Juice() {
   const lastLand = useRef(-1)
   const lastCollect = useRef(-1)
   const lastJump = useRef(-1)
+  const lastDeath = useRef(-1)
 
   const { geo, positions, colors } = useMemo(() => {
     const positions = new Float32Array(POOL * 3)
@@ -62,6 +63,7 @@ export function Juice() {
 
   const dust = useMemo(() => new THREE.Color("#cdbfa6"), [])
   const spark = useMemo(() => new THREE.Color("#5cf0e0"), [])
+  const death = useMemo(() => new THREE.Color("#ff5a4a"), [])
 
   useFrame((_, dtRaw) => {
     const dt = Math.min(dtRaw, 1 / 30)
@@ -83,6 +85,12 @@ export function Juice() {
     if (game.fx.jumpAt > lastJump.current) {
       lastJump.current = game.fx.jumpAt
       sfx.jump()
+    }
+    if (game.fx.deathAt > lastDeath.current) {
+      lastDeath.current = game.fx.deathAt
+      const { x, y, z } = game.fx.deathPos
+      spawn(x, y, z, 22, death, 3.4, 2.0, 0.6)
+      sfx.death()
     }
 
     // --- integrate live particles ---
@@ -164,6 +172,19 @@ const sfx = {
     g.gain.exponentialRampToValueAtTime(0.06 + power * 0.12, t + 0.012)
     g.gain.exponentialRampToValueAtTime(0.0001, t + 0.2)
     o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + 0.22)
+  },
+  death() {
+    const c = this.ensure(); if (!c) return
+    const t = c.currentTime
+    // a quick descending "hurt" blip
+    const o = c.createOscillator(); const g = c.createGain()
+    o.type = "sawtooth"
+    o.frequency.setValueAtTime(420, t)
+    o.frequency.exponentialRampToValueAtTime(90, t + 0.22)
+    g.gain.setValueAtTime(0.0001, t)
+    g.gain.exponentialRampToValueAtTime(0.12, t + 0.02)
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.26)
+    o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + 0.28)
   },
   coin() {
     const c = this.ensure(); if (!c) return

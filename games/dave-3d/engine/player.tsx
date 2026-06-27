@@ -13,7 +13,7 @@
 import { useEffect, useRef } from "react"
 import { useFrame, useThree } from "@react-three/fiber"
 import * as THREE from "three"
-import { LEVEL_1, type Level, type Box } from "./level"
+import { LEVEL_1, type Level, type Hazard } from "./level"
 import { input, tickInput } from "./controls"
 import { game } from "./state"
 
@@ -25,21 +25,38 @@ const JUMP_V = 11
 const COYOTE = 0.1        // s after leaving ground you can still jump
 const BUFFER = 0.12       // s a jump press is remembered
 const JUMP_CUT = 0.5      // releasing jump while rising cuts velocity
-const RADIUS = 0.45       // player half-width (x/z)
-const HEIGHT = 1.9        // player full height (feet→head)
+const RADIUS = 0.38       // player half-width (x/z)
+// Dave's collision height must stay COMFORTABLY below the tile gap (TILE=1.4) or
+// his head bonks the platform above and jumps die instantly. ~1.0 leaves real
+// headroom to hop up into a one-tile gap (like the original). Model scaled to match.
+const HEIGHT = 1.0        // player full height (feet→head)
+const STEP_UP = 0.5       // walk over lips/steps up to this tall (don't treat as a wall)
+const SKIN = 0.02         // tiny gap kept above a landed surface (avoids re-overlap jitter)
 
-// AABB overlap between the player and a box. The player's feet are at `py`, so
-// the player occupies the vertical span [py, py + HEIGHT]; the box occupies
-// [by - sy/2, by + sy/2]. Standard interval overlap on all three axes.
-function aabbOverlap(px: number, py: number, pz: number, b: Box): boolean {
-  const [bx, by, bz] = b.pos
-  const [sx, sy, sz] = b.size
+// jetpack (level 6): holding jump while fuelled gives controlled lift.
+const JET_THRUST = 30     // upward accel while thrusting
+const JET_MAX_UP = 9      // cap on upward velocity under thrust
+const JET_DRAIN = 0.22    // fuel/s while thrusting
+const PICKUP_R = 1.4      // pickup radius for jetpack / warp pads
+
+// Respawn the player at the level spawn after a death (hazard or fall). Refuels
+// the jetpack if they had it, and bumps the death counter for the HUD.
+function die(p: THREE.Vector3, v: THREE.Vector3, level: Level) {
+  p.set(...level.spawn)
+  v.set(0, 0, 0)
+  game.deaths += 1
+  if (game.hasJetpack) game.jetFuel = 1 // keep the jetpack, top fuel back up
+}
+
+// Does the player (feet at py) touch a hazard volume? Same AABB test as above,
+// reused for spike/fire/water boxes that respawn the player on contact.
+function hazardHit(px: number, py: number, pz: number, h: Hazard): boolean {
+  const [bx, by, bz] = h.pos
+  const [sx, sy, sz] = h.size
   const footTop = py + HEIGHT
-  const boxBottom = by - sy / 2
-  const boxTop = by + sy / 2
   return (
     Math.abs(px - bx) < RADIUS + sx / 2 &&
-    py < boxTop && footTop > boxBottom &&   // vertical spans overlap
+    py < by + sy / 2 && footTop > by - sy / 2 &&
     Math.abs(pz - bz) < RADIUS + sz / 2
   )
 }
@@ -61,6 +78,8 @@ export function Player({ level = LEVEL_1 }: { level?: Level }) {
     vel.current.set(0, 0, 0)
   }, [level])
 
+  const sideOn = level.style === "side"
+
   useFrame((state, dtRaw) => {
     if (game.phase !== "playing") { tickInput(); return }
     const dt = Math.min(dtRaw, 1 / 30) // clamp big frames so physics stays stable
@@ -77,10 +96,19 @@ export function Player({ level = LEVEL_1 }: { level?: Level }) {
     const camRight = new THREE.Vector3().crossVectors(camDir, new THREE.Vector3(0, 1, 0)).normalize()
 
     const wish = new THREE.Vector3()
-    if (input.forward) wish.add(camDir)
-    if (input.back) wish.sub(camDir)
-    if (input.right) wish.add(camRight)
-    if (input.left) wish.sub(camRight)
+    if (sideOn) {
+      // SIDE-ON Dave screen: pure left/right along world X (no depth nav). Only
+      // A/D / ←/→ steer; up/down (forward/back) are unused. Z stays pinned to 0.
+      let dir = 0
+      if (input.right) dir += 1
+      if (input.left) dir -= 1
+      wish.set(dir, 0, 0)
+    } else {
+      if (input.forward) wish.add(camDir)
+      if (input.back) wish.sub(camDir)
+      if (input.right) wish.add(camRight)
+      if (input.left) wish.sub(camRight)
+    }
     const moving = wish.lengthSq() > 1e-4
     if (moving) wish.normalize().multiplyScalar(MOVE_SPEED)
 
@@ -88,64 +116,116 @@ export function Player({ level = LEVEL_1 }: { level?: Level }) {
     // independent). One exponential approach — not two fighting each other.
     const k = 1 - Math.exp(-(ACCEL / MOVE_SPEED) * dt)
     v.x += (wish.x - v.x) * k
-    v.z += (wish.z - v.z) * k
+    if (sideOn) { v.z = 0; p.z = 0 } else { v.z += (wish.z - v.z) * k }
 
-    // --- jump: coyote + buffer + variable height ---
-    if (onGround.current) coyote.current = COYOTE
-    else coyote.current = Math.max(0, coyote.current - dt)
-    if (input.jumpPressed) buffer.current = BUFFER
-    else buffer.current = Math.max(0, buffer.current - dt)
-    if (buffer.current > 0 && coyote.current > 0) {
-      v.y = JUMP_V
-      onGround.current = false
-      coyote.current = 0
+    // --- jetpack flight (level 6): holding jump thrusts up while fuel remains,
+    //     overriding the normal jump. Drains fuel; when empty, normal jump resumes.
+    const jetActive = game.hasJetpack && game.jetFuel > 0 && input.jump
+    if (jetActive) {
+      v.y = Math.min(v.y + JET_THRUST * dt, JET_MAX_UP)
+      game.jetFuel = Math.max(0, game.jetFuel - JET_DRAIN * dt)
+      game.fx.jumpAt = now // reuse whoosh as a thruster hiss
       buffer.current = 0
-      game.fx.jumpAt = now // whoosh
+    } else {
+      // --- jump: coyote + buffer + variable height ---
+      if (onGround.current) coyote.current = COYOTE
+      else coyote.current = Math.max(0, coyote.current - dt)
+      if (input.jumpPressed) buffer.current = BUFFER
+      else buffer.current = Math.max(0, buffer.current - dt)
+      if (buffer.current > 0 && coyote.current > 0) {
+        v.y = JUMP_V
+        onGround.current = false
+        coyote.current = 0
+        buffer.current = 0
+        game.fx.jumpAt = now // whoosh
+      }
+      if (!input.jump && v.y > 0) v.y *= JUMP_CUT > 0 ? Math.pow(JUMP_CUT, dt * 60) : 1
     }
-    if (!input.jump && v.y > 0) v.y *= JUMP_CUT > 0 ? Math.pow(JUMP_CUT, dt * 60) : 1
 
-    // gravity
-    v.y -= GRAVITY * dt
+    // gravity (lighter while actively jetting so lift feels controllable)
+    v.y -= (jetActive ? GRAVITY * 0.35 : GRAVITY) * dt
     if (v.y < -40) v.y = -40
 
-    // --- integrate + collide, axis-separated against platforms ---
-    // X
-    p.x += v.x * dt
-    for (const b of level.platforms) {
-      if (aabbOverlap(p.x, p.y, p.z, b)) {
-        const [bx, , ] = b.pos; const sx = b.size[0]
-        p.x = bx + Math.sign(p.x - bx) * (sx / 2 + RADIUS)
-        v.x = 0
-      }
-    }
-    // Z
-    p.z += v.z * dt
-    for (const b of level.platforms) {
-      if (aabbOverlap(p.x, p.y, p.z, b)) {
-        const [, , bz] = b.pos; const sz = b.size[2]
-        p.z = bz + Math.sign(p.z - bz) * (sz / 2 + RADIUS)
-        v.z = 0
-      }
-    }
-    // Y
+    // --- integrate + collide. Y FIRST (so ground/landing is authoritative and a
+    //     fast fall can't tunnel through a thin platform), then X and Z with a
+    //     step-up tolerance so small lips/steps don't act like walls. ---
     const wasAir = !onGround.current
     const vyBeforeLand = v.y
+
+    // Y — swept: test the whole span the feet travel this frame, not just the end
+    // point, so landing on a 1-unit-thick pad at high downward speed still catches.
+    const prevFootTop = p.y + HEIGHT
+    const prevFoot = p.y
     p.y += v.y * dt
     onGround.current = false
     for (const b of level.platforms) {
-      if (aabbOverlap(p.x, p.y, p.z, b)) {
-        const [, by] = b.pos; const sy = b.size[1]
-        if (v.y <= 0) {
-          // landing on top
-          p.y = by + sy / 2
+      const [bx, by, bz] = b.pos
+      const [sx, sy, sz] = b.size
+      // must overlap horizontally to interact vertically at all
+      if (Math.abs(p.x - bx) >= RADIUS + sx / 2) continue
+      if (Math.abs(p.z - bz) >= RADIUS + sz / 2) continue
+      const boxTop = by + sy / 2
+      const boxBottom = by - sy / 2
+      if (v.y <= 0) {
+        // falling/standing: land if the feet were at-or-above the box top at the
+        // start of the frame (allowing the SKIN gap) and have now reached it.
+        // Swept test catches a fast fall through a thin pad in one frame.
+        if (prevFoot >= boxTop - SKIN - 0.001 && p.y <= boxTop + SKIN) {
+          p.y = boxTop + SKIN
           v.y = 0
           onGround.current = true
-        } else {
-          // bonk head
-          p.y = by - sy / 2 - HEIGHT
+        }
+      } else {
+        // rising: bonk head if the head crossed the box bottom this frame
+        if (prevFootTop <= boxBottom + 0.001 && p.y + HEIGHT >= boxBottom) {
+          p.y = boxBottom - HEIGHT - SKIN
           v.y = 0
         }
       }
+    }
+
+    // X — block only if the box is a genuine wall at our feet height (taller than
+    // STEP_UP above our feet). Small steps are walked onto, not blocked.
+    p.x += v.x * dt
+    for (const b of level.platforms) {
+      const [bx, by, bz] = b.pos
+      const [sx, sy, sz] = b.size
+      if (Math.abs(p.x - bx) >= RADIUS + sx / 2) continue
+      if (Math.abs(p.z - bz) >= RADIUS + sz / 2) continue
+      const boxTop = by + sy / 2
+      const boxBottom = by - sy / 2
+      // vertical overlap of the player's body with the box
+      if (p.y >= boxTop || p.y + HEIGHT <= boxBottom) continue
+      // if the box top is within step height above our feet, step up onto it
+      if (boxTop - p.y <= STEP_UP && v.y <= 0) {
+        p.y = boxTop + SKIN
+        onGround.current = true
+        v.y = 0
+        continue
+      }
+      // otherwise it's a wall — push out in X
+      p.x = bx + Math.sign(p.x - bx || 1) * (sx / 2 + RADIUS)
+      v.x = 0
+    }
+
+    // Z — same logic as X
+    p.z += v.z * dt
+    for (const b of level.platforms) {
+      const [bx, by, bz] = b.pos
+      const [sx, sy, sz] = b.size
+      if (Math.abs(p.x - bx) >= RADIUS + sx / 2) continue
+      if (Math.abs(p.z - bz) >= RADIUS + sz / 2) continue
+      const boxTop = by + sy / 2
+      const boxBottom = by - sy / 2
+      if (p.y >= boxTop || p.y + HEIGHT <= boxBottom) continue
+      if (boxTop - p.y <= STEP_UP && v.y <= 0) {
+        p.y = boxTop + SKIN
+        onGround.current = true
+        v.y = 0
+        continue
+      }
+      p.z = bz + Math.sign(p.z - bz || 1) * (sz / 2 + RADIUS)
+      v.z = 0
     }
     // landing this frame? spike landImpact by how hard we hit (drives the
     // squash on the character + a small camera shake).
@@ -159,15 +239,59 @@ export function Player({ level = LEVEL_1 }: { level?: Level }) {
       game.landImpact = Math.max(0, game.landImpact - dt * 4)
     }
 
-    // fell off → respawn
-    if (p.y < level.killY) {
-      p.set(...level.spawn)
-      v.set(0, 0, 0)
+    // --- hazards: touching a spike/fire/water box = death → respawn ---
+    if (level.hazards) {
+      for (const h of level.hazards) {
+        if (hazardHit(p.x, p.y, p.z, h)) {
+          game.fx.deathAt = now
+          game.fx.deathPos.set(p.x, p.y + 0.5, p.z)
+          die(p, v, level)
+          break
+        }
+      }
     }
 
-    // face movement direction
-    if (moving) {
-      const target = Math.atan2(v.x, v.z)
+    // fell off → respawn (also counts as a death)
+    if (p.y < level.killY) {
+      game.fx.deathAt = now
+      game.fx.deathPos.set(p.x, level.spawn[1] + 0.5, p.z)
+      die(p, v, level)
+    }
+
+    // --- jetpack pickup (level 6): grab it → flight enabled, full fuel ---
+    if (level.jetpack && !game.hasJetpack) {
+      const j = level.jetpack
+      if (Math.hypot(p.x - j[0], p.y - j[1], p.z - j[2]) < PICKUP_R) {
+        game.hasJetpack = true
+        game.jetFuel = 1
+        game.fx.collectAt = now
+        game.fx.collectPos.set(j[0], j[1], j[2])
+      }
+    }
+
+    // --- secret warp pad (level 10): step on it → jump straight to the win ---
+    if (level.warp && game.phase === "playing") {
+      const w = level.warp
+      if (Math.hypot(p.x - w[0], p.y - w[1], p.z - w[2]) < PICKUP_R) {
+        game.hasTrophy = true   // warp grants the cup so the win counts
+        game.phase = "levelClear"
+      }
+    }
+
+    // Face movement direction.
+    //  • SIDE-ON: turn to a left/right PROFILE so the camera (looking down -Z)
+    //    sees Dave from the side, like a 2D platformer. +X → +90°, -X → -90°.
+    //  • FREE: face the travel vector (model's -Z front aligns to velocity).
+    if (sideOn) {
+      if (Math.abs(v.x) > 0.05) {
+        const target = v.x > 0 ? Math.PI / 2 : -Math.PI / 2
+        let d = target - yaw.current
+        while (d > Math.PI) d -= Math.PI * 2
+        while (d < -Math.PI) d += Math.PI * 2
+        yaw.current += d * (1 - Math.exp(-18 * dt))
+      }
+    } else if (moving) {
+      const target = Math.atan2(-v.x, -v.z)
       let d = target - yaw.current
       while (d > Math.PI) d -= Math.PI * 2
       while (d < -Math.PI) d += Math.PI * 2
@@ -196,13 +320,13 @@ export function Player({ level = LEVEL_1 }: { level?: Level }) {
       {/* Original, built-in-code chunky platformer hero (no external model).
           Brought to life PROCEDURALLY: run bob + lean, jump stretch, landing
           squash, idle breathing. */}
-      <HeroModel />
+      <DaveModel />
     </group>
   )
 }
 
 /**
- * HeroModel — an ORIGINAL chunky platformer hero built from primitives in code
+ * DaveModel — an ORIGINAL chunky platformer hero built from primitives in code
  * (no external model), brought to life PROCEDURALLY from the live motion signals
  * in `game`:
  *   - idle: gentle breathing scale + sway
@@ -210,9 +334,10 @@ export function Player({ level = LEVEL_1 }: { level?: Level }) {
  *   - jump: stretch tall when rising, tuck when falling
  *   - land: squash on impact (driven by landImpact), springing back
  * Volume-preserving squash/stretch (x,z compensate y) keeps it from looking like
- * a balloon. The character's legs also pump while running, arms swing.
+ * a balloon. The character's legs also pump while running, arms swing. Exported so
+ * the between-levels Corridor can render a walking Dave too.
  */
-function HeroModel() {
+export function DaveModel() {
   const inner = useRef<THREE.Group>(null)
   const legL = useRef<THREE.Group>(null)
   const legR = useRef<THREE.Group>(null)
@@ -260,7 +385,10 @@ function HeroModel() {
     sy.current += (tSy - sy.current) * ease
     sx.current += (tSx - sx.current) * ease
     sz.current = sx.current
-    g.scale.set(0.72 * sx.current, 0.72 * sy.current, 0.72 * sz.current)
+    // base scale ~0.56 → the ~1.8-tall local model renders ~1.0 world units,
+    // matching the HEIGHT collision box so Dave fits a one-tile gap.
+    const BASE = 0.56
+    g.scale.set(BASE * sx.current, BASE * sy.current, BASE * sz.current)
 
     // --- run bob (vertical hop) + waddle (z-roll) + forward lean ---
     const hop = air ? 0 : Math.abs(Math.sin(phase.current)) * 0.12 * runT
@@ -287,12 +415,14 @@ function HeroModel() {
   })
 
   // palette — a friendly, readable explorer
-  const skin = "#e8b893"
+  const skin = "#f0c098"
   const shirt = "#d2483f"   // red
   const pants = "#3a5a8c"   // blue
   const boots = "#39322c"
-  const cap = "#caa23a"     // gold cap
+  const cap = "#e0b53e"     // gold cap
+  const capDark = "#a37d1f" // cap brim/button
   const eye = "#202020"
+  const brow = "#7a4a28"    // eyebrows / brows match a warm brown
 
   // The hero is built feet-at-origin, standing on +Y, facing -Z (game forward).
   // Heights below are in local units; the whole thing is ~1.8 tall.
@@ -353,30 +483,72 @@ function HeroModel() {
         </mesh>
       </group>
 
-      {/* HEAD */}
-      <mesh castShadow position={[0, 1.46, 0]}>
-        <boxGeometry args={[0.42, 0.42, 0.4]} />
-        <meshStandardMaterial color={skin} roughness={0.7} />
-      </mesh>
-      {/* eyes (face -Z forward) */}
-      <mesh position={[-0.1, 1.5, -0.21]}>
-        <boxGeometry args={[0.07, 0.09, 0.02]} />
-        <meshStandardMaterial color={eye} />
-      </mesh>
-      <mesh position={[0.1, 1.5, -0.21]}>
-        <boxGeometry args={[0.07, 0.09, 0.02]} />
-        <meshStandardMaterial color={eye} />
-      </mesh>
-      {/* cap */}
-      <mesh castShadow position={[0, 1.7, 0.02]}>
-        <boxGeometry args={[0.46, 0.16, 0.44]} />
-        <meshStandardMaterial color={cap} roughness={0.6} />
-      </mesh>
-      {/* cap brim, out the front */}
-      <mesh position={[0, 1.66, -0.26]}>
-        <boxGeometry args={[0.42, 0.06, 0.16]} />
-        <meshStandardMaterial color={cap} roughness={0.6} />
-      </mesh>
+      {/* HEAD — rounded (sphere) for a friendlier, less-blocky look, with a
+          proper expressive face: white eyes + pupils, brows, nose, and a smile.
+          Built facing -Z (forward). */}
+      <group position={[0, 1.5, 0]}>
+        {/* rounded skull, very slightly squashed so it's not a perfect ball */}
+        <mesh castShadow scale={[1, 0.94, 0.96]}>
+          <sphereGeometry args={[0.27, 24, 20]} />
+          <meshStandardMaterial color={skin} roughness={0.55} />
+        </mesh>
+        {/* ears */}
+        {[-1, 1].map((s) => (
+          <mesh key={s} position={[s * 0.26, -0.01, 0]} scale={[0.6, 1, 0.7]}>
+            <sphereGeometry args={[0.07, 10, 10]} />
+            <meshStandardMaterial color={skin} roughness={0.6} />
+          </mesh>
+        ))}
+        {/* eye whites */}
+        {[-0.1, 0.1].map((x) => (
+          <mesh key={`w${x}`} position={[x, 0.04, -0.24]} scale={[1, 1.25, 0.5]}>
+            <sphereGeometry args={[0.066, 14, 14]} />
+            <meshStandardMaterial color="#ffffff" roughness={0.35} />
+          </mesh>
+        ))}
+        {/* pupils */}
+        {[-0.095, 0.105].map((x) => (
+          <mesh key={`p${x}`} position={[x, 0.03, -0.285]}>
+            <sphereGeometry args={[0.032, 12, 12]} />
+            <meshStandardMaterial color={eye} />
+          </mesh>
+        ))}
+        {/* eyebrows — a touch of attitude */}
+        {[-0.1, 0.1].map((x, i) => (
+          <mesh key={`b${x}`} position={[x, 0.13, -0.25]} rotation={[0, 0, (i ? -1 : 1) * 0.18]}>
+            <boxGeometry args={[0.11, 0.025, 0.03]} />
+            <meshStandardMaterial color={brow} roughness={0.8} />
+          </mesh>
+        ))}
+        {/* nose */}
+        <mesh position={[0, -0.02, -0.28]} rotation={[Math.PI / 2, 0, 0]}>
+          <coneGeometry args={[0.045, 0.1, 10]} />
+          <meshStandardMaterial color={skin} roughness={0.6} />
+        </mesh>
+        {/* smile — a thin curved torus arc */}
+        <mesh position={[0, -0.12, -0.24]} rotation={[Math.PI, 0, 0]}>
+          <torusGeometry args={[0.075, 0.018, 8, 14, Math.PI]} />
+          <meshStandardMaterial color="#7a3b2e" roughness={0.7} />
+        </mesh>
+
+        {/* CAP — rounded crown (half-sphere) + a curved brim, set back off the face */}
+        <group position={[0, 0.16, 0.03]}>
+          <mesh castShadow scale={[1.05, 0.7, 1.05]}>
+            <sphereGeometry args={[0.27, 20, 14, 0, Math.PI * 2, 0, Math.PI / 2]} />
+            <meshStandardMaterial color={cap} roughness={0.5} />
+          </mesh>
+          {/* button on top */}
+          <mesh position={[0, 0.12, 0]}>
+            <sphereGeometry args={[0.035, 10, 10]} />
+            <meshStandardMaterial color={capDark} roughness={0.5} />
+          </mesh>
+          {/* brim out the front */}
+          <mesh position={[0, -0.02, -0.26]} rotation={[-0.12, 0, 0]}>
+            <cylinderGeometry args={[0.2, 0.2, 0.04, 18, 1, false, 0, Math.PI]} />
+            <meshStandardMaterial color={capDark} roughness={0.5} />
+          </mesh>
+        </group>
+      </group>
     </group>
   )
 }
