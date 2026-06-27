@@ -178,22 +178,6 @@ export function fromTiles(rows: string[], meta: TileMeta): Level {
   }
 }
 
-// Helper: a stepped climb of N boxes from a start to an end (so AABB stays clean).
-function steps(
-  from: Vec3,
-  step: Vec3,
-  count: number,
-  size: Vec3,
-): Box[] {
-  const out: Box[] = []
-  for (let i = 0; i < count; i++) {
-    out.push({
-      pos: [from[0] + step[0] * i, from[1] + step[1] * i, from[2] + step[2] * i],
-      size,
-    })
-  }
-  return out
-}
 
 // ── LEVEL 1 — the authentic Dangerous Dave opening screen, transcribed tile-for-
 //    tile from the original: a red-brick room with two checkerboarded rows of
@@ -252,272 +236,167 @@ const L2: Level = fromTiles(
   { name: "2 — The Descent", brick: "#b3361f" },
 )
 
-// ── LEVEL 3 — Pipes & Tunnels: a Z-weaving route through low overhead blocks.
-const L3: Level = {
-  name: "3 — Pipes",
-  spawn: [0, 1, 0],
-  killY: -16,
-  platforms: [
-    { pos: [0, 0.5, 0], size: [7, 1, 7] },
-    { pos: [6, 0.5, 4], size: [4, 1, 4] },
-    { pos: [11, 0.5, -2], size: [4, 1, 4] },
-    { pos: [16, 0.5, 4], size: [4, 1, 4] },
-    { pos: [21, 1.0, -1], size: [6, 1, 7] }, // trophy terrace
-    // overhead "pipe" blocks force ducking jumps (visual + collision)
-    { pos: [6, 4.5, 4], size: [4, 1.2, 4] },
-    { pos: [16, 4.5, 4], size: [4, 1.2, 4] },
-    { pos: [27, 1.4, 3], size: [4, 1, 4] },
-    { pos: [32, 1.8, -2], size: [4, 1, 4] },
-    { pos: [38, 2.4, 0], size: [6, 1, 6] }, // door terrace
+// ── LEVEL 3 — Pipes & Tunnels: overhead brick "pipes" with a spike pit below.
+const L3: Level = fromTiles(
+  [
+    "###################", // 0
+    "# .   .   .   .   #", // 1  diamonds over the upper pedestals
+    "# ##  ##  ##  ##  #", // 2  upper pedestals
+    "#                 #", // 3
+    "#   .     C    .  #", // 4  diamonds + CUP (centre)
+    "#  ###   ###  ### #", // 5  mid pedestals (cup sits on the centre one)
+    "#                 #", // 6
+    "# @             D #", // 7  spawn (left) + door (right) on the lower walk
+    "######  ####  #####", // 8  lower walkway with gaps
+    "#       .         #", // 9  a diamond down in a gap
+    "#######  ######## #", // 10 floor ledges
+    "#      ##         #", // 11 small step
+    "###################", // 12 floor
   ],
-  hazards: [
-    { pos: [13.5, 0.1, 1], size: [3, 0.4, 6], kind: "spike" },
-  ],
-  gems: [
-    [6, 1.6, 4],
-    [11, 1.6, -2],
-    [16, 1.6, 4],
-    [27, 2.5, 3],
-    [32, 2.9, -2],
-  ],
-  trophy: [21, 2.1, 0],
-  door: [38, 3.5, 0],
-}
+  { name: "3 — Pipes", brick: "#b3361f" },
+)
 
-// ── LEVEL 4 — Fire Pits: lava-floor hazard; hop the safe islands.
-const L4: Level = {
-  name: "4 — Fire Pits",
-  spawn: [0, 1, 0],
-  killY: -16,
-  platforms: [
-    { pos: [0, 0.5, 0], size: [7, 1, 7] },
-    { pos: [6, 1.2, 0], size: [2.6, 1, 2.6] },
-    { pos: [10.5, 1.6, 1.5], size: [2.6, 1, 2.6] },
-    { pos: [15, 2.0, -1], size: [2.6, 1, 2.6] },
-    { pos: [20, 2.6, 0], size: [6, 1, 7] }, // trophy terrace
-    { pos: [26, 3.0, 2], size: [2.6, 1, 2.6] },
-    { pos: [30.5, 3.4, -1], size: [2.6, 1, 2.6] },
-    { pos: [35, 3.8, 1.5], size: [2.6, 1, 2.6] },
-    { pos: [40, 4.4, 0], size: [6, 1, 6] }, // door terrace
+// ── LEVEL 4 — Fire Pits: hop the islands; fire burns in the floor gaps.
+const L4: Level = fromTiles(
+  [
+    "###################", // 0
+    "#                 #", // 1
+    "#                 #", // 2
+    "#  .    C    .    #", // 3  diamonds + CUP
+    "#  ##   ##   ##   #", // 4  upper pedestals
+    "#     .     .     #", // 5
+    "#    ###   ###    #", // 6  mid pedestals
+    "#              .  #", // 7
+    "# ##  ##  ##  ### #", // 8  stepping stones
+    "#                 #", // 9
+    "#   ###  ###  ### #", // 10 islands over the fire
+    "# @    FF   FF  D #", // 11 spawn, fire gaps, door
+    "###################", // 12 floor
   ],
-  hazards: [
-    // a wide fire floor below the island run
-    { pos: [13, 0.2, 0], size: [16, 0.5, 8], kind: "fire" },
-    { pos: [32, 1.6, 0], size: [14, 0.5, 8], kind: "fire" },
-  ],
-  gems: [
-    [6, 2.3, 0],
-    [10.5, 2.7, 1.5],
-    [15, 3.1, -1],
-    [30.5, 4.5, -1],
-    [35, 4.9, 1.5],
-  ],
-  trophy: [20, 3.7, 0],
-  door: [40, 5.5, 0],
-}
+  { name: "4 — Fire Pits", brick: "#b3361f" },
+)
 
-// ── LEVEL 5 — Water & Tight Jumps: water hazard + narrow precision pads.
-const L5: Level = {
-  name: "5 — Flooded",
-  spawn: [0, 1, 0],
-  killY: -16,
-  platforms: [
-    { pos: [0, 0.5, 0], size: [7, 1, 7] },
-    { pos: [6, 0.8, 0], size: [1.8, 1, 1.8] },
-    { pos: [10, 1.0, 2], size: [1.8, 1, 1.8] },
-    { pos: [14, 1.2, -1.5], size: [1.8, 1, 1.8] },
-    { pos: [18, 1.6, 1], size: [1.8, 1, 1.8] },
-    { pos: [23, 2.0, 0], size: [6, 1, 7] }, // trophy terrace
-    { pos: [29, 2.4, -2], size: [1.8, 1, 1.8] },
-    { pos: [33, 2.8, 1.5], size: [1.8, 1, 1.8] },
-    { pos: [37, 3.2, -1], size: [1.8, 1, 1.8] },
-    { pos: [42, 3.8, 0], size: [6, 1, 6] }, // door terrace
+// ── LEVEL 5 — Flooded: water in the floor gaps; thread the tight pads.
+const L5: Level = fromTiles(
+  [
+    "###################", // 0
+    "#                 #", // 1
+    "#  .       C   .  #", // 2  diamonds + CUP
+    "#  #   #   #   #  #", // 3  thin pillars
+    "#    .   .   .    #", // 4
+    "#    #   #   #    #", // 5  thin pads
+    "#       .         #", // 6
+    "# ##    ##    ### #", // 7  ledges
+    "#                 #", // 8
+    "#                 #", // 9
+    "#   ###  ###  ### #", // 10 islands over the water
+    "# @    WW   WW  D #", // 11 spawn, water gaps, door
+    "###################", // 12 floor
   ],
-  hazards: [
-    { pos: [12, 0.0, 0], size: [20, 0.6, 10], kind: "water" },
-    { pos: [34, 1.4, 0], size: [16, 0.6, 10], kind: "water" },
-  ],
-  gems: [
-    [6, 1.9, 0],
-    [10, 2.1, 2],
-    [14, 2.3, -1.5],
-    [18, 2.7, 1],
-    [33, 3.9, 1.5],
-  ],
-  trophy: [23, 3.1, 0],
-  door: [42, 4.9, 0],
-}
+  { name: "5 — Flooded", brick: "#2f6fb0" },
+)
 
-// ── LEVEL 6 — JETPACK: grab the jetpack early, then FLY a long vertical gauntlet
-//    of floating rings of fire. (The original Dave's signature jetpack level.)
-const L6: Level = {
-  name: "6 — Jetpack",
-  spawn: [0, 1, 0],
-  killY: -16,
-  jetpack: [4, 2.0, 0],
-  platforms: [
-    { pos: [0, 0.5, 0], size: [8, 1, 8] }, // launch pad (jetpack sits here)
-    // tall pillars to weave between while flying
-    { pos: [12, 6, 4], size: [2.5, 14, 2.5] },
-    { pos: [18, 9, -4], size: [2.5, 16, 2.5] },
-    { pos: [24, 5, 3], size: [2.5, 12, 2.5] },
-    { pos: [30, 11, 0], size: [6, 1, 7] }, // high trophy terrace (must fly up)
-    { pos: [38, 7, -3], size: [2.5, 16, 2.5] },
-    { pos: [44, 12, 2], size: [2.5, 18, 2.5] },
-    { pos: [50, 14, 0], size: [7, 1, 7] }, // high door terrace
+// ── LEVEL 6 — JETPACK: grab the pack on the floor, then FLY up to the high cup
+//    (left) and the high door (right), weaving the fire. Dave's signature level.
+const L6: Level = fromTiles(
+  [
+    "###################", // 0
+    "#                 #", // 1
+    "# #C##    .  ##D# #", // 2  high cup (left) + high door (right)
+    "#                 #", // 3
+    "#                 #", // 4
+    "#       F.        #", // 5  fire to fly around
+    "#                 #", // 6
+    "#  . F      F  .  #", // 7
+    "#                 #", // 8
+    "#                 #", // 9
+    "# @ J             #", // 10 spawn + jetpack on the floor
+    "###################", // 11 floor
+    "###################", // 12
   ],
-  hazards: [
-    // floating fire rings to dodge mid-flight
-    { pos: [15, 12, 0], size: [3, 3, 3], kind: "fire" },
-    { pos: [27, 9, 0], size: [3, 3, 3], kind: "fire" },
-    { pos: [41, 14, 0], size: [3, 3, 3], kind: "fire" },
-  ],
-  gems: [
-    [12, 13.5, 4],
-    [18, 17.5, -4],
-    [30, 12.5, 2.5],
-    [44, 21.5, 2],
-    [50, 15.5, 0],
-  ],
-  trophy: [30, 12.7, 0],
-  door: [50, 15.1, 0],
-}
+  { name: "6 — Jetpack", brick: "#6a3da0" },
+)
 
-// ── LEVEL 7 — The Climb: a tight vertical ascent, spikes on the misses.
-const L7: Level = {
-  name: "7 — The Climb",
-  spawn: [0, 1, 0],
-  killY: -16,
-  platforms: [
-    { pos: [0, 0.5, 0], size: [7, 1, 7] },
-    ...steps([5, 1.4, 0], [0, 1.0, 2.2], 4, [3, 1, 2.6]),
-    { pos: [5, 6.4, 9.5], size: [6, 1, 6] }, // trophy terrace
-    ...steps([5, 7.2, 9.5], [2.4, 0.9, -2.0], 5, [2.8, 1, 2.6]),
-    { pos: [17, 11.7, 0], size: [7, 1, 7] }, // door terrace
+// ── LEVEL 7 — The Climb: a tight vertical ascent; spikes punish a missed jump.
+const L7: Level = fromTiles(
+  [
+    "###################", // 0
+    "#         C       #", // 1  CUP at the top
+    "#       #####     #", // 2
+    "#        .        #", // 3
+    "#      ####       #", // 4
+    "#     .     .     #", // 5
+    "#    ####  ###    #", // 6
+    "#   .       .     #", // 7
+    "#  ###      ###   #", // 8
+    "#     .       .D  #", // 9  door on the right ledge
+    "#    ####    #### #", // 10
+    "# @      ^^       #", // 11 spawn + spikes in the floor gap
+    "###################", // 12 floor
   ],
-  hazards: [
-    { pos: [5, 0.1, 5], size: [6, 0.4, 4], kind: "spike" },
-    { pos: [11, 7.0, 6], size: [4, 0.4, 4], kind: "spike" },
-  ],
-  gems: [
-    [5, 2.5, 2.2],
-    [5, 4.5, 6.6],
-    [5, 7.5, 9.5],
-    [10, 9.5, 6],
-    [14.5, 11.3, 2],
-  ],
-  trophy: [5, 7.5, 9.5],
-  door: [17, 12.8, 0],
-}
+  { name: "7 — The Climb", brick: "#b3361f" },
+)
 
-// ── LEVEL 8 — The Gauntlet: a long horizontal run mixing every hazard so far.
-const L8: Level = {
-  name: "8 — Gauntlet",
-  spawn: [0, 1, 0],
-  killY: -16,
-  platforms: [
-    { pos: [0, 0.5, 0], size: [7, 1, 7] },
-    { pos: [7, 0.5, 0], size: [3, 1, 5] },
-    { pos: [13, 0.8, 0], size: [2.4, 1, 2.4] }, // fire gap
-    { pos: [18, 1.0, 2], size: [2.4, 1, 2.4] },
-    { pos: [23, 1.2, 0], size: [6, 1, 7] }, // trophy terrace
-    { pos: [29, 1.4, 0], size: [3, 1, 5] }, // spike gap
-    { pos: [35, 1.6, -2], size: [2.2, 1, 2.2] }, // water gap
-    { pos: [40, 1.8, 1.5], size: [2.2, 1, 2.2] },
-    { pos: [45, 2.2, 0], size: [3, 1, 5] },
-    { pos: [51, 2.8, 0], size: [6, 1, 6] }, // door terrace
+// ── LEVEL 8 — The Gauntlet: a long run mixing fire, spikes and water.
+const L8: Level = fromTiles(
+  [
+    "###################", // 0
+    "#                 #", // 1
+    "#                 #", // 2
+    "#  .     C    .   #", // 3  diamonds + CUP
+    "#  ##    ##   ##  #", // 4
+    "#     .     .     #", // 5
+    "#     ##    ##    #", // 6
+    "#                 #", // 7
+    "# ##   ##  ##  ## #", // 8
+    "#                 #", // 9
+    "#    ###   ###    #", // 10
+    "# @   F  ^^  WW D #", // 11 spawn, every hazard, door
+    "###################", // 12 floor
   ],
-  hazards: [
-    { pos: [10.5, 0.2, 0], size: [3, 0.5, 6], kind: "fire" },
-    { pos: [15.5, 0.2, 1], size: [3, 0.5, 6], kind: "fire" },
-    { pos: [31.5, 1.0, 0], size: [2.4, 0.4, 6], kind: "spike" },
-    { pos: [37.5, 0.6, 0], size: [10, 0.6, 10], kind: "water" },
-  ],
-  gems: [
-    [7, 1.6, 0],
-    [18, 2.1, 2],
-    [23, 2.3, 2.5],
-    [40, 2.9, 1.5],
-    [45, 3.3, 0],
-  ],
-  trophy: [23, 2.3, 0],
-  door: [51, 3.9, 0],
-}
+  { name: "8 — Gauntlet", brick: "#b3361f" },
+)
 
-// ── LEVEL 9 — Trap Maze: a denser branching field of pads + many hazards.
-const L9: Level = {
-  name: "9 — Trap Maze",
-  spawn: [0, 1, 0],
-  killY: -16,
-  platforms: [
-    { pos: [0, 0.5, 0], size: [7, 1, 7] },
-    { pos: [6, 0.8, 3], size: [2.4, 1, 2.4] },
-    { pos: [6, 0.8, -3], size: [2.4, 1, 2.4] },
-    { pos: [11, 1.0, 0], size: [2.4, 1, 2.4] },
-    { pos: [16, 1.2, 4], size: [2.4, 1, 2.4] },
-    { pos: [16, 1.2, -4], size: [2.4, 1, 2.4] },
-    { pos: [21, 1.6, 0], size: [6, 1, 7] }, // trophy terrace
-    { pos: [27, 2.0, 3], size: [2.2, 1, 2.2] },
-    { pos: [31, 2.4, -2], size: [2.2, 1, 2.2] },
-    { pos: [35, 2.8, 2], size: [2.2, 1, 2.2] },
-    { pos: [39, 3.0, -2], size: [2.2, 1, 2.2] },
-    { pos: [44, 3.6, 0], size: [6, 1, 6] }, // door terrace
+// ── LEVEL 9 — Trap Maze: a dense branching field of pads + hazards.
+const L9: Level = fromTiles(
+  [
+    "###################", // 0
+    "#                 #", // 1
+    "# .    C    .   . #", // 2  diamonds + CUP
+    "# ##   ##   ##  ###", // 3
+    "#   .    .    .   #", // 4
+    "#   ##   ##   ##  #", // 5
+    "#                 #", // 6
+    "# ##  ##   ##  ## #", // 7
+    "#                 #", // 8
+    "#                 #", // 9
+    "#   ###  ###  ### #", // 10
+    "# @   FF    ^^   D#", // 11 spawn, fire + spikes, door
+    "###################", // 12 floor
   ],
-  hazards: [
-    { pos: [11, 0.1, 3], size: [3, 0.4, 3], kind: "spike" },
-    { pos: [11, 0.1, -3], size: [3, 0.4, 3], kind: "spike" },
-    { pos: [29, 1.2, 0], size: [10, 0.5, 12], kind: "fire" },
-    { pos: [37, 1.6, 0], size: [10, 0.5, 12], kind: "fire" },
-  ],
-  gems: [
-    [6, 1.9, 3],
-    [16, 2.3, 4],
-    [16, 2.3, -4],
-    [27, 3.1, 3],
-    [35, 3.9, 2],
-  ],
-  trophy: [21, 2.7, 0],
-  door: [44, 4.7, 0],
-}
+  { name: "9 — Trap Maze", brick: "#b3361f" },
+)
 
 // ── LEVEL 10 — Final Ascent: the hardest climb, all hazards, plus a HIDDEN warp
-//    pad off the main path (the original's secret). Reach the door to win it all.
-const L10: Level = {
-  name: "10 — Final Ascent",
-  spawn: [0, 1, 0],
-  killY: -16,
-  warp: [3, 2.2, -10], // hidden off to the side — a secret skip / easter egg
-  platforms: [
-    { pos: [0, 0.5, 0], size: [8, 1, 9] },
-    // the secret warp pad ledge, tucked behind spawn
-    { pos: [3, 1.4, -10], size: [3, 1, 3] },
-    // brutal stepped + gapped climb
-    { pos: [7, 1.4, 0], size: [2.4, 1, 2.4] },
-    { pos: [11, 2.2, 2], size: [2.2, 1, 2.2] },
-    { pos: [15, 3.0, -2], size: [2.2, 1, 2.2] },
-    { pos: [19, 3.8, 0], size: [6, 1, 7] }, // trophy terrace
-    { pos: [25, 4.6, 3], size: [2.0, 1, 2.0] },
-    { pos: [29, 5.6, -2], size: [2.0, 1, 2.0] },
-    { pos: [33, 6.6, 2], size: [2.0, 1, 2.0] },
-    { pos: [37, 7.6, -1], size: [2.0, 1, 2.0] },
-    { pos: [42, 8.8, 0], size: [7, 1, 7] }, // final door terrace
+//    pad far-right on the floor (the original's secret skip). Reach the door to win.
+const L10: Level = fromTiles(
+  [
+    "###################", // 0
+    "#                 #", // 1
+    "#      #####      #", // 2
+    "#        C        #", // 3  CUP near the top
+    "#  ###   ###      #", // 4
+    "#   .     .       #", // 5
+    "#    ###   ###    #", // 6
+    "#     .     .     #", // 7
+    "# ###    ###  ### #", // 8
+    "#  D  .        .  #", // 9  door on the left ledge
+    "#    ###      ### #", // 10
+    "# @     F^^ F    X#", // 11 spawn, hazards, hidden warp (far right)
+    "###################", // 12 floor
   ],
-  hazards: [
-    { pos: [9, 0.6, 0], size: [10, 0.5, 9], kind: "fire" },
-    { pos: [13, 1.4, 0], size: [10, 0.5, 9], kind: "fire" },
-    { pos: [27, 4.0, 0], size: [12, 0.5, 10], kind: "spike" },
-    { pos: [35, 6.0, 0], size: [12, 0.5, 10], kind: "spike" },
-  ],
-  gems: [
-    [7, 2.5, 0],
-    [11, 3.3, 2],
-    [19, 4.9, 2.5],
-    [29, 6.7, -2],
-    [37, 8.7, -1],
-  ],
-  trophy: [19, 4.9, 0],
-  door: [42, 9.9, 0],
-}
+  { name: "10 — Final Ascent", brick: "#7a1f1f" },
+)
 
 /** The full 10-level campaign, in play order. */
 export const LEVELS: Level[] = [L1, L2, L3, L4, L5, L6, L7, L8, L9, L10]
