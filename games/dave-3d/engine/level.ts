@@ -201,21 +201,29 @@ function steps(
 //    centre pedestal, two long lower platforms, the door bottom-centre-right on a
 //    step, the iconic pipe bottom-left, a purple gem top-left and a ruby top-right.
 //    Row 0 = top. Bottom solid row is the floor. (See reference screenshot.)
+// Built from the ORIGINAL Dangerous Dave (AkhilRaja/Dave source) exact pixel
+// coords → tile grid. Bordered red-brick room; a checkerboard of 2-wide brick
+// pedestals each topped with a cyan diamond; the gold CUP on the centre pedestal;
+// a purple ball (top-left) and a ruby (top-right); two long lower platforms; the
+// door on a step bottom-centre-right; the iconic pipe bottom-left.
+// Cols 0-18 (19 wide), rows 0-12 (0=top, 12=floor).
 const L1: Level = fromTiles(
+  // 0         1
+  // 0123456789012345678   (every row is exactly 19 chars)
   [
-    "####################", // 0  top wall
-    "#o                *#", // 1  purple gem (left), ruby (right)
-    "#                  #", // 2
-    "#  . .  . .  C  . . #", // 3  diamonds over the upper pedestals + cup diamond
-    "#  ###  ###  ##  ####", // 4  upper pedestals (cup sits on the centre one)
-    "#                  #", // 5
-    "# .   . .  . .  . . #", // 6  diamonds over the middle pedestals
-    "#    ###  ###  ###  #", // 7  middle pedestals
-    "#                  #", // 8
-    "# .    .           #", // 9  low diamonds
-    "#  ######    ########", // 10 two long lower platforms
-    "#P       @ ##D      #", // 11 pipe (left), spawn (open column), door on a step
-    "####################", // 12 floor
+    "###################", // 0  top wall
+    "#o   .   C   .   *#", // 1  purple ball, gem, CUP, gem, ruby
+    "#    ##  ##  ##   #", // 2  pedestals under the row-1 diamonds + cup pedestal
+    "#  .   .   .   .  #", // 3  diamonds for the middle pedestals
+    "#  ##  ##  ##  ## #", // 4  middle pedestals (offset checkerboard)
+    "#                 #", // 5
+    "# .    .          #", // 6  two low diamonds (left)
+    "#                 #", // 7
+    "#                 #", // 8
+    "#                 #", // 9
+    "# ######  ####### #", // 10 two long lower platforms
+    "#P@      ##D      #", // 11 pipe + spawn (left), door on a step (centre-right)
+    "###################", // 12 floor
   ],
   { name: "1 — The Cavern", brick: "#b3361f" },
 )

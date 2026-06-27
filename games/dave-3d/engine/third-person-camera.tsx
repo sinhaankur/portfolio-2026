@@ -26,6 +26,10 @@ export function ThirdPersonCamera() {
   const pinch = useRef(0)          // last 2-touch distance
   const tmp = useRef(new THREE.Vector3())
   const lookAt = useRef(new THREE.Vector3())
+  // On side-on Dave screens we START with a flat, straight-on view that frames the
+  // WHOLE room (1:1 with the original). The moment the user drags/zooms, we hand
+  // over to the free-orbit follow camera so they can explore in 3D.
+  const userTookControl = useRef(false)
 
   const MIN_DIST = 5
   const MAX_DIST = 28
@@ -43,6 +47,7 @@ export function ThirdPersonCamera() {
       const dx = e.clientX - last.current.x
       const dy = e.clientY - last.current.y
       last.current = { x: e.clientX, y: e.clientY }
+      if (!userTookControl.current && (Math.abs(dx) > 1 || Math.abs(dy) > 1)) takeControl()
       // free orbit: yaw + pitch both held (never decays back behind the player)
       orbitYaw.current -= dx * 0.007
       pitch.current = THREE.MathUtils.clamp(pitch.current + dy * 0.005, PITCH_MIN, PITCH_MAX)
@@ -50,6 +55,7 @@ export function ThirdPersonCamera() {
     const up = () => { dragging.current = false }
     const wheel = (e: WheelEvent) => {
       e.preventDefault()
+      takeControl()
       dist.current = THREE.MathUtils.clamp(dist.current + e.deltaY * 0.01, MIN_DIST, MAX_DIST)
     }
     // touch pinch-zoom
@@ -58,10 +64,20 @@ export function ThirdPersonCamera() {
         const a = e.touches[0], b = e.touches[1]
         const d = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY)
         if (pinch.current > 0) {
+          takeControl()
           dist.current = THREE.MathUtils.clamp(dist.current - (d - pinch.current) * 0.03, MIN_DIST, MAX_DIST)
         }
         pinch.current = d
       }
+    }
+    // First interaction on a side level: switch from flat framing to free-orbit,
+    // seeding the orbit so it starts roughly where the flat view was (no jump).
+    const takeControl = () => {
+      if (userTookControl.current) return
+      userTookControl.current = true
+      orbitYaw.current = 0
+      pitch.current = 0.12
+      dist.current = Math.min(MAX_DIST, Math.max(MIN_DIST, game.boundsH * 0.9))
     }
     const touchEnd = () => { pinch.current = 0 }
     el.addEventListener("pointerdown", down)
@@ -82,6 +98,34 @@ export function ThirdPersonCamera() {
 
   useFrame((state, dt) => {
     const target = game.playerPos
+
+    // ── SIDE-ON default: a FLAT, straight-on view that frames the whole room 1:1
+    //    with the original (no tilt). Camera dead-on +Z, centred; for rooms wider
+    //    than a screen it pans horizontally to follow Dave. Until the user drags. ─
+    if (game.sideOn && !userTookControl.current) {
+      const persp = camera as THREE.PerspectiveCamera
+      const fov = 52
+      if (persp.isPerspectiveCamera && Math.abs(persp.fov - fov) > 0.05) {
+        persp.fov = fov; persp.updateProjectionMatrix()
+      }
+      const aspect = persp.isPerspectiveCamera ? persp.aspect : 16 / 9
+      const W = game.boundsW, H = game.boundsH
+      const vFov = (fov * Math.PI) / 180
+      const SCREEN_W = 30
+      const showW = Math.min(W, SCREEN_W)
+      const distH = (H / 2) / Math.tan(vFov / 2)
+      const distW = (showW / 2) / (Math.tan(vFov / 2) * aspect)
+      const fitDist = Math.max(distH, distW) * 1.04
+      const viewW = 2 * Math.tan(vFov / 2) * aspect * fitDist
+      const camX = W > viewW + 1
+        ? THREE.MathUtils.clamp(target.x, -W / 2 + viewW / 2, W / 2 - viewW / 2)
+        : 0
+      const camY = H / 2 - 1.0
+      camera.position.lerp(tmp.current.set(camX, camY, fitDist), 1 - Math.exp(-7 * dt))
+      lookAt.current.set(camX, camY, 0)
+      camera.lookAt(lookAt.current)
+      return
+    }
 
     // spherical orbit: full yaw + pitch around the player at the zoom distance,
     // so the camera can sit anywhere on the sphere (any side, overhead, low).

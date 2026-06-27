@@ -415,14 +415,12 @@ export function DaveModel() {
   })
 
   // palette — a friendly, readable explorer
-  const skin = "#f0c098"
+  const skin = "#e8b893"
   const shirt = "#d2483f"   // red
   const pants = "#3a5a8c"   // blue
   const boots = "#39322c"
-  const cap = "#e0b53e"     // gold cap
-  const capDark = "#a37d1f" // cap brim/button
+  const cap = "#caa23a"     // gold cap
   const eye = "#202020"
-  const brow = "#7a4a28"    // eyebrows / brows match a warm brown
 
   // The hero is built feet-at-origin, standing on +Y, facing -Z (game forward).
   // Heights below are in local units; the whole thing is ~1.8 tall.
@@ -483,72 +481,30 @@ export function DaveModel() {
         </mesh>
       </group>
 
-      {/* HEAD — rounded (sphere) for a friendlier, less-blocky look, with a
-          proper expressive face: white eyes + pupils, brows, nose, and a smile.
-          Built facing -Z (forward). */}
-      <group position={[0, 1.5, 0]}>
-        {/* rounded skull, very slightly squashed so it's not a perfect ball */}
-        <mesh castShadow scale={[1, 0.94, 0.96]}>
-          <sphereGeometry args={[0.27, 24, 20]} />
-          <meshStandardMaterial color={skin} roughness={0.55} />
-        </mesh>
-        {/* ears */}
-        {[-1, 1].map((s) => (
-          <mesh key={s} position={[s * 0.26, -0.01, 0]} scale={[0.6, 1, 0.7]}>
-            <sphereGeometry args={[0.07, 10, 10]} />
-            <meshStandardMaterial color={skin} roughness={0.6} />
-          </mesh>
-        ))}
-        {/* eye whites */}
-        {[-0.1, 0.1].map((x) => (
-          <mesh key={`w${x}`} position={[x, 0.04, -0.24]} scale={[1, 1.25, 0.5]}>
-            <sphereGeometry args={[0.066, 14, 14]} />
-            <meshStandardMaterial color="#ffffff" roughness={0.35} />
-          </mesh>
-        ))}
-        {/* pupils */}
-        {[-0.095, 0.105].map((x) => (
-          <mesh key={`p${x}`} position={[x, 0.03, -0.285]}>
-            <sphereGeometry args={[0.032, 12, 12]} />
-            <meshStandardMaterial color={eye} />
-          </mesh>
-        ))}
-        {/* eyebrows — a touch of attitude */}
-        {[-0.1, 0.1].map((x, i) => (
-          <mesh key={`b${x}`} position={[x, 0.13, -0.25]} rotation={[0, 0, (i ? -1 : 1) * 0.18]}>
-            <boxGeometry args={[0.11, 0.025, 0.03]} />
-            <meshStandardMaterial color={brow} roughness={0.8} />
-          </mesh>
-        ))}
-        {/* nose */}
-        <mesh position={[0, -0.02, -0.28]} rotation={[Math.PI / 2, 0, 0]}>
-          <coneGeometry args={[0.045, 0.1, 10]} />
-          <meshStandardMaterial color={skin} roughness={0.6} />
-        </mesh>
-        {/* smile — a thin curved torus arc */}
-        <mesh position={[0, -0.12, -0.24]} rotation={[Math.PI, 0, 0]}>
-          <torusGeometry args={[0.075, 0.018, 8, 14, Math.PI]} />
-          <meshStandardMaterial color="#7a3b2e" roughness={0.7} />
-        </mesh>
-
-        {/* CAP — rounded crown (half-sphere) + a curved brim, set back off the face */}
-        <group position={[0, 0.16, 0.03]}>
-          <mesh castShadow scale={[1.05, 0.7, 1.05]}>
-            <sphereGeometry args={[0.27, 20, 14, 0, Math.PI * 2, 0, Math.PI / 2]} />
-            <meshStandardMaterial color={cap} roughness={0.5} />
-          </mesh>
-          {/* button on top */}
-          <mesh position={[0, 0.12, 0]}>
-            <sphereGeometry args={[0.035, 10, 10]} />
-            <meshStandardMaterial color={capDark} roughness={0.5} />
-          </mesh>
-          {/* brim out the front */}
-          <mesh position={[0, -0.02, -0.26]} rotation={[-0.12, 0, 0]}>
-            <cylinderGeometry args={[0.2, 0.2, 0.04, 18, 1, false, 0, Math.PI]} />
-            <meshStandardMaterial color={capDark} roughness={0.5} />
-          </mesh>
-        </group>
-      </group>
+      {/* HEAD — the original chunky cube head (reverted from the rounded one). */}
+      <mesh castShadow position={[0, 1.46, 0]}>
+        <boxGeometry args={[0.42, 0.42, 0.4]} />
+        <meshStandardMaterial color={skin} roughness={0.7} />
+      </mesh>
+      {/* eyes (face -Z forward) */}
+      <mesh position={[-0.1, 1.5, -0.21]}>
+        <boxGeometry args={[0.07, 0.09, 0.02]} />
+        <meshStandardMaterial color={eye} />
+      </mesh>
+      <mesh position={[0.1, 1.5, -0.21]}>
+        <boxGeometry args={[0.07, 0.09, 0.02]} />
+        <meshStandardMaterial color={eye} />
+      </mesh>
+      {/* cap */}
+      <mesh castShadow position={[0, 1.7, 0.02]}>
+        <boxGeometry args={[0.46, 0.16, 0.44]} />
+        <meshStandardMaterial color={cap} roughness={0.6} />
+      </mesh>
+      {/* cap brim, out the front */}
+      <mesh position={[0, 1.66, -0.26]}>
+        <boxGeometry args={[0.42, 0.06, 0.16]} />
+        <meshStandardMaterial color={cap} roughness={0.6} />
+      </mesh>
     </group>
   )
 }
