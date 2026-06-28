@@ -2336,9 +2336,11 @@ export type SatelliteShell = {
 function SatelliteShellPoints({
   shell,
   bodyRadius,
+  onHover,
 }: {
   shell: SatelliteShell
   bodyRadius: number
+  onHover?: HoverHandler
 }) {
   const ref = useRef<Points>(null)
   const geometry = useMemo(() => {
@@ -2412,6 +2414,24 @@ function SatelliteShellPoints({
         <line geometry={ringGeo} rotation={[shell.incl * 0.35, 0, 0]}>
           <lineBasicMaterial color={shell.color} transparent opacity={0.18} depthWrite={false} />
         </line>
+      )}
+      {/* Debris shell is hoverable → an honest conjunction / Kessler explainer
+          (no faked live close-approach events; we don't have that feed). */}
+      {shell.debris && onHover && (
+        <mesh
+          onPointerOver={(e) => {
+            e.stopPropagation()
+            onHover({
+              name: "Orbital debris",
+              classification: "Tracked space debris · LEO",
+              fact: "~36,000 objects larger than 10 cm are tracked in orbit, plus an estimated 1,000,000+ between 1–10 cm — mostly junk: spent rocket stages, dead satellites, and fragments from collisions + anti-satellite tests.\n\n⚠ Conjunctions: operators get thousands of close-approach warnings a day; active satellites (e.g. the ISS, Starlink) perform avoidance manoeuvres. The risk is the Kessler syndrome — a collision cascade where debris begets more debris, potentially making some orbits unusable. (Specific live conjunction events aren't shown here — that needs a real tracking feed.)",
+            })
+          }}
+          onPointerOut={() => onHover(null)}
+        >
+          <sphereGeometry args={[bodyRadius * shell.altRatio, 24, 16]} />
+          <meshBasicMaterial transparent opacity={0} depthWrite={false} side={BackSide} />
+        </mesh>
       )}
     </group>
   )
@@ -2647,7 +2667,7 @@ function SatelliteShells({
   return (
     <group>
       {shells.map((s) => (
-        <SatelliteShellPoints key={s.label} shell={s} bodyRadius={bodyRadius} />
+        <SatelliteShellPoints key={s.label} shell={s} bodyRadius={bodyRadius} onHover={onHover} />
       ))}
       {heroCraft?.map((c) => (
         <Suspense key={c.label} fallback={null}>
