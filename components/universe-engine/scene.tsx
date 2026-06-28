@@ -6162,27 +6162,56 @@ const GALAXY_SPRITES: Record<string, string> = {
   smc:  "/textures/galaxies/smc.webp",
 }
 
-/** A camera-facing billboard showing a baked galaxy texture (additive). */
+// Galaxy sprite shader — samples the baked texture AND multiplies by a soft
+// radial mask so the square plane edge is ALWAYS invisible (the texture corners
+// can never show as a rectangle, the bug that made them read as flat images).
+const GALAXY_SPRITE_FRAG = `
+  uniform sampler2D uTex;
+  uniform float uOpacity;
+  varying vec2 vUv;
+  void main() {
+    vec4 t = texture2D(uTex, vUv);
+    // radial vignette: 1 at centre → 0 by the edge (corners fully gone)
+    float d = length(vUv - 0.5) * 2.0;       // 0 centre, ~1.41 corner
+    float mask = 1.0 - smoothstep(0.7, 1.0, d);
+    // additive: brightness carries the look; force corners to black
+    gl_FragColor = vec4(t.rgb * uOpacity * mask, 1.0);
+  }
+`
+const GALAXY_SPRITE_VERT = `
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`
+
+/** A camera-facing billboard showing a baked galaxy texture (additive, radially
+ *  masked so the plane edge never shows). */
 function GalaxySprite({ url, size }: { url: string; size: number }) {
   const ref = useRef<Mesh>(null)
+  const matRef = useRef<ShaderMaterial>(null)
   const [tex, setTex] = useState<Texture | null>(null)
   useEffect(() => {
     let alive = true
     new TextureLoader().load(url, (t) => { t.colorSpace = SRGBColorSpace; if (alive) setTex(t) })
     return () => { alive = false }
   }, [url])
+  const uniforms = useMemo(() => ({ uTex: { value: null as Texture | null }, uOpacity: { value: 0.9 } }), [])
+  useEffect(() => { if (tex) uniforms.uTex.value = tex }, [tex, uniforms])
   useFrame(({ camera }) => { if (ref.current) ref.current.quaternion.copy(camera.quaternion) })
   if (!tex) return null
   return (
     <mesh ref={ref} renderOrder={-1}>
       <planeGeometry args={[size, size]} />
-      <meshBasicMaterial
-        map={tex}
+      <shaderMaterial
+        ref={matRef}
+        vertexShader={GALAXY_SPRITE_VERT}
+        fragmentShader={GALAXY_SPRITE_FRAG}
+        uniforms={uniforms}
         transparent
-        opacity={0.95}
         depthWrite={false}
         blending={AdditiveBlending}
-        toneMapped={false}
       />
     </mesh>
   )
@@ -6297,7 +6326,7 @@ function SkyPointMesh({
           SHAPE instead of a generic fuzzy halo. Billboarded to face the camera,
           additive. Falls through to the halo below for galaxies without a bake. */}
       {point.kind === "galaxy" && GALAXY_SPRITES[point.id] && !invert && (
-        <GalaxySprite url={GALAXY_SPRITES[point.id]} size={visualSize * 3.4} />
+        <GalaxySprite url={GALAXY_SPRITES[point.id]} size={visualSize * 2.6} />
       )}
       {/* Diffuse halo — galaxies (without a bake), nebulae, and bright stars get
           a soft halo. Black holes skip this (BlackHoleDetail handles its own). */}
