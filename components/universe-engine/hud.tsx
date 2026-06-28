@@ -156,11 +156,26 @@ export function DeepFactsDisclosure({
   const toggleClass = isSheet
     ? `font-mono text-[10px] tracking-[0.25em] uppercase text-foreground/65 hover:text-foreground transition-colors min-h-9 inline-flex items-center px-2 -mx-2 ${focusClass}`
     : `font-mono text-[9px] tracking-[0.25em] uppercase text-foreground/55 hover:text-foreground transition-colors px-1.5 -mx-1.5 py-1 -my-1 ${focusClass}`
-  const rowLabel = isSheet ? "text-foreground/55 shrink-0" : "text-foreground/55"
-  const rowValue = isSheet ? "text-foreground/85 tabular-nums" : "text-foreground/85 tabular-nums"
-  const gridClass = isSheet
-    ? "mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 font-mono text-xs"
-    : "mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 font-sans text-[10px]"
+
+  // A metric row with a label, value, and an optional comparative mini-bar
+  // (0..1 fill) so magnitudes read at a glance — reverent, not a dashboard.
+  const Metric = ({ label, value, bar }: { label: string; value: string; bar?: number }) => (
+    <div className="grid grid-cols-[auto_1fr] items-baseline gap-x-3">
+      <dt className={`font-mono uppercase tracking-wider text-foreground/45 ${isSheet ? "text-[10px]" : "text-[9px]"}`}>{label}</dt>
+      <dd className={`text-right tabular-nums text-foreground/90 ${isSheet ? "text-sm" : "text-[11px]"}`}>{value}</dd>
+      {bar !== undefined && (
+        <div className="col-span-2 mt-0.5 h-[2px] w-full overflow-hidden rounded-full bg-foreground/10">
+          <div className="h-full rounded-full bg-accent/70" style={{ width: `${Math.max(2, Math.min(100, bar * 100))}%` }} />
+        </div>
+      )}
+    </div>
+  )
+  const SectionLabel = ({ children }: { children: React.ReactNode }) => (
+    <p className={`font-mono uppercase tracking-[0.3em] text-foreground/35 ${isSheet ? "text-[9px]" : "text-[8px]"}`}>{children}</p>
+  )
+
+  const hasPhysical = deep.massEarth !== undefined || deep.densityGcc !== undefined || deep.gravity !== undefined || deep.escapeVelocityKms !== undefined
+  const hasOrbital = deep.eccentricity !== undefined || deep.discoveredYear !== undefined
 
   return (
     <div className={isSheet ? "mt-4 pt-3 border-t border-border" : "mt-3 pointer-events-auto"}>
@@ -170,51 +185,49 @@ export function DeepFactsDisclosure({
         aria-expanded={open}
         className={toggleClass}
       >
-        {open ? "− Less" : "+ More"}
+        {open ? "− Less" : "+ More data"}
       </button>
 
       {open && (
-        <dl className={gridClass}>
-          {deep.massEarth !== undefined && (
-            <>
-              <dt className={rowLabel}>Mass</dt>
-              <dd className={rowValue}>{formatMassEarth(deep.massEarth)}</dd>
-            </>
+        <div className={`${isSheet ? "mt-3 space-y-4" : "mt-2.5 space-y-3"}`}>
+          {hasPhysical && (
+            <section className="space-y-1.5">
+              <SectionLabel>Physical</SectionLabel>
+              <dl className="space-y-1.5">
+                {deep.massEarth !== undefined && (
+                  // log-scaled bar: Earth(1)→mid; spans tiny moons → gas giants
+                  <Metric label="Mass" value={formatMassEarth(deep.massEarth)} bar={(Math.log10(deep.massEarth) + 3) / 6} />
+                )}
+                {deep.densityGcc !== undefined && (
+                  <Metric label="Density" value={`${deep.densityGcc.toFixed(2)} g/cm³`} bar={deep.densityGcc / 6} />
+                )}
+                {deep.gravity !== undefined && (
+                  // bar relative to Earth gravity (9.81 m/s²)
+                  <Metric label="Gravity" value={`${formatGravityValue(deep.gravity)} · ${formatGee(deep.gravity)}`} bar={deep.gravity / 25} />
+                )}
+                {deep.escapeVelocityKms !== undefined && (
+                  <Metric label="Escape velocity" value={`${deep.escapeVelocityKms.toFixed(2)} km/s`} bar={deep.escapeVelocityKms / 60} />
+                )}
+              </dl>
+            </section>
           )}
-          {deep.densityGcc !== undefined && (
-            <>
-              <dt className={rowLabel}>Density</dt>
-              <dd className={rowValue}>{deep.densityGcc.toFixed(2)} g/cm³</dd>
-            </>
+          {hasOrbital && (
+            <section className="space-y-1.5">
+              <SectionLabel>Orbit · Discovery</SectionLabel>
+              <dl className="space-y-1.5">
+                {deep.eccentricity !== undefined && (
+                  <Metric label="Eccentricity" value={deep.eccentricity.toFixed(3)} bar={deep.eccentricity} />
+                )}
+                {deep.discoveredYear !== undefined && (
+                  <Metric
+                    label="Discovered"
+                    value={`${deep.discoveredYear}${deep.discoveredBy ? ` · ${deep.discoveredBy}` : ""}`}
+                  />
+                )}
+              </dl>
+            </section>
           )}
-          {deep.gravity !== undefined && (
-            <>
-              <dt className={rowLabel}>Gravity</dt>
-              <dd className={rowValue}>{formatGravityValue(deep.gravity)} · {formatGee(deep.gravity)}</dd>
-            </>
-          )}
-          {deep.escapeVelocityKms !== undefined && (
-            <>
-              <dt className={rowLabel}>Escape vel.</dt>
-              <dd className={rowValue}>{deep.escapeVelocityKms.toFixed(2)} km/s</dd>
-            </>
-          )}
-          {deep.eccentricity !== undefined && (
-            <>
-              <dt className={rowLabel}>Eccentricity</dt>
-              <dd className={rowValue}>{deep.eccentricity.toFixed(3)}</dd>
-            </>
-          )}
-          {deep.discoveredYear !== undefined && (
-            <>
-              <dt className={rowLabel}>Discovered</dt>
-              <dd className={rowValue}>
-                {deep.discoveredYear}
-                {deep.discoveredBy ? ` · ${deep.discoveredBy}` : ""}
-              </dd>
-            </>
-          )}
-        </dl>
+        </div>
       )}
     </div>
   )
