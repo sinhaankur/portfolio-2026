@@ -1644,6 +1644,35 @@ function AsterismLine({
   )
 }
 
+/**
+ * Constellation stars are real stars, but for most the detailed composition isn't
+ * pinned down here. This returns an HONEST exploration line: known facts for the
+ * well-studied headline stars, otherwise a clearly-labelled INFERENCE of what the
+ * star is likely like, derived only from its apparent magnitude (a real cue to
+ * luminosity class) — never presenting a guess as measured fact.
+ */
+const CONSTELLATION_STAR_LORE: Record<string, { type: string; note: string }> = {
+  Betelgeuse: { type: "Red supergiant (M1-2)", note: "~700× the Sun's radius; nearing the end of its life — a future supernova." },
+  Rigel:      { type: "Blue supergiant (B8)", note: "~120,000× the Sun's luminosity, ~860 ly away — far hotter and younger than Betelgeuse." },
+  Bellatrix:  { type: "Blue giant (B2)", note: "Hot, ~6× the Sun's mass; Orion's left shoulder." },
+  Aldebaran:  { type: "Orange giant (K5)", note: "A cooling red giant ~65 ly away — the fiery eye of Taurus." },
+  Antares:    { type: "Red supergiant (M1)", note: "The 'rival of Mars' — vast and cool, a future supernova at the heart of Scorpius." },
+  Spica:      { type: "Hot blue binary (B1)", note: "Two scorching blue stars orbiting every ~4 days, mutually distorted by gravity." },
+  Deneb:      { type: "Blue-white supergiant (A2)", note: "One of the most luminous stars known — ~1,400 ly away yet still brilliant." },
+  Vega:       { type: "White main-sequence (A0)", note: "A fast-spinning young A-star 25 ly away; defined magnitude zero." },
+  Altair:     { type: "White main-sequence (A7)", note: "Spins so fast (~9 hr) it's visibly flattened; 17 ly away." },
+  Pollux:     { type: "Orange giant (K0)", note: "The nearest giant star to the Sun (~34 ly) and host to a known exoplanet." },
+  Regulus:    { type: "Blue-white (B8)", note: "A rapid rotator near break-up speed; the heart of Leo." },
+}
+
+/** Magnitude-only inference when we don't have the star's catalogued type. */
+function inferStarCharacter(mag: number): string {
+  if (mag < 0.5)  return "very luminous — likely a giant or supergiant, or a hot nearby star"
+  if (mag < 1.5)  return "bright — probably a giant or a hot/large main-sequence star"
+  if (mag < 2.5)  return "moderately bright to the eye — a luminous distant star or a closer Sun-like one"
+  return "fainter to the eye — likely a more ordinary or more distant star"
+}
+
 function ConstellationStarMesh({
   star,
   active,
@@ -1739,12 +1768,20 @@ function ConstellationStarMesh({
         onPointerOver={(e) => {
           e.stopPropagation()
           onActivate()
-          onHover({
-            name: star.name,
-            classification: star.designation,
-            fact: `Magnitude ${star.magnitude}. ${isPolaris ? constellationFact : `Part of ${constellationName} — ${constellationFact}`}`,
-            clickable: isClickable,
-          })
+          {
+            const lore = CONSTELLATION_STAR_LORE[star.name]
+            const explore = lore
+              ? `${lore.type}. ${lore.note}`
+              : `Composition not catalogued here — but from its brightness it's ${inferStarCharacter(star.magnitude)}.`
+            onHover({
+              name: star.name,
+              classification: star.designation,
+              apparentMag: star.magnitude,
+              spectralType: lore?.type,
+              fact: `${isPolaris ? constellationFact : `Part of ${constellationName} — ${constellationFact}`}\n\n★ ${explore}`,
+              clickable: isClickable,
+            })
+          }
         }}
         onPointerOut={() => {
           onDeactivate()
