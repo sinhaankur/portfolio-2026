@@ -9,9 +9,29 @@
 
 import { useMemo, useRef, type ReactElement } from "react"
 import { useFrame } from "@react-three/fiber"
+import { useGLTF } from "@react-three/drei"
+import { SkeletonUtils } from "three-stdlib"
 import * as THREE from "three"
 import { LEVEL_1, type Level, type Hazard, type GemKind } from "./level"
 import { game } from "./state"
+
+// Blender hero props (cup / gem / door). Preload so they're ready on first frame.
+const CUP_GLB = "/models/dave/cup.glb"
+const GEM_GLB = "/models/dave/gem.glb"
+const DOOR_GLB = "/models/dave/door.glb"
+useGLTF.preload(CUP_GLB)
+useGLTF.preload(GEM_GLB)
+useGLTF.preload(DOOR_GLB)
+
+/** Deep-clone a loaded GLB scene (so many instances don't share one graph). */
+function useClonedGlb(url: string): THREE.Group {
+  const { scene } = useGLTF(url)
+  return useMemo(() => {
+    const root = SkeletonUtils.clone(scene) as THREE.Group
+    root.traverse((o) => { o.castShadow = true; o.receiveShadow = true })
+    return root
+  }, [scene])
+}
 
 export function World({ level = LEVEL_1, onWin }: { level?: Level; onWin?: () => void }) {
   const sideOn = level.style === "side"
@@ -256,8 +276,20 @@ function Gems({ level }: { level: Level }) {
     () => new THREE.MeshStandardMaterial({ color: "#ff2e4e", emissive: "#b00020", emissiveIntensity: 0.8, roughness: 0.18, metalness: 0.5 }),
     [],
   )
-  const matFor = (k: GemKind) => (k === "ball" ? ballMat : k === "ruby" ? rubyMat : diamondMat)
   const kindOf = (i: number): GemKind => level.gemKinds?.[i] ?? "diamond"
+
+  // The Blender faceted gem GLB, cloned per kind and tinted. (Balls stay spheres.)
+  const { scene: gemScene } = useGLTF(GEM_GLB)
+  const gemFor = useMemo(() => {
+    const build = (mat: THREE.Material) => {
+      const c = SkeletonUtils.clone(gemScene) as THREE.Group
+      c.traverse((o) => {
+        if ((o as THREE.Mesh).isMesh) { (o as THREE.Mesh).material = mat; o.castShadow = true }
+      })
+      return c
+    }
+    return { diamond: build(diamondMat), ruby: build(rubyMat) }
+  }, [gemScene, diamondMat, rubyMat])
 
   useFrame((st) => {
     const t = st.clock.elapsedTime
@@ -265,7 +297,6 @@ function Gems({ level }: { level: Level }) {
     if (!g) return
     g.children.forEach((child, i) => {
       if (got.current[i]) return
-      // balls don't spin; diamonds/rubies do
       if (kindOf(i) !== "ball") child.rotation.y = t * 1.5 + i
       child.position.y = level.gems[i][1] + Math.sin(t * 2 + i) * 0.14
       if (game.playerPos.distanceTo(child.position) < 1.5) {
@@ -282,17 +313,19 @@ function Gems({ level }: { level: Level }) {
     <group ref={group}>
       {level.gems.map((p, i) => {
         const k = kindOf(i)
-        return (
-          <mesh key={i} position={p} material={matFor(k)}>
-            {k === "ball" ? (
+        if (k === "ball") {
+          return (
+            <mesh key={i} position={p} material={ballMat}>
               <sphereGeometry args={[0.4, 16, 16]} />
-            ) : k === "ruby" ? (
-              // a flatter, faceted ruby (squashed octahedron)
-              <octahedronGeometry args={[0.46, 0]} />
-            ) : (
-              <octahedronGeometry args={[0.44, 0]} />
-            )}
-          </mesh>
+            </mesh>
+          )
+        }
+        // diamond / ruby → the Blender faceted gem (cloned so each instance is its own node)
+        const proto = k === "ruby" ? gemFor.ruby : gemFor.diamond
+        return (
+          <group key={i} position={p} scale={0.95}>
+            <primitive object={proto.clone()} />
+          </group>
         )
       })}
     </group>
@@ -325,10 +358,7 @@ function Pipes({ level }: { level: Level }) {
 function Trophy({ level }: { level: Level }) {
   const ref = useRef<THREE.Group>(null)
   const taken = useRef(false)
-  const gold = useMemo(
-    () => new THREE.MeshStandardMaterial({ color: "#f5c020", emissive: "#7a5e00", emissiveIntensity: 0.5, roughness: 0.25, metalness: 0.9 }),
-    [],
-  )
+  const cup = useClonedGlb(CUP_GLB)
   useFrame((st) => {
     const g = ref.current
     if (!g || taken.current) return
@@ -342,31 +372,25 @@ function Trophy({ level }: { level: Level }) {
   })
   return (
     <group ref={ref} position={level.trophy}>
-      {/* cup */}
-      <mesh material={gold}><cylinderGeometry args={[0.34, 0.22, 0.4, 16]} /></mesh>
-      <mesh position={[0, -0.32, 0]} material={gold}><cylinderGeometry args={[0.08, 0.08, 0.28, 12]} /></mesh>
-      <mesh position={[0, -0.5, 0]} material={gold}><cylinderGeometry args={[0.28, 0.28, 0.1, 16]} /></mesh>
-      {/* handles */}
-      {[-1, 1].map((s) => (
-        <mesh key={s} position={[s * 0.34, 0.02, 0]} rotation={[0, 0, Math.PI / 2]} material={gold}>
-          <torusGeometry args={[0.12, 0.03, 8, 16]} />
-        </mesh>
-      ))}
+      {/* Blender gold cup — GLB is ~0.8 tall built feet-at-origin; centre + scale */}
+      <group position={[0, -0.4, 0]} scale={1.15}>
+        <primitive object={cup} />
+      </group>
       <pointLight position={[0, 0.3, 0]} color="#ffd24a" intensity={1.2} distance={6} />
     </group>
   )
 }
 
 function Door({ level, onWin }: { level: Level; onWin?: () => void }) {
-  const frame = useRef<THREE.Mesh>(null)
   const glow = useRef<THREE.Mesh>(null)
+  const lightRef = useRef<THREE.PointLight>(null)
   const won = useRef(false)
-  const lockMat = useMemo(() => new THREE.MeshStandardMaterial({ color: "#3a3550", roughness: 0.7, metalness: 0.3 }), [])
-  const openMat = useMemo(() => new THREE.MeshStandardMaterial({ color: "#2a8f5a", emissive: "#1f7d4a", emissiveIntensity: 0.6, roughness: 0.5 }), [])
-  useFrame(() => {
+  const door = useClonedGlb(DOOR_GLB)
+  useFrame((st) => {
     const open = game.hasTrophy
-    if (frame.current) (frame.current.material = open ? openMat : lockMat)
+    // when unlocked: show the green glow + a pulsing light so it reads as "go here"
     if (glow.current) glow.current.visible = open
+    if (lightRef.current) lightRef.current.intensity = open ? 1.6 + Math.sin(st.clock.elapsedTime * 4) * 0.5 : 0
     if (open && !won.current && game.phase === "playing") {
       if (game.playerPos.distanceTo(new THREE.Vector3(...level.door)) < 1.8) {
         won.current = true
@@ -377,13 +401,17 @@ function Door({ level, onWin }: { level: Level; onWin?: () => void }) {
   })
   return (
     <group position={level.door}>
-      <mesh ref={frame} castShadow material={lockMat}>
-        <boxGeometry args={[1.4, 2.2, 0.4]} />
+      {/* Blender wooden door — GLB built feet-at-origin (~2.2 tall); centre it on
+          the level's door point. */}
+      <group position={[0, -1.0, 0]}>
+        <primitive object={door} />
+      </group>
+      {/* green "unlocked" glow + light, shown once the cup is taken */}
+      <mesh ref={glow} visible={false} position={[0, 0.1, 0.25]}>
+        <planeGeometry args={[1.0, 1.9]} />
+        <meshBasicMaterial color="#7dffc0" transparent opacity={0.4} toneMapped={false} />
       </mesh>
-      <mesh ref={glow} visible={false} position={[0, 0, 0.18]}>
-        <planeGeometry args={[0.9, 1.7]} />
-        <meshBasicMaterial color="#7dffc0" transparent opacity={0.55} toneMapped={false} />
-      </mesh>
+      <pointLight ref={lightRef} position={[0, 0.4, 0.6]} color="#7dffc0" intensity={0} distance={6} />
     </group>
   )
 }
