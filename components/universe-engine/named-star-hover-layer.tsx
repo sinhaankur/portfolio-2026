@@ -66,6 +66,49 @@ const CURATED_STAR_FACTS: Record<string, string> = {
   Toliman: "Alpha Centauri B — the Sun-like partner of Rigil Kentaurus, 4.3 ly away. The Alpha Centauri system is the prime target for interstellar mission concepts.",
 }
 
+/** Exact measured physics for well-studied stars (NASA/SIMBAD/Hipparcos).
+ *  tempK = effective surface temperature; radius = solar radii; mass = solar
+ *  masses; fusing = current nucleosynthesis stage; comp = composition note.
+ *  Drives a real-temperature colour + a sourced physics line in the panel. */
+type StarPhysical = { tempK: number; radius: number; mass: number; fusing: string; comp: string }
+const STAR_PHYSICAL: Record<string, StarPhysical> = {
+  Sirius:     { tempK: 9940,  radius: 1.71,  mass: 2.06, fusing: "Hydrogen → helium (main sequence)", comp: "Mostly hydrogen + helium; metal-rich (A-type) photosphere." },
+  Betelgeuse: { tempK: 3600,  radius: 764,   mass: 16.5, fusing: "Helium → carbon (red supergiant)", comp: "Cool H/He envelope over a shell-burning core; fusing heavier elements toward an iron core." },
+  Rigel:      { tempK: 12100, radius: 78.9,  mass: 21,   fusing: "Helium-shell burning (blue supergiant)", comp: "Hot hydrogen/helium envelope; evolving off the main sequence." },
+  Vega:       { tempK: 9602,  radius: 2.36,  mass: 2.14, fusing: "Hydrogen → helium (main sequence)", comp: "Hydrogen-dominant A-type; rapid rotator, pole hotter than equator." },
+  Arcturus:   { tempK: 4286,  radius: 25.4,  mass: 1.08, fusing: "Helium → carbon (red giant, He core burning)", comp: "Cooled, swollen H/He envelope; metal-poor (old halo star)." },
+  Aldebaran:  { tempK: 3910,  radius: 45.1,  mass: 1.16, fusing: "Helium core burning (red giant)", comp: "Cool K-type giant; helium-fusing core, hydrogen-shell around it." },
+  Antares:    { tempK: 3660,  radius: 680,   mass: 12,   fusing: "Helium → carbon (red supergiant)", comp: "Vast cool envelope; advanced shell burning, supernova-bound." },
+  Canopus:    { tempK: 7400,  radius: 71,    mass: 8,    fusing: "Helium core burning (F-type supergiant)", comp: "Evolved bright giant; carbon-oxygen core forming." },
+  Deneb:      { tempK: 8525,  radius: 203,   mass: 19,   fusing: "Helium-shell burning (blue-white supergiant)", comp: "One of the most luminous known; immense H/He envelope." },
+  Altair:     { tempK: 7550,  radius: 1.79,  mass: 1.79, fusing: "Hydrogen → helium (main sequence)", comp: "A-type; spins near break-up, visibly oblate." },
+  Spica:      { tempK: 22400, radius: 7.47,  mass: 11.4, fusing: "Hydrogen → helium (hot B main sequence)", comp: "Very hot, massive blue star; tight binary." },
+  Procyon:    { tempK: 6530,  radius: 2.05,  mass: 1.50, fusing: "Hydrogen exhausting (F subgiant)", comp: "Just leaving the main sequence; white-dwarf companion." },
+  Pollux:     { tempK: 4586,  radius: 8.8,   mass: 1.91, fusing: "Helium core burning (orange giant)", comp: "Nearest giant to the Sun; hosts a known exoplanet." },
+  Regulus:    { tempK: 12460, radius: 3.09,  mass: 3.8,  fusing: "Hydrogen → helium (B main sequence)", comp: "Hot blue-white; extreme rotation flattens it." },
+  Rigil:      { tempK: 5790,  radius: 1.22,  mass: 1.10, fusing: "Hydrogen → helium (main sequence)", comp: "Near-twin of the Sun (Alpha Centauri A); G2V." },
+  Toliman:    { tempK: 5260,  radius: 0.86,  mass: 0.91, fusing: "Hydrogen → helium (main sequence)", comp: "Sun-like K1V partner (Alpha Centauri B)." },
+  Polaris:    { tempK: 6015,  radius: 37.5,  mass: 5.4,  fusing: "Helium core burning (Cepheid supergiant)", comp: "Pulsating yellow supergiant; the North Star." },
+  Capella:    { tempK: 4970,  radius: 11.98, mass: 2.57, fusing: "Helium core burning (yellow giants)", comp: "Two evolved G-type giants in a close pair." },
+  Fomalhaut:  { tempK: 8590,  radius: 1.84,  mass: 1.92, fusing: "Hydrogen → helium (main sequence)", comp: "Young A-type with a sharp-edged debris ring." },
+}
+
+/** Effective temperature (K) → approximate blackbody RGB (real star colour). */
+function tempToRGB(tempK: number): [number, number, number] {
+  // Tanner Helland's blackbody approximation, normalised to 0..1.
+  const t = tempK / 100
+  let r: number, g: number, b: number
+  if (t <= 66) r = 255
+  else r = 329.7 * Math.pow(t - 60, -0.1332)
+  if (t <= 66) g = 99.47 * Math.log(t) - 161.12
+  else g = 288.12 * Math.pow(t - 60, -0.0755)
+  if (t >= 66) b = 255
+  else if (t <= 19) b = 0
+  else b = 138.52 * Math.log(t - 10) - 305.04
+  const cl = (x: number) => Math.max(0, Math.min(255, x)) / 255
+  return [cl(r), cl(g), cl(b)]
+}
+
 function buildStarFact(opts: {
   name: string
   mag: number
@@ -138,23 +181,30 @@ export function NamedStarHoverLayer({
       const z = BRIGHT_STAR_POSITIONS[baseIdx + 2]
       const radius = magToHitRadius(meta.m)
       const cat = catalogDesignation({ hr: meta.h, hd: meta.hd })
+      // Exact known physics (where measured) → a sourced "what it is + what it's
+      // burning" line, appended to the lore/catalog fact.
+      const phys = STAR_PHYSICAL[meta.n]
+      let fact = buildStarFact({
+        name: meta.n, mag: meta.m, distLy: meta.d, spectralType: meta.s, hr: meta.h, hd: meta.hd,
+      })
+      if (phys) {
+        fact += `\n\n☀ Measured physics — ${phys.tempK.toLocaleString()} K surface, ${phys.radius < 1 ? phys.radius.toFixed(2) : phys.radius.toLocaleString()}× the Sun's radius, ${phys.mass}× its mass. Fusing: ${phys.fusing}. ${phys.comp}`
+      }
       const info: BodyInfo = {
         name: meta.n,
         classification: buildStarClassification(meta.s),
-        fact: buildStarFact({
-          name: meta.n,
-          mag: meta.m,
-          distLy: meta.d,
-          spectralType: meta.s,
-          hr: meta.h,
-          hd: meta.hd,
-        }),
+        fact,
         clickable: isClickableStar(meta.n),
         apparentMag: meta.m,
         distanceLy: meta.d ?? undefined,
         spectralType: meta.s ?? undefined,
         catalogDesignation: cat || undefined,
       }
+      // Glow colour from REAL effective temperature where we have it (true
+      // blackbody hue), else fall back to the spectral-class colour.
+      const glowColor = phys
+        ? `rgb(${tempToRGB(phys.tempK).map((c) => Math.round(c * 255)).join(",")})`
+        : spectralGlowColor(meta.s)
       return {
         meta,
         x,
@@ -162,7 +212,7 @@ export function NamedStarHoverLayer({
         z,
         radius,
         info,
-        glowColor: spectralGlowColor(meta.s),
+        glowColor,
         showLabel: isBrightStar(meta.m),
         isClickable: isClickableStar(meta.n),
       }
