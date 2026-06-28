@@ -6162,6 +6162,11 @@ const GALAXY_SPRITES: Record<string, string> = {
   smc:  "/textures/galaxies/smc.webp",
 }
 
+/** SkyPoint id → Blender-baked nebula sprite (Hα/O-III emission clouds). */
+const NEBULA_SPRITES: Record<string, string> = {
+  m42: "/textures/nebulae/orion.webp",
+}
+
 // Galaxy sprite shader — samples the baked texture AND multiplies by a soft
 // radial mask so the square plane edge is ALWAYS invisible (the texture corners
 // can never show as a rectangle, the bug that made them read as flat images).
@@ -6328,9 +6333,15 @@ function SkyPointMesh({
       {point.kind === "galaxy" && GALAXY_SPRITES[point.id] && !invert && (
         <GalaxySprite url={GALAXY_SPRITES[point.id]} size={visualSize * 2.6} />
       )}
-      {/* Diffuse halo — galaxies (without a bake), nebulae, and bright stars get
-          a soft halo. Black holes skip this (BlackHoleDetail handles its own). */}
-      {((point.kind === "galaxy" && !(GALAXY_SPRITES[point.id] && !invert)) || point.kind === "nebula" || point.kind === "star" || isPulsar) && (
+      {/* Blender-baked nebula sprite — for the nebulae we've baked (M42 Orion),
+          show the real Hα/O-III cloud instead of a generic halo. Same masked
+          additive billboard as galaxies (radial mask = no square edge). */}
+      {point.kind === "nebula" && NEBULA_SPRITES[point.id] && !invert && (
+        <GalaxySprite url={NEBULA_SPRITES[point.id]} size={visualSize * 2.8} />
+      )}
+      {/* Diffuse halo — galaxies/nebulae WITHOUT a bake, and bright stars, get a
+          soft halo. Baked-sprite objects + black holes skip it. */}
+      {((point.kind === "galaxy" && !(GALAXY_SPRITES[point.id] && !invert)) || (point.kind === "nebula" && !(NEBULA_SPRITES[point.id] && !invert)) || point.kind === "star" || isPulsar) && (
         <mesh>
           <sphereGeometry args={[visualSize * skyAffordance.haloRadiusMul, 16, 16]} />
           <meshBasicMaterial
@@ -6346,7 +6357,7 @@ function SkyPointMesh({
       {/* Core — additive glow for galaxies/nebulae/clusters/stars, opaque dot
           for exoplanet hosts. Skipped for baked-sprite galaxies (the sprite IS
           the core) + black holes (dedicated detail component). */}
-      {point.kind !== "black-hole" && !(point.kind === "galaxy" && GALAXY_SPRITES[point.id] && !invert) && (
+      {point.kind !== "black-hole" && !(point.kind === "galaxy" && GALAXY_SPRITES[point.id] && !invert) && !(point.kind === "nebula" && NEBULA_SPRITES[point.id] && !invert) && (
         <mesh>
           <sphereGeometry args={[
             visualSize * skyAffordance.coreRadiusMul,
