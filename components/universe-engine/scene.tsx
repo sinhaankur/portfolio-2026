@@ -6149,6 +6149,44 @@ function PulsarDetail({
   )
 }
 
+/** SkyPoint id → Blender-baked galaxy sprite. Only the iconic galaxies we've
+ *  baked get the real spiral/edge-on shape; others fall back to the soft halo. */
+const GALAXY_SPRITES: Record<string, string> = {
+  m31:  "/textures/galaxies/m31.webp",
+  m33:  "/textures/galaxies/m33.webp",
+  m51:  "/textures/galaxies/m51.webp",
+  m101: "/textures/galaxies/m101.webp",
+  m104: "/textures/galaxies/m104.webp",
+  lmc:  "/textures/galaxies/lmc.webp",
+  smc:  "/textures/galaxies/smc.webp",
+}
+
+/** A camera-facing billboard showing a baked galaxy texture (additive). */
+function GalaxySprite({ url, size }: { url: string; size: number }) {
+  const ref = useRef<Mesh>(null)
+  const [tex, setTex] = useState<Texture | null>(null)
+  useEffect(() => {
+    let alive = true
+    new TextureLoader().load(url, (t) => { t.colorSpace = SRGBColorSpace; if (alive) setTex(t) })
+    return () => { alive = false }
+  }, [url])
+  useFrame(({ camera }) => { if (ref.current) ref.current.quaternion.copy(camera.quaternion) })
+  if (!tex) return null
+  return (
+    <mesh ref={ref} renderOrder={-1}>
+      <planeGeometry args={[size, size]} />
+      <meshBasicMaterial
+        map={tex}
+        transparent
+        opacity={0.95}
+        depthWrite={false}
+        blending={AdditiveBlending}
+        toneMapped={false}
+      />
+    </mesh>
+  )
+}
+
 function SkyPointMesh({
   point,
   onHover,
@@ -6253,9 +6291,16 @@ function SkyPointMesh({
 
   return (
     <group position={position}>
-      {/* Diffuse halo — galaxies, nebulae, and bright stars get a soft halo.
-          Black holes skip this (BlackHoleDetail handles its own visual). */}
-      {(point.kind === "galaxy" || point.kind === "nebula" || point.kind === "star" || isPulsar) && (
+      {/* Blender-baked galaxy sprite — for the iconic galaxies we've baked
+          (M31, M33, M51, M101, M104, LMC, SMC), show the real spiral/edge-on
+          SHAPE instead of a generic fuzzy halo. Billboarded to face the camera,
+          additive. Falls through to the halo below for galaxies without a bake. */}
+      {point.kind === "galaxy" && GALAXY_SPRITES[point.id] && !invert && (
+        <GalaxySprite url={GALAXY_SPRITES[point.id]} size={visualSize * 3.4} />
+      )}
+      {/* Diffuse halo — galaxies (without a bake), nebulae, and bright stars get
+          a soft halo. Black holes skip this (BlackHoleDetail handles its own). */}
+      {((point.kind === "galaxy" && !(GALAXY_SPRITES[point.id] && !invert)) || point.kind === "nebula" || point.kind === "star" || isPulsar) && (
         <mesh>
           <sphereGeometry args={[visualSize * skyAffordance.haloRadiusMul, 16, 16]} />
           <meshBasicMaterial
@@ -6269,9 +6314,9 @@ function SkyPointMesh({
         </mesh>
       )}
       {/* Core — additive glow for galaxies/nebulae/clusters/stars, opaque dot
-          for exoplanet hosts. Black holes use the dedicated detail
-          component so their horizon shadow is built into that. */}
-      {point.kind !== "black-hole" && (
+          for exoplanet hosts. Skipped for baked-sprite galaxies (the sprite IS
+          the core) + black holes (dedicated detail component). */}
+      {point.kind !== "black-hole" && !(point.kind === "galaxy" && GALAXY_SPRITES[point.id] && !invert) && (
         <mesh>
           <sphereGeometry args={[
             visualSize * skyAffordance.coreRadiusMul,
