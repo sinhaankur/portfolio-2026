@@ -247,6 +247,60 @@ const CLOUD_FRAGMENT_SHADER = `
 `
 
 /* ============================================================
+ * Aurora shell shader (Earth) — the real polar auroral glow.
+ *
+ * A thin shell just above the cloud layer that glows green/teal ONLY on the
+ * NIGHT side and ONLY at high latitudes (the auroral ovals around each pole),
+ * where it actually appears. Shimmering vertical "curtains" come from animated
+ * FBM in longitude. Additive blend so it reads as light, not paint. Visible on
+ * deep-zoom into Earth (opacity lerps in with the globe's focus, like clouds).
+ * Stylised but physically motivated — reverence over spectacle.
+ * ============================================================ */
+const AURORA_VERTEX_SHADER = `
+  varying vec2 vUv;
+  varying vec3 vWorldNormal;
+  void main() {
+    vUv = uv;
+    vWorldNormal = normalize(mat3(modelMatrix) * normal);
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`
+const AURORA_FRAGMENT_SHADER = `
+  uniform vec3  uSunDir;
+  uniform float uOpacity;   // master fade-in (focus) × toggle
+  uniform float uTime;      // shimmer / curtain drift
+  varying vec2 vUv;
+  varying vec3 vWorldNormal;
+
+  float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7)))*43758.5453123); }
+  float vnoise(vec2 p){
+    vec2 i=floor(p); vec2 f=fract(p); vec2 u=f*f*(3.0-2.0*f);
+    return mix(mix(hash(i),hash(i+vec2(1,0)),u.x), mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),u.x), u.y);
+  }
+  float fbm(vec2 p){ float v=0.0,a=0.5; for(int i=0;i<4;i++){ v+=a*vnoise(p); p*=2.0; a*=0.5; } return v; }
+
+  void main() {
+    // latitude band: vUv.y is 0 at the south pole, 1 at the north (sphere UV).
+    // The auroral ovals sit ~65-75° — i.e. near both poles, not the equator.
+    float lat = abs(vUv.y - 0.5) * 2.0;            // 0 equator → 1 pole
+    float oval = smoothstep(0.62, 0.78, lat) * (1.0 - smoothstep(0.9, 1.0, lat));
+
+    // NIGHT side only (inverse of the cloud day-side test).
+    float NdotL = dot(normalize(vWorldNormal), normalize(uSunDir));
+    float night = smoothstep(0.10, -0.15, NdotL);
+
+    // shimmering vertical curtains: animated noise in longitude
+    float curtains = fbm(vec2(vUv.x * 26.0 + uTime * 0.25, lat * 6.0 - uTime * 0.05));
+    curtains = smoothstep(0.45, 0.95, curtains);
+
+    float intensity = oval * night * curtains;
+    // green at the base shading to teal/violet higher up the curtain
+    vec3 col = mix(vec3(0.15, 1.0, 0.45), vec3(0.35, 0.65, 1.0), smoothstep(0.62, 0.86, lat));
+    gl_FragColor = vec4(col, intensity * uOpacity * 0.9);
+  }
+`
+
+/* ============================================================
  * Nebula haze shader — big soft additive billboards for diffuse gas/dust.
  * Each point is a large, very soft radial blob with a gentle per-cloud
  * twinkle so the haze breathes. Color + size + alpha come from attributes.
@@ -2832,6 +2886,16 @@ function PlanetBody({
     }),
     [],
   )
+  // Earth's polar aurora shell — night-side, high-latitude glow (deep-zoom).
+  const auroraMatRef = useRef<ShaderMaterial | null>(null)
+  const auroraUniforms = useMemo(
+    () => ({
+      uSunDir:  { value: new Vector3(1, 0, 0) },
+      uOpacity: { value: 0 },
+      uTime:    { value: 0 },
+    }),
+    [],
+  )
 
   // Atmospheric scattering shell uniforms — sun-aware Fresnel limb glow.
   const atmosShaderRef = useRef<ShaderMaterial | null>(null)
@@ -2957,6 +3021,18 @@ function PlanetBody({
       const target = texture && cloudsVisibleRef.current ? 0.9 : 0
       cloudUniforms.uOpacity.value += (target - cloudUniforms.uOpacity.value) * k
     }
+    // Earth's polar aurora shell — shimmers on the NIGHT side at high latitudes.
+    // Fades in only on deep engagement (hover/focus) so it's a deep-zoom reward,
+    // sharing the cloud toggle so "hide clouds" also hides the aurora.
+    if (isEarth && auroraMatRef.current) {
+      auroraUniforms.uTime.value += delta * tw
+      meshRef.current?.getWorldPosition(_earthWorldPos)
+      _sunWorldPos.set(SUN_OFFSET_SCENE, 0, 0)
+      auroraUniforms.uSunDir.value.copy(_sunDirTmp.copy(_sunWorldPos).sub(_earthWorldPos).normalize())
+      const k = 1 - Math.exp(-delta * 5)
+      const target = detailActive && cloudsVisibleRef.current ? 1 : 0
+      auroraUniforms.uOpacity.value += (target - auroraUniforms.uOpacity.value) * k
+    }
     // Rocky-planet atmospheric scattering shell — fades in on hover/focus.
     // Per-planet peak intensity matches real atmospheric depth (Venus dense,
     // Earth iconic-but-thinner, Mars almost transparent). The shader handles
@@ -3056,6 +3132,22 @@ function PlanetBody({
                   uniforms={cloudUniforms}
                   transparent
                   depthWrite={false}
+                />
+              </mesh>
+            )}
+            {/* Earth's polar aurora — just above the clouds, additive, night-side
+                + high-latitude only. A deep-zoom reward. */}
+            {isEarth && (
+              <mesh>
+                <sphereGeometry args={[planet.visualRadius * 1.035, 96, 96]} />
+                <shaderMaterial
+                  ref={auroraMatRef as React.Ref<ShaderMaterial>}
+                  vertexShader={AURORA_VERTEX_SHADER}
+                  fragmentShader={AURORA_FRAGMENT_SHADER}
+                  uniforms={auroraUniforms}
+                  transparent
+                  depthWrite={false}
+                  blending={AdditiveBlending}
                 />
               </mesh>
             )}
