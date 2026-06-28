@@ -86,6 +86,12 @@ App-router routes under [`app/`](./app):
 
 ## The Universe Engine
 
+**Standards:** every change is held to the five pillars in
+[`components/universe-engine/ENGINE-STANDARDS.md`](./components/universe-engine/ENGINE-STANDARDS.md)
+(Truth · Performance · Presentation · Robustness · Accessibility). True north:
+restore the real sky, faithfully + understandably; reverence over spectacle; real
+over invented. Pure-GLSL — no GLB meshes in the engine (Blender may bake textures only).
+
 The galaxy hero is powered by a self-contained R3F module in
 [`components/universe-engine/`](./components/universe-engine):
 
