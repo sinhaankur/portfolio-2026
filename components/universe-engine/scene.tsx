@@ -6179,18 +6179,6 @@ function PulsarDetail({
   )
 }
 
-/** SkyPoint id → Blender-baked galaxy sprite. Only the iconic galaxies we've
- *  baked get the real spiral/edge-on shape; others fall back to the soft halo. */
-const GALAXY_SPRITES: Record<string, string> = {
-  m31:  "/textures/galaxies/m31.webp",
-  m33:  "/textures/galaxies/m33.webp",
-  m51:  "/textures/galaxies/m51.webp",
-  m101: "/textures/galaxies/m101.webp",
-  m104: "/textures/galaxies/m104.webp",
-  lmc:  "/textures/galaxies/lmc.webp",
-  smc:  "/textures/galaxies/smc.webp",
-}
-
 /** SkyPoint id → Blender-baked nebula sprite (Hα/O-III emission clouds). */
 const NEBULA_SPRITES: Record<string, string> = {
   m42: "/textures/nebulae/orion.webp",
@@ -6334,8 +6322,145 @@ const GALAXY_SPRITE_VERT = `
   }
 `
 
+/** Per-galaxy 3D form. tilt = inclination of the disc (rad, 0 = face-on,
+ *  ~1.5 = edge-on); type drives arm/bulge proportions; color = star palette bias. */
+const GALAXY_3D: Record<string, { tilt: number; type: "spiral" | "edgeon" | "irregular"; warm: boolean; scale: number }> = {
+  // scale reflects real relative size: Andromeda (~152k ly, larger than the
+  // Milky Way) is the biggest here; the Magellanic dwarfs are small.
+  m31:  { tilt: 1.30, type: "spiral",     warm: true,  scale: 1.5 }, // Andromeda — biggest
+  m33:  { tilt: 0.95, type: "spiral",     warm: false, scale: 0.9 }, // Triangulum
+  m51:  { tilt: 0.35, type: "spiral",     warm: false, scale: 1.0 }, // Whirlpool
+  m101: { tilt: 0.40, type: "spiral",     warm: false, scale: 1.25 }, // Pinwheel — large
+  m104: { tilt: 1.48, type: "edgeon",     warm: true,  scale: 1.1 }, // Sombrero
+  lmc:  { tilt: 0.70, type: "irregular",  warm: false, scale: 0.55 }, // LMC — dwarf
+  smc:  { tilt: 0.80, type: "irregular",  warm: false, scale: 0.4 },  // SMC — smaller dwarf
+}
+
+const GAL3D_VERT = `
+  attribute float aSize;
+  attribute vec3 aColor;
+  varying vec3 vColor;
+  uniform float uPixelRatio;
+  uniform float uScale;
+  void main() {
+    vColor = aColor;
+    vec4 mv = modelViewMatrix * vec4(position, 1.0);
+    gl_Position = projectionMatrix * mv;
+    gl_PointSize = aSize * uScale * uPixelRatio * (14.0 / -mv.z);
+    gl_PointSize = clamp(gl_PointSize, 0.6, 7.0);
+  }
+`
+const GAL3D_FRAG = `
+  varying vec3 vColor;
+  uniform float uOpacity;
+  void main() {
+    vec2 uv = gl_PointCoord - 0.5;
+    float d = length(uv);
+    if (d > 0.5) discard;
+    float a = pow(1.0 - d * 2.0, 1.8);
+    gl_FragColor = vec4(vColor, a * uOpacity);
+  }
+`
+
+/**
+ * Galaxy3D — a real THREE-DIMENSIONAL galaxy: a procedural particle disc (spiral
+ * arms + bulge + genuine thickness), tilted to the galaxy's inclination. Unlike a
+ * flat billboard it has true depth + parallax — you see it from different angles
+ * as the camera moves, the way a real object in 3-space does. Generated once.
+ */
+function Galaxy3D({ id, size, invert }: { id: string; size: number; invert: boolean }) {
+  const cfg = GALAXY_3D[id] ?? { tilt: 0.8, type: "spiral" as const, warm: false, scale: 1.0 }
+  const groupRef = useRef<Group>(null)
+  const matRef = useRef<ShaderMaterial>(null)
+
+  const geometry = useMemo(() => {
+    const arm = 3200
+    const bulge = 900
+    const total = arm + bulge
+    const pos = new Float32Array(total * 3)
+    const col = new Float32Array(total * 3)
+    const siz = new Float32Array(total)
+    const R = 1.0
+    const branches = cfg.type === "irregular" ? 2 : (cfg.type === "edgeon" ? 2 : 4)
+    const spin = cfg.type === "spiral" ? 2.4 : 1.0
+    const thickness = cfg.type === "edgeon" ? 0.05 : 0.10
+    const irregular = cfg.type === "irregular"
+
+    const setCol = (i: number, r: number, g: number, b: number) => {
+      if (invert) { col[i*3]=0.05; col[i*3+1]=0.05; col[i*3+2]=0.05 }
+      else { col[i*3]=r; col[i*3+1]=g; col[i*3+2]=b }
+    }
+    // arms
+    for (let i = 0; i < arm; i++) {
+      const r = Math.pow(Math.random(), 0.7) * R
+      const branch = (i % branches) / branches * Math.PI * 2
+      const spinA = r * spin
+      const scatter = irregular ? (Math.random() - 0.5) * 2.5 : 0
+      const a = branch + spinA + scatter
+      const jitter = (irregular ? 0.5 : 0.18) * r
+      const rx = (Math.random()-0.5) * jitter * 2
+      const rz = (Math.random()-0.5) * jitter * 2
+      pos[i*3]   = Math.cos(a) * r + rx
+      pos[i*3+1] = (Math.random()-0.5) * thickness * 2 * (1 - r*0.5)
+      pos[i*3+2] = Math.sin(a) * r + rz
+      siz[i] = 1.0 + Math.pow(Math.random(),3)*3
+      const normR = r / R
+      if (Math.random() < 0.2 + normR*0.3) setCol(i, 0.75, 0.83, 1.0)     // blue
+      else if (Math.random() < 0.5) setCol(i, 0.97,0.97,0.97)             // white
+      else setCol(i, 1.0, cfg.warm?0.88:0.92, cfg.warm?0.7:0.8)          // warm
+    }
+    // bulge
+    for (let i = 0; i < bulge; i++) {
+      const idx = arm + i
+      const r = Math.abs((Math.random()+Math.random()+Math.random())/3 - 0.5) * 2 * R * 0.3
+      const th = Math.random()*Math.PI*2
+      const ph = (Math.random()-0.5) * (cfg.type==="edgeon" ? 0.9 : 0.5)
+      pos[idx*3]   = r*Math.cos(th)*Math.cos(ph)
+      pos[idx*3+1] = r*Math.sin(ph)*(cfg.type==="edgeon"?0.7:0.5)
+      pos[idx*3+2] = r*Math.sin(th)*Math.cos(ph)
+      siz[idx] = 1.0 + Math.pow(Math.random(),3)*2
+      setCol(idx, 1.0, 0.9, 0.72)   // warm old core
+    }
+    const g = new BufferGeometry()
+    g.setAttribute("position", new BufferAttribute(pos, 3))
+    g.setAttribute("aColor", new BufferAttribute(col, 3))
+    g.setAttribute("aSize", new BufferAttribute(siz, 1))
+    return g
+  }, [id, invert, cfg.type, cfg.warm])
+
+  const uniforms = useMemo(() => ({
+    uOpacity: { value: invert ? 0.9 : 0.85 },
+    uPixelRatio: { value: typeof window !== "undefined" ? Math.min(window.devicePixelRatio, 2) : 1 },
+    uScale: { value: 1 },
+  }), [invert])
+
+  useFrame((_, delta) => {
+    if (groupRef.current) groupRef.current.rotation.y += delta * 0.04
+  })
+
+  return (
+    // outer group: tilt the disc to the galaxy's inclination → real 3D orientation;
+    // per-galaxy scale reflects real relative size (Andromeda largest).
+    <group rotation={[cfg.tilt, 0, 0]} scale={size * cfg.scale}>
+      <group ref={groupRef}>
+        <points geometry={geometry}>
+          <shaderMaterial
+            ref={matRef}
+            vertexShader={GAL3D_VERT}
+            fragmentShader={GAL3D_FRAG}
+            uniforms={uniforms}
+            transparent
+            depthWrite={false}
+            blending={invert ? NormalBlending : AdditiveBlending}
+          />
+        </points>
+      </group>
+    </group>
+  )
+}
+
 /** A camera-facing billboard showing a baked galaxy texture (additive, radially
- *  masked so the plane edge never shows). */
+ *  masked so the plane edge never shows). Kept as a far-distance LOD fallback. */
 function GalaxySprite({ url, size }: { url: string; size: number }) {
   const ref = useRef<Mesh>(null)
   const matRef = useRef<ShaderMaterial>(null)
@@ -6473,8 +6598,8 @@ function SkyPointMesh({
           (M31, M33, M51, M101, M104, LMC, SMC), show the real spiral/edge-on
           SHAPE instead of a generic fuzzy halo. Billboarded to face the camera,
           additive. Falls through to the halo below for galaxies without a bake. */}
-      {point.kind === "galaxy" && GALAXY_SPRITES[point.id] && !invert && (
-        <GalaxySprite url={GALAXY_SPRITES[point.id]} size={visualSize * 2.6} />
+      {point.kind === "galaxy" && GALAXY_3D[point.id] && (
+        <Galaxy3D id={point.id} size={visualSize * 1.7} invert={invert} />
       )}
       {/* Blender-baked nebula sprite — for the nebulae we've baked (M42 Orion),
           show the real Hα/O-III cloud instead of a generic halo. Same masked
@@ -6484,7 +6609,7 @@ function SkyPointMesh({
       )}
       {/* Diffuse halo — galaxies/nebulae WITHOUT a bake, and bright stars, get a
           soft halo. Baked-sprite objects + black holes skip it. */}
-      {((point.kind === "galaxy" && !(GALAXY_SPRITES[point.id] && !invert)) || (point.kind === "nebula" && !(NEBULA_SPRITES[point.id] && !invert)) || point.kind === "star" || isPulsar) && (
+      {((point.kind === "galaxy" && !GALAXY_3D[point.id]) || (point.kind === "nebula" && !(NEBULA_SPRITES[point.id] && !invert)) || point.kind === "star" || isPulsar) && (
         <mesh>
           <sphereGeometry args={[visualSize * skyAffordance.haloRadiusMul, 16, 16]} />
           <meshBasicMaterial
@@ -6500,7 +6625,7 @@ function SkyPointMesh({
       {/* Core — additive glow for galaxies/nebulae/clusters/stars, opaque dot
           for exoplanet hosts. Skipped for baked-sprite galaxies (the sprite IS
           the core) + black holes (dedicated detail component). */}
-      {point.kind !== "black-hole" && !(point.kind === "galaxy" && GALAXY_SPRITES[point.id] && !invert) && !(point.kind === "nebula" && NEBULA_SPRITES[point.id] && !invert) && (
+      {point.kind !== "black-hole" && !(point.kind === "galaxy" && GALAXY_3D[point.id]) && !(point.kind === "nebula" && NEBULA_SPRITES[point.id] && !invert) && (
         <mesh>
           <sphereGeometry args={[
             visualSize * skyAffordance.coreRadiusMul,
