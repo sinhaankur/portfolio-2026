@@ -42,7 +42,7 @@ import { simTimeRef, requestFollow, focusDepthRef, daysSinceJ2000 } from "./astr
  *  nativeSpan  the GLB's native width in model units (measured at export)
  *  k           scale coefficient: trueScale = k * earthVisualRadius
  */
-type ArchetypeId = "cubesat" | "starlink" | "gps" | "comsat" | "debris" | "rocketbody" | "telescope"
+type ArchetypeId = "cubesat" | "starlink" | "gps" | "comsat" | "debris" | "rocketbody" | "telescope" | "station" | "weather" | "smallsat"
 type Archetype = { url: string; label: string; realSpanM: number; nativeSpan: number; k: number }
 function mkArch(url: string, label: string, realSpanM: number, nativeSpan: number): Archetype {
   return { url, label, realSpanM, nativeSpan, k: realSpanM / 1000 / 6371 / nativeSpan }
@@ -55,6 +55,9 @@ const ARCHETYPES: Record<ArchetypeId, Archetype> = {
   debris:     mkArch("/models/satellite-debris.glb",   "Debris fragment",     1.0, 2.0),
   rocketbody: mkArch("/models/satellite-rocketbody.glb","Spent rocket stage", 10, 4.0),
   telescope:  mkArch("/models/satellite-telescope.glb","Space telescope",     13, 3.5),
+  station:    mkArch("/models/satellite-station.glb",  "Space station",      109, 6.8),
+  weather:    mkArch("/models/satellite-weather.glb",  "Weather / GEO sat",   24, 4.5),
+  smallsat:   mkArch("/models/satellite-smallsat.glb", "Smallsat",             2.0, 4.3),
 }
 for (const a of Object.values(ARCHETYPES)) useGLTF.preload(a.url)
 
@@ -64,6 +67,11 @@ export function classifyArchetype(name: string, owner: string, altKm: number, ty
   if (type === "DEB") return "debris"
   if (type === "R/B") return "rocketbody"
   const n = name.toUpperCase()
+  // Crewed stations
+  if (n.includes("ISS") || n.includes("ZARYA") || n.includes("TIANGONG") ||
+      n.includes("CSS (") || n.includes("MIR") || n.includes("TIANHE"))
+    return "station"
+  // Space telescopes / observatories
   if (n.includes("HUBBLE") || n.includes("HST") || n.includes("KEPLER") || n.includes("TESS") ||
       n.includes("SPITZER") || n.includes("CHANDRA") || n.includes("JWST") || n.includes("WEBB") ||
       n.includes("GAIA") || n.includes("XMM") || n.includes("TELESCOPE"))
@@ -72,6 +80,14 @@ export function classifyArchetype(name: string, owner: string, altKm: number, ty
   if (n.includes("GPS") || n.includes("GLONASS") || n.includes("GALILEO") ||
       n.includes("NAVSTAR") || n.includes("BEIDOU") || n.includes("IRNSS") || n.includes("QZS"))
     return "gps"
+  // Weather / Earth-observation buses (often GEO or sun-sync)
+  if (n.includes("GOES") || n.includes("METEOSAT") || n.includes("HIMAWARI") ||
+      n.includes("NOAA") || n.includes("METOP") || n.includes("FENGYUN") || n.includes("INSAT"))
+    return "weather"
+  // Small commercial constellations / cubesats
+  if (n.includes("FLOCK") || n.includes("DOVE") || n.includes("SUPERDOVE") ||
+      n.includes("LEMUR") || n.includes("SPIRE") || n.includes("ICEYE") || n.includes("CUBESAT"))
+    return "smallsat"
   // navigation lives at MEO (~19,000–23,000 km); comms/weather at GEO (~35,786 km)
   if (altKm > 30000) return "comsat"
   if (altKm > 15000) return "gps"
