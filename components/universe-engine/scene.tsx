@@ -69,6 +69,7 @@ import {
   TIME_WARP_DAYS_PER_SEC,
   blackHoleHorizonGravityMetersPerSec2,
   buildScenePlanets,
+  compressRadius,
   constellations,
   daysSinceJ2000,
   eccentricToTrue,
@@ -3074,16 +3075,26 @@ function PlanetBody({
     // slow at aphelion — matching the textbook Keplerian behaviour. The
     // periRad offset rotates the apsidal line so perihelion points the
     // real direction.
+    // Live base orbit radius — recomputed from the ACTIVE scale mode each frame
+    // (explore = sqrt-compressed; true = linear AU) and lerped, so flipping the
+    // true-scale toggle smoothly spreads the planets to their real ratios instead
+    // of snapping. Falls back to the static layout radius if aAU is absent.
+    const baseR = planet.raw.aAU != null ? compressRadius(planet.raw.aAU) : planet.orbitRadius
     if (useEllipticalOrbit && positionRef.current && orbitRef.current) {
       const E = solveKepler(M, eccentricity)
       const trueAnom = eccentricToTrue(E, eccentricity)
-      const r = (planet.orbitRadius * (1 - eccentricity * eccentricity)) /
+      const r = (baseR * (1 - eccentricity * eccentricity)) /
                 (1 + eccentricity * Math.cos(trueAnom))
       orbitRef.current.rotation.y = trueAnom + periRad
-      positionRef.current.position.x = r
+      const k = 1 - Math.exp(-delta * 3)
+      positionRef.current.position.x += (r - positionRef.current.position.x) * k
     } else if (orbitRef.current) {
       // Circular orbit (or near-circular): true anomaly == mean anomaly.
       orbitRef.current.rotation.y = M + periRad
+      if (positionRef.current) {
+        const k = 1 - Math.exp(-delta * 3)
+        positionRef.current.position.x += (baseR - positionRef.current.position.x) * k
+      }
     }
 
 
@@ -3519,17 +3530,32 @@ function PlanetBody({
 
 function OrbitRing({
   radius,
+  aAU,
   inclination,
   eccentricity = 0,
   invert = false,
 }: {
   radius: number
+  /** Real semi-major axis (AU). When present, the ring rescales live with the
+   *  active scale mode (explore ↔ true) so it tracks the planet's live radius. */
+  aAU?: number
   inclination: number
   /** Optional orbital eccentricity. When > 0, draws a polar-form ellipse with
    *  the Sun at one focus (the astronomically correct shape). 0 = circle. */
   eccentricity?: number
   invert?: boolean
 }) {
+  // The geometry is baked at the static `radius`; to honour the live scale mode
+  // we uniformly scale the whole ring group by liveRadius/radius each frame
+  // (both circle + ellipse scale linearly with radius, so this stays exact).
+  const scaleRef = useRef<Group>(null)
+  useFrame((_, delta) => {
+    if (!scaleRef.current || aAU == null || radius <= 0) return
+    const target = compressRadius(aAU) / radius
+    const k = 1 - Math.exp(-delta * 3)
+    const s = scaleRef.current.scale.x + (target - scaleRef.current.scale.x) * k
+    scaleRef.current.scale.set(s, s, s)
+  })
   const geometry = useMemo(() => {
     const segments = 192
     const arr = new Float32Array((segments + 1) * 3)
@@ -3570,16 +3596,18 @@ function OrbitRing({
   const opacity = isEccentric ? baseOpacity * 0.55 : baseOpacity
 
   return (
-    <group rotation={[inclination, 0, 0]}>
-      <line geometry={geometry}>
-        <lineBasicMaterial
-          // Faint hairline orbits — ink on cream needs ~6× the opacity to
-          // read at the same value as white-on-black.
-          color={invert ? "#0a0a0a" : "#ffffff"}
-          transparent
-          opacity={opacity}
-        />
-      </line>
+    <group ref={scaleRef}>
+      <group rotation={[inclination, 0, 0]}>
+        <line geometry={geometry}>
+          <lineBasicMaterial
+            // Faint hairline orbits — ink on cream needs ~6× the opacity to
+            // read at the same value as white-on-black.
+            color={invert ? "#0a0a0a" : "#ffffff"}
+            transparent
+            opacity={opacity}
+          />
+        </line>
+      </group>
     </group>
   )
 }
@@ -3781,6 +3809,7 @@ function SolarSystem({
         <OrbitRing
           key={`orbit-${p.raw.name}`}
           radius={p.orbitRadius}
+          aAU={p.raw.aAU}
           inclination={p.inclination}
           eccentricity={p.raw.deep?.eccentricity ?? 0}
           invert={invert}
