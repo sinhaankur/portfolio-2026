@@ -169,15 +169,17 @@ const VERT = /* glsl */ `
   uniform float uIsolate;   // 1.0 = a satellite is selected → hide the whole swarm
   varying vec3 vColor;
   varying float vHidden;
+  varying float vDebris;   // passed to frag → debris drawn dimmer (active stand out)
   void main() {
     vColor = aColor;
+    vDebris = aDebris;
     // Launch gating: not yet launched → collapse to zero size.
     // Isolate: when one satellite is selected we hide the rest (show only the GLB).
     vHidden = (aLaunchDay > uTimeDay || uIsolate > 0.5) ? 1.0 : 0.0;
     vec4 mv = modelViewMatrix * vec4(position, 1.0);
     gl_Position = projectionMatrix * mv;
-    // debris are tiny fragments → ~60% the size of an active satellite dot.
-    float sizeMul = aDebris > 0.5 ? 0.6 : 1.0;
+    // debris are tiny fragments → ~55% the size of an active satellite dot.
+    float sizeMul = aDebris > 0.5 ? 0.55 : 1.0;
     float s = vHidden > 0.5 ? 0.0 : uSize * sizeMul * uPixelRatio * (1.0 / -mv.z);
     gl_PointSize = clamp(s, 0.0, 4.0);
   }
@@ -186,12 +188,21 @@ const FRAG = /* glsl */ `
   precision mediump float;
   varying vec3 vColor;
   varying float vHidden;
+  varying float vDebris;
   void main() {
     if (vHidden > 0.5) discard;
-    // round point
+    // Soft round dot: a tight bright core + a gentle halo, so dense regions read
+    // as a glow rather than aliased squares — and the field is legible at distance.
     vec2 c = gl_PointCoord - 0.5;
-    if (dot(c, c) > 0.25) discard;
-    gl_FragColor = vec4(vColor, 0.9);
+    float d = length(c);
+    if (d > 0.5) discard;
+    float core = 1.0 - smoothstep(0.0, 0.22, d);
+    float halo = pow(1.0 - smoothstep(0.18, 0.5, d), 1.6) * 0.5;
+    float a = max(core, halo);
+    // Debris dimmer than active payloads → the live constellations pop, the junk
+    // recedes into a hazard haze (the LeoLabs active-vs-debris read).
+    a *= vDebris > 0.5 ? 0.55 : 1.0;
+    gl_FragColor = vec4(vColor, a);
   }
 `
 
