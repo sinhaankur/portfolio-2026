@@ -383,12 +383,19 @@ const NEBULA_VERTEX_SHADER = `
 const NEBULA_FRAGMENT_SHADER = `
   varying float vAlpha;
   varying vec3  vColor;
+  uniform sampler2D uTex;
+  uniform float uHasTex;
   void main() {
     vec2 uv = gl_PointCoord * 2.0 - 1.0;
     float d = length(uv);
     if (d > 1.0) discard;
-    // Very soft falloff — gas haze, not a star. Squared for a smooth core.
+    // Procedural soft falloff — gas haze, not a star. Squared for a smooth core.
     float a = pow(1.0 - d, 2.4);
+    // Blender-baked filament sprite (alpha = cloud density) when available —
+    // gives real wispy structure instead of a plain blob.
+    if (uHasTex > 0.5) {
+      a = texture2D(uTex, gl_PointCoord).a;
+    }
     gl_FragColor = vec4(vColor, a * vAlpha);
   }
 `
@@ -791,6 +798,19 @@ function NebulaClouds({ mobile = false }: { mobile?: boolean }) {
   const dustRef = useRef<Points>(null)
   const { gl } = useThree()
 
+  // Blender-baked nebula sprite (wispy filaments + soft radial fade) — richer
+  // than the procedural radial falloff. Loaded async; the shader falls back to
+  // the procedural blob until it lands (uHasTex flag).
+  const [nebulaTex, setNebulaTex] = useState<Texture | null>(null)
+  useEffect(() => {
+    let alive = true
+    new TextureLoader().load("/textures/nebula-sprite.webp", (t) => {
+      t.colorSpace = SRGBColorSpace
+      if (alive) setNebulaTex(t)
+    })
+    return () => { alive = false }
+  }, [])
+
   const geometry = useMemo(() => {
     const radius = GALAXY_RADIUS_SCENE
     const branches = 4
@@ -884,6 +904,8 @@ function NebulaClouds({ mobile = false }: { mobile?: boolean }) {
     () => ({
       uTime: { value: 0 },
       uPixelRatio: { value: Math.min(gl.getPixelRatio(), 2) },
+      uTex: { value: null as Texture | null },
+      uHasTex: { value: 0 },
     }),
     [gl],
   )
@@ -891,9 +913,17 @@ function NebulaClouds({ mobile = false }: { mobile?: boolean }) {
     () => ({
       uTime: { value: 0 },
       uPixelRatio: { value: Math.min(gl.getPixelRatio(), 2) },
+      uTex: { value: null as Texture | null },
+      uHasTex: { value: 0 },
     }),
     [gl],
   )
+  // Feed the baked sprite into both materials once it loads.
+  useEffect(() => {
+    if (!nebulaTex) return
+    uniforms.uTex.value = nebulaTex; uniforms.uHasTex.value = 1
+    dustUniforms.uTex.value = nebulaTex; dustUniforms.uHasTex.value = 1
+  }, [nebulaTex, uniforms, dustUniforms])
 
   useFrame((_, delta) => {
     // Drift with the disc (slow), and breathe via uTime.
