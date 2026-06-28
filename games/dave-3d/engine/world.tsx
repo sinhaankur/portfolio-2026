@@ -19,9 +19,11 @@ import { game } from "./state"
 const CUP_GLB = "/models/dave/cup.glb"
 const GEM_GLB = "/models/dave/gem.glb"
 const DOOR_GLB = "/models/dave/door.glb"
+const BRICK_GLB = "/models/dave/brick-panel.glb"
 useGLTF.preload(CUP_GLB)
 useGLTF.preload(GEM_GLB)
 useGLTF.preload(DOOR_GLB)
+useGLTF.preload(BRICK_GLB)
 
 /** Deep-clone a loaded GLB scene (so many instances don't share one graph). */
 function useClonedGlb(url: string): THREE.Group {
@@ -241,9 +243,9 @@ function Platforms({ level }: { level: Level }) {
   }, [])
   return (
     <group>
+      {/* the box body (depth + sides + the textured back) */}
       {level.platforms.map((b, i) => {
         const color = b.tint ?? brick
-        // tile the brick texture by box size so bricks stay a consistent size
         const m = matFor(color).clone()
         if (m.map) {
           m.map = m.map.clone()
@@ -256,8 +258,83 @@ function Platforms({ level }: { level: Level }) {
           </mesh>
         )
       })}
+      {/* real 3D brick relief tiled across each platform's FRONT face (-Z) */}
+      <BrickRelief level={level} />
     </group>
   )
+}
+
+/**
+ * BrickRelief — instanced Blender brick panels tiled over every platform's front
+ * (-Z) face, giving real masonry depth instead of a flat texture. Two
+ * InstancedMeshes (brick faces + mortar) share one set of per-panel transforms.
+ */
+function BrickRelief({ level }: { level: Level }) {
+  const { scene } = useGLTF(BRICK_GLB)
+  const baseBrick = level.brick ?? "#6b5a47"
+
+  // pull the two sub-meshes (brick face / mortar) out of the panel GLB
+  const { faceGeo, mortarGeo, mortarMat } = useMemo(() => {
+    let face: THREE.BufferGeometry | null = null
+    let mortar: THREE.BufferGeometry | null = null
+    let mMat: THREE.Material | null = null
+    scene.traverse((o) => {
+      const mesh = o as THREE.Mesh
+      if (!mesh.isMesh) return
+      const matName = (mesh.material as THREE.Material)?.name ?? ""
+      if (matName.includes("mortar")) { mortar = mesh.geometry; mMat = mesh.material as THREE.Material }
+      else { face = mesh.geometry }
+    })
+    return { faceGeo: face, mortarGeo: mortar, mortarMat: mMat }
+  }, [scene])
+
+  // build per-panel instance matrices: tile the 1×1 panel across each platform
+  // front face. The panel sits in the X-Y plane, pushed to the box front (-Z).
+  const matrices = useMemo(() => {
+    const out: THREE.Matrix4[] = []
+    const T = 1.4 // panel world size (one tile)
+    const m = new THREE.Matrix4()
+    const q = new THREE.Quaternion()
+    const s = new THREE.Vector3()
+    const pos = new THREE.Vector3()
+    for (const b of level.platforms) {
+      const [bx, by, bz] = b.pos
+      const [sx, sy, sz] = b.size
+      const cols = Math.max(1, Math.round(sx / T))
+      const rows = Math.max(1, Math.round(sy / T))
+      const cw = sx / cols, ch = sy / rows
+      const frontZ = bz + sz / 2 + 0.001
+      for (let c = 0; c < cols; c++) {
+        for (let r = 0; r < rows; r++) {
+          pos.set(bx - sx / 2 + cw * (c + 0.5), by - sy / 2 + ch * (r + 0.5), frontZ)
+          s.set(cw, ch, 0.5) // scale the 1×1 panel to fill this cell, shallow on Z
+          out.push(new THREE.Matrix4().compose(pos, q, s))
+        }
+      }
+    }
+    void m; void q
+    return out
+  }, [level])
+
+  const faceMat = useMemo(
+    () => new THREE.MeshStandardMaterial({ color: new THREE.Color(baseBrick), roughness: 0.9, metalness: 0.05 }),
+    [baseBrick],
+  )
+
+  if (!faceGeo || !mortarGeo) return null
+  return (
+    <group>
+      <instancedMesh args={[faceGeo, faceMat, matrices.length]} ref={(im) => applyMatrices(im, matrices)} castShadow receiveShadow />
+      <instancedMesh args={[mortarGeo, mortarMat ?? undefined, matrices.length]} ref={(im) => applyMatrices(im, matrices)} />
+    </group>
+  )
+}
+
+function applyMatrices(im: THREE.InstancedMesh | null, matrices: THREE.Matrix4[]) {
+  if (!im) return
+  matrices.forEach((mx, i) => im.setMatrixAt(i, mx))
+  im.instanceMatrix.needsUpdate = true
+  im.count = matrices.length
 }
 
 function Gems({ level }: { level: Level }) {
