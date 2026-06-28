@@ -308,7 +308,10 @@ export function UniverseEngine({
     <div ref={containerRef} className="relative w-full h-full ue-engine-fade-in">
       <Canvas
         // Camera default: close to the solar system on the Orion Arm.
-        camera={{ position: [SUN_OFFSET_SCENE + 4, 6, 13], fov: 50, near: 0.012, far: 1000 }}
+        // far raised so you can pull the camera out toward the true-3D
+        // solar-neighbourhood stars (NearbyStars3D, LY_SCALE 20: Alpha Cen ≈ 86,
+        // Sirius ≈ 172 scene units). maxDistance (below) keeps the everyday feel.
+        camera={{ position: [SUN_OFFSET_SCENE + 4, 6, 13], fov: 50, near: 0.012, far: 3000 }}
         // Cap device-pixel-ratio lower on phones — rendering this scene at full
         // 2× on a mobile GPU is a real frame-rate + battery cost for little
         // visible gain. Desktop keeps the crisp [1, 2] range.
@@ -366,7 +369,7 @@ export function UniverseEngine({
           // clipping. "Zoom till possible." far stays 1000 so the depth-buffer
           // ratio is still safe enough to avoid z-fighting on distant bodies.
           minDistance={0.02}
-          maxDistance={260}
+          maxDistance={600}
           // Pause autoRotate while in follow mode — otherwise the
           // contemplative spin fights the user's drag and the camera
           // feels "stuck." Resumes the moment follow is cleared (via

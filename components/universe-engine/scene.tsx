@@ -23,6 +23,7 @@ import { BrightStarField } from "./bright-star-field"
 import { SatelliteField } from "./satellite-field"
 import { NamedStarHoverLayer } from "./named-star-hover-layer"
 import { BrightStarPicker } from "./bright-star-picker"
+import { NearbyStars3D } from "./nearby-stars-3d"
 import { GravityOverlay } from "./gravity-overlay"
 import { TrajectoryTrails } from "./trajectory-trails"
 import { SphereOfInfluence } from "./sphere-of-influence"
@@ -6638,6 +6639,10 @@ export function SceneContents({
           named layer above is hit first (closer spheres); this far backstop only
           reports when nothing nearer is under the cursor. */}
       {!solarOnly && interactive && <BrightStarPicker onHover={onHover} invert={invert} mobile={mobile} />}
+      {/* The solar neighbourhood in TRUE 3D — nearby named stars placed at their
+          real heliocentric distance (not flattened on the sky shell), so pulling
+          the camera out flies past Alpha Centauri, Sirius, Procyon… at real depth. */}
+      {!solarOnly && !mobile && <NearbyStars3D onHover={onHover} invert={invert} />}
       {!solarOnly && (
         <group rotation={[GALACTIC_PLANE_TILT_RAD, 0, 0]}>
           <MilkyWay onHover={onHover} mobile={mobile} invert={invert} interactive={interactive} />
