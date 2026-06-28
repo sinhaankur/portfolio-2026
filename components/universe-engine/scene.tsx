@@ -6025,8 +6025,36 @@ function ExoplanetSystem({
       g.rotation.y += delta * speed * tw
     })
   })
+  // Habitable-zone band: the scene-radii spanning the HZ planets, so the famous
+  // "planets in the liquid-water zone" is shown as a green annulus, not implied.
+  const hzRadii = planets
+    .filter((p) => p.habitableZone)
+    .map((p) => 1.0 + Math.log10(1 + p.aAU * 200) * 0.9)
+  const hzInner = hzRadii.length ? Math.min(...hzRadii) - 0.18 : 0
+  const hzOuter = hzRadii.length ? Math.max(...hzRadii) + 0.18 : 0
+
   return (
     <group>
+      {/* The host star itself — a small warm glow at the centre (ultra-cool red
+          dwarf for TRAPPIST-1). Anchors the system so it reads as "a star + its
+          worlds," not floating rings. */}
+      <mesh>
+        <sphereGeometry args={[0.34, 20, 20]} />
+        <meshBasicMaterial color={invert ? "#8a3a1a" : "#ff8a4a"} toneMapped={false} />
+      </mesh>
+      {!invert && (
+        <mesh>
+          <sphereGeometry args={[0.62, 20, 20]} />
+          <meshBasicMaterial color="#ff7a3a" transparent opacity={0.22} blending={AdditiveBlending} depthWrite={false} />
+        </mesh>
+      )}
+      {/* Habitable-zone annulus — the liquid-water band. */}
+      {hzRadii.length > 0 && (
+        <mesh rotation={[Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[hzInner, hzOuter, 80]} />
+          <meshBasicMaterial color={invert ? "#1f6f3f" : "#7dffaf"} transparent opacity={invert ? 0.12 : 0.07} side={DoubleSide} depthWrite={false} blending={invert ? NormalBlending : AdditiveBlending} />
+        </mesh>
+      )}
       {planets.map((p, i) => {
         // Compressed radius: each planet sits at a distinct scene-distance
         // from the host. log-scaled so TRAPPIST-1's 7 planets between 0.01
