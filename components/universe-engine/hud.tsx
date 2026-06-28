@@ -148,7 +148,9 @@ export function DeepFactsDisclosure({
     deep.gravity !== undefined ||
     deep.escapeVelocityKms !== undefined ||
     deep.eccentricity !== undefined ||
-    deep.discoveredYear !== undefined
+    deep.discoveredYear !== undefined ||
+    deep.atmosphere !== undefined ||
+    deep.composition !== undefined
   if (!hasAny) return null
 
   const isSheet = variant === "sheet"
@@ -207,6 +209,25 @@ export function DeepFactsDisclosure({
                 )}
                 {deep.escapeVelocityKms !== undefined && (
                   <Metric label="Escape velocity" value={`${deep.escapeVelocityKms.toFixed(2)} km/s`} bar={deep.escapeVelocityKms / 60} />
+                )}
+              </dl>
+            </section>
+          )}
+          {(deep.atmosphere !== undefined || deep.composition !== undefined) && (
+            <section className="space-y-1.5">
+              <SectionLabel>Made of</SectionLabel>
+              <dl className="space-y-1.5">
+                {deep.atmosphere !== undefined && (
+                  <div className="grid grid-cols-[auto_1fr] items-baseline gap-x-3">
+                    <dt className={`font-mono uppercase tracking-wider text-foreground/45 ${isSheet ? "text-[10px]" : "text-[9px]"}`}>Atmosphere</dt>
+                    <dd className={`text-right text-foreground/90 ${isSheet ? "text-sm" : "text-[11px]"}`}>{deep.atmosphere}</dd>
+                  </div>
+                )}
+                {deep.composition !== undefined && (
+                  <div className="grid grid-cols-[auto_1fr] items-baseline gap-x-3">
+                    <dt className={`font-mono uppercase tracking-wider text-foreground/45 ${isSheet ? "text-[10px]" : "text-[9px]"}`}>Structure</dt>
+                    <dd className={`text-right text-foreground/90 ${isSheet ? "text-sm" : "text-[11px]"}`}>{deep.composition}</dd>
+                  </div>
                 )}
               </dl>
             </section>

@@ -50,6 +50,12 @@ export type BodyDeepFacts = {
   discoveredYear?: number
   /** Discoverer credit (e.g. "Herschel, 1781") — short label, not a full citation. */
   discoveredBy?: string
+  /** Real atmospheric composition, sourced (NASA) — e.g. "96.5% CO₂, 3.5% N₂".
+   *  "None (exosphere)" for airless bodies. */
+  atmosphere?: string
+  /** Real bulk/interior composition — e.g. "Iron core, silicate mantle" or
+   *  "Hydrogen + helium, metallic-hydrogen interior". */
+  composition?: string
 }
 
 export type BodyInfo = {
