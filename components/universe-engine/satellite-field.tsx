@@ -27,7 +27,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useFrame, useThree } from "@react-three/fiber"
-import { useGLTF, Line } from "@react-three/drei"
+import { useGLTF, Line, Html } from "@react-three/drei"
 import * as THREE from "three"
 import { simTimeRef, requestFollow, focusDepthRef, daysSinceJ2000 } from "./astronomy"
 
@@ -42,7 +42,7 @@ import { simTimeRef, requestFollow, focusDepthRef, daysSinceJ2000 } from "./astr
  *  nativeSpan  the GLB's native width in model units (measured at export)
  *  k           scale coefficient: trueScale = k * earthVisualRadius
  */
-type ArchetypeId = "cubesat" | "starlink" | "gps" | "comsat" | "debris" | "rocketbody"
+type ArchetypeId = "cubesat" | "starlink" | "gps" | "comsat" | "debris" | "rocketbody" | "telescope"
 type Archetype = { url: string; label: string; realSpanM: number; nativeSpan: number; k: number }
 function mkArch(url: string, label: string, realSpanM: number, nativeSpan: number): Archetype {
   return { url, label, realSpanM, nativeSpan, k: realSpanM / 1000 / 6371 / nativeSpan }
@@ -54,6 +54,7 @@ const ARCHETYPES: Record<ArchetypeId, Archetype> = {
   comsat:     mkArch("/models/satellite-dish.glb",     "Dish comsat",        35, 12.22),
   debris:     mkArch("/models/satellite-debris.glb",   "Debris fragment",     1.0, 2.0),
   rocketbody: mkArch("/models/satellite-rocketbody.glb","Spent rocket stage", 10, 4.0),
+  telescope:  mkArch("/models/satellite-telescope.glb","Space telescope",     13, 3.5),
 }
 for (const a of Object.values(ARCHETYPES)) useGLTF.preload(a.url)
 
@@ -63,6 +64,10 @@ export function classifyArchetype(name: string, owner: string, altKm: number, ty
   if (type === "DEB") return "debris"
   if (type === "R/B") return "rocketbody"
   const n = name.toUpperCase()
+  if (n.includes("HUBBLE") || n.includes("HST") || n.includes("KEPLER") || n.includes("TESS") ||
+      n.includes("SPITZER") || n.includes("CHANDRA") || n.includes("JWST") || n.includes("WEBB") ||
+      n.includes("GAIA") || n.includes("XMM") || n.includes("TELESCOPE"))
+    return "telescope"
   if (n.includes("STARLINK")) return "starlink"
   if (n.includes("GPS") || n.includes("GLONASS") || n.includes("GALILEO") ||
       n.includes("NAVSTAR") || n.includes("BEIDOU") || n.includes("IRNSS") || n.includes("QZS"))
@@ -208,6 +213,9 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
   const haloRef = useRef<THREE.Mesh>(null)
   const { camera } = useThree()
   const lastSelected = useRef<number | null>(null)
+  // Selected satellite's display label ("L179: COSMOS 996"-style) — shown as an
+  // always-visible tag on the marker, a LeoLabs-style locator readout.
+  const [selectedLabel, setSelectedLabel] = useState<string | null>(null)
   // Orbit-path polyline for the selected satellite (recomputed on selection).
   const [orbitPts, setOrbitPts] = useState<THREE.Vector3[] | null>(null)
   // Which archetype model the selected satellite uses (chosen on selection).
@@ -365,6 +373,7 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
           const a = ARCHETYPES[classifyArchetype(meta?.name ?? "", meta?.owner ?? "", altKm, meta?.type)]
           archRef.current = a
           setArch(a)
+          setSelectedLabel(meta ? `${meta.id} · ${meta.name}` : null)
 
           // true on-screen span of THIS archetype's model, in scene units
           const span = a.k * earthVisualRadius * a.nativeSpan
@@ -394,6 +403,7 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
       if (lastSelected.current !== null) {
         lastSelected.current = null
         setOrbitPts(null)
+        setSelectedLabel(null)
         focusDepthRef.current = null   // restore normal near-plane / zoom limits
       }
     }
@@ -430,6 +440,20 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
           <sphereGeometry args={[1, 16, 16]} />
           <meshBasicMaterial color="#ffd24a" transparent opacity={0.85} toneMapped={false} depthWrite={false} />
         </mesh>
+        {/* Always-visible locator label on the selected object — a LeoLabs-style
+            tag so you can read WHAT you're looking at without the side panel. */}
+        {selectedLabel && (
+          <Html
+            center
+            distanceFactor={undefined}
+            zIndexRange={[30, 0]}
+            style={{ pointerEvents: "none", userSelect: "none", transform: "translateY(-22px)" }}
+          >
+            <div className="whitespace-nowrap rounded-sm border border-accent/50 bg-background/80 px-1.5 py-0.5 font-mono text-[9px] tracking-wider text-accent backdrop-blur-sm">
+              {selectedLabel}
+            </div>
+          </Html>
+        )}
       </group>
 
       {/* Orbital path of the selected satellite (one full revolution). */}
