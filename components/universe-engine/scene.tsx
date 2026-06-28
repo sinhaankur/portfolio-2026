@@ -873,7 +873,9 @@ function NebulaClouds({ mobile = false }: { mobile?: boolean }) {
     const radius = GALAXY_RADIUS_SCENE
     const branches = 4
     const spin = 7
-    const count = mobile ? 48 : 110
+    // Denser dust → the lanes read as continuous dark veins threading the arms,
+    // and parallax against the stars as the camera moves (the 3D depth cue).
+    const count = mobile ? 130 : 320
     const positions = new Float32Array(count * 3)
     const sizes = new Float32Array(count)
     const alphas = new Float32Array(count)
@@ -882,16 +884,21 @@ function NebulaClouds({ mobile = false }: { mobile?: boolean }) {
     const rand = () => { s = (1664525 * s + 1013904223) >>> 0; return s / 4294967296 }
     for (let i = 0; i < count; i++) {
       const i3 = i * 3
-      const r = (0.22 + rand() * 0.72) * radius
+      const r = (0.20 + rand() * 0.76) * radius
       const branch = Math.floor(rand() * branches)
       const branchAngle = (branch / branches) * Math.PI * 2
       const spinAngle = r * spin * 0.04
-      // Cluster along the arm with small offset; very thin in Y (plane-hugging).
-      positions[i3] = Math.cos(branchAngle + spinAngle) * r + (rand() - 0.5) * 4.0
-      positions[i3 + 1] = (rand() - 0.5) * 0.5
-      positions[i3 + 2] = Math.sin(branchAngle + spinAngle) * r + (rand() - 0.5) * 4.0
-      sizes[i] = 18 + rand() * 40
-      alphas[i] = 0.06 + rand() * 0.08
+      // Follow the SAME arm spurs/feathering the stars use, so dust sits IN the
+      // lanes (the dark side of each arm), offset just inward of the star ridge.
+      const spur = Math.sin(r * 0.9 + branchAngle * 3.0) * 0.10 + Math.sin(r * 2.7) * 0.04
+      const a = branchAngle + spinAngle + spur - 0.06 // trail just inside the arm
+      const jitter = (rand() - 0.5) * 6.0
+      positions[i3] = Math.cos(a) * r + jitter
+      // Thin in Y but with a little depth so layers parallax (not a flat sheet).
+      positions[i3 + 1] = (rand() - 0.5) * 1.4
+      positions[i3 + 2] = Math.sin(a) * r + (rand() - 0.5) * 6.0
+      sizes[i] = 14 + rand() * 38
+      alphas[i] = 0.05 + rand() * 0.08
       // Cold dark brown-grey dust.
       colors[i3] = 0.06; colors[i3 + 1] = 0.05; colors[i3 + 2] = 0.05
     }
