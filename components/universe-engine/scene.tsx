@@ -302,6 +302,62 @@ const AURORA_FRAGMENT_SHADER = `
 `
 
 /* ============================================================
+ * Atmospheric band shader (Venus + gas/ice giants).
+ *
+ * A thin shell over the planet texture that adds DRIFTING latitudinal turbulence
+ * so the bands feel alive instead of a frozen photo. FBM stretched hard in
+ * longitude (bands read horizontal), scrolling at a per-planet speed, modulated
+ * by latitude into stacked zones. Day-side lit (fades across the terminator) and
+ * soft-additive so it brightens/darkens the existing bands rather than repainting
+ * them. Stylised but physically motivated (zonal jets / Great-Red-Spot turbulence).
+ * ============================================================ */
+const BANDS_VERTEX_SHADER = `
+  varying vec2 vUv;
+  varying vec3 vWorldNormal;
+  void main() {
+    vUv = uv;
+    vWorldNormal = normalize(mat3(modelMatrix) * normal);
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`
+const BANDS_FRAGMENT_SHADER = `
+  uniform vec3  uSunDir;
+  uniform vec3  uTint;
+  uniform float uOpacity;
+  uniform float uTime;
+  uniform float uStrength;
+  varying vec2 vUv;
+  varying vec3 vWorldNormal;
+
+  float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7)))*43758.5453123); }
+  float vnoise(vec2 p){
+    vec2 i=floor(p); vec2 f=fract(p); vec2 u=f*f*(3.0-2.0*f);
+    return mix(mix(hash(i),hash(i+vec2(1,0)),u.x), mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),u.x), u.y);
+  }
+  float fbm(vec2 p){ float v=0.0,a=0.5; for(int i=0;i<5;i++){ v+=a*vnoise(p); p*=2.0; a*=0.5; } return v; }
+
+  void main() {
+    // zonal jets: different latitude bands drift at alternating speeds/directions.
+    float lat = vUv.y;
+    float zone = sin(lat * 38.0);                 // stacked horizontal bands
+    float dir = sign(zone);                        // alternate drift direction
+    // FBM stretched in U so turbulence smears into bands; scroll in longitude.
+    vec2 p = vec2(vUv.x * 9.0 + uTime * dir, lat * 26.0);
+    float turb = fbm(p);
+    // emphasise the band structure + a little swirl from the turbulence
+    float bands = 0.5 + 0.5 * zone;
+    float detail = mix(bands, turb, 0.55);
+
+    float NdotL = dot(normalize(vWorldNormal), normalize(uSunDir));
+    float lit = smoothstep(-0.12, 0.20, NdotL);
+
+    // soft signed modulation around 0 so it lightens AND darkens the texture.
+    float m = (detail - 0.5) * 2.0 * uStrength * lit * uOpacity;
+    gl_FragColor = vec4(uTint * (0.5 + 0.5 * detail), abs(m));
+  }
+`
+
+/* ============================================================
  * Nebula haze shader — big soft additive billboards for diffuse gas/dust.
  * Each point is a large, very soft radial blob with a gentle per-cloud
  * twinkle so the haze breathes. Color + size + alpha come from attributes.
@@ -2739,6 +2795,7 @@ function PlanetBody({
   const orbitRef = useRef<Group>(null)
   const texMeshRef = useRef<Mesh>(null)
   const texMatRef = useRef<import("three").MeshStandardMaterial>(null)
+  const bandsMeshRef = useRef<import("three").Mesh>(null)
   /** Rotates in lockstep with the planet body — children inherit the spin
    *  so surface features (rover pins on Mars) stay glued to the right spot. */
   const surfaceRotRef = useRef<Group>(null)
@@ -2872,6 +2929,18 @@ function PlanetBody({
   // togglable via cloudsVisibleRef. uOpacity lerps with the planet's own
   // fade (so clouds appear/disappear with the textured globe) AND the toggle.
   const isEarth = planet.raw.name === "Earth"
+  // Banded / hazy atmospheres that should DRIFT over their texture (a thin
+  // animated turbulence shell): Venus's sulfuric haze + the four gas/ice giants'
+  // latitudinal bands. Earth already has its own cloud shell, so it's excluded.
+  const BANDED: Record<string, { speed: number; tint: string; strength: number }> = {
+    Venus:   { speed: 0.020, tint: "#e8d8a0", strength: 0.30 },
+    Jupiter: { speed: 0.060, tint: "#e7d3b0", strength: 0.42 },
+    Saturn:  { speed: 0.040, tint: "#e9dcb8", strength: 0.30 },
+    Uranus:  { speed: 0.015, tint: "#bfeee6", strength: 0.20 },
+    Neptune: { speed: 0.050, tint: "#9fc0ff", strength: 0.34 },
+  }
+  const bandConf = BANDED[planet.raw.name]
+  const isBanded = !!bandConf
   // Human-made orbiters for this body (Earth, Mars…), revealed by the HUD
   // "Satellites" toggle. Poll the module ref at low frequency so the shells
   // appear/disappear without prop-drilling.
@@ -2895,6 +2964,19 @@ function PlanetBody({
       uOpacity: { value: 0 },
       uTime:    { value: 0 },
     }),
+    [],
+  )
+  // Drifting band shell for Venus + the gas/ice giants.
+  const bandsMatRef = useRef<ShaderMaterial | null>(null)
+  const bandsUniforms = useMemo(
+    () => ({
+      uSunDir:   { value: new Vector3(1, 0, 0) },
+      uTint:     { value: new Color(bandConf?.tint ?? "#ffffff") },
+      uOpacity:  { value: 0 },
+      uTime:     { value: 0 },
+      uStrength: { value: bandConf?.strength ?? 0.3 },
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   )
 
@@ -2986,6 +3068,11 @@ function PlanetBody({
     if (texMeshRef.current) {
       texMeshRef.current.rotation.y += delta * visibleRotSpeed * tw
     }
+    // Band shell spins in lockstep with the texture so the drifting bands stay
+    // glued to the globe's longitude.
+    if (bandsMeshRef.current) {
+      bandsMeshRef.current.rotation.y += delta * visibleRotSpeed * tw
+    }
     // Lerp the textured material's opacity to full as soon as the JPEG lands —
     // the photo-real globe is the default state now, not a hover reveal.
     if (texMatRef.current) {
@@ -3033,6 +3120,17 @@ function PlanetBody({
       const k = 1 - Math.exp(-delta * 5)
       const target = detailActive && cloudsVisibleRef.current ? 1 : 0
       auroraUniforms.uOpacity.value += (target - auroraUniforms.uOpacity.value) * k
+    }
+    // Drifting atmosphere bands (Venus + gas/ice giants) — appear with the
+    // textured globe, drift at the planet's own band speed, lit by the Sun.
+    if (isBanded && bandsMatRef.current) {
+      bandsUniforms.uTime.value += delta * tw * (bandConf?.speed ?? 0.03)
+      meshRef.current?.getWorldPosition(_earthWorldPos)
+      _sunWorldPos.set(SUN_OFFSET_SCENE, 0, 0)
+      bandsUniforms.uSunDir.value.copy(_sunDirTmp.copy(_sunWorldPos).sub(_earthWorldPos).normalize())
+      const k = 1 - Math.exp(-delta * 6)
+      const target = texture ? 1 : 0
+      bandsUniforms.uOpacity.value += (target - bandsUniforms.uOpacity.value) * k
     }
     // Rocky-planet atmospheric scattering shell — fades in on hover/focus.
     // Per-planet peak intensity matches real atmospheric depth (Venus dense,
@@ -3168,6 +3266,23 @@ function PlanetBody({
                   transparent
                   opacity={0}
                   depthWrite={false}
+                />
+              </mesh>
+            )}
+            {/* Drifting atmosphere bands — Venus's haze + the gas/ice giants'
+                zonal jets. A thin animated shell over the texture; the band
+                motion lives in the shader (uTime longitude scroll). */}
+            {isBanded && texture && (
+              <mesh ref={bandsMeshRef}>
+                <sphereGeometry args={[planet.visualRadius * 1.012, 64, 64]} />
+                <shaderMaterial
+                  ref={bandsMatRef as React.Ref<ShaderMaterial>}
+                  vertexShader={BANDS_VERTEX_SHADER}
+                  fragmentShader={BANDS_FRAGMENT_SHADER}
+                  uniforms={bandsUniforms}
+                  transparent
+                  depthWrite={false}
+                  blending={AdditiveBlending}
                 />
               </mesh>
             )}
