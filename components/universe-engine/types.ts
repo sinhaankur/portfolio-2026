@@ -193,6 +193,9 @@ export type MoonData = {
   /** Surface landing sites / named features — same shape as planet
    *  features so the Moon can carry Apollo landing sites etc. */
   surfaceFeatures?: SurfaceFeature[]
+  /** Real physical data (NASA) surfaced in the InfoPanel "Made of" + metrics —
+   *  same shape planets use, so moons read with the same exactness. */
+  deep?: BodyDeepFacts
 }
 
 export type ConstellationStar = {

@@ -1501,6 +1501,7 @@ function MoonBody({
             classification: `Moon of ${moon.parent}`,
             periodDays: moon.periodDays,
             fact: moon.fact,
+            deep: moon.deep,
             followable: interactive,
           })
         }}
