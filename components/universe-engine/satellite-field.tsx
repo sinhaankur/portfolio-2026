@@ -79,7 +79,7 @@ export const selectedSatRef: { current: number | null } = { current: null }
  *  flat-pack"), so the DOM search card can name what kind of craft it is. */
 export const selectedArchetypeRef: { current: string | null } = { current: null }
 
-export type SatMeta = { id: number; name: string; owner: string; launchMs: number }
+export type SatMeta = { id: number; name: string; owner: string; type?: "PAY" | "R/B" | "DEB"; launchMs: number }
 
 // Shared catalogue cache so the search box and the field don't double-fetch.
 let _catalogPromise: Promise<SatMeta[]> | null = null
@@ -87,7 +87,7 @@ export function loadSatelliteCatalog(): Promise<SatMeta[]> {
   if (!_catalogPromise) {
     _catalogPromise = fetch("/data/satellites.json")
       .then((r) => r.json())
-      .then((d) => (d.sats as SatMeta[]).map((s) => ({ id: s.id, name: s.name, owner: s.owner, launchMs: s.launchMs })))
+      .then((d) => (d.sats as SatMeta[]).map((s) => ({ id: s.id, name: s.name, owner: s.owner, type: s.type, launchMs: s.launchMs })))
       .catch(() => [])
   }
   return _catalogPromise
@@ -116,8 +116,13 @@ const OWNER_COLOR: Record<string, [number, number, number]> = {
   IND: [0.7, 1.0, 0.85],
 }
 const DEFAULT_COLOR: [number, number, number] = [0.7, 0.75, 0.85]
+// Debris + rocket bodies read as a hazard colour (dull red/amber), distinct from
+// the cooler operator palette — the LeoLabs-style "junk vs active" separation.
+const DEBRIS_COLOR: [number, number, number] = [1.0, 0.42, 0.32]
+const RB_COLOR: [number, number, number] = [1.0, 0.62, 0.4]
 
-type Sat = { id: number; name: string; owner: string; launchMs: number; l1: string; l2: string }
+type SatType = "PAY" | "R/B" | "DEB"
+type Sat = { id: number; name: string; owner: string; type?: SatType; launchMs: number; l1: string; l2: string }
 
 // Launch-gating uses days-since-J2000 (small → exact in a float32 shader uniform).
 // Reuse the engine's canonical J2000 epoch + day helper (see astronomy.ts).
@@ -131,6 +136,7 @@ const VERT = /* glsl */ `
   // (|value| < ~25,000) is exact in float32, so the gate is reliable.
   attribute float aLaunchDay;   // days since J2000 (2000-01-01 12:00 UTC)
   attribute vec3 aColor;
+  attribute float aDebris;      // 1 = debris / rocket body → render smaller
   uniform float uTimeDay;       // current sim time, days since J2000
   uniform float uSize;
   uniform float uPixelRatio;
@@ -144,7 +150,9 @@ const VERT = /* glsl */ `
     vHidden = (aLaunchDay > uTimeDay || uIsolate > 0.5) ? 1.0 : 0.0;
     vec4 mv = modelViewMatrix * vec4(position, 1.0);
     gl_Position = projectionMatrix * mv;
-    float s = vHidden > 0.5 ? 0.0 : uSize * uPixelRatio * (1.0 / -mv.z);
+    // debris are tiny fragments → ~60% the size of an active satellite dot.
+    float sizeMul = aDebris > 0.5 ? 0.6 : 1.0;
+    float s = vHidden > 0.5 ? 0.0 : uSize * sizeMul * uPixelRatio * (1.0 / -mv.z);
     gl_PointSize = clamp(s, 0.0, 4.0);
   }
 `
@@ -233,9 +241,14 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     const positions = new Float32Array(n * 3)
     const colors = new Float32Array(n * 3)
     const launch = new Float32Array(n)
+    const isDeb = new Float32Array(n) // 1 = debris/rocket body → smaller in shader
     sats.forEach((s, i) => {
-      const c = OWNER_COLOR[s.owner] ?? DEFAULT_COLOR
+      const c =
+        s.type === "DEB" ? DEBRIS_COLOR :
+        s.type === "R/B" ? RB_COLOR :
+        (OWNER_COLOR[s.owner] ?? DEFAULT_COLOR)
       colors[i * 3] = c[0]; colors[i * 3 + 1] = c[1]; colors[i * 3 + 2] = c[2]
+      isDeb[i] = (s.type === "DEB" || s.type === "R/B") ? 1 : 0
       // store launch as days-since-J2000 (small → exact in the float32 attribute)
       launch[i] = msToJ2000Day(s.launchMs)
     })
@@ -243,6 +256,7 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     g.setAttribute("position", new THREE.BufferAttribute(positions, 3))
     g.setAttribute("aColor", new THREE.BufferAttribute(colors, 3))
     g.setAttribute("aLaunchDay", new THREE.BufferAttribute(launch, 1))
+    g.setAttribute("aDebris", new THREE.BufferAttribute(isDeb, 1))
     g.boundingSphere = new THREE.Sphere(new THREE.Vector3(), earthVisualRadius * 12)
     return g
   }, [sats, earthVisualRadius])

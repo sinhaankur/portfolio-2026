@@ -31,6 +31,15 @@ const OUT = path.join(ROOT, "public/data/satellites.json")
 
 const SATCAT_URL = "https://celestrak.org/satcat/records.php?GROUP=active&FORMAT=json"
 const TLE_URL = "https://celestrak.org/NORAD/elements/gp.php?GROUP=active&FORMAT=tle"
+// Major real debris clouds (fragmentation events) — TLE groups CelesTrak hosts.
+// These are the bulk of trackable LEO debris; merged into the TLE map so the
+// SATCAT debris/rocket-body records have elements to propagate.
+const DEBRIS_TLE_URLS = [
+  "https://celestrak.org/NORAD/elements/gp.php?GROUP=cosmos-1408-debris&FORMAT=tle",
+  "https://celestrak.org/NORAD/elements/gp.php?GROUP=fengyun-1c-debris&FORMAT=tle",
+  "https://celestrak.org/NORAD/elements/gp.php?GROUP=iridium-33-debris&FORMAT=tle",
+  "https://celestrak.org/NORAD/elements/gp.php?GROUP=cosmos-2251-debris&FORMAT=tle",
+]
 
 /**
  * Fetch a URL, but fall back to a local cache file if given and the fetch fails
@@ -85,11 +94,38 @@ async function main() {
   ])
   const satcat = JSON.parse(satcatRaw)
   const tle = parseTle(tleRaw)
-  console.log(`  SATCAT records: ${satcat.length}  |  TLE objects: ${tle.size}`)
+  console.log(`  SATCAT records: ${satcat.length}  |  active TLE objects: ${tle.size}`)
+  // Fetch the major debris-cloud TLE groups DIRECTLY (the SATCAT 'active' query
+  // doesn't list debris, but these groups ARE debris by definition). Each entry
+  // becomes a DEB object, dated to its known fragmentation event. Best-effort:
+  // a group that fails (rate-limit) is skipped without breaking the build.
+  const DEBRIS_GROUPS = [
+    { id: "cosmos-1408-debris", eventMs: Date.parse("2021-11-15T00:00:00Z") }, // Russian ASAT test
+    { id: "fengyun-1c-debris",  eventMs: Date.parse("2007-01-11T00:00:00Z") }, // Chinese ASAT test
+    { id: "iridium-33-debris",  eventMs: Date.parse("2009-02-10T00:00:00Z") }, // Iridium-Cosmos collision
+    { id: "cosmos-2251-debris", eventMs: Date.parse("2009-02-10T00:00:00Z") }, // (other half of the collision)
+  ]
+  const debrisObjs = []
+  for (const g of DEBRIS_GROUPS) {
+    try {
+      const txt = await getText(`https://celestrak.org/NORAD/elements/gp.php?GROUP=${g.id}&FORMAT=tle`)
+      const m = parseTle(txt)
+      for (const [id, v] of m) debrisObjs.push({ id, name: v.name, owner: "—", type: "DEB", launchMs: g.eventMs, l1: v.l1, l2: v.l2 })
+      console.log(`  + ${g.id}: ${m.size} fragments`)
+    } catch (e) {
+      console.warn(`  (skipped ${g.id}: ${e.message})`)
+    }
+  }
 
+  // Keep PAYLOADS + ROCKET BODIES + DEBRIS, so the explorer shows the real LEO
+  // environment (LeoLabs-style): active satellites AND the junk around them.
+  // Each carries a `type`: "PAY" | "R/B" | "DEB" so the client can colour/size
+  // debris distinctly. Only objects WITH a TLE (propagatable) are kept.
+  const TYPES = new Set(["PAY", "R/B", "DEB"])
   const sats = []
+  const counts = { PAY: 0, "R/B": 0, DEB: 0 }
   for (const rec of satcat) {
-    if (rec.OBJECT_TYPE !== "PAY") continue // payloads only (skip rocket bodies/debris)
+    if (!TYPES.has(rec.OBJECT_TYPE)) continue
     if (!rec.LAUNCH_DATE) continue
     const id = rec.NORAD_CAT_ID
     const t = tle.get(id)
@@ -100,20 +136,27 @@ async function main() {
       id,
       name: rec.OBJECT_NAME,
       owner: rec.OWNER || "TBD",
+      type: rec.OBJECT_TYPE, // PAY | R/B | DEB
       launchMs,
       l1: t.l1,
       l2: t.l2,
     })
+    counts[rec.OBJECT_TYPE] = (counts[rec.OBJECT_TYPE] || 0) + 1
   }
+
+  // Append the directly-fetched debris fragments.
+  for (const d of debrisObjs) { sats.push(d); counts.DEB++ }
 
   sats.sort((a, b) => a.launchMs - b.launchMs)
 
   const payload = {
     snapshot: new Date().toISOString().slice(0, 10),
-    source: "CelesTrak SATCAT + active GP/TLE",
+    source: "CelesTrak SATCAT + GP/TLE (payloads + rocket bodies + debris)",
     count: sats.length,
+    breakdown: counts,
     sats,
   }
+  console.log(`  Payloads ${counts.PAY} · rocket bodies ${counts["R/B"]} · debris ${counts.DEB}`)
 
   await fs.mkdir(path.dirname(OUT), { recursive: true })
   await fs.writeFile(OUT, JSON.stringify(payload))
