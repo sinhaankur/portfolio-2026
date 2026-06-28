@@ -26,9 +26,21 @@ function fmtDate(ms: number) {
   return new Date(ms).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric", timeZone: "UTC" })
 }
 
+/** The real fragmentation event behind a debris fragment (matched on its name).
+ *  Lets a selected fragment explain WHERE it came from — truthful provenance. */
+function debrisOrigin(name: string): string | null {
+  const n = name.toUpperCase()
+  if (n.startsWith("FENGYUN 1C")) return "Fengyun-1C — China's 2007 anti-satellite missile test destroyed this defunct weather satellite, creating the largest debris cloud in history (~3,500 tracked fragments)."
+  if (n.startsWith("IRIDIUM 33")) return "Iridium-33 — destroyed in the first major satellite collision (10 Feb 2009) when the dead Russian Cosmos-2251 struck this active comms satellite at ~11.7 km/s."
+  if (n.startsWith("COSMOS 2251")) return "Cosmos-2251 — a defunct Russian comms satellite that collided with the active Iridium-33 on 10 Feb 2009, the first hypervelocity satellite-satellite collision."
+  if (n.startsWith("COSMOS 1408")) return "Cosmos-1408 — a defunct Soviet satellite destroyed by Russia's 2021 anti-satellite test, forcing the ISS crew to shelter as the fragments passed."
+  return null
+}
+
 export function SatelliteSearch() {
   const [catalog, setCatalog] = useState<SatMeta[] | null>(null)
   const [q, setQ] = useState("")
+  const [filter, setFilter] = useState<"all" | "active" | "debris">("all")
   const [selected, setSelected] = useState<SatMeta | null>(null)
   // Archetype label ("Starlink flat-pack" etc.) — the R3F field decides it from
   // the satellite's orbit + name, so we poll the bridge ref while one is picked.
@@ -45,18 +57,28 @@ export function SatelliteSearch() {
     return () => clearInterval(id)
   }, [selected])
 
+  const isDebris = (s: SatMeta) => s.type === "DEB" || s.type === "R/B"
+  const counts = useMemo(() => {
+    if (!catalog) return { active: 0, debris: 0 }
+    let d = 0
+    for (const s of catalog) if (isDebris(s)) d++
+    return { active: catalog.length - d, debris: d }
+  }, [catalog])
+
   const results = useMemo(() => {
     const query = q.trim().toLowerCase()
     if (!catalog || query.length < 2) return []
     const out: SatMeta[] = []
     for (const s of catalog) {
+      if (filter === "active" && isDebris(s)) continue
+      if (filter === "debris" && !isDebris(s)) continue
       if (s.name.toLowerCase().includes(query)) {
         out.push(s)
         if (out.length >= 40) break
       }
     }
     return out
-  }, [catalog, q])
+  }, [catalog, q, filter])
 
   function pick(s: SatMeta) {
     setSelected(s)
@@ -86,6 +108,31 @@ export function SatelliteSearch() {
           aria-label="Search satellites by name"
           className="w-full rounded-full border border-border bg-background/80 backdrop-blur-md pl-9 pr-4 py-2.5 font-mono text-xs tracking-wider text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         />
+      </div>
+
+      {/* Active / debris filter — isolate the real junk cloud (LeoLabs-style). */}
+      <div className="mt-2 flex gap-1.5">
+        {([
+          { k: "all", label: "All" },
+          { k: "active", label: `Active · ${counts.active.toLocaleString()}` },
+          { k: "debris", label: `Debris · ${counts.debris.toLocaleString()}` },
+        ] as const).map((opt) => (
+          <button
+            key={opt.k}
+            type="button"
+            onClick={() => setFilter(opt.k)}
+            data-cursor-hover
+            className={`rounded-full border px-2.5 py-1 font-mono text-[9px] tracking-wider uppercase transition-colors ${
+              filter === opt.k
+                ? opt.k === "debris"
+                  ? "border-red-400/60 bg-red-400/15 text-red-300"
+                  : "border-accent/60 bg-accent/15 text-accent"
+                : "border-border bg-background/60 text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {opt.label}
+          </button>
+        ))}
       </div>
 
       {/* Results dropdown */}
@@ -127,8 +174,10 @@ export function SatelliteSearch() {
           >
             <div className="flex items-start justify-between gap-3 mb-2">
               <div className="flex items-center gap-2 min-w-0">
-                <Crosshair className="h-3.5 w-3.5 text-accent shrink-0" aria-hidden />
-                <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-accent truncate">Following</p>
+                <Crosshair className={`h-3.5 w-3.5 shrink-0 ${isDebris(selected) ? "text-red-300" : "text-accent"}`} aria-hidden />
+                <p className={`font-mono text-[10px] tracking-[0.2em] uppercase truncate ${isDebris(selected) ? "text-red-300" : "text-accent"}`}>
+                  {selected.type === "DEB" ? "Debris · following" : selected.type === "R/B" ? "Rocket body · following" : "Following"}
+                </p>
               </div>
               <button type="button" onClick={clearSel} data-cursor-hover aria-label="Stop following"
                 className="grid h-7 w-7 place-items-center rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors shrink-0">
@@ -160,10 +209,15 @@ export function SatelliteSearch() {
                 <dd className="text-foreground text-right">true 1:1 scale</dd>
               </div>
             </dl>
+            {isDebris(selected) && debrisOrigin(selected.name) && (
+              <p className="mt-3 rounded-lg border border-red-400/25 bg-red-400/[0.06] px-3 py-2 font-sans text-[11px] text-foreground/80 leading-relaxed">
+                ⚠ {debrisOrigin(selected.name)}
+              </p>
+            )}
             <p className="mt-3 font-sans text-[11px] text-muted-foreground leading-relaxed">
-              Position + altitude from live SGP4 orbit data (current epoch). The
-              craft is drawn at its real size against Earth — a satellite is tens of
-              millions of times smaller than the planet, so <strong className="text-foreground/80">zoom right in</strong> to see it.
+              Position + altitude from live SGP4 orbit data (current epoch). {isDebris(selected)
+                ? "This fragment is tracked but uncontrolled — part of the orbital-debris hazard."
+                : "The craft is drawn at its real size against Earth — a satellite is tens of millions of times smaller than the planet, so zoom right in to see it."}
             </p>
           </motion.div>
         )}

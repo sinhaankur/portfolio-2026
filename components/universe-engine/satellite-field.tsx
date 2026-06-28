@@ -42,21 +42,26 @@ import { simTimeRef, requestFollow, focusDepthRef, daysSinceJ2000 } from "./astr
  *  nativeSpan  the GLB's native width in model units (measured at export)
  *  k           scale coefficient: trueScale = k * earthVisualRadius
  */
-type ArchetypeId = "cubesat" | "starlink" | "gps" | "comsat"
+type ArchetypeId = "cubesat" | "starlink" | "gps" | "comsat" | "debris" | "rocketbody"
 type Archetype = { url: string; label: string; realSpanM: number; nativeSpan: number; k: number }
 function mkArch(url: string, label: string, realSpanM: number, nativeSpan: number): Archetype {
   return { url, label, realSpanM, nativeSpan, k: realSpanM / 1000 / 6371 / nativeSpan }
 }
 const ARCHETYPES: Record<ArchetypeId, Archetype> = {
-  cubesat:  mkArch("/models/satellite-leopard.glb", "CubeSat",            1.7, 15.84),
-  starlink: mkArch("/models/satellite-starlink.glb", "Starlink flat-pack", 30, 8.31),
-  gps:      mkArch("/models/satellite-gps.glb",      "Navigation craft",   17, 11.42),
-  comsat:   mkArch("/models/satellite-dish.glb",     "Dish comsat",        35, 12.22),
+  cubesat:    mkArch("/models/satellite-leopard.glb",  "CubeSat",            1.7, 15.84),
+  starlink:   mkArch("/models/satellite-starlink.glb", "Starlink flat-pack", 30, 8.31),
+  gps:        mkArch("/models/satellite-gps.glb",      "Navigation craft",   17, 11.42),
+  comsat:     mkArch("/models/satellite-dish.glb",     "Dish comsat",        35, 12.22),
+  debris:     mkArch("/models/satellite-debris.glb",   "Debris fragment",     1.0, 2.0),
+  rocketbody: mkArch("/models/satellite-rocketbody.glb","Spent rocket stage", 10, 4.0),
 }
 for (const a of Object.values(ARCHETYPES)) useGLTF.preload(a.url)
 
-/** Pick an archetype from the satellite's name, operator, and orbit altitude. */
-export function classifyArchetype(name: string, owner: string, altKm: number): ArchetypeId {
+/** Pick an archetype from the satellite's type, name, operator, and orbit
+ *  altitude. Debris + rocket bodies get their own shapes (not a clean sat). */
+export function classifyArchetype(name: string, owner: string, altKm: number, type?: string): ArchetypeId {
+  if (type === "DEB") return "debris"
+  if (type === "R/B") return "rocketbody"
   const n = name.toUpperCase()
   if (n.includes("STARLINK")) return "starlink"
   if (n.includes("GPS") || n.includes("GLONASS") || n.includes("GALILEO") ||
@@ -357,7 +362,7 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
             const pp = rr && rr.position
             if (pp) altKm = Math.sqrt(pp.x * pp.x + pp.y * pp.y + pp.z * pp.z) - EARTH_RADIUS_KM
           }
-          const a = ARCHETYPES[classifyArchetype(meta?.name ?? "", meta?.owner ?? "", altKm)]
+          const a = ARCHETYPES[classifyArchetype(meta?.name ?? "", meta?.owner ?? "", altKm, meta?.type)]
           archRef.current = a
           setArch(a)
 
