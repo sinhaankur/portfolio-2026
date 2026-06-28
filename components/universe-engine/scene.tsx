@@ -6191,10 +6191,16 @@ const NEBULA_SPRITES: Record<string, string> = {
   m42: "/textures/nebulae/orion.webp",
 }
 
-/** Per-nebula volumetric palette (real Hα/O-III look). Only listed nebulae get
- *  the raymarched 3D volume on close approach. */
-const VOLUMETRIC_NEBULAE: Record<string, { glow: [number, number, number]; rim: [number, number, number] }> = {
-  m42: { glow: [0.95, 0.45, 0.62], rim: [0.45, 0.7, 0.95] }, // Hα pink core + O-III teal rim
+/** Per-nebula volumetric config (real Hα/O-III look). Only listed nebulae get
+ *  the raymarched 3D volume on close approach. mode: 0 = emission cloud,
+ *  1 = ring/shell (planetary nebula). */
+const VOLUMETRIC_NEBULAE: Record<string, { glow: [number, number, number]; rim: [number, number, number]; mode: number; density: number }> = {
+  m42:    { glow: [0.95, 0.45, 0.62], rim: [0.45, 0.70, 0.95], mode: 0, density: 1.0 }, // Orion — Hα pink + O-III teal
+  m16:    { glow: [0.90, 0.40, 0.45], rim: [0.55, 0.75, 0.55], mode: 0, density: 1.15 }, // Eagle — red Hα + green pillars
+  carina: { glow: [0.95, 0.55, 0.50], rim: [0.55, 0.65, 0.95], mode: 0, density: 1.25 }, // Carina — vast bright Hα
+  m8:     { glow: [0.95, 0.42, 0.52], rim: [0.50, 0.62, 0.90], mode: 0, density: 1.0 },  // Lagoon (if present)
+  m57:    { glow: [0.55, 0.85, 0.80], rim: [0.95, 0.70, 0.45], mode: 1, density: 0.9 },  // Ring — teal shell, warm core
+  m20:    { glow: [0.70, 0.45, 0.90], rim: [0.55, 0.70, 0.95], mode: 0, density: 1.0 },  // Trifid (if present) — pink+blue
 }
 
 /**
@@ -6222,6 +6228,8 @@ const VOLNEB_FRAG = `
   uniform float uOpacity;
   uniform vec3  uGlow;
   uniform vec3  uRim;
+  uniform float uMode;     // 0 = emission cloud, 1 = ring/shell (planetary)
+  uniform float uDensity;  // overall density multiplier
 
   float hash(vec3 p){ return fract(sin(dot(p, vec3(127.1,311.7,74.7)))*43758.5453123); }
   float vnoise(vec3 p){
@@ -6231,24 +6239,33 @@ const VOLNEB_FRAG = `
     return mix(mix(mix(n000,n100,f.x),mix(n010,n110,f.x),f.y),
                mix(mix(n001,n101,f.x),mix(n011,n111,f.x),f.y), f.z);
   }
-  float fbm(vec3 p){ float v=0.0,a=0.5; for(int i=0;i<5;i++){ v+=a*vnoise(p); p*=2.02; a*=0.5; } return v; }
+  float fbm(vec3 p){ float v=0.0,a=0.5; for(int i=0;i<6;i++){ v+=a*vnoise(p); p=p*2.03+vec3(1.7); a*=0.5; } return v; }
 
-  // density at a point in the unit-ish cube (local space ~[-1,1]); radial falloff
-  // so the cloud is contained + denser toward the centre.
+  // density at a point in local space (~[-1,1]). Richer than a plain blob: a
+  // base radial falloff carved by multi-octave FBM, with a brighter dense core;
+  // ring mode hollows the centre into a shell (planetary nebulae like M57).
   float density(vec3 p){
     float r = length(p);
-    float fall = smoothstep(1.0, 0.15, r);          // 0 at edge → 1 near centre
-    float n = fbm(p * 1.6 + vec3(0.0, uTime*0.02, 0.0));
-    n = smoothstep(0.45, 0.95, n);
-    return n * fall;
+    // domain-warp the sample point with a low-freq noise → billowy, not uniform
+    vec3 warp = vec3(fbm(p*0.9 + uTime*0.015), fbm(p*0.9 + 3.1), fbm(p*0.9 - 2.2)) - 0.5;
+    vec3 q = p + warp * 0.6;
+    float n = fbm(q * 2.0);
+    n = smoothstep(0.42, 0.95, n);
+    float fall;
+    if (uMode > 0.5) {
+      // ring/shell: peak at a mid radius, hollow centre + faded edge
+      fall = smoothstep(0.18, 0.42, r) * (1.0 - smoothstep(0.55, 0.95, r));
+    } else {
+      fall = smoothstep(1.0, 0.12, r);
+    }
+    float core = (uMode > 0.5) ? 0.0 : pow(smoothstep(0.35, 0.0, r), 2.0) * 0.5; // bright nucleus
+    return (n * fall + core) * uDensity;
   }
 
   void main(){
-    vec3 ro = vCamLocal;
     vec3 rd = normalize(vLocalPos - vCamLocal);
-    // march a fixed span centred on the box; cheap fixed step count
-    const int STEPS = 40;
-    float stepLen = 2.6 / float(STEPS);
+    const int STEPS = 56;
+    float stepLen = 2.7 / float(STEPS);
     vec3 p = vLocalPos;            // start at the entry face, march toward camera
     vec3 dir = -rd * stepLen;
     vec3 acc = vec3(0.0);
@@ -6256,9 +6273,9 @@ const VOLNEB_FRAG = `
     for(int i=0;i<STEPS;i++){
       float d = density(p);
       if(d > 0.001){
-        // colour: brighter/denser → teal rim shading to pink core
-        vec3 col = mix(uRim, uGlow, smoothstep(0.0, 0.6, d));
-        float a = d * 0.10;
+        // colour: faint rim → bright core hue as density rises
+        vec3 col = mix(uRim, uGlow, smoothstep(0.0, 0.55, d));
+        float a = d * 0.12;
         acc += trans * a * col;
         trans *= (1.0 - a);
         if(trans < 0.02) break;
@@ -6266,15 +6283,17 @@ const VOLNEB_FRAG = `
       p += dir;
     }
     float alpha = (1.0 - trans) * uOpacity;
-    gl_FragColor = vec4(acc * uOpacity * 2.0, alpha);
+    gl_FragColor = vec4(acc * uOpacity * 2.1, alpha);
   }
 `
 
-function VolumetricNebula({ size, active, glow, rim }: {
+function VolumetricNebula({ size, active, glow, rim, mode, density }: {
   size: number
   active: boolean
   glow: [number, number, number]
   rim: [number, number, number]
+  mode: number
+  density: number
 }) {
   const matRef = useRef<ShaderMaterial>(null)
   const uniforms = useMemo(() => ({
@@ -6282,7 +6301,9 @@ function VolumetricNebula({ size, active, glow, rim }: {
     uOpacity: { value: 0 },
     uGlow:    { value: new Color(...glow) },
     uRim:     { value: new Color(...rim) },
-  }), [glow, rim])
+    uMode:    { value: mode },
+    uDensity: { value: density },
+  }), [glow, rim, mode, density])
   useFrame((_, delta) => {
     uniforms.uTime.value += delta
     const k = 1 - Math.exp(-delta * 3)
@@ -6663,6 +6684,8 @@ function SkyPointMesh({
           active={detailActive}
           glow={VOLUMETRIC_NEBULAE[point.id].glow}
           rim={VOLUMETRIC_NEBULAE[point.id].rim}
+          mode={VOLUMETRIC_NEBULAE[point.id].mode}
+          density={VOLUMETRIC_NEBULAE[point.id].density}
         />
       )}
       {/* Exoplanet system — child planets rendered orbiting the host star
