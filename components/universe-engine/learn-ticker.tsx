@@ -82,8 +82,10 @@ export function LearnTicker({ suppressed = false }: { suppressed?: boolean }) {
         <button
           type="button"
           onClick={() => setDismissed(true)}
+          onPointerUp={() => setDismissed(true)}
           aria-label="Hide facts"
-          className="-mr-1 -mt-0.5 shrink-0 rounded-full px-1.5 py-0.5 font-mono text-[11px] leading-none text-foreground/40 transition-colors hover:text-foreground/80"
+          data-cursor-hover
+          className="-mr-2 -mt-1.5 shrink-0 grid h-9 w-9 place-items-center rounded-full font-mono text-[13px] leading-none text-foreground/55 transition-colors hover:bg-foreground/10 hover:text-foreground active:bg-foreground/15"
         >
           ✕
         </button>
