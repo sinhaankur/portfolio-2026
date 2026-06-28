@@ -6186,6 +6186,32 @@ function PulsarDetail({
   )
 }
 
+/** Parse a SkyPoint distance string → light-years (best effort). Handles
+ *  "2.5 million ly", "31 Mly", "1,344 ly", "40.7 ly". Returns null if unknown. */
+function parseDistanceLy(distance?: string): number | null {
+  if (!distance) return null
+  const s = distance.toLowerCase().replace(/,/g, "")
+  const num = parseFloat(s)
+  if (!isFinite(num)) return null
+  if (s.includes("billion") || /\bgly\b/.test(s)) return num * 1e9
+  if (s.includes("million") || /\bmly\b/.test(s)) return num * 1e6
+  if (s.includes("thousand") || /\bkly\b/.test(s)) return num * 1e3
+  return num // plain light-years
+}
+
+/** Map a deep-sky object's real distance → a scene radius. The fixed-star shell
+ *  is 150; deep-sky objects sit from ~the shell outward, log-spread by distance,
+ *  so nearer nebulae parallax in front of farther galaxies. */
+function skyDepthRadius(distance?: string): number {
+  const ly = parseDistanceLy(distance)
+  if (ly == null) return SKY_SHELL_DISTANCE
+  // log10(ly): nebulae ~3–4 (thousands), local-group galaxies ~6–7 (millions),
+  // far galaxies ~7–8. Spread that ~3.5→8 range onto ~140→340 scene units.
+  const L = Math.log10(Math.max(ly, 100))
+  const t = Math.min(1, Math.max(0, (L - 3.0) / 5.0)) // 0 at 1k ly → 1 at 1e8 ly
+  return 140 + t * 200
+}
+
 /** SkyPoint id → Blender-baked nebula sprite (Hα/O-III emission clouds). */
 const NEBULA_SPRITES: Record<string, string> = {
   m42: "/textures/nebulae/orion.webp",
@@ -6549,9 +6575,15 @@ function SkyPointMesh({
     return () => window.removeEventListener("universe:sky-focus", onSkyFocus)
   }, [point.id])
   const detailActive = hovered || focused
+  // Real DEPTH: place each deep-sky object at a radius that grows with its true
+  // distance (log-compressed), instead of pinning everything to the flat shell —
+  // so nearer nebulae sit in front of farther galaxies and the whole field
+  // PARALLAXES as the camera moves (the visceral 3D cue). Stars stay at the
+  // shell (150); deep-sky objects spread from ~the shell outward by distance.
+  const depthRadius = useMemo(() => skyDepthRadius(point.distance), [point.distance])
   const position = useMemo(
-    () => raDecToScenePos(point.raHours, point.decDeg, SKY_SHELL_DISTANCE),
-    [point.raHours, point.decDeg],
+    () => raDecToScenePos(point.raHours, point.decDeg, depthRadius),
+    [point.raHours, point.decDeg, depthRadius],
   )
 
   const visualSize = point.visualSize ?? (
