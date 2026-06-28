@@ -22,6 +22,7 @@ import { Clone, Html, useGLTF } from "@react-three/drei"
 import { BrightStarField } from "./bright-star-field"
 import { SatelliteField } from "./satellite-field"
 import { NamedStarHoverLayer } from "./named-star-hover-layer"
+import { BrightStarPicker } from "./bright-star-picker"
 import { GravityOverlay } from "./gravity-overlay"
 import { TrajectoryTrails } from "./trajectory-trails"
 import { SphereOfInfluence } from "./sphere-of-influence"
@@ -6413,6 +6414,11 @@ export function SceneContents({
           sized by magnitude; hover lights up the existing InfoPanel
           with apparent mag, distance, spectral type, catalog IDs. */}
       {!solarOnly && <NamedStarHoverLayer onHover={onHover} invert={invert} />}
+      {/* Picker for the OTHER ~8,500 bright stars (no proper name) — hover any of
+          them for an honest readout (relative brightness + colour class). The
+          named layer above is hit first (closer spheres); this far backstop only
+          reports when nothing nearer is under the cursor. */}
+      {!solarOnly && interactive && <BrightStarPicker onHover={onHover} invert={invert} mobile={mobile} />}
       {!solarOnly && (
         <group rotation={[GALACTIC_PLANE_TILT_RAD, 0, 0]}>
           <MilkyWay onHover={onHover} mobile={mobile} invert={invert} interactive={interactive} />
