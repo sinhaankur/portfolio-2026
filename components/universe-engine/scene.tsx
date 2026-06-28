@@ -36,6 +36,7 @@ import { SphereOfInfluence } from "./sphere-of-influence"
 useGLTF.preload("/models/blackhole.glb")
 import {
   AdditiveBlending,
+  BackSide,
   BufferAttribute,
   BufferGeometry,
   ClampToEdgeWrapping,
@@ -6167,6 +6168,120 @@ const NEBULA_SPRITES: Record<string, string> = {
   m42: "/textures/nebulae/orion.webp",
 }
 
+/** Per-nebula volumetric palette (real Hα/O-III look). Only listed nebulae get
+ *  the raymarched 3D volume on close approach. */
+const VOLUMETRIC_NEBULAE: Record<string, { glow: [number, number, number]; rim: [number, number, number] }> = {
+  m42: { glow: [0.95, 0.45, 0.62], rim: [0.45, 0.7, 0.95] }, // Hα pink core + O-III teal rim
+}
+
+/**
+ * VolumetricNebula — a TRUE 3D gas cloud, raymarched live in GLSL (no billboard,
+ * so it has real parallax + depth you can move through). Rendered on the inside
+ * of a box: the fragment shader marches from the camera through the box volume,
+ * accumulating FBM-noise emission. Only mounted when a nebula is focused/near, so
+ * the per-pixel march cost is paid only when it matters. uOpacity blends it in.
+ */
+const VOLNEB_VERT = `
+  varying vec3 vLocalPos;
+  varying vec3 vCamLocal;
+  void main() {
+    vLocalPos = position;
+    // camera position in this mesh's local space — the ray origin for marching
+    vCamLocal = (inverse(modelMatrix) * vec4(cameraPosition, 1.0)).xyz;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`
+const VOLNEB_FRAG = `
+  precision highp float;
+  varying vec3 vLocalPos;
+  varying vec3 vCamLocal;
+  uniform float uTime;
+  uniform float uOpacity;
+  uniform vec3  uGlow;
+  uniform vec3  uRim;
+
+  float hash(vec3 p){ return fract(sin(dot(p, vec3(127.1,311.7,74.7)))*43758.5453123); }
+  float vnoise(vec3 p){
+    vec3 i=floor(p); vec3 f=fract(p); f=f*f*(3.0-2.0*f);
+    float n000=hash(i), n100=hash(i+vec3(1,0,0)), n010=hash(i+vec3(0,1,0)), n110=hash(i+vec3(1,1,0));
+    float n001=hash(i+vec3(0,0,1)), n101=hash(i+vec3(1,0,1)), n011=hash(i+vec3(0,1,1)), n111=hash(i+vec3(1,1,1));
+    return mix(mix(mix(n000,n100,f.x),mix(n010,n110,f.x),f.y),
+               mix(mix(n001,n101,f.x),mix(n011,n111,f.x),f.y), f.z);
+  }
+  float fbm(vec3 p){ float v=0.0,a=0.5; for(int i=0;i<5;i++){ v+=a*vnoise(p); p*=2.02; a*=0.5; } return v; }
+
+  // density at a point in the unit-ish cube (local space ~[-1,1]); radial falloff
+  // so the cloud is contained + denser toward the centre.
+  float density(vec3 p){
+    float r = length(p);
+    float fall = smoothstep(1.0, 0.15, r);          // 0 at edge → 1 near centre
+    float n = fbm(p * 1.6 + vec3(0.0, uTime*0.02, 0.0));
+    n = smoothstep(0.45, 0.95, n);
+    return n * fall;
+  }
+
+  void main(){
+    vec3 ro = vCamLocal;
+    vec3 rd = normalize(vLocalPos - vCamLocal);
+    // march a fixed span centred on the box; cheap fixed step count
+    const int STEPS = 40;
+    float stepLen = 2.6 / float(STEPS);
+    vec3 p = vLocalPos;            // start at the entry face, march toward camera
+    vec3 dir = -rd * stepLen;
+    vec3 acc = vec3(0.0);
+    float trans = 1.0;
+    for(int i=0;i<STEPS;i++){
+      float d = density(p);
+      if(d > 0.001){
+        // colour: brighter/denser → teal rim shading to pink core
+        vec3 col = mix(uRim, uGlow, smoothstep(0.0, 0.6, d));
+        float a = d * 0.10;
+        acc += trans * a * col;
+        trans *= (1.0 - a);
+        if(trans < 0.02) break;
+      }
+      p += dir;
+    }
+    float alpha = (1.0 - trans) * uOpacity;
+    gl_FragColor = vec4(acc * uOpacity * 2.0, alpha);
+  }
+`
+
+function VolumetricNebula({ size, active, glow, rim }: {
+  size: number
+  active: boolean
+  glow: [number, number, number]
+  rim: [number, number, number]
+}) {
+  const matRef = useRef<ShaderMaterial>(null)
+  const uniforms = useMemo(() => ({
+    uTime:    { value: 0 },
+    uOpacity: { value: 0 },
+    uGlow:    { value: new Color(...glow) },
+    uRim:     { value: new Color(...rim) },
+  }), [glow, rim])
+  useFrame((_, delta) => {
+    uniforms.uTime.value += delta
+    const k = 1 - Math.exp(-delta * 3)
+    uniforms.uOpacity.value += ((active ? 1 : 0) - uniforms.uOpacity.value) * k
+  })
+  return (
+    <mesh scale={size}>
+      <boxGeometry args={[2, 2, 2]} />
+      <shaderMaterial
+        ref={matRef}
+        vertexShader={VOLNEB_VERT}
+        fragmentShader={VOLNEB_FRAG}
+        uniforms={uniforms}
+        transparent
+        depthWrite={false}
+        side={BackSide}
+        blending={AdditiveBlending}
+      />
+    </mesh>
+  )
+}
+
 // Galaxy sprite shader — samples the baked texture AND multiplies by a soft
 // radial mask so the square plane edge is ALWAYS invisible (the texture corners
 // can never show as a rectangle, the bug that made them read as flat images).
@@ -6379,6 +6494,16 @@ function SkyPointMesh({
           Uses `detailActive` so the bloom persists after a click → fly-to lands. */}
       {point.kind === "nebula" && (
         <NebulaDetail pointId={point.id} size={visualSize} hovered={detailActive} invert={invert} />
+      )}
+      {/* True 3D raymarched gas volume — real depth/parallax you can move through,
+          mounted only for listed nebulae and only while focused (perf). */}
+      {point.kind === "nebula" && !invert && VOLUMETRIC_NEBULAE[point.id] && (
+        <VolumetricNebula
+          size={visualSize * 2.2}
+          active={detailActive}
+          glow={VOLUMETRIC_NEBULAE[point.id].glow}
+          rim={VOLUMETRIC_NEBULAE[point.id].rim}
+        />
       )}
       {/* Exoplanet system — child planets rendered orbiting the host star
           when the host is focused. Only TRAPPIST-1 carries this data today.
