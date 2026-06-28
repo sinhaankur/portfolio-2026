@@ -40,13 +40,27 @@ export function World({ level = LEVEL_1, onWin }: { level?: Level; onWin?: () =>
   return (
     <>
       {sideOn ? (
-        // SIDE-ON: bright, even front lighting so the whole brick screen reads
-        // clearly (like the original's flat, fully-lit look). A strong front key
-        // from +Z, ambient fill, and a soft top light for a little dimension.
+        // SIDE-ON: bright + readable like the original, but with a shadow-casting
+        // key angled across the brick RELIEF so the masonry gets subtle self-
+        // shadowing (depth), plus a cool fill + a warm rim for shape.
         <>
-          <ambientLight intensity={0.85} />
-          <directionalLight position={[6, 14, 20]} intensity={1.7} color="#fff4e6" />
-          <directionalLight position={[-8, 6, 14]} intensity={0.5} color="#9fb8ff" />
+          <ambientLight intensity={0.62} />
+          <directionalLight
+            position={[7, 12, 16]}
+            intensity={1.65}
+            color="#fff4e6"
+            castShadow
+            shadow-mapSize={[2048, 2048]}
+            shadow-bias={-0.0004}
+            shadow-camera-left={-40}
+            shadow-camera-right={40}
+            shadow-camera-top={28}
+            shadow-camera-bottom={-12}
+            shadow-camera-near={1}
+            shadow-camera-far={80}
+          />
+          <directionalLight position={[-10, 5, 12]} intensity={0.45} color="#9fb8ff" />
+          <directionalLight position={[0, 3, -8]} intensity={0.35} color="#ffcaa0" />
         </>
       ) : (
         <>
