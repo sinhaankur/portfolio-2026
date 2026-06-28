@@ -293,6 +293,9 @@ export type NamedBody = {
   visualRadius?: number
   /** Optional hex colour override. Defaults derived from `kind`. */
   shade?: string
+  /** Real physical data (NASA) — composition/atmosphere surfaced in the
+   *  InfoPanel "Made of" section, same as planets + moons. */
+  deep?: BodyDeepFacts
 }
 
 /**

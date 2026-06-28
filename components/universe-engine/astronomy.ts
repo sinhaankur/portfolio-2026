@@ -988,6 +988,7 @@ export const namedBodies: NamedBody[] = [
     startPhase: 0.62,
     fact: "Returns every ~76 years; next perihelion in 2061. Parent body of both the Eta Aquariids (May) and Orionids (October) meteor showers — Earth crosses its trail twice per orbit.",
     visualRadius: 0.07,
+    deep: { atmosphere: "A coma + ion/dust tails grow only near the Sun, off-gassed from the ices", composition: "A ~15×8 km 'dirty snowball' — water/CO/CO₂ ices + dust, blacker than coal (Giotto, 1986)" },
   },
   {
     name: "Comet Swift-Tuttle",
@@ -1278,6 +1279,7 @@ export const namedBodies: NamedBody[] = [
     startPhase: 0.55,
     fact: "Brightest asteroid as seen from Earth — visible to the naked eye at opposition. Second-largest object in the asteroid belt after Ceres; visited by NASA's Dawn spacecraft 2011–2012.",
     visualRadius: 0.05,
+    deep: { atmosphere: "None", composition: "Differentiated protoplanet: iron-nickel core, olivine mantle, basaltic crust — the source of the HED meteorites" },
   },
   {
     name: "Ceres",
@@ -1292,6 +1294,7 @@ export const namedBodies: NamedBody[] = [
     startPhase: 0.12,
     fact: "Largest object in the asteroid belt and the only dwarf planet in the inner solar system. Round enough to be in hydrostatic equilibrium. NASA's Dawn mission orbited it 2015–2018.",
     visualRadius: 0.06,
+    deep: { atmosphere: "Trace water vapour (transient outgassing)", composition: "~25% water ice by mass over a rocky core; salt deposits (Occator's bright spots) hint at a briny subsurface layer" },
   },
   {
     name: "Pallas",

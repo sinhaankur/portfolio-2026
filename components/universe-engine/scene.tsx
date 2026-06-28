@@ -4831,6 +4831,7 @@ function NamedBodyMesh({
               aAU: body.aAU,
               periodDays: isFinite(body.periodYears) ? body.periodYears * 365.25 : undefined,
               fact: body.fact,
+              deep: body.deep,
               followable: interactive,
                 gravityMeasurement:
                   body.kind === "comet" || body.kind === "asteroid"
