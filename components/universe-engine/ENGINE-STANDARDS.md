@@ -15,11 +15,17 @@ Every change to this engine is held to the five pillars below.
   anchors + Kepler: `meanAnomalyAt` → `solveKepler` → `eccentricToTrue`). Scrub to
   any date and the sky is genuinely where it was / will be.
 - **Real values only** — AU, axial tilts, J2000 RA/Dec, masses, periods. Sourced
-  (NASA/JPL/HYG/SIMBAD) or not shown.
+  (NASA/JPL/ESA/HYG/SIMBAD) or not shown.
+- **Build each body from its KNOWN data — be exact.** A body's measured physical
+  state drives how it's rendered: a star's spectral type / temperature / radius /
+  composition (e.g. a helium-burning giant) determines its colour, size, and
+  behaviour; a planet's real albedo/atmosphere/tilt drive its look. Don't render a
+  generic stand-in when the real parameters exist.
 - **Never invent events** — no synthetic collisions, near-misses, or "what-if"
   states. The engine models real state.
-- Honest data: surface only fields we actually have (e.g. the bright-star picker
-  reports brightness + colour class for un-named stars, never a fake name/distance).
+- **Honest about the unknown** — surface only fields we actually have; where data
+  genuinely isn't known (e.g. most constellation stars' detailed composition),
+  present a clearly-LABELLED inference, never a guess dressed as measured fact.
 
 ## 2. Performance
 - 60 fps on a modern laptop; **≥30 fps on mobile**. Off-screen Canvas pauses via

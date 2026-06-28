@@ -91,6 +91,12 @@ App-router routes under [`app/`](./app):
 (Truth · Performance · Presentation · Robustness · Accessibility). True north:
 restore the real sky, faithfully + understandably; reverence over spectacle; real
 over invented. Pure-GLSL — no GLB meshes in the engine (Blender may bake textures only).
+**Build every body from real, known data (NASA/JPL/ESA/HYG/SIMBAD) — be EXACT**: a
+star's measured composition / temperature / size drives how it's rendered; where
+data genuinely isn't known, label it as inference, never present a guess as fact.
+**Architecture:** the engine is an orchestrator of domain sub-engines (planet · star
+· black-hole · nebula · galaxy · sub-system) — see
+[`components/universe-engine/ENGINE-ARCHITECTURE.md`](./components/universe-engine/ENGINE-ARCHITECTURE.md).
 
 The galaxy hero is powered by a self-contained R3F module in
 [`components/universe-engine/`](./components/universe-engine):
