@@ -2326,6 +2326,11 @@ export type SatelliteShell = {
   /** orbital inclination spread (radians) — how puffed the shell is in Y */
   incl: number
   speed: number
+  /** Debris cloud: tracked orbital debris fills a THICK band of altitudes at ALL
+   *  inclinations (a near-spherical shell), not a clean ring. Renders denser +
+   *  fainter specks. `altSpread` (fraction of altRatio) sets the band thickness. */
+  debris?: boolean
+  altSpread?: number
 }
 
 function SatelliteShellPoints({
@@ -2341,12 +2346,23 @@ function SatelliteShellPoints({
     const positions = new Float32Array(shell.count * 3)
     for (let i = 0; i < shell.count; i++) {
       const a = Math.random() * Math.PI * 2
-      // Inclination: most sats cluster near their plane; spread by shell.incl.
-      const inc = (Math.random() - 0.5) * shell.incl
-      const ringR = r * Math.cos(inc)
-      positions[i * 3] = Math.cos(a) * ringR
-      positions[i * 3 + 1] = r * Math.sin(inc)
-      positions[i * 3 + 2] = Math.sin(a) * ringR
+      if (shell.debris) {
+        // Debris cloud: every inclination (a near-spherical shell) over a thick
+        // altitude band — the real LEO debris environment, not a single lane.
+        const u = Math.random() * 2 - 1            // cos(polar) → uniform sphere
+        const ph = Math.acos(u)
+        const rr = r * (1 + (Math.random() - 0.5) * (shell.altSpread ?? 0.18))
+        positions[i * 3]     = rr * Math.sin(ph) * Math.cos(a)
+        positions[i * 3 + 1] = rr * Math.cos(ph)
+        positions[i * 3 + 2] = rr * Math.sin(ph) * Math.sin(a)
+      } else {
+        // Inclination: most sats cluster near their plane; spread by shell.incl.
+        const inc = (Math.random() - 0.5) * shell.incl
+        const ringR = r * Math.cos(inc)
+        positions[i * 3] = Math.cos(a) * ringR
+        positions[i * 3 + 1] = r * Math.sin(inc)
+        positions[i * 3 + 2] = Math.sin(a) * ringR
+      }
     }
     const geo = new BufferGeometry()
     geo.setAttribute("position", new BufferAttribute(positions, 3))
@@ -2379,22 +2395,24 @@ function SatelliteShellPoints({
       <points ref={ref} geometry={geometry}>
         <pointsMaterial
           // Real altitude ratios keep LEO tight to Earth, so the swarm only
-          // fully resolves when you zoom in. Keep the points bright + a hair
-          // larger (additive) so the band is still perceptible from afar
-          // without faking the distance.
-          size={Math.max(0.008, bodyRadius * 0.016)}
+          // fully resolves when you zoom in. Debris specks render smaller +
+          // fainter than active satellites (tiny tracked fragments).
+          size={shell.debris ? Math.max(0.005, bodyRadius * 0.009) : Math.max(0.008, bodyRadius * 0.016)}
           sizeAttenuation
           color={shell.color}
           transparent
-          opacity={1.0}
+          opacity={shell.debris ? 0.7 : 1.0}
           blending={AdditiveBlending}
           depthWrite={false}
         />
       </points>
-      {/* orbital-path ring (gentle inclination tilt) */}
-      <line geometry={ringGeo} rotation={[shell.incl * 0.35, 0, 0]}>
-        <lineBasicMaterial color={shell.color} transparent opacity={0.18} depthWrite={false} />
-      </line>
+      {/* orbital-path ring — only for constellations; a debris cloud has no
+          single lane, so it's skipped. */}
+      {!shell.debris && (
+        <line geometry={ringGeo} rotation={[shell.incl * 0.35, 0, 0]}>
+          <lineBasicMaterial color={shell.color} transparent opacity={0.18} depthWrite={false} />
+        </line>
+      )}
     </group>
   )
 }
@@ -2420,6 +2438,12 @@ const SATELLITE_CATALOG: Record<string, SatelliteShell[]> = {
     { label: "BeiDou (MEO ~21,500 km)", altRatio: 4.3, count: 30, color: "#ffb0e0", incl: 0.95, speed: 0.058 },
     // --- GEO (~35,786 km) — the equatorial comms/weather belt ---
     { label: "Geostationary belt (~35,786 km)", altRatio: 6.61, count: 180, color: "#ff9a6b", incl: 0.05, speed: 0.02 },
+    // --- Orbital DEBRIS — ~36,000 tracked objects >10 cm (most of LEO is junk):
+    //     spent stages, dead satellites, collision + ASAT-test fragments. A
+    //     near-spherical cloud at ALL inclinations, densest ~800–1000 km. The
+    //     defining hazard of the LEO environment (cf. LeoLabs tracking). ---
+    { label: "LEO debris cloud (~600–1100 km, all inclinations)", altRatio: 1.13, count: 2600, color: "#ff7a6b", incl: 3.14, speed: 0.17, debris: true, altSpread: 0.10 },
+    { label: "Upper-LEO debris (~1200–1500 km)", altRatio: 1.22, count: 700, color: "#ffae8a", incl: 3.14, speed: 0.14, debris: true, altSpread: 0.10 },
   ],
   Mars: [
     { label: "Mars orbiters (MRO / MAVEN / Odyssey / TGO …)", altRatio: 1.3, count: 14, color: "#ffb89a", incl: 1.1, speed: 0.12 },
