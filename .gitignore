@@ -7,6 +7,9 @@
 *MyHeritage*.csv
 public/data/dna.enc.json
 
+# Private interview prep (personal docs — never ship to the public repo).
+/interview-prep
+
 # dependencies
 /node_modules
 

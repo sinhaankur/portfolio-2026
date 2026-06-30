@@ -327,6 +327,69 @@ export function Lab() {
           </Link>
         </motion.div>
 
+        {/* Optical Flow — live in-browser computer vision (Shi-Tomasi + Lucas-Kanade) */}
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.12 }}
+          className="mb-14 md:mb-16"
+        >
+          <Link
+            href="/lab/optical-flow"
+            data-cursor-hover
+            aria-label="Optical Flow — live feature tracking in the browser"
+            className="
+              group relative block overflow-hidden
+              border border-border rounded-2xl
+              bg-card hover:border-accent/60 transition-colors duration-300
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+              focus-visible:ring-offset-4 focus-visible:ring-offset-background
+              p-7 md:p-10 lg:p-12
+            "
+          >
+            {/* a scatter of faint dots in the corner — a nod to the effect */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute -right-16 -top-16 w-64 h-64 rounded-full opacity-40 md:opacity-60 transition-transform duration-700 group-hover:scale-105"
+              style={{ background: "radial-gradient(circle, rgba(255,180,120,0.4), rgba(80,200,255,0.18) 50%, transparent 72%)" }}
+            />
+            <div className="relative">
+              <div className="flex flex-wrap items-center gap-2 mb-6">
+                <span className="font-mono text-[10px] tracking-[0.25em] uppercase px-2.5 py-1 border border-border text-foreground/85 rounded-full">
+                  Live · Computer vision
+                </span>
+                <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 border border-border text-foreground/75 rounded-full">
+                  Built from scratch
+                </span>
+              </div>
+
+              <h3 className="font-display text-3xl md:text-4xl lg:text-5xl font-light tracking-[-0.02em] leading-[1.05] text-foreground">
+                Optical Flow — <span className="italic">watch yourself become data.</span>
+              </h3>
+
+              <p className="mt-5 max-w-2xl font-sans text-base md:text-lg text-foreground/80 leading-relaxed">
+                Shi-Tomasi corner detection and Lucas-Kanade optical flow,
+                ported by hand to TypeScript and run live on your camera —
+                you resolve into a cloud of tracked feature points. No OpenCV,
+                no server; the classic algorithms, by hand.
+              </p>
+
+              <div className="mt-7 inline-flex items-center gap-2 font-mono text-[10px] tracking-[0.25em] uppercase text-foreground/85 group-hover:text-accent transition-colors">
+                Step into the camera
+                <motion.span
+                  aria-hidden="true"
+                  whileHover={prefersReducedMotion ? undefined : { rotate: 45 }}
+                  transition={{ duration: 0.3 }}
+                  className="inline-flex"
+                >
+                  <ArrowUpRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                </motion.span>
+              </div>
+            </div>
+          </Link>
+        </motion.div>
+
         {/* Celestial — Blender renders of real worlds */}
         <motion.div
           initial={{ opacity: 0, y: 24 }}
@@ -391,7 +454,11 @@ export function Lab() {
           </Link>
         </motion.div>
 
-        {/* Big Bang — the cosmic timeline, real-time + scientifically accurate */}
+        {/* Big Bang — HIDDEN from the Lab index (2026-06-29): the card oversells
+            what the page currently delivers — it doesn't yet showcase the idea.
+            The /lab/big-bang route still exists; this only pulls it off the index.
+            Restore by removing the `false &&` guard. */}
+        {false && (
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -454,6 +521,7 @@ export function Lab() {
             </div>
           </Link>
         </motion.div>
+        )}
 
         {/* Supporting open-source products — single eyebrow lifted from
             each card to the section level. Cards are now leaner: name,

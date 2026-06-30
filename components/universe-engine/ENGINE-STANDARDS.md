@@ -51,8 +51,16 @@ Every change to this engine is held to the five pillars below.
 - **Zero runtime errors** in any state. Every async asset has a fallback.
 - **Static-export safe** — the engine is client-only (`ssr: false`); never add
   server-component data fetching that breaks `output: "export"`.
-- Pure-GLSL: **no GLB meshes in the engine.** Blender may BAKE textures into
-  `/public/textures`, but baked meshes are game-only.
+- **GLSL-first, with curated GLB LODs.** The field — stars, nebulae, galaxies,
+  atmospheres, the spiral arms — is pure GLSL; that's the default and the bulk of
+  the engine. A small, curated set of bodies use a baked GLB mesh where a shader
+  can't carry the detail at close zoom: the black hole (`blackhole.glb`), belt
+  rocks (asteroid/comet nuclei), and the hero satellites. Each GLB is `useGLTF`-
+  preloaded and wrapped in `<Suspense fallback={null}>` so a load failure degrades
+  to empty, never to a crash. **Rule:** reach for GLSL first; add a GLB only when
+  it earns its bytes at deep-zoom, and keep it on the curated list — don't let the
+  point-field/nebula/galaxy layers drift into meshes. Blender bakes both the
+  textures in `/public/textures` and these few meshes in `/public/models`.
 
 ## 5. Accessibility & polish
 - `prefers-reduced-motion` respected (intro + animations).

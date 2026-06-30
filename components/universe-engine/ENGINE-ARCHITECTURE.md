@@ -57,10 +57,13 @@ TRUE 3D heliocentric depth), `Constellations` → `ConstellationStarMesh` /
 ## Black-hole engine
 **Data:** black-hole `SkyPoint`s (Cygnus X-1, Sgr A*, M87*, TON 618, Phoenix A…)
 with real `massSolar` + `spin`.
-**Render:** `BlackHoleDetail` + `BlackHoleJets`, sized by `computeBlackHoleProportions`
-(real Schwarzschild/Kerr horizon → log-scaled visual: stellar ≈ 0.75× →
-supermassive ≈ 1.45×). Photon ring, lensed halo, accretion disk, frame-dragging
-jets — Interstellar-grade. **Liked as-is; don't change without cause.**
+**Render:** a baked `blackhole.glb` mesh (`useGLTF` + `<Clone>`, Suspense-wrapped)
+for the lensed horizon, plus GLSL `BlackHoleJets`, sized by
+`computeBlackHoleProportions` (real Schwarzschild/Kerr horizon → log-scaled visual:
+stellar ≈ 0.75× → supermassive ≈ 1.45×). Photon ring, lensed halo, accretion disk,
+frame-dragging jets — Interstellar-grade. This is the showcase case where a baked
+mesh carries detail a shader can't at close zoom. **Liked as-is; don't change
+without cause.**
 
 ## Nebula engine
 **Data:** nebula `SkyPoint`s (M42, M16, Carina, M57, M1, Helix…) at real RA/Dec.
