@@ -1,19 +1,19 @@
 "use client"
 
 /**
- * flow-canvas.tsx — the live Optical Flow demo.
+ * flow-canvas.tsx — the ORCHESTRATOR of the Optical Flow engine.
  *
- * Pulls frames from the webcam, runs the Shi-Tomasi + Lucas-Kanade pipeline
- * from flow-core.ts on a downscaled copy of each frame, and renders the
- * tracked feature points as glowing dots on a 2D canvas. Density and palette
- * are live-adjustable, mirroring the "adjusted dot density to my liking, took
- * liberties with the colours" note from the reference.
+ * Owns the camera (getUserMedia) and the RAF loop, and composes the three
+ * pure layers around them:
+ *   · flow-core.ts  — the CV spine (Shi-Tomasi detect + Lucas-Kanade track)
+ *   · renderer.ts   — field merge (even spacing) + dot-field drawing
+ *   · config.ts     — every tunable param / palette / default
+ *   · hud.tsx       — the control surface
+ * This file holds NO CV math and NO draw calls inline; it wires the layers.
  *
- * The live camera IS the experience — there's no pre-baked clip; the whole
- * point is watching your own motion become tracked data. Static-export safe:
- * everything is client-only, no network at all. getUserMedia is requested only
- * after an explicit user click (never auto), matching the site's opt-in-media
- * convention.
+ * The live camera IS the experience — there's no pre-baked clip. Static-export
+ * safe: client-only, no network. getUserMedia is requested only after an
+ * explicit user click (never auto), matching the site's opt-in-media convention.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react"
@@ -26,80 +26,49 @@ import {
   type FeaturePoint,
   type GrayImage,
 } from "./flow-core"
-
-// Processing resolution — small enough to run the CV in real time on a laptop,
-// upscaled to the display canvas. The original worked on NumPy arrays at modest
-// res for the same reason.
-const PROC_W = 240
-const PROC_H = 180
-const PYRAMID_LEVELS = 3
-
-type Palette = { name: string; bg: string; dot: (age: number, strength: number) => string }
-
-const PALETTES: Palette[] = [
-  {
-    name: "Ember",
-    bg: "#0a0705",
-    dot: (age) => {
-      // young = white-hot, aging = amber → deep orange (took liberties w/ colour)
-      const t = Math.min(1, age / 40)
-      const r = 255
-      const g = Math.round(240 - t * 150)
-      const b = Math.round(200 - t * 190)
-      return `rgb(${r},${g},${b})`
-    },
-  },
-  {
-    name: "Cyan",
-    bg: "#03070a",
-    dot: (age) => {
-      const t = Math.min(1, age / 40)
-      const r = Math.round(120 - t * 100)
-      const g = Math.round(220 - t * 60)
-      const b = 255
-      return `rgb(${r},${g},${b})`
-    },
-  },
-  {
-    name: "Mono",
-    bg: "#000000",
-    dot: () => "rgba(255,255,255,0.92)",
-  },
-]
+import {
+  PROC_W,
+  PROC_H,
+  PYRAMID_LEVELS,
+  LK,
+  REPLENISH,
+  PALETTES,
+  DEFAULTS,
+  densityToDetection,
+  type EngineParams,
+} from "./config"
+import { mergeField, drawField } from "./renderer"
+import { FlowHud } from "./hud"
 
 type Source = "idle" | "webcam"
 
 export function FlowCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
-  // hidden scratch canvas for pulling pixels at processing resolution
-  const scratchRef = useRef<HTMLCanvasElement>(null)
+  const scratchRef = useRef<HTMLCanvasElement>(null) // hidden, proc-resolution
 
   const [source, setSource] = useState<Source>("idle")
   const [error, setError] = useState<string | null>(null)
-  const [paletteIdx, setPaletteIdx] = useState(0)
-  const [density, setDensity] = useState(0.6) // 0..1 → maxCorners + spacing
-  const [showVideo, setShowVideo] = useState(false) // ghost the source under the dots
+  const [params, setParams] = useState<EngineParams>({
+    density: DEFAULTS.density,
+    paletteIdx: DEFAULTS.paletteIdx,
+    ghostSource: DEFAULTS.ghostSource,
+  })
 
-  // mutable per-frame state kept in refs so the RAF loop doesn't re-subscribe
+  // Per-frame state in refs so the RAF loop never re-subscribes.
   const pointsRef = useRef<FeaturePoint[]>([])
   const prevPyrRef = useRef<GrayImage[] | null>(null)
   const rafRef = useRef<number>(0)
   const runningRef = useRef(false)
-  const paletteIdxRef = useRef(0)
-  const densityRef = useRef(0.6)
-  const showVideoRef = useRef(false)
   const frameCountRef = useRef(0)
+  const paramsRef = useRef(params)
+  useEffect(() => {
+    paramsRef.current = params
+  }, [params])
 
-  useEffect(() => {
-    paletteIdxRef.current = paletteIdx
-  }, [paletteIdx])
-  useEffect(() => {
-    densityRef.current = density
-  }, [density])
-  useEffect(() => {
-    showVideoRef.current = showVideo
-  }, [showVideo])
+  const updateParams = useCallback((next: Partial<EngineParams>) => {
+    setParams((p) => ({ ...p, ...next }))
+  }, [])
 
   const stop = useCallback(() => {
     runningRef.current = false
@@ -113,20 +82,19 @@ export function FlowCanvas() {
     prevPyrRef.current = null
   }, [])
 
+  /** Pull the current frame as a blurred grayscale image at processing res. */
   const grayFromVideo = useCallback((): GrayImage | null => {
     const v = videoRef.current
     const scratch = scratchRef.current
     if (!v || !scratch || v.readyState < 2) return null
     const sctx = scratch.getContext("2d", { willReadFrequently: true })
     if (!sctx) return null
-    // mirror the webcam horizontally so it reads like a mirror
-    sctx.save()
+    sctx.save() // mirror so the webcam reads like a mirror
     sctx.translate(PROC_W, 0)
     sctx.scale(-1, 1)
     sctx.drawImage(v, 0, 0, PROC_W, PROC_H)
     sctx.restore()
-    const img = sctx.getImageData(0, 0, PROC_W, PROC_H)
-    return blur(toGray(img))
+    return blur(toGray(sctx.getImageData(0, 0, PROC_W, PROC_H)))
   }, [])
 
   const loop = useCallback(() => {
@@ -136,83 +104,33 @@ export function FlowCanvas() {
     if (canvas && gray) {
       const pyr = buildPyramid(gray, PYRAMID_LEVELS)
       frameCountRef.current++
+      const { density, paletteIdx, ghostSource } = paramsRef.current
 
-      // 1) TRACK existing points forward (Lucas-Kanade)
+      // 1) TRACK — move existing points forward (Lucas-Kanade).
       if (prevPyrRef.current && pointsRef.current.length) {
-        pointsRef.current = trackPoints(prevPyrRef.current, pyr, pointsRef.current, {
-          winSize: 7,
-          iters: 6,
-        })
+        pointsRef.current = trackPoints(prevPyrRef.current, pyr, pointsRef.current, LK)
       }
 
-      // 2) REPLENISH via Shi-Tomasi when the herd thins or periodically, so the
-      //    field stays alive as points drift off-frame or fail.
-      const d = densityRef.current
-      const maxCorners = Math.round(120 + d * 480) // 120..600
-      const minDistance = Math.round(10 - d * 6) // sparse..dense
+      // 2) REPLENISH — re-seed via Shi-Tomasi when the field thins or on cadence,
+      //    then fold in with even spacing (renderer.mergeField kills clumping).
+      const { maxCorners, minDistance, qualityLevel } = densityToDetection(density)
       const needTopUp =
-        pointsRef.current.length < maxCorners * 0.7 || frameCountRef.current % 12 === 0
+        pointsRef.current.length < maxCorners * REPLENISH.thinFraction ||
+        frameCountRef.current % REPLENISH.everyNFrames === 0
       if (needTopUp) {
-        const fresh = shiTomasi(pyr[0], {
-          maxCorners,
-          qualityLevel: 0.06,
-          minDistance,
-          blockSize: 3,
-        })
-        // merge: keep tracked points, add fresh ones that aren't on top of them
-        const merged = pointsRef.current.slice()
-        const md2 = minDistance * minDistance
-        for (const f of fresh) {
-          let dup = false
-          for (const p of pointsRef.current) {
-            const dx = p.x - f.x
-            const dy = p.y - f.y
-            if (dx * dx + dy * dy < md2) {
-              dup = true
-              break
-            }
-          }
-          if (!dup && merged.length < maxCorners) merged.push(f)
-        }
-        pointsRef.current = merged
+        const fresh = shiTomasi(pyr[0], { maxCorners, qualityLevel, minDistance, blockSize: 3 })
+        pointsRef.current = mergeField(pointsRef.current, fresh, minDistance, maxCorners)
       }
 
       prevPyrRef.current = pyr
 
-      // 3) RENDER dots, scaled up to the display canvas
+      // 3) RENDER — draw the field (renderer.drawField).
       const ctx = canvas.getContext("2d")
       if (ctx) {
-        const W = canvas.width
-        const H = canvas.height
-        const pal = PALETTES[paletteIdxRef.current]
-        ctx.fillStyle = pal.bg
-        ctx.fillRect(0, 0, W, H)
-
-        if (showVideoRef.current && videoRef.current) {
-          ctx.save()
-          ctx.globalAlpha = 0.18
-          ctx.translate(W, 0)
-          ctx.scale(-1, 1)
-          ctx.drawImage(videoRef.current, 0, 0, W, H)
-          ctx.restore()
-        }
-
-        const sx = W / PROC_W
-        const sy = H / PROC_H
-        ctx.globalCompositeOperation = "lighter"
-        for (const p of pointsRef.current) {
-          const x = p.x * sx
-          const y = p.y * sy
-          const fade = Math.min(1, p.age / 6) // gentle fade-in for new dots
-          const r = (1.1 + Math.min(p.strength / 600, 2.2)) * (sx / 2)
-          ctx.beginPath()
-          ctx.fillStyle = pal.dot(p.age, p.strength)
-          ctx.globalAlpha = 0.85 * fade
-          ctx.arc(x, y, r, 0, Math.PI * 2)
-          ctx.fill()
-        }
-        ctx.globalAlpha = 1
-        ctx.globalCompositeOperation = "source-over"
+        drawField(ctx, pointsRef.current, PALETTES[paletteIdx], {
+          ghost: ghostSource ? videoRef.current : null,
+          mirror: true,
+        })
       }
     }
     rafRef.current = requestAnimationFrame(loop)
@@ -288,62 +206,15 @@ export function FlowCanvas() {
         )}
       </div>
 
-      {/* controls */}
       {source !== "idle" && (
-        <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3">
-          <label className="flex items-center gap-2 font-mono text-[10px] tracking-wider uppercase text-foreground/70">
-            Density
-            <input
-              type="range"
-              min={0}
-              max={1}
-              step={0.05}
-              value={density}
-              onChange={(e) => setDensity(parseFloat(e.target.value))}
-              className="w-28 accent-accent"
-              aria-label="Dot density"
-            />
-          </label>
-
-          <div className="flex items-center gap-2 font-mono text-[10px] tracking-wider uppercase text-foreground/70">
-            Palette
-            {PALETTES.map((p, i) => (
-              <button
-                key={p.name}
-                onClick={() => setPaletteIdx(i)}
-                data-cursor-hover
-                className={`rounded-full px-3 py-1 border transition-colors ${
-                  paletteIdx === i
-                    ? "border-accent text-accent"
-                    : "border-border text-foreground/60 hover:text-foreground"
-                }`}
-              >
-                {p.name}
-              </button>
-            ))}
-          </div>
-
-          <label className="flex items-center gap-2 font-mono text-[10px] tracking-wider uppercase text-foreground/70 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={showVideo}
-              onChange={(e) => setShowVideo(e.target.checked)}
-              className="accent-accent"
-            />
-            Ghost source
-          </label>
-
-          <button
-            onClick={() => {
-              stop()
-              setSource("idle")
-            }}
-            data-cursor-hover
-            className="ml-auto rounded-full border border-border px-3 py-1 font-mono text-[10px] tracking-wider uppercase text-foreground/60 hover:text-foreground transition-colors"
-          >
-            Stop
-          </button>
-        </div>
+        <FlowHud
+          params={params}
+          onChange={updateParams}
+          onStop={() => {
+            stop()
+            setSource("idle")
+          }}
+        />
       )}
     </div>
   )

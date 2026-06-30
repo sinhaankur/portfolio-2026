@@ -1,0 +1,115 @@
+/**
+ * config.ts — the tunable surface of the Optical Flow engine.
+ *
+ * Everything that decides how the engine *looks and behaves* lives here, kept
+ * out of the orchestrator so the engine reads as one knob-board you can adjust
+ * without touching the camera/RAF plumbing or the CV math. Same separation the
+ * Universe Engine keeps between its data/params spine and its render layer.
+ */
+
+import type { FeaturePoint } from "./flow-core"
+
+/** Processing resolution — the CV runs on a small grayscale copy of the frame
+ *  for speed (the original did the same with modest-res NumPy arrays), then the
+ *  surviving points are drawn upscaled to the display canvas. */
+export const PROC_W = 240
+export const PROC_H = 180
+
+/** Pyramid depth for Lucas-Kanade (coarse-to-fine, catches large motion). */
+export const PYRAMID_LEVELS = 3
+
+/** Lucas-Kanade tracking params. */
+export const LK = { winSize: 7, iters: 6 } as const
+
+/** SGP4-style detection cadence: re-seed via Shi-Tomasi when the field thins
+ *  below this fraction of target, or every N frames regardless. */
+export const REPLENISH = { thinFraction: 0.7, everyNFrames: 12 } as const
+
+/**
+ * Density (0..1) → the two numbers that drive coverage. Pulled into one place
+ * so "denser/sparser" is a single honest mapping, not magic numbers buried in
+ * the loop.
+ */
+export function densityToDetection(d: number): {
+  maxCorners: number
+  minDistance: number
+  qualityLevel: number
+} {
+  return {
+    maxCorners: Math.round(220 + d * 680), // 220..900 — a full field
+    minDistance: Math.max(3, Math.round(9 - d * 5)), // even spacing, never 0
+    // low bar so weaker corners (cheeks, neck, shoulders) also register and the
+    // whole form fills, not just the few hottest spots
+    qualityLevel: 0.012,
+  }
+}
+
+export type Palette = {
+  name: string
+  bg: string
+  /** colour for a dot given its age (frames tracked) + birth corner strength */
+  dot: (age: number, strength: number) => string
+}
+
+export const PALETTES: Palette[] = [
+  {
+    name: "Ember",
+    bg: "#08060a",
+    dot: (age) => {
+      // young = white-hot, ageing = amber → deep orange
+      const t = Math.min(1, age / 40)
+      const g = Math.round(240 - t * 150)
+      const b = Math.round(200 - t * 190)
+      return `rgb(255,${g},${b})`
+    },
+  },
+  {
+    name: "Cyan",
+    bg: "#03070a",
+    dot: (age) => {
+      const t = Math.min(1, age / 40)
+      const r = Math.round(120 - t * 100)
+      const g = Math.round(220 - t * 60)
+      return `rgb(${r},${g},255)`
+    },
+  },
+  {
+    name: "Mono",
+    bg: "#000000",
+    dot: () => "rgba(255,255,255,0.92)",
+  },
+]
+
+/** Render tuning for the dot field — soft, varied, glowing (not flat discs). */
+export const RENDER = {
+  /** dot core radius in proc-px: base + strength-scaled bonus */
+  sizeBase: 1.4,
+  sizeStrengthDiv: 500,
+  sizeStrengthMax: 2.6,
+  /** soft glow extends this × the core radius */
+  glowSpread: 2.2,
+  /** alpha = alphaBase + strength bonus, × age fade-in */
+  alphaBase: 0.55,
+  alphaStrengthDiv: 900,
+  alphaStrengthMax: 0.4,
+  /** frames over which a new dot fades in */
+  fadeInFrames: 6,
+} as const
+
+/** Default engine params on mount. */
+export const DEFAULTS = {
+  density: 0.78,
+  paletteIdx: 0,
+  /** ghost the source video under the dots — OFF: the form should read from
+   *  the dot field alone, floating on near-black, true to the reference. */
+  ghostSource: false,
+} as const
+
+export type EngineParams = {
+  density: number
+  paletteIdx: number
+  ghostSource: boolean
+}
+
+/** Re-export so consumers can type point arrays without reaching into core. */
+export type { FeaturePoint }

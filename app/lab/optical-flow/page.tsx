@@ -8,7 +8,7 @@ import {
   CasePullQuote,
   CaseLessons,
 } from "@/components/case-study/case-study-layout"
-import { RevealCanvas } from "@/components/optical-flow/reveal-canvas"
+import { RevealCanvas } from "@/components/optical-flow"
 
 export default function OpticalFlowPage() {
   return (
