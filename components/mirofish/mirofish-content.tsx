@@ -14,25 +14,6 @@ import type { MirofishContent } from "@/lib/mirofish"
 export function MirofishView({ content }: { content: MirofishContent }) {
   return (
     <article className="mx-auto max-w-4xl">
-      {/* terminal window chrome — evokes the Mirofish trading dashboard */}
-      <div className="mb-12 overflow-hidden rounded-lg border border-border bg-secondary/20">
-        {/* title bar */}
-        <div className="flex items-center gap-3 border-b border-border bg-background/60 px-4 py-2.5">
-          <div className="flex gap-1.5" aria-hidden>
-            <span className="h-2.5 w-2.5 rounded-full bg-[#f06c8d]/70" />
-            <span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/40" />
-            <span className="h-2.5 w-2.5 rounded-full bg-accent/60" />
-          </div>
-          <p className="flex-1 min-w-0 truncate font-mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground">
-            {content.meta.name.toLowerCase()} — relationship graph simulation
-          </p>
-          <span className="hidden sm:inline-flex items-center gap-1.5 font-mono text-[10px] tracking-wider text-accent">
-            <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" aria-hidden />
-            LIVE
-          </span>
-        </div>
-      </div>
-
       {/* header */}
       <header className="mb-12 border-b border-border pb-8">
         <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-muted-foreground mb-3">

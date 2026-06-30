@@ -7,6 +7,39 @@
  * were removed when it went public.)
  */
 
+// ---- dashboard (the recreated Mirofish trading terminal) --------------------
+
+export type MirofishDashboard = {
+  /** true while the page renders generated placeholder series, not real output. */
+  sampleData: boolean
+  header: {
+    title: string
+    subtitle?: string
+    /** the big P&L figure (raw number; formatted in the UI). */
+    pnl: number
+    /** small stat chips along the header. */
+    readouts: { label: string; value: string }[]
+  }
+  /** scatter "board" — one weighted point per (sub-sampled) trade. */
+  probabilityLattice: {
+    label: string
+    points: { x: number; y: number; w: number }[]
+  }
+  /** ridgeline / stacked-density plot — each row is one strike level's density. */
+  tailRidge: {
+    label: string
+    rows: number[][]
+  }
+  /** force-directed correlation network. */
+  relationshipGraph: {
+    label: string
+    nodes: { id: string; group: number; size: number }[]
+    edges: { source: string; target: string; weight: number }[]
+  }
+}
+
+// ---- the prose write-up (header copy / capability list) ---------------------
+
 export type MirofishStat = { label: string; value: string }
 
 export type MirofishCapability = { title: string; detail: string }
