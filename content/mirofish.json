@@ -1,0 +1,41 @@
+{
+  "meta": {
+    "name": "Mirofish",
+    "tagline": "A local MCP bridge that lets Claude Code control TradingView Desktop — read charts, run backtests, and build indicators from natural-language commands."
+  },
+  "summary": [
+    "Mirofish is a local MCP bridge that connects Claude Code to TradingView Desktop using the Chrome DevTools Protocol, letting an AI drive the platform with natural-language commands.",
+    "It's asset-agnostic — anything TradingView charts, it can drive: stocks, crypto, futures, FX. The integration reads charts, switches symbols and timeframes, writes Pine Script, runs backtests, creates alerts, manages drawings, captures screenshots, uses replay mode, and builds custom indicators directly in TradingView.",
+    "It's an open-source demo of how AI can automate TradingView workflows. It's an unofficial integration that relies on internal interfaces, and may stop working if TradingView updates its platform."
+  ],
+  "stats": [
+    { "label": "Bridge", "value": "Local MCP" },
+    { "label": "Transport", "value": "CDP" },
+    { "label": "Markets", "value": "Any TV" },
+    { "label": "License", "value": "Open source" }
+  ],
+  "capabilities": [
+    { "title": "Read charts", "detail": "Pull the current chart state so the model can reason about what's on screen." },
+    { "title": "Switch symbols & timeframes", "detail": "Change the active instrument and interval from a natural-language instruction." },
+    { "title": "Write Pine Script", "detail": "Generate and place Pine Script directly in the platform's editor." },
+    { "title": "Run backtests", "detail": "Kick off strategy backtests and read the results back." },
+    { "title": "Create alerts", "detail": "Set price/condition alerts programmatically." },
+    { "title": "Manage drawings", "detail": "Add and adjust on-chart drawings and annotations." },
+    { "title": "Capture screenshots", "detail": "Grab the chart as an image for review or hand-off." },
+    { "title": "Replay mode", "detail": "Drive bar-replay to walk through historical price action." },
+    { "title": "Build custom indicators", "detail": "Compose and install custom indicators in TradingView." }
+  ],
+  "architecture": [
+    "A local Model Context Protocol (MCP) server exposes TradingView actions as tools that Claude Code can call.",
+    "The bridge speaks to TradingView Desktop over the Chrome DevTools Protocol (CDP) — the same low-level interface dev tooling uses to inspect and automate a Chromium app — to read and drive the UI.",
+    "Because it's an unofficial integration built on internal interfaces, it can break when TradingView ships UI changes; it is a demonstration of agentic automation, not a supported product."
+  ],
+  "caveats": [
+    "Unofficial integration — it relies on TradingView's internal interfaces and may stop working when the platform updates.",
+    "Not financial advice and not a trading recommendation; it's a tooling/automation demo.",
+    "Runs locally against your own TradingView Desktop session."
+  ],
+  "links": [
+    { "label": "Instagram post", "href": "https://www.instagram.com/p/DaDu_QOiH_J/" }
+  ]
+}
