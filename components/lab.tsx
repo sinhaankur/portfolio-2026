@@ -24,6 +24,36 @@ import Link from "next/link"
 import { motion, useReducedMotion } from "framer-motion"
 import { ArrowUpRight, Github } from "lucide-react"
 
+/** Honest per-project status. Drives the small pill in the card's top-right. */
+type ProductStatus = "building" | "live" | "exploration"
+
+const STATUS_META: Record<
+  ProductStatus,
+  { label: string; dot: string; text: string; ring: string }
+> = {
+  // Warm amber — actively in progress.
+  building: {
+    label: "Building",
+    dot: "bg-[#f0b86c]",
+    text: "text-[#f0b86c]",
+    ring: "border-[#f0b86c]/30 bg-[#f0b86c]/10",
+  },
+  // Accent green — working / shipped.
+  live: {
+    label: "Live",
+    dot: "bg-accent",
+    text: "text-accent",
+    ring: "border-accent/30 bg-accent/10",
+  },
+  // Muted — an experiment, not actively maintained.
+  exploration: {
+    label: "Exploration",
+    dot: "bg-muted-foreground",
+    text: "text-muted-foreground",
+    ring: "border-border bg-secondary/40",
+  },
+}
+
 type Product = {
   name: string
   tagline: string
@@ -31,6 +61,7 @@ type Product = {
   stack: string[]
   href: string
   highlight?: string
+  status?: ProductStatus
 }
 
 const products: Product[] = [
@@ -42,6 +73,7 @@ const products: Product[] = [
     stack: ["Python", "Electron", "VS Code", "PyPI"],
     href: "https://github.com/sinhaankur/WatchTower",
     highlight: "Ships across 6 distribution channels",
+    status: "exploration",
   },
   {
     name: "GovLens",
@@ -51,6 +83,7 @@ const products: Product[] = [
     stack: ["Chrome ext", "On-device AI", "Claude SDK"],
     href: "https://github.com/sinhaankur/GovLens",
     highlight: "25+ TLDs · 100+ languages",
+    status: "building",
   },
   {
     name: "EMPATHEIA",
@@ -60,6 +93,7 @@ const products: Product[] = [
     stack: ["Next.js", "AI SDK", "face-api.js", "Ollama"],
     href: "https://github.com/sinhaankur/ideal-giggle",
     highlight: "PWA · graceful degradation",
+    status: "building",
   },
 ]
 
@@ -567,14 +601,33 @@ export function Lab() {
               "
               aria-label={`${product.name} on GitHub — opens in a new tab`}
             >
-              <div className="flex items-start justify-between mb-4">
+              {/* Status pill — top-right, honest per-project state. */}
+              {product.status && (
+                <span
+                  className={`
+                    absolute top-4 right-4 inline-flex items-center gap-1.5
+                    rounded-full border px-2 py-0.5
+                    font-mono text-[9px] tracking-[0.15em] uppercase
+                    ${STATUS_META[product.status].ring}
+                    ${STATUS_META[product.status].text}
+                  `}
+                >
+                  <span
+                    className={`h-1 w-1 rounded-full ${STATUS_META[product.status].dot} ${product.status === "building" ? "motion-safe:animate-pulse" : ""}`}
+                    aria-hidden="true"
+                  />
+                  {STATUS_META[product.status].label}
+                </span>
+              )}
+
+              <div className="flex items-center gap-2 mb-4 pr-24">
                 <h3 className="font-display text-xl md:text-2xl font-light tracking-[-0.01em] text-foreground">
                   {product.name}
                 </h3>
                 <motion.div
                   whileHover={prefersReducedMotion ? undefined : { rotate: 45 }}
                   transition={{ duration: 0.3 }}
-                  className="text-muted-foreground group-hover:text-foreground transition-colors mt-1.5"
+                  className="text-muted-foreground group-hover:text-foreground transition-colors shrink-0"
                   aria-hidden="true"
                 >
                   <ArrowUpRight className="w-4 h-4" />
