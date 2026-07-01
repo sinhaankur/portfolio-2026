@@ -14,6 +14,9 @@ importers:
       '@anthropic-ai/sdk':
         specifier: ^0.98.0
         version: 0.98.0(zod@3.25.76)
+      '@chenglou/pretext':
+        specifier: 0.0.8
+        version: 0.0.8
       '@react-three/drei':
         specifier: ^10.7.7
         version: 10.7.7(@react-three/fiber@9.4.0(@types/react@19.2.15)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(three@0.181.2))(@types/react@19.2.15)(@types/three@0.181.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(three@0.181.2)
@@ -170,6 +173,9 @@ packages:
   '@babel/types@7.29.7':
     resolution: {integrity: sha512-4zBIxpPzowiZpusoFkyGVwakdRJUyuH5PxQ/PrqghfdFWWasvnCdPfQXHrenDai+gyLARulZjZowCOj6fjT4pA==}
     engines: {node: '>=6.9.0'}
+
+  '@chenglou/pretext@0.0.8':
+    resolution: {integrity: sha512-yqm2GMxnPI7VHcHwe84P8ZF0JK/2d2DMKPqMN+s95jQhwDMYYXKVFVJUMEaVWckQStdsjdLav/0Vu+d9YbtGxA==}
 
   '@dimforge/rapier3d-compat@0.12.0':
     resolution: {integrity: sha512-uekIGetywIgopfD97oDL5PfeezkFpNhwlzlaEYNOA0N6ghdsOvh/HYjSMek5Q2O1PYvRSDFcqFVJl4r4ZBwOow==}
@@ -2478,6 +2484,8 @@ snapshots:
     dependencies:
       '@babel/helper-string-parser': 7.29.7
       '@babel/helper-validator-identifier': 7.29.7
+
+  '@chenglou/pretext@0.0.8': {}
 
   '@dimforge/rapier3d-compat@0.12.0': {}
 

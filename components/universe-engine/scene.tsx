@@ -25,6 +25,7 @@ import { NamedStarHoverLayer } from "./named-star-hover-layer"
 import { BrightStarPicker } from "./bright-star-picker"
 import { NearbyStars3D } from "./nearby-stars-3d"
 import { GravityOverlay } from "./gravity-overlay"
+import { WebGLLabel } from "./webgl-label"
 import { TrajectoryTrails } from "./trajectory-trails"
 import { SphereOfInfluence } from "./sphere-of-influence"
 
@@ -1877,37 +1878,22 @@ function ConstellationGroup({
       )}
 
       {/* Hover label — fades in when the constellation is active.
-          Lives outside the 3D point cloud as an HTML overlay so it stays crisp
-          at any camera distance. drei's <Html> positions it in scene space. */}
+          Rendered as an in-scene canvas-textured sprite (WebGLLabel) rather than
+          a DOM <Html> overlay, so it sits at the constellation's true depth and
+          is depth-tested like everything else — it can be occluded by the Sun or
+          a planet instead of floating in front of them. The label's text is
+          measured + wrapped reflow-free via pretext (canvas font engine, no
+          getBoundingClientRect), so building the texture never forces a layout. */}
       {active && (
-        <Html
+        <WebGLLabel
+          text={constellation.name.toUpperCase()}
           position={centroid}
-          center
-          distanceFactor={120}
-          zIndexRange={[10, 0]}
-          // pointer events disabled — label is a hint, not a target
-          style={{ pointerEvents: "none" }}
-        >
-          <div
-            className={`
-              whitespace-nowrap select-none pointer-events-none
-              font-mono text-[10px] tracking-[0.3em] uppercase
-              px-2 py-1 rounded-full backdrop-blur-sm
-              ${
-                invert
-                  ? "bg-white/85 border border-foreground/25 text-foreground"
-                  : "bg-black/55 border border-white/20 text-white"
-              }
-            `}
-            style={{
-              // Fade-in animation lives in CSS so it doesn't allocate a
-              // motion node per constellation per frame.
-              animation: "ue-label-in 220ms ease-out both",
-            }}
-          >
-            {constellation.name}
-          </div>
-        </Html>
+          fontSizePx={40}
+          maxWidthPx={480}
+          color={invert ? "#0b0e0d" : "#ffffff"}
+          background={invert ? "rgba(255,255,255,0.85)" : "rgba(0,0,0,0.55)"}
+          scale={SKY_SHELL_DISTANCE * 0.05}
+        />
       )}
       {/* Also let the user hover the asterism line itself — invisible thick
           hit segments along each edge so the line isn't just decorative. */}
