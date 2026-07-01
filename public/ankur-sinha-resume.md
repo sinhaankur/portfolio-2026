@@ -7,66 +7,21 @@
 
 ## Summary
 
-Engineer-turned-designer, 12+ years shipping enterprise SaaS and AI-assisted product surfaces across banking, supply chain, oil & gas, e-commerce, and cloud database tooling. I design the seam between humans and AI agents — the moment of decision, override, and trust — and ship working code prototypes of those interaction patterns, not just Figma. Currently focused on agentic workflows, calibrated-confidence UX, and design systems that scale across enterprise products.
-
----
-
-## Selected Work — Agentic & Human-AI Interaction
-
-A connected trilogy of production-quality code prototypes (React 19 / TypeScript / Tailwind v4) on one thesis: **AI claims become trustworthy only when their uncertainty is legible and their basis is checkable.** Each ships with a live demo and a shared design vocabulary (calibrated confidence, cross-hatch failure-mode pattern, evidence anchors, per-decision audit object).
-
-### Helm — Real-time oversight of LLM agents
-[github.com/sinhaankur/Helm](https://github.com/sinhaankur/Helm) · [Live demo](https://sinhaankur.github.io/Helm/)
-
-Puts the human back in the loop *while* the agent acts: every tool call is previewed with intent, target, diff, and cost. Designed six primitives (ToolBadge, ReversibilityChip, ConfidenceTag, DiffView, ApprovalGate, AgentStream) around a single idea — **reversibility (recovery cost), not "safety," is the policy axis**: auto-allow caps at reversible; irreversible steps always pause.
-
-### Sentinel — Embeddable inline oversight layer for AI tools
-[github.com/sinhaankur/Human-in-the-Loop](https://github.com/sinhaankur/Human-in-the-Loop) · [Live demo](https://sinhaankur.github.io/Human-in-the-Loop/)
-
-A drop-in oversight layer any AI tool can adopt, shipped **four ways** (React library, Chrome extension over real ChatGPT, VS Code Copilot wrapper, Docker demo). Designed the calibrated-confidence vocabulary (Likely / Unsure / Low → exact % on hover), a distinct hallucination chip, and a verdict rail that blocks rubber-stamping the moment any claim is edited.
-
-### Recourse — Consumer AI as advocate against institutional loops
-[github.com/sinhaankur/Recourse](https://github.com/sinhaankur/Recourse) · [Live demo](https://sinhaankur.github.io/Recourse/)
-
-A document-first workflow (not a chatbot) that helps people contest insurance denials with statute-anchored claims and a cadence engine that never lets a deadline slip. Confidence language flipped to action verbs (Settled / You verify / Ask a lawyer); every claim anchored to a real statute with excerpt and plain-language gloss. Outcome-driven design — the win condition is being *unexhaustible* against an adversarial process.
-
----
-
-## Selected Work — Enterprise SaaS & Workflow Products
-
-### BuildingSync — Multi-tenant property management SaaS
-[github.com/BuildingAi-Cloud](https://github.com/BuildingAi-Cloud)
-
-Founder, designer, and full-stack engineer of a three-platform product (Next.js web/admin, SwiftUI iOS, Kotlin/Compose Android) on a shared Supabase backend. Designed for **11 personas** and **5 building-type variants** that drive divergent payment, lease, and feature surfaces; architected an OpenAPI-contract layer so all three apps stay in sync as the product grows.
-
-### GovLens — Context-aware overlay for government portals
-[github.com/sinhaankur/GovLens](https://github.com/sinhaankur/GovLens)
-
-Chrome extension for 25+ national gov TLDs: translation (100+ languages), structural navigation, a 0–100 usability score across 8 axes, and a region-aware jargon explainer. Designed a **three-engine translation cascade** (on-device AI → Google Translate → Anthropic Claude, BYOK) with the panel showing *which engine will answer before you click.*
-
-### WatchTower — Self-hosted deployment platform for developers
-[github.com/sinhaankur/WatchTower](https://github.com/sinhaankur/WatchTower) (Python · Electron · 4★)
-
-Operator tooling for container auto-updates, multi-node deployment, and guided host ops. Ships across macOS/Windows/Linux, Snap, PyPI, and VS Code. Designed the integrations dashboard for six interconnected tools (Podman / Nginx / Tailscale / Cloudflare / Coolify / Watchdog) so one operator sees live status and can recover any of them.
-
-### EMPATHEIA — Multi-modal AI companion (offline-first)
-[github.com/sinhaankur/ideal-giggle](https://github.com/sinhaankur/ideal-giggle)
-
-Next.js + AI SDK PWA with camera-based expression detection feeding mood-aware tone. Designed a **hybrid-intelligence fallback**: if the model runtime fails, empathy-map quadrants still update via deterministic heuristics — the user never hits a dead surface. Local (Ollama) or cloud provider paths.
+Engineer-turned-designer, 12+ years shipping enterprise SaaS across banking, supply chain, and cloud infrastructure. **Principal UX Designer at Oracle**, where I own the design end-to-end for cloud database operations in OCI — taking dangerous, expert-only tasks (encryption, key rotation, disaster-recovery failover) and turning them into safe, guided console flows a non-expert can run. I work at the design–engineering seam: I research, design, and prototype in code, then hand engineering a contract they can build against — not just Figma.
 
 ---
 
 ## Experience
 
-**Principal UX Designer** — Oracle, Cloud Database Tooling & AI Orchestration · Feb 2020 – Present
-Lead designer on Oracle's Database-as-a-Service (DBaaS) and database-tooling surfaces in OCI. I design at the design–engineering seam: I own flows end-to-end and prototype them in code, not just Figma.
-- Designed the console flows for **Transparent Data Encryption (TDE) with OCI Vault/KMS** — provisioning, host-wallet→KMS migration, and key rotation across VM and bare-metal database services.
-- Designed **PDB (pluggable database) lifecycle management** for DBCS/ExaCS/ExaCC, bringing previously host-only, manual operations into the OCI Console, SDK, and Terraform.
-- Designed **Cross-Region Autonomous Data Guard** — standby creation, buddy-region selection, and automatic/manual failover, so applications reconnect seamlessly to the new primary.
-- Shipped supporting surfaces: Refreshable Clone (scheduled/continuous refresh), Autonomous Data Guard maintenance & patching, ADB time-zone updates, and Spatial Studio (DB Tools).
+**Principal UX Designer** — Oracle, Cloud Database Tooling · Feb 2020 – Present
+Sole designer on Oracle's Database-as-a-Service (DBaaS) console operations in OCI. I own each flow end-to-end — user research with DBAs, information architecture, flows, high-fidelity specs, and working code prototypes — then support engineering through build.
+- **Encryption, made safe.** Designed the console flows for Transparent Data Encryption (TDE) with OCI Vault/KMS — provisioning, host-wallet→KMS migration, and key rotation across VM and bare-metal. Treated *recovery cost* as the design axis: irreversible steps interrupt and confirm, so customers can encrypt production data without risking lockout.
+- **PDB lifecycle in the console.** Brought pluggable-database management (DBCS/ExaCS/ExaCC) out of manual, host-only SSH work and into the OCI Console, SDK, and Terraform.
+- **Disaster recovery you can trust.** Designed Cross-Region Autonomous Data Guard — standby creation, buddy-region selection, and automatic/manual failover — so applications reconnect seamlessly to the new primary during a region outage.
+- Shipped supporting surfaces: Refreshable Clone, Autonomous Data Guard maintenance & patching, ADB time-zone updates, and Spatial Studio (DB Tools).
 
 **UX Designer / Product Strategist** — Deloitte Touche Tohmatsu India · Apr 2018 – Feb 2020
-Brought UCD process to enterprise channels (Salesforce, Supply Chain ERPs). Conducted E2E user-requirement analysis; iterated information architecture and reporting surfaces with stakeholders across product, engineering, QA, and clients.
+Brought UCD process to enterprise channels (Salesforce, Supply Chain ERPs). Conducted end-to-end user-requirement analysis; iterated information architecture and reporting surfaces with stakeholders across product, engineering, QA, and clients.
 
 **Lead UX Designer** — Snowtint Technologies · Sep 2016 – Mar 2018
 Founded and led the company's first UX team. Built a group of interaction designers and researchers; owned production and delivery across web, social, and mobile properties; set strategic UX direction.
@@ -75,6 +30,30 @@ Founded and led the company's first UX team. Built a group of interaction design
 Banking and consumer projects (Citibank NA / India / Philippines, HSBC, Deutsche Bank, Vodafone, Unilever, CEAT, Quikr). Wireframes, interaction design, end-user interviews, client presentation.
 
 **IT Analyst** — IBM India · Jun 2013 – Jul 2014
+
+---
+
+## Independent Projects & Explorations
+
+*Self-directed, open-source builds — not client or employer work. How I learn the human–AI seam hands-on: I ship the design argument as working software, in evenings and weekends.*
+
+### Helm — Real-time oversight of LLM agents
+[github.com/sinhaankur/Helm](https://github.com/sinhaankur/Helm) · [Live demo](https://sinhaankur.github.io/Helm/)
+
+A prototype exploring how a human stays in the loop *while* an agent acts: every tool call previewed with intent, target, diff, and cost. Built around one idea — **reversibility (recovery cost), not "safety," is the policy axis**: auto-allow caps at reversible; irreversible steps always pause.
+
+### Sentinel — Embeddable inline oversight layer for AI tools
+[github.com/sinhaankur/Human-in-the-Loop](https://github.com/sinhaankur/Human-in-the-Loop) · [Live demo](https://sinhaankur.github.io/Human-in-the-Loop/)
+
+A drop-in oversight-layer concept, prototyped **four ways** (React library, Chrome extension over ChatGPT, VS Code Copilot wrapper, Docker demo). Explores a calibrated-confidence vocabulary (Likely / Unsure / Low → exact % on hover), a distinct hallucination chip, and a verdict rail that blocks rubber-stamping once any claim is edited.
+
+### Recourse — Consumer AI as advocate against institutional loops
+[github.com/sinhaankur/Recourse](https://github.com/sinhaankur/Recourse) · [Live demo](https://sinhaankur.github.io/Recourse/)
+
+A document-first workflow concept that helps people contest insurance denials with statute-anchored claims and a cadence engine that never lets a deadline slip. Explores flipping confidence language to action verbs (Settled / You verify / Ask a lawyer) and anchoring every claim to a real statute.
+
+### Other explorations
+[github.com/sinhaankur/GovLens](https://github.com/sinhaankur/GovLens) — context-aware overlay for government portals (translation, usability scoring, a three-engine translation cascade). · [github.com/sinhaankur/WatchTower](https://github.com/sinhaankur/WatchTower) — self-hosted deployment tooling (Python · Electron). · [github.com/sinhaankur/ideal-giggle](https://github.com/sinhaankur/ideal-giggle) — offline-first multi-modal AI companion with a deterministic fallback.
 
 ---
 
