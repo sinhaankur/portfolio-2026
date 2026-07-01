@@ -178,6 +178,14 @@ export function Intro() {
               >
                 Design × Engineering × AI
               </motion.p>
+              <motion.p
+                className="mt-4 font-mono text-[9px] tracking-[0.24em] uppercase text-white/30"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 1, delay: 0.6 }}
+              >
+                Starting the Universe Engine — a real-time galaxy I built
+              </motion.p>
 
               {/* progress line */}
               <div className="mt-8 h-px w-56 max-w-[70vw] overflow-hidden bg-white/12">

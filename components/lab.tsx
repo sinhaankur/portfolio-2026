@@ -91,8 +91,9 @@ export function Lab() {
             How I'm learning AI — by building it.
           </h2>
           <p className="mt-6 font-sans text-base md:text-lg text-foreground/75 max-w-2xl leading-relaxed">
-            Self-directed experiments, not client work. Each is a way to learn
-            the human–AI seam hands-on — the design argument shipped as working
+            Self-directed, <span className="text-foreground">open-source</span>{" "}
+            experiments — not client or employer work. Each is a way to learn the
+            human–AI seam hands-on: the design argument shipped as working
             software, in evenings and weekends.
           </p>
         </motion.div>

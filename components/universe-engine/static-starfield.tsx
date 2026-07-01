@@ -95,11 +95,16 @@ export function StaticStarfield({ loading = false }: { loading?: boolean }) {
       <Layer density="sparse" sizePx={3} blur={1} opacity={0.7} twinkle={6.2} drift={160} driftX={18} driftY={12} />
 
       {loading && (
-        <div className="absolute inset-0 grid place-items-center">
-          <div className="flex items-center gap-2.5">
-            <span className="ue-loading-dot inline-block h-1.5 w-1.5 rounded-full bg-foreground/80" />
-            <span className="ue-loading-label font-mono text-[10px] tracking-[0.28em] uppercase text-foreground/70">
-              Loading
+        <div className="absolute inset-0 grid place-items-center px-6">
+          <div className="flex flex-col items-center gap-2 text-center">
+            <div className="flex items-center gap-2.5">
+              <span className="ue-loading-dot inline-block h-1.5 w-1.5 rounded-full bg-foreground/80" />
+              <span className="ue-loading-label font-mono text-[10px] tracking-[0.28em] uppercase text-foreground/70">
+                Loading the Universe Engine
+              </span>
+            </div>
+            <span className="font-mono text-[9px] tracking-[0.22em] uppercase text-foreground/40">
+              A real-time galaxy I built from scratch
             </span>
           </div>
         </div>

@@ -283,8 +283,13 @@ export function Hero() {
             <br />
             <span className="italic">× AI</span>
           </p>
-          <p className="mt-4 max-w-sm font-sans text-sm md:text-base leading-relaxed text-foreground/70">
-            UX designer by craft — exploring AI by building it.
+          <p className="mt-4 max-w-md font-sans text-sm md:text-base leading-relaxed text-foreground/80">
+            <span className="text-foreground">Principal UX Designer at Oracle,</span>{" "}
+            working at the human–AI seam. 12+ years designing enterprise
+            products — and I build my own working prototypes, not just Figma.
+          </p>
+          <p className="mt-1.5 font-mono text-[11px] tracking-[0.15em] uppercase text-muted-foreground">
+            Toronto, ON
           </p>
         </motion.div>
 
@@ -293,8 +298,9 @@ export function Hero() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
-          className="absolute bottom-12 left-8 md:bottom-20 md:left-12 z-20 pointer-events-auto"
+          className="absolute bottom-12 left-8 md:bottom-20 md:left-12 z-20 pointer-events-auto flex flex-wrap items-center gap-3"
         >
+          {/* Primary — high-contrast, obvious. The one thing to do next. */}
           <motion.a
             href="#works"
             data-cursor-hover
@@ -303,31 +309,46 @@ export function Hero() {
             transition={{ type: "spring", stiffness: 300, damping: 20 }}
             className="
               group relative inline-flex items-center gap-3
-              px-7 py-3.5 border border-foreground/30 rounded-full
+              px-7 py-3.5 rounded-full
               font-mono text-xs tracking-[0.25em] uppercase
-              bg-background/40 backdrop-blur-sm
-              text-foreground
-              hover:bg-foreground hover:text-background hover:border-foreground
-              transition-colors duration-500
+              bg-foreground text-background border border-foreground
+              hover:bg-foreground/90
+              transition-colors duration-300
               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
               focus-visible:ring-offset-2 focus-visible:ring-offset-background
               min-h-11
             "
           >
-            <span
-              aria-hidden="true"
-              className="relative flex h-1.5 w-1.5"
-            >
-              <span className="motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent" />
-            </span>
-            Enter Work
+            View my work
             <span
               aria-hidden="true"
               className="transition-transform duration-300 group-hover:translate-x-1"
             >
               →
             </span>
+          </motion.a>
+
+          {/* Secondary — résumé, the thing recruiters reach for. */}
+          <motion.a
+            href="/ankur-sinha-resume.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            data-cursor-hover
+            whileTap={prefersReducedMotion ? undefined : { scale: 0.97 }}
+            className="
+              inline-flex items-center gap-2
+              px-6 py-3.5 rounded-full
+              font-mono text-xs tracking-[0.25em] uppercase
+              border border-foreground/30 bg-background/40 backdrop-blur-sm
+              text-foreground
+              hover:border-foreground/70
+              transition-colors duration-300
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+              focus-visible:ring-offset-2 focus-visible:ring-offset-background
+              min-h-11
+            "
+          >
+            Résumé
           </motion.a>
         </motion.div>
 
