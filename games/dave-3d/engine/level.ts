@@ -230,7 +230,7 @@ const L2: Level = fromTiles(
     "# ==    ==      ####    ==     ==     == #", // 6  low-mid ledges (cup on the brick one)
     "#     .      .        .      *      .    #", // 7  gem row above the low platforms
     "#  ==     ==     ==      ==     ==    == #", // 8  low purple platforms
-    "# @   .      .       .       .      .   .#", // 9  spawn + floor gems (walk row)
+    "#     @      .       .       .      .   .#", // 9  spawn (above a SAFE island — col 2 dropped onto fire = death loop) + floor gems
     "#FFFF####WWWW####FFFF####WWWW####FFFF#####", // 10 fire/water pits between floor islands
     "##########################################", // 11 base
   ],

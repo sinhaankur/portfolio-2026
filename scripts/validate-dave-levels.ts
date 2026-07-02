@@ -119,6 +119,22 @@ for (const level of LEVELS) {
     if (!pointReachable(level, reach, p)) fail(name, `${what} at (${p[0].toFixed(1)}, ${p[1].toFixed(1)}) not reachable`)
   }
 
+  // spawn must not free-fall into a hazard: if a hazard spans the spawn column,
+  // some platform top must sit between the spawn and the hazard (the L2 bug:
+  // spawn over a fire pit = infinite death loop that reads as "stuck").
+  for (const h of level.hazards ?? []) {
+    const [hx, hy] = h.pos
+    const halfW = h.size[0] / 2
+    if (Math.abs(level.spawn[0] - hx) > halfW + 0.4) continue
+    if (level.spawn[1] < hy) continue
+    const shielded = surfs.some(
+      (s) =>
+        level.spawn[0] >= s.x0 - 0.3 && level.spawn[0] <= s.x1 + 0.3 &&
+        s.top <= level.spawn[1] + 0.1 && s.top >= hy,
+    )
+    if (!shielded) fail(name, `spawn free-falls into a ${h.kind} hazard at x=${hx.toFixed(1)}`)
+  }
+
   // door must rest on solid ground: a platform top at the door tile's bottom edge
   const doorBase = level.door[1] - TILE / 2
   const seated = surfs.some(
