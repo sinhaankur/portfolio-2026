@@ -57,7 +57,7 @@ import {
   timeScaleRef,
 } from "./astronomy"
 import { SceneContents } from "./scene"
-import { CloudToggle, DeepDiveToggle, DestinationsMenu, GravityToggle, InfoPanel, ResetViewButton, SatelliteToggle, ScaleToggle, TimelineControl } from "./hud"
+import { CloudToggle, DeepDiveToggle, DestinationsMenu, GravityToggle, InfoPanel, ResetViewButton, SatelliteGroupChips, SatelliteToggle, ScaleToggle, TimelineControl } from "./hud"
 import { LearnTicker } from "./learn-ticker"
 import { MobileBodySheet } from "./mobile-sheet"
 import { StaticStarfield } from "./static-starfield"
@@ -522,6 +522,9 @@ export function UniverseEngine({
               <div className="hidden md:flex items-center gap-2">
                 <CloudToggle active={showClouds} onToggle={() => setShowClouds(v => !v)} />
                 <SatelliteToggle active={showSatellites} onToggle={() => setShowSatellites(v => !v)} />
+              {/* Constellation layers — one at a time or everything at once.
+                  Only in the solar explorer where the real catalogue flies. */}
+              {solarOnly && showSatellites && <SatelliteGroupChips />}
                 <ScaleToggle active={trueScale} onToggle={() => setTrueScale(v => !v)} />
                 <DestinationsMenu />
                 <GravityToggle active={showGravityOverlay} onToggle={() => setShowGravityOverlay(v => !v)} />

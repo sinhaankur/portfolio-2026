@@ -2353,12 +2353,18 @@ function SatelliteShellPoints({
         positions[i * 3 + 1] = rr * Math.cos(ph)
         positions[i * 3 + 2] = rr * Math.sin(ph) * Math.sin(a)
       } else {
-        // Inclination: most sats cluster near their plane; spread by shell.incl.
-        const inc = (Math.random() - 0.5) * shell.incl
-        const ringR = r * Math.cos(inc)
-        positions[i * 3] = Math.cos(a) * ringR
-        positions[i * 3 + 1] = r * Math.sin(inc)
-        positions[i * 3 + 2] = Math.sin(a) * ringR
+        // REAL constellation geometry: every member flies at the SAME
+        // inclination (shell.incl = the constellation's true tilt), in planes
+        // spread around the pole (random RAAN). This is why Starlink weaves a
+        // lattice and Iridium cages the poles — not a random inclination smear.
+        const raan = Math.random() * Math.PI * 2
+        const inc = shell.incl
+        const px = Math.cos(a) * r
+        const py = Math.sin(a) * Math.sin(inc) * r
+        const pz = Math.sin(a) * Math.cos(inc) * r
+        positions[i * 3]     = px * Math.cos(raan) + pz * Math.sin(raan)
+        positions[i * 3 + 1] = py
+        positions[i * 3 + 2] = -px * Math.sin(raan) + pz * Math.cos(raan)
       }
     }
     const geo = new BufferGeometry()
@@ -2412,7 +2418,7 @@ function SatelliteShellPoints({
       {/* orbital-path ring — only for constellations; a debris cloud has no
           single lane, so it's skipped. */}
       {!shell.debris && (
-        <threeLine geometry={ringGeo} rotation={[shell.incl * 0.35, 0, 0]}>
+        <threeLine geometry={ringGeo} rotation={[shell.incl, 0, 0]}>
           <lineBasicMaterial color={shell.color} transparent opacity={0.18} depthWrite={false} />
         </threeLine>
       )}
@@ -2447,18 +2453,18 @@ const SATELLITE_CATALOG: Record<string, SatelliteShell[]> = {
     // truly does) — zoom into Earth to see the Starlink swarm resolve. Realism
     // over exaggeration, per the true-ratio goal.
     // --- LEO (~400–1200 km) — densest, dominated by Starlink ---
-    { label: "Starlink (LEO ~550 km)", launchMs: Date.UTC(2019, 4, 24), altRatio: 1.086, count: 900, color: "#9fe0ff", incl: 1.0, speed: 0.18 },
-    { label: "OneWeb (LEO ~1200 km)", launchMs: Date.UTC(2019, 1, 27), altRatio: 1.19, count: 240, color: "#a8c0ff", incl: 1.15, speed: 0.15 },
-    { label: "Iridium (LEO ~780 km)", launchMs: Date.UTC(1997, 4, 5), altRatio: 1.12, count: 90, color: "#c0d8ff", incl: 1.4, speed: 0.16 },
-    { label: "Earth-observation (sun-sync polar ~700 km)", launchMs: Date.UTC(1972, 6, 23), altRatio: 1.11, count: 130, color: "#bfeacb", incl: 1.55, speed: 0.16 },
-    { label: "ISS / Tiangong / Hubble (~420–540 km)", launchMs: Date.UTC(1990, 3, 24), altRatio: 1.066, count: 90, color: "#ffffff", incl: 0.9, speed: 0.2 },
+    { label: "Starlink (LEO ~550 km · 53°)", launchMs: Date.UTC(2019, 4, 24), altRatio: 1.086, count: 900, color: "#9fe0ff", incl: 0.925, speed: 0.18 },
+    { label: "OneWeb (LEO ~1200 km · 87.9°)", launchMs: Date.UTC(2019, 1, 27), altRatio: 1.19, count: 240, color: "#a8c0ff", incl: 1.534, speed: 0.15 },
+    { label: "Iridium (LEO ~780 km · 86.4°)", launchMs: Date.UTC(1997, 4, 5), altRatio: 1.12, count: 90, color: "#c0d8ff", incl: 1.508, speed: 0.16 },
+    { label: "Earth-observation (sun-sync ~700 km · 97.8°)", launchMs: Date.UTC(1972, 6, 23), altRatio: 1.11, count: 130, color: "#bfeacb", incl: 1.707, speed: 0.16 },
+    { label: "ISS / Tiangong / Hubble (~420–540 km · 28–52°)", launchMs: Date.UTC(1990, 3, 24), altRatio: 1.066, count: 90, color: "#ffffff", incl: 0.901, speed: 0.2 },
     // --- MEO (~20,000 km) — the navigation constellations ---
-    { label: "GPS (MEO ~20,200 km)", launchMs: Date.UTC(1978, 1, 22), altRatio: 4.17, count: 31, color: "#ffd27a", incl: 0.95, speed: 0.06 },
-    { label: "GLONASS (MEO ~19,100 km)", launchMs: Date.UTC(1982, 9, 12), altRatio: 4.0, count: 24, color: "#ffcaa0", incl: 1.1, speed: 0.062 },
-    { label: "Galileo (MEO ~23,200 km)", launchMs: Date.UTC(2011, 9, 21), altRatio: 4.7, count: 28, color: "#a0ffd0", incl: 0.98, speed: 0.055 },
-    { label: "BeiDou (MEO ~21,500 km)", launchMs: Date.UTC(2000, 9, 31), altRatio: 4.3, count: 30, color: "#ffb0e0", incl: 0.95, speed: 0.058 },
+    { label: "GPS (MEO ~20,200 km · 55°)", launchMs: Date.UTC(1978, 1, 22), altRatio: 4.17, count: 31, color: "#ffd27a", incl: 0.96, speed: 0.06 },
+    { label: "GLONASS (MEO ~19,100 km · 64.8°)", launchMs: Date.UTC(1982, 9, 12), altRatio: 4.0, count: 24, color: "#ffcaa0", incl: 1.131, speed: 0.062 },
+    { label: "Galileo (MEO ~23,200 km · 56°)", launchMs: Date.UTC(2011, 9, 21), altRatio: 4.7, count: 28, color: "#a0ffd0", incl: 0.977, speed: 0.055 },
+    { label: "BeiDou (MEO ~21,500 km · 55°)", launchMs: Date.UTC(2000, 9, 31), altRatio: 4.3, count: 30, color: "#ffb0e0", incl: 0.96, speed: 0.058 },
     // --- GEO (~35,786 km) — the equatorial comms/weather belt ---
-    { label: "Geostationary belt (~35,786 km)", launchMs: Date.UTC(1963, 6, 26), altRatio: 6.61, count: 180, color: "#ff9a6b", incl: 0.05, speed: 0.02 },
+    { label: "Geostationary belt (~35,786 km · 0°)", launchMs: Date.UTC(1963, 6, 26), altRatio: 6.61, count: 180, color: "#ff9a6b", incl: 0.01, speed: 0.02 },
     // --- Orbital DEBRIS — ~36,000 tracked objects >10 cm (most of LEO is junk):
     //     spent stages, dead satellites, collision + ASAT-test fragments. A
     //     near-spherical cloud at ALL inclinations, densest ~800–1000 km. The
@@ -3606,7 +3612,7 @@ function PlanetBody({
               the HUD "Satellites" toggle. */}
           {satShells && satsOn && (
             <SatelliteShells
-              shells={satShells}
+              shells={solarOnly && isEarth ? [] : satShells}
               heroCraft={HERO_CRAFT[planet.raw.name]}
               bodyRadius={planet.visualRadius}
               onHover={onHover}

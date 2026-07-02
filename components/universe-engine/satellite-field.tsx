@@ -111,6 +111,32 @@ export const selectedArchetypeRef: { current: string | null } = { current: null 
 
 export type SatMeta = { id: number; name: string; owner: string; type?: "PAY" | "R/B" | "DEB"; launchMs: number }
 
+/** Constellation/group filter — view one layer at a time or everything at
+ *  once. The HUD chips write this ref; the field reads it per-frame into a
+ *  shader uniform. -1 = all groups. */
+export const SAT_GROUPS = [
+  "Starlink",
+  "OneWeb",
+  "Navigation",
+  "Stations",
+  "Debris",
+  "Rocket bodies",
+  "Other",
+] as const
+export const satGroupFilterRef: { current: number } = { current: -1 }
+
+/** Classify a catalogue object into a viewing group (name/type based). */
+export function classifyGroup(name: string, type?: string): number {
+  if (type === "DEB") return 4
+  if (type === "R/B") return 5
+  const n = name.toUpperCase()
+  if (n.includes("STARLINK")) return 0
+  if (n.includes("ONEWEB")) return 1
+  if (/NAVSTAR|GPS |GLONASS|GALILEO|BEIDOU|BDS[- ]|IRNSS|QZS/.test(n)) return 2
+  if (/ISS \(|ZARYA|TIANHE|CSS \(|TIANGONG/.test(n)) return 3
+  return 6
+}
+
 // Shared catalogue cache so the search box and the field don't double-fetch.
 let _catalogPromise: Promise<SatMeta[]> | null = null
 export function loadSatelliteCatalog(): Promise<SatMeta[]> {
@@ -167,10 +193,12 @@ const VERT = /* glsl */ `
   attribute float aLaunchDay;   // days since J2000 (2000-01-01 12:00 UTC)
   attribute vec3 aColor;
   attribute float aDebris;      // 1 = debris / rocket body → render smaller
+  attribute float aGroup;       // constellation group id (see SAT_GROUPS)
   uniform float uTimeDay;       // current sim time, days since J2000
   uniform float uSize;
   uniform float uPixelRatio;
   uniform float uIsolate;   // 1.0 = a satellite is selected → hide the whole swarm
+  uniform float uGroupSel;  // -1 = all groups; else show only this group id
   varying vec3 vColor;
   varying float vHidden;
   varying float vDebris;   // passed to frag → debris drawn dimmer (active stand out)
@@ -179,7 +207,8 @@ const VERT = /* glsl */ `
     vDebris = aDebris;
     // Launch gating: not yet launched → collapse to zero size.
     // Isolate: when one satellite is selected we hide the rest (show only the GLB).
-    vHidden = (aLaunchDay > uTimeDay || uIsolate > 0.5) ? 1.0 : 0.0;
+    vHidden = (aLaunchDay > uTimeDay || uIsolate > 0.5 ||
+               (uGroupSel >= 0.0 && abs(aGroup - uGroupSel) > 0.5)) ? 1.0 : 0.0;
     vec4 mv = modelViewMatrix * vec4(position, 1.0);
     gl_Position = projectionMatrix * mv;
     // debris are tiny fragments → ~55% the size of an active satellite dot.
@@ -307,12 +336,18 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     g.setAttribute("aColor", new THREE.BufferAttribute(colors, 3))
     g.setAttribute("aLaunchDay", new THREE.BufferAttribute(launch, 1))
     g.setAttribute("aDebris", new THREE.BufferAttribute(isDeb, 1))
+    const groups = new Float32Array(n)
+    sats.forEach((sv, gi) => { groups[gi] = classifyGroup(sv.name, sv.type) })
+    g.setAttribute("aGroup", new THREE.BufferAttribute(groups, 1))
     g.boundingSphere = new THREE.Sphere(new THREE.Vector3(), earthVisualRadius * 12)
     return g
   }, [sats, earthVisualRadius])
 
   useFrame(() => {
-    if (matRef.current) matRef.current.uniforms.uTimeDay.value = msToJ2000Day(simTimeRef.current.simMs)
+    if (matRef.current) {
+      matRef.current.uniforms.uTimeDay.value = msToJ2000Day(simTimeRef.current.simMs)
+      matRef.current.uniforms.uGroupSel.value = satGroupFilterRef.current
+    }
     const lib = sgp4.current
     if (!geometry || !sats || !lib) return
     const sel = selectedSatRef.current
@@ -462,6 +497,7 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
             uSize: { value: 90 },
             uPixelRatio: { value: typeof window !== "undefined" ? Math.min(window.devicePixelRatio, 2) : 1 },
             uIsolate: { value: 0 },
+        uGroupSel: { value: -1 },
           }}
         />
       </points>

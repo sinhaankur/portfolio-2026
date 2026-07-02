@@ -13,6 +13,7 @@
  * if a consumer wraps it in a light scope.
  */
 
+import { SAT_GROUPS, satGroupFilterRef } from "./satellite-field"
 import { useCallback, useEffect, useRef, useState } from "react"
 import type { BodyDeepFacts, BodyInfo } from "./types"
 import {
@@ -890,6 +891,54 @@ export function SatelliteToggle({
       <span className={`relative flex h-2 w-2 rounded-full ${active ? "bg-accent" : "bg-foreground/40"}`} />
       <span className="font-mono text-[10px] tracking-[0.2em] uppercase">Satellites</span>
     </button>
+  )
+}
+
+/** Constellation layer chips — view one group at a time (understand its
+ *  geometry: Starlink's lattice, the nav rings, the debris shell) or all at
+ *  once (the whole environment). Writes satGroupFilterRef; the field's shader
+ *  hides non-members per-point. */
+export function SatelliteGroupChips() {
+  const [sel, setSel] = useState<number>(satGroupFilterRef.current)
+  const pick = (idx: number) => {
+    const next = sel === idx ? -1 : idx // tap the active chip → back to All
+    satGroupFilterRef.current = next
+    setSel(next)
+  }
+  return (
+    <div
+      className="pointer-events-auto flex flex-wrap justify-end gap-1.5 max-w-[min(92vw,26rem)]"
+      role="group"
+      aria-label="Satellite constellation filter"
+    >
+      <button
+        type="button"
+        onClick={() => { satGroupFilterRef.current = -1; setSel(-1) }}
+        aria-pressed={sel === -1}
+        className={`px-2.5 py-1.5 rounded-full border font-mono text-[9px] tracking-[0.16em] uppercase backdrop-blur-sm transition-colors ${
+          sel === -1
+            ? "border-accent/60 bg-accent/10 text-accent"
+            : "border-foreground/20 bg-background/50 text-foreground/60 hover:text-foreground/90"
+        }`}
+      >
+        All
+      </button>
+      {SAT_GROUPS.map((label, idx) => (
+        <button
+          key={label}
+          type="button"
+          onClick={() => pick(idx)}
+          aria-pressed={sel === idx}
+          className={`px-2.5 py-1.5 rounded-full border font-mono text-[9px] tracking-[0.16em] uppercase backdrop-blur-sm transition-colors ${
+            sel === idx
+              ? "border-accent/60 bg-accent/10 text-accent"
+              : "border-foreground/20 bg-background/50 text-foreground/60 hover:text-foreground/90"
+          }`}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
   )
 }
 
