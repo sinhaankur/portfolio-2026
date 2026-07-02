@@ -8,11 +8,9 @@ export default defineConfig([
     ignores: [
       "archive/**",
       "out/**",
-      "nomi-desktop/**",
       "webos-tv/**",
       "webos-tv-720p/**",
       "webos-assets/**",
-      "Xwing/**",
       "blender/**",
       "interview-prep/**",
       "public/**",
