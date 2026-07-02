@@ -158,8 +158,8 @@ export const EXOPLANET_HOSTS_NEARBY: ExoplanetHost[] = [
     "knownPlanets": 3,
     "firstDiscoveryYear": 2017,
     "spectralType": "G8.5V",
-    "hasHabitableCandidate": false,
-    "fact": "3 confirmed planets around a G8.5V star at 11.8 ly, first detected 2017."
+    "hasHabitableCandidate": true,
+    "fact": "3 confirmed planets around a G8.5V star at 11.8 ly, first detected 2017, at least one in the temperate / habitable zone."
   },
   {
     "id": "exo-eps-ind-a",
@@ -188,8 +188,8 @@ export const EXOPLANET_HOSTS_NEARBY: ExoplanetHost[] = [
     "knownPlanets": 3,
     "firstDiscoveryYear": 2020,
     "spectralType": "M5.5 V",
-    "hasHabitableCandidate": false,
-    "fact": "3 confirmed planets around a M5.5 V star at 12.0 ly, first detected 2020."
+    "hasHabitableCandidate": true,
+    "fact": "3 confirmed planets around a M5.5 V star at 12.0 ly, first detected 2020, at least one in the temperate / habitable zone."
   },
   {
     "id": "exo-yz-cet",
@@ -248,8 +248,8 @@ export const EXOPLANET_HOSTS_NEARBY: ExoplanetHost[] = [
     "knownPlanets": 3,
     "firstDiscoveryYear": 2015,
     "spectralType": "M3.5",
-    "hasHabitableCandidate": false,
-    "fact": "3 confirmed planets around a M3.5 star at 14.0 ly, first detected 2015."
+    "hasHabitableCandidate": true,
+    "fact": "3 confirmed planets around a M3.5 star at 14.0 ly, first detected 2015, at least one in the temperate / habitable zone."
   },
   {
     "id": "exo-gj-9066",
@@ -293,8 +293,8 @@ export const EXOPLANET_HOSTS_NEARBY: ExoplanetHost[] = [
     "knownPlanets": 2,
     "firstDiscoveryYear": 2014,
     "spectralType": "M3.0V",
-    "hasHabitableCandidate": false,
-    "fact": "2 confirmed planets around a M3.0V star at 14.8 ly, first detected 2014."
+    "hasHabitableCandidate": true,
+    "fact": "2 confirmed planets around a M3.0V star at 14.8 ly, first detected 2014, at least one in the temperate / habitable zone."
   },
   {
     "id": "exo-gj-876",
@@ -308,8 +308,8 @@ export const EXOPLANET_HOSTS_NEARBY: ExoplanetHost[] = [
     "knownPlanets": 4,
     "firstDiscoveryYear": 1998,
     "spectralType": "M2.5V",
-    "hasHabitableCandidate": false,
-    "fact": "4 confirmed planets around a M2.5V star at 15.2 ly, first detected 1998."
+    "hasHabitableCandidate": true,
+    "fact": "4 confirmed planets around a M2.5V star at 15.2 ly, first detected 1998, at least one in the temperate / habitable zone."
   },
   {
     "id": "exo-gj-1002",
@@ -353,8 +353,8 @@ export const EXOPLANET_HOSTS_NEARBY: ExoplanetHost[] = [
     "knownPlanets": 2,
     "firstDiscoveryYear": 2014,
     "spectralType": "M3.5 V",
-    "hasHabitableCandidate": false,
-    "fact": "2 confirmed planets around a M3.5 V star at 16.3 ly, first detected 2014."
+    "hasHabitableCandidate": true,
+    "fact": "2 confirmed planets around a M3.5 V star at 16.3 ly, first detected 2014, at least one in the temperate / habitable zone."
   },
   {
     "id": "exo-gj-3323",
@@ -368,8 +368,8 @@ export const EXOPLANET_HOSTS_NEARBY: ExoplanetHost[] = [
     "knownPlanets": 2,
     "firstDiscoveryYear": 2017,
     "spectralType": "M4",
-    "hasHabitableCandidate": false,
-    "fact": "2 confirmed planets around a M4 star at 17.5 ly, first detected 2017."
+    "hasHabitableCandidate": true,
+    "fact": "2 confirmed planets around a M4 star at 17.5 ly, first detected 2017, at least one in the temperate / habitable zone."
   },
   {
     "id": "exo-gj-251",
@@ -428,8 +428,8 @@ export const EXOPLANET_HOSTS_NEARBY: ExoplanetHost[] = [
     "knownPlanets": 1,
     "firstDiscoveryYear": 2018,
     "spectralType": "M2.5 V",
-    "hasHabitableCandidate": false,
-    "fact": "1 confirmed planet around a M2.5 V star at 19.3 ly, first detected 2018."
+    "hasHabitableCandidate": true,
+    "fact": "1 confirmed planet around a M2.5 V star at 19.3 ly, first detected 2018, at least one in the temperate / habitable zone."
   },
   {
     "id": "exo-gj-273",
@@ -443,8 +443,8 @@ export const EXOPLANET_HOSTS_NEARBY: ExoplanetHost[] = [
     "knownPlanets": 2,
     "firstDiscoveryYear": 2017,
     "spectralType": "M3.5",
-    "hasHabitableCandidate": false,
-    "fact": "2 confirmed planets around a M3.5 star at 19.3 ly, first detected 2017."
+    "hasHabitableCandidate": true,
+    "fact": "2 confirmed planets around a M3.5 star at 19.3 ly, first detected 2017, at least one in the temperate / habitable zone."
   },
   {
     "id": "exo-hd-20794",
@@ -458,8 +458,8 @@ export const EXOPLANET_HOSTS_NEARBY: ExoplanetHost[] = [
     "knownPlanets": 4,
     "firstDiscoveryYear": 2011,
     "spectralType": "G8",
-    "hasHabitableCandidate": false,
-    "fact": "4 confirmed planets around a G8 star at 19.6 ly, first detected 2011."
+    "hasHabitableCandidate": true,
+    "fact": "4 confirmed planets around a G8 star at 19.6 ly, first detected 2011, at least one in the temperate / habitable zone."
   },
   {
     "id": "exo-hn-lib",
@@ -503,8 +503,8 @@ export const EXOPLANET_HOSTS_NEARBY: ExoplanetHost[] = [
     "knownPlanets": 3,
     "firstDiscoveryYear": 2005,
     "spectralType": "M3.0 V",
-    "hasHabitableCandidate": false,
-    "fact": "3 confirmed planets around a M3.0 V star at 20.5 ly, first detected 2005."
+    "hasHabitableCandidate": true,
+    "fact": "3 confirmed planets around a M3.0 V star at 20.5 ly, first detected 2005, at least one in the temperate / habitable zone."
   },
   {
     "id": "exo-gj-338-b",
@@ -533,8 +533,8 @@ export const EXOPLANET_HOSTS_NEARBY: ExoplanetHost[] = [
     "knownPlanets": 1,
     "firstDiscoveryYear": 2017,
     "spectralType": "M2",
-    "hasHabitableCandidate": false,
-    "fact": "1 confirmed planet around a M2 star at 21.1 ly, first detected 2017."
+    "hasHabitableCandidate": true,
+    "fact": "1 confirmed planet around a M2 star at 21.1 ly, first detected 2017, at least one in the temperate / habitable zone."
   },
   {
     "id": "exo-hd-219134",
@@ -548,8 +548,8 @@ export const EXOPLANET_HOSTS_NEARBY: ExoplanetHost[] = [
     "knownPlanets": 6,
     "firstDiscoveryYear": 2015,
     "spectralType": "K3 V",
-    "hasHabitableCandidate": false,
-    "fact": "6 confirmed planets around a K3 V star at 21.3 ly, first detected 2015."
+    "hasHabitableCandidate": true,
+    "fact": "6 confirmed planets around a K3 V star at 21.3 ly, first detected 2015, at least one in the temperate / habitable zone."
   },
   {
     "id": "exo-ltt-1445-a",
@@ -625,6 +625,21 @@ export const EXOPLANET_HOSTS_NEARBY: ExoplanetHost[] = [
     "spectralType": "M0.5-1.0 V",
     "hasHabitableCandidate": true,
     "fact": "1 confirmed planet around a M0.5-1.0 V star at 24.8 ly, first detected 2022, at least one in the temperate / habitable zone."
+  },
+  {
+    "id": "exo-gj-3378",
+    "name": "GJ 3378",
+    "designation": "GJ 3378 · M4 V",
+    "kind": "exoplanet-host",
+    "raHours": 6.0197,
+    "decDeg": 59.5932,
+    "distance": "25.2 ly",
+    "magnitude": 12.37,
+    "knownPlanets": 1,
+    "firstDiscoveryYear": 2026,
+    "spectralType": "M4 V",
+    "hasHabitableCandidate": true,
+    "fact": "1 confirmed planet around a M4 V star at 25.2 ly, first detected 2026, at least one in the temperate / habitable zone."
   },
   {
     "id": "exo-gj-1151",
@@ -758,8 +773,8 @@ export const EXOPLANET_HOSTS_NEARBY: ExoplanetHost[] = [
     "knownPlanets": 3,
     "firstDiscoveryYear": 2013,
     "spectralType": "M2V",
-    "hasHabitableCandidate": false,
-    "fact": "3 confirmed planets around a M2V star at 29.6 ly, first detected 2013."
+    "hasHabitableCandidate": true,
+    "fact": "3 confirmed planets around a M2V star at 29.6 ly, first detected 2013, at least one in the temperate / habitable zone."
   },
   {
     "id": "exo-gj-367",
@@ -1103,8 +1118,8 @@ export const EXOPLANET_HOSTS_NEARBY: ExoplanetHost[] = [
     "knownPlanets": 1,
     "firstDiscoveryYear": 2017,
     "spectralType": "M0.0 V",
-    "hasHabitableCandidate": false,
-    "fact": "1 confirmed planet around a M0.0 V star at 35.1 ly, first detected 2017."
+    "hasHabitableCandidate": true,
+    "fact": "1 confirmed planet around a M0.0 V star at 35.1 ly, first detected 2017, at least one in the temperate / habitable zone."
   },
   {
     "id": "exo-gj-86",
@@ -1163,8 +1178,8 @@ export const EXOPLANET_HOSTS_NEARBY: ExoplanetHost[] = [
     "knownPlanets": 2,
     "firstDiscoveryYear": 2010,
     "spectralType": "M5",
-    "hasHabitableCandidate": false,
-    "fact": "2 confirmed planets around a M5 star at 35.9 ly, first detected 2010."
+    "hasHabitableCandidate": true,
+    "fact": "2 confirmed planets around a M5 star at 35.9 ly, first detected 2010, at least one in the temperate / habitable zone."
   },
   {
     "id": "exo-gj-740",
@@ -1208,8 +1223,8 @@ export const EXOPLANET_HOSTS_NEARBY: ExoplanetHost[] = [
     "knownPlanets": 1,
     "firstDiscoveryYear": 2022,
     "spectralType": "M4.5 V",
-    "hasHabitableCandidate": false,
-    "fact": "1 confirmed planet around a M4.5 V star at 36.6 ly, first detected 2022."
+    "hasHabitableCandidate": true,
+    "fact": "1 confirmed planet around a M4.5 V star at 36.6 ly, first detected 2022, at least one in the temperate / habitable zone."
   },
   {
     "id": "exo-hd-222237",
@@ -1283,8 +1298,8 @@ export const EXOPLANET_HOSTS_NEARBY: ExoplanetHost[] = [
     "knownPlanets": 1,
     "firstDiscoveryYear": 2018,
     "spectralType": "M2",
-    "hasHabitableCandidate": false,
-    "fact": "1 confirmed planet around a M2 star at 38.9 ly, first detected 2018."
+    "hasHabitableCandidate": true,
+    "fact": "1 confirmed planet around a M2 star at 38.9 ly, first detected 2018, at least one in the temperate / habitable zone."
   },
   {
     "id": "exo-gl-410",
@@ -1313,8 +1328,8 @@ export const EXOPLANET_HOSTS_NEARBY: ExoplanetHost[] = [
     "knownPlanets": 3,
     "firstDiscoveryYear": 2014,
     "spectralType": "M3",
-    "hasHabitableCandidate": false,
-    "fact": "3 confirmed planets around a M3 star at 38.9 ly, first detected 2014."
+    "hasHabitableCandidate": true,
+    "fact": "3 confirmed planets around a M3 star at 38.9 ly, first detected 2014, at least one in the temperate / habitable zone."
   },
   {
     "id": "exo-gj-806",
@@ -1334,7 +1349,7 @@ export const EXOPLANET_HOSTS_NEARBY: ExoplanetHost[] = [
   {
     "id": "exo-gliese-12",
     "name": "Gliese 12",
-    "designation": "Gliese 12 · M3.0 V",
+    "designation": "Gliese 12 · M4 V",
     "kind": "exoplanet-host",
     "raHours": 0.2639,
     "decDeg": 13.5576,
@@ -1342,9 +1357,9 @@ export const EXOPLANET_HOSTS_NEARBY: ExoplanetHost[] = [
     "magnitude": 12.6,
     "knownPlanets": 1,
     "firstDiscoveryYear": 2024,
-    "spectralType": "M3.0 V",
+    "spectralType": "M4 V",
     "hasHabitableCandidate": true,
-    "fact": "1 confirmed planet around a M3.0 V star at 39.8 ly, first detected 2024, at least one in the temperate / habitable zone."
+    "fact": "1 confirmed planet around a M4 V star at 39.8 ly, first detected 2024, at least one in the temperate / habitable zone."
   },
   {
     "id": "exo-gj-179",
@@ -1388,8 +1403,8 @@ export const EXOPLANET_HOSTS_NEARBY: ExoplanetHost[] = [
     "knownPlanets": 2,
     "firstDiscoveryYear": 2025,
     "spectralType": "M4.5 V",
-    "hasHabitableCandidate": false,
-    "fact": "2 confirmed planets around a M4.5 V star at 40.7 ly, first detected 2025."
+    "hasHabitableCandidate": true,
+    "fact": "2 confirmed planets around a M4.5 V star at 40.7 ly, first detected 2025, at least one in the temperate / habitable zone."
   },
   {
     "id": "exo-lhs-475",
@@ -1418,8 +1433,8 @@ export const EXOPLANET_HOSTS_NEARBY: ExoplanetHost[] = [
     "knownPlanets": 3,
     "firstDiscoveryYear": 2006,
     "spectralType": "K0V",
-    "hasHabitableCandidate": false,
-    "fact": "3 confirmed planets around a K0V star at 41.0 ly, first detected 2006."
+    "hasHabitableCandidate": true,
+    "fact": "3 confirmed planets around a K0V star at 41.0 ly, first detected 2006, at least one in the temperate / habitable zone."
   },
   {
     "id": "exo-55-cnc",
@@ -1433,8 +1448,8 @@ export const EXOPLANET_HOSTS_NEARBY: ExoplanetHost[] = [
     "knownPlanets": 5,
     "firstDiscoveryYear": 1996,
     "spectralType": "G8 V",
-    "hasHabitableCandidate": false,
-    "fact": "5 confirmed planets around a G8 V star at 41.0 ly, first detected 1996."
+    "hasHabitableCandidate": true,
+    "fact": "5 confirmed planets around a G8 V star at 41.0 ly, first detected 1996, at least one in the temperate / habitable zone."
   },
   {
     "id": "exo-gj-1132",
@@ -1463,8 +1478,8 @@ export const EXOPLANET_HOSTS_NEARBY: ExoplanetHost[] = [
     "knownPlanets": 1,
     "firstDiscoveryYear": 2014,
     "spectralType": "M3.5 V",
-    "hasHabitableCandidate": false,
-    "fact": "1 confirmed planet around a M3.5 V star at 41.3 ly, first detected 2014."
+    "hasHabitableCandidate": true,
+    "fact": "1 confirmed planet around a M3.5 V star at 41.3 ly, first detected 2014, at least one in the temperate / habitable zone."
   },
   {
     "id": "exo-vhs-j125601-92-125723-9",
@@ -1523,8 +1538,8 @@ export const EXOPLANET_HOSTS_NEARBY: ExoplanetHost[] = [
     "knownPlanets": 1,
     "firstDiscoveryYear": 2003,
     "spectralType": "G3/5V",
-    "hasHabitableCandidate": false,
-    "fact": "1 confirmed planet around a G3/5V star at 42.1 ly, first detected 2003."
+    "hasHabitableCandidate": true,
+    "fact": "1 confirmed planet around a G3/5V star at 42.1 ly, first detected 2003, at least one in the temperate / habitable zone."
   },
   {
     "id": "exo-hd-40307",
@@ -1568,8 +1583,8 @@ export const EXOPLANET_HOSTS_NEARBY: ExoplanetHost[] = [
     "knownPlanets": 3,
     "firstDiscoveryYear": 1996,
     "spectralType": "F8 V",
-    "hasHabitableCandidate": false,
-    "fact": "3 confirmed planets around a F8 V star at 43.7 ly, first detected 1996."
+    "hasHabitableCandidate": true,
+    "fact": "3 confirmed planets around a F8 V star at 43.7 ly, first detected 1996, at least one in the temperate / habitable zone."
   },
   {
     "id": "exo-hd-22496",
@@ -1613,8 +1628,8 @@ export const EXOPLANET_HOSTS_NEARBY: ExoplanetHost[] = [
     "knownPlanets": 3,
     "firstDiscoveryYear": 1996,
     "spectralType": "G0V",
-    "hasHabitableCandidate": false,
-    "fact": "3 confirmed planets around a G0V star at 45.0 ly, first detected 1996."
+    "hasHabitableCandidate": true,
+    "fact": "3 confirmed planets around a G0V star at 45.0 ly, first detected 1996, at least one in the temperate / habitable zone."
   },
   {
     "id": "exo-toi-540",
@@ -1643,8 +1658,8 @@ export const EXOPLANET_HOSTS_NEARBY: ExoplanetHost[] = [
     "knownPlanets": 1,
     "firstDiscoveryYear": 2003,
     "spectralType": "K1 III-IV",
-    "hasHabitableCandidate": false,
-    "fact": "1 confirmed planet around a K1 III-IV star at 46.0 ly, first detected 2003."
+    "hasHabitableCandidate": true,
+    "fact": "1 confirmed planet around a K1 III-IV star at 46.0 ly, first detected 2003, at least one in the temperate / habitable zone."
   },
   {
     "id": "exo-gj-480",
@@ -1808,8 +1823,8 @@ export const EXOPLANET_HOSTS_NEARBY: ExoplanetHost[] = [
     "knownPlanets": 3,
     "firstDiscoveryYear": 2013,
     "spectralType": "M",
-    "hasHabitableCandidate": false,
-    "fact": "3 confirmed planets around a M star at 49.3 ly, first detected 2013."
+    "hasHabitableCandidate": true,
+    "fact": "3 confirmed planets around a M star at 49.3 ly, first detected 2013, at least one in the temperate / habitable zone."
   },
   {
     "id": "exo-gj-317",
