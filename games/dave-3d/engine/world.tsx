@@ -483,13 +483,17 @@ function Pipes({ level }: { level: Level }) {
     <group>
       {level.pipes.map((p, i) => (
         <group key={i} position={[p[0], p[1] - 0.25, 0.2]} rotation={[Math.PI / 2, 0, 0]}>
-          {/* tube body */}
+          {/* tube body — CLOSED so orbit angles never see a hollow black disc */}
           <mesh material={mat}>
-            <cylinderGeometry args={[0.42, 0.42, 0.9, 18, 1, true]} />
+            <cylinderGeometry args={[0.42, 0.42, 0.9, 18]} />
           </mesh>
-          {/* dark opening cap on top */}
-          <mesh position={[0, -0.45, 0]} material={dark}>
-            <cylinderGeometry args={[0.38, 0.38, 0.06, 18]} />
+          {/* pipe mouth: inset dark disc + a rim lip on the camera-facing end,
+              so end-on it reads as a pipe opening, not a void */}
+          <mesh position={[0, 0.451, 0]} rotation={[-Math.PI / 2, 0, 0]} material={dark}>
+            <circleGeometry args={[0.34, 18]} />
+          </mesh>
+          <mesh position={[0, 0.44, 0]} rotation={[Math.PI / 2, 0, 0]} material={mat}>
+            <torusGeometry args={[0.4, 0.05, 10, 24]} />
           </mesh>
         </group>
       ))}
