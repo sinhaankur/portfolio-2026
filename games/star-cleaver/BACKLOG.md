@@ -27,11 +27,12 @@ can drift.
   Verified: build green, no console errors, sector spawns hostiles. *Whether it
   feels threatening needs Ankur flying — headless can't move the ship to engage.*
 
-- [ ] **1.2 Enemy contact/ram damage + collision.**
-  Enemies colliding with the player deal a burst of hull damage + bounce/despawn,
-  so swarms are dangerous up close.
-  *Accept:* build green; player health drops on enemy contact (state check).
-  *Files:* `game-canvas.tsx`.
+- [x] **1.2 Enemy contact/ram damage + collision.** (shipped — see commit below)
+  Contact costs a hull burst (35% of the rammer's max health, min 8) and
+  destroys the rammer through the 'entity_killed' path, so the existing
+  kill-confirm explosion + camera punch fire at the impact point and the
+  incoming-fire shake/HUD react. Ram kills grant NO salvage. Damage scalar →
+  Ankur to confirm in play.
 
 - [x] **1.3 Combat camera shake on hit.** `🎮` (shipped — see commit below)
   Sharp ease-in camera jolt when taking fire, driven by the decaying

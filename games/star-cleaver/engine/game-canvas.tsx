@@ -2348,7 +2348,7 @@ function GameScene({
           // Skip synthetic boss-detonation fragments (they're pure FX, not kills).
           for (let i = lastEventLenRef.current; i < gameState.events.length; i++) {
             const ev = gameState.events[i];
-            if (ev.type === 'entity_killed' && ev.source !== 'boss_detonation') {
+            if (ev.type === 'entity_killed' && ev.source !== 'boss_detonation' && ev.source !== 'ram') {
               run.runSalvage += salvagePerKill(run.sectorIndex);
               run.runKills += 1;
             }
@@ -2823,6 +2823,34 @@ function GameScene({
           }
         }
       }
+      // --- Ram damage (1.2): enemies colliding with the hull. A swarm pressing
+      // in close is now genuinely dangerous — contact costs a burst of hull and
+      // destroys the rammer. Routed through 'entity_killed' so the existing
+      // kill-confirm feedback (explosion + punch) fires at the impact point;
+      // salvage explicitly excludes ram kills (no reward for eating a hit).
+      for (const e of gameState.enemies) {
+        if (!e.active) continue;
+        const rdx = e.position.x - playerPosVec.x;
+        const rdy = e.position.y - playerPosVec.y;
+        const rdz = e.position.z - playerPosVec.z;
+        const ramR = PLAYER_HIT_RADIUS + e.radius;
+        if (rdx * rdx + rdy * rdy + rdz * rdz > ramR * ramR) continue;
+        const dmg = Math.max(8, Math.round((e.maxHealth || 20) * 0.35));
+        hullDamageThisFrame += dmg;
+        tookFireThisFrame += dmg;
+        e.active = false;
+        e.health = 0;
+        entityManagerRef.current?.remove(e.id);
+        gameState.events.push({
+          type: 'entity_killed',
+          source: 'ram',
+          target: e.id,
+          amount: dmg,
+          timestamp: gameState.simTime,
+          position: { x: e.position.x, y: e.position.y, z: e.position.z },
+        });
+      }
+
       if (!gameState.playerEntity.metadata) gameState.playerEntity.metadata = {};
       // decay an incoming-fire signal for HUD/feedback
       const prevFire = Number(gameState.playerEntity.metadata.incomingFire ?? 0);
