@@ -1,6 +1,8 @@
 import { Navbar } from "@/components/navbar"
 import { Hero } from "@/components/hero"
 import { About } from "@/components/about"
+import { ScrollCinema } from "@/components/scroll-cinema"
+import { PRINCIPLE_TITLES } from "@/lib/principles"
 import { CustomCursor } from "@/components/custom-cursor"
 import { SmoothScroll } from "@/components/smooth-scroll"
 import { SectionBlend } from "@/components/section-blend"
@@ -17,6 +19,10 @@ export default function Home() {
         {/* Above the fold — eager so first paint is immediate. */}
         <Hero />
         <SectionBlend />
+        {/* Cinematic act break — the four principle claims pass at full-viewport
+            scale, scrubbed by scroll (pinned scrollytelling); the readable
+            manifesto follows below. Skipped under reduced motion. */}
+        <ScrollCinema lines={[...PRINCIPLE_TITLES]} />
         <About />
         {/* Below the fold — code-split + render-deferred until near viewport. */}
         <HomeBelowFold />
