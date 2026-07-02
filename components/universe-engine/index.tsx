@@ -29,7 +29,8 @@
  *
  * Limitations:
  *   - Only one engine instance per page (shared timeWarpRef singleton).
- *   - GalaxyMusic is opt-in but the iframe loads on mount.
+ *   - GalaxyMusic is fully opt-in: the SoundCloud iframe + Widget API only
+ *     load on the first click of the music chip (see galaxy-music.tsx).
  */
 
 import { useCallback, useEffect, useRef, useState } from "react"

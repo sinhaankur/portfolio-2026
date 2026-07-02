@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useTheme } from "next-themes"
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
 import { Moon, Sun } from "lucide-react"
+import { markThemeChosenByUser } from "@/components/time-of-day-theme"
 
 export function ThemeToggle({ className = "" }: { className?: string }) {
   const { resolvedTheme, setTheme } = useTheme()
@@ -26,6 +27,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return
       if (target?.isContentEditable) return
       e.preventDefault()
+      markThemeChosenByUser()
       setTheme(resolvedTheme === "dark" ? "light" : "dark")
     }
     window.addEventListener("keydown", onKey)
@@ -49,7 +51,10 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
   return (
     <button
       type="button"
-      onClick={() => setTheme(isDark ? "light" : "dark")}
+      onClick={() => {
+        markThemeChosenByUser()
+        setTheme(isDark ? "light" : "dark")
+      }}
       aria-label={nextLabel}
       title={nextLabel}
       data-cursor-hover

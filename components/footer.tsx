@@ -110,85 +110,97 @@ export function Footer() {
         </div>
       </section>
 
-      {/* Footer Info */}
-      <div className="px-6 md:px-12 py-8 border-t border-border">
-        <div className="mx-auto w-full max-w-6xl flex flex-col md:flex-row items-center justify-between gap-4">
-          {/* Local Time */}
-          <div className="font-mono text-xs tracking-widest text-muted-foreground">
-            <span className="mr-2">LOCAL TIME</span>
-            <span className="text-foreground tabular-nums" aria-live="off">
-              {time}
-            </span>
+      {/* ── Bottom bar — two quiet rows on a shared grid ──────────────────
+          Row 1: identity (left) + the link set (right).
+          Row 2: hairline divider, then legal (left) + place/time/deploy (right).
+          Left-anchored on mobile — centred mono fragments read as scatter. */}
+      {/* pb-28 on mobile clears the floating UPCOMING badge (fixed, bottom-right)
+          so the meta line never sits underneath it. */}
+      <div className="px-6 md:px-12 pt-10 pb-28 md:py-10 border-t border-border">
+        <div className="mx-auto w-full max-w-6xl">
+          <div className="flex flex-col gap-6 md:flex-row md:items-baseline md:justify-between">
+            <p className="font-mono text-xs tracking-[0.3em] text-foreground">
+              ANKUR SINHA
+            </p>
+
+            <ul className="flex flex-wrap gap-x-7 gap-y-3">
+              {socials.map((link) => {
+                const isExternal = link.href.startsWith("http")
+                const isDownload = "download" in link && link.download
+                return (
+                  <li key={link.label}>
+                    <a
+                      href={link.href}
+                      {...(isExternal
+                        ? { target: "_blank", rel: "noreferrer noopener" }
+                        : {})}
+                      {...(isDownload ? { download: true } : {})}
+                      data-cursor-hover
+                      aria-label={
+                        isExternal
+                          ? `${link.label} — opens in a new tab`
+                          : isDownload
+                          ? `Download ${link.label}`
+                          : link.label
+                      }
+                      className="
+                        font-mono text-xs tracking-widest
+                        text-muted-foreground hover:text-foreground
+                        transition-colors duration-300
+                        focus-visible:outline-none
+                        focus-visible:ring-2 focus-visible:ring-accent
+                        focus-visible:ring-offset-2 focus-visible:ring-offset-background
+                        rounded
+                      "
+                    >
+                      {link.label.toUpperCase()}
+                    </a>
+                  </li>
+                )
+              })}
+            </ul>
           </div>
 
-          {/* Links */}
-          <ul className="flex flex-wrap justify-center gap-6 md:gap-8">
-            {socials.map((link) => {
-              const isExternal = link.href.startsWith("http")
-              const isDownload = "download" in link && link.download
-              return (
-                <li key={link.label}>
-                  <a
-                    href={link.href}
-                    {...(isExternal
-                      ? { target: "_blank", rel: "noreferrer noopener" }
-                      : {})}
-                    {...(isDownload ? { download: true } : {})}
-                    data-cursor-hover
-                    aria-label={
-                      isExternal
-                        ? `${link.label} — opens in a new tab`
-                        : isDownload
-                        ? `Download ${link.label}`
-                        : link.label
-                    }
-                    className="
-                      font-mono text-xs tracking-widest
-                      text-muted-foreground hover:text-foreground
-                      transition-colors duration-300
-                      focus-visible:outline-none
-                      focus-visible:ring-2 focus-visible:ring-accent
-                      focus-visible:ring-offset-2 focus-visible:ring-offset-background
-                      rounded
-                    "
-                  >
-                    {link.label.toUpperCase()}
-                  </a>
-                </li>
-              )
-            })}
-          </ul>
+          <div
+            className="
+              mt-8 pt-6 border-t border-border/60
+              flex flex-col gap-2.5 md:flex-row md:items-baseline md:justify-between
+              font-mono text-[11px] tracking-[0.16em] text-muted-foreground
+            "
+          >
+            {/* Legal — the license file is one click away from the claim. */}
+            <p>
+              © {new Date().getFullYear()} Ankur Sinha ·{" "}
+              <a
+                href="https://github.com/sinhaankur/portfolio-2026/blob/main/LICENSE"
+                target="_blank"
+                rel="noreferrer noopener"
+                data-cursor-hover
+                className="
+                  hover:text-foreground transition-colors duration-200
+                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+                  focus-visible:ring-offset-2 focus-visible:ring-offset-background
+                  rounded
+                "
+                aria-label="License — all rights reserved (opens on GitHub)"
+              >
+                All rights reserved
+              </a>
+            </p>
 
-          {/* Copyright — link goes to the LICENSE file on GitHub so the
-              "all rights reserved" stance is one click away from the footer. */}
-          <p className="font-mono text-xs tracking-widest text-muted-foreground">
-            ©{" "}{new Date().getFullYear()}{" "}ANKUR SINHA · {" "}
-            <a
-              href="https://github.com/sinhaankur/portfolio-2026/blob/main/LICENSE"
-              target="_blank"
-              rel="noreferrer noopener"
-              data-cursor-hover
-              className="
-                hover:text-foreground transition-colors duration-200
-                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
-                focus-visible:ring-offset-2 focus-visible:ring-offset-background
-                rounded
-              "
-              aria-label="License — all rights reserved (opens on GitHub)"
-            >
-              ALL RIGHTS RESERVED
-            </a>
-          </p>
-
-          {/* Last-updated — baked at build time so it reflects each deploy. */}
-          <p className="mt-2 font-mono text-[10px] tracking-[0.18em] uppercase text-muted-foreground/60">
-            Last updated{" "}
-            {new Date(BUILD_TIME).toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "short",
-              day: "numeric",
-            })}
-          </p>
+            {/* Place + live local time + deploy date, one quiet line. */}
+            <p className="tabular-nums">
+              Toronto ·{" "}
+              <time aria-live="off">{time}</time> local · Updated{" "}
+              <time dateTime={BUILD_TIME}>
+                {new Date(BUILD_TIME).toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "short",
+                  day: "numeric",
+                })}
+              </time>
+            </p>
+          </div>
         </div>
       </div>
     </footer>

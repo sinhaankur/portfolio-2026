@@ -10,15 +10,13 @@ import { UniverseRuntimeFallback } from "./universe-engine/runtime-fallback"
 // shaders. Loading it eagerly blocks the home page's first paint and bloats
 // the initial JS payload for visitors who never scroll past the typography.
 //
-// Split it into a separate chunk that streams in after first paint. While
-// it's loading, show the static starfield so the hero still reads as a
-// cosmic scene instead of a blank rectangle.
+// Split it into a separate chunk that streams in after first paint. The
+// living CSS starfield renders UNDERNEATH the engine layer the whole time
+// (see the crossfade in Hero below), so there's no loading-component swap —
+// the engine blooms in over the starfield on its `universe-ready` event.
 const UniverseEngine = dynamic(
   () => import("./universe-engine").then((m) => ({ default: m.UniverseEngine })),
-  {
-    ssr: false,
-    loading: () => <StaticStarfield />,
-  },
+  { ssr: false },
 )
 
 export function Hero() {
@@ -28,6 +26,30 @@ export function Hero() {
   const [tvBrowserFallback, setTvBrowserFallback] = useState(false)
   const [infoOpen, setInfoOpen] = useState(false)
   const infoRef = useRef<HTMLDivElement>(null)
+
+  // ── Lazy-load choreography ────────────────────────────────────────────────
+  // `engineWanted` gates the dynamic import. Normally true right after mount,
+  // but when the visitor's browser signals Data Saver we hold on the living
+  // CSS starfield and let them opt in — the engine chunk + textures are real
+  // megabytes on a metered connection.
+  // `engineReady` flips on the engine's `universe-ready` event (its first real
+  // frames), driving a crossfade: the engine layer blooms in over the
+  // starfield instead of a component-swap snap.
+  const [engineWanted, setEngineWanted] = useState(false)
+  const [dataSaver, setDataSaver] = useState(false)
+  const [engineReady, setEngineReady] = useState(false)
+
+  useEffect(() => {
+    const conn = (navigator as { connection?: { saveData?: boolean } }).connection
+    if (conn?.saveData === true) setDataSaver(true)
+    else setEngineWanted(true)
+  }, [])
+
+  useEffect(() => {
+    const onReady = () => setEngineReady(true)
+    window.addEventListener("universe-ready", onReady)
+    return () => window.removeEventListener("universe-ready", onReady)
+  }, [])
 
   // Dismiss the "⋯" info popover on outside click / Escape.
   useEffect(() => {
@@ -114,16 +136,65 @@ export function Hero() {
       </h1>
 
       {/* Universe engine — galaxy + solar system + constellations.
-          Passive backdrop by default so page scroll works; explore mode flips it interactive. */}
+          Passive backdrop by default so page scroll works; explore mode flips it interactive.
+          Layering: the living CSS starfield sits underneath the whole time; the
+          engine layer fades + settles in over it once `universe-ready` fires,
+          so the handoff is a bloom, not a swap. */}
       <div className="absolute inset-0" aria-hidden="true">
         <UniverseRuntimeFallback>
           {tvBrowserFallback ? (
             <StaticStarfield />
           ) : (
-            <UniverseEngine interactive={interactive} showMusic={true} minimalControls />
+            <>
+              <div
+                className="absolute inset-0 transition-opacity duration-1000 ease-out"
+                style={{ opacity: engineReady ? 0 : 1 }}
+              >
+                <StaticStarfield loading={engineWanted && !engineReady} />
+              </div>
+              {engineWanted && (
+                <div
+                  className="absolute inset-0 will-change-[opacity,transform]"
+                  style={{
+                    opacity: engineReady ? 1 : 0,
+                    transform:
+                      prefersReducedMotion || engineReady ? "scale(1)" : "scale(1.02)",
+                    transition: prefersReducedMotion
+                      ? "opacity 400ms ease-out"
+                      : "opacity 1100ms cubic-bezier(0.16, 1, 0.3, 1), transform 1400ms cubic-bezier(0.16, 1, 0.3, 1)",
+                  }}
+                >
+                  <UniverseEngine interactive={interactive} showMusic={true} minimalControls />
+                </div>
+              )}
+            </>
           )}
         </UniverseRuntimeFallback>
       </div>
+
+      {/* Data Saver opt-in — shown instead of auto-loading the engine when the
+          browser signals a metered connection. One tap streams the universe in. */}
+      {dataSaver && !engineWanted && !tvBrowserFallback && (
+        <button
+          type="button"
+          onClick={() => setEngineWanted(true)}
+          data-cursor-hover
+          className="
+            absolute bottom-24 left-1/2 -translate-x-1/2 z-20
+            inline-flex items-center gap-2 px-5 py-2.5 rounded-full
+            border border-foreground/25 bg-background/50 backdrop-blur-sm
+            font-mono text-[10px] tracking-[0.25em] uppercase
+            text-foreground/85 hover:text-foreground hover:border-accent/60
+            transition-colors duration-300
+            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+            focus-visible:ring-offset-2 focus-visible:ring-offset-background
+            min-h-11 touch-manipulation
+          "
+        >
+          <span aria-hidden="true" className="text-accent text-base leading-none">✺</span>
+          Load the live universe
+        </button>
+      )}
 
       {/* Explore-mode toggle. On mobile: an icon-only circle (44×44) so it
           doesn't horizontally overlap the PRINCIPAL DESIGNER headline at the
@@ -134,7 +205,12 @@ export function Hero() {
       <div ref={infoRef} className="absolute top-20 right-4 md:top-28 md:right-12 z-30 pointer-events-auto flex items-center gap-2">
         <button
           type="button"
-          onClick={() => setInteractive((v) => !v)}
+          onClick={() => {
+            // Data-saver visitors may tap Explore before opting into the
+            // engine — treat that as the opt-in too.
+            setEngineWanted(true)
+            setInteractive((v) => !v)
+          }}
           data-cursor-hover
           aria-pressed={interactive}
           aria-label={interactive ? "Exit explore mode" : "Tap to explore the universe"}

@@ -18,6 +18,7 @@ import { useEffect, useState } from "react"
 import { useTheme } from "next-themes"
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
 import { BookOpen, Sun, X } from "lucide-react"
+import { markThemeChosenByUser } from "@/components/time-of-day-theme"
 import { useDisplayPrefs } from "./display-prefs"
 
 const STORAGE_KEY = "readability-nudge-dismissed-v1"
@@ -68,6 +69,7 @@ export function ReadabilityNudge() {
   }
 
   const handleLight = () => {
+    markThemeChosenByUser() // explicit pick — time-of-day auto stops overriding
     setTheme("light")
     persistDismissed()
   }

@@ -30,12 +30,12 @@ import { TrajectoryTrails } from "./trajectory-trails"
 import { SphereOfInfluence } from "./sphere-of-influence"
 import "./three-line"
 
-// Preload the black-hole mesh at module init so it's ready by the time a
-// user explores far enough to focus a sky-point BH. 8.4 MB asset — single
-// network request, cached for every instance via drei's loader cache.
-// Attribution: "Blackhole" by rubykamen, CC-BY-4.0
-// https://sketchfab.com/3d-models/blackhole-74cbeaeae2174a218fe9455d77902b5c
-useGLTF.preload("/models/blackhole.glb")
+// The black-hole mesh (8.4 MB — "Blackhole" by rubykamen, CC-BY-4.0,
+// https://sketchfab.com/3d-models/blackhole-74cbeaeae2174a218fe9455d77902b5c)
+// is NOT preloaded at module init: that cost every visitor ~8.4 MB whether or
+// not they ever engaged a black hole. BlackHoleDetail fetches it on first
+// hover/focus intent instead — the fly-to flight time hides the download, and
+// drei's loader cache shares the result across every BH instance.
 import {
   AdditiveBlending,
   BackSide,
@@ -2223,7 +2223,9 @@ const BELT_ROCK_MODELS = [
   "/models/asteroid-carbon.glb",
   "/models/comet-nucleus.glb",
 ] as const
-BELT_ROCK_MODELS.forEach((p) => useGLTF.preload(p))
+// No module-init preload: the rocks (2.7 MB across 3 GLBs) mount only once the
+// user enters explore mode (see SolarSystem), so the passive hero never pays
+// for them. The component's own useGLTF suspends + streams them in on mount.
 
 function BeltAsteroids({
   innerRadius,
@@ -3712,6 +3714,14 @@ function SolarSystem({
   const coronaOuterMatRef = useRef<ShaderMaterial>(null)
   const [sunHovered, setSunHovered] = useState(false)
   const [sunTexture, setSunTexture] = useState<Texture | null>(null)
+  // Chunky belt-rock GLBs (2.7 MB) stream in the first time the user enters
+  // explore mode — at passive-backdrop distances the point-cloud belts carry
+  // the look, so the rocks aren't missed. Sticky: once loaded, keep them
+  // mounted across explore-mode toggles (no churn, they're already cached).
+  const [rocksWanted, setRocksWanted] = useState(false)
+  useEffect(() => {
+    if (interactive && !rocksWanted) setRocksWanted(true)
+  }, [interactive, rocksWanted])
   const scenePlanets = useMemo(() => buildScenePlanets(), [])
   const sunRotSpeed = useMemo(
     () => (2 * Math.PI) / (25 / TIME_WARP_DAYS_PER_SEC),
@@ -3922,7 +3932,7 @@ function SolarSystem({
       {/* Real Blender rock meshes scattered through the asteroid belt — the
           chunky bodies the eye catches; the point cloud above carries the
           thousands of distant specks. Streams in via Suspense; off in chart. */}
-      {!invert && (
+      {!invert && rocksWanted && (
         <Suspense fallback={null}>
           <BeltAsteroids
             innerRadius={4.45}
@@ -3951,7 +3961,7 @@ function SolarSystem({
       />
       {/* Real icy bodies through the Kuiper Belt — sparser + larger than the
           asteroid belt (Pluto-class chunks out here). */}
-      {!invert && (
+      {!invert && rocksWanted && (
         <Suspense fallback={null}>
           <BeltAsteroids
             innerRadius={16.43}
@@ -5695,6 +5705,28 @@ function BlackHoleJets({
   )
 }
 
+// Module flag: flips true the first time ANY black hole is engaged, so every
+// other instance switches to the (now-cached) GLB path too.
+let bhMeshRequested = false
+
+/** Idle stand-in for the BH model: the event-horizon shadow as a plain black
+ *  sphere, sized to the GLB's dark core within the same spin/scale group. */
+function BlackHoleShadowSphere() {
+  return (
+    <mesh>
+      <sphereGeometry args={[1.3, 24, 24]} />
+      <meshBasicMaterial color="#000000" />
+    </mesh>
+  )
+}
+
+/** The Sketchfab "Blackhole" by rubykamen (CC-BY-4.0) — isolated so useGLTF
+ *  only runs (and downloads) once a BH is actually engaged. */
+function BlackHoleGlbMesh() {
+  const { scene: bhScene } = useGLTF("/models/blackhole.glb")
+  return <Clone object={bhScene} />
+}
+
 function BlackHoleDetail({
   size,
   hovered,
@@ -5743,12 +5775,23 @@ function BlackHoleDetail({
   // spin speed below — small systems spin visibly faster.
   const isStellarMass = M < 1000
 
-  // Sketchfab "Blackhole" by rubykamen (CC-BY-4.0). The model's natural
-  // extent runs roughly ±5 units around origin; this factor brings it
-  // into our scene-scale alongside the physics-driven detailScale.
-  // 0.22 ≈ the visible footprint the old procedural disk used to have —
+  // The 8.4 MB GLB loads on first ENGAGEMENT (hover or focus), not at mount:
+  // idle BHs render an honest black shadow sphere + findability halo — which
+  // is what they look like from sky-shell distance anyway. Once any BH is
+  // engaged, a module flag keeps the mesh path on for all instances (drei's
+  // cache already has the bytes, matching the old always-mounted behavior).
+  const [meshWanted, setMeshWanted] = useState(() => bhMeshRequested)
+  useEffect(() => {
+    if (hovered && !meshWanted) {
+      bhMeshRequested = true
+      useGLTF.preload("/models/blackhole.glb")
+      setMeshWanted(true)
+    }
+  }, [hovered, meshWanted])
+  // The model's natural extent runs roughly ±5 units around origin; this
+  // factor brings it into scene-scale alongside the physics-driven
+  // detailScale. 0.22 ≈ the visible footprint the old procedural disk had —
   // anything smaller turns into a pinprick at sky-shell distance (150 u).
-  const { scene: bhScene } = useGLTF("/models/blackhole.glb")
   const meshScale = props.detailScale * 0.22
 
   useFrame((_, delta) => {
@@ -5793,7 +5836,16 @@ function BlackHoleDetail({
       )}
 
       <group ref={spinRef} scale={meshScale}>
-        <Clone object={bhScene} />
+        {meshWanted ? (
+          // While the GLB streams in, the Suspense fallback keeps the same
+          // shadow sphere on screen — engagement upgrades the look in place,
+          // with no flash of nothing.
+          <Suspense fallback={<BlackHoleShadowSphere />}>
+            <BlackHoleGlbMesh />
+          </Suspense>
+        ) : (
+          <BlackHoleShadowSphere />
+        )}
       </group>
 
       {/* Bipolar relativistic jets — perpendicular to the accretion disk

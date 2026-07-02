@@ -59,7 +59,11 @@ const ARCHETYPES: Record<ArchetypeId, Archetype> = {
   weather:    mkArch("/models/satellite-weather.glb",  "Weather / GEO sat",   24, 4.5),
   smallsat:   mkArch("/models/satellite-smallsat.glb", "Smallsat",             2.0, 4.3),
 }
-for (const a of Object.values(ARCHETYPES)) useGLTF.preload(a.url)
+// Archetype GLBs (~2.7 MB) are preloaded from SatelliteField's mount effect —
+// NOT at module init. This module is statically imported by scene.tsx, so a
+// module-scope preload would fire for every home visitor; the field itself
+// only mounts once Earth is focused with satellites toggled on, and selecting
+// a satellite (the moment a GLB is actually shown) comes clicks later.
 
 /** Pick an archetype from the satellite's type, name, operator, and orbit
  *  altitude. Debris + rocket bodies get their own shapes (not a clean sat). */
@@ -215,6 +219,12 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
   const lastCompute = useRef(0)
   // scene units per km, so satellite altitudes sit just above Earth's sphere
   const kmToScene = earthVisualRadius / EARTH_RADIUS_KM
+
+  // Warm the archetype GLBs the moment the field mounts — the user is now one
+  // click away from selecting a satellite, so the download races their intent.
+  useEffect(() => {
+    for (const a of Object.values(ARCHETYPES)) useGLTF.preload(a.url)
+  }, [])
 
   useEffect(() => {
     let cancelled = false

@@ -9,6 +9,7 @@ import type { Metadata, Viewport } from "next"
 import Script from "next/script"
 import { Inter, Instrument_Serif, JetBrains_Mono, Fraunces, Noto_Sans_Arabic, Noto_Sans_JP } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
+import { TimeOfDayTheme } from "@/components/time-of-day-theme"
 import { DisplayPrefsProvider } from "@/components/display-prefs"
 import { VisitorAnalytics } from "@/components/analytics/visitor-analytics"
 import { Preloader } from "@/components/preloader"
@@ -319,6 +320,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           disableTransitionOnChange={false}
         >
           <DisplayPrefsProvider>
+            <TimeOfDayTheme />
             <Preloader />
             <a href="#main" className="skip-link">
               Skip to main content
