@@ -90,7 +90,58 @@ export function World({ level = LEVEL_1, onWin }: { level?: Level; onWin?: () =>
       {level.warp && <WarpPad level={level} />}
       <Trophy level={level} />
       <Door level={level} onWin={onWin} />
+      {sideOn && <DustMotes level={level} />}
     </>
+  )
+}
+
+/** Slow-drifting dust in the cavern air — the detail layer that makes the
+ *  black background read as a SPACE instead of a void. ~70 additive points
+ *  inside the room volume, each on its own drift phase; near-zero cost. */
+function DustMotes({ level }: { level: Level }) {
+  const ref = useRef<THREE.Points>(null)
+  const { geometry, seeds } = useMemo(() => {
+    const W = level.bounds?.w ?? 26
+    const H = level.bounds?.h ?? 14
+    const N = 70
+    const pos = new Float32Array(N * 3)
+    const seeds: { x: number; y: number; p: number; s: number }[] = []
+    for (let i = 0; i < N; i++) {
+      const x = (Math.random() - 0.5) * (W - 2)
+      const y = 0.8 + Math.random() * (H - 2)
+      pos.set([x, y, (Math.random() - 0.5) * 2.5], i * 3)
+      seeds.push({ x, y, p: Math.random() * Math.PI * 2, s: 0.35 + Math.random() * 0.5 })
+    }
+    const geometry = new THREE.BufferGeometry()
+    geometry.setAttribute("position", new THREE.BufferAttribute(pos, 3))
+    return { geometry, seeds }
+  }, [level])
+
+  useFrame((st) => {
+    const g = ref.current?.geometry
+    if (!g) return
+    const t = st.clock.elapsedTime
+    const arr = (g.attributes.position as THREE.BufferAttribute).array as Float32Array
+    for (let i = 0; i < seeds.length; i++) {
+      const s = seeds[i]
+      arr[i * 3] = s.x + Math.sin(t * 0.11 * s.s + s.p) * 1.2
+      arr[i * 3 + 1] = s.y + Math.sin(t * 0.07 * s.s + s.p * 1.7) * 0.8
+    }
+    ;(g.attributes.position as THREE.BufferAttribute).needsUpdate = true
+  })
+
+  return (
+    <points ref={ref} geometry={geometry}>
+      <pointsMaterial
+        color="#c8b490"
+        size={0.055}
+        transparent
+        opacity={0.5}
+        blending={THREE.AdditiveBlending}
+        depthWrite={false}
+        sizeAttenuation
+      />
+    </points>
   )
 }
 

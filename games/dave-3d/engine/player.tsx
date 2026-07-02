@@ -416,7 +416,7 @@ export function DaveModel() {
     // base scale → the ~2.0-tall GLB renders ~1.2 world units (≈0.86 tiles, the
     // original sprite's proportion). Collision HEIGHT stays 1.0 so one-tile gaps
     // remain passable; the slight visual overshoot is imperceptible.
-    const BASE = 0.6
+    const BASE = 0.66
     g.scale.set(BASE * sx.current, BASE * sy.current, BASE * sz.current)
 
     // run bob + waddle + lean

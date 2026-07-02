@@ -63,6 +63,8 @@ export type Level = {
   style?: "side" | "free"
   /** tint of the brick walls/platforms for this level (Dave recolours per level) */
   brick?: string
+  /** background/fog tint for the level's cavern air (near-black, per-level hue) */
+  bg?: string
   /** world width/height of a "side" room (for camera framing + bounds) */
   bounds?: { w: number; h: number }
 }
@@ -90,6 +92,8 @@ const DEPTH = TILE               // thin slab depth on Z for side levels
 export type TileMeta = {
   name: string
   brick?: string
+  /** per-level background/fog tint (near-black; keeps each screen's own mood) */
+  bg?: string
   /** chars to treat as decorative pipes (rendered, no collision) */
 }
 
@@ -168,6 +172,7 @@ export function fromTiles(rows: string[], meta: TileMeta): Level {
     name: meta.name,
     style: "side",
     brick: meta.brick,
+    bg: meta.bg,
     bounds: { w: w * TILE, h: h * TILE },
     spawn,
     platforms,
@@ -212,7 +217,7 @@ const L1: Level = fromTiles(
     "#P@            D  #", // 8  pipe + spawn (left) · door on the floor (right)
     "###################", // 9  floor
   ],
-  { name: "1 — The Cavern", brick: "#b3361f" },
+  { name: "1 — The Cavern", brick: "#b3361f", bg: "#07040a" },
 )
 
 // ── LEVEL 2 — a WIDE scrolling screen: purple (`=`) floating platforms over a
@@ -234,7 +239,7 @@ const L2: Level = fromTiles(
     "#FFFF####WWWW####FFFF####WWWW####FFFF#####", // 10 fire/water pits between floor islands
     "##########################################", // 11 base
   ],
-  { name: "2 — The Descent", brick: "#b3361f" },
+  { name: "2 — The Descent", brick: "#8a2f4a", bg: "#0a0410" },
 )
 
 // ── LEVEL 3 — Pipes & Tunnels: a mid-height walkway with jump-through gaps;
@@ -252,7 +257,7 @@ const L3: Level = fromTiles(
     "#P@  .    .       #", // 8  spawn + gems in the under-tunnel
     "###################", // 9  floor
   ],
-  { name: "3 — Pipes", brick: "#b3361f" },
+  { name: "3 — Pipes", brick: "#a06a28", bg: "#0a0703" },
 )
 
 // ── LEVEL 4 — Fire Pits: fire pits punctuate the floor walk; island ladder up.
@@ -269,7 +274,7 @@ const L4: Level = fromTiles(
     "#P@  F    F     D #", // 8  spawn · fire pits · door on the floor
     "###################", // 9  floor
   ],
-  { name: "4 — Fire Pits", brick: "#b3361f" },
+  { name: "4 — Fire Pits", brick: "#9c2c14", bg: "#0c0402" },
 )
 
 // ── LEVEL 5 — Flooded: water pools in the floor; thin pillars thread upward.
@@ -286,7 +291,7 @@ const L5: Level = fromTiles(
     "#P@  W     W    D #", // 8  spawn · water pools · door on the floor
     "###################", // 9  floor
   ],
-  { name: "5 — Flooded", brick: "#2f6fb0" },
+  { name: "5 — Flooded", brick: "#2f6fb0", bg: "#020710" },
 )
 
 // ── LEVEL 6 — JETPACK: grab the pack on the floor, then FLY up to the high cup
@@ -304,7 +309,7 @@ const L6: Level = fromTiles(
     "#P@  J       .    #", // 8  spawn + jetpack on the floor
     "###################", // 9  floor
   ],
-  { name: "6 — Jetpack", brick: "#6a3da0" },
+  { name: "6 — Jetpack", brick: "#6a3da0", bg: "#070312" },
 )
 
 // ── LEVEL 7 — The Climb: a tall zig-zag ascent to the cup; spikes on the floor.
@@ -323,7 +328,7 @@ const L7: Level = fromTiles(
     "#P@  ^^   ####    #", // 10 spawn · spikes · door ledge
     "###################", // 11 floor
   ],
-  { name: "7 — The Climb", brick: "#b3361f" },
+  { name: "7 — The Climb", brick: "#5a6b7a", bg: "#04070a" },
 )
 
 // ── LEVEL 8 — The Gauntlet: every hazard on one floor run, pedestal ladder up.
@@ -340,7 +345,7 @@ const L8: Level = fromTiles(
     "#P@  F  ^^  W   D #", // 8  spawn · fire · spikes · water · door
     "###################", // 9  floor
   ],
-  { name: "8 — Gauntlet", brick: "#b3361f" },
+  { name: "8 — Gauntlet", brick: "#a04418", bg: "#0a0503" },
 )
 
 // ── LEVEL 9 — Trap Maze: a dense branching field of pads over fire + spikes.
@@ -357,7 +362,7 @@ const L9: Level = fromTiles(
     "#P@ FF   ^^     D #", // 8  spawn · fire · spikes · door
     "###################", // 9  floor
   ],
-  { name: "9 — Trap Maze", brick: "#b3361f" },
+  { name: "9 — Trap Maze", brick: "#4f7a3a", bg: "#030803" },
 )
 
 // ── LEVEL 10 — Final Ascent: the hardest climb, all hazards, plus a HIDDEN warp
@@ -377,7 +382,7 @@ const L10: Level = fromTiles(
     "#P@ F ^^ F  #### X#", // 10 spawn · hazards · door ledge · hidden warp
     "###################", // 11 floor
   ],
-  { name: "10 — Final Ascent", brick: "#7a1f1f" },
+  { name: "10 — Final Ascent", brick: "#7a1f1f", bg: "#0c0204" },
 )
 
 /** The full 10-level campaign, in play order. */

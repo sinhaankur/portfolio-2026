@@ -99,9 +99,10 @@ export function ThirdPersonCamera() {
   useFrame((state, dt) => {
     const target = game.playerPos
 
-    // ── SIDE-ON default: a FLAT, straight-on view that frames the whole room 1:1
-    //    with the original (no tilt). Camera dead-on +Z, centred; for rooms wider
-    //    than a screen it pans horizontally to follow Dave. Until the user drags. ─
+    // ── SIDE-ON default: a FLAT, straight-on view (no tilt), framed TIGHT like
+    //    the original's confident chunky window: ~8 tile-rows tall, following
+    //    Dave on BOTH axes (clamped to the room) so he reads big and the level
+    //    scrolls around him. Until the user drags (then free-orbit takes over). ─
     if (game.sideOn && !userTookControl.current) {
       const persp = camera as THREE.PerspectiveCamera
       const fov = 52
@@ -111,16 +112,21 @@ export function ThirdPersonCamera() {
       const aspect = persp.isPerspectiveCamera ? persp.aspect : 16 / 9
       const W = game.boundsW, H = game.boundsH
       const vFov = (fov * Math.PI) / 180
-      const SCREEN_W = 30
-      const showW = Math.min(W, SCREEN_W)
-      const distH = (H / 2) / Math.tan(vFov / 2)
-      const distW = (showW / 2) / (Math.tan(vFov / 2) * aspect)
-      const fitDist = Math.max(distH, distW) * 1.04
+      // Frame ~8 rows (11.2u) of the room, not the whole wall — Dave ≈ 11% of
+      // screen height, the original's chunky proportion on a modern display.
+      const FRAME_H = 11.2
+      const showH = Math.min(H, FRAME_H)
+      const fitDist = ((showH / 2) / Math.tan(vFov / 2)) * 1.04
       const viewW = 2 * Math.tan(vFov / 2) * aspect * fitDist
+      const viewH = showH * 1.04
       const camX = W > viewW + 1
         ? THREE.MathUtils.clamp(target.x, -W / 2 + viewW / 2, W / 2 - viewW / 2)
         : 0
-      const camY = H / 2 - 1.0
+      // Vertical follow: keep Dave a touch below centre (headroom to see the
+      // climb ahead), clamped so the frame never leaves the room.
+      const camY = H > viewH + 0.5
+        ? THREE.MathUtils.clamp(target.y + 1.6, viewH / 2 - 0.7, H - viewH / 2 - 0.7)
+        : H / 2 - 1.0
       camera.position.lerp(tmp.current.set(camX, camY, fitDist), 1 - Math.exp(-7 * dt))
       lookAt.current.set(camX, camY, 0)
       camera.lookAt(lookAt.current)

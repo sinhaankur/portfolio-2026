@@ -9,7 +9,7 @@
  */
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react"
-import { Canvas } from "@react-three/fiber"
+import { Canvas, useThree } from "@react-three/fiber"
 import * as THREE from "three"
 import { LEVELS } from "./level"
 import { World } from "./world"
@@ -20,6 +20,19 @@ import { Juice } from "./juice"
 import { Hud } from "./hud"
 import { bindKeyboard, resetInput } from "./controls"
 import { game, resetGame, TOTAL_LEVELS } from "./state"
+
+/** Applies the level's background/fog hue whenever the level changes (the
+ *  Canvas onCreated only runs once). Lives inside the Canvas tree. */
+function LevelAtmosphere({ bg }: { bg?: string }) {
+  const scene = useThree((s) => s.scene)
+  useEffect(() => {
+    const c = new THREE.Color(bg ?? "#05060c")
+    scene.background = c
+    if (scene.fog instanceof THREE.Fog) scene.fog.color.copy(c)
+    else scene.fog = new THREE.Fog(c, 70, 160)
+  }, [scene, bg])
+  return null
+}
 
 export default function GameCanvas() {
   // levelIndex selects the level; sceneKey remounts the scene subtree on every
@@ -101,8 +114,8 @@ export default function GameCanvas() {
         camera={{ position: [0, 6, 12], fov: 55, near: 0.1, far: 400 }}
         gl={{ antialias: true }}
         onCreated={({ scene }) => {
-          scene.fog = new THREE.Fog("#05060c", 70, 160)
-          scene.background = new THREE.Color("#05060c")
+          scene.fog = new THREE.Fog(level.bg ?? "#05060c", 70, 160)
+          scene.background = new THREE.Color(level.bg ?? "#05060c")
           // reveal a beat after the first frames + textures settle, so the
           // world fades up smoothly instead of snapping in.
           requestAnimationFrame(() =>
@@ -110,6 +123,9 @@ export default function GameCanvas() {
           )
         }}
       >
+        {/* Per-level cavern air — each screen gets its own near-black hue,
+            like the original's per-level recolours. */}
+        <LevelAtmosphere bg={level.bg} />
         <Suspense fallback={null}>
           {inCorridor ? (
             // between-levels "GOOD WORK!" corridor (Dave walks to the next door)
