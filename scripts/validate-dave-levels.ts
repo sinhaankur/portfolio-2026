@@ -119,6 +119,29 @@ for (const level of LEVELS) {
     if (!pointReachable(level, reach, p)) fail(name, `${what} at (${p[0].toFixed(1)}, ${p[1].toFixed(1)}) not reachable`)
   }
 
+  // STRESS: every reachable surface needs stand headroom (player is 1.0 tall;
+  // a ceiling closer than that makes a ledge a trap that LOOKS standable).
+  for (const i of reach) {
+    const s = surfs[i]
+    for (const b of level.platforms) {
+      const bBottom = b.pos[1] - b.size[1] / 2
+      const bx0 = b.pos[0] - b.size[0] / 2
+      const bx1 = b.pos[0] + b.size[0] / 2
+      if (bx1 <= s.x0 + 0.05 || bx0 >= s.x1 - 0.05) continue
+      if (bBottom <= s.top + 0.01) continue // below or flush — not a ceiling
+      const clearance = bBottom - s.top
+      if (clearance < 1.05 && bx0 <= s.x0 + 0.1 && bx1 >= s.x1 - 0.1)
+        fail(name, `surface at y=${s.top.toFixed(1)} x∈[${s.x0.toFixed(1)},${s.x1.toFixed(1)}] has only ${clearance.toFixed(2)}u headroom`)
+    }
+  }
+
+  // STRESS: every floor hazard must be clearable — the gap it spans (plus a
+  // tile of runway each side) must be within horizontal jump range.
+  for (const h of level.hazards ?? []) {
+    if (h.size[0] + 2 * TILE > H_REACH)
+      fail(name, `${h.kind} hazard is ${h.size[0].toFixed(1)}u wide — too wide to jump (max ~${(H_REACH - 2 * TILE).toFixed(1)}u)`)
+  }
+
   // spawn must not free-fall into a hazard: if a hazard spans the spawn column,
   // some platform top must sit between the spawn and the hazard (the L2 bug:
   // spawn over a fire pit = infinite death loop that reads as "stuck").

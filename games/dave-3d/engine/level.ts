@@ -248,7 +248,7 @@ const L3: Level = fromTiles(
     "#        .        #", // 4
     "#   ##   ###   ## #", // 5  mid pedestals
     "# .    .        D #", // 6  gems + door ON the walkway
-    "###### ##### ######", // 7  walkway with two jump-through gaps
+    "#####  ####  ######", // 7  walkway — 2-tile gaps (1-tile = a 0.6u threading window, unjumpable in practice)
     "#P@  .    .       #", // 8  spawn + gems in the under-tunnel
     "###################", // 9  floor
   ],

@@ -11,7 +11,9 @@
     "data:exoplanets": "node scripts/fetch-exoplanet-hosts.mjs",
     "data:constellations": "node scripts/fetch-constellations.mjs",
     "data:deepsky": "node scripts/fetch-deep-sky.mjs",
-    "dave:check": "node scripts/validate-dave-levels.ts"
+    "dave:check": "node scripts/validate-dave-levels.ts",
+    "test:site": "node scripts/smoke-site.mjs",
+    "test:dave": "node scripts/stress-dave.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",

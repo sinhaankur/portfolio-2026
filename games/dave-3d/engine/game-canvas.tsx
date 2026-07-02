@@ -47,7 +47,14 @@ export default function GameCanvas() {
   }, [])
 
   useEffect(() => {
-    loadLevel(0)
+    // `?level=N` (1-based) boots straight into a level — used by the per-level
+    // stress-test harness and handy for play-testing a specific screen.
+    let startIdx = 0
+    try {
+      const q = new URLSearchParams(window.location.search).get("level")
+      if (q) startIdx = Math.min(TOTAL_LEVELS - 1, Math.max(0, parseInt(q, 10) - 1 || 0))
+    } catch { /* no window/search — start at 1 */ }
+    loadLevel(startIdx)
     const unbind = bindKeyboard()
     setMobile(window.matchMedia("(max-width: 768px)").matches)
     return () => { unbind(); resetInput() }
