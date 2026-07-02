@@ -38,6 +38,7 @@ import "./three-line"
 // drei's loader cache shares the result across every BH instance.
 import {
   AdditiveBlending,
+  Box3,
   BackSide,
   BufferAttribute,
   BufferGeometry,
@@ -2555,11 +2556,14 @@ function HeroSatellite({
   bodyRadius,
   onHover,
   interactive = false,
+  trueScale = false,
 }: {
   craft: HeroCraft
   bodyRadius: number
   onHover?: HoverHandler
   interactive?: boolean
+  /** Render at real measured span vs Earth (the celestial explorer). */
+  trueScale?: boolean
 }) {
   const ref = useRef<import("three").Group>(null)
   const craftRef = useRef<import("three").Group>(null)
@@ -2600,17 +2604,61 @@ function HeroSatellite({
         obj.getWorldPosition(v)
         return { x: v.x, y: v.y, z: v.z }
       },
-      Math.max(bodyRadius * craft.sizeRatio * 6, 0.12),
+      trueScale
+        ? Math.max(((spanM / 1000 / 6371) * bodyRadius) * 8, 0.02)
+        : Math.max(bodyRadius * craft.sizeRatio * 6, 0.12),
       craft.label,
     )
   }
 
+  // TRUE-scale mode (the /lab/celestial explorer): the craft renders at its
+  // real measured span vs Earth — parsed from the max figure in its `size`
+  // string (deployed span) against the GLB's actual bounding box. At true
+  // ratio every craft is sub-pixel from orbit distance, so a small halo
+  // marks the position and the generous hit-sphere (kept OUTSIDE the scaled
+  // group) preserves hover/click; following zooms until the real model fills
+  // the view. The home hero keeps its documented perceptual sizing.
+  const spanM = useMemo(() => {
+    const nums = (craft.size?.match(/\d+(?:\.\d+)?/g) ?? []).map(Number)
+    return nums.length ? Math.max(...nums) : 3
+  }, [craft.size])
+  const nativeSpan = useMemo(() => {
+    const box = new Box3().setFromObject(cloned)
+    const s = new Vector3()
+    box.getSize(s)
+    return Math.max(s.x, s.y, s.z) || 1
+  }, [cloned])
+  const visScale = trueScale
+    ? ((spanM / 1000 / 6371) * bodyRadius) / nativeSpan
+    : bodyRadius * craft.sizeRatio
+
   return (
     <group ref={ref} rotation={[craft.incl * 0.35, craft.phase, 0]}>
-      <group ref={craftRef} position={[r, 0, 0]} scale={bodyRadius * craft.sizeRatio} visible={launched}>
-        <primitive object={cloned} />
-        {/* Invisible hit-sphere so the small craft is easy to hover/click. */}
+      {/* Orbit ring — the craft's path, so each can be tailed by eye. Only in
+          the true-scale explorer (the home hero stays clean). */}
+      {trueScale && (
+        <mesh rotation={[Math.PI / 2, 0, 0]}>
+          <torusGeometry args={[r, bodyRadius * 0.0035, 6, 96]} />
+          <meshBasicMaterial color="#7ec8ff" transparent opacity={0.16} depthWrite={false} />
+        </mesh>
+      )}
+      <group ref={craftRef} position={[r, 0, 0]} visible={launched}>
+        <group scale={visScale}>
+          <primitive object={cloned} />
+        </group>
+        {/* Findability halo — at true ratio the craft itself is sub-pixel from
+            orbit distance; this small glow marks where it is. */}
+        {trueScale && (
+          <mesh>
+            <sphereGeometry args={[bodyRadius * 0.014, 10, 10]} />
+            <meshBasicMaterial color="#aef" transparent opacity={0.55} blending={AdditiveBlending} depthWrite={false} />
+          </mesh>
+        )}
+        {/* Invisible hit-sphere so the small craft is easy to hover/click —
+            sized in WORLD units (not inside the visual scale) so true-scale
+            mode keeps a usable touch target. */}
         <mesh
+          scale={bodyRadius * craft.sizeRatio}
           onPointerOver={(e) => {
             e.stopPropagation()
             // Build a rich, real-data fact: description + agency/orbit/size/launch.
@@ -2647,12 +2695,14 @@ function SatelliteShells({
   bodyRadius,
   onHover,
   interactive = false,
+  trueScale = false,
 }: {
   shells: SatelliteShell[]
   heroCraft?: HeroCraft[]
   bodyRadius: number
   onHover?: HoverHandler
   interactive?: boolean
+  trueScale?: boolean
 }) {
   return (
     <group>
@@ -2661,7 +2711,7 @@ function SatelliteShells({
       ))}
       {heroCraft?.map((c) => (
         <Suspense key={c.label} fallback={null}>
-          <HeroSatellite craft={c} bodyRadius={bodyRadius} onHover={onHover} interactive={interactive} />
+          <HeroSatellite craft={c} bodyRadius={bodyRadius} onHover={onHover} interactive={interactive} trueScale={trueScale} />
         </Suspense>
       ))}
     </group>
@@ -3551,6 +3601,7 @@ function PlanetBody({
               bodyRadius={planet.visualRadius}
               onHover={onHover}
               interactive={interactive}
+              trueScale={solarOnly}
             />
           )}
 
