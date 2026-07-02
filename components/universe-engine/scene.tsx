@@ -28,6 +28,7 @@ import { GravityOverlay } from "./gravity-overlay"
 import { WebGLLabel } from "./webgl-label"
 import { TrajectoryTrails } from "./trajectory-trails"
 import { SphereOfInfluence } from "./sphere-of-influence"
+import "./three-line"
 
 // Preload the black-hole mesh at module init so it's ready by the time a
 // user explores far enough to focus a sky-point BH. 8.4 MB asset — single
@@ -2108,9 +2109,9 @@ function Meteor({ baseDelay, invert = false }: { baseDelay: number; invert?: boo
         <sphereGeometry args={[0.06, 16, 16]} />
         <meshBasicMaterial color={meteorColor} />
       </mesh>
-      <line geometry={streakGeometry}>
+      <threeLine geometry={streakGeometry}>
         <lineBasicMaterial color={meteorColor} transparent opacity={streakOpacity} />
-      </line>
+      </threeLine>
     </group>
   )
 }
@@ -2242,7 +2243,8 @@ function BeltAsteroids({
   seed?: number
 }) {
   const ref = useRef<import("three").Group>(null)
-  const gltfs = BELT_ROCK_MODELS.map((p) => useGLTF(p))
+  // drei's useGLTF accepts an array natively — one hook call, stable order.
+  const gltfs = useGLTF([...BELT_ROCK_MODELS])
 
   // Deterministic scatter so the belt is stable across re-renders.
   const placements = useMemo(() => {
@@ -2397,9 +2399,9 @@ function SatelliteShellPoints({
       {/* orbital-path ring — only for constellations; a debris cloud has no
           single lane, so it's skipped. */}
       {!shell.debris && (
-        <line geometry={ringGeo} rotation={[shell.incl * 0.35, 0, 0]}>
+        <threeLine geometry={ringGeo} rotation={[shell.incl * 0.35, 0, 0]}>
           <lineBasicMaterial color={shell.color} transparent opacity={0.18} depthWrite={false} />
-        </line>
+        </threeLine>
       )}
       {/* Debris shell is hoverable → an honest conjunction / Kessler explainer
           (no faked live close-approach events; we don't have that feed). */}
@@ -3675,7 +3677,7 @@ function OrbitRing({
   return (
     <group ref={scaleRef}>
       <group rotation={[inclination, 0, 0]}>
-        <line geometry={geometry}>
+        <threeLine geometry={geometry}>
           <lineBasicMaterial
             // Faint hairline orbits — ink on cream needs ~6× the opacity to
             // read at the same value as white-on-black.
@@ -3683,7 +3685,7 @@ function OrbitRing({
             transparent
             opacity={opacity}
           />
-        </line>
+        </threeLine>
       </group>
     </group>
   )
@@ -3710,7 +3712,7 @@ function SolarSystem({
   const coronaOuterMatRef = useRef<ShaderMaterial>(null)
   const [sunHovered, setSunHovered] = useState(false)
   const [sunTexture, setSunTexture] = useState<Texture | null>(null)
-  const scenePlanets = useMemo(buildScenePlanets, [])
+  const scenePlanets = useMemo(() => buildScenePlanets(), [])
   const sunRotSpeed = useMemo(
     () => (2 * Math.PI) / (25 / TIME_WARP_DAYS_PER_SEC),
     [],
@@ -5889,44 +5891,47 @@ function NebulaDetail({
   // show: Orion = pink Hα core + teal OIII wisps; Ring = teal annulus + warm
   // white-dwarf core; Crab = magenta + cyan filaments.
   const config = useMemo(() => {
+    type NebulaCloud = {
+      color: string
+      offset: [number, number, number]
+      scale: number
+      stretch: [number, number, number]
+    }
     if (pointId === "m57") {
       return {
         variant: "ring" as const,
         ringColor: invert ? "#1e3a3a" : "#7adfd2",
         coreColor: invert ? "#5a2412" : "#ffe9b8",
-        clouds: [] as Array<{
-          color: string
-          offset: [number, number, number]
-          scale: number
-          stretch: [number, number, number]
-        }>,
+        clouds: [] as NebulaCloud[],
       }
     }
     if (pointId === "m1") {
+      const clouds: NebulaCloud[] = [
+        { color: invert ? "#5a1c4a" : "#ff7ab8", offset: [0.42, 0.20, 0.04],  scale: 1.5, stretch: [1.5, 0.8, 1.3] },
+        { color: invert ? "#243a5a" : "#7ec8ff", offset: [-0.52, -0.28, 0.16], scale: 1.2, stretch: [1.2, 0.7, 1.6] },
+        { color: invert ? "#3a1530" : "#ffb38a", offset: [0.10, -0.42, -0.18], scale: 0.95, stretch: [1.3, 0.75, 1.1] },
+        { color: invert ? "#274963" : "#8fe8ff", offset: [-0.08, 0.36, -0.24], scale: 0.9, stretch: [1.1, 0.65, 1.4] },
+      ]
       return {
         variant: "filaments" as const,
         ringColor: "",
         coreColor: invert ? "#3a1530" : "#ff8acf",
-        clouds: [
-          { color: invert ? "#5a1c4a" : "#ff7ab8", offset: [0.42, 0.20, 0.04],  scale: 1.5, stretch: [1.5, 0.8, 1.3] },
-          { color: invert ? "#243a5a" : "#7ec8ff", offset: [-0.52, -0.28, 0.16], scale: 1.2, stretch: [1.2, 0.7, 1.6] },
-          { color: invert ? "#3a1530" : "#ffb38a", offset: [0.10, -0.42, -0.18], scale: 0.95, stretch: [1.3, 0.75, 1.1] },
-          { color: invert ? "#274963" : "#8fe8ff", offset: [-0.08, 0.36, -0.24], scale: 0.9, stretch: [1.1, 0.65, 1.4] },
-        ],
+        clouds,
       }
     }
     // Default / Orion-style emission nebula.
+    const clouds: NebulaCloud[] = [
+      { color: invert ? "#5a2436" : "#ff8fae", offset: [0.42, 0.12, 0.10], scale: 1.6, stretch: [1.55, 0.75, 1.20] },
+      { color: invert ? "#1f3a4a" : "#7fd6e8", offset: [-0.40, -0.18, 0.15], scale: 1.35, stretch: [1.25, 0.70, 1.50] },
+      { color: invert ? "#3a1f4a" : "#c19bff", offset: [0.04, 0.34, -0.28], scale: 1.15, stretch: [1.35, 0.82, 1.22] },
+      { color: invert ? "#4a2c1f" : "#ffb58f", offset: [0.12, -0.36, -0.16], scale: 0.95, stretch: [1.15, 0.68, 1.10] },
+      { color: invert ? "#2b3b56" : "#8fb6ff", offset: [-0.26, 0.32, 0.22], scale: 0.85, stretch: [1.05, 0.64, 1.30] },
+    ]
     return {
       variant: pointId === "m42" ? "orion" : ("clouds" as const),
       ringColor: "",
       coreColor: invert ? "#5a2436" : "#ffb6c9",
-      clouds: [
-        { color: invert ? "#5a2436" : "#ff8fae", offset: [0.42, 0.12, 0.10], scale: 1.6, stretch: [1.55, 0.75, 1.20] },
-        { color: invert ? "#1f3a4a" : "#7fd6e8", offset: [-0.40, -0.18, 0.15], scale: 1.35, stretch: [1.25, 0.70, 1.50] },
-        { color: invert ? "#3a1f4a" : "#c19bff", offset: [0.04, 0.34, -0.28], scale: 1.15, stretch: [1.35, 0.82, 1.22] },
-        { color: invert ? "#4a2c1f" : "#ffb58f", offset: [0.12, -0.36, -0.16], scale: 0.95, stretch: [1.15, 0.68, 1.10] },
-        { color: invert ? "#2b3b56" : "#8fb6ff", offset: [-0.26, 0.32, 0.22], scale: 0.85, stretch: [1.05, 0.64, 1.30] },
-      ],
+      clouds,
     }
   }, [pointId, invert])
 

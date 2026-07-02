@@ -41,7 +41,7 @@ function collectFacts(): Fact[] {
 const ROTATE_MS = 11000
 
 export function LearnTicker({ suppressed = false }: { suppressed?: boolean }) {
-  const facts = useMemo(collectFacts, [])
+  const facts = useMemo(() => collectFacts(), [])
   const [index, setIndex] = useState(0)
   const [dismissed, setDismissed] = useState(false)
   const [paused, setPaused] = useState(false)

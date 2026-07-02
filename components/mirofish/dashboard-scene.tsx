@@ -207,9 +207,9 @@ function RelationshipGraph({
       const a = sim[i]
       for (let j = i + 1; j < sim.length; j++) {
         const b = sim[j]
-        let dx = a.x - b.x
-        let dy = a.y - b.y
-        let d2 = dx * dx + dy * dy + 0.01
+        const dx = a.x - b.x
+        const dy = a.y - b.y
+        const d2 = dx * dx + dy * dy + 0.01
         const f = REPULSE / d2
         const d = Math.sqrt(d2)
         const fx = (dx / d) * f

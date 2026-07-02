@@ -208,7 +208,7 @@ export function Intro() {
 
 /** Lightweight CSS star specks that drift + fade in as the intro progresses. */
 function Starfield({ opacity }: { opacity: number }) {
-  const stars = useRef<{ x: number; y: number; s: number; d: number }[]>()
+  const stars = useRef<{ x: number; y: number; s: number; d: number }[] | undefined>(undefined)
   if (!stars.current) {
     stars.current = Array.from({ length: 90 }, () => ({
       x: Math.random() * 100,

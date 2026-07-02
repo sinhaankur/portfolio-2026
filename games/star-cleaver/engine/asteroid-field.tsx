@@ -200,7 +200,8 @@ export function AsteroidField({
   /** World-space Earth position; asteroids in 'defend' mode home toward it. */
   earthPosition?: [number, number, number];
 }) {
-  const gltfs = ASTEROID_MODELS.map((path) => useGLTF(path));
+  // drei's useGLTF accepts an array natively — one hook call, stable order.
+  const gltfs = useGLTF([...ASTEROID_MODELS]);
   const baseMeshes = useMemo(() => gltfs.map((g) => g.scene), [gltfs]);
   const field = useMemo(() => buildField(count, beltRadius, beltWidth, seed), [count, beltRadius, beltWidth, seed]);
 

@@ -442,7 +442,7 @@ function computeBodyPosition(body: NamedBody) {
   const yi = zp * Math.sin(inclination)
   const zi = zp * Math.cos(inclination)
   let xOut = xp
-  let yOut = yi
+  const yOut = yi
   let zOut = zi
   if (longNode !== 0) {
     const cO = Math.cos(longNode)

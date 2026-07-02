@@ -90,7 +90,7 @@ export class CollisionSystem {
    * @returns Array of overlapping entities
    */
   sphereOverlap(
-    center: THREE.Vector3,
+    center: { x: number; y: number; z: number },
     radius: number,
     ignoredEntityId?: string
   ): GameEntity[] {
@@ -144,11 +144,7 @@ export class CollisionSystem {
       y: entity.position.y + entity.velocity.y * timeStep,
       z: entity.position.z + entity.velocity.z * timeStep,
     };
-    return this.sphereOverlap(
-      new THREE.Vector3(nextPos.x, nextPos.y, nextPos.z),
-      entity.radius,
-      entity.id
-    );
+    return this.sphereOverlap(nextPos, entity.radius, entity.id);
   }
 
   /**

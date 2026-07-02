@@ -20,7 +20,7 @@ export type CelestialBody = {
   kind?: "star" | "planet" | "moon" | "dwarf"
 }
 
-export const BODIES: CelestialBody[] = [] = [
+export const BODIES: CelestialBody[] = [
   {
     name: "Mars",
     tagline: "The Red Planet · 4th from the Sun",

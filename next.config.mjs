@@ -15,10 +15,6 @@ const nextConfig = {
   // /works/oracle/index.html, which Pages serves cleanly.
   trailingSlash: true,
 
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-
   images: {
     // next/image's loader needs a server. Static export has no server, so we
     // skip optimization. All <img> usage in this app is already plain <img> tags.

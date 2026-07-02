@@ -25,6 +25,7 @@
 import { useMemo, useRef } from "react"
 import { useFrame } from "@react-three/fiber"
 import * as THREE from "three"
+import "@/components/universe-engine/three-line"
 
 // log-time of the two anchor epochs (must match timeline.ts timeSeconds).
 const T_SOLAR = Math.log10(2.9e17) // ~9.2 Gyr — the "Our Solar System" epoch
@@ -257,14 +258,14 @@ export function SolarSystemFormation({ starTex, tLogRef }: {
 
       {/* orbit rings */}
       {orbits.map((og, i) => (
-        <line
+        <threeLine
           key={`orbit-${i}`}
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           ref={(el: any) => { orbitRefs.current[i] = el }}
           geometry={og}
         >
           <lineBasicMaterial color={PLANETS[i].shade} transparent opacity={0} depthWrite={false} />
-        </line>
+        </threeLine>
       ))}
 
       {/* planets */}

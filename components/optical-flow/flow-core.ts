@@ -246,8 +246,8 @@ function trackPoint(
     const scale = 1 / (1 << l)
     const prev = prevPyr[l]
     const next = nextPyr[l]
-    let x = px * scale
-    let y = py * scale
+    const x = px * scale
+    const y = py * scale
     let vx = gx * scale
     let vy = gy * scale
 

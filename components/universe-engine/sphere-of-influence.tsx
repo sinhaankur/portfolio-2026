@@ -141,7 +141,7 @@ export function SphereOfInfluence({
   show: boolean
   invert?: boolean
 }) {
-  const planets = useMemo(buildScenePlanets, [])
+  const planets = useMemo(() => buildScenePlanets(), [])
 
   if (!show) return null
 

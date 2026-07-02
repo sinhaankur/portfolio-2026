@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import { Suspense, memo, useEffect, useMemo, useReducer, useRef, useState } from 'react';
@@ -950,7 +951,7 @@ function makeBracketGeometry(): THREE.BufferGeometry {
 function TargetingReticles({ gameState }: { gameState: GameState }) {
   const { camera } = useThree();
   const groupRef = useRef<THREE.Group>(null);
-  const bracketGeo = useMemo(makeBracketGeometry, []);
+  const bracketGeo = useMemo(() => makeBracketGeometry(), []);
   // a small pool of reusable bracket line objects + the lock ring + lead marker
   const pool = useRef<THREE.LineSegments[]>([]);
   const lockRef = useRef<THREE.Mesh>(null);
@@ -2948,7 +2949,7 @@ function GameScene({
       if (!gameState.playerEntity.metadata) {
         gameState.playerEntity.metadata = {};
       }
-      const flashes = (gameState.playerEntity.metadata.muzzleFlashes ??= [] as MuzzleFlash[]);
+      const flashes = (gameState.playerEntity.metadata.muzzleFlashes ??= []) as MuzzleFlash[];
       gameState.playerEntity.metadata.muzzleFlashes = flashes.filter((flash) => flash.endTime > gameState.simTime);
 
       fireCooldownRef.current = Math.max(0, fireCooldownRef.current - clampedDelta);
@@ -3896,13 +3897,13 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
         )}
 
         {/* Back to main site */}
-        <a
+        <Link
           href="/"
           className="pointer-events-auto fixed left-3 top-3 z-50 inline-flex items-center gap-1.5 rounded-xl border border-white/20 bg-black/55 px-3 py-2 backdrop-blur-sm font-mono text-[9px] uppercase tracking-[0.14em] text-white/75 hover:text-white hover:border-white/40 transition-colors"
         >
           <span aria-hidden="true">←</span>
           Back
-        </a>
+        </Link>
 
         {/* Gear — collapses all settings/debug controls off the flight HUD so
             the cockpit reads clean. The dense panel only appears on demand. */}

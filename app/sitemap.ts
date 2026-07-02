@@ -19,6 +19,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   const routes: { path: string; priority: number; changeFrequency: "monthly" | "weekly" }[] = [
     { path: "/",                  priority: 1.0, changeFrequency: "monthly" },
+    { path: "/lab",               priority: 0.9, changeFrequency: "weekly"  },
     { path: "/lab/unhosted",      priority: 0.9, changeFrequency: "weekly"  },
     { path: "/lab/cognitive-twin",priority: 0.8, changeFrequency: "weekly"  },
     { path: "/works/oracle",      priority: 0.8, changeFrequency: "monthly" },
@@ -27,6 +28,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/works/rage",        priority: 0.8, changeFrequency: "monthly" },
     { path: "/lab/celestial",     priority: 0.7, changeFrequency: "monthly" },
     { path: "/lab/big-bang",      priority: 0.7, changeFrequency: "monthly" },
+    { path: "/lab/usability-engine", priority: 0.7, changeFrequency: "monthly" },
+    { path: "/lab/optical-flow",  priority: 0.7, changeFrequency: "monthly" },
+    { path: "/lab/universe-assistant", priority: 0.6, changeFrequency: "monthly" },
+    { path: "/lab/helion-drift",  priority: 0.6, changeFrequency: "monthly" },
     { path: "/skills",            priority: 0.7, changeFrequency: "monthly" },
     { path: "/usability",         priority: 0.6, changeFrequency: "monthly" },
     { path: "/upcoming",          priority: 0.5, changeFrequency: "weekly"  },

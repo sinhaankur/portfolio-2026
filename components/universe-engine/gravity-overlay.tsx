@@ -25,6 +25,7 @@
 import { useRef, useMemo } from "react"
 import { useFrame } from "@react-three/fiber"
 import { Html } from "@react-three/drei"
+import type * as THREE from "three"
 import {
   AdditiveBlending,
   Color,
@@ -624,7 +625,7 @@ export function GravityOverlay({
   show: boolean
   invert?: boolean
 }) {
-  const planets = useMemo(buildScenePlanets, [])
+  const planets = useMemo(() => buildScenePlanets(), [])
 
   if (!show) return null
 

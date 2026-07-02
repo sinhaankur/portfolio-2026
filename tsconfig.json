@@ -36,6 +36,15 @@
     ".next/dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "archive",
+    "out",
+    "nomi-desktop",
+    "webos-tv",
+    "webos-tv-720p",
+    "webos-assets",
+    "Xwing",
+    "blender",
+    "interview-prep"
   ]
 }

@@ -19,6 +19,8 @@
 import { useMemo, useRef } from "react"
 import { useFrame } from "@react-three/fiber"
 import { BufferGeometry, Float32BufferAttribute, Vector3 } from "three"
+import type * as THREE from "three"
+import "./three-line"
 import {
   DEG,
   buildScenePlanets,
@@ -100,14 +102,14 @@ function PlanetTrail({
   }, [planet])
 
   return (
-    <line geometry={geometry}>
+    <threeLine geometry={geometry}>
       <lineBasicMaterial
         color={invert ? "#c95824" : TRAIL_COLOR}
         transparent
         opacity={TRAIL_OPACITY}
         depthWrite={false}
       />
-    </line>
+    </threeLine>
   )
 }
 
@@ -169,14 +171,14 @@ function NamedBodyTrail({
           : TRAIL_COLOR
 
   return (
-    <line geometry={geometry}>
+    <threeLine geometry={geometry}>
       <lineBasicMaterial
         color={invert ? "#c95824" : color}
         transparent
         opacity={TRAIL_OPACITY * 0.7}
         depthWrite={false}
       />
-    </line>
+    </threeLine>
   )
 }
 
@@ -231,7 +233,7 @@ export function TrajectoryTrails({
   show: boolean
   invert?: boolean
 }) {
-  const planets = useMemo(buildScenePlanets, [])
+  const planets = useMemo(() => buildScenePlanets(), [])
 
   if (!show) return null
 
