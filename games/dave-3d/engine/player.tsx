@@ -23,10 +23,14 @@ const DAVE_GLB = "/models/dave/dave.glb"
 useGLTF.preload(DAVE_GLB)
 
 // tuned platformer feel (crisp jump: coyote-time + jump-buffer + variable height)
-const GRAVITY = 26
+// JUMP CONTRACT: apex = JUMP_V²/(2·GRAVITY) ≈ 3.41 world units = 2.4 tiles, so a
+// 2-row climb (2.8u — every ledge step in level.ts) clears with ~0.6u of margin,
+// matching the original Dave's two-tile jump. Change these together or levels
+// become unbeatable — scripts/validate-dave-levels.ts guards the pairing.
+const GRAVITY = 30
 const MOVE_SPEED = 7.5
 const ACCEL = 60          // ground responsiveness
-const JUMP_V = 11
+const JUMP_V = 14.3
 const COYOTE = 0.1        // s after leaving ground you can still jump
 const BUFFER = 0.12       // s a jump press is remembered
 const JUMP_CUT = 0.5      // releasing jump while rising cuts velocity
@@ -328,6 +332,9 @@ export function Player({ level = LEVEL_1 }: { level?: Level }) {
           Brought to life PROCEDURALLY: run bob + lean, jump stretch, landing
           squash, idle breathing. */}
       <DaveModel />
+      {/* Soft key that travels with Dave so he reads clearly against the dark
+          room no matter where he stands (the hero must never be a silhouette). */}
+      <pointLight position={[0.6, 1.6, 2.2]} intensity={5} distance={6} decay={1.6} color="#ffe8cc" />
     </group>
   )
 }
@@ -406,8 +413,10 @@ export function DaveModel() {
     sy.current += (tSy - sy.current) * ease
     sx.current += (tSx - sx.current) * ease
     sz.current = sx.current
-    // base scale → the ~2.0-tall GLB renders ~1.0 world units, matching HEIGHT.
-    const BASE = 0.5
+    // base scale → the ~2.0-tall GLB renders ~1.2 world units (≈0.86 tiles, the
+    // original sprite's proportion). Collision HEIGHT stays 1.0 so one-tile gaps
+    // remain passable; the slight visual overshoot is imperceptible.
+    const BASE = 0.6
     g.scale.set(BASE * sx.current, BASE * sy.current, BASE * sz.current)
 
     // run bob + waddle + lean

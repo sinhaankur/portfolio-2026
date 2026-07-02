@@ -14,6 +14,7 @@
  */
 
 import { useEffect, useRef, useState } from "react"
+import { usePathname } from "next/navigation"
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
 
 const SESSION_KEY = "intro-shown-v2"
@@ -36,13 +37,21 @@ function phaseFor(p: number): string {
 
 export function Intro() {
   const prefersReducedMotion = useReducedMotion()
+  const pathname = usePathname()
   const [visible, setVisible] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [progress, setProgress] = useState(0)
   const engineReadyRef = useRef(false)
   const raf = useRef<number | null>(null)
 
+  // The cosmic-ignition intro belongs to the site entry, not the arcade: a
+  // direct hit on a /games/* page should drop straight into the game (each game
+  // has its own fade-in). We don't mark the session either, so the full intro
+  // still plays if the visitor later lands on the home experience.
+  const isGameRoute = pathname?.startsWith("/games")
+
   useEffect(() => {
+    if (isGameRoute) return
     setMounted(true)
     let already = false
     try {
@@ -102,7 +111,7 @@ export function Intro() {
       window.removeEventListener("universe-ready", onReady)
       if (raf.current) cancelAnimationFrame(raf.current)
     }
-  }, [prefersReducedMotion])
+  }, [prefersReducedMotion, isGameRoute])
 
   // Lock scroll while the curtain is up.
   useEffect(() => {

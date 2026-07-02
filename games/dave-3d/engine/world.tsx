@@ -44,10 +44,10 @@ export function World({ level = LEVEL_1, onWin }: { level?: Level; onWin?: () =>
         // key angled across the brick RELIEF so the masonry gets subtle self-
         // shadowing (depth), plus a cool fill + a warm rim for shape.
         <>
-          <ambientLight intensity={0.62} />
+          <ambientLight intensity={0.85} />
           <directionalLight
             position={[7, 12, 16]}
-            intensity={1.65}
+            intensity={2.1}
             color="#fff4e6"
             castShadow
             shadow-mapSize={[2048, 2048]}
@@ -407,14 +407,14 @@ function Gems({ level }: { level: Level }) {
         if (k === "ball") {
           return (
             <mesh key={i} position={p} material={ballMat}>
-              <sphereGeometry args={[0.4, 16, 16]} />
+              <sphereGeometry args={[0.45, 16, 16]} />
             </mesh>
           )
         }
         // diamond / ruby → the Blender faceted gem (cloned so each instance is its own node)
         const proto = k === "ruby" ? gemFor.ruby : gemFor.diamond
         return (
-          <group key={i} position={p} scale={0.95}>
+          <group key={i} position={p} scale={1.15}>
             <primitive object={proto.clone()} />
           </group>
         )
@@ -492,9 +492,10 @@ function Door({ level, onWin }: { level: Level; onWin?: () => void }) {
   })
   return (
     <group position={level.door}>
-      {/* Blender wooden door — GLB built feet-at-origin (~2.2 tall); centre it on
-          the level's door point. */}
-      <group position={[0, -1.0, 0]}>
+      {/* Blender wooden door — GLB built feet-at-origin (~2.2 tall). Its base
+          sits on the door tile's BOTTOM edge (tile centre − TILE/2 = 0.7) so the
+          door visually rests on whatever platform the map placed beneath it. */}
+      <group position={[0, -0.7, 0]}>
         <primitive object={door} />
       </group>
       {/* green "unlocked" glow + light, shown once the cup is taken */}

@@ -12,7 +12,6 @@
  */
 
 import { useCallback, useEffect, useState } from "react"
-import Link from "next/link"
 import { game, TOTAL_LEVELS } from "./state"
 import { LEVELS } from "./level"
 import { setInput } from "./controls"
@@ -91,9 +90,11 @@ export function Hud({
     <>
       {/* ── TOP-LEFT control cluster (back / pause / retry) — one row, no overlap ── */}
       <div className="pointer-events-none fixed left-3 top-[max(10px,env(safe-area-inset-top))] z-40 flex items-center gap-2 md:left-4 md:top-4">
-        <Link href="/games/Gamelist.html" className={ctrlBtn} aria-label="Back to games">
+        {/* plain <a>: Gamelist.html is a static file, not an app route — using
+            next/link makes the router prefetch a non-existent RSC payload (404). */}
+        <a href="/games/Gamelist.html" className={ctrlBtn} aria-label="Back to games">
           ← Games
-        </Link>
+        </a>
         {started && !won && (
           <button type="button" onClick={togglePause} className={ctrlBtn} aria-label={paused ? "Resume" : "Pause"}>
             {paused ? "▶ Resume" : "⏸ Pause"}
@@ -183,9 +184,9 @@ export function Hud({
               <button type="button" onClick={() => { setPaused(false); onRestartLevel() }} className="rounded-full border border-white/20 px-6 py-2.5 font-mono text-xs tracking-widest uppercase text-white/80 hover:bg-white/10 transition-colors">
                 ↺ Retry level
               </button>
-              <Link href="/games/Gamelist.html" className="rounded-full border border-white/20 px-6 py-2.5 font-mono text-xs tracking-widest uppercase text-white/80 hover:bg-white/10 transition-colors">
+              <a href="/games/Gamelist.html" className="rounded-full border border-white/20 px-6 py-2.5 font-mono text-xs tracking-widest uppercase text-white/80 hover:bg-white/10 transition-colors">
                 ← Quit to games
-              </Link>
+              </a>
             </div>
           </div>
         </div>

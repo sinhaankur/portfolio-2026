@@ -96,6 +96,11 @@ export type TileMeta = {
 export function fromTiles(rows: string[], meta: TileMeta): Level {
   const h = rows.length
   const w = Math.max(...rows.map((r) => r.length))
+  // A ragged row means a transcription typo — mistiled maps fail fast rather
+  // than shipping a room with a hole in its wall.
+  const ragged = rows.findIndex((r) => r.length !== w)
+  if (ragged !== -1)
+    throw new Error(`fromTiles(${meta.name}): row ${ragged} is ${rows[ragged].length} chars, expected ${w}`)
   const cell = (cx: number, cy: number) => rows[cy]?.[cx] ?? " "
   // world position of a tile CENTER. cy=0 is the TOP row; bottom row → y=0.
   const wx = (cx: number) => (cx - (w - 1) / 2) * TILE
@@ -179,119 +184,107 @@ export function fromTiles(rows: string[], meta: TileMeta): Level {
 }
 
 
-// ── LEVEL 1 — the authentic Dangerous Dave opening screen, transcribed tile-for-
-//    tile from the original: a red-brick room with two checkerboarded rows of
-//    floating pedestals (each topped with a cyan diamond), the gold cup on the
-//    centre pedestal, two long lower platforms, the door bottom-centre-right on a
-//    step, the iconic pipe bottom-left, a purple gem top-left and a ruby top-right.
-//    Row 0 = top. Bottom solid row is the floor. (See reference screenshot.)
-// Built from the ORIGINAL Dangerous Dave (AkhilRaja/Dave source) exact pixel
-// coords → tile grid. Bordered red-brick room; a checkerboard of 2-wide brick
-// pedestals each topped with a cyan diamond; the gold CUP on the centre pedestal;
-// a purple ball (top-left) and a ruby (top-right); two long lower platforms; the
-// door on a step bottom-centre-right; the iconic pipe bottom-left.
-// Cols 0-18 (19 wide), rows 0-12 (0=top, 12=floor).
+// ── VERTICAL RHYTHM (all levels) ──────────────────────────────────────────────
+// Dave's jump clears exactly TWO tile-rows of height (apex ≈ 2.4 tiles — see
+// player.tsx). So every climb in these maps steps up at most 2 rows at a time
+// (floor → row-2 platform → row-4 pedestal → …), exactly like the original's
+// tight vertical rhythm. Collectibles sit ONE row above a standable surface
+// (walk-by pickup) or inside a jump arc. Doors always REST on a solid row.
+// Breaking the 2-row rule makes a ledge unreachable — `pnpm dave:check`
+// (scripts/validate-dave-levels.ts) verifies every item + door on every level.
+
+// ── LEVEL 1 — the Dangerous Dave opening screen: a red-brick room, two
+//    checkerboarded rows of gem-topped pedestals, the gold cup on the centre
+//    pedestal, two long lower platforms, the door bottom-right on the floor, the
+//    iconic pipe bottom-left, a purple ball top-left and a ruby top-right.
 const L1: Level = fromTiles(
   // 0         1
   // 0123456789012345678   (every row is exactly 19 chars)
   [
     "###################", // 0  top wall
-    "#o .   .   C   . *#", // 1  ball, upper diamonds, CUP (centre), ruby
-    "#  ##  ##  ##  ## #", // 2  upper pedestals (cup sits on the col-11 one)
-    "#.   .   .   .   .#", // 3  middle + edge diamonds
-    "#    ##  ##  ##   #", // 4  middle pedestals (offset checkerboard)
-    "#                 #", // 5
-    "# .     .         #", // 6  two low diamonds
-    "#                 #", // 7
-    "#          D      #", // 8  door — rests on the right lower platform
-    "#                 #", // 9
-    "# ######   ########", // 10 two long lower platforms (gap cols 8-10)
-    "#P@               #", // 11 pipe + spawn (bottom-left)
-    "###################", // 12 floor
+    "#                 #", // 1
+    "#o .   .   C   . *#", // 2  ball, diamonds, CUP (centre), ruby
+    "#  ##  ##  ##  ## #", // 3  upper pedestals (cup sits on the col-11 one)
+    "#.   .   .   .   .#", // 4  middle gem row
+    "#   ##   ##   ##  #", // 5  middle pedestals (offset checkerboard)
+    "# .      .      . #", // 6  low gems above the long platforms
+    "# ######   ########", // 7  two long lower platforms (gap cols 8-10)
+    "#P@            D  #", // 8  pipe + spawn (left) · door on the floor (right)
+    "###################", // 9  floor
   ],
   { name: "1 — The Cavern", brick: "#b3361f" },
 )
 
-// ── LEVEL 2 — the authentic Dave L2, a WIDE scrolling screen transcribed from the
-//    three reference shots: purple (`=`) floating platforms over a fire floor with
-//    a water pool, red-brick (`#`) columns and a maze on the right, the gold cup on
-//    a brick ledge mid-right, a row of cyan diamonds, rubies + purple balls, and the
-//    door up top-right. Fire (`F`) + water (`W`) span the bottom. Spawn mid-left.
+// ── LEVEL 2 — a WIDE scrolling screen: purple (`=`) floating platforms over a
+//    fire floor with a water pool, a red-brick (`#`) structure on the right, the
+//    gold cup on a mid-right ledge, and the door on a high right ledge. The
+//    bottom walk row alternates safe floor and fire/water pits.
 const L2: Level = fromTiles(
   [
     "##########################################", // 0  top wall
-    "#*           .            #####      #####", // 1  ruby, diamond / right maze ceiling
-    "#  ==    ==          ==    #   #  D       #", // 2  upper purple platforms, door (right)
-    "#                ====      #   ####   ### #", // 3  centre-high purple ledge
-    "#   ==        .       =    #####   #     ##", // 4
-    "#        @                 #   . ####  o  #", // 5  spawn (mid-left)
-    "#   ===  ===   *     ===.  ### ###   ###  #", // 6  spawn platform + purple ledges, ruby
-    "#                =====  C  #   o   #   #  #", // 7  cup on a brick ledge (mid-right)
-    "#  ===           o     ====#####   ### ## #", // 8  purple platforms, purple ball
-    "#       . . . .           #   ###     #   #", // 9
-    "#  ====        ====   ====### . . . .##   #", // 10 lower purple platforms + diamond row
-    "#FFFFFFFFFFFFFFWWWWFFF#####FFFFFFFFFFFFFF #", // 11 fire floor + water pool + brick maze base
-    "##########################################", // 12 floor
+    "#*            .              .        D  #", // 1  ruby · diamonds · door (high right)
+    "#  ==     ==       ==     ==     ==  #####", // 2  upper purple platforms + door ledge
+    "#      .        o       .          .     #", // 3  gem row above the mid platforms
+    "#    ==      ==      ==      ##     ==   #", // 4  mid platforms (purple + brick)
+    "#  .      .       C       o        .     #", // 5  gems + CUP (centre-right ledge below)
+    "# ==    ==      ####    ==     ==     == #", // 6  low-mid ledges (cup on the brick one)
+    "#     .      .        .      *      .    #", // 7  gem row above the low platforms
+    "#  ==     ==     ==      ==     ==    == #", // 8  low purple platforms
+    "# @   .      .       .       .      .   .#", // 9  spawn + floor gems (walk row)
+    "#FFFF####WWWW####FFFF####WWWW####FFFF#####", // 10 fire/water pits between floor islands
+    "##########################################", // 11 base
   ],
   { name: "2 — The Descent", brick: "#b3361f" },
 )
 
-// ── LEVEL 3 — Pipes & Tunnels: overhead brick "pipes" with a spike pit below.
+// ── LEVEL 3 — Pipes & Tunnels: a mid-height walkway with jump-through gaps;
+//    gems tucked underneath it, pedestal ladder above, door ON the walkway.
 const L3: Level = fromTiles(
   [
     "###################", // 0
-    "# .   .   .   .   #", // 1  diamonds over the upper pedestals
-    "# ##  ##  ##  ##  #", // 2  upper pedestals
-    "#                 #", // 3
-    "#   .     C    .  #", // 4  diamonds + CUP (centre)
-    "#  ###   ###  ### #", // 5  mid pedestals (cup sits on the centre one)
-    "#                 #", // 6
-    "# @             D #", // 7  spawn (left) + door (right) on the lower walk
-    "######  ####  #####", // 8  lower walkway with gaps
-    "#       .         #", // 9  a diamond down in a gap
-    "#######  ######## #", // 10 floor ledges
-    "#      ##         #", // 11 small step
-    "###################", // 12 floor
+    "#                 #", // 1
+    "# .   .   C   .   #", // 2  gem row + CUP
+    "# ##  ##  ##  ##  #", // 3  upper pedestals
+    "#        .        #", // 4
+    "#   ##   ###   ## #", // 5  mid pedestals
+    "# .    .        D #", // 6  gems + door ON the walkway
+    "###### ##### ######", // 7  walkway with two jump-through gaps
+    "#P@  .    .       #", // 8  spawn + gems in the under-tunnel
+    "###################", // 9  floor
   ],
   { name: "3 — Pipes", brick: "#b3361f" },
 )
 
-// ── LEVEL 4 — Fire Pits: hop the islands; fire burns in the floor gaps.
+// ── LEVEL 4 — Fire Pits: fire pits punctuate the floor walk; island ladder up.
 const L4: Level = fromTiles(
   [
     "###################", // 0
     "#                 #", // 1
-    "#                 #", // 2
-    "#  .    C    .    #", // 3  diamonds + CUP
-    "#  ##   ##   ##   #", // 4  upper pedestals
-    "#     .     .     #", // 5
-    "#    ###   ###    #", // 6  mid pedestals
-    "#              .  #", // 7
-    "# ##  ##  ##  ### #", // 8  stepping stones
-    "#                 #", // 9
-    "#   ###  ###  ### #", // 10 islands over the fire
-    "# @    FF   FF  D #", // 11 spawn, fire gaps, door
-    "###################", // 12 floor
+    "#  .     C   .    #", // 2  gems + CUP
+    "#  ##    ##  ##   #", // 3  upper pedestals
+    "#     .      .    #", // 4
+    "#    ##     ##    #", // 5  mid pedestals
+    "# .            .  #", // 6
+    "# ###  ###  ####  #", // 7  islands
+    "#P@  F    F     D #", // 8  spawn · fire pits · door on the floor
+    "###################", // 9  floor
   ],
   { name: "4 — Fire Pits", brick: "#b3361f" },
 )
 
-// ── LEVEL 5 — Flooded: water in the floor gaps; thread the tight pads.
+// ── LEVEL 5 — Flooded: water pools in the floor; thin pillars thread upward.
 const L5: Level = fromTiles(
   [
     "###################", // 0
     "#                 #", // 1
-    "#  .       C   .  #", // 2  diamonds + CUP
-    "#  #   #   #   #  #", // 3  thin pillars
-    "#    .   .   .    #", // 4
-    "#    #   #   #    #", // 5  thin pads
-    "#       .         #", // 6
-    "# ##    ##    ### #", // 7  ledges
-    "#                 #", // 8
-    "#                 #", // 9
-    "#   ###  ###  ### #", // 10 islands over the water
-    "# @    WW   WW  D #", // 11 spawn, water gaps, door
-    "###################", // 12 floor
+    "#  .     C    .   #", // 2  gems + CUP
+    "#  #     ##   #   #", // 3  thin pillars
+    "#    .      .     #", // 4
+    "#   ##      ##    #", // 5  thin pads
+    "# .     .       . #", // 6
+    "# ###  ####  #### #", // 7  ledges
+    "#P@  W     W    D #", // 8  spawn · water pools · door on the floor
+    "###################", // 9  floor
   ],
   { name: "5 — Flooded", brick: "#2f6fb0" },
 )
@@ -302,77 +295,67 @@ const L6: Level = fromTiles(
   [
     "###################", // 0
     "#                 #", // 1
-    "# #C##    .  ##D# #", // 2  high cup (left) + high door (right)
-    "#                 #", // 3
-    "#                 #", // 4
-    "#       F.        #", // 5  fire to fly around
-    "#                 #", // 6
-    "#  . F      F  .  #", // 7
-    "#                 #", // 8
-    "#                 #", // 9
-    "# @ J             #", // 10 spawn + jetpack on the floor
-    "###################", // 11 floor
-    "###################", // 12
+    "# #C#    .    #D# #", // 2  high cup (left) + high door (right)
+    "# ###         ### #", // 3  ledges the cup + door rest on
+    "#     F       F   #", // 4  fire to fly around
+    "#  .            . #", // 5
+    "#      F   F      #", // 6
+    "#                 #", // 7
+    "#P@  J       .    #", // 8  spawn + jetpack on the floor
+    "###################", // 9  floor
   ],
   { name: "6 — Jetpack", brick: "#6a3da0" },
 )
 
-// ── LEVEL 7 — The Climb: a tight vertical ascent; spikes punish a missed jump.
+// ── LEVEL 7 — The Climb: a tall zig-zag ascent to the cup; spikes on the floor.
 const L7: Level = fromTiles(
   [
     "###################", // 0
-    "#         C       #", // 1  CUP at the top
-    "#       #####     #", // 2
-    "#        .        #", // 3
-    "#      ####       #", // 4
-    "#     .     .     #", // 5
-    "#    ####  ###    #", // 6
-    "#   .       .     #", // 7
-    "#  ###      ###   #", // 8
-    "#     .       .D  #", // 9  door on the right ledge
-    "#    ####    #### #", // 10
-    "# @      ^^       #", // 11 spawn + spikes in the floor gap
-    "###################", // 12 floor
+    "#        C        #", // 1  CUP at the very top
+    "#      #####      #", // 2  summit ledge
+    "#   .         .   #", // 3
+    "#  ###       ###  #", // 4
+    "#      .   .      #", // 5
+    "#     ##   ##     #", // 6
+    "# .            .  #", // 7
+    "# ###        ###  #", // 8
+    "#          D      #", // 9  door on the low ledge
+    "#P@  ^^   ####    #", // 10 spawn · spikes · door ledge
+    "###################", // 11 floor
   ],
   { name: "7 — The Climb", brick: "#b3361f" },
 )
 
-// ── LEVEL 8 — The Gauntlet: a long run mixing fire, spikes and water.
+// ── LEVEL 8 — The Gauntlet: every hazard on one floor run, pedestal ladder up.
 const L8: Level = fromTiles(
   [
     "###################", // 0
     "#                 #", // 1
-    "#                 #", // 2
-    "#  .     C    .   #", // 3  diamonds + CUP
-    "#  ##    ##   ##  #", // 4
-    "#     .     .     #", // 5
-    "#     ##    ##    #", // 6
-    "#                 #", // 7
-    "# ##   ##  ##  ## #", // 8
-    "#                 #", // 9
-    "#    ###   ###    #", // 10
-    "# @   F  ^^  WW D #", // 11 spawn, every hazard, door
-    "###################", // 12 floor
+    "#  .     C     .  #", // 2  gems + CUP
+    "#  ##    ##    ## #", // 3  upper pedestals
+    "#     .      .    #", // 4
+    "#    ##      ##   #", // 5  mid pedestals
+    "# .      .      . #", // 6
+    "# ###   ####  ### #", // 7  ledges
+    "#P@  F  ^^  W   D #", // 8  spawn · fire · spikes · water · door
+    "###################", // 9  floor
   ],
   { name: "8 — Gauntlet", brick: "#b3361f" },
 )
 
-// ── LEVEL 9 — Trap Maze: a dense branching field of pads + hazards.
+// ── LEVEL 9 — Trap Maze: a dense branching field of pads over fire + spikes.
 const L9: Level = fromTiles(
   [
     "###################", // 0
     "#                 #", // 1
-    "# .    C    .   . #", // 2  diamonds + CUP
-    "# ##   ##   ##  ###", // 3
-    "#   .    .    .   #", // 4
-    "#   ##   ##   ##  #", // 5
-    "#                 #", // 6
-    "# ##  ##   ##  ## #", // 7
-    "#                 #", // 8
-    "#                 #", // 9
-    "#   ###  ###  ### #", // 10
-    "# @   FF    ^^   D#", // 11 spawn, fire + spikes, door
-    "###################", // 12 floor
+    "# .    C    .   . #", // 2  gems + CUP
+    "# ##   ##   ## ## #", // 3  upper pads
+    "#    .    .       #", // 4
+    "#   ##   ##   ##  #", // 5  mid pads
+    "# .    .      .   #", // 6
+    "# ##  ###  ##  ## #", // 7  low pads
+    "#P@ FF   ^^     D #", // 8  spawn · fire · spikes · door
+    "###################", // 9  floor
   ],
   { name: "9 — Trap Maze", brick: "#b3361f" },
 )
@@ -382,18 +365,17 @@ const L9: Level = fromTiles(
 const L10: Level = fromTiles(
   [
     "###################", // 0
-    "#                 #", // 1
-    "#      #####      #", // 2
-    "#        C        #", // 3  CUP near the top
-    "#  ###   ###      #", // 4
-    "#   .     .       #", // 5
-    "#    ###   ###    #", // 6
-    "#     .     .     #", // 7
-    "# ###    ###  ### #", // 8
-    "#  D  .        .  #", // 9  door on the left ledge
-    "#    ###      ### #", // 10
-    "# @     F^^ F    X#", // 11 spawn, hazards, hidden warp (far right)
-    "###################", // 12 floor
+    "#  C              #", // 1  CUP at the summit (left)
+    "# ####            #", // 2  summit ledge
+    "#      .      .   #", // 3
+    "#     ###    ###  #", // 4
+    "# .          .    #", // 5
+    "# ###       ###   #", // 6
+    "#     .   .       #", // 7
+    "#    ##   ###     #", // 8
+    "#            D    #", // 9  door on the low ledge
+    "#P@ F ^^ F  #### X#", // 10 spawn · hazards · door ledge · hidden warp
+    "###################", // 11 floor
   ],
   { name: "10 — Final Ascent", brick: "#7a1f1f" },
 )
