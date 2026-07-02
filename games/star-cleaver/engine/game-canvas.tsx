@@ -931,7 +931,6 @@ const _trCamPos = new THREE.Vector3();
 const _trToEnemy = new THREE.Vector3();
 const _trLead = new THREE.Vector3();
 const RETICLE_POOL = 12;
-const ENEMY_BOLT_SPEED_REF = 95; // matches ENEMY_BOLT_SPEED for lead math symmetry
 
 // One bracket = 4 small L-shaped corners on a unit square, as line segments.
 function makeBracketGeometry(): THREE.BufferGeometry {
@@ -1018,7 +1017,6 @@ function TargetingReticles({ gameState }: { gameState: GameState }) {
         e.position.y + e.velocity.y * tof,
         e.position.z + e.velocity.z * tof,
       );
-      void ENEMY_BOLT_SPEED_REF;
       if (lead) {
         lead.visible = true;
         lead.position.copy(_trLead);

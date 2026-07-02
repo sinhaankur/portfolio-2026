@@ -12,8 +12,6 @@ import { GAMEPLAY_SHIP_RENDER_SCALE, PREVIEW_SHIP_RENDER_SCALE } from './scale-c
 // Active player ship: Blender-authored X-wing (blender/space-assets/xwing.glb).
 // Legacy Vanguard interceptor kept as a fallback reference.
 const PLAYER_SHIP_MODEL_PATH = '/models/xwing-v2.glb';
-const LEGACY_SHIP_MODEL_PATH = '/models/Test1glb.glb';
-void LEGACY_SHIP_MODEL_PATH;
 // The reference X-wing GLB was exported +Y-forward / +Z-up in Blender with
 // export_yup=true, so in three-space it already arrives nose -Z (game forward)
 // and up +Y — no basis rotation needed. (The old [π/2, π, 0] was for the
