@@ -82,6 +82,7 @@ export function World({ level = LEVEL_1, onWin }: { level?: Level; onWin?: () =>
         </>
       )}
 
+      {sideOn && <BackWall level={level} />}
       <Platforms level={level} />
       <Hazards level={level} />
       <Gems level={level} />
@@ -145,8 +146,36 @@ function DustMotes({ level }: { level: Level }) {
   )
 }
 
-// Hazards — spikes (gray cones), fire (orange glowing slab + flicker), water
-// (translucent blue slab). Purely visual; the player's collision lives in player.tsx.
+/** Back wall — a dark masonry panel closing every side-on room. Without it,
+ *  tunnels and platforms float in void; with it, under-walkway passages read
+ *  as actual tunnels and the whole screen reads as INSIDE a place. */
+function BackWall({ level }: { level: Level }) {
+  const W = level.bounds?.w ?? 26
+  const H = level.bounds?.h ?? 14
+  const mat = useMemo(() => {
+    const m = new THREE.MeshStandardMaterial({
+      map: brickTexture(level.brick ?? "#6b5a47"),
+      color: "#2a2a2e", // multiply the brick map down to a deep shadowed tone
+      roughness: 1,
+      metalness: 0,
+    })
+    if (m.map) {
+      m.map = m.map.clone()
+      m.map.needsUpdate = true
+      m.map.repeat.set(Math.max(1, Math.round(W / 1.4)), Math.max(1, Math.round(H / 1.4)))
+    }
+    return m
+  }, [level.brick, W, H])
+  return (
+    <mesh position={[0, H / 2 - 0.7, -0.72]} material={mat} receiveShadow>
+      <planeGeometry args={[W, H]} />
+    </mesh>
+  )
+}
+
+// Hazards — spikes (gray cones), fire (living flame clusters + embers), water
+// (translucent pool with a lit, rippling surface). Purely visual; the player's
+// collision lives in player.tsx.
 function Hazards({ level }: { level: Level }) {
   if (!level.hazards?.length) return null
   return (
@@ -158,54 +187,156 @@ function Hazards({ level }: { level: Level }) {
   )
 }
 
-function HazardMesh({ h }: { h: Hazard }) {
-  const ref = useRef<THREE.Mesh>(null)
-  const mat = useMemo(() => {
-    if (h.kind === "fire")
-      return new THREE.MeshStandardMaterial({ color: "#ff5a1f", emissive: "#ff7a1f", emissiveIntensity: 1.1, roughness: 0.6 })
-    if (h.kind === "water")
-      return new THREE.MeshStandardMaterial({ color: "#2b6fff", emissive: "#123a8a", emissiveIntensity: 0.3, transparent: true, opacity: 0.55, roughness: 0.2, metalness: 0.1 })
-    return new THREE.MeshStandardMaterial({ color: "#9aa0ad", roughness: 0.5, metalness: 0.4 }) // spike
-  }, [h.kind])
+/** Fire — per-tile clusters of two nested flame cones (additive) that flicker
+ *  and sway on independent phases, over a glowing coal bed, plus rising embers. */
+function FireHazard({ h }: { h: Hazard }) {
+  const cols = Math.max(1, Math.round(h.size[0] / 0.7))
+  const flames = useRef<(THREE.Group | null)[]>([])
+  const embers = useRef<THREE.Points>(null)
+  const emberSeeds = useMemo(
+    () => Array.from({ length: cols * 3 }, () => ({
+      x: (Math.random() - 0.5) * h.size[0],
+      p: Math.random() * Math.PI * 2,
+      s: 0.6 + Math.random() * 0.8,
+    })),
+    [cols, h.size],
+  )
+  const emberGeo = useMemo(() => {
+    const g = new THREE.BufferGeometry()
+    g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(emberSeeds.length * 3), 3))
+    return g
+  }, [emberSeeds])
 
-  // fire flickers; water gently undulates
   useFrame((st) => {
-    const m = ref.current
-    if (!m) return
     const t = st.clock.elapsedTime
-    if (h.kind === "fire") {
-      const f = 0.85 + Math.sin(t * 14 + m.position.x) * 0.15
-      ;(m.material as THREE.MeshStandardMaterial).emissiveIntensity = 1.1 * f
-      m.scale.y = 0.9 + Math.sin(t * 9 + m.position.x) * 0.12
-    } else if (h.kind === "water") {
-      m.position.y = h.pos[1] + Math.sin(t * 1.6 + m.position.x) * 0.05
-    }
+    flames.current.forEach((f, i) => {
+      if (!f) return
+      const w = 0.85 + Math.sin(t * 11 + i * 2.1) * 0.18 + Math.sin(t * 23 + i) * 0.07
+      f.scale.set(1 + (1 - w) * 0.5, w, 1)
+      f.rotation.z = Math.sin(t * 5 + i * 1.7) * 0.08
+    })
+    const arr = (emberGeo.attributes.position as THREE.BufferAttribute).array as Float32Array
+    emberSeeds.forEach((s, i) => {
+      const cycle = (t * 0.55 * s.s + s.p) % 1.4
+      arr[i * 3] = s.x + Math.sin(t * 2 + s.p) * 0.08
+      arr[i * 3 + 1] = h.size[1] * 0.2 + cycle * 1.1
+      arr[i * 3 + 2] = 0.2
+    })
+    ;(emberGeo.attributes.position as THREE.BufferAttribute).needsUpdate = true
   })
 
-  // spikes: render a row of cones across the slab instead of a flat box
-  if (h.kind === "spike") {
-    const cols = Math.max(1, Math.round(h.size[0] / 0.8))
-    const rows = Math.max(1, Math.round(h.size[2] / 0.8))
-    const tips: ReactElement[] = []
-    for (let cx = 0; cx < cols; cx++) {
-      for (let cz = 0; cz < rows; cz++) {
-        const x = h.pos[0] - h.size[0] / 2 + (cx + 0.5) * (h.size[0] / cols)
-        const z = h.pos[2] - h.size[2] / 2 + (cz + 0.5) * (h.size[2] / rows)
-        tips.push(
-          <mesh key={`${cx}-${cz}`} position={[x, h.pos[1] + 0.35, z]} material={mat} castShadow>
-            <coneGeometry args={[0.22, 0.7, 6]} />
-          </mesh>,
+  return (
+    <group position={h.pos}>
+      {/* glowing coal bed */}
+      <mesh position={[0, -h.size[1] * 0.32, 0]}>
+        <boxGeometry args={[h.size[0], h.size[1] * 0.36, h.size[2]]} />
+        <meshStandardMaterial color="#1c0802" emissive="#8a2205" emissiveIntensity={0.55} roughness={0.95} />
+      </mesh>
+      {/* nested flame cones per tile-column */}
+      {Array.from({ length: cols }, (_, c) => {
+        const x = -h.size[0] / 2 + (c + 0.5) * (h.size[0] / cols)
+        return (
+          <group key={c} position={[x, h.size[1] * 0.1, 0]} ref={(el) => { flames.current[c] = el }}>
+            <mesh position={[0, 0.62, 0]}>
+              <coneGeometry args={[0.42, 1.35, 8]} />
+              <meshBasicMaterial color="#ff5a10" transparent opacity={0.8} blending={THREE.AdditiveBlending} depthWrite={false} />
+            </mesh>
+            <mesh position={[0, 0.5, 0.06]}>
+              <coneGeometry args={[0.22, 0.85, 8]} />
+              <meshBasicMaterial color="#ffd23a" transparent opacity={0.95} blending={THREE.AdditiveBlending} depthWrite={false} />
+            </mesh>
+          </group>
         )
-      }
+      })}
+      <points ref={embers} geometry={emberGeo}>
+        <pointsMaterial color="#ffb04a" size={0.06} transparent opacity={0.85} blending={THREE.AdditiveBlending} depthWrite={false} sizeAttenuation />
+      </points>
+      <pointLight color="#ff7a1f" intensity={2.2} distance={4.5} position={[0, 0.6, 0.6]} />
+    </group>
+  )
+}
+
+/** Water — a deep translucent pool body with a bright, rippling surface strip
+ *  and slow-rising bubbles, so it reads as liquid instead of a blue box. */
+function WaterHazard({ h }: { h: Hazard }) {
+  const surface = useRef<THREE.Mesh>(null)
+  const bubbles = useRef<THREE.Points>(null)
+  const seeds = useMemo(
+    () => Array.from({ length: 8 }, () => ({
+      x: (Math.random() - 0.5) * h.size[0] * 0.9,
+      p: Math.random() * Math.PI * 2,
+      s: 0.5 + Math.random() * 0.6,
+    })),
+    [h.size],
+  )
+  const bubbleGeo = useMemo(() => {
+    const g = new THREE.BufferGeometry()
+    g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(seeds.length * 3), 3))
+    return g
+  }, [seeds])
+
+  useFrame((st) => {
+    const t = st.clock.elapsedTime
+    if (surface.current) {
+      surface.current.position.y = h.size[1] / 2 + Math.sin(t * 1.7 + h.pos[0]) * 0.035
+      const m = surface.current.material as THREE.MeshStandardMaterial
+      m.opacity = 0.55 + Math.sin(t * 2.3 + h.pos[0] * 2) * 0.12
     }
-    return <group>{tips}</group>
-  }
+    const arr = (bubbleGeo.attributes.position as THREE.BufferAttribute).array as Float32Array
+    seeds.forEach((s, i) => {
+      const cycle = (t * 0.35 * s.s + s.p) % 1
+      arr[i * 3] = s.x + Math.sin(t * 1.2 + s.p) * 0.06
+      arr[i * 3 + 1] = -h.size[1] / 2 + cycle * h.size[1]
+      arr[i * 3 + 2] = 0.15
+    })
+    ;(bubbleGeo.attributes.position as THREE.BufferAttribute).needsUpdate = true
+  })
 
   return (
-    <mesh ref={ref} position={h.pos} material={mat} receiveShadow>
-      <boxGeometry args={h.size} />
-    </mesh>
+    <group position={h.pos}>
+      {/* pool body */}
+      <mesh>
+        <boxGeometry args={h.size} />
+        <meshStandardMaterial color="#1a4fd6" emissive="#0a2a7a" emissiveIntensity={0.35} transparent opacity={0.6} roughness={0.15} metalness={0.1} />
+      </mesh>
+      {/* lit surface strip */}
+      <mesh ref={surface} position={[0, h.size[1] / 2, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[h.size[0] * 0.98, h.size[2] * 0.98]} />
+        <meshStandardMaterial color="#7ec2ff" emissive="#3a7ad6" emissiveIntensity={0.5} transparent opacity={0.6} roughness={0.05} depthWrite={false} />
+      </mesh>
+      <points ref={bubbles} geometry={bubbleGeo}>
+        <pointsMaterial color="#bfe4ff" size={0.045} transparent opacity={0.7} depthWrite={false} sizeAttenuation />
+      </points>
+    </group>
   )
+}
+
+function HazardMesh({ h }: { h: Hazard }) {
+  if (h.kind === "fire") return <FireHazard h={h} />
+  if (h.kind === "water") return <WaterHazard h={h} />
+  return <SpikeHazard h={h} />
+}
+
+function SpikeHazard({ h }: { h: Hazard }) {
+  const mat = useMemo(
+    () => new THREE.MeshStandardMaterial({ color: "#9aa0ad", roughness: 0.5, metalness: 0.4 }),
+    [],
+  )
+  const cols = Math.max(1, Math.round(h.size[0] / 0.8))
+  const rows = Math.max(1, Math.round(h.size[2] / 0.8))
+  const tips: ReactElement[] = []
+  for (let cx = 0; cx < cols; cx++) {
+    for (let cz = 0; cz < rows; cz++) {
+      const x = h.pos[0] - h.size[0] / 2 + (cx + 0.5) * (h.size[0] / cols)
+      const z = h.pos[2] - h.size[2] / 2 + (cz + 0.5) * (h.size[2] / rows)
+      tips.push(
+        <mesh key={`${cx}-${cz}`} position={[x, h.pos[1] + 0.35, z]} material={mat} castShadow>
+          <coneGeometry args={[0.22, 0.7, 6]} />
+        </mesh>,
+      )
+    }
+  }
+  return <group>{tips}</group>
 }
 
 // Jetpack pickup — a small glowing pack that floats + spins; vanishes once grabbed.

@@ -40,13 +40,110 @@ function hGap(a: Surface, b: Surface): number {
   return a.x1 < b.x0 ? b.x0 - a.x1 : a.x0 - b.x1
 }
 
-/** Can the player standing on `from` land on `to`? */
-function canTraverse(from: Surface, to: Surface): boolean {
+/* --------------------------------------------------------------------------
+ * REAL jump simulation — the old closed-form check ignored head-bonks and
+ * overestimated rising reach, so screens passed on paper and failed in hand.
+ * This integrates the player's actual movement (same constants as player.tsx:
+ * exponential accel toward MOVE_SPEED, gravity, head-bonk on rising, wall
+ * push-out on X) from several take-off points on `from`, and asks whether ANY
+ * arc lands on `to`. Conservative where it must guess (no step-up, no
+ * variable-height cut) — if the simulator can do it, a human can.
+ * ------------------------------------------------------------------------ */
+const RADIUS = 0.38
+const PLAYER_H = 1.0
+const ACCEL = 60
+
+function simulateJump(
+  fromX: number,
+  fromTop: number,
+  dir: 1 | -1,
+  runStart: boolean,
+  to: Surface,
+  boxes: Box[],
+  toIdx: number,
+  allSurfs: Surface[],
+): boolean {
+  const dt = 1 / 120
+  let x = fromX
+  let y = fromTop + 0.02
+  let vx = runStart ? dir * MOVE_SPEED : 0
+  let vy = JUMP_V
+  for (let step = 0; step < 400; step++) {
+    // exponential approach to full run speed (matches player.tsx)
+    const k = 1 - Math.exp(-(ACCEL / MOVE_SPEED) * dt)
+    vx += (dir * MOVE_SPEED - vx) * k
+    vy -= GRAVITY * dt
+    const prevY = y
+    y += vy * dt
+    // collisions vs every box
+    for (const b of boxes) {
+      const bx0 = b.pos[0] - b.size[0] / 2 - RADIUS
+      const bx1 = b.pos[0] + b.size[0] / 2 + RADIUS
+      const bTop = b.pos[1] + b.size[1] / 2
+      const bBottom = b.pos[1] - b.size[1] / 2
+      if (x <= bx0 || x >= bx1) continue
+      // head-bonk while rising
+      if (vy > 0 && prevY + PLAYER_H <= bBottom + 0.001 && y + PLAYER_H >= bBottom) {
+        y = bBottom - PLAYER_H - 0.02
+        vy = 0
+      }
+      // landing while falling
+      if (vy <= 0 && prevY >= bTop - 0.02 && y <= bTop + 0.02) {
+        const idx = allSurfs.findIndex(
+          (s) => Math.abs(s.top - bTop) < 0.01 && x >= s.x0 - RADIUS && x <= s.x1 + RADIUS,
+        )
+        return idx === toIdx
+      }
+    }
+    const prevX = x
+    x += vx * dt
+    for (const b of boxes) {
+      const bTop = b.pos[1] + b.size[1] / 2
+      const bBottom = b.pos[1] - b.size[1] / 2
+      if (y >= bTop || y + PLAYER_H <= bBottom) continue
+      const bx0 = b.pos[0] - b.size[0] / 2
+      const bx1 = b.pos[0] + b.size[0] / 2
+      if (x + RADIUS > bx0 && prevX + RADIUS <= bx0 + 0.001) { x = bx0 - RADIUS; vx = 0 }
+      else if (x - RADIUS < bx1 && prevX - RADIUS >= bx1 - 0.001) { x = bx1 + RADIUS; vx = 0 }
+    }
+    if (y < -6) return false
+  }
+  return false
+}
+
+/** Can the player standing on `from` reach `to`? Tries real jump arcs from
+ *  several take-off points at both edges and mid-surface, both directions,
+ *  standing and running starts. */
+function canTraverse(
+  from: Surface,
+  to: Surface,
+  fromIdx: number,
+  toIdx: number,
+  boxes: Box[],
+  allSurfs: Surface[],
+): boolean {
+  if (fromIdx === toIdx) return false
   const rise = to.top - from.top
-  if (rise > APEX - 0.4) return false // must clear the ledge with margin
-  const gap = hGap(from, to)
-  if (rise <= 0) return gap <= H_REACH // drops: generous horizontal
-  return gap <= H_REACH * 0.75 // rising jumps: less horizontal room
+  if (rise > APEX - 0.3) return false // beyond any jump, skip simulating
+  // candidate take-off x positions: every half-tile across the surface (a
+  // player can stand anywhere — edge-only sampling missed hops whose only
+  // valid take-off is beside an island, and called whole levels unbeatable)
+  const candidates: number[] = []
+  const cx0 = from.x0 + RADIUS
+  const cx1 = from.x1 - RADIUS
+  if (cx1 < cx0) candidates.push((from.x0 + from.x1) / 2)
+  else {
+    const n = Math.min(48, Math.max(2, Math.ceil((cx1 - cx0) / 0.7) + 1))
+    for (let i = 0; i < n; i++) candidates.push(cx0 + ((cx1 - cx0) * i) / (n - 1))
+  }
+  for (const takeoff of candidates) {
+    for (const dir of [1, -1] as const) {
+      for (const run of [true, false]) {
+        if (simulateJump(takeoff, from.top, dir, run, to, boxes, toIdx, allSurfs)) return true
+      }
+    }
+  }
+  return false
 }
 
 function reachableSurfaces(level: Level): Set<number> {
@@ -68,7 +165,7 @@ function reachableSurfaces(level: Level): Set<number> {
     const i = queue.pop()!
     for (let j = 0; j < surfs.length; j++) {
       if (seen.has(j)) continue
-      if (canTraverse(surfs[i], surfs[j])) { seen.add(j); queue.push(j) }
+      if (canTraverse(surfs[i], surfs[j], i, j, level.platforms, surfs)) { seen.add(j); queue.push(j) }
     }
   }
   return seen
