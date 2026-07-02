@@ -564,6 +564,11 @@ export function TimelineControl() {
 
   const { date, time } = formatSimDate(simMs)
   const isToday = Math.abs(simMs - Date.now()) < DAY_MS
+  // Honesty caveat: satellite positions propagate TODAY'S catalogue. Scrubbed
+  // into the past, craft that have since decayed aren't shown (we only have
+  // current TLEs); scrubbed far forward, atmospheric-drag decay isn't modeled.
+  // Label the limit rather than fake the data.
+  const farFromNow = Math.abs(simMs - Date.now()) > 30 * DAY_MS
 
   return (
     <div
@@ -703,6 +708,17 @@ export function TimelineControl() {
           )}
         </div>
       </div>
+
+      {/* Timeline honesty — shown when scrubbed away from the present. We
+          propagate today's catalogue: launches gate truthfully, but craft that
+          decayed before today aren't in current TLEs, and future drag decay
+          isn't modeled. Say so instead of faking it. */}
+      {farFromNow && (
+        <p className="font-mono text-[8px] tracking-[0.14em] uppercase text-foreground/40 leading-relaxed">
+          Satellites: today's catalogue, launch-gated · past decays & future
+          drag not modeled
+        </p>
+      )}
     </div>
   )
 }

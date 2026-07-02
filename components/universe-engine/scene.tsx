@@ -1487,8 +1487,8 @@ function MoonBody({
         <group position={[moon.orbitRadius, 0, 0]}>
           <SatelliteShells
             shells={[
-              { label: "Low lunar orbit (LRO …)", altRatio: 1.05, count: 40, color: "#dfe8ff", incl: 1.4, speed: 0.22 },
-              { label: "Lunar relay / frozen orbit", altRatio: 1.35, count: 14, color: "#ffd9a0", incl: 1.1, speed: 0.12 },
+              { label: "Low lunar orbit (LRO …)", launchMs: Date.UTC(2009, 5, 18), altRatio: 1.05, count: 40, color: "#dfe8ff", incl: 1.4, speed: 0.22 },
+              { label: "Lunar relay / frozen orbit", launchMs: Date.UTC(1966, 7, 10), altRatio: 1.35, count: 14, color: "#ffd9a0", incl: 1.1, speed: 0.12 },
             ]}
             bodyRadius={moon.visualRadius}
           />
@@ -2322,6 +2322,9 @@ export type SatelliteShell = {
    *  fainter specks. `altSpread` (fraction of altRatio) sets the band thickness. */
   debris?: boolean
   altSpread?: number
+  /** First-launch epoch of this constellation/band — the shell only exists on
+   *  the timeline after this instant (truth: no Starlink in 1990). */
+  launchMs?: number
 }
 
 function SatelliteShellPoints({
@@ -2334,6 +2337,7 @@ function SatelliteShellPoints({
   onHover?: HoverHandler
 }) {
   const ref = useRef<Points>(null)
+  const gateRef = useRef<Group>(null)
   const geometry = useMemo(() => {
     const r = bodyRadius * shell.altRatio
     const positions = new Float32Array(shell.count * 3)
@@ -2381,10 +2385,16 @@ function SatelliteShellPoints({
 
   useFrame((_, delta) => {
     if (ref.current) ref.current.rotation.y += delta * shell.speed
+    // Timeline truth: the band only exists after its constellation's first
+    // launch/arrival. Polled per-frame so scrubbing reveals/hides it live.
+    if (gateRef.current) {
+      gateRef.current.visible =
+        shell.launchMs == null || simTimeRef.current.simMs >= shell.launchMs
+    }
   })
 
   return (
-    <group>
+    <group ref={gateRef}>
       <points ref={ref} geometry={geometry}>
         <pointsMaterial
           // Real altitude ratios keep LEO tight to Earth, so the swarm only
@@ -2437,41 +2447,41 @@ const SATELLITE_CATALOG: Record<string, SatelliteShell[]> = {
     // truly does) — zoom into Earth to see the Starlink swarm resolve. Realism
     // over exaggeration, per the true-ratio goal.
     // --- LEO (~400–1200 km) — densest, dominated by Starlink ---
-    { label: "Starlink (LEO ~550 km)", altRatio: 1.086, count: 900, color: "#9fe0ff", incl: 1.0, speed: 0.18 },
-    { label: "OneWeb (LEO ~1200 km)", altRatio: 1.19, count: 240, color: "#a8c0ff", incl: 1.15, speed: 0.15 },
-    { label: "Iridium (LEO ~780 km)", altRatio: 1.12, count: 90, color: "#c0d8ff", incl: 1.4, speed: 0.16 },
-    { label: "Earth-observation (sun-sync polar ~700 km)", altRatio: 1.11, count: 130, color: "#bfeacb", incl: 1.55, speed: 0.16 },
-    { label: "ISS / Tiangong / Hubble (~420–540 km)", altRatio: 1.066, count: 90, color: "#ffffff", incl: 0.9, speed: 0.2 },
+    { label: "Starlink (LEO ~550 km)", launchMs: Date.UTC(2019, 4, 24), altRatio: 1.086, count: 900, color: "#9fe0ff", incl: 1.0, speed: 0.18 },
+    { label: "OneWeb (LEO ~1200 km)", launchMs: Date.UTC(2019, 1, 27), altRatio: 1.19, count: 240, color: "#a8c0ff", incl: 1.15, speed: 0.15 },
+    { label: "Iridium (LEO ~780 km)", launchMs: Date.UTC(1997, 4, 5), altRatio: 1.12, count: 90, color: "#c0d8ff", incl: 1.4, speed: 0.16 },
+    { label: "Earth-observation (sun-sync polar ~700 km)", launchMs: Date.UTC(1972, 6, 23), altRatio: 1.11, count: 130, color: "#bfeacb", incl: 1.55, speed: 0.16 },
+    { label: "ISS / Tiangong / Hubble (~420–540 km)", launchMs: Date.UTC(1990, 3, 24), altRatio: 1.066, count: 90, color: "#ffffff", incl: 0.9, speed: 0.2 },
     // --- MEO (~20,000 km) — the navigation constellations ---
-    { label: "GPS (MEO ~20,200 km)", altRatio: 4.17, count: 31, color: "#ffd27a", incl: 0.95, speed: 0.06 },
-    { label: "GLONASS (MEO ~19,100 km)", altRatio: 4.0, count: 24, color: "#ffcaa0", incl: 1.1, speed: 0.062 },
-    { label: "Galileo (MEO ~23,200 km)", altRatio: 4.7, count: 28, color: "#a0ffd0", incl: 0.98, speed: 0.055 },
-    { label: "BeiDou (MEO ~21,500 km)", altRatio: 4.3, count: 30, color: "#ffb0e0", incl: 0.95, speed: 0.058 },
+    { label: "GPS (MEO ~20,200 km)", launchMs: Date.UTC(1978, 1, 22), altRatio: 4.17, count: 31, color: "#ffd27a", incl: 0.95, speed: 0.06 },
+    { label: "GLONASS (MEO ~19,100 km)", launchMs: Date.UTC(1982, 9, 12), altRatio: 4.0, count: 24, color: "#ffcaa0", incl: 1.1, speed: 0.062 },
+    { label: "Galileo (MEO ~23,200 km)", launchMs: Date.UTC(2011, 9, 21), altRatio: 4.7, count: 28, color: "#a0ffd0", incl: 0.98, speed: 0.055 },
+    { label: "BeiDou (MEO ~21,500 km)", launchMs: Date.UTC(2000, 9, 31), altRatio: 4.3, count: 30, color: "#ffb0e0", incl: 0.95, speed: 0.058 },
     // --- GEO (~35,786 km) — the equatorial comms/weather belt ---
-    { label: "Geostationary belt (~35,786 km)", altRatio: 6.61, count: 180, color: "#ff9a6b", incl: 0.05, speed: 0.02 },
+    { label: "Geostationary belt (~35,786 km)", launchMs: Date.UTC(1963, 6, 26), altRatio: 6.61, count: 180, color: "#ff9a6b", incl: 0.05, speed: 0.02 },
     // --- Orbital DEBRIS — ~36,000 tracked objects >10 cm (most of LEO is junk):
     //     spent stages, dead satellites, collision + ASAT-test fragments. A
     //     near-spherical cloud at ALL inclinations, densest ~800–1000 km. The
     //     defining hazard of the LEO environment (cf. LeoLabs tracking). ---
-    { label: "LEO debris cloud (~600–1100 km, all inclinations)", altRatio: 1.13, count: 2600, color: "#ff7a6b", incl: 3.14, speed: 0.17, debris: true, altSpread: 0.10 },
-    { label: "Upper-LEO debris (~1200–1500 km)", altRatio: 1.22, count: 700, color: "#ffae8a", incl: 3.14, speed: 0.14, debris: true, altSpread: 0.10 },
+    { label: "LEO debris cloud (~600–1100 km, all inclinations)", launchMs: Date.UTC(1961, 5, 29), altRatio: 1.13, count: 2600, color: "#ff7a6b", incl: 3.14, speed: 0.17, debris: true, altSpread: 0.10 },
+    { label: "Upper-LEO debris (~1200–1500 km)", launchMs: Date.UTC(1961, 5, 29), altRatio: 1.22, count: 700, color: "#ffae8a", incl: 3.14, speed: 0.14, debris: true, altSpread: 0.10 },
   ],
   Mars: [
-    { label: "Mars orbiters (MRO / MAVEN / Odyssey / TGO …)", altRatio: 1.3, count: 14, color: "#ffb89a", incl: 1.1, speed: 0.12 },
+    { label: "Mars orbiters (MRO / MAVEN / Odyssey / TGO …)", launchMs: Date.UTC(1971, 10, 14), altRatio: 1.3, count: 14, color: "#ffb89a", incl: 1.1, speed: 0.12 },
   ],
   // Real (or historic) orbiters at the other planets — counts reflect reality:
   // these worlds have had only a handful of visiting spacecraft, never swarms.
   Mercury: [
-    { label: "Mercury orbit (BepiColombo · MESSENGER, hist.)", altRatio: 1.5, count: 2, color: "#cdbfae", incl: 1.0, speed: 0.1 },
+    { label: "Mercury orbit (BepiColombo · MESSENGER, hist.)", launchMs: Date.UTC(2011, 2, 18), altRatio: 1.5, count: 2, color: "#cdbfae", incl: 1.0, speed: 0.1 },
   ],
   Venus: [
-    { label: "Venus orbit (Akatsuki · Venus Express, hist.)", altRatio: 1.45, count: 2, color: "#ffe6a8", incl: 0.9, speed: 0.1 },
+    { label: "Venus orbit (Akatsuki · Venus Express, hist.)", launchMs: Date.UTC(1975, 9, 22), altRatio: 1.45, count: 2, color: "#ffe6a8", incl: 0.9, speed: 0.1 },
   ],
   Jupiter: [
-    { label: "Jupiter orbit (Juno · Galileo, hist.)", altRatio: 1.6, count: 2, color: "#ffd9b0", incl: 1.3, speed: 0.07 },
+    { label: "Jupiter orbit (Juno · Galileo, hist.)", launchMs: Date.UTC(1995, 11, 7), altRatio: 1.6, count: 2, color: "#ffd9b0", incl: 1.3, speed: 0.07 },
   ],
   Saturn: [
-    { label: "Saturn orbit (Cassini, hist. 1997–2017)", altRatio: 1.7, count: 1, color: "#ffe9c0", incl: 0.6, speed: 0.05 },
+    { label: "Saturn orbit (Cassini, hist. 1997–2017)", launchMs: Date.UTC(2004, 6, 1), altRatio: 1.7, count: 1, color: "#ffe9c0", incl: 0.6, speed: 0.05 },
   ],
 }
 
@@ -2517,17 +2527,17 @@ const HERO_CRAFT: Record<string, HeroCraft[]> = {
     { label: "JWST", model: "/models/sat-jwst.glb", altRatio: 9.0, incl: 0.2, speed: 0.04, sizeRatio: 0.2, phase: 3.5,
       agency: "🇺🇸 NASA · 🇪🇺 ESA · 🇨🇦 CSA", orbit: "Sun–Earth L2 · ~1.5M km", launched: "2021 (Ariane 5)", size: "21 × 14 m sunshield", launchMs: Date.UTC(2021, 11, 25),
       fact: "The largest space telescope ever flown — its gold mirror sees the first galaxies in infrared, shaded by a tennis-court sunshield." },
-    { label: "Sputnik 1", model: "/models/sat-sputnik.glb", altRatio: 1.12, incl: 1.1, speed: 0.24, sizeRatio: 0.09, phase: 4.4,
+    { label: "Sputnik 1", model: "/models/sat-sputnik.glb", altRatio: 1.09, incl: 1.1, speed: 0.24, sizeRatio: 0.09, phase: 4.4,
       agency: "🇷🇺 USSR", orbit: "LEO · 215–939 km · 65.1° · ~96 min", launched: "4 Oct 1957", size: "0.58 m sphere", launchMs: Date.UTC(1957, 9, 4),
       fact: "The first artificial satellite — a polished sphere with four antennas that beeped for 21 days and began the Space Age." },
     // ----- more of the space age, in launch order (reuse models by silhouette) -----
-    { label: "Explorer 1", model: "/models/sat-sputnik.glb", altRatio: 1.16, incl: 1.0, speed: 0.25, sizeRatio: 0.07, phase: 5.2,
+    { label: "Explorer 1", model: "/models/sat-sputnik.glb", altRatio: 1.23, incl: 1.0, speed: 0.25, sizeRatio: 0.07, phase: 5.2,
       agency: "🇺🇸 USA (JPL · Army)", orbit: "LEO · 358–2,550 km · 33.2°", launched: "1 Feb 1958", size: "2.0 m × 0.15 m", launchMs: Date.UTC(1958, 1, 1),
       fact: "First US satellite. Its cosmic-ray detector discovered the Van Allen radiation belts — the first major scientific find of the space age." },
-    { label: "Vostok 1", model: "/models/sat-sputnik.glb", altRatio: 1.10, incl: 0.7, speed: 0.26, sizeRatio: 0.085, phase: 2.7,
+    { label: "Vostok 1", model: "/models/sat-sputnik.glb", altRatio: 1.04, incl: 0.7, speed: 0.26, sizeRatio: 0.085, phase: 2.7,
       agency: "🇷🇺 USSR", orbit: "LEO · 169–327 km · 64.9°", launched: "12 Apr 1961", size: "2.3 m capsule", launchMs: Date.UTC(1961, 3, 12),
       fact: "Carried Yuri Gagarin — the first human in space, one orbit of Earth in 108 minutes." },
-    { label: "Telstar 1", model: "/models/sat-sputnik.glb", altRatio: 2.4, incl: 0.8, speed: 0.12, sizeRatio: 0.08, phase: 1.1,
+    { label: "Telstar 1", model: "/models/sat-sputnik.glb", altRatio: 1.54, incl: 0.8, speed: 0.12, sizeRatio: 0.08, phase: 1.1,
       agency: "🇺🇸 AT&T · NASA", orbit: "MEO · 952–5,933 km · 44.8°", launched: "10 Jul 1962", size: "0.88 m sphere", launchMs: Date.UTC(1962, 6, 10),
       fact: "Relayed the first live transatlantic television — the satellite that made global broadcast possible." },
     { label: "Landsat 1", model: "/models/sat-hubble.glb", altRatio: 1.14, incl: 1.45, speed: 0.18, sizeRatio: 0.09, phase: 3.9,
@@ -2544,7 +2554,7 @@ const HERO_CRAFT: Record<string, HeroCraft[]> = {
       fact: "The largest satellite constellation ever — thousands of flat-pack satellites delivering broadband, now the majority of all active satellites." },
   ],
   Mars: [
-    { label: "MRO", model: "/models/sat-hubble.glb", altRatio: 1.3, incl: 0.95, speed: 0.16, sizeRatio: 0.1, phase: 1.0,
+    { label: "MRO", model: "/models/sat-hubble.glb", altRatio: 1.084, incl: 0.95, speed: 0.16, sizeRatio: 0.1, phase: 1.0,
       agency: "🇺🇸 NASA", orbit: "Mars orbit · ~250–320 km", launched: "2005", size: "~6.5 m span", launchMs: Date.UTC(2005, 7, 12),
       fact: "Mars Reconnaissance Orbiter — its HiRISE camera returns the sharpest images of the Martian surface." },
   ],
