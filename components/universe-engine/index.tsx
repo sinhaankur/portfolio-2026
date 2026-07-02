@@ -36,7 +36,8 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { Canvas } from "@react-three/fiber"
 import { OrbitControls } from "@react-three/drei"
-import { TOUCH } from "three"
+import { TOUCH, Vector3 } from "three"
+import { useFrame as useDollyFrame } from "@react-three/fiber"
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib"
 import { useTheme } from "next-themes"
 import { motion } from "framer-motion"
@@ -66,6 +67,10 @@ import type { BodyInfo, HoverHandler } from "./types"
 export type UniverseEngineProps = {
   /** Enable drag-to-rotate + scroll-to-zoom. Defaults to false (passive backdrop). */
   interactive?: boolean
+  /** 0..1 page-scroll progress (a ref, read per-frame — no re-renders). When
+   *  provided and NOT in explore mode, scroll dollies the camera back through
+   *  the scene: the wembi-style scrub, but over a real sky. */
+  scrollDriveRef?: React.MutableRefObject<number>
   /** Show the bottom-right HUD cluster (music + time-warp). Defaults to true. */
   showHud?: boolean
   /** Show the music opt-in chip in the HUD cluster. Defaults to true. */
@@ -97,6 +102,7 @@ export type UniverseEngineProps = {
 
 export function UniverseEngine({
   interactive = false,
+  scrollDriveRef,
   showHud = true,
   showMusic = true,
   invert: invertProp,
@@ -352,6 +358,10 @@ export function UniverseEngine({
           showDeepDive={showDeepDive}
           solarOnly={solarOnly}
         />
+
+        {/* Scroll-scrubbed camera dolly — passive mode only. Explore mode
+            hands the camera back to OrbitControls untouched. */}
+        {scrollDriveRef && !interactive && <ScrollDolly driveRef={scrollDriveRef} />}
 
         <OrbitControls
           ref={orbitRef as React.Ref<OrbitControlsImpl>}
@@ -612,3 +622,32 @@ export type {
   ScenePlanet,
 } from "./types"
 export { constellations, planetsData, moons } from "./astronomy"
+
+/**
+ * ScrollDolly — passive-mode camera scrub. Captures the camera's resting pose
+ * on its first frame, then eases it backward along its own view axis (plus a
+ * gentle lift) as the page scrolls: the hero recedes like a title shot. Pure
+ * function of the scroll ref — releasing scroll returns the exact framing.
+ */
+function ScrollDolly({ driveRef }: { driveRef: React.MutableRefObject<number> }) {
+  const base = useRef<{ pos: Vector3; back: Vector3; up: Vector3 } | null>(null)
+  const eased = useRef(0)
+  useDollyFrame(({ camera }, delta) => {
+    if (!base.current) {
+      const back = new Vector3(0, 0, 1).applyQuaternion(camera.quaternion)
+      const up = new Vector3(0, 1, 0)
+      base.current = { pos: camera.position.clone(), back, up }
+    }
+    // critically-damped ease toward the target progress → scrub feels weighty
+    const k = 1 - Math.exp(-8 * delta)
+    eased.current += (Math.min(1, Math.max(0, driveRef.current)) - eased.current) * k
+    const p = eased.current
+    if (p < 0.0005) return // resting — leave the camera bit-identical
+    const { pos, back, up } = base.current
+    camera.position
+      .copy(pos)
+      .addScaledVector(back, p * 26)   // dolly out through the arm
+      .addScaledVector(up, p * 6)      // rise gently above the ecliptic
+  })
+  return null
+}

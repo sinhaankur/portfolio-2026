@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import dynamic from "next/dynamic"
-import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion"
+import { motion, useScroll, useTransform, useMotionValueEvent, useReducedMotion } from "framer-motion"
 import { StaticStarfield } from "./universe-engine/static-starfield"
 import { UniverseRuntimeFallback } from "./universe-engine/runtime-fallback"
 
@@ -76,6 +76,13 @@ export function Hero() {
 
   const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0])
   const scale = useTransform(scrollYProgress, [0, 0.5], [1, 0.8])
+
+  // Scroll → camera dolly. A ref (not state) so the engine reads it per-frame
+  // with zero React churn; the engine ignores it in explore mode.
+  const scrollDriveRef = useRef(0)
+  useMotionValueEvent(scrollYProgress, "change", (v) => {
+    scrollDriveRef.current = prefersReducedMotion ? 0 : v
+  })
 
   // Esc exits explore mode
   useEffect(() => {
@@ -164,7 +171,7 @@ export function Hero() {
                       : "opacity 1100ms cubic-bezier(0.16, 1, 0.3, 1), transform 1400ms cubic-bezier(0.16, 1, 0.3, 1)",
                   }}
                 >
-                  <UniverseEngine interactive={interactive} showMusic={true} minimalControls />
+                  <UniverseEngine interactive={interactive} scrollDriveRef={scrollDriveRef} showMusic={true} minimalControls />
                 </div>
               )}
             </>
