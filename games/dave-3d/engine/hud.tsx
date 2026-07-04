@@ -172,7 +172,7 @@ export function Hud({
         <div className="fixed inset-0 z-40 grid place-items-center bg-black/70 backdrop-blur-sm px-6">
           <div className="w-full max-w-md rounded-2xl border border-white/15 bg-[#12131f]/95 p-7 text-center text-white">
             <p className="font-mono text-[10px] tracking-[0.35em] uppercase text-amber-300">An original 3D platformer</p>
-            <h1 className="mt-1.5 font-display text-3xl md:text-4xl font-light italic">Deep Descent</h1>
+            <h1 className="mt-1.5 font-display text-3xl md:text-4xl font-light italic">Lantern Hollow</h1>
             <p className="mt-3 text-sm text-white/70">
               Grab the <span className="text-amber-300">🏆 relic</span>, then reach the
               <span className="text-emerald-300"> gate</span> to clear each of the {TOTAL_LEVELS} caverns.

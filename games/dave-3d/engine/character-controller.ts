@@ -2,7 +2,7 @@ import * as THREE from "three"
 
 /**
  * Fixed-timestep kinematic character controller — the deterministic motion core
- * for Deep Descent. Adapted from an original controller design to the game's
+ * for Lantern Hollow. Adapted from an original controller design to the game's
  * proven jump feel (the numbers the levels were validated against).
  *
  * Why this exists: the old player integrated movement against a variable render
