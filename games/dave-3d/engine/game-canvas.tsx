@@ -113,7 +113,12 @@ export default function GameCanvas() {
         dpr={mobile ? [1, 1.5] : [1, 2]}
         camera={{ position: [0, 6, 12], fov: 55, near: 0.1, far: 400 }}
         gl={{ antialias: true }}
-        onCreated={({ scene }) => {
+        onCreated={({ scene, gl }) => {
+          // Cinematic grade: ACES Filmic tone mapping + lifted exposure turns the
+          // flat, washed look into rich contrast with glowing highlights — the
+          // single biggest "this looks like a real game" win, no extra deps.
+          gl.toneMapping = THREE.ACESFilmicToneMapping
+          gl.toneMappingExposure = 1.25
           scene.fog = new THREE.Fog(level.bg ?? "#05060c", 70, 160)
           scene.background = new THREE.Color(level.bg ?? "#05060c")
           // reveal a beat after the first frames + textures settle, so the
