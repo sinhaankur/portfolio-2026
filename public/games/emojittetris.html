@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
-  <title>Emoji Tetris — Simple Games</title>
+  <title>Neon Blocks — Simple Games</title>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#f5f5f0">
@@ -287,7 +287,7 @@
   </header>
 
   <div class="game-container">
-    <h1>Emoji Tetris</h1>
+    <h1>Neon Blocks</h1>
 
     <div class="stats-row">
       <div class="stat"><label>Score</label><span id="score">0</span></div>
@@ -340,7 +340,7 @@
 
 <script>
 /* ================================================================
-   EMOJI TETRIS — Simple Games
+   NEON BLOCKS — Simple Games
    ----------------------------------------------------------------
    Features:
      · 7-bag random piece order (modern Tetris standard)
@@ -575,6 +575,9 @@ function placeTetromino() {
   for (let r = ROWS - 1; r >= 0; ) {
     if (playfield[r].every(cell => cell !== null)) {
       cleared++;
+      // JUICE: burst particles across the cleared row + flag a flash + shake.
+      spawnRowBurst(r);
+      tetShake = Math.min(14, tetShake + 4);
       for (let rr = r; rr > -HIDDEN_ROWS; rr--) {
         for (let c = 0; c < COLS; c++) {
           playfield[rr][c] = playfield[rr - 1] ? playfield[rr - 1][c] : null;
@@ -616,32 +619,129 @@ function placeTetromino() {
 }
 
 // ---------- Drawing ----------
+// NEON block: a glossy rounded tile with an outer glow, a lit top-left
+// highlight and a darker bottom-right for depth — reads as a lit gem instead
+// of a flat emoji square. Ghost pieces are a dashed glowing outline.
+function roundRectPath(ctx2, x, y, w, h, r) {
+  ctx2.beginPath();
+  ctx2.moveTo(x + r, y);
+  ctx2.arcTo(x + w, y, x + w, y + h, r);
+  ctx2.arcTo(x + w, y + h, x, y + h, r);
+  ctx2.arcTo(x, y + h, x, y, r);
+  ctx2.arcTo(x, y, x + w, y, r);
+  ctx2.closePath();
+}
+function shade(color, amt) {
+  // amt <0 darken, >0 lighten; color is a hex like "#rrggbb"
+  const n = parseInt(color.replace('#', ''), 16);
+  let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  const f = (v) => Math.max(0, Math.min(255, Math.round(v + amt * 255)));
+  r = f(r); g = f(g); b = f(b);
+  return `rgb(${r},${g},${b})`;
+}
 function drawBlock(c, ctx2 = ctx, gridSize = GRID, color, emoji, opts = {}) {
-  const x = c.x;
-  const y = c.y;
-  ctx2.fillStyle = opts.ghost ? 'transparent' : color;
-  if (!opts.ghost) ctx2.fillRect(x, y, gridSize, gridSize);
-  ctx2.lineWidth = opts.ghost ? 2 : 2;
-  ctx2.strokeStyle = opts.ghost ? color : '#000';
-  if (opts.ghost) ctx2.setLineDash([4, 3]);
-  ctx2.strokeRect(x + 1, y + 1, gridSize - 2, gridSize - 2);
-  if (opts.ghost) ctx2.setLineDash([]);
-  if (!opts.ghost && emoji) {
-    ctx2.font = `${gridSize * 0.65}px Arial`;
-    ctx2.textAlign = 'center';
-    ctx2.textBaseline = 'middle';
-    ctx2.fillText(emoji, x + gridSize / 2, y + gridSize / 2);
+  const x = c.x, y = c.y, g = gridSize, pad = Math.max(1, g * 0.06), r = g * 0.22;
+  if (opts.ghost) {
+    ctx2.save();
+    ctx2.setLineDash([4, 3]);
+    ctx2.lineWidth = 2;
+    ctx2.strokeStyle = color;
+    ctx2.globalAlpha = 0.6;
+    roundRectPath(ctx2, x + pad, y + pad, g - pad * 2, g - pad * 2, r);
+    ctx2.stroke();
+    ctx2.restore();
+    return;
   }
+  const hex = color.startsWith('#') ? color : '#888888';
+  ctx2.save();
+  // outer glow
+  ctx2.shadowColor = hex;
+  ctx2.shadowBlur = g * 0.35;
+  // body gradient (lit top-left → dark bottom-right)
+  const grad = ctx2.createLinearGradient(x, y, x + g, y + g);
+  grad.addColorStop(0, shade(hex, 0.22));
+  grad.addColorStop(0.5, hex);
+  grad.addColorStop(1, shade(hex, -0.22));
+  ctx2.fillStyle = grad;
+  roundRectPath(ctx2, x + pad, y + pad, g - pad * 2, g - pad * 2, r);
+  ctx2.fill();
+  ctx2.shadowBlur = 0;
+  // glossy top highlight
+  ctx2.fillStyle = 'rgba(255,255,255,0.28)';
+  roundRectPath(ctx2, x + pad * 2, y + pad * 2, g - pad * 4, (g - pad * 4) * 0.4, r * 0.7);
+  ctx2.fill();
+  // crisp rim
+  ctx2.lineWidth = 1.5;
+  ctx2.strokeStyle = shade(hex, 0.3);
+  roundRectPath(ctx2, x + pad, y + pad, g - pad * 2, g - pad * 2, r);
+  ctx2.stroke();
+  ctx2.restore();
+}
+
+// ── NEON JUICE for Tetris (original) ──
+let tetParticles = [];
+let tetShake = 0;
+function spawnRowBurst(r) {
+  const y = r * GRID + GRID / 2;
+  for (let c = 0; c < COLS; c++) {
+    const cell = playfield[r][c];
+    const hue = cell && cell.color ? colorHue(cell.color) : 190;
+    for (let k = 0; k < 3; k++) {
+      tetParticles.push({
+        x: c * GRID + GRID / 2, y,
+        vx: (Math.random() - 0.5) * 4, vy: (Math.random() - 0.9) * 4,
+        life: 1, hue, size: 2 + Math.random() * 3,
+      });
+    }
+  }
+}
+function colorHue(hex) {
+  const n = parseInt(hex.replace('#', ''), 16);
+  const r = ((n >> 16) & 255) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+  let h = 0;
+  if (d) {
+    if (mx === r) h = ((g - b) / d) % 6;
+    else if (mx === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+  }
+  return (h * 60 + 360) % 360;
+}
+function updateTetParticles() {
+  for (const p of tetParticles) { p.x += p.vx; p.y += p.vy; p.vy += 0.18; p.life -= 0.04; }
+  tetParticles = tetParticles.filter(p => p.life > 0);
+}
+function drawTetParticles() {
+  for (const p of tetParticles) {
+    ctx.globalAlpha = Math.max(0, p.life);
+    ctx.fillStyle = `hsl(${p.hue},95%,62%)`;
+    ctx.shadowColor = `hsl(${p.hue},95%,62%)`; ctx.shadowBlur = 8;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalAlpha = 1; ctx.shadowBlur = 0;
 }
 
 function drawPlayfield() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.save();
+  if (tetShake > 0.1) { ctx.translate((Math.random() - 0.5) * tetShake, (Math.random() - 0.5) * tetShake); tetShake *= 0.85; }
+  ctx.clearRect(-30, -30, canvas.width + 60, canvas.height + 60);
+  // deep neon board + glowing grid
+  const bg = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  bg.addColorStop(0, '#0a1030'); bg.addColorStop(1, '#05060f');
+  ctx.fillStyle = bg; ctx.fillRect(-30, -30, canvas.width + 60, canvas.height + 60);
+  ctx.strokeStyle = 'rgba(90,140,255,0.07)'; ctx.lineWidth = 1;
+  for (let c = 1; c < COLS; c++) { ctx.beginPath(); ctx.moveTo(c * GRID, 0); ctx.lineTo(c * GRID, canvas.height); ctx.stroke(); }
+  for (let r = 1; r < ROWS; r++) { ctx.beginPath(); ctx.moveTo(0, r * GRID); ctx.lineTo(canvas.width, r * GRID); ctx.stroke(); }
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
       const cell = playfield[r][c];
       if (cell) drawBlock({ x: c * GRID, y: r * GRID }, ctx, GRID, cell.color, cell.emoji);
     }
   }
+}
+function endPlayfieldDraw() {
+  drawTetParticles();
+  ctx.restore();
 }
 
 function drawActive() {
@@ -716,8 +816,10 @@ function loop(time) {
     lastDropTime = time;
   }
 
+  updateTetParticles();
   drawPlayfield();
   drawActive();
+  endPlayfieldDraw();
 }
 
 // ---------- Pause ----------
@@ -907,6 +1009,7 @@ nextPiece = popFromBag();
 heldPiece = null;
 initTheme();
 drawPlayfield();
+endPlayfieldDraw();
 drawNext();
 drawHold();
 updateHud();
