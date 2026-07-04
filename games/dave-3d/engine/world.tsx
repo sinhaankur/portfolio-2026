@@ -36,32 +36,51 @@ function useClonedGlb(url: string): THREE.Group {
   }, [scene])
 }
 
+/** Per-theme scene lighting — ties each level's mood to its atmosphere theme,
+ *  so a fire cavern glows warm, ice reads cold, void goes purple, etc. */
+const THEME_LIGHT: Record<string, { ambient: string; key: string; fill: string; rim: string }> = {
+  cavern:  { ambient: "#8a7ab0", key: "#fff4e6", fill: "#9fb8ff", rim: "#c8a0ff" },
+  fire:    { ambient: "#b06a40", key: "#ffd9a0", fill: "#ff9a5a", rim: "#ff5a2a" },
+  flooded: { ambient: "#5a90c0", key: "#dff0ff", fill: "#5fb8ff", rim: "#2a9fd0" },
+  machine: { ambient: "#9a9070", key: "#fff0d0", fill: "#d0c080", rim: "#c0a030" },
+  ice:     { ambient: "#7fb0d0", key: "#eaf8ff", fill: "#9fd8ff", rim: "#7fd0ff" },
+  void:    { ambient: "#8a60c0", key: "#f0e0ff", fill: "#b070ff", rim: "#a040ff" },
+}
+
 export function World({ level = LEVEL_1, onWin }: { level?: Level; onWin?: () => void }) {
   const sideOn = level.style === "side"
   return (
     <>
       {sideOn ? (
-        // SIDE-ON: bright + readable like the original, but with a shadow-casting
-        // key angled across the brick RELIEF so the masonry gets subtle self-
-        // shadowing (depth), plus a cool fill + a warm rim for shape.
+        // SIDE-ON: bright + readable, with a shadow-casting key across the brick
+        // relief for depth, plus a per-THEME ambient + rim so each cavern reads
+        // with its own mood (warm fire, cold ice, purple void, …) instead of
+        // every level sharing one neutral light.
         <>
-          <ambientLight intensity={0.85} />
-          <directionalLight
-            position={[7, 12, 16]}
-            intensity={2.1}
-            color="#fff4e6"
-            castShadow
-            shadow-mapSize={[2048, 2048]}
-            shadow-bias={-0.0004}
-            shadow-camera-left={-40}
-            shadow-camera-right={40}
-            shadow-camera-top={28}
-            shadow-camera-bottom={-12}
-            shadow-camera-near={1}
-            shadow-camera-far={80}
-          />
-          <directionalLight position={[-10, 5, 12]} intensity={0.45} color="#9fb8ff" />
-          <directionalLight position={[0, 3, -8]} intensity={0.35} color="#ffcaa0" />
+          {(() => {
+            const t = THEME_LIGHT[level.theme ?? "cavern"]
+            return (
+              <>
+                <ambientLight intensity={0.7} color={t.ambient} />
+                <directionalLight
+                  position={[7, 12, 16]}
+                  intensity={2.0}
+                  color={t.key}
+                  castShadow
+                  shadow-mapSize={[2048, 2048]}
+                  shadow-bias={-0.0004}
+                  shadow-camera-left={-40}
+                  shadow-camera-right={40}
+                  shadow-camera-top={28}
+                  shadow-camera-bottom={-12}
+                  shadow-camera-near={1}
+                  shadow-camera-far={80}
+                />
+                <directionalLight position={[-10, 5, 12]} intensity={0.5} color={t.fill} />
+                <directionalLight position={[0, 3, -8]} intensity={0.4} color={t.rim} />
+              </>
+            )
+          })()}
         </>
       ) : (
         <>
