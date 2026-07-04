@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
-  <title>Emoji Snake — Simple Games</title>
+  <title>Neon Snake — Simple Games</title>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#f5f5f0">
@@ -66,9 +66,11 @@
     }
     canvas#game {
       width: min(100%, 480px); height: auto; aspect-ratio: 1 / 1;
-      background: hsl(var(--card)); border: 3px solid hsl(var(--border));
-      box-shadow: var(--shadow); touch-action: none; image-rendering: pixelated;
-      display: block;
+      /* the neon board is drawn dark in-canvas; keep a dark frame + glow so it
+         reads as an arcade screen in either theme. */
+      background: #060815; border: 3px solid hsl(var(--border));
+      box-shadow: var(--shadow), 0 0 30px rgba(60,255,192,0.15);
+      touch-action: none; display: block;
     }
     .game-container .retro-btn { width: 100%; }
     .controls {
@@ -117,7 +119,7 @@
   </header>
 
   <div class="game-container">
-    <h1>Emoji Snake</h1>
+    <h1>Neon Snake</h1>
     <div class="stats-row">
       <div class="stat"><label>Score</label><span id="score">0</span></div>
       <div class="stat"><label>Length</label><span id="lengthEl">3</span></div>
@@ -149,7 +151,7 @@
 
 <script>
 /* ================================================================
-   EMOJI SNAKE — Simple Games
+   NEON SNAKE — Simple Games
    ----------------------------------------------------------------
    20x20 grid. Snake starts at length 3 in the middle, food spawns
    at a random empty cell. Eat food → +1 length, +10 × level points.
@@ -230,29 +232,123 @@ function updateHud() {
   highEl.textContent = highScore;
 }
 
+/* ── NEON JUICE ── original particle + shake systems for the arcade glow-up ── */
+let particles = [];
+let shake = 0;               // screen-shake magnitude, decays each frame
+let renderTime = 0;          // for pulsing / animated effects
+let prevSnake = [];          // last step's positions, for smooth interpolation
+let stepProgress = 1;        // 0→1 between logic steps (visual interpolation)
+
+function spawnBurst(cx, cy, hue, n) {
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const sp = 1.5 + Math.random() * 3.5;
+    particles.push({
+      x: cx, y: cy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+      life: 1, hue: hue + (Math.random() * 40 - 20), size: 2 + Math.random() * 3,
+    });
+  }
+}
+
+function updateParticles(dt) {
+  for (const p of particles) {
+    p.x += p.vx; p.y += p.vy; p.vy += 0.12; p.vx *= 0.94; p.vy *= 0.94;
+    p.life -= dt * 1.8;
+  }
+  particles = particles.filter(p => p.life > 0);
+}
+
+// Snake body colour = a neon gradient that shifts along its length.
+function segColor(i, n, alpha) {
+  const hue = (150 + i / Math.max(1, n) * 90) % 360; // green→cyan→blue along body
+  return `hsla(${hue}, 90%, ${60 - i / n * 10}%, ${alpha})`;
+}
+
 function draw() {
   const px = cellPx();
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const W = canvas.width, H = canvas.height;
+  ctx.save();
 
-  // Faint grid for retro feel
-  ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+  // screen shake
+  if (shake > 0.1) {
+    ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
+    shake *= 0.85;
+  }
+
+  // deep arcade board with a subtle vignette
+  const bg = ctx.createRadialGradient(W / 2, H / 2, H * 0.1, W / 2, H / 2, H * 0.75);
+  bg.addColorStop(0, '#0d1330');
+  bg.addColorStop(1, '#050615');
+  ctx.fillStyle = bg;
+  ctx.fillRect(-40, -40, W + 80, H + 80);
+
+  // glowing grid lines
+  ctx.strokeStyle = 'rgba(90,140,255,0.08)';
   ctx.lineWidth = 1;
   for (let i = 1; i < COLS; i++) {
-    ctx.beginPath(); ctx.moveTo(i * px, 0); ctx.lineTo(i * px, canvas.height); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(0, i * px); ctx.lineTo(canvas.width, i * px); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(i * px, 0); ctx.lineTo(i * px, H); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, i * px); ctx.lineTo(W, i * px); ctx.stroke();
   }
 
+  // ── food: a pulsing glowing orb ──
   if (food) {
-    ctx.font = `${px * 0.85}px Arial`;
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(foodEmoji, food.x * px + px / 2, food.y * px + px / 2);
+    const fx = food.x * px + px / 2, fy = food.y * px + px / 2;
+    const pulse = 0.5 + Math.sin(renderTime * 6) * 0.5;
+    ctx.save();
+    ctx.shadowColor = '#ff5a8a'; ctx.shadowBlur = 18 + pulse * 14;
+    const grad = ctx.createRadialGradient(fx, fy, 1, fx, fy, px * 0.5);
+    grad.addColorStop(0, '#ffd0e0'); grad.addColorStop(0.5, '#ff5a8a'); grad.addColorStop(1, '#c01858');
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.arc(fx, fy, px * (0.32 + pulse * 0.06), 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
   }
 
-  snake.forEach((seg, i) => {
-    ctx.font = `${px * 0.85}px Arial`;
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(i === 0 ? SNAKE_HEAD : SNAKE_BODY, seg.x * px + px / 2, seg.y * px + px / 2);
+  // ── snake: glowing rounded body with interpolated motion + head eyes ──
+  const n = snake.length;
+  const t = stepProgress;
+  const lerp = (a, b) => a + (b - a) * t;
+  ctx.save();
+  ctx.shadowColor = '#3affc0'; ctx.shadowBlur = 12;
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  // draw as a thick connected path for a smooth ribbon body
+  const pts = snake.map((seg, i) => {
+    const prev = prevSnake[i] || seg;
+    return {
+      x: lerp(prev.x, seg.x) * px + px / 2,
+      y: lerp(prev.y, seg.y) * px + px / 2,
+    };
   });
+  if (pts.length > 1) {
+    for (let i = pts.length - 1; i > 0; i--) {
+      ctx.strokeStyle = segColor(i, n, 0.95);
+      ctx.lineWidth = px * (0.82 - i / n * 0.18);
+      ctx.beginPath(); ctx.moveTo(pts[i].x, pts[i].y); ctx.lineTo(pts[i - 1].x, pts[i - 1].y); ctx.stroke();
+    }
+  }
+  // head cap + eyes
+  const head = pts[0];
+  ctx.fillStyle = segColor(0, n, 1);
+  ctx.beginPath(); ctx.arc(head.x, head.y, px * 0.42, 0, Math.PI * 2); ctx.fill();
+  ctx.shadowBlur = 0;
+  const ex = dir.x * px * 0.14, ey = dir.y * px * 0.14;
+  const perpX = -dir.y * px * 0.16, perpY = dir.x * px * 0.16;
+  ctx.fillStyle = '#04121a';
+  for (const s of [1, -1]) {
+    ctx.beginPath();
+    ctx.arc(head.x + ex + perpX * s, head.y + ey + perpY * s, px * 0.08, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // ── particles ──
+  for (const p of particles) {
+    ctx.globalAlpha = Math.max(0, p.life);
+    ctx.fillStyle = `hsl(${p.hue}, 95%, 62%)`;
+    ctx.shadowColor = `hsl(${p.hue}, 95%, 62%)`; ctx.shadowBlur = 8;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+  ctx.restore();
 }
 
 function step() {
@@ -276,6 +372,11 @@ function step() {
     score += 10 * level;
     // Speed increases gently: 4 ms faster per food eaten, floor at 55 ms.
     stepInterval = Math.max(55, stepInterval - 4);
+    // JUICE: burst of pink particles at the food, a little shake, chime.
+    const px = cellPx();
+    spawnBurst(food.x * px + px / 2, food.y * px + px / 2, 330, 18);
+    shake = Math.min(10, shake + 5);
+    beep(660 + Math.min(score, 600), 0.06, 'square', 0.05);
     placeFood();
     updateHud();
   } else {
@@ -283,10 +384,40 @@ function step() {
   }
 }
 
+/* Tiny WebAudio blip so eating + dying have feedback (no asset files). */
+let audioCtx = null;
+function beep(freq, dur, type, vol) {
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = type || 'sine'; o.frequency.value = freq;
+    g.gain.value = vol || 0.05;
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start();
+    g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + (dur || 0.08));
+    o.stop(audioCtx.currentTime + (dur || 0.08));
+  } catch (e) { /* audio optional */ }
+}
+
 function finishGame(reason) {
   running = false;
   gameOver = true;
+  // JUICE: death burst at the head + a hard shake + a descending tone.
+  if (snake.length) {
+    const px = cellPx();
+    spawnBurst(snake[0].x * px + px / 2, snake[0].y * px + px / 2, 10, 30);
+    shake = 16;
+    beep(200, 0.25, 'sawtooth', 0.08);
+    setTimeout(() => beep(120, 0.3, 'sawtooth', 0.06), 90);
+  }
   cancelAnimationFrame(rAF);
+  // keep animating the death particles + shake for a moment before stopping
+  const deathStart = performance.now();
+  const deathAnim = (t) => {
+    updateParticles(1 / 60); draw();
+    if (t - deathStart < 800) requestAnimationFrame(deathAnim);
+  };
+  requestAnimationFrame(deathAnim);
   rAF = null;
   if (score > highScore) {
     highScore = score;
@@ -305,10 +436,18 @@ function finishGame(reason) {
 
 function loop(time) {
   rAF = requestAnimationFrame(loop);
-  if (!running) return;
-  if (time - lastStepTime < stepInterval) return;
-  lastStepTime = time;
-  step();
+  renderTime = time / 1000;
+  // continuous visual updates (particles + interpolation) even between steps
+  if (running) {
+    stepProgress = Math.min(1, (time - lastStepTime) / stepInterval);
+    if (time - lastStepTime >= stepInterval) {
+      lastStepTime = time;
+      prevSnake = snake.map(s => ({ x: s.x, y: s.y }));
+      step();
+      stepProgress = 0;
+    }
+  }
+  updateParticles(1 / 60);
   draw();
 }
 
@@ -322,6 +461,10 @@ function startGame() {
   queuedDir = null;
   score = 0;
   stepInterval = 140;
+  particles = [];
+  shake = 0;
+  prevSnake = snake.map(s => ({ x: s.x, y: s.y }));
+  stepProgress = 1;
   placeFood();
   updateHud();
   running = true;
