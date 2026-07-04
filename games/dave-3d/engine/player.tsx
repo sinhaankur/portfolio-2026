@@ -80,11 +80,6 @@ export function Player({ level = LEVEL_1 }: { level?: Level }) {
   const coyote = useRef(0)
   const buffer = useRef(0)
   const yaw = useRef(0)
-  // Fixed-timestep accumulator — physics runs in identical 1/120s slices so the
-  // sim is the same at 60Hz, 144Hz, or any refresh (no more "a jump I can clear
-  // on one machine I can't on another"). Rendering interpolates between ticks.
-  const accum = useRef(0)
-  const prevPos = useRef(new THREE.Vector3(...level.spawn))
 
   // reset to spawn when the level/restart changes
   useEffect(() => {
@@ -98,25 +93,8 @@ export function Player({ level = LEVEL_1 }: { level?: Level }) {
     // Freeze physics + input while not actively running (start screen / paused) or
     // when the level is cleared / won.
     if (!game.running || game.phase !== "playing") { tickInput(); return }
-    // Substep the frame into fixed ~1/120s slices so the simulation behaves the
-    // SAME at 60Hz, 144Hz, or any refresh (a jump you can clear on one machine
-    // you can clear on all). Big frames (tab refocus) are capped to avoid a
-    // physics spiral. The whole physics body below runs per-substep via `dt`.
-    const FIXED = 1 / 120
-    accum.current = Math.min(accum.current + dtRaw, 1 / 6)
-    // Fast path: if less than one substep accumulated, still tick input + hold.
-    let ran = false
-    while (accum.current >= FIXED) {
-      accum.current -= FIXED
-      ran = true
-      runStep(FIXED, state.clock.elapsedTime)
-    }
-    if (!ran) { tickInput(); return }
-    tickInput()
-    return
-
-    // ── the per-substep physics + facing, closed over the refs above ──
-    function runStep(dt: number, now: number) {
+    const dt = Math.min(dtRaw, 1 / 30) // clamp big frames so physics stays stable
+    const now = state.clock.elapsedTime
     const p = pos.current
     const v = vel.current
 
@@ -350,7 +328,8 @@ export function Player({ level = LEVEL_1 }: { level?: Level }) {
     }
     game.playerPos.copy(p)
     game.playerYaw = yaw.current
-    } // end runStep
+
+    tickInput()
   })
 
   return (
