@@ -334,14 +334,40 @@ export function Player({ level = LEVEL_1 }: { level?: Level }) {
 
   return (
     <group ref={ref}>
-      {/* Original, built-in-code chunky platformer hero (no external model).
-          Brought to life PROCEDURALLY: run bob + lean, jump stretch, landing
-          squash, idle breathing. */}
+      {/* Original chunky explorer hero (Blender GLB), animated procedurally:
+          run bob + lean, jump stretch, landing squash, idle breathing. */}
       <DaveModel />
       {/* Soft key that travels with Dave so he reads clearly against the dark
           room no matter where he stands (the hero must never be a silhouette). */}
       <pointLight position={[0.6, 1.6, 2.2]} intensity={5} distance={6} decay={1.6} color="#ffe8cc" />
+      {/* The LANTERN — a warm amber glow at the shoulder lamp that flickers
+          gently, so the hero literally lights the hollow as he moves. The game's
+          namesake, made real. */}
+      <LanternLight />
     </group>
+  )
+}
+
+/** The hero's shoulder lantern as a living warm light — a soft flicker over a
+ *  steady base, casting an amber pool that travels with the player through the
+ *  dark caverns. */
+function LanternLight() {
+  const ref = useRef<THREE.PointLight>(null)
+  useFrame((st) => {
+    if (!ref.current) return
+    const t = st.clock.elapsedTime
+    // steady base + two out-of-phase flickers → an organic lamp wobble
+    ref.current.intensity = 3.4 + Math.sin(t * 9) * 0.35 + Math.sin(t * 23 + 1.3) * 0.18
+  })
+  return (
+    <pointLight
+      ref={ref}
+      position={[0.42, 1.34, 0.5]}   // at the shoulder-lamp lens
+      color="#ffcf80"
+      intensity={3.4}
+      distance={7.5}
+      decay={1.4}
+    />
   )
 }
 
