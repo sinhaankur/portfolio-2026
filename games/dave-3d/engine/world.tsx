@@ -12,7 +12,7 @@ import { useFrame } from "@react-three/fiber"
 import { useGLTF } from "@react-three/drei"
 import { SkeletonUtils } from "three-stdlib"
 import * as THREE from "three"
-import { LEVEL_1, type Level, type Hazard, type GemKind } from "./level"
+import { LEVEL_1, TILE, type Level, type Hazard, type GemKind } from "./level"
 import { Atmosphere } from "./atmosphere"
 import { game } from "./state"
 
@@ -185,9 +185,52 @@ function Hazards({ level }: { level: Level }) {
   if (!level.hazards?.length) return null
   return (
     <group>
+      {/* Recessed pits behind fire/water so they sit IN a hole in the floor,
+          not on top of intact brick (spikes stay surface-mounted). */}
+      {level.hazards.map((h, i) =>
+        h.kind === "fire" || h.kind === "water" ? <HazardPit key={`pit-${i}`} h={h} brick={level.brick} /> : null,
+      )}
       {level.hazards.map((h, i) => (
         <HazardMesh key={i} h={h} />
       ))}
+    </group>
+  )
+}
+
+/** A sunken cavity that carves fire/water DOWN into the floor: a dark recessed
+ *  back + inner side walls + a front lip, so the hazard reads as a pit you can
+ *  fall into rather than a glowing box resting on the ground. Purely visual. */
+function HazardPit({ h, brick }: { h: Hazard; brick?: string }) {
+  const [px, py, pz] = h.pos
+  const [sx, sy] = h.size
+  const depth = TILE * 1.15               // how deep the hole goes
+  const wall = 0.18                       // inner wall thickness
+  const wallMat = useMemo(
+    () => new THREE.MeshStandardMaterial({ color: brick ?? "#6a3020", roughness: 1, metalness: 0 }),
+    [brick],
+  )
+  const darkMat = useMemo(
+    () => new THREE.MeshStandardMaterial({ color: "#050203", roughness: 1 }),
+    [],
+  )
+  const cy = py - depth / 2 + sy / 2      // centre the recess below the hazard
+  return (
+    <group position={[px, cy, pz]}>
+      {/* dark cavity back wall */}
+      <mesh position={[0, 0, -TILE * 0.45]} material={darkMat}>
+        <boxGeometry args={[sx + wall * 2, depth, 0.2]} />
+      </mesh>
+      {/* left / right inner walls */}
+      <mesh position={[-sx / 2 - wall / 2, 0, 0]} material={wallMat} castShadow>
+        <boxGeometry args={[wall, depth, TILE]} />
+      </mesh>
+      <mesh position={[sx / 2 + wall / 2, 0, 0]} material={wallMat} castShadow>
+        <boxGeometry args={[wall, depth, TILE]} />
+      </mesh>
+      {/* pit floor at the bottom */}
+      <mesh position={[0, -depth / 2 + 0.05, 0]} material={darkMat}>
+        <boxGeometry args={[sx, 0.1, TILE]} />
+      </mesh>
     </group>
   )
 }
