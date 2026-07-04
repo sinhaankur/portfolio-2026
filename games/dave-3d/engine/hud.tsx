@@ -11,7 +11,7 @@
  * Polls `game` on an interval so the hot render loop stays React-free.
  */
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { game, TOTAL_LEVELS } from "./state"
 import { LEVELS } from "./level"
 import { setInput } from "./controls"
@@ -38,6 +38,9 @@ export function Hud({
   const [paused, setPaused] = useState(false)
   // Level-intro card: a brief "LEVEL N — Name" flash on entering each level.
   const [introFor, setIntroFor] = useState<number | null>(null)
+  // "All gems" completionist reward — a one-shot flash the moment the last gem
+  // on a level is collected.
+  const [perfectFlash, setPerfectFlash] = useState(false)
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -56,6 +59,20 @@ export function Hud({
   const won = phase === "won"
   const cleared = phase === "levelClear"
   const levelName = LEVELS[levelIndex]?.name ?? ""
+  const allGems = total > 0 && gems >= total
+
+  // Fire the "perfect" flash exactly when the last gem is collected (not on
+  // level reset where gems drops back to 0).
+  const prevAll = useRef(false)
+  useEffect(() => {
+    if (allGems && !prevAll.current && started && !cleared) {
+      setPerfectFlash(true)
+      const t = setTimeout(() => setPerfectFlash(false), 2200)
+      prevAll.current = true
+      return () => clearTimeout(t)
+    }
+    if (!allGems) prevAll.current = false
+  }, [allGems, started, cleared])
 
   // The game runs only when started, not paused, and actually mid-level.
   useEffect(() => {
@@ -120,10 +137,22 @@ export function Hud({
       {/* ── TOP-RIGHT status pills ── */}
       <div className="pointer-events-none fixed right-3 top-[max(10px,env(safe-area-inset-top))] z-30 flex items-center gap-1.5 font-mono text-[11px] tracking-wider uppercase text-white/90 md:right-4 md:top-4">
         <span className={pill}>Lvl {levelIndex + 1}/{TOTAL_LEVELS}</span>
-        <span className={pill}>💎 {gems}/{total}</span>
+        {/* the gem pill glows gold once every gem on the level is collected */}
+        <span className={pill + (allGems ? " !bg-amber-400/25 text-amber-200 ring-1 ring-amber-300/50" : "")}>
+          💎 {gems}/{total}{allGems && total > 0 ? " ✦" : ""}
+        </span>
         <span className={pill}>{trophy ? "🏆" : "·"}</span>
         <span className={pill}>💀 {deaths}</span>
       </div>
+
+      {/* ── ALL GEMS "PERFECT" flash — a brief reward for completionists ── */}
+      {perfectFlash && !paused && !won && (
+        <div className="pointer-events-none fixed inset-x-0 top-24 z-30 flex justify-center">
+          <div className="dave-intro rounded-full bg-amber-400/20 px-5 py-2 ring-1 ring-amber-300/50">
+            <span className="font-mono text-[12px] tracking-[0.3em] uppercase text-amber-200">✦ All gems — perfect ✦</span>
+          </div>
+        </div>
+      )}
 
       {/* ── objective + level name, centred BELOW the button rows so they never
             collide with the corners ── */}
