@@ -22,7 +22,11 @@ const GRAVITY = 30
 const APEX = (JUMP_V * JUMP_V) / (2 * GRAVITY) // ≈ 3.41
 const MOVE_SPEED = 7.5
 const AIR_TIME = (2 * JUMP_V) / GRAVITY // full up+down at same height
-const H_REACH = MOVE_SPEED * AIR_TIME * 0.9 // horizontal air travel, 10% safety
+// Comfortable horizontal reach: 25% safety, not 10%. A jump that needs 90% of
+// the theoretical max PASSES validation but feels near-impossible in hand —
+// which read as "levels not completable". This requires every gap to be
+// clearable with margin to spare, so levels are actually fun to finish.
+const H_REACH = MOVE_SPEED * AIR_TIME * 0.75
 const PICKUP = 1.6 // item pickup radius used by trophy/gems (slightly generous)
 
 type Surface = { top: number; x0: number; x1: number }
