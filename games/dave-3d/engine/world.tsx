@@ -459,32 +459,63 @@ function WarpPad({ level }: { level: Level }) {
 // A small procedural brick texture (canvas) so platforms read as Dave's brick
 // masonry instead of flat boxes. Tinted per-level via `color`. Cached by color.
 const brickTexCache = new Map<string, THREE.CanvasTexture>()
+// Deterministic per-color noise so a brick wall's pixel pattern is stable.
+function seeded(seed: number) {
+  let s = seed >>> 0
+  return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296 }
+}
 function brickTexture(color: string): THREE.CanvasTexture {
   const hit = brickTexCache.get(color)
   if (hit) return hit
-  const S = 128
+  // PIXEL-ART brick: paint on a small P×P grid so every cell is a chunky pixel,
+  // then let nearest-neighbour filtering keep the crisp retro edges. Per-brick
+  // tone variation + a lit top/left highlight and dark bottom/right shadow give
+  // the masonry real pixel depth; a few cracks + speckles add grit.
+  const P = 32                 // logical pixel grid (chunky)
   const c = document.createElement("canvas")
-  c.width = c.height = S
+  c.width = c.height = P
   const ctx = c.getContext("2d")!
-  // base mortar (dark)
-  ctx.fillStyle = "#1a0d08"
-  ctx.fillRect(0, 0, S, S)
-  // brick rows, offset every other row, with subtle per-brick shading
-  const rows = 4, bh = S / rows, bw = S / 2
   const base = new THREE.Color(color)
+  const rng = seeded(base.getHex() || 1)
+  const px = (x: number, y: number, col: THREE.Color, a = 1) => {
+    ctx.fillStyle = `rgba(${col.r * 255 | 0},${col.g * 255 | 0},${col.b * 255 | 0},${a})`
+    ctx.fillRect(x, y, 1, 1)
+  }
+  // mortar background
+  const mortar = base.clone().multiplyScalar(0.28)
+  ctx.fillStyle = `rgb(${mortar.r * 255 | 0},${mortar.g * 255 | 0},${mortar.b * 255 | 0})`
+  ctx.fillRect(0, 0, P, P)
+  const rows = 4, bh = P / rows, bw = P / 2, mortarGap = 1
   for (let r = 0; r < rows; r++) {
-    const offset = r % 2 === 0 ? 0 : -bw / 2
-    for (let x = -1; x < 3; x++) {
-      const bx = x * bw + offset + 3
-      const by = r * bh + 3
-      const shade = 0.82 + Math.random() * 0.3
-      const col = base.clone().multiplyScalar(shade)
-      ctx.fillStyle = `rgb(${col.r * 255 | 0},${col.g * 255 | 0},${col.b * 255 | 0})`
-      ctx.fillRect(bx, by, bw - 5, bh - 5)
+    const off = r % 2 === 0 ? 0 : -bw / 2
+    for (let bx = -1; bx < 3; bx++) {
+      const x0 = Math.round(bx * bw + off) + mortarGap
+      const y0 = Math.round(r * bh) + mortarGap
+      const w = bw - mortarGap, h = bh - mortarGap
+      const tone = 0.78 + rng() * 0.34
+      const body = base.clone().multiplyScalar(tone)
+      const hi = body.clone().lerp(new THREE.Color("#ffffff"), 0.22)
+      const lo = body.clone().multiplyScalar(0.6)
+      for (let yy = 0; yy < h; yy++) for (let xx = 0; xx < w; xx++) {
+        const gx = x0 + xx, gy = y0 + yy
+        if (gx < 0 || gx >= P || gy < 0 || gy >= P) continue
+        let col = body
+        if (yy === 0 || xx === 0) col = hi                 // lit top/left edge
+        else if (yy === h - 1 || xx === w - 1) col = lo     // shadow bottom/right
+        else if (rng() < 0.08) col = body.clone().multiplyScalar(0.85) // speckle
+        px(gx, gy, col)
+      }
+      // an occasional crack pixel through the brick face
+      if (rng() < 0.35) {
+        const cx = x0 + 1 + Math.floor(rng() * (w - 2))
+        px(cx, y0 + 1 + Math.floor(rng() * (h - 2)), lo.clone().multiplyScalar(0.7))
+      }
     }
   }
   const tex = new THREE.CanvasTexture(c)
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping
+  tex.magFilter = THREE.NearestFilter   // crisp pixels, no blur
+  tex.minFilter = THREE.NearestFilter
   tex.colorSpace = THREE.SRGBColorSpace
   brickTexCache.set(color, tex)
   return tex
