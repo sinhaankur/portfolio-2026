@@ -736,27 +736,59 @@ function Pipes({ level }: { level: Level }) {
 
 function Trophy({ level }: { level: Level }) {
   const ref = useRef<THREE.Group>(null)
+  const burstGroup = useRef<THREE.Group>(null)
+  const ring = useRef<THREE.Mesh>(null)
+  const flash = useRef<THREE.PointLight>(null)
   const taken = useRef(false)
+  const takenAt = useRef(-1)
   const cup = useClonedGlb(CUP_GLB)
   useFrame((st) => {
     const g = ref.current
-    if (!g || taken.current) return
-    g.rotation.y = st.clock.elapsedTime * 1.2
-    g.position.y = level.trophy[1] + Math.sin(st.clock.elapsedTime * 1.6) * 0.15
-    if (game.playerPos.distanceTo(g.position) < 1.6) {
-      taken.current = true
-      g.visible = false
-      game.hasTrophy = true
+    if (g && !taken.current) {
+      g.rotation.y = st.clock.elapsedTime * 1.2
+      g.position.y = level.trophy[1] + Math.sin(st.clock.elapsedTime * 1.6) * 0.15
+      if (game.playerPos.distanceTo(g.position) < 1.6) {
+        taken.current = true
+        takenAt.current = st.clock.elapsedTime
+        g.visible = false
+        game.hasTrophy = true
+        game.fx.collectAt = st.clock.elapsedTime
+        game.fx.collectPos.set(...level.trophy)
+      }
+    }
+    // pickup burst: an expanding golden ring + flash that plays for ~0.6s
+    if (taken.current && burstGroup.current) {
+      const dt = st.clock.elapsedTime - takenAt.current
+      const alive = dt < 0.7
+      burstGroup.current.visible = alive
+      if (alive) {
+        const p = dt / 0.7
+        if (ring.current) {
+          const s = 0.4 + p * 3.2
+          ring.current.scale.set(s, s, s)
+          ;(ring.current.material as THREE.MeshBasicMaterial).opacity = (1 - p) * 0.8
+        }
+        if (flash.current) flash.current.intensity = (1 - p) * 6
+      }
     }
   })
   return (
-    <group ref={ref} position={level.trophy}>
-      {/* Blender gold cup — GLB is ~0.8 tall built feet-at-origin; centre + scale */}
-      <group position={[0, -0.4, 0]} scale={1.15}>
-        <primitive object={cup} />
+    <>
+      <group ref={ref} position={level.trophy}>
+        <group position={[0, -0.4, 0]} scale={1.15}>
+          <primitive object={cup} />
+        </group>
+        <pointLight position={[0, 0.3, 0]} color="#ffd24a" intensity={1.2} distance={6} />
       </group>
-      <pointLight position={[0, 0.3, 0]} color="#ffd24a" intensity={1.2} distance={6} />
-    </group>
+      {/* celebratory pickup burst — expanding gold ring + flash */}
+      <group ref={burstGroup} position={level.trophy} visible={false}>
+        <mesh ref={ring} rotation={[0, 0, 0]}>
+          <ringGeometry args={[0.5, 0.62, 24]} />
+          <meshBasicMaterial color="#ffe07a" transparent opacity={0.8} toneMapped={false} depthWrite={false} side={THREE.DoubleSide} />
+        </mesh>
+        <pointLight ref={flash} color="#ffe6a0" intensity={0} distance={8} />
+      </group>
+    </>
   )
 }
 
