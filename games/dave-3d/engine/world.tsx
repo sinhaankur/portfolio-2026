@@ -762,36 +762,91 @@ function Trophy({ level }: { level: Level }) {
 
 function Door({ level, onWin }: { level: Level; onWin?: () => void }) {
   const glow = useRef<THREE.Mesh>(null)
+  const runes = useRef<THREE.Mesh>(null)
   const lightRef = useRef<THREE.PointLight>(null)
+  const sparks = useRef<THREE.Points>(null)
   const won = useRef(false)
+  const openT = useRef(0)          // 0→1 unlock animation progress
+  const wasOpen = useRef(false)
   const door = useClonedGlb(DOOR_GLB)
-  useFrame((st) => {
+
+  // a ring of ascending "unlock" sparks that burst when the relic is taken
+  const sparkGeo = useMemo(() => {
+    const n = 26
+    const g = new THREE.BufferGeometry()
+    g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(n * 3), 3))
+    return g
+  }, [])
+  const sparkSeeds = useMemo(
+    () => Array.from({ length: 26 }, () => ({
+      a: Math.random() * Math.PI * 2, r: 0.3 + Math.random() * 0.5,
+      spd: 0.6 + Math.random() * 0.9, p: Math.random(),
+    })),
+    [],
+  )
+
+  useFrame((st, dt) => {
     const open = game.hasTrophy
-    // when unlocked: show the green glow + a pulsing light so it reads as "go here"
-    if (glow.current) glow.current.visible = open
-    if (lightRef.current) lightRef.current.intensity = open ? 1.6 + Math.sin(st.clock.elapsedTime * 4) * 0.5 : 0
+    // ease the unlock progress in when the relic is first taken (one-way)
+    if (open) openT.current = Math.min(1, openT.current + dt * 2.5)
+    const k = openT.current
+    if (glow.current) {
+      glow.current.visible = k > 0.01
+      const m = glow.current.material as THREE.MeshBasicMaterial
+      m.opacity = 0.25 * k + Math.sin(st.clock.elapsedTime * 4) * 0.12 * k
+    }
+    if (runes.current) {
+      runes.current.visible = k > 0.01
+      runes.current.rotation.z = st.clock.elapsedTime * 0.6
+      ;(runes.current.material as THREE.MeshBasicMaterial).opacity = 0.5 * k
+    }
+    if (lightRef.current) lightRef.current.intensity = k * (2.0 + Math.sin(st.clock.elapsedTime * 4) * 0.6)
+
+    // spark burst on the FIRST frame it opens, then a gentle rising shimmer
+    if (open && !wasOpen.current) game.fx.collectAt = st.clock.elapsedTime // reuse chime cue
+    wasOpen.current = open
+    if (sparks.current) {
+      sparks.current.visible = k > 0.01
+      const arr = (sparkGeo.attributes.position as THREE.BufferAttribute).array as Float32Array
+      const t = st.clock.elapsedTime
+      sparkSeeds.forEach((s, i) => {
+        const cyc = (t * s.spd + s.p) % 1
+        arr[i * 3] = Math.cos(s.a) * s.r * (0.6 + cyc)
+        arr[i * 3 + 1] = -0.6 + cyc * 2.2
+        arr[i * 3 + 2] = 0.3 + Math.sin(s.a) * s.r * 0.4
+      })
+      ;(sparkGeo.attributes.position as THREE.BufferAttribute).needsUpdate = true
+      ;(sparks.current.material as THREE.PointsMaterial).opacity = 0.85 * k
+    }
+
     if (open && !won.current && game.phase === "playing") {
       if (game.playerPos.distanceTo(new THREE.Vector3(...level.door)) < 1.8) {
         won.current = true
-        game.phase = "levelClear" // game-canvas advances to the next level or wins
+        game.phase = "levelClear"
         onWin?.()
       }
     }
   })
   return (
     <group position={level.door}>
-      {/* Blender wooden door — GLB built feet-at-origin (~2.2 tall). Its base
-          sits on the door tile's BOTTOM edge (tile centre − TILE/2 = 0.7) so the
-          door visually rests on whatever platform the map placed beneath it. */}
       <group position={[0, -0.7, 0]}>
         <primitive object={door} />
       </group>
-      {/* green "unlocked" glow + light, shown once the cup is taken */}
+      {/* soft green portal glow */}
       <mesh ref={glow} visible={false} position={[0, 0.1, 0.25]}>
         <planeGeometry args={[1.0, 1.9]} />
-        <meshBasicMaterial color="#7dffc0" transparent opacity={0.4} toneMapped={false} />
+        <meshBasicMaterial color="#7dffc0" transparent opacity={0.4} toneMapped={false} depthWrite={false} />
       </mesh>
-      <pointLight ref={lightRef} position={[0, 0.4, 0.6]} color="#7dffc0" intensity={0} distance={6} />
+      {/* a slowly-turning rune ring behind the door — "this gate is now active" */}
+      <mesh ref={runes} visible={false} position={[0, 0.1, 0.18]}>
+        <ringGeometry args={[0.7, 0.82, 6]} />
+        <meshBasicMaterial color="#aeffd8" transparent opacity={0} toneMapped={false} depthWrite={false} />
+      </mesh>
+      {/* rising unlock sparks */}
+      <points ref={sparks} geometry={sparkGeo} visible={false}>
+        <pointsMaterial color="#c8ffe0" size={0.09} transparent opacity={0} blending={THREE.AdditiveBlending} depthWrite={false} sizeAttenuation />
+      </points>
+      <pointLight ref={lightRef} position={[0, 0.4, 0.6]} color="#7dffc0" intensity={0} distance={7} />
     </group>
   )
 }
