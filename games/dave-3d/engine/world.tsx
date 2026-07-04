@@ -13,6 +13,7 @@ import { useGLTF } from "@react-three/drei"
 import { SkeletonUtils } from "three-stdlib"
 import * as THREE from "three"
 import { LEVEL_1, type Level, type Hazard, type GemKind } from "./level"
+import { Atmosphere } from "./atmosphere"
 import { game } from "./state"
 
 // Blender hero props (cup / gem / door). Preload so they're ready on first frame.
@@ -82,7 +83,12 @@ export function World({ level = LEVEL_1, onWin }: { level?: Level; onWin?: () =>
         </>
       )}
 
-      {sideOn && <BackWall level={level} />}
+      {sideOn && (
+        <Atmosphere
+          theme={level.theme ?? "cavern"}
+          bounds={{ w: level.bounds?.w ?? 26, h: level.bounds?.h ?? 14 }}
+        />
+      )}
       <Platforms level={level} />
       <Hazards level={level} />
       <Gems level={level} />
@@ -91,7 +97,6 @@ export function World({ level = LEVEL_1, onWin }: { level?: Level; onWin?: () =>
       {level.warp && <WarpPad level={level} />}
       <Trophy level={level} />
       <Door level={level} onWin={onWin} />
-      {sideOn && <DustMotes level={level} />}
     </>
   )
 }
