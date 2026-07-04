@@ -560,16 +560,51 @@ function BrickRelief({ level }: { level: Level }) {
     return out
   }, [level])
 
+  // TOP-CAP matrices: cap each platform's WALK surface (the top the side-on
+  // camera looks down on) with the same brick panel laid flat, so the surface
+  // you stand on reads as chiselled masonry instead of a plain textured lid.
+  const topMatrices = useMemo(() => {
+    const out: THREE.Matrix4[] = []
+    const T = 1.4
+    const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI / 2, 0, 0)) // lay flat
+    const s = new THREE.Vector3()
+    const pos = new THREE.Vector3()
+    for (const b of level.platforms) {
+      const [bx, by, bz] = b.pos
+      const [sx, sy, sz] = b.size
+      const cols = Math.max(1, Math.round(sx / T))
+      const depth = Math.max(1, Math.round(sz / T))
+      const cw = sx / cols, cd = sz / depth
+      const topY = by + sy / 2 + 0.001
+      for (let c = 0; c < cols; c++) {
+        for (let d = 0; d < depth; d++) {
+          pos.set(bx - sx / 2 + cw * (c + 0.5), topY, bz - sz / 2 + cd * (d + 0.5))
+          s.set(cw, cd, 0.4)
+          out.push(new THREE.Matrix4().compose(pos, q, s))
+        }
+      }
+    }
+    return out
+  }, [level])
+
   const faceMat = useMemo(
     () => new THREE.MeshStandardMaterial({ color: new THREE.Color(baseBrick), roughness: 0.9, metalness: 0.05 }),
     [baseBrick],
   )
+  // top caps read slightly brighter (lit from above) so the walk surface pops.
+  const topMat = useMemo(() => {
+    const c = new THREE.Color(baseBrick).lerp(new THREE.Color("#ffffff"), 0.15)
+    return new THREE.MeshStandardMaterial({ color: c, roughness: 0.85, metalness: 0.05 })
+  }, [baseBrick])
 
   if (!faceGeo || !mortarGeo) return null
   return (
     <group>
       <instancedMesh args={[faceGeo, faceMat, matrices.length]} ref={(im) => applyMatrices(im, matrices)} castShadow receiveShadow />
       <instancedMesh args={[mortarGeo, mortarMat ?? undefined, matrices.length]} ref={(im) => applyMatrices(im, matrices)} />
+      {/* masonry walk-surface caps on top of every platform */}
+      <instancedMesh args={[faceGeo, topMat, topMatrices.length]} ref={(im) => applyMatrices(im, topMatrices)} castShadow receiveShadow />
+      <instancedMesh args={[mortarGeo, mortarMat ?? undefined, topMatrices.length]} ref={(im) => applyMatrices(im, topMatrices)} />
     </group>
   )
 }
