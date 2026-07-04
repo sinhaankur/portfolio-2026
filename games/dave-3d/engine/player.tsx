@@ -290,17 +290,23 @@ export function Player({ level = LEVEL_1 }: { level?: Level }) {
     }
 
     // Face movement direction.
-    //  • SIDE-ON: turn to a left/right PROFILE so the camera (looking down -Z)
-    //    sees Dave from the side, like a 2D platformer. +X → +90°, -X → -90°.
-    //  • FREE: face the travel vector (model's -Z front aligns to velocity).
+    //  • SIDE-ON: the default camera sits BEHIND Dave on +Z looking along -Z,
+    //    so at yaw 0 we'd see his BACK — which read as "he goes backward".
+    //    Instead, keep his FACE toward the camera (yaw ≈ π, the model's -Z
+    //    front pointing to +Z where the camera is) and lean left/right from
+    //    there toward travel. Walking right → face-right lean; left → face-left
+    //    lean. You always see his face and clearly which way he's headed.
+    //  • FREE: face the travel vector.
+    const FACE_CAM = Math.PI          // -Z model front → toward +Z camera
+    const LEAN = Math.PI * 0.28       // ~50° lean toward the walk direction
     if (sideOn) {
-      if (Math.abs(v.x) > 0.05) {
-        const target = v.x > 0 ? Math.PI / 2 : -Math.PI / 2
-        let d = target - yaw.current
-        while (d > Math.PI) d -= Math.PI * 2
-        while (d < -Math.PI) d += Math.PI * 2
-        yaw.current += d * (1 - Math.exp(-18 * dt))
-      }
+      const target = Math.abs(v.x) > 0.05
+        ? FACE_CAM - Math.sign(v.x) * LEAN  // right (+x) leans one way, left the other
+        : FACE_CAM                          // idle: face the camera straight-on
+      let d = target - yaw.current
+      while (d > Math.PI) d -= Math.PI * 2
+      while (d < -Math.PI) d += Math.PI * 2
+      yaw.current += d * (1 - Math.exp(-16 * dt))
     } else if (moving) {
       const target = Math.atan2(-v.x, -v.z)
       let d = target - yaw.current
