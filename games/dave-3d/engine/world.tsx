@@ -516,9 +516,17 @@ function Platforms({ level }: { level: Level }) {
           m.map.repeat.set(Math.max(1, Math.round(b.size[0] / 1.4)), Math.max(1, Math.round(b.size[1] / 1.4)))
         }
         return (
-          <mesh key={i} position={b.pos} castShadow receiveShadow material={m}>
-            <boxGeometry args={b.size} />
-          </mesh>
+          <group key={i}>
+            <mesh position={b.pos} castShadow receiveShadow material={m}>
+              <boxGeometry args={b.size} />
+            </mesh>
+            {/* faint glowing lip along the top-front edge — so every ledge reads
+                clearly in the dark and the player always sees where to land. */}
+            <mesh position={[b.pos[0], b.pos[1] + b.size[1] / 2 - 0.03, b.pos[2] + b.size[2] / 2 + 0.02]}>
+              <boxGeometry args={[b.size[0] * 0.98, 0.06, 0.04]} />
+              <meshBasicMaterial color={edgeGlow(color)} transparent opacity={0.55} toneMapped={false} />
+            </mesh>
+          </group>
         )
       })}
       {/* real 3D brick relief tiled across each platform's FRONT face (-Z) */}
@@ -626,6 +634,12 @@ function BrickRelief({ level }: { level: Level }) {
       <instancedMesh args={[mortarGeo, mortarMat ?? undefined, topMatrices.length]} ref={(im) => applyMatrices(im, topMatrices)} />
     </group>
   )
+}
+
+/** A brightened tint of the platform color for the glowing ledge rim, so the
+ *  lip reads as a lit edge that matches the level's palette. */
+function edgeGlow(color: string): string {
+  return "#" + new THREE.Color(color).lerp(new THREE.Color("#ffffff"), 0.55).getHexString()
 }
 
 function applyMatrices(im: THREE.InstancedMesh | null, matrices: THREE.Matrix4[]) {
