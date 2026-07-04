@@ -14,9 +14,11 @@ const GameCanvas = dynamic(() => import("@/games/dave-3d/engine/game-canvas"), {
         <div className="h-1 w-40 overflow-hidden rounded-full bg-white/10">
           <div className="h-full w-1/3 animate-[daveload_1.1s_ease-in-out_infinite] rounded-full bg-amber-300/80" />
         </div>
-        <p className="font-mono text-[10px] tracking-[0.35em] uppercase text-white/55">Loading Dangerous Dave…</p>
+        <p className="font-mono text-[10px] tracking-[0.35em] uppercase text-white/55">Loading Deep Descent…</p>
       </div>
-      <style>{`@keyframes daveload{0%{transform:translateX(-120%)}100%{transform:translateX(420%)}}`}</style>
+      <style>{`@keyframes daveload{0%{transform:translateX(-120%)}100%{transform:translateX(420%)}}
+.dave-intro{animation:daveIntro 2.2s ease-in-out forwards}
+@keyframes daveIntro{0%{opacity:0;transform:translateY(12px) scale(0.96)}12%{opacity:1;transform:translateY(0) scale(1)}80%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-8px) scale(1.02)}}`}</style>
     </div>
   ),
 })

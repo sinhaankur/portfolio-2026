@@ -36,6 +36,8 @@ export function Hud({
   // then play begins; pause can toggle any time during play.
   const [started, setStarted] = useState(false)
   const [paused, setPaused] = useState(false)
+  // Level-intro card: a brief "LEVEL N — Name" flash on entering each level.
+  const [introFor, setIntroFor] = useState<number | null>(null)
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -59,6 +61,14 @@ export function Hud({
   useEffect(() => {
     game.running = started && !paused && phase === "playing"
   }, [started, paused, phase])
+
+  // Flash the intro card whenever we enter a new level (and on first start).
+  useEffect(() => {
+    if (!started || won) return
+    setIntroFor(levelIndex)
+    const t = setTimeout(() => setIntroFor(null), 2200)
+    return () => clearTimeout(t)
+  }, [levelIndex, started, won])
 
   const begin = useCallback(() => { setStarted(true); setPaused(false) }, [])
   const togglePause = useCallback(() => {
@@ -124,6 +134,20 @@ export function Hud({
         </div>
       )}
 
+      {/* ── LEVEL INTRO card — a brief cinematic flash on entering a level ── */}
+      {introFor !== null && !paused && !cleared && !won && (
+        <div className="pointer-events-none fixed inset-0 z-30 grid place-items-center px-6">
+          <div className="dave-intro text-center">
+            <p className="font-mono text-[11px] tracking-[0.5em] uppercase text-amber-300/90">
+              Cavern {introFor + 1} of {TOTAL_LEVELS}
+            </p>
+            <h2 className="mt-1 font-display text-4xl md:text-5xl font-light italic text-white drop-shadow-[0_2px_20px_rgba(0,0,0,0.8)]">
+              {(LEVELS[introFor]?.name ?? "").replace(/^\d+\s*—\s*/, "")}
+            </h2>
+          </div>
+        </div>
+      )}
+
       {/* jetpack fuel bar (only while you hold the pack) */}
       {hasJet && started && !paused && (
         <div className="pointer-events-none fixed left-1/2 top-24 z-20 w-44 max-w-[60vw] -translate-x-1/2">
@@ -147,12 +171,12 @@ export function Hud({
       {!started && (
         <div className="fixed inset-0 z-40 grid place-items-center bg-black/70 backdrop-blur-sm px-6">
           <div className="w-full max-w-md rounded-2xl border border-white/15 bg-[#12131f]/95 p-7 text-center text-white">
-            <p className="font-mono text-[10px] tracking-[0.35em] uppercase text-amber-300">A 3D tribute</p>
-            <h1 className="mt-1.5 font-display text-3xl md:text-4xl font-light italic">Dangerous Dave</h1>
+            <p className="font-mono text-[10px] tracking-[0.35em] uppercase text-amber-300">An original 3D platformer</p>
+            <h1 className="mt-1.5 font-display text-3xl md:text-4xl font-light italic">Deep Descent</h1>
             <p className="mt-3 text-sm text-white/70">
-              Grab the <span className="text-amber-300">🏆 cup</span>, then reach the
-              <span className="text-emerald-300"> door</span> to clear each of the {TOTAL_LEVELS} levels.
-              Dodge fire, water and spikes. Diamonds are bonus.
+              Grab the <span className="text-amber-300">🏆 relic</span>, then reach the
+              <span className="text-emerald-300"> gate</span> to clear each of the {TOTAL_LEVELS} caverns.
+              Dodge fire, water and spikes. Gems are bonus.
             </p>
             <div className="mx-auto mt-5 grid max-w-xs grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-left font-mono text-[11px] text-white/75">
               <span className="text-white/50">A / D · ← →</span><span>Move left / right</span>
