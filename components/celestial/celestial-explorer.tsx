@@ -12,7 +12,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import dynamic from "next/dynamic"
 import { motion, AnimatePresence } from "framer-motion"
-import { ArrowLeft, X, Rotate3d, Globe, Satellite, Sparkles, Rocket, Route, Orbit } from "lucide-react"
+import { ArrowLeft, X, Rotate3d, Globe, Satellite, Sparkles, Rocket, Route, Orbit, Layers } from "lucide-react"
 import { CustomCursor } from "@/components/custom-cursor"
 import { StaticStarfield } from "@/components/universe-engine/static-starfield"
 import { BODIES } from "@/lib/celestial-data"
@@ -66,6 +66,12 @@ const NeoPanel = dynamic(
   { ssr: false },
 )
 
+// Orbital-population census (real LEO/MEO/GEO/HEO inventory).
+const InventoryPanel = dynamic(
+  () => import("./inventory-panel").then((m) => m.InventoryPanel),
+  { ssr: false },
+)
+
 const UniverseEngine = dynamic(
   () => import("@/components/universe-engine").then((m) => m.UniverseEngine),
   { ssr: false, loading: () => <StaticStarfield loading /> },
@@ -113,10 +119,12 @@ export function CelestialExplorer() {
   const [transferOpen, setTransferOpen] = useState(false)
   // Near-Earth asteroids.
   const [neoOpen, setNeoOpen] = useState(false)
+  // Orbital-population census.
+  const [inventoryOpen, setInventoryOpen] = useState(false)
   // The feature-launcher menu (collapses all the tools into one chip so the
   // bottom-left doesn't stack 5+ buttons on mobile).
   const [menuOpen, setMenuOpen] = useState(false)
-  const closePanels = () => { setPassesOpen(false); setWeatherOpen(false); setLaunchesOpen(false); setTransferOpen(false); setNeoOpen(false) }
+  const closePanels = () => { setPassesOpen(false); setWeatherOpen(false); setLaunchesOpen(false); setTransferOpen(false); setNeoOpen(false); setInventoryOpen(false) }
   // `?earth=1` auto-opens the photoreal view — for capture/testing + deep-links.
   useEffect(() => {
     try {
@@ -144,6 +152,7 @@ export function CelestialExplorer() {
         void t
       }
       if (q.has("mars")) setMarsView(true)
+      if (q.has("inv")) setInventoryOpen(true) // testing: open the census panel
       const g = q.get("satgroup") // testing: drive the group filter (0=Starlink…)
       if (g) satGroupFilterRef.current = parseInt(g, 10)
     } catch { /* no window */ }
@@ -364,6 +373,8 @@ export function CelestialExplorer() {
                 >
                   <MenuItem color="#5affc0" icon={<Satellite className="h-3.5 w-3.5" />}
                     label="View 18,500 satellites" onClick={viewSatellites} />
+                  <MenuItem color="#9fe0ff" icon={<Layers className="h-3.5 w-3.5" />}
+                    label="Orbital census" onClick={() => { closePanels(); setInventoryOpen(true) }} />
                   {hasGoogleEarthKey && (
                     <MenuItem color="var(--accent)" icon={<Globe className="h-3.5 w-3.5" />}
                       label="Descend to Earth" onClick={() => { closePanels(); setEarthView(true) }} />
@@ -422,6 +433,11 @@ export function CelestialExplorer() {
           {neoOpen && (
             <div className="absolute bottom-24 left-4 md:left-6 z-40">
               <NeoPanel onClose={() => setNeoOpen(false)} />
+            </div>
+          )}
+          {inventoryOpen && (
+            <div className="absolute bottom-24 left-4 md:left-6 z-40">
+              <InventoryPanel onClose={() => setInventoryOpen(false)} />
             </div>
           )}
         </AnimatePresence>
