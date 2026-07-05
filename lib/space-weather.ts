@@ -92,3 +92,42 @@ export function auroraCall(userLatDeg: number, minLatDeg: number): "likely" | "p
   if (abs >= minLatDeg - 5) return "possible"
   return "no"
 }
+
+// --- DONKI: real solar-flare event history (NASA) -----------------------------
+// The NASA key ships in the bundle (read-only, rate-limited). Falls back to
+// DEMO_KEY if unset.
+const NASA_KEY = process.env.NEXT_PUBLIC_NASA_KEY || "DEMO_KEY"
+
+export type SolarFlare = {
+  classType: string // e.g. "M1.6", "X2.3"
+  peakTime: string
+  region: string | null
+}
+
+/** Recent solar flares from NASA DONKI (last `days` days). "What the Sun
+ *  actually did" — deeper than NOAA's live Kp snapshot. */
+export async function fetchRecentFlares(days = 14): Promise<SolarFlare[]> {
+  const end = new Date().toISOString().slice(0, 10)
+  const start = new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10)
+  try {
+    const r = await fetch(`https://api.nasa.gov/DONKI/FLR?startDate=${start}&endDate=${end}&api_key=${NASA_KEY}`)
+    if (!r.ok) return []
+    const j = (await r.json()) as { classType?: string; peakTime?: string; activeRegionNum?: number | null }[]
+    if (!Array.isArray(j)) return []
+    return j
+      .map((f) => ({ classType: f.classType ?? "?", peakTime: f.peakTime ?? "", region: f.activeRegionNum ? String(f.activeRegionNum) : null }))
+      .filter((f) => f.peakTime)
+      .sort((a, b) => new Date(b.peakTime).getTime() - new Date(a.peakTime).getTime())
+      .slice(0, 5)
+  } catch {
+    return []
+  }
+}
+
+/** Rank a flare class for coloring: X > M > C > B/A. */
+export function flareSeverity(classType: string): "high" | "med" | "low" {
+  const c = classType[0]?.toUpperCase()
+  if (c === "X") return "high"
+  if (c === "M") return "med"
+  return "low"
+}

@@ -10,12 +10,12 @@
 import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { Sparkles, X, MapPin } from "lucide-react"
-import { fetchSpaceWeather, kpLabel, auroraCall, type SpaceWeather } from "@/lib/space-weather"
+import { fetchSpaceWeather, fetchRecentFlares, kpLabel, auroraCall, flareSeverity, type SpaceWeather, type SolarFlare } from "@/lib/space-weather"
 
 type State =
   | { kind: "loading" }
   | { kind: "error" }
-  | { kind: "done"; sw: SpaceWeather; userLat: number | null }
+  | { kind: "done"; sw: SpaceWeather; userLat: number | null; flares: SolarFlare[] }
 
 export function SpaceWeatherPanel({ onClose }: { onClose: () => void }) {
   const [state, setState] = useState<State>({ kind: "loading" })
@@ -31,10 +31,10 @@ export function SpaceWeatherPanel({ onClose }: { onClose: () => void }) {
         { timeout: 8000, maximumAge: 600000 },
       )
     })
-    Promise.all([fetchSpaceWeather(), latP]).then(([sw, userLat]) => {
+    Promise.all([fetchSpaceWeather(), latP, fetchRecentFlares()]).then(([sw, userLat, flares]) => {
       if (!alive) return
       if (!sw) { setState({ kind: "error" }); return }
-      setState({ kind: "done", sw, userLat })
+      setState({ kind: "done", sw, userLat, flares })
     })
     return () => { alive = false }
   }, [])
@@ -109,8 +109,28 @@ export function SpaceWeatherPanel({ onClose }: { onClose: () => void }) {
                 )}
               </div>
 
+              {state.flares.length > 0 && (
+                <div className="mt-3">
+                  <p className="font-mono text-[9px] tracking-[0.25em] uppercase text-muted-foreground mb-1.5">Recent solar flares · NASA DONKI</p>
+                  <ul className="space-y-1">
+                    {state.flares.map((f, i) => {
+                      const sev = flareSeverity(f.classType)
+                      const col = sev === "high" ? "text-red-300" : sev === "med" ? "text-[#ffd27a]" : "text-muted-foreground"
+                      return (
+                        <li key={i} className="flex items-center justify-between gap-3 font-mono text-[10px]">
+                          <span className={`${col} tabular-nums`}>{f.classType}{f.region && <span className="text-muted-foreground/60"> · AR{f.region}</span>}</span>
+                          <span className="text-muted-foreground/70 tabular-nums">
+                            {new Date(f.peakTime).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                          </span>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </div>
+              )}
+
               <p className="mt-3 flex items-center gap-1.5 font-mono text-[9px] tracking-wider text-muted-foreground/70">
-                <MapPin className="h-3 w-3" /> Live from NOAA SWPC · Kp {new Date(sw.kpTime).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
+                <MapPin className="h-3 w-3" /> NOAA SWPC + NASA DONKI · Kp {new Date(sw.kpTime).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
               </p>
             </div>
           )
