@@ -470,10 +470,10 @@ export function UniverseEngine({
                 </div>
                 <ul className="space-y-1.5 font-mono text-[10px] text-foreground/70">
                   {[
-                    ["#9fe0ff", "LEO · Starlink / OneWeb / ISS"],
-                    ["#bfeacb", "Polar · Earth-observation"],
-                    ["#ffd27a", "MEO · GPS / GLONASS / Galileo"],
-                    ["#ff9a6b", "GEO · comms + weather belt"],
+                    ["#73ff8c", "Payload · working spacecraft"],
+                    ["#ffd94d", "Rocket body · spent upper stage"],
+                    ["#ff5952", "Debris · tracked fragment"],
+                    ["#b2c7f5", "Unknown · unclassified object"],
                   ].map(([c, label]) => (
                     <li key={label} className="flex items-center gap-2.5">
                       <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: c as string }} />
@@ -482,7 +482,7 @@ export function UniverseEngine({
                   ))}
                 </ul>
                 <p className="mt-3 pt-2.5 border-t border-foreground/10 font-sans text-[10px] leading-4 text-foreground/45">
-                  Named craft (ISS, Hubble, Tiangong, GPS, JWST) ride their real altitudes. Focus the Moon or Mars for their orbiters.
+                  Coloured by object type. Open the Explore menu → Orbital census to split by orbit (LEO / MEO / GEO). Click any dot for its live orbit + position.
                 </p>
               </div>
             </motion.div>
