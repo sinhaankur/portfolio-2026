@@ -12,7 +12,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import dynamic from "next/dynamic"
 import { motion, AnimatePresence } from "framer-motion"
-import { ArrowLeft, X, Rotate3d, Globe } from "lucide-react"
+import { ArrowLeft, X, Rotate3d, Globe, Satellite } from "lucide-react"
 import { CustomCursor } from "@/components/custom-cursor"
 import { StaticStarfield } from "@/components/universe-engine/static-starfield"
 import { BODIES } from "@/lib/celestial-data"
@@ -33,6 +33,12 @@ const GoogleEarthView = dynamic(
 // canvas + the elevation maps only load when the user opens it.
 const MarsCoverage = dynamic(
   () => import("./mars-coverage").then((m) => m.MarsCoverage),
+  { ssr: false },
+)
+
+// "ISS over you" passes panel — lazy (pulls satellite.js for the topocentric math).
+const OverheadPasses = dynamic(
+  () => import("./overhead-passes").then((m) => m.OverheadPasses),
   { ssr: false },
 )
 
@@ -73,6 +79,8 @@ export function CelestialExplorer() {
   const [earthView, setEarthView] = useState(false)
   // Mars coverage map overlay — opt-in, no key/cost (all local NASA data).
   const [marsView, setMarsView] = useState(false)
+  // "ISS over you" passes panel (asks for geolocation on open).
+  const [passesOpen, setPassesOpen] = useState(false)
   // `?earth=1` auto-opens the photoreal view — for capture/testing + deep-links.
   useEffect(() => {
     try {
@@ -309,8 +317,27 @@ export function CelestialExplorer() {
               <Globe className="h-3.5 w-3.5 text-[#ff9a6b]" />
               Mars · what we&apos;ve seen
             </button>
+            <button
+              type="button"
+              onClick={() => setPassesOpen((v) => !v)}
+              data-cursor-hover
+              aria-label="ISS passes over your location"
+              className="inline-flex items-center gap-2 rounded-full border border-accent/50 bg-background/60 px-4 py-2.5 font-mono text-[10px] tracking-widest uppercase text-foreground/85 backdrop-blur-sm transition-colors hover:border-accent hover:text-foreground"
+            >
+              <Satellite className="h-3.5 w-3.5 text-accent" />
+              ISS over you
+            </button>
           </div>
         )}
+
+        {/* ISS-passes panel — bottom-left, above the button cluster. */}
+        <AnimatePresence>
+          {passesOpen && (
+            <div className="absolute bottom-24 left-4 md:left-6 z-40">
+              <OverheadPasses onClose={() => setPassesOpen(false)} />
+            </div>
+          )}
+        </AnimatePresence>
       </main>
 
       {/* Photoreal Earth overlay — mounts (and starts streaming tiles) only after
