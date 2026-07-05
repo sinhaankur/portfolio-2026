@@ -17,7 +17,7 @@ import { CustomCursor } from "@/components/custom-cursor"
 import { StaticStarfield } from "@/components/universe-engine/static-starfield"
 import { BODIES } from "@/lib/celestial-data"
 import { SatelliteSearch } from "./satellite-search"
-import { selectedSatRef } from "@/components/universe-engine/satellite-field"
+import { selectedSatRef, satGroupFilterRef } from "@/components/universe-engine/satellite-field"
 import { setSimMs } from "@/components/universe-engine/astronomy"
 import { hasGoogleEarthKey } from "@/components/universe-engine/google-earth-tiles"
 
@@ -91,6 +91,8 @@ export function CelestialExplorer() {
       const y = q.get("simyear")
       if (y) setSimMs(Date.UTC(parseInt(y, 10), 0, 1))
       if (q.has("mars")) setMarsView(true)
+      const g = q.get("satgroup") // testing: drive the group filter (0=Starlink…)
+      if (g) satGroupFilterRef.current = parseInt(g, 10)
     } catch { /* no window */ }
   }, [])
 

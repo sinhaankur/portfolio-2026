@@ -347,6 +347,12 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
   const [selectedLabel, setSelectedLabel] = useState<string | null>(null)
   // Orbit-path polyline for the selected satellite (recomputed on selection).
   const [orbitPts, setOrbitPts] = useState<THREE.Vector3[] | null>(null)
+  // SAT-1: orbit-track ellipses for the currently-FILTERED group — a sampled
+  // subset (drawing all ~18k would be thousands of lines), each colored by its
+  // altitude band, so you see the constellation's STRUCTURE (Starlink shell, GPS
+  // ring, GEO belt), not just current dots. null = no group selected (all).
+  const [groupTracks, setGroupTracks] = useState<{ pts: THREE.Vector3[]; color: string }[]>([])
+  const lastGroupSel = useRef<number>(-1)
   // Which archetype model the selected satellite uses (chosen on selection).
   const [arch, setArch] = useState<Archetype>(ARCHETYPES.cubesat)
   const archRef = useRef<Archetype>(ARCHETYPES.cubesat)
@@ -426,6 +432,36 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     const pos = geometry.getAttribute("position") as THREE.BufferAttribute
     const arr = pos.array as Float32Array
     const recs = satrecs.current
+
+    // SAT-1: when the group filter changes, (re)build a sampled set of orbit-
+    // track ellipses for that group so its STRUCTURE is visible. Cleared when the
+    // filter is 'all' (-1) — thousands of overlapping ellipses would be noise.
+    const gSel = satGroupFilterRef.current
+    if (gSel !== lastGroupSel.current) {
+      lastGroupSel.current = gSel
+      if (gSel < 0 || isolated) {
+        setGroupTracks([])
+      } else {
+        const MAX_TRACKS = 60 // enough to read the shell/ring; cheap to draw
+        const members: number[] = []
+        for (let i = 0; i < sats.length; i++) {
+          if (classifyGroup(sats[i].name, sats[i].type) === gSel) members.push(i)
+        }
+        // even stride sample so the tracks span the whole constellation
+        const stride = Math.max(1, Math.floor(members.length / MAX_TRACKS))
+        const tracks: { pts: THREE.Vector3[]; color: string }[] = []
+        for (let k = 0; k < members.length && tracks.length < MAX_TRACKS; k += stride) {
+          const idx = members[k]
+          const pts = computeOrbit(recs[idx])
+          if (pts.length > 2) {
+            const c = bandColor(sats[idx].l2, sats[idx].type)
+            const hex = `#${c.map((v) => Math.round(v * 255).toString(16).padStart(2, "0")).join("")}`
+            tracks.push({ pts, color: hex })
+          }
+        }
+        setGroupTracks(tracks)
+      }
+    }
 
     if (!isolated) {
       // swarm view: propagate every satellite (throttled to 4 Hz)
@@ -634,6 +670,13 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
       {orbitPts && orbitPts.length > 1 && (
         <Line points={orbitPts} color="#ffd24a" transparent opacity={0.4} lineWidth={1} />
       )}
+
+      {/* SAT-1: orbit-track ellipses for the selected group — the constellation's
+          real structure (shell / ring / belt), sampled + altitude-band colored.
+          Faint so they read as scaffolding behind the bright dots. */}
+      {groupTracks.map((t, i) => (
+        <Line key={`gt-${i}`} points={t.pts} color={t.color} transparent opacity={0.22} lineWidth={1} />
+      ))}
     </>
   )
 }
