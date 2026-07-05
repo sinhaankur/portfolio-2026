@@ -425,7 +425,7 @@ export function Lab() {
           </Link>
         </motion.div>
 
-        {/* Celestial — Blender renders of real worlds */}
+        {/* Celestial — live real-time solar-system explorer (real orbits, satellites, data) */}
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -436,7 +436,7 @@ export function Lab() {
           <Link
             href="/lab/celestial"
             data-cursor-hover
-            aria-label="Celestial — photoreal Mars & Moon rendered in Blender"
+            aria-label="Celestial — a live real-time solar system explorer with real satellite orbits, Mars imaging coverage, and live space data"
             className="
               group relative block overflow-hidden
               border border-border rounded-2xl
