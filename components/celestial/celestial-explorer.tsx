@@ -29,6 +29,13 @@ const GoogleEarthView = dynamic(
   { ssr: false },
 )
 
+// Mars coverage map (real MOLA globe + rover-site photos) — lazy so its R3F
+// canvas + the elevation maps only load when the user opens it.
+const MarsCoverage = dynamic(
+  () => import("./mars-coverage").then((m) => m.MarsCoverage),
+  { ssr: false },
+)
+
 const UniverseEngine = dynamic(
   () => import("@/components/universe-engine").then((m) => m.UniverseEngine),
   { ssr: false, loading: () => <StaticStarfield loading /> },
@@ -64,6 +71,8 @@ export function CelestialExplorer() {
   }, [])
   // Photoreal-Earth (Google 3D Tiles) overlay — opt-in only, key-gated.
   const [earthView, setEarthView] = useState(false)
+  // Mars coverage map overlay — opt-in, no key/cost (all local NASA data).
+  const [marsView, setMarsView] = useState(false)
   // `?earth=1` auto-opens the photoreal view — for capture/testing + deep-links.
   useEffect(() => {
     try {
@@ -75,10 +84,13 @@ export function CelestialExplorer() {
 
   // `?simyear=YYYY` jumps the sim clock to that year — testing the launch-gating
   // of satellites (they should vanish before their real launch date).
+  // `?mars=1` auto-opens the Mars coverage map (testing + deep-link).
   useEffect(() => {
     try {
-      const y = new URLSearchParams(window.location.search).get("simyear")
+      const q = new URLSearchParams(window.location.search)
+      const y = q.get("simyear")
       if (y) setSimMs(Date.UTC(parseInt(y, 10), 0, 1))
+      if (q.has("mars")) setMarsView(true)
     } catch { /* no window */ }
   }, [])
 
@@ -271,23 +283,40 @@ export function CelestialExplorer() {
             Only rendered when the Map Tiles key is configured (hasGoogleEarthKey),
             so a keyless build shows nothing + never touches the paid API. Loading
             it is a deliberate click → protects the billing quota. */}
-        {hasGoogleEarthKey && !earthView && (
-          <button
-            type="button"
-            onClick={() => setEarthView(true)}
-            data-cursor-hover
-            aria-label="Descend to photoreal Earth"
-            className="absolute bottom-6 left-4 md:left-6 z-30 inline-flex items-center gap-2 rounded-full border border-accent/50 bg-background/60 px-4 py-2.5 font-mono text-[10px] tracking-widest uppercase text-foreground/85 backdrop-blur-sm transition-colors hover:border-accent hover:text-foreground"
-          >
-            <Globe className="h-3.5 w-3.5 text-accent" />
-            Descend to Earth
-          </button>
+        {!earthView && !marsView && (
+          <div className="absolute bottom-6 left-4 md:left-6 z-30 flex flex-col gap-2">
+            {hasGoogleEarthKey && (
+              <button
+                type="button"
+                onClick={() => setEarthView(true)}
+                data-cursor-hover
+                aria-label="Descend to photoreal Earth"
+                className="inline-flex items-center gap-2 rounded-full border border-accent/50 bg-background/60 px-4 py-2.5 font-mono text-[10px] tracking-widest uppercase text-foreground/85 backdrop-blur-sm transition-colors hover:border-accent hover:text-foreground"
+              >
+                <Globe className="h-3.5 w-3.5 text-accent" />
+                Descend to Earth
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setMarsView(true)}
+              data-cursor-hover
+              aria-label="Open the Mars coverage map"
+              className="inline-flex items-center gap-2 rounded-full border border-[#ff9a6b]/50 bg-background/60 px-4 py-2.5 font-mono text-[10px] tracking-widest uppercase text-foreground/85 backdrop-blur-sm transition-colors hover:border-[#ff9a6b] hover:text-foreground"
+            >
+              <Globe className="h-3.5 w-3.5 text-[#ff9a6b]" />
+              Mars · what we&apos;ve seen
+            </button>
+          </div>
         )}
       </main>
 
       {/* Photoreal Earth overlay — mounts (and starts streaming tiles) only after
           the click above; unmounts fully on exit so tiles stop. */}
       {earthView && <GoogleEarthView onClose={() => setEarthView(false)} />}
+
+      {/* Mars coverage map — real MOLA globe + rover-site panoramas. */}
+      {marsView && <MarsCoverage onClose={() => setMarsView(false)} />}
     </>
   )
 }
