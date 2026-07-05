@@ -10,10 +10,10 @@ Features:
 - Optional in-place editing with backup file creation
 
 Example:
-  python scripts/fix_xwing_glb.py public/models/xwing.glb \
-    --output public/models/xwing_fixed.glb
+  python scripts/fix_ship_glb.py public/models/vanguard.glb \
+    --output public/models/vanguard_fixed.glb
 
-  python scripts/fix_xwing_glb.py public/models/xwing.glb \
+  python scripts/fix_ship_glb.py public/models/vanguard.glb \
     --in-place --backup
 """
 
@@ -37,7 +37,7 @@ class FixConfig:
     target_length_m: float = 13.4
     source_length_m: float = 5.02
     explicit_scale: Optional[float] = None
-    root_name_keywords: Tuple[str, ...] = ("xwing", "x-wing", "sketchfab", "root")
+    root_name_keywords: Tuple[str, ...] = ("vanguard", "ship", "hull", "root")
 
     hull_keywords: Tuple[str, ...] = (
         "hull",
@@ -398,7 +398,7 @@ def _process_one_file(
 
 
 def parse_args() -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="Fix and tune X-wing GLB files for Helion Drift")
+    p = argparse.ArgumentParser(description="Fix and tune ship GLB files for Helion Drift")
     p.add_argument("input", type=Path, help="Input GLB file path or directory")
     p.add_argument("--output", type=Path, help="Output GLB file path")
     p.add_argument("--output-dir", type=Path, help="Output directory for batch runs")

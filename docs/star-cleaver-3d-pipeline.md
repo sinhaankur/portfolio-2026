@@ -109,8 +109,9 @@ Then create new ships by recombining modules instead of starting from zero.
 
 ## 9) Suggested Naming Convention
 
-- Source/WIP: `Xwing/<variant-name>.blend`, `Xwing/<variant-name>.glb`
+- Source/WIP: `blender/space-assets/build_<variant>.py` → `<variant>.glb`
 - Deployed: `public/models/<variant-name>.glb`
-- IDs in code: `kebab-case` (example: `alliance-xwing`, `x-blade`)
+- IDs in code: `kebab-case` (example: `default-vanguard`, `vanguard-interceptor`)
+- Ships must be ORIGINAL designs — no licensed/copyrighted craft.
 
 This keeps authoring, optimization, and runtime mapping simple and consistent.

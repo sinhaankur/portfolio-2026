@@ -520,16 +520,16 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
   const engineMounts = useMemo(
     () => {
       if (usingDefaultMountMap) {
-        // Mount map aligned to the Blender X-wing GLB's four nacelles (wing
-        // roots, splayed up/down into the 'X'): lateral ±0.62, vertical ±0.30,
-        // sitting at the rear (+z = behind the ship). Was tuned for the retired
-        // procedural hull, which left the thruster FX floating as misplaced
-        // blobs beside the ship — the "looks funny" bug.
+        // Mount map aligned to the Vanguard GLB's TWO engine cores — one at each
+        // boom rear. In GLB source space the cores sit at lateral ±0.86, vertical
+        // ~0, rear +z. The thruster FX renders four plumes, so we pair two per
+        // engine (a tight inner/outer stack at the same core) rather than the
+        // old four-corner X-wing splay. Keeps both booms lit without floating FX.
         return [
-          [-0.62, 0.30, 1.05] as [number, number, number],
-          [-0.62, -0.30, 1.05] as [number, number, number],
-          [0.62, 0.30, 1.05] as [number, number, number],
-          [0.62, -0.30, 1.05] as [number, number, number],
+          [-0.86, 0.06, 1.05] as [number, number, number],
+          [-0.86, -0.06, 1.05] as [number, number, number],
+          [0.86, 0.06, 1.05] as [number, number, number],
+          [0.86, -0.06, 1.05] as [number, number, number],
         ];
       }
 
@@ -753,11 +753,11 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
           <pointLight position={[0, 0.72, 0.1]} intensity={0.26} distance={9} color={0xffffff} />
 
           {/* REMOVED: the big additive aura icosahedron, the cockpit-glow sphere,
-              and the procedural canopy-glass shell. The Blender X-wing GLB already
-              has its own canopy + emissive engines; these add-ons were sized/placed
+              and the procedural canopy-glass shell. The Blender Vanguard GLB already
+              has its own canopy + emissive engine cores; these add-ons were sized/placed
               for the retired procedural hull and rendered as oversized glassy blobs
               floating beside the ship — the "looks funny" bug. We keep only the
-              small, realigned exhaust plumes behind the real nacelles below. */}
+              small, realigned exhaust plumes behind the real engine cores below. */}
 
           {/* Rear engine nozzle lips + cores for cleaner, higher-fidelity engine ends. */}
           {engineMounts.map((mount, idx) => (
@@ -3752,7 +3752,7 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
           <MemoPlayerShipGroup gameState={gameState} showForwardDebug={showForwardDebug} />
         )}
 
-        {/* Hero key-light that rides with the ship so the X-wing is always
+        {/* Hero key-light that rides with the ship so the Vanguard is always
             clearly lit no matter where it flies (fixes "ship hard to see"). */}
         {gameState.playerEntity && <ShipKeyLight gameState={gameState} />}
 

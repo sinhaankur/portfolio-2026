@@ -3,15 +3,15 @@ import * as THREE from 'three';
 export const SCENE_METERS_PER_UNIT = 3;
 
 // Player ship calibration.
-// Active ship: Blender-authored X-wing (blender/space-assets/xwing.glb),
-// measured longitudinal length 6.255 source units. The legacy Vanguard GLB
-// (Test1glb.glb, 5.98 units) remains the fallback — see player-ship-model.tsx.
+// Active ship: the original "Vanguard" twin-boom interceptor
+// (blender/space-assets/build_vanguard.py → vanguard.glb), measured longitudinal
+// length 3.72 source units (Blender +Y → three -Z after export_yup).
 export const DEFAULT_VANGUARD_LENGTH_METERS = 12.5;
-export const GLB_SOURCE_LENGTH_UNITS = 6.255;
+export const GLB_SOURCE_LENGTH_UNITS = 3.72;
 export const CALIBRATED_SHIP_SCALE =
   (DEFAULT_VANGUARD_LENGTH_METERS / SCENE_METERS_PER_UNIT) / GLB_SOURCE_LENGTH_UNITS;
 // Visual boost keeps the ship legible + hero-sized on high-FOV / high-DPI
-// displays. Bumped so the X-wing reads as the clear focal point in flight.
+// displays. Bumped so the Vanguard reads as the clear focal point in flight.
 export const GAMEPLAY_SHIP_RENDER_SCALE = CALIBRATED_SHIP_SCALE * 1.7;
 export const PREVIEW_SHIP_RENDER_SCALE = CALIBRATED_SHIP_SCALE * 1.4;
 

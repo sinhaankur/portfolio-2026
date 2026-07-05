@@ -64,12 +64,13 @@ Repository layout:
 
 ## Asset provenance note (Helion Drift)
 
-For transparency: the X-Wing style player ship used in Helion Drift
-(`public/models/Test1glb.glb`) was built in Blender. LM Studio was used
-in the iteration workflow, with the attached local model
-`qwen3.6-35b-a3b-mtp`.
-
-Detailed model note: [`public/models/Test1glb.glb.README.txt`](./public/models/Test1glb.glb.README.txt).
+For transparency: the player ship in Helion Drift is the **"Vanguard"** — an
+original twin-boom interceptor designed and modelled from scratch in Blender
+(central delta cockpit pod, two engine booms with emissive cores and forward
+cannon tips). It is not based on any existing or licensed spacecraft. The
+model is built reproducibly and headlessly by
+[`blender/space-assets/build_vanguard.py`](./blender/space-assets/build_vanguard.py)
+→ [`public/models/vanguard.glb`](./public/models/vanguard.glb).
 
 ---
 

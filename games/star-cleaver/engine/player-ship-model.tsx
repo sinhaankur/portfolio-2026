@@ -9,13 +9,13 @@ import { auditShipModel } from './ship-model-qa';
 import type { SelectedShip } from './ship-selector';
 import { GAMEPLAY_SHIP_RENDER_SCALE, PREVIEW_SHIP_RENDER_SCALE } from './scale-contract';
 
-// Active player ship: Blender-authored X-wing (blender/space-assets/xwing.glb).
-// Legacy Vanguard interceptor kept as a fallback reference.
-const PLAYER_SHIP_MODEL_PATH = '/models/xwing-v2.glb';
-// The reference X-wing GLB was exported +Y-forward / +Z-up in Blender with
-// export_yup=true, so in three-space it already arrives nose -Z (game forward)
-// and up +Y — no basis rotation needed. (The old [π/2, π, 0] was for the
-// hand-built ship and tipped this model onto its back.)
+// Active player ship: the "Vanguard" — an ORIGINAL Blender-authored twin-boom
+// interceptor (blender/space-assets/build_vanguard.py → vanguard.glb). Central
+// delta cockpit pod, two engine booms with emissive cores + forward cannon tips.
+const PLAYER_SHIP_MODEL_PATH = '/models/vanguard.glb';
+// The Vanguard GLB is exported +Y-forward / +Z-up in Blender with export_yup=true,
+// so in three-space it already arrives nose -Z (game forward) and up +Y — no
+// basis rotation needed.
 export const SHIP_MODEL_BASIS_ROTATION: [number, number, number] = [0, 0, 0];
 
 type PlayerShipMode = 'game' | 'preview';
