@@ -411,7 +411,13 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     () => NOTABLE_CRAFT.map((c) => sats?.findIndex((s) => s.id === c.id) ?? -1),
     [sats],
   )
-  const { camera } = useThree()
+  const { camera, raycaster } = useThree()
+  // Points are dimensionless to a ray, so give the raycaster a hit radius. Sized
+  // to ~a few % of Earth's visual radius so clicking near a dot in the shell
+  // registers, without grabbing everything. (World units.)
+  useEffect(() => {
+    if (raycaster.params.Points) raycaster.params.Points.threshold = earthVisualRadius * 0.02
+  }, [raycaster, earthVisualRadius])
   const lastSelected = useRef<number | null>(null)
   // Selected satellite's display label ("L179: COSMOS 996"-style) — shown as an
   // always-visible tag on the marker, a LeoLabs-style locator readout.
@@ -752,9 +758,34 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
 
   if (!geometry) return null
 
+  // Click a dot in the 3D view → select that satellite (draw its orbit, follow,
+  // show its data). R3F raycasts the points; we take the closest hit, map its
+  // buffer index back to the NORAD id, and set the selection ref. Only fires when
+  // not already isolated (so clicking the followed craft doesn't re-trigger).
+  const onPointsClick = (e: {
+    index?: number
+    intersections?: { index?: number }[]
+    stopPropagation: () => void
+  }) => {
+    if (selectedSatRef.current != null) return
+    const idx = e.index ?? e.intersections?.[0]?.index
+    if (idx == null || !sats || !sats[idx]) return
+    // don't select a not-yet-launched sat (respect the timeline gate)
+    if (simTimeRef.current.simMs < sats[idx].launchMs) return
+    e.stopPropagation()
+    selectedSatRef.current = sats[idx].id
+  }
+
   return (
     <>
-      <points ref={pointsRef} geometry={geometry} frustumCulled={false}>
+      <points
+        ref={pointsRef}
+        geometry={geometry}
+        frustumCulled={false}
+        onClick={onPointsClick}
+        onPointerOver={() => { document.body.style.cursor = "pointer" }}
+        onPointerOut={() => { document.body.style.cursor = "" }}
+      >
         <shaderMaterial
           ref={matRef}
           vertexShader={VERT}
