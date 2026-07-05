@@ -1304,6 +1304,10 @@ function MilkyWay({
       uTime: { value: 0 },
       uPixelRatio: { value: Math.min(gl.getPixelRatio(), 2) },
       uStarColor: { value: new Color(invert ? "#0a0a0a" : "#ffffff") },
+      // Dark-mode brightness gain so the Milky Way band reads clearly against
+      // ink (additive + ACES tone-mapping was washing it faint). Chart mode
+      // keeps 1.0 — its NormalBlending ink look was already correct.
+      uBrightness: { value: invert ? 1.0 : 1.9 },
     }),
     [gl, invert],
   )

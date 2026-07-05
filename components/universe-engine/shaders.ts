@@ -36,6 +36,8 @@ export const GALAXY_FRAGMENT_SHADER = /* glsl */ `
   varying float vAlpha;
   varying vec3 vColor;
   uniform vec3 uStarColor;
+  uniform float uBrightness; // dark-mode gain — lifts the Milky Way out of the
+                             // wash that additive + ACES tone-mapping leaves it in
   void main() {
     vec2 uv = gl_PointCoord * 2.0 - 1.0;
     float dist = length(uv);
@@ -44,6 +46,6 @@ export const GALAXY_FRAGMENT_SHADER = /* glsl */ `
     // uStarColor is a tint: white in dark mode (lets per-star color shine
     // through), ink in chart mode (flattens everything to ink-on-cream and
     // suppresses the per-star palette so the map stays monochrome).
-    gl_FragColor = vec4(uStarColor * vColor, falloff * vAlpha);
+    gl_FragColor = vec4(uStarColor * vColor, falloff * vAlpha * uBrightness);
   }
 `
