@@ -30,23 +30,28 @@
 }
 
 [data-theme="dark"] {
-  --background: 0 0% 8%;
-  --foreground: 0 0% 95%;
-  --card: 0 0% 12%;
-  --card-foreground: 0 0% 95%;
-  --primary: 0 90% 60%;
-  --primary-foreground: 0 0% 5%;
-  --secondary: 50 95% 65%;
-  --secondary-foreground: 0 0% 10%;
-  --accent: 216 90% 60%;
-  --accent-foreground: 0 0% 5%;
-  --muted: 0 0% 15%;
-  --muted-foreground: 0 0% 70%;
-  --border: 0 0% 85%;
-  --shadow-color: 0 0% 0%;
-  --shadow-sm: 4px 4px 0 0 hsl(var(--shadow-color) / 0.9);
-  --shadow: 6px 6px 0 0 hsl(var(--shadow-color) / 1);
-  --shadow-lg: 10px 10px 0 0 hsl(var(--shadow-color) / 1);
+  /* Neon arcade — deep blue-black board, cyan/magenta glow to match the
+     Neon Snake / Blocks / Memory glow-ups. Keeps the neobrutalist chunky
+     shadows but recolours them into glowing accents. */
+  --background: 230 45% 5%;
+  --foreground: 190 25% 96%;
+  --card: 231 40% 10%;
+  --card-foreground: 190 20% 96%;
+  --primary: 328 100% 62%;      /* hot magenta */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 48 100% 60%;     /* arcade amber */
+  --secondary-foreground: 231 60% 8%;
+  --accent: 165 100% 55%;       /* neon cyan-green */
+  --accent-foreground: 231 60% 8%;
+  --muted: 230 30% 16%;
+  --muted-foreground: 200 15% 72%;
+  --border: 190 90% 60%;        /* glowing cyan edges */
+  --glow-cyan: 165 100% 55%;
+  --glow-magenta: 328 100% 62%;
+  --shadow-color: 328 100% 62%;
+  --shadow-sm: 4px 4px 0 0 hsl(var(--shadow-color) / 0.55);
+  --shadow: 6px 6px 0 0 hsl(var(--shadow-color) / 0.6);
+  --shadow-lg: 10px 10px 0 0 hsl(var(--shadow-color) / 0.6);
 }
 
 * {
@@ -501,4 +506,89 @@ a { color: hsl(var(--accent)); }
   .retro-icon-btn:hover {
     transform: none;
   }
+  [data-theme="dark"] body::before { animation: none; }
+  [data-theme="dark"] .retro-hero h1 { animation: none; }
+}
+
+/* ============================================================
+   NEON ARCADE overlay — only active in the dark (neon) theme.
+   Adds glow to the neobrutalist chrome so the index matches the
+   Neon Snake / Blocks / Memory games. Light theme is untouched.
+   ============================================================ */
+[data-theme="dark"] body {
+  background:
+    radial-gradient(ellipse 120% 80% at 50% -10%, hsl(230 60% 14% / 0.9), transparent 60%),
+    radial-gradient(ellipse 90% 60% at 50% 110%, hsl(300 60% 10% / 0.6), transparent 55%),
+    hsl(var(--background));
+  position: relative;
+}
+/* faint scrolling grid across the whole board */
+[data-theme="dark"] body::before {
+  content: "";
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image:
+    linear-gradient(hsl(190 90% 60% / 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, hsl(190 90% 60% / 0.05) 1px, transparent 1px);
+  background-size: 46px 46px;
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, #000 30%, transparent 85%);
+  animation: neon-grid 14s linear infinite;
+}
+[data-theme="dark"] .retro-shell { position: relative; z-index: 1; }
+@keyframes neon-grid { to { background-position: 0 46px, 46px 0; } }
+
+/* glowing headline */
+[data-theme="dark"] .retro-hero h1 {
+  color: hsl(190 30% 98%);
+  text-shadow:
+    0 0 8px hsl(var(--glow-cyan) / 0.55),
+    0 0 22px hsl(var(--glow-cyan) / 0.35);
+}
+[data-theme="dark"] .retro-eyebrow {
+  color: hsl(var(--glow-magenta));
+  text-shadow: 0 0 10px hsl(var(--glow-magenta) / 0.6);
+}
+
+/* cards: glowing cyan edge + magenta drop, brighter on hover */
+[data-theme="dark"] .retro-card,
+[data-theme="dark"] .retro-featured {
+  border-color: hsl(var(--glow-cyan) / 0.55);
+  box-shadow:
+    var(--shadow),
+    0 0 0 1px hsl(var(--glow-cyan) / 0.25) inset,
+    0 0 18px hsl(var(--glow-cyan) / 0.12);
+}
+[data-theme="dark"] .retro-card:hover,
+[data-theme="dark"] .retro-featured:hover {
+  border-color: hsl(var(--glow-cyan) / 0.9);
+  box-shadow:
+    var(--shadow-lg),
+    0 0 0 1px hsl(var(--glow-cyan) / 0.5) inset,
+    0 0 28px hsl(var(--glow-cyan) / 0.28);
+}
+[data-theme="dark"] .retro-card-media,
+[data-theme="dark"] .retro-featured .retro-card-media {
+  border-color: hsl(var(--glow-cyan) / 0.5);
+}
+
+/* buttons + chips glow */
+[data-theme="dark"] .retro-btn--primary {
+  box-shadow: var(--shadow-sm), 0 0 16px hsl(var(--glow-magenta) / 0.5);
+  text-shadow: 0 0 6px hsl(0 0% 0% / 0.3);
+}
+[data-theme="dark"] .retro-btn--primary:hover {
+  box-shadow: var(--shadow), 0 0 26px hsl(var(--glow-magenta) / 0.7);
+}
+[data-theme="dark"] .retro-chip {
+  border-color: hsl(var(--glow-cyan) / 0.4);
+  box-shadow: 0 0 10px hsl(var(--glow-cyan) / 0.12);
+}
+[data-theme="dark"] .retro-featured-badge {
+  color: hsl(var(--glow-magenta));
+  text-shadow: 0 0 10px hsl(var(--glow-magenta) / 0.6);
+}
+/* topbar + toggle sit on the glow board */
+[data-theme="dark"] .retro-topbar {
+  background: hsl(231 45% 8% / 0.85);
+  backdrop-filter: blur(8px);
+  border-bottom-color: hsl(var(--glow-cyan) / 0.4);
 }
