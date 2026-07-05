@@ -12,12 +12,21 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import dynamic from "next/dynamic"
 import { motion, AnimatePresence } from "framer-motion"
-import { ArrowLeft, X, Rotate3d } from "lucide-react"
+import { ArrowLeft, X, Rotate3d, Globe } from "lucide-react"
 import { CustomCursor } from "@/components/custom-cursor"
 import { StaticStarfield } from "@/components/universe-engine/static-starfield"
 import { BODIES } from "@/lib/celestial-data"
 import { SatelliteSearch } from "./satellite-search"
 import { selectedSatRef } from "@/components/universe-engine/satellite-field"
+import { hasGoogleEarthKey } from "@/components/universe-engine/google-earth-tiles"
+
+// The photoreal-Earth view pulls in the (heavy) 3D-tiles renderer. Lazy-load it
+// so that bundle only downloads when the user actually clicks "Descend to Earth"
+// — never on page load. Belt-and-braces with the opt-in mount for cost control.
+const GoogleEarthView = dynamic(
+  () => import("@/components/universe-engine/google-earth-tiles").then((m) => m.GoogleEarthView),
+  { ssr: false },
+)
 
 const UniverseEngine = dynamic(
   () => import("@/components/universe-engine").then((m) => m.UniverseEngine),
@@ -51,6 +60,16 @@ export function CelestialExplorer() {
   useEffect(() => {
     const t = setTimeout(() => setTitleVisible(false), 7000)
     return () => clearTimeout(t)
+  }, [])
+  // Photoreal-Earth (Google 3D Tiles) overlay — opt-in only, key-gated.
+  const [earthView, setEarthView] = useState(false)
+  // `?earth=1` auto-opens the photoreal view — for capture/testing + deep-links.
+  useEffect(() => {
+    try {
+      if (hasGoogleEarthKey && new URLSearchParams(window.location.search).has("earth")) {
+        setEarthView(true)
+      }
+    } catch { /* no window */ }
   }, [])
 
   // Pick a body: open its detail tile AND fly the engine camera to it (so
@@ -237,7 +256,28 @@ export function CelestialExplorer() {
             </motion.aside>
           )}
         </AnimatePresence>
+
+        {/* Descend to photoreal Earth — opt-in launch for Google's 3D Tiles.
+            Only rendered when the Map Tiles key is configured (hasGoogleEarthKey),
+            so a keyless build shows nothing + never touches the paid API. Loading
+            it is a deliberate click → protects the billing quota. */}
+        {hasGoogleEarthKey && !earthView && (
+          <button
+            type="button"
+            onClick={() => setEarthView(true)}
+            data-cursor-hover
+            aria-label="Descend to photoreal Earth"
+            className="absolute bottom-6 left-4 md:left-6 z-30 inline-flex items-center gap-2 rounded-full border border-accent/50 bg-background/60 px-4 py-2.5 font-mono text-[10px] tracking-widest uppercase text-foreground/85 backdrop-blur-sm transition-colors hover:border-accent hover:text-foreground"
+          >
+            <Globe className="h-3.5 w-3.5 text-accent" />
+            Descend to Earth
+          </button>
+        )}
       </main>
+
+      {/* Photoreal Earth overlay — mounts (and starts streaming tiles) only after
+          the click above; unmounts fully on exit so tiles stop. */}
+      {earthView && <GoogleEarthView onClose={() => setEarthView(false)} />}
     </>
   )
 }

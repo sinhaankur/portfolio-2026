@@ -16,6 +16,7 @@
     "test:dave": "node scripts/stress-dave.mjs"
   },
   "dependencies": {
+    "3d-tiles-renderer": "^0.4.28",
     "@anthropic-ai/sdk": "^0.98.0",
     "@chenglou/pretext": "0.0.8",
     "@react-three/drei": "^10.7.7",

@@ -42,7 +42,15 @@ jobs:
         run: pnpm install --frozen-lockfile=false
 
       - name: Build (Next.js static export)
+        # NEXT_PUBLIC_GOOGLE_MAPS_KEY is inlined into the client bundle at build
+        # time (Map Tiles API — photoreal Earth). Sourced from a repo secret so
+        # the raw key is never committed. The key is HTTP-referrer-restricted to
+        # www.sinhaankur.com in Google Cloud, so shipping it in the bundle is
+        # safe — it can't be used off-domain. If the secret is unset, the build
+        # still succeeds and the photoreal-Earth feature simply stays hidden.
         run: pnpm build
+        env:
+          NEXT_PUBLIC_GOOGLE_MAPS_KEY: ${{ secrets.NEXT_PUBLIC_GOOGLE_MAPS_KEY }}
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

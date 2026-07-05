@@ -1,76 +1,145 @@
 "use client"
 
 /**
- * GoogleEarthTiles — Phase 2 photoreal Earth descent.
+ * GoogleEarthView — Phase 2 photoreal Earth descent.
  *
- * Streams Google's **Photorealistic 3D Tiles** (Map Tiles API) into the R3F
- * scene so the user can descend from the GLSL space-view Earth down to a
- * street-level, real-world 3D globe (buildings, terrain, landmarks).
+ * A self-contained full-screen R3F view that streams Google's **Photorealistic
+ * 3D Tiles** (Map Tiles API) so the user can explore a real-world 3D Earth
+ * (buildings, terrain, landmarks) — the "street-level" leg beyond the GLSL
+ * space engine. Deliberately SEPARATE from the 7k-line scene.tsx: its own
+ * canvas, mounted only on explicit opt-in, so it can't destabilise the engine
+ * and — critically — costs nothing until the user asks for it.
  *
- * DEPENDENCIES (installed only once the key exists — see setup below):
- *   pnpm add 3d-tiles-renderer
- *
- * KEY (never committed):
- *   Put the Map Tiles API key in `.env.local` (gitignored) as
- *     NEXT_PUBLIC_GOOGLE_MAPS_KEY=AIza...
- *   Next inlines NEXT_PUBLIC_* at build time. On GitHub Pages the key is baked
- *   into the deployed bundle, and it's referrer-restricted to www.sinhaankur.com
- *   so a leaked bundle key can't be used off-domain.
- *
- * COST SAFETY: this component only mounts when the user explicitly clicks
- * "Descend to Earth" (see `active` prop). Idle visitors never load a tile, so
- * they never cost anything. The 3D Tiles API bills per session.
- *
- * STATUS: scaffold. The <TilesRenderer> wiring is stubbed until the key lands
- * (guarded by GOOGLE_MAPS_KEY). Everything else — the opt-in gate, the graceful
- * absent-key fallback, the mount lifecycle — is ready.
+ * COST SAFETY (the user's explicit constraint — stay inside the free credit):
+ *   1. OPT-IN: canvas + TilesRenderer mount only when this component renders,
+ *      which happens only after a deliberate "Descend to Earth" click. Idle
+ *      visitors never load a tile → $0.
+ *   2. HARD ZOOM CAP: GlobeControls.minDistance is raised well above street
+ *      level so people can see cities/landmarks but CANNOT keep diving in —
+ *      capping the depth caps how many high-detail tiles ever load.
+ *   3. HARD SESSION CAP: an auto-exit timer closes the view after
+ *      SESSION_LIMIT_MS, so a tab left open can't stream tiles forever.
+ *   4. Referrer-locked key: can't be used off www.sinhaankur.com even though
+ *      it ships in the bundle.
  */
 
-import { useEffect, useState } from "react"
+import { Suspense, useEffect, useRef, useState } from "react"
+import { Canvas } from "@react-three/fiber"
+import { TilesRenderer, TilesPlugin, GlobeControls, TilesAttributionOverlay } from "3d-tiles-renderer/r3f"
+import {
+  GoogleCloudAuthPlugin,
+  TileCompressionPlugin,
+  UpdateOnChangePlugin,
+  TilesFadePlugin,
+} from "3d-tiles-renderer/plugins"
+import { X } from "lucide-react"
 
-/** The Map Tiles API key, read from the build-time env. Empty string when the
- *  key hasn't been provided yet — every consumer checks `hasGoogleEarthKey`
- *  first so the whole feature is a no-op (and the UI hides) until it exists. */
+/** Map Tiles API key, inlined at build time. Empty until provided. */
 export const GOOGLE_MAPS_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY ?? ""
 export const hasGoogleEarthKey = GOOGLE_MAPS_KEY.length > 0
 
-// Google's Photorealistic 3D Tiles root tileset. The renderer appends the key.
-export const GOOGLE_3D_TILES_URL =
-  "https://tile.googleapis.com/v1/3dtiles/root.json"
+// --- Hard caps (cost control) -------------------------------------------------
+// Closest the camera may get to the surface, in metres. Street level is ~10 m
+// (the library default); we hold it at 600 m so you get a rich city/landmark
+// view but can't keep diving into ever-higher-detail tiles. Raise/lower to taste.
+const MIN_ZOOM_METERS = 600
+// Farthest out (metres) — keeps the whole session bounded near Earth.
+const MAX_ZOOM_METERS = 8_000_000
+// Auto-close the photoreal view after this long, so an idle open tab can't keep
+// streaming tiles (and billing) indefinitely.
+const SESSION_LIMIT_MS = 3 * 60 * 1000 // 3 minutes
 
 type Props = {
-  /** True once the user has opted in (clicked "Descend to Earth"). The tiles
-   *  only stream while this is true — protecting the billing quota. */
-  active: boolean
-  /** Lat/lon to frame on descent (defaults to a recognisable location). */
-  target?: { lat: number; lon: number }
+  /** Close the photoreal view + return to the GLSL space engine. */
+  onClose: () => void
 }
 
 /**
- * The actual tile-streaming layer. Currently a guarded stub: renders nothing
- * until the key is present AND the user has opted in. Once the key lands we
- * install `3d-tiles-renderer` and mount its <TilesRenderer> here, attaching the
- * Google session + the camera/controls from useThree().
+ * Full-screen photoreal Earth. Renders nothing (and never touches the API) when
+ * the key is absent — the parent also hides the launch button in that case.
  */
-export function GoogleEarthTiles({ active }: Props) {
-  const [ready, setReady] = useState(false)
+export function GoogleEarthView({ onClose }: Props) {
+  const [secondsLeft, setSecondsLeft] = useState(Math.round(SESSION_LIMIT_MS / 1000))
+  const closedRef = useRef(false)
 
+  // Hard session cap: count down, then auto-close. Guarded so we only fire once.
   useEffect(() => {
-    // Guard: do nothing without a key or without opt-in.
-    if (!hasGoogleEarthKey || !active) return
-    // --- WIRE HERE once `pnpm add 3d-tiles-renderer` is in: -----------------
-    // const { TilesRenderer } = await import("3d-tiles-renderer")
-    // const { GoogleCloudAuthPlugin, TilesFadePlugin } =
-    //   await import("3d-tiles-renderer/plugins")
-    // const tiles = new TilesRenderer(GOOGLE_3D_TILES_URL)
-    // tiles.registerPlugin(new GoogleCloudAuthPlugin({ apiToken: GOOGLE_MAPS_KEY }))
-    // tiles.setCamera(camera); tiles.setResolutionFromRenderer(camera, gl)
-    // scene.add(tiles.group); ...update per-frame in useFrame; dispose on cleanup.
-    setReady(true)
-    return () => setReady(false)
-  }, [active])
+    if (!hasGoogleEarthKey) return
+    const started = Date.now()
+    const id = window.setInterval(() => {
+      const remaining = Math.max(0, SESSION_LIMIT_MS - (Date.now() - started))
+      setSecondsLeft(Math.round(remaining / 1000))
+      if (remaining <= 0 && !closedRef.current) {
+        closedRef.current = true
+        window.clearInterval(id)
+        onClose()
+      }
+    }, 1000)
+    return () => window.clearInterval(id)
+  }, [onClose])
 
-  // Nothing to render yet (stub). Real tiles.group gets added imperatively above.
-  void ready
-  return null
+  if (!hasGoogleEarthKey) return null
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black">
+      <Canvas
+        camera={{ position: [0, 0, 0], near: 1, far: 160_000_000, fov: 60 }}
+        gl={{ antialias: true, logarithmicDepthBuffer: true }}
+        dpr={[1, 1.5]}
+      >
+        <color attach="background" args={["#05060c"]} />
+        <ambientLight intensity={1.1} />
+        <directionalLight position={[1, 1, 1]} intensity={1.4} />
+
+        <Suspense fallback={null}>
+          <TilesRenderer>
+            {/* Google auth — attaches the referrer-locked key + a session.
+                args is the plugin constructor's parameter tuple (one options obj). */}
+            <TilesPlugin
+              plugin={GoogleCloudAuthPlugin}
+              args={[{ apiToken: GOOGLE_MAPS_KEY, autoRefreshToken: true }]}
+            />
+            {/* Perf: decode compressed tiles, only update on camera change, and
+                fade LOD swaps so they don't pop. Fewer redundant tile loads. */}
+            <TilesPlugin plugin={TileCompressionPlugin} />
+            <TilesPlugin plugin={UpdateOnChangePlugin} />
+            <TilesPlugin plugin={TilesFadePlugin} />
+
+            {/* Globe controls with the HARD zoom caps — the core cost guard. */}
+            <GlobeControls
+              enableDamping
+              minDistance={MIN_ZOOM_METERS}
+              maxDistance={MAX_ZOOM_METERS}
+            />
+
+            {/* Google requires visible data attribution. */}
+            <TilesAttributionOverlay />
+          </TilesRenderer>
+        </Suspense>
+      </Canvas>
+
+      {/* Exit back to the space engine. */}
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Exit photoreal Earth"
+        className="absolute top-4 left-4 md:top-6 md:left-6 z-10 inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/50 px-3 py-2 font-mono text-[10px] tracking-widest uppercase text-white/85 backdrop-blur-sm transition-colors hover:text-white hover:border-white/40"
+      >
+        <X className="h-3.5 w-3.5" />
+        Exit · back to space
+      </button>
+
+      {/* Session countdown — honest about the auto-close cap. */}
+      <div className="pointer-events-none absolute top-4 right-4 md:top-6 md:right-6 z-10 rounded-full border border-white/15 bg-black/50 px-3 py-2 font-mono text-[10px] tracking-widest uppercase text-white/60 backdrop-blur-sm">
+        Session · {Math.floor(secondsLeft / 60)}:{String(secondsLeft % 60).padStart(2, "0")}
+      </div>
+
+      {/* Provenance chip. */}
+      <div className="pointer-events-none absolute bottom-4 right-4 z-10 max-w-[16rem] text-right">
+        <p className="font-mono text-[9px] tracking-widest uppercase text-white/45">
+          Photorealistic 3D Tiles · Google
+        </p>
+      </div>
+    </div>
+  )
 }
