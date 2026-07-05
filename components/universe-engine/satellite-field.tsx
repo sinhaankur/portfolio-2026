@@ -196,21 +196,39 @@ type SatRec = { inclo?: number; alta?: number; altp?: number; no?: number; ecco?
 const EARTH_RADIUS_KM = 6371
 const RECOMPUTE_MS = 250 // SGP4 refresh cadence (4 Hz)
 
-// Owner → colour palette (broad operator/nation groups).
-const OWNER_COLOR: Record<string, [number, number, number]> = {
-  US: [0.45, 0.7, 1.0],
-  PRC: [1.0, 0.5, 0.45],
-  CIS: [1.0, 0.8, 0.5],
-  UK: [0.6, 1.0, 0.7],
-  ESA: [0.8, 0.7, 1.0],
-  JPN: [1.0, 0.6, 0.8],
-  IND: [0.7, 1.0, 0.85],
-}
-const DEFAULT_COLOR: [number, number, number] = [0.7, 0.75, 0.85]
 // Debris + rocket bodies read as a hazard colour (dull red/amber), distinct from
-// the cooler operator palette — the LeoLabs-style "junk vs active" separation.
+// the altitude-band palette — the LeoLabs-style "junk vs active" separation.
 const DEBRIS_COLOR: [number, number, number] = [1.0, 0.42, 0.32]
 const RB_COLOR: [number, number, number] = [1.0, 0.62, 0.4]
+
+// Altitude-BAND palette — the real LeoLabs read: colour by orbital regime so the
+// shell has visible structure (a bright LEO band, a polar layer, the MEO nav
+// ring, the thin GEO belt) instead of a uniform operator-coloured haze. These
+// match the on-screen Satellites legend exactly.
+const BAND_LEO: [number, number, number]   = [0.62, 0.88, 1.0]   // #9fe0ff LEO
+const BAND_POLAR: [number, number, number] = [0.75, 0.92, 0.80]  // #bfeacb polar / sun-sync
+const BAND_MEO: [number, number, number]   = [1.0, 0.82, 0.48]   // #ffd27a MEO nav
+const BAND_GEO: [number, number, number]   = [1.0, 0.60, 0.42]   // #ff9a6b GEO belt
+
+/** Parse mean motion (rev/day) + inclination straight from TLE line 2, then
+ *  derive the orbit's altitude → pick an altitude-band colour. No propagation:
+ *  the elements are right there in the TLE, so this is cheap for all ~18k. */
+function bandColor(l2: string, type?: SatType): [number, number, number] {
+  if (type === "DEB") return DEBRIS_COLOR
+  if (type === "R/B") return RB_COLOR
+  const meanMotion = parseFloat(l2.substring(52, 63)) // rev/day
+  const inclDeg = parseFloat(l2.substring(8, 16))
+  if (!(meanMotion > 0)) return BAND_LEO
+  const nRadS = (meanMotion * 2 * Math.PI) / 86400
+  const MU = 398600.4418 // km^3/s^2
+  const aKm = Math.cbrt(MU / (nRadS * nRadS))
+  const altKm = aKm - EARTH_RADIUS_KM
+  if (altKm > 32000) return BAND_GEO
+  if (altKm > 8000) return BAND_MEO
+  // LEO: split polar / sun-sync (high inclination) from the equatorial-ish shell
+  if (inclDeg >= 80) return BAND_POLAR
+  return BAND_LEO
+}
 
 type SatType = "PAY" | "R/B" | "DEB"
 type Sat = { id: number; name: string; owner: string; type?: SatType; launchMs: number; l1: string; l2: string }
@@ -367,10 +385,9 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     const launch = new Float32Array(n)
     const isDeb = new Float32Array(n) // 1 = debris/rocket body → smaller in shader
     sats.forEach((s, i) => {
-      const c =
-        s.type === "DEB" ? DEBRIS_COLOR :
-        s.type === "R/B" ? RB_COLOR :
-        (OWNER_COLOR[s.owner] ?? DEFAULT_COLOR)
+      // Colour by ALTITUDE BAND (LeoLabs-style structure), not operator — so the
+      // LEO shell, polar layer, MEO nav ring and GEO belt are each legible.
+      const c = bandColor(s.l2, s.type)
       colors[i * 3] = c[0]; colors[i * 3 + 1] = c[1]; colors[i * 3 + 2] = c[2]
       isDeb[i] = (s.type === "DEB" || s.type === "R/B") ? 1 : 0
       // store launch as days-since-J2000 (small → exact in the float32 attribute)

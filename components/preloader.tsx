@@ -56,6 +56,9 @@ export function Intro() {
     let already = false
     try {
       already = sessionStorage.getItem(SESSION_KEY) === "1"
+      // Escape hatch: `?nointro` skips the ignition sequence — handy for
+      // deep-linking straight into a page (and for automated capture/testing).
+      if (new URLSearchParams(window.location.search).has("nointro")) already = true
     } catch {
       already = false
     }
