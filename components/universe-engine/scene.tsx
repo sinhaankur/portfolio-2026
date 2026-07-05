@@ -138,6 +138,79 @@ const CORONA_FRAGMENT_SHADER = `
 `
 
 /* ============================================================
+ * Photosphere shader — a LIVING Sun surface, procedurally.
+ *
+ * Replaces the flat stretched sun.webp (which read as hard blocky
+ * patches) with animated 3D value-noise FBM on the sphere: bright
+ * convection granules separated by darker network lanes, slow
+ * turbulent drift, occasional darker sunspot pooling, plus classic
+ * limb darkening (the disc edge is cooler/dimmer than centre). Pure
+ * GLSL, no texture file — matches the engine's GLSL-first standard
+ * and never looks pixelated at any zoom.
+ * ============================================================ */
+const SUN_SURFACE_VERTEX_SHADER = `
+  varying vec3 vPos;
+  varying vec3 vWorldNormal;
+  varying vec3 vViewDir;
+  void main() {
+    vPos = position;                       // unit-sphere position → noise domain
+    vec4 worldPos = modelMatrix * vec4(position, 1.0);
+    vWorldNormal = normalize(mat3(modelMatrix) * normal);
+    vViewDir = normalize(cameraPosition - worldPos.xyz);
+    gl_Position = projectionMatrix * viewMatrix * worldPos;
+  }
+`
+const SUN_SURFACE_FRAGMENT_SHADER = `
+  precision highp float;
+  varying vec3 vPos;
+  varying vec3 vWorldNormal;
+  varying vec3 vViewDir;
+  uniform float uTime;
+  uniform vec3  uCool;   // granule lane / cooler tone
+  uniform vec3  uWarm;   // granule core / hotter tone
+  uniform vec3  uHot;    // brightest network flash
+  uniform float uIntensity;
+
+  // 3D value noise + FBM (cheap, seam-free on a sphere since it samples 3D pos).
+  float hash(vec3 p){ p = fract(p*0.3183099+0.1); p*=17.0; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
+  float vnoise(vec3 p){
+    vec3 i=floor(p), f=fract(p);
+    f=f*f*(3.0-2.0*f);
+    return mix(mix(mix(hash(i+vec3(0,0,0)),hash(i+vec3(1,0,0)),f.x),
+                   mix(hash(i+vec3(0,1,0)),hash(i+vec3(1,1,0)),f.x),f.y),
+               mix(mix(hash(i+vec3(0,0,1)),hash(i+vec3(1,0,1)),f.x),
+                   mix(hash(i+vec3(0,1,1)),hash(i+vec3(1,1,1)),f.x),f.y),f.z);
+  }
+  float fbm(vec3 p){
+    float v=0.0, a=0.5;
+    for(int i=0;i<6;i++){ v+=a*vnoise(p); p=p*2.02+vec3(11.3,7.1,3.7); a*=0.5; }
+    return v;
+  }
+  void main() {
+    vec3 p = normalize(vPos);
+    float t = uTime * 0.06;
+    // Two noise scales: fine granulation + a slow domain warp so cells churn.
+    vec3 warp = vec3(fbm(p*3.0 + t), fbm(p*3.0 + 5.2), fbm(p*3.0 - 2.4)) - 0.5;
+    float gran = fbm(p*14.0 + warp*1.5 + vec3(0.0, t*1.3, 0.0));    // convection cells
+    float lanes = fbm(p*7.0 - warp + vec3(t*0.4));                  // supergranule network
+    // Combine: bright granule interiors, darker intergranular lanes.
+    float cell = smoothstep(0.35, 0.75, gran);
+    float lane = smoothstep(0.30, 0.60, lanes);
+    vec3 col = mix(uCool, uWarm, cell);
+    col = mix(col, uHot, pow(cell, 3.0) * 0.7);            // hot network flashes
+    col *= mix(0.72, 1.0, lane);                            // sink the lanes
+    // Occasional sunspot: rare dark pooling where low-freq noise dips.
+    float spot = smoothstep(0.16, 0.05, fbm(p*2.2 + 3.0));
+    col = mix(col, uCool*0.35, spot*0.8);
+    // Limb darkening — the classic dimming toward the disc edge.
+    float mu = clamp(abs(dot(vWorldNormal, vViewDir)), 0.0, 1.0);
+    float limb = 0.45 + 0.55 * pow(mu, 0.55);
+    col *= limb;
+    gl_FragColor = vec4(col * uIntensity, 1.0);
+  }
+`
+
+/* ============================================================
  * Day / night shader — currently scoped to Earth.
  *
  * Lambert dot(normal, sunDir) drives a smooth terminator between the
@@ -3773,14 +3846,30 @@ function SolarSystem({
   mobile?: boolean
   solarOnly?: boolean
 }) {
-  const sunRef = useRef<Mesh>(null)
   const coronaRef = useRef<Mesh>(null)
-  const sunTexMeshRef = useRef<Mesh>(null)
-  const sunTexMatRef = useRef<import("three").MeshStandardMaterial>(null)
+  const sunSurfMeshRef = useRef<Mesh>(null)
+  const sunSurfMatRef = useRef<ShaderMaterial>(null)
   const coronaInnerMatRef = useRef<ShaderMaterial>(null)
   const coronaOuterMatRef = useRef<ShaderMaterial>(null)
   const [sunHovered, setSunHovered] = useState(false)
-  const [sunTexture, setSunTexture] = useState<Texture | null>(null)
+  // Procedural photosphere uniforms — warm solar palette (chart mode goes amber).
+  const sunSurfUniforms = useMemo(
+    () => ({
+      uTime: { value: 0 },
+      uCool: { value: new Color(invert ? "#8a3a12" : "#e0641e") },
+      uWarm: { value: new Color(invert ? "#c9662a" : "#ffb14a") },
+      uHot:  { value: new Color(invert ? "#e8b070" : "#fff2c8") },
+      uIntensity: { value: invert ? 0.9 : 1.35 },
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  )
+  useEffect(() => {
+    sunSurfUniforms.uCool.value.set(invert ? "#8a3a12" : "#e0641e")
+    sunSurfUniforms.uWarm.value.set(invert ? "#c9662a" : "#ffb14a")
+    sunSurfUniforms.uHot.value.set(invert ? "#e8b070" : "#fff2c8")
+    sunSurfUniforms.uIntensity.value = invert ? 0.9 : 1.35
+  }, [invert, sunSurfUniforms])
   // Chunky belt-rock GLBs (2.7 MB) stream in the first time the user enters
   // explore mode — at passive-backdrop distances the point-cloud belts carry
   // the look, so the rocks aren't missed. Sticky: once loaded, keep them
@@ -3795,33 +3884,18 @@ function SolarSystem({
     [],
   )
 
-  // Eagerly load the Solar System Scope Sun texture on mount — the Sun is
-  // the centre of the scene, so its detailed view shouldn't be gated on
-  // hover. Fades in via the opacity lerp below as soon as it lands.
-  useEffect(() => {
-    if (sunTexture) return
-    const loader = new TextureLoader()
-    loader.load("/textures/sun.webp", (tex) => {
-      tex.colorSpace = SRGBColorSpace
-      tex.anisotropy = 4
-      setSunTexture(tex)
-    })
-  }, [sunTexture])
-
   useFrame((_, delta) => {
     const tw = timeWarpRef.current
-    if (sunRef.current) sunRef.current.rotation.y += delta * sunRotSpeed * tw
-    if (sunTexMeshRef.current) sunTexMeshRef.current.rotation.y += delta * sunRotSpeed * tw
+    if (sunSurfMeshRef.current) sunSurfMeshRef.current.rotation.y += delta * sunRotSpeed * tw
     if (coronaRef.current) {
       const s = 1 + Math.sin(performance.now() * 0.0008) * 0.025
       coronaRef.current.scale.set(s, s, s)
     }
-    // Texture is always-on — fades in once it lands, then stays at full
-    // opacity. Hover still drives the corona flare below.
-    if (sunTexMatRef.current) {
-      const k = 1 - Math.exp(-delta * 7)
-      const target = sunTexture ? 1 : 0
-      sunTexMatRef.current.opacity += (target - sunTexMatRef.current.opacity) * k
+    // Advance the procedural photosphere (granulation churn). Runs at real time,
+    // not warped, so the surface simmers at a natural pace regardless of the
+    // orbital time-warp.
+    if (sunSurfMatRef.current) {
+      sunSurfMatRef.current.uniforms.uTime.value += delta
     }
     const flareBoost = sunHovered ? 1 : 0
     const k = 1 - Math.exp(-delta * 6)
@@ -3841,13 +3915,9 @@ function SolarSystem({
     }
   })
 
-  // Chart-mode Sun: a warm-amber disc ringed by a thin halo (like a printed
-  // sun stamp on an old star map) instead of the glowing white sphere.
-  // Lighting drops to almost ambient — planets get most of their colour from
-  // the scene's ambientLight when invert is on.
-  const sunBodyColor = invert ? "#c95824" : "#ffffff"
-  const sunEmissive = invert ? "#7a3a16" : "#ffffff"
-  const sunEmissiveIntensity = invert ? 0.0 : 1.6
+  // Chart-mode Sun: the procedural photosphere shifts to amber via its uniforms
+  // (see sunSurfUniforms). Lighting drops to almost ambient — planets get most
+  // of their colour from the scene's ambientLight when invert is on.
   const coronaBlending = invert ? NormalBlending : AdditiveBlending
   // Peak Fresnel intensities — the shader bakes in radial falloff, so
   // these are the *limb-edge* brightness ceilings, not flat-disc opacities.
@@ -3884,34 +3954,21 @@ function SolarSystem({
 
   return (
     <group>
-      <mesh ref={sunRef}>
-        <sphereGeometry args={[0.7, 64, 64]} />
-        <meshStandardMaterial
-          color={sunBodyColor}
-          emissive={sunEmissive}
-          emissiveIntensity={sunEmissiveIntensity}
+      {/* Procedural photosphere — a living, seam-free Sun surface (animated
+          granulation + limb darkening) replacing the old stretched sun.webp
+          that read as hard blocky patches. Higher-poly sphere so the silhouette
+          is smooth at close focus. The old flat base sphere is gone: this shader
+          renders the full lit disc itself. */}
+      <mesh ref={sunSurfMeshRef}>
+        <sphereGeometry args={[0.705, 128, 128]} />
+        <shaderMaterial
+          ref={sunSurfMatRef as React.Ref<ShaderMaterial>}
+          vertexShader={SUN_SURFACE_VERTEX_SHADER}
+          fragmentShader={SUN_SURFACE_FRAGMENT_SHADER}
+          uniforms={sunSurfUniforms}
           toneMapped={false}
         />
       </mesh>
-      {/* Textured Sun layer — Solar System Scope Sol photo, fades in on hover
-          over the abstract glowing sphere. Slightly larger so it doesn't
-          z-fight with the base sphere. */}
-      {sunTexture && (
-        <mesh ref={sunTexMeshRef}>
-          <sphereGeometry args={[0.705, 64, 64]} />
-          <meshStandardMaterial
-            ref={sunTexMatRef as React.Ref<import("three").MeshStandardMaterial>}
-            map={sunTexture}
-            emissiveMap={sunTexture}
-            emissive="#ffffff"
-            emissiveIntensity={invert ? 0.6 : 1.4}
-            toneMapped={false}
-            transparent
-            opacity={0}
-            depthWrite={false}
-          />
-        </mesh>
-      )}
       {/* Inner corona — tight bright limb glow. Power 3.0 keeps the
           alpha concentrated near the silhouette so it reads as a
           chromosphere-style halo wrapping the Sun. */}
