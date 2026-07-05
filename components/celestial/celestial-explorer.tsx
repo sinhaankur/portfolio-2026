@@ -12,7 +12,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import dynamic from "next/dynamic"
 import { motion, AnimatePresence } from "framer-motion"
-import { ArrowLeft, X, Rotate3d, Globe, Satellite, Sparkles } from "lucide-react"
+import { ArrowLeft, X, Rotate3d, Globe, Satellite, Sparkles, Rocket } from "lucide-react"
 import { CustomCursor } from "@/components/custom-cursor"
 import { StaticStarfield } from "@/components/universe-engine/static-starfield"
 import { BODIES } from "@/lib/celestial-data"
@@ -45,6 +45,12 @@ const OverheadPasses = dynamic(
 // Live space-weather + aurora panel (NOAA SWPC).
 const SpaceWeatherPanel = dynamic(
   () => import("./space-weather-panel").then((m) => m.SpaceWeatherPanel),
+  { ssr: false },
+)
+
+// Live launch feed (Launch Library 2).
+const LaunchFeed = dynamic(
+  () => import("./launch-feed").then((m) => m.LaunchFeed),
   { ssr: false },
 )
 
@@ -89,6 +95,12 @@ export function CelestialExplorer() {
   const [passesOpen, setPassesOpen] = useState(false)
   // Live space-weather + aurora panel.
   const [weatherOpen, setWeatherOpen] = useState(false)
+  // Live launch feed.
+  const [launchesOpen, setLaunchesOpen] = useState(false)
+  // The feature-launcher menu (collapses all the tools into one chip so the
+  // bottom-left doesn't stack 5+ buttons on mobile).
+  const [menuOpen, setMenuOpen] = useState(false)
+  const closePanels = () => { setPassesOpen(false); setWeatherOpen(false); setLaunchesOpen(false) }
   // `?earth=1` auto-opens the photoreal view — for capture/testing + deep-links.
   useEffect(() => {
     try {
@@ -297,58 +309,50 @@ export function CelestialExplorer() {
           )}
         </AnimatePresence>
 
-        {/* Descend to photoreal Earth — opt-in launch for Google's 3D Tiles.
-            Only rendered when the Map Tiles key is configured (hasGoogleEarthKey),
-            so a keyless build shows nothing + never touches the paid API. Loading
-            it is a deliberate click → protects the billing quota. */}
+        {/* Feature launcher — a single "Explore" chip that expands to the tools,
+            so the bottom-left never stacks 5+ buttons (mobile-first). Panels open
+            above it. Each tool is a deliberate click (Earth tiles stay key-gated
+            + cost-protected). */}
         {!earthView && !marsView && (
-          <div className="absolute bottom-6 left-4 md:left-6 z-30 flex flex-col gap-2">
-            {hasGoogleEarthKey && (
-              <button
-                type="button"
-                onClick={() => setEarthView(true)}
-                data-cursor-hover
-                aria-label="Descend to photoreal Earth"
-                className="inline-flex items-center gap-2 rounded-full border border-accent/50 bg-background/60 px-4 py-2.5 font-mono text-[10px] tracking-widest uppercase text-foreground/85 backdrop-blur-sm transition-colors hover:border-accent hover:text-foreground"
-              >
-                <Globe className="h-3.5 w-3.5 text-accent" />
-                Descend to Earth
-              </button>
-            )}
+          <div className="absolute bottom-6 left-4 md:left-6 z-30 flex flex-col items-start gap-2">
+            <AnimatePresence>
+              {menuOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 8 }}
+                  className="flex flex-col gap-1.5"
+                >
+                  {hasGoogleEarthKey && (
+                    <MenuItem color="var(--accent)" icon={<Globe className="h-3.5 w-3.5" />}
+                      label="Descend to Earth" onClick={() => { closePanels(); setEarthView(true) }} />
+                  )}
+                  <MenuItem color="#ff9a6b" icon={<Globe className="h-3.5 w-3.5" />}
+                    label="Mars · what we've seen" onClick={() => { closePanels(); setMarsView(true) }} />
+                  <MenuItem color="var(--accent)" icon={<Satellite className="h-3.5 w-3.5" />}
+                    label="ISS over you" onClick={() => { closePanels(); setPassesOpen(true) }} />
+                  <MenuItem color="#7affd0" icon={<Sparkles className="h-3.5 w-3.5" />}
+                    label="Space weather · aurora" onClick={() => { closePanels(); setWeatherOpen(true) }} />
+                  <MenuItem color="#ffd27a" icon={<Rocket className="h-3.5 w-3.5" />}
+                    label="Launches" onClick={() => { closePanels(); setLaunchesOpen(true) }} />
+                </motion.div>
+              )}
+            </AnimatePresence>
             <button
               type="button"
-              onClick={() => setMarsView(true)}
+              onClick={() => setMenuOpen((v) => !v)}
               data-cursor-hover
-              aria-label="Open the Mars coverage map"
-              className="inline-flex items-center gap-2 rounded-full border border-[#ff9a6b]/50 bg-background/60 px-4 py-2.5 font-mono text-[10px] tracking-widest uppercase text-foreground/85 backdrop-blur-sm transition-colors hover:border-[#ff9a6b] hover:text-foreground"
+              aria-expanded={menuOpen}
+              aria-label="Explore tools"
+              className="inline-flex items-center gap-2 rounded-full border border-border bg-background/70 px-4 py-2.5 font-mono text-[10px] tracking-widest uppercase text-foreground/90 backdrop-blur-sm transition-colors hover:border-foreground/40"
             >
-              <Globe className="h-3.5 w-3.5 text-[#ff9a6b]" />
-              Mars · what we&apos;ve seen
-            </button>
-            <button
-              type="button"
-              onClick={() => { setPassesOpen((v) => !v); setWeatherOpen(false) }}
-              data-cursor-hover
-              aria-label="ISS passes over your location"
-              className="inline-flex items-center gap-2 rounded-full border border-accent/50 bg-background/60 px-4 py-2.5 font-mono text-[10px] tracking-widest uppercase text-foreground/85 backdrop-blur-sm transition-colors hover:border-accent hover:text-foreground"
-            >
-              <Satellite className="h-3.5 w-3.5 text-accent" />
-              ISS over you
-            </button>
-            <button
-              type="button"
-              onClick={() => { setWeatherOpen((v) => !v); setPassesOpen(false) }}
-              data-cursor-hover
-              aria-label="Live space weather and aurora forecast"
-              className="inline-flex items-center gap-2 rounded-full border border-[#7affd0]/50 bg-background/60 px-4 py-2.5 font-mono text-[10px] tracking-widest uppercase text-foreground/85 backdrop-blur-sm transition-colors hover:border-[#7affd0] hover:text-foreground"
-            >
-              <Sparkles className="h-3.5 w-3.5 text-[#7affd0]" />
-              Space weather · aurora
+              <span className={`transition-transform ${menuOpen ? "rotate-45" : ""}`}>✦</span>
+              {menuOpen ? "Close" : "Explore"}
             </button>
           </div>
         )}
 
-        {/* Bottom-left panels — passes / space weather (mutually exclusive). */}
+        {/* Bottom-left panels — passes / space weather / launches (exclusive). */}
         <AnimatePresence>
           {passesOpen && (
             <div className="absolute bottom-24 left-4 md:left-6 z-40">
@@ -358,6 +362,11 @@ export function CelestialExplorer() {
           {weatherOpen && (
             <div className="absolute bottom-24 left-4 md:left-6 z-40">
               <SpaceWeatherPanel onClose={() => setWeatherOpen(false)} />
+            </div>
+          )}
+          {launchesOpen && (
+            <div className="absolute bottom-24 left-4 md:left-6 z-40">
+              <LaunchFeed onClose={() => setLaunchesOpen(false)} />
             </div>
           )}
         </AnimatePresence>
@@ -370,5 +379,22 @@ export function CelestialExplorer() {
       {/* Mars coverage map — real MOLA globe + rover-site panoramas. */}
       {marsView && <MarsCoverage onClose={() => setMarsView(false)} />}
     </>
+  )
+}
+
+/** One item in the Explore launcher menu. */
+function MenuItem({ color, icon, label, onClick }: { color: string; icon: React.ReactNode; label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      data-cursor-hover
+      aria-label={label}
+      className="inline-flex items-center gap-2 rounded-full border bg-background/70 px-4 py-2.5 font-mono text-[10px] tracking-widest uppercase text-foreground/85 backdrop-blur-sm transition-colors hover:text-foreground"
+      style={{ borderColor: `color-mix(in srgb, ${color} 45%, transparent)` }}
+    >
+      <span style={{ color }}>{icon}</span>
+      {label}
+    </button>
   )
 }
