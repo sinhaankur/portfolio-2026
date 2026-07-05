@@ -309,6 +309,11 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
   const pointsRef = useRef<THREE.Points>(null)
   const matRef = useRef<THREE.ShaderMaterial>(null)
   const lastCompute = useRef(0)
+  // SAT-2: prev/next SGP4 position buffers. SGP4 runs at 4 Hz (expensive), but we
+  // LERP the live `position` attribute between prev→next every frame so the swarm
+  // glides smoothly along its orbits instead of stepping every 250 ms.
+  const prevPos = useRef<Float32Array | null>(null)
+  const nextPos = useRef<Float32Array | null>(null)
   // scene units per km, so satellite altitudes sit just above Earth's sphere
   const kmToScene = earthVisualRadius / EARTH_RADIUS_KM
 
@@ -425,6 +430,20 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     if (matRef.current) matRef.current.uniforms.uIsolate.value = isolated ? 1 : 0
 
     const now = performance.now()
+
+    // SAT-2: per-frame interpolation. Every frame (not just on the 4 Hz SGP4
+    // step) we lerp the live positions from prevPos→nextPos by how far we are
+    // through the current 250 ms window, so the swarm moves continuously. Skipped
+    // while isolated (the swarm is hidden) or before the first SGP4 fill.
+    if (!isolated && prevPos.current && nextPos.current) {
+      const pos = geometry.getAttribute("position") as THREE.BufferAttribute
+      const arr = pos.array as Float32Array
+      const t = Math.min(1, (now - lastCompute.current) / RECOMPUTE_MS)
+      const a = prevPos.current, b = nextPos.current
+      for (let i = 0; i < arr.length; i++) arr[i] = a[i] + (b[i] - a[i]) * t
+      pos.needsUpdate = true
+    }
+
     if (now - lastCompute.current < RECOMPUTE_MS) return
     lastCompute.current = now
 
@@ -464,21 +483,34 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     }
 
     if (!isolated) {
-      // swarm view: propagate every satellite (throttled to 4 Hz)
+      // swarm view: propagate every satellite (throttled to 4 Hz) into the NEXT
+      // buffer; the previous NEXT becomes PREV so the per-frame lerp above glides
+      // prev→next. First run seeds both buffers to the same positions (no jump).
+      const n = recs.length * 3
+      const firstFill = !nextPos.current || nextPos.current.length !== n
+      if (firstFill) {
+        nextPos.current = new Float32Array(n)
+        prevPos.current = new Float32Array(n)
+      }
+      // roll next → prev (start of a new 250 ms segment)
+      prevPos.current!.set(nextPos.current!)
+      const nx = nextPos.current!
       for (let i = 0; i < recs.length; i++) {
         const rec = recs[i]
-        if (!rec) continue
+        if (!rec) { nx[i * 3] = 0; nx[i * 3 + 1] = 0; nx[i * 3 + 2] = 0; continue }
         let r: { position?: { x: number; y: number; z: number } } | false = false
         try { r = lib.propagate(rec, date) } catch { r = false }
         const p = r && r.position
-        if (!p) { arr[i * 3] = 0; arr[i * 3 + 1] = 0; arr[i * 3 + 2] = 0; continue }
+        if (!p) { nx[i * 3] = 0; nx[i * 3 + 1] = 0; nx[i * 3 + 2] = 0; continue }
         // ECI km → scene units. Map ECI (x,y,z) to scene (x, z, -y) so the orbital
         // plane sits around Earth's equator in scene space.
-        arr[i * 3] = p.x * kmToScene
-        arr[i * 3 + 1] = p.z * kmToScene
-        arr[i * 3 + 2] = -p.y * kmToScene
+        nx[i * 3] = p.x * kmToScene
+        nx[i * 3 + 1] = p.z * kmToScene
+        nx[i * 3 + 2] = -p.y * kmToScene
       }
-      pos.needsUpdate = true
+      // seed prev==next on the very first fill so the swarm doesn't animate in
+      // from the origin before the first interpolation window.
+      if (firstFill) prevPos.current!.set(nx)
     }
 
     // --- selected satellite: position the GLB marker, orient it, follow, orbit ---
