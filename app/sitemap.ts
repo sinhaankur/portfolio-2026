@@ -33,6 +33,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/lab/universe-assistant", priority: 0.6, changeFrequency: "monthly" },
     { path: "/lab/helion-drift",  priority: 0.6, changeFrequency: "monthly" },
     { path: "/skills",            priority: 0.7, changeFrequency: "monthly" },
+    { path: "/writing",           priority: 0.7, changeFrequency: "weekly"  },
+    { path: "/writing/universe-engine", priority: 0.7, changeFrequency: "monthly" },
     { path: "/usability",         priority: 0.6, changeFrequency: "monthly" },
     { path: "/upcoming",          priority: 0.5, changeFrequency: "weekly"  },
     { path: "/ar",                priority: 0.6, changeFrequency: "monthly" },

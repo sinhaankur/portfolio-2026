@@ -44,14 +44,14 @@ export function Intro() {
   const engineReadyRef = useRef(false)
   const raf = useRef<number | null>(null)
 
-  // The cosmic-ignition intro belongs to the site entry, not the arcade: a
-  // direct hit on a /games/* page should drop straight into the game (each game
-  // has its own fade-in). We don't mark the session either, so the full intro
-  // still plays if the visitor later lands on the home experience.
-  const isGameRoute = pathname?.startsWith("/games")
+  // The cosmic-ignition intro belongs to the site entry, not the arcade or the
+  // blog: a direct hit on /games/* or /writing/* should drop straight to content
+  // (a reader wants the words, not a 6-second space preamble). We don't mark the
+  // session, so the full intro still plays if they later land on the home page.
+  const skipIntroRoute = pathname?.startsWith("/games") || pathname?.startsWith("/writing")
 
   useEffect(() => {
-    if (isGameRoute) return
+    if (skipIntroRoute) return
     setMounted(true)
     let already = false
     try {
@@ -114,7 +114,7 @@ export function Intro() {
       window.removeEventListener("universe-ready", onReady)
       if (raf.current) cancelAnimationFrame(raf.current)
     }
-  }, [prefersReducedMotion, isGameRoute])
+  }, [prefersReducedMotion, skipIntroRoute])
 
   // Lock scroll while the curtain is up.
   useEffect(() => {
