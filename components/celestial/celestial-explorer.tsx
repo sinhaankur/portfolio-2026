@@ -18,6 +18,7 @@ import { StaticStarfield } from "@/components/universe-engine/static-starfield"
 import { BODIES } from "@/lib/celestial-data"
 import { SatelliteSearch } from "./satellite-search"
 import { selectedSatRef } from "@/components/universe-engine/satellite-field"
+import { setSimMs } from "@/components/universe-engine/astronomy"
 import { hasGoogleEarthKey } from "@/components/universe-engine/google-earth-tiles"
 
 // The photoreal-Earth view pulls in the (heavy) 3D-tiles renderer. Lazy-load it
@@ -69,6 +70,15 @@ export function CelestialExplorer() {
       if (hasGoogleEarthKey && new URLSearchParams(window.location.search).has("earth")) {
         setEarthView(true)
       }
+    } catch { /* no window */ }
+  }, [])
+
+  // `?simyear=YYYY` jumps the sim clock to that year — testing the launch-gating
+  // of satellites (they should vanish before their real launch date).
+  useEffect(() => {
+    try {
+      const y = new URLSearchParams(window.location.search).get("simyear")
+      if (y) setSimMs(Date.UTC(parseInt(y, 10), 0, 1))
     } catch { /* no window */ }
   }, [])
 

@@ -43,8 +43,9 @@ export const hasGoogleEarthKey = GOOGLE_MAPS_KEY.length > 0
 // (the library default); we hold it at 600 m so you get a rich city/landmark
 // view but can't keep diving into ever-higher-detail tiles. Raise/lower to taste.
 const MIN_ZOOM_METERS = 600
-// Farthest out (metres) — keeps the whole session bounded near Earth.
-const MAX_ZOOM_METERS = 8_000_000
+// Farthest out (metres) — the initial vantage sits within this so the controls
+// don't immediately yank the camera inward. ~25,000 km frames the whole globe.
+const MAX_ZOOM_METERS = 25_000_000
 // Auto-close the photoreal view after this long, so an idle open tab can't keep
 // streaming tiles (and billing) indefinitely.
 const SESSION_LIMIT_MS = 3 * 60 * 1000 // 3 minutes
@@ -83,7 +84,11 @@ export function GoogleEarthView({ onClose }: Props) {
   return (
     <div className="fixed inset-0 z-50 bg-black">
       <Canvas
-        camera={{ position: [0, 0, 0], near: 1, far: 160_000_000, fov: 60 }}
+        // Google's tiles are Earth-CENTERED (globe at the origin, radius
+        // ~6,378 km). Start the camera WELL OUTSIDE the planet — ~20,000 km up —
+        // or it spawns inside the core and renders black. GlobeControls then
+        // frames + lets the user orbit/descend from there.
+        camera={{ position: [0, 0, 18_000_000], near: 100, far: 160_000_000, fov: 60 }}
         gl={{ antialias: true, logarithmicDepthBuffer: true }}
         dpr={[1, 1.5]}
       >

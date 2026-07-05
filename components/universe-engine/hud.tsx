@@ -434,12 +434,28 @@ function speedLabel(s: number): string {
   return `${s}×`
 }
 
+// Short local timezone abbreviation (e.g. "EDT", "IST", "GMT+8") from the
+// browser — so the readout is anchored to the USER's actual location/timezone
+// rather than a hard-coded UTC. Falls back to "UTC" where unavailable (SSR).
+function localTzAbbrev(d: Date): string {
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", { timeZoneName: "short" }).formatToParts(d)
+    return parts.find((p) => p.type === "timeZoneName")?.value ?? "UTC"
+  } catch {
+    return "UTC"
+  }
+}
+
 function formatSimDate(ms: number): { date: string; time: string } {
   const d = new Date(ms)
-  const month = d.toLocaleString("en-US", { month: "short", timeZone: "UTC" }).toUpperCase()
-  const day = String(d.getUTCDate()).padStart(2, "0")
-  const time = `${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")} UTC`
-  return { date: `${month} ${day} · ${d.getUTCFullYear()}`, time }
+  // Local-time readout: the scene runs at the user's real "now", so show it in
+  // THEIR timezone (detected from the browser), not UTC.
+  const month = d.toLocaleString("en-US", { month: "short" }).toUpperCase()
+  const day = String(d.getDate()).padStart(2, "0")
+  const hh = String(d.getHours()).padStart(2, "0")
+  const mm = String(d.getMinutes()).padStart(2, "0")
+  const time = `${hh}:${mm} ${localTzAbbrev(d)}`
+  return { date: `${month} ${day} · ${d.getFullYear()}`, time }
 }
 
 /**

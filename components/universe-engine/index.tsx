@@ -55,6 +55,8 @@ import {
   satellitesVisibleRef,
   scaleModeRef,
   timeScaleRef,
+  REALTIME_TIME_SCALE,
+  setSimMs,
 } from "./astronomy"
 import { SceneContents } from "./scene"
 import { CloudToggle, DeepDiveToggle, DestinationsMenu, GravityToggle, InfoPanel, ResetViewButton, SatelliteGroupChips, SatelliteToggle, ScaleToggle, TimelineControl } from "./hud"
@@ -116,11 +118,16 @@ export function UniverseEngine({
   if (typeof window !== "undefined" && defaultTrueScale) {
     scaleModeRef.current = "true"
   }
-  // Calm, slow drift for the solar-only explorer; restore on unmount so the
-  // home hero keeps its normal pace.
+  // The solar-only explorer runs at the user's REAL current time — 1 real second
+  // = 1 real second — so it opens anchored to "now" and bodies + satellites drift
+  // at their true pace instead of racing (the old 0.12 scale still advanced ~1.8
+  // days/sec). Restore normal pace on unmount so the home hero keeps its lively
+  // 24-second-orbit feel. The TimelineControl scrubber still lets users
+  // fast-forward whenever they want.
   useEffect(() => {
     if (!solarOnly) return
-    timeScaleRef.current = 0.12
+    setSimMs(Date.now())               // anchor to the user's actual current instant
+    timeScaleRef.current = REALTIME_TIME_SCALE
     return () => {
       timeScaleRef.current = 1.0
     }

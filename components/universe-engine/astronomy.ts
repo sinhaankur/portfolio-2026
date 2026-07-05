@@ -69,6 +69,17 @@ export const timeWarpRef = { current: 1.0 }
  */
 export const timeScaleRef = { current: 1.0 }
 
+/**
+ * timeScale that makes the sim clock advance at REAL wall-clock rate: one real
+ * second = one real second of sim time. Anchors the scene to the user's actual
+ * "now" so bodies + satellites drift at their true pace instead of racing.
+ *
+ * SceneClock does: simMs += dt · TIME_WARP_DAYS_PER_SEC · warp · scale · 86_400_000.
+ * For real-time we need that to equal dt · 1000 (ms per real second), so
+ *   scale = 1000 / (TIME_WARP_DAYS_PER_SEC · 86_400_000).
+ */
+export const REALTIME_TIME_SCALE = 1000 / (TIME_WARP_DAYS_PER_SEC * 86_400_000)
+
 /* Cloud-layer visibility — module-scoped so the HUD toggle can flip it
  * without prop-drilling through the R3F tree (same pattern as timeWarpRef).
  * Earth's procedural cloud shell reads this each frame and fades accordingly.
