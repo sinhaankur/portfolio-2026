@@ -12,7 +12,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import dynamic from "next/dynamic"
 import { motion, AnimatePresence } from "framer-motion"
-import { ArrowLeft, X, Rotate3d, Globe, Satellite } from "lucide-react"
+import { ArrowLeft, X, Rotate3d, Globe, Satellite, Sparkles } from "lucide-react"
 import { CustomCursor } from "@/components/custom-cursor"
 import { StaticStarfield } from "@/components/universe-engine/static-starfield"
 import { BODIES } from "@/lib/celestial-data"
@@ -39,6 +39,12 @@ const MarsCoverage = dynamic(
 // "ISS over you" passes panel — lazy (pulls satellite.js for the topocentric math).
 const OverheadPasses = dynamic(
   () => import("./overhead-passes").then((m) => m.OverheadPasses),
+  { ssr: false },
+)
+
+// Live space-weather + aurora panel (NOAA SWPC).
+const SpaceWeatherPanel = dynamic(
+  () => import("./space-weather-panel").then((m) => m.SpaceWeatherPanel),
   { ssr: false },
 )
 
@@ -81,6 +87,8 @@ export function CelestialExplorer() {
   const [marsView, setMarsView] = useState(false)
   // "ISS over you" passes panel (asks for geolocation on open).
   const [passesOpen, setPassesOpen] = useState(false)
+  // Live space-weather + aurora panel.
+  const [weatherOpen, setWeatherOpen] = useState(false)
   // `?earth=1` auto-opens the photoreal view — for capture/testing + deep-links.
   useEffect(() => {
     try {
@@ -319,7 +327,7 @@ export function CelestialExplorer() {
             </button>
             <button
               type="button"
-              onClick={() => setPassesOpen((v) => !v)}
+              onClick={() => { setPassesOpen((v) => !v); setWeatherOpen(false) }}
               data-cursor-hover
               aria-label="ISS passes over your location"
               className="inline-flex items-center gap-2 rounded-full border border-accent/50 bg-background/60 px-4 py-2.5 font-mono text-[10px] tracking-widest uppercase text-foreground/85 backdrop-blur-sm transition-colors hover:border-accent hover:text-foreground"
@@ -327,14 +335,29 @@ export function CelestialExplorer() {
               <Satellite className="h-3.5 w-3.5 text-accent" />
               ISS over you
             </button>
+            <button
+              type="button"
+              onClick={() => { setWeatherOpen((v) => !v); setPassesOpen(false) }}
+              data-cursor-hover
+              aria-label="Live space weather and aurora forecast"
+              className="inline-flex items-center gap-2 rounded-full border border-[#7affd0]/50 bg-background/60 px-4 py-2.5 font-mono text-[10px] tracking-widest uppercase text-foreground/85 backdrop-blur-sm transition-colors hover:border-[#7affd0] hover:text-foreground"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-[#7affd0]" />
+              Space weather · aurora
+            </button>
           </div>
         )}
 
-        {/* ISS-passes panel — bottom-left, above the button cluster. */}
+        {/* Bottom-left panels — passes / space weather (mutually exclusive). */}
         <AnimatePresence>
           {passesOpen && (
             <div className="absolute bottom-24 left-4 md:left-6 z-40">
               <OverheadPasses onClose={() => setPassesOpen(false)} />
+            </div>
+          )}
+          {weatherOpen && (
+            <div className="absolute bottom-24 left-4 md:left-6 z-40">
+              <SpaceWeatherPanel onClose={() => setWeatherOpen(false)} />
             </div>
           )}
         </AnimatePresence>
