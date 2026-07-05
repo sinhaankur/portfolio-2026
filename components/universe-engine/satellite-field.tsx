@@ -284,10 +284,11 @@ const VERT = /* glsl */ `
     // smaller so active payloads stand out.
     float sizeMul = aDebris > 0.5 ? 0.7 : 1.0;
     float persp = uSize * sizeMul * uPixelRatio * (1.0 / -mv.z);
-    // floor ~1.4 device px (× ratio) keeps every satellite legible; ceiling higher
-    // so near dots read as sharp points, not blobs.
-    float minPx = 1.4 * uPixelRatio * sizeMul;
-    float s = vHidden > 0.5 ? 0.0 : clamp(persp, minPx, 7.0 * uPixelRatio);
+    // floor ~1.1 device px keeps every satellite legible without blooming; a
+    // tighter ceiling (4.5px) keeps dots CRISP like LeoLabs instead of fat blobs
+    // that wash over Earth.
+    float minPx = 1.1 * uPixelRatio * sizeMul;
+    float s = vHidden > 0.5 ? 0.0 : clamp(persp, minPx, 4.5 * uPixelRatio);
     gl_PointSize = s;
   }
 `
@@ -304,14 +305,15 @@ const FRAG = /* glsl */ `
     vec2 c = gl_PointCoord - 0.5;
     float d = length(c);
     if (d > 0.5) discard;
-    float core = 1.0 - smoothstep(0.0, 0.30, d);   // wider bright core
-    float rim  = pow(1.0 - smoothstep(0.24, 0.5, d), 1.4) * 0.35;
-    float a = clamp(core + rim, 0.0, 1.0);
-    // brighten the core colour toward white so live satellites read as hot points
-    vec3 col = mix(vColor, vec3(1.0), core * 0.5);
-    // Debris dimmer than active payloads → the live constellations pop, the junk
-    // recedes into a hazard haze (the LeoLabs active-vs-debris read).
-    a *= vDebris > 0.5 ? 0.5 : 1.0;
+    // TIGHT crisp dot (LeoLabs read): a sharp small core + a very thin rim, so
+    // 18k points read as precise pinpoints — not fat additive blobs that bloom
+    // over Earth. Narrower core + lower alpha keeps the shell legible but calm.
+    float core = 1.0 - smoothstep(0.0, 0.20, d);   // tighter bright core
+    float rim  = pow(1.0 - smoothstep(0.18, 0.45, d), 1.6) * 0.22;
+    float a = clamp(core + rim, 0.0, 1.0) * 0.72;   // overall calmer than before
+    // slight whiten at the very centre only (keeps the band colour readable)
+    vec3 col = mix(vColor, vec3(1.0), core * 0.3);
+    a *= vDebris > 0.5 ? 0.45 : 1.0;
     gl_FragColor = vec4(col, a);
   }
 `
@@ -709,15 +711,16 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
           fragmentShader={FRAG}
           transparent
           depthWrite={false}
-          // Additive blending is what gives the LeoLabs "luminous shell" read:
-          // where thousands of orbits overlap, the dots sum into a bright band
-          // against the dark sky, instead of averaging out to a flat grey.
-          blending={THREE.AdditiveBlending}
+          // NORMAL (over) blending, not additive: additive made 18k overlapping
+          // dots sum into a hot halo that bloomed over Earth ("looks broken").
+          // Normal blending keeps each dot crisp + the shell calm, closer to the
+          // precise LeoLabs read. The dots are already bright enough on their own.
+          blending={THREE.NormalBlending}
           uniforms={{
             uTimeDay: { value: msToJ2000Day(simTimeRef.current.simMs) },
-            // Larger base size so the shell is dense + legible when Earth is
-            // framed (points also have a min-pixel floor in the vertex shader).
-            uSize: { value: 150 },
+            // Calmer base size — crisp pinpoints, not fat blobs. (min-pixel floor
+            // in the vertex shader keeps distant sats visible.)
+            uSize: { value: 95 },
             uPixelRatio: { value: typeof window !== "undefined" ? Math.min(window.devicePixelRatio, 2) : 1 },
             uIsolate: { value: 0 },
             uGroupSel: { value: -1 },
