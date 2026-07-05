@@ -14,7 +14,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Search, X, Crosshair } from "lucide-react"
-import { loadSatelliteCatalog, selectedSatRef, selectedArchetypeRef, type SatMeta } from "@/components/universe-engine/satellite-field"
+import { loadSatelliteCatalog, selectedSatRef, selectedArchetypeRef, selectedOrbitRef, type SatMeta, type SatOrbit } from "@/components/universe-engine/satellite-field"
 
 const OWNER_LABEL: Record<string, string> = {
   US: "🇺🇸 United States", PRC: "🇨🇳 China", CIS: "🇷🇺 Russia / CIS",
@@ -24,6 +24,15 @@ const OWNER_LABEL: Record<string, string> = {
 
 function fmtDate(ms: number) {
   return new Date(ms).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric", timeZone: "UTC" })
+}
+
+const fmtKm = (km: number) => `${Math.round(km).toLocaleString()} km`
+// apogee ≈ perigee (near-circular) → show one altitude; else the range.
+function fmtAltRange(apogeeKm: number, perigeeKm: number) {
+  if (Math.abs(apogeeKm - perigeeKm) < Math.max(15, apogeeKm * 0.01)) {
+    return `${fmtKm((apogeeKm + perigeeKm) / 2)} (circular)`
+  }
+  return `${fmtKm(perigeeKm)} – ${fmtKm(apogeeKm)}`
 }
 
 /** The real fragmentation event behind a debris fragment (matched on its name).
@@ -42,9 +51,10 @@ export function SatelliteSearch() {
   const [q, setQ] = useState("")
   const [filter, setFilter] = useState<"all" | "active" | "debris">("all")
   const [selected, setSelected] = useState<SatMeta | null>(null)
-  // Archetype label ("Starlink flat-pack" etc.) — the R3F field decides it from
-  // the satellite's orbit + name, so we poll the bridge ref while one is picked.
+  // Archetype label ("Starlink flat-pack" etc.) + live orbital readout — the R3F
+  // field derives both from SGP4, so we poll the bridge refs while one is picked.
   const [archetype, setArchetype] = useState<string | null>(null)
+  const [orbit, setOrbit] = useState<SatOrbit | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -52,8 +62,13 @@ export function SatelliteSearch() {
   }, [])
 
   useEffect(() => {
-    if (!selected) { setArchetype(null); return }
-    const id = setInterval(() => setArchetype(selectedArchetypeRef.current), 200)
+    if (!selected) { setArchetype(null); setOrbit(null); return }
+    const id = setInterval(() => {
+      setArchetype(selectedArchetypeRef.current)
+      // clone so React sees a new object each tick (altitude/speed change live)
+      const o = selectedOrbitRef.current
+      setOrbit(o ? { ...o } : null)
+    }, 200)
     return () => clearInterval(id)
   }, [selected])
 
@@ -204,6 +219,38 @@ export function SatelliteSearch() {
                   <dd className="text-foreground text-right">{archetype}</dd>
                 </div>
               )}
+              {orbit && (
+                <>
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-muted-foreground">Orbit</dt>
+                    <dd className="text-foreground text-right">{orbit.regime}</dd>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-muted-foreground">Altitude</dt>
+                    <dd className="text-foreground text-right tabular-nums">
+                      {fmtAltRange(orbit.apogeeKm, orbit.perigeeKm)}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-muted-foreground">Now at</dt>
+                    <dd className="text-accent text-right tabular-nums">
+                      {fmtKm(orbit.altitudeKm)} · {orbit.speedKms.toFixed(2)} km/s
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-muted-foreground">Period</dt>
+                    <dd className="text-foreground text-right tabular-nums">
+                      {orbit.periodMin >= 1440
+                        ? `${(orbit.periodMin / 1440).toFixed(2)} days`
+                        : `${orbit.periodMin.toFixed(1)} min`}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-muted-foreground">Inclination</dt>
+                    <dd className="text-foreground text-right tabular-nums">{orbit.inclinationDeg.toFixed(1)}°</dd>
+                  </div>
+                </>
+              )}
               <div className="flex justify-between gap-3">
                 <dt className="text-muted-foreground">Shown at</dt>
                 <dd className="text-foreground text-right">true 1:1 scale</dd>
@@ -215,7 +262,8 @@ export function SatelliteSearch() {
               </p>
             )}
             <p className="mt-3 font-sans text-[11px] text-muted-foreground leading-relaxed">
-              Position + altitude from live SGP4 orbit data (current epoch). {isDebris(selected)
+              Altitude + speed update live from SGP4 propagation of the current-epoch
+              orbit; apogee, period and inclination are the orbit's fixed elements. {isDebris(selected)
                 ? "This fragment is tracked but uncontrolled — part of the orbital-debris hazard."
                 : "The craft is drawn at its real size against Earth — a satellite is tens of millions of times smaller than the planet, so zoom right in to see it."}
             </p>

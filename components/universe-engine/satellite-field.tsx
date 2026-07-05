@@ -109,6 +109,38 @@ export const selectedSatRef: { current: number | null } = { current: null }
  *  flat-pack"), so the DOM search card can name what kind of craft it is. */
 export const selectedArchetypeRef: { current: string | null } = { current: null }
 
+/** Live orbital readout for the selected satellite — derived from its SGP4
+ *  satrec (inclination, apogee/perigee) + live propagation (altitude, speed).
+ *  The DOM search card polls this to show real numbers, not just a label.
+ *   altitudeKm  current height above Earth's surface
+ *   speedKms    current orbital speed
+ *   apogeeKm/perigeeKm  farthest/closest altitude of the orbit
+ *   periodMin   time for one revolution
+ *   inclinationDeg  tilt of the orbital plane vs the equator
+ *   regime      human label for the orbit band (LEO/MEO/GEO/HEO) */
+export type SatOrbit = {
+  altitudeKm: number
+  speedKms: number
+  apogeeKm: number
+  perigeeKm: number
+  periodMin: number
+  inclinationDeg: number
+  regime: string
+}
+export const selectedOrbitRef: { current: SatOrbit | null } = { current: null }
+
+/** Name the orbit band from apogee/perigee — the quick "where does it live?"
+ *  read most people recognise (ISS = LEO, GPS = MEO, comsats = GEO). */
+function orbitRegime(apogeeKm: number, perigeeKm: number): string {
+  const mean = (apogeeKm + perigeeKm) / 2
+  const ecc = (apogeeKm - perigeeKm) / (apogeeKm + perigeeKm + 2 * EARTH_RADIUS_KM)
+  if (ecc > 0.25) return "Highly elliptical (HEO)"
+  if (mean < 2000) return "Low Earth orbit (LEO)"
+  if (mean < 34000) return "Medium Earth orbit (MEO)"
+  if (mean < 37000) return "Geostationary (GEO)"
+  return "High orbit"
+}
+
 export type SatMeta = { id: number; name: string; owner: string; type?: "PAY" | "R/B" | "DEB"; launchMs: number }
 
 /** Constellation/group filter — view one layer at a time or everything at
@@ -153,10 +185,13 @@ export function loadSatelliteCatalog(): Promise<SatMeta[]> {
 // import drags it into the Turbopack build graph and hangs `next build`. Loading
 // it lazily at runtime keeps the production build fast and the SGP4 code out of
 // the initial chunk.
+type Vec3 = { x: number; y: number; z: number }
 type Sgp4 = {
   twoline2satrec: (l1: string, l2: string) => unknown
-  propagate: (rec: unknown, date: Date) => { position?: { x: number; y: number; z: number } } | false
+  propagate: (rec: unknown, date: Date) => { position?: Vec3; velocity?: Vec3 } | false
 }
+// SGP4 satrec fields we read for the orbital readout (satellite.js@5 names).
+type SatRec = { inclo?: number; alta?: number; altp?: number; no?: number; ecco?: number }
 
 const EARTH_RADIUS_KM = 6371
 const RECOMPUTE_MS = 250 // SGP4 refresh cadence (4 Hz)
@@ -211,10 +246,17 @@ const VERT = /* glsl */ `
                (uGroupSel >= 0.0 && abs(aGroup - uGroupSel) > 0.5)) ? 1.0 : 0.0;
     vec4 mv = modelViewMatrix * vec4(position, 1.0);
     gl_Position = projectionMatrix * mv;
-    // debris are tiny fragments → ~55% the size of an active satellite dot.
-    float sizeMul = aDebris > 0.5 ? 0.55 : 1.0;
-    float s = vHidden > 0.5 ? 0.0 : uSize * sizeMul * uPixelRatio * (1.0 / -mv.z);
-    gl_PointSize = clamp(s, 0.0, 4.0);
+    // Perspective size with distance falloff, BUT clamped to a visible floor so
+    // the shell never collapses into sub-pixel specks when Earth is framed — the
+    // LeoLabs read is thousands of CRISP dots, not a faint scatter. Debris slightly
+    // smaller so active payloads stand out.
+    float sizeMul = aDebris > 0.5 ? 0.7 : 1.0;
+    float persp = uSize * sizeMul * uPixelRatio * (1.0 / -mv.z);
+    // floor ~1.4 device px (× ratio) keeps every satellite legible; ceiling higher
+    // so near dots read as sharp points, not blobs.
+    float minPx = 1.4 * uPixelRatio * sizeMul;
+    float s = vHidden > 0.5 ? 0.0 : clamp(persp, minPx, 7.0 * uPixelRatio);
+    gl_PointSize = s;
   }
 `
 const FRAG = /* glsl */ `
@@ -224,18 +266,21 @@ const FRAG = /* glsl */ `
   varying float vDebris;
   void main() {
     if (vHidden > 0.5) discard;
-    // Soft round dot: a tight bright core + a gentle halo, so dense regions read
-    // as a glow rather than aliased squares — and the field is legible at distance.
+    // Crisp catalogued dot: a bright tight core + a small soft rim. Denser than
+    // before so overlapping points build into a luminous shell (the LeoLabs look)
+    // rather than a grey haze.
     vec2 c = gl_PointCoord - 0.5;
     float d = length(c);
     if (d > 0.5) discard;
-    float core = 1.0 - smoothstep(0.0, 0.22, d);
-    float halo = pow(1.0 - smoothstep(0.18, 0.5, d), 1.6) * 0.5;
-    float a = max(core, halo);
+    float core = 1.0 - smoothstep(0.0, 0.30, d);   // wider bright core
+    float rim  = pow(1.0 - smoothstep(0.24, 0.5, d), 1.4) * 0.35;
+    float a = clamp(core + rim, 0.0, 1.0);
+    // brighten the core colour toward white so live satellites read as hot points
+    vec3 col = mix(vColor, vec3(1.0), core * 0.5);
     // Debris dimmer than active payloads → the live constellations pop, the junk
     // recedes into a hazard haze (the LeoLabs active-vs-debris read).
-    a *= vDebris > 0.5 ? 0.55 : 1.0;
-    gl_FragColor = vec4(vColor, a);
+    a *= vDebris > 0.5 ? 0.5 : 1.0;
+    gl_FragColor = vec4(col, a);
   }
 `
 
@@ -389,10 +434,19 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
       const idx = idToIndex.get(sel)
       const rec = idx != null ? recs[idx] : null
       if (rec) {
-        let r: { position?: { x: number; y: number; z: number } } | false = false
+        let r: { position?: Vec3; velocity?: Vec3 } | false = false
         try { r = lib.propagate(rec, date) } catch { r = false }
         const p = r && r.position
         if (p) {
+          // Keep the card's altitude + speed live as the craft moves along its
+          // orbit (apogee/perigee/period/inclination are fixed elements, set once
+          // on selection below). This is the "watch it fly" payoff.
+          if (selectedOrbitRef.current) {
+            selectedOrbitRef.current.altitudeKm =
+              Math.sqrt(p.x * p.x + p.y * p.y + p.z * p.z) - EARTH_RADIUS_KM
+            const v = r && r.velocity
+            if (v) selectedOrbitRef.current.speedKms = Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z)
+          }
           const cur = new THREE.Vector3(p.x * kmToScene, p.z * kmToScene, -p.y * kmToScene)
           // orient the model along its direction of travel (sample a moment ahead)
           let r2: { position?: { x: number; y: number; z: number } } | false = false
@@ -433,19 +487,42 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
           lastSelected.current = sel
           setOrbitPts(computeOrbit(rec))
 
-          // altitude (km) from a fresh propagate → drives archetype choice
+          // altitude + speed (km, km/s) from a fresh propagate → drives archetype
+          // choice AND the live card readout.
           const meta = sats.find((s) => s.id === sel)
           let altKm = 0
+          let speedKms = 0
           {
-            let rr: { position?: { x: number; y: number; z: number } } | false = false
+            let rr: { position?: Vec3; velocity?: Vec3 } | false = false
             try { rr = lib.propagate(rec, date) } catch { rr = false }
             const pp = rr && rr.position
             if (pp) altKm = Math.sqrt(pp.x * pp.x + pp.y * pp.y + pp.z * pp.z) - EARTH_RADIUS_KM
+            const vv = rr && rr.velocity
+            if (vv) speedKms = Math.sqrt(vv.x * vv.x + vv.y * vv.y + vv.z * vv.z)
           }
           const a = ARCHETYPES[classifyArchetype(meta?.name ?? "", meta?.owner ?? "", altKm, meta?.type)]
           archRef.current = a
           setArch(a)
           setSelectedLabel(meta ? `${meta.id} · ${meta.name}` : null)
+
+          // Orbital readout — apogee/perigee/inclination from the satrec elements,
+          // period from mean motion; altitude + speed from the live propagate above.
+          {
+            const r = rec as SatRec
+            const apogeeKm = r.alta != null ? r.alta * EARTH_RADIUS_KM : altKm
+            const perigeeKm = r.altp != null ? r.altp * EARTH_RADIUS_KM : altKm
+            const periodMin = r.no && r.no > 0 ? (2 * Math.PI) / r.no : 0
+            const inclinationDeg = r.inclo != null ? (r.inclo * 180) / Math.PI : 0
+            selectedOrbitRef.current = {
+              altitudeKm: altKm,
+              speedKms,
+              apogeeKm,
+              perigeeKm,
+              periodMin,
+              inclinationDeg,
+              regime: orbitRegime(apogeeKm, perigeeKm),
+            }
+          }
 
           // true on-screen span of THIS archetype's model, in scene units
           const span = a.k * earthVisualRadius * a.nativeSpan
@@ -476,6 +553,7 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
         lastSelected.current = null
         setOrbitPts(null)
         setSelectedLabel(null)
+        selectedOrbitRef.current = null
         focusDepthRef.current = null   // restore normal near-plane / zoom limits
       }
     }
@@ -492,12 +570,18 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
           fragmentShader={FRAG}
           transparent
           depthWrite={false}
+          // Additive blending is what gives the LeoLabs "luminous shell" read:
+          // where thousands of orbits overlap, the dots sum into a bright band
+          // against the dark sky, instead of averaging out to a flat grey.
+          blending={THREE.AdditiveBlending}
           uniforms={{
             uTimeDay: { value: msToJ2000Day(simTimeRef.current.simMs) },
-            uSize: { value: 90 },
+            // Larger base size so the shell is dense + legible when Earth is
+            // framed (points also have a min-pixel floor in the vertex shader).
+            uSize: { value: 150 },
             uPixelRatio: { value: typeof window !== "undefined" ? Math.min(window.devicePixelRatio, 2) : 1 },
             uIsolate: { value: 0 },
-        uGroupSel: { value: -1 },
+            uGroupSel: { value: -1 },
           }}
         />
       </points>
