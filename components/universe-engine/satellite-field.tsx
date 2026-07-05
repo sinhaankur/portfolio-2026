@@ -470,12 +470,17 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     // while a single satellite is isolated (that view is about the one craft).
     {
       const recsN = satrecs.current
-      const dateN = new Date(simTimeRef.current.simMs)
+      const nowMs = simTimeRef.current.simMs
+      const dateN = new Date(nowMs)
       for (let c = 0; c < NOTABLE_CRAFT.length; c++) {
         const g = notableRefs.current[c]
         const idx = notableIdx[c]
         if (!g) continue
-        if (isolated || idx < 0 || !recsN[idx]) { g.visible = false; continue }
+        // TRUTH GATE: hide the craft before its real launch date. SGP4 will
+        // happily propagate ISS to 6000 BC — but it didn't exist then. Only show
+        // once the sim clock has reached the satellite's actual launch.
+        const launched = idx >= 0 && sats[idx] ? nowMs >= sats[idx].launchMs : false
+        if (isolated || idx < 0 || !recsN[idx] || !launched) { g.visible = false; continue }
         let r: { position?: Vec3; velocity?: Vec3 } | false = false
         try { r = lib.propagate(recsN[idx], dateN) } catch { r = false }
         const p = r && r.position

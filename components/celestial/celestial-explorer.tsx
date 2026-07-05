@@ -18,7 +18,7 @@ import { StaticStarfield } from "@/components/universe-engine/static-starfield"
 import { BODIES } from "@/lib/celestial-data"
 import { SatelliteSearch } from "./satellite-search"
 import { selectedSatRef, satGroupFilterRef } from "@/components/universe-engine/satellite-field"
-import { setSimMs } from "@/components/universe-engine/astronomy"
+import { setSimMs, timeScaleRef } from "@/components/universe-engine/astronomy"
 import { hasGoogleEarthKey } from "@/components/universe-engine/google-earth-tiles"
 
 // The photoreal-Earth view pulls in the (heavy) 3D-tiles renderer. Lazy-load it
@@ -133,7 +133,16 @@ export function CelestialExplorer() {
     try {
       const q = new URLSearchParams(window.location.search)
       const y = q.get("simyear")
-      if (y) setSimMs(Date.UTC(parseInt(y, 10), 0, 1))
+      // Runs AFTER the engine's real-time anchor (setSimMs(now)) which fires on
+      // its own mount — a short delay + freeze the clock so the test date sticks.
+      if (y) {
+        const t = window.setTimeout(() => {
+          timeScaleRef.current = 0 // freeze so real-time doesn't drift us back
+          setSimMs(Date.UTC(parseInt(y, 10), 0, 1))
+        }, 300)
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+        void t
+      }
       if (q.has("mars")) setMarsView(true)
       const g = q.get("satgroup") // testing: drive the group filter (0=Starlink…)
       if (g) satGroupFilterRef.current = parseInt(g, 10)
