@@ -153,6 +153,8 @@ export function CelestialExplorer() {
       }
       if (q.has("mars")) setMarsView(true)
       if (q.has("inv")) setInventoryOpen(true) // testing: open the census panel
+      const ss = q.get("selectsat") // testing: select a satellite by NORAD id
+      if (ss) setTimeout(() => { selectedSatRef.current = parseInt(ss, 10) }, 1600)
       const g = q.get("satgroup") // testing: drive the group filter (0=Starlink…)
       if (g) satGroupFilterRef.current = parseInt(g, 10)
     } catch { /* no window */ }

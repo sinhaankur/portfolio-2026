@@ -258,8 +258,8 @@ export function SatelliteSearch() {
                 </>
               )}
               <div className="flex justify-between gap-3">
-                <dt className="text-muted-foreground">Shown at</dt>
-                <dd className="text-foreground text-right">true 1:1 scale</dd>
+                <dt className="text-muted-foreground">Model shown at</dt>
+                <dd className="text-foreground text-right">recognizable scale</dd>
               </div>
             </dl>
             {isDebris(selected) && debrisOrigin(selected.name) && (
@@ -271,7 +271,7 @@ export function SatelliteSearch() {
               Altitude + speed update live from SGP4 propagation of the current-epoch
               orbit; apogee, period and inclination are the orbit's fixed elements. {isDebris(selected)
                 ? "This fragment is tracked but uncontrolled — part of the orbital-debris hazard."
-                : "The craft is drawn at its real size against Earth — a satellite is tens of millions of times smaller than the planet, so zoom right in to see it."}
+                : "The position + altitude are real to scale; the 3D model is enlarged so you can see it — at true 1:1 a satellite is a sub-pixel speck against Earth (the ISS is ~1/117,000th of Earth's width)."}
             </p>
           </motion.div>
         )}

@@ -679,16 +679,19 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
             const world = new THREE.Vector3()
             marker.getWorldPosition(world)
             const dist = camera.position.distanceTo(world)
-            const span = archRef.current.k * earthVisualRadius * archRef.current.nativeSpan
-            // fade band: full halo beyond span*60, gone by span*8 (craft takes over)
-            const fade = Math.min(1, Math.max(0, (dist / span - 8) / 52))
+            // Keep a soft locator ring around the craft at ALL distances so you
+            // always see WHERE it is — the model is small even at visible scale, so
+            // the ring is the reliable "here it is" cue. Only fades right at the
+            // very end of a close approach so the model can read on its own.
+            const span = NOTABLE_VISIBLE_SPAN
+            const fade = Math.min(1, Math.max(0.35, (dist / span - 1) / 20))
             // local scale ÷ marker's world scale so the screen size is distance-stable
             const worldScale = marker.getWorldScale(new THREE.Vector3()).x || 1
-            const haloLocal = (dist * 0.015 * fade) / worldScale
+            const haloLocal = (dist * 0.02 * fade) / worldScale
             halo.scale.setScalar(haloLocal)
             const mat = halo.material as THREE.MeshBasicMaterial
-            mat.opacity = 0.85 * fade
-            halo.visible = fade > 0.01
+            mat.opacity = 0.55 * fade
+            halo.visible = true
           }
         }
         // On a NEW selection: pick the archetype, follow, recompute the orbit, and
@@ -737,12 +740,14 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
             }
           }
 
-          // true on-screen span of THIS archetype's model, in scene units
-          const span = a.k * earthVisualRadius * a.nativeSpan
-          // Let the camera approach to ~0.8× the craft's size; near-plane half that.
+          // On-screen span of the model as RENDERED (visible scale, not true 1:1),
+          // so the camera frames the craft at a size you can actually see. This is
+          // the fix for 'follows but I see nothing' — the old true-scale span made
+          // the camera stop microscopically close to a sub-pixel model.
+          const span = NOTABLE_VISIBLE_SPAN
           focusDepthRef.current = {
-            near: Math.max(span * 0.5, 1e-6),
-            minDistance: Math.max(span * 0.8, 2e-6),
+            near: Math.max(span * 0.5, 1e-4),
+            minDistance: Math.max(span * 0.8, 1e-3),
           }
           // expose the chosen archetype label to the search card (DOM side)
           selectedArchetypeRef.current = a.label
@@ -753,9 +758,8 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
               m.getWorldPosition(v)
               return { x: v.x, y: v.y, z: v.z }
             },
-            // fly in to a few craft-widths away — close enough to read the craft,
-            // far enough to take it in. (Was 0.6 Earth-radii = a fifth of Earth.)
-            Math.max(span * 6, 3e-6),
+            // frame the craft with breathing room — model + locator ring both read.
+            span * 10,
             meta?.name,
           )
         }
@@ -826,13 +830,14 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
         />
       </points>
 
-      {/* Selected satellite, riding its live SGP4 position. The model (one of four
-          archetypes chosen by what the craft actually is) is at TRUE 1:1 scale vs
-          Earth — invisibly small from afar — so a locator halo (haloRef) marks the
-          spot when far and shrinks to nothing as you approach, revealing the real
-          craft. Hidden until a selection is set. */}
+      {/* Selected satellite, riding its live SGP4 position. Shown at a VISIBLE,
+          recognizable scale (NOT true 1:1 — a real satellite is a sub-pixel speck
+          against Earth, which made the followed craft invisible). The card + label
+          are honest that this is a recognizable-scale marker, not a measurement;
+          the craft's real size lives in the data. A locator halo marks the spot
+          from afar and fades as you approach + the model reads. */}
       <group ref={markerRef} visible={false}>
-        <SatModel url={arch.url} scale={arch.k * earthVisualRadius} />
+        <SatModel url={arch.url} scale={NOTABLE_VISIBLE_SPAN / arch.nativeSpan} />
         <mesh ref={haloRef}>
           <sphereGeometry args={[1, 16, 16]} />
           <meshBasicMaterial color="#ffd24a" transparent opacity={0.85} toneMapped={false} depthWrite={false} />
