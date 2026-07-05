@@ -1,0 +1,31 @@
+{
+  "generated": "2026-07-05T14:32:26.692Z",
+  "date": "2026-07-05",
+  "source": "JPL Horizons (CENTER=Sun)",
+  "bodies": {
+    "Mercury": {
+      "horizonsDistanceAU": 0.464892
+    },
+    "Venus": {
+      "horizonsDistanceAU": 0.722638
+    },
+    "Earth": {
+      "horizonsDistanceAU": 1.016638
+    },
+    "Mars": {
+      "horizonsDistanceAU": 1.446676
+    },
+    "Jupiter": {
+      "horizonsDistanceAU": 5.277556
+    },
+    "Saturn": {
+      "horizonsDistanceAU": 9.461555
+    },
+    "Uranus": {
+      "horizonsDistanceAU": 19.457148
+    },
+    "Neptune": {
+      "horizonsDistanceAU": 29.880177
+    }
+  }
+}
