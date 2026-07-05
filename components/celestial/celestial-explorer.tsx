@@ -12,7 +12,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import dynamic from "next/dynamic"
 import { motion, AnimatePresence } from "framer-motion"
-import { ArrowLeft, X, Rotate3d, Globe, Satellite, Sparkles, Rocket } from "lucide-react"
+import { ArrowLeft, X, Rotate3d, Globe, Satellite, Sparkles, Rocket, Route } from "lucide-react"
 import { CustomCursor } from "@/components/custom-cursor"
 import { StaticStarfield } from "@/components/universe-engine/static-starfield"
 import { BODIES } from "@/lib/celestial-data"
@@ -51,6 +51,12 @@ const SpaceWeatherPanel = dynamic(
 // Live launch feed (Launch Library 2).
 const LaunchFeed = dynamic(
   () => import("./launch-feed").then((m) => m.LaunchFeed),
+  { ssr: false },
+)
+
+// Earth→Mars transfer calculator.
+const TransferTool = dynamic(
+  () => import("./transfer-tool").then((m) => m.TransferTool),
   { ssr: false },
 )
 
@@ -97,10 +103,12 @@ export function CelestialExplorer() {
   const [weatherOpen, setWeatherOpen] = useState(false)
   // Live launch feed.
   const [launchesOpen, setLaunchesOpen] = useState(false)
+  // Earth→Mars transfer calculator.
+  const [transferOpen, setTransferOpen] = useState(false)
   // The feature-launcher menu (collapses all the tools into one chip so the
   // bottom-left doesn't stack 5+ buttons on mobile).
   const [menuOpen, setMenuOpen] = useState(false)
-  const closePanels = () => { setPassesOpen(false); setWeatherOpen(false); setLaunchesOpen(false) }
+  const closePanels = () => { setPassesOpen(false); setWeatherOpen(false); setLaunchesOpen(false); setTransferOpen(false) }
   // `?earth=1` auto-opens the photoreal view — for capture/testing + deep-links.
   useEffect(() => {
     try {
@@ -335,6 +343,8 @@ export function CelestialExplorer() {
                     label="Space weather · aurora" onClick={() => { closePanels(); setWeatherOpen(true) }} />
                   <MenuItem color="#ffd27a" icon={<Rocket className="h-3.5 w-3.5" />}
                     label="Launches" onClick={() => { closePanels(); setLaunchesOpen(true) }} />
+                  <MenuItem color="#7affd0" icon={<Route className="h-3.5 w-3.5" />}
+                    label="Earth → Mars transfer" onClick={() => { closePanels(); setTransferOpen(true) }} />
                 </motion.div>
               )}
             </AnimatePresence>
@@ -367,6 +377,11 @@ export function CelestialExplorer() {
           {launchesOpen && (
             <div className="absolute bottom-24 left-4 md:left-6 z-40">
               <LaunchFeed onClose={() => setLaunchesOpen(false)} />
+            </div>
+          )}
+          {transferOpen && (
+            <div className="absolute bottom-24 left-4 md:left-6 z-40">
+              <TransferTool onClose={() => setTransferOpen(false)} />
             </div>
           )}
         </AnimatePresence>
