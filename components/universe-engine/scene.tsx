@@ -405,6 +405,8 @@ const BANDS_FRAGMENT_SHADER = `
   uniform float uOpacity;
   uniform float uTime;
   uniform float uStrength;
+  uniform float uSpot;      // >0.5 → draw the Great Red Spot (Jupiter only)
+  uniform vec3  uSpotColor; // spot tint (warm ochre-red)
   varying vec2 vUv;
   varying vec3 vWorldNormal;
 
@@ -423,16 +425,38 @@ const BANDS_FRAGMENT_SHADER = `
     // FBM stretched in U so turbulence smears into bands; scroll in longitude.
     vec2 p = vec2(vUv.x * 9.0 + uTime * dir, lat * 26.0);
     float turb = fbm(p);
-    // emphasise the band structure + a little swirl from the turbulence
+    // curl the turbulence a touch so bands show festoons/swirls, not flat stripes
+    float swirl = fbm(p * 2.3 + vec2(turb * 1.5, 0.0));
     float bands = 0.5 + 0.5 * zone;
-    float detail = mix(bands, turb, 0.55);
+    float detail = mix(bands, mix(turb, swirl, 0.4), 0.6);
+
+    vec3 tint = uTint;
+
+    // --- Great Red Spot: a persistent anticyclonic oval in the southern belt.
+    // Centered ~ lat 0.38, drifting slowly westward in longitude; elliptical
+    // (wider than tall) with a swirled interior + a darker collar ring.
+    if (uSpot > 0.5) {
+      float sx = fract(0.62 + uTime * 0.004);            // slow longitudinal drift
+      vec2 d = vec2(vUv.x - sx, (vUv.y - 0.38));
+      d.x = d.x - floor(d.x + 0.5);                       // wrap in longitude
+      // elliptical distance (spot is ~2.2× wider than tall)
+      float e = length(vec2(d.x / 0.11, d.y / 0.05));
+      float oval = 1.0 - smoothstep(0.7, 1.05, e);
+      // internal swirl (rotate sample around the spot centre by radius)
+      float ang = atan(d.y, d.x) + (1.0 - e) * 3.0 + uTime * 0.2;
+      float spin = fbm(vec2(cos(ang), sin(ang)) * 3.0 + e * 4.0);
+      float collar = smoothstep(0.75, 0.95, e) * (1.0 - smoothstep(0.95, 1.1, e));
+      detail = mix(detail, 0.55 + 0.45 * spin, oval * 0.9);
+      tint = mix(tint, uSpotColor, oval * 0.85);
+      tint = mix(tint, uSpotColor * 0.6, collar * 0.5);  // darker rim
+    }
 
     float NdotL = dot(normalize(vWorldNormal), normalize(uSunDir));
     float lit = smoothstep(-0.12, 0.20, NdotL);
 
     // soft signed modulation around 0 so it lightens AND darkens the texture.
     float m = (detail - 0.5) * 2.0 * uStrength * lit * uOpacity;
-    gl_FragColor = vec4(uTint * (0.5 + 0.5 * detail), abs(m));
+    gl_FragColor = vec4(tint * (0.5 + 0.5 * detail), abs(m));
   }
 `
 
@@ -3221,11 +3245,15 @@ function PlanetBody({
   const bandsMatRef = useRef<ShaderMaterial | null>(null)
   const bandsUniforms = useMemo(
     () => ({
-      uSunDir:   { value: new Vector3(1, 0, 0) },
-      uTint:     { value: new Color(bandConf?.tint ?? "#ffffff") },
-      uOpacity:  { value: 0 },
-      uTime:     { value: 0 },
-      uStrength: { value: bandConf?.strength ?? 0.3 },
+      uSunDir:    { value: new Vector3(1, 0, 0) },
+      uTint:      { value: new Color(bandConf?.tint ?? "#ffffff") },
+      uOpacity:   { value: 0 },
+      uTime:      { value: 0 },
+      uStrength:  { value: bandConf?.strength ?? 0.3 },
+      // Great Red Spot — Jupiter only. A persistent anticyclone twice Earth's
+      // width, in the South Equatorial Belt; the ochre-red is its real colour.
+      uSpot:      { value: planet.raw.name === "Jupiter" ? 1 : 0 },
+      uSpotColor: { value: new Color("#c56a3e") },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
