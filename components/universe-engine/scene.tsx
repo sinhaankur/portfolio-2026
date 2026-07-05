@@ -3524,7 +3524,12 @@ function PlanetBody({
         planet.raw.name === "Earth" ? (invert ? 0.28 : 0.48) :
         planet.raw.name === "Mars"  ? (invert ? 0.14 : 0.24) :
         0.38
-      const target = detailActive ? peakOpacity : 0
+      // In the solar explorer, Earth is the permanent anchor of the view, so
+      // keep a baseline atmosphere rim always on (the thin blue limb every real
+      // Earth-from-space shot has) — not gated on hover. Elsewhere it's a
+      // deep-engagement reward.
+      const baseline = solarOnly && isEarth && !invert ? peakOpacity * 0.8 : 0
+      const target = detailActive ? peakOpacity : baseline
       atmosUniforms.uOpacity.value += (target - atmosUniforms.uOpacity.value) * k
       meshRef.current?.getWorldPosition(_earthWorldPos)
       _sunWorldPos.set(SUN_OFFSET_SCENE, 0, 0)
