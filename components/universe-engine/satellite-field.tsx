@@ -215,6 +215,25 @@ const RECOMPUTE_MS = 250 // SGP4 refresh cadence (4 Hz)
 const DEBRIS_COLOR: [number, number, number] = [1.0, 0.42, 0.32]
 const RB_COLOR: [number, number, number] = [1.0, 0.62, 0.4]
 
+// OBJECT-TYPE palette — matches LeoLabs' legend exactly (Payload green, Rocket
+// Body yellow, Debris red, Unknown grey-blue). Colouring by what the object IS
+// (not its altitude) is their signature read + arguably more truthful: a green
+// dot is a working payload, a red one is tracked junk. This is the DEFAULT.
+// Brightened so the dots pop against Earth (they read as emissive points, like
+// LeoLabs' luminous green/red cloud).
+const TYPE_PAYLOAD: [number, number, number] = [0.45, 1.0, 0.55]   // bright green
+const TYPE_ROCKET:  [number, number, number] = [1.0, 0.9, 0.35]    // bright yellow
+const TYPE_DEBRIS:  [number, number, number] = [1.0, 0.42, 0.38]   // bright red
+const TYPE_UNKNOWN: [number, number, number] = [0.7, 0.78, 0.95]   // bright grey-blue
+
+/** Colour by object class (LeoLabs style). */
+function typeColor(type?: SatType): [number, number, number] {
+  if (type === "PAY") return TYPE_PAYLOAD
+  if (type === "R/B") return TYPE_ROCKET
+  if (type === "DEB") return TYPE_DEBRIS
+  return TYPE_UNKNOWN
+}
+
 // Altitude-BAND palette — the real LeoLabs read: colour by orbital regime so the
 // shell has visible structure (a bright LEO band, a polar layer, the MEO nav
 // ring, the thin GEO belt) instead of a uniform operator-coloured haze. These
@@ -308,11 +327,11 @@ const FRAG = /* glsl */ `
     // TIGHT crisp dot (LeoLabs read): a sharp small core + a very thin rim, so
     // 18k points read as precise pinpoints — not fat additive blobs that bloom
     // over Earth. Narrower core + lower alpha keeps the shell legible but calm.
-    float core = 1.0 - smoothstep(0.0, 0.20, d);   // tighter bright core
-    float rim  = pow(1.0 - smoothstep(0.18, 0.45, d), 1.6) * 0.22;
-    float a = clamp(core + rim, 0.0, 1.0) * 0.72;   // overall calmer than before
-    // slight whiten at the very centre only (keeps the band colour readable)
-    vec3 col = mix(vColor, vec3(1.0), core * 0.3);
+    float core = 1.0 - smoothstep(0.0, 0.22, d);   // crisp bright core
+    float rim  = pow(1.0 - smoothstep(0.18, 0.46, d), 1.5) * 0.28;
+    float a = clamp(core + rim, 0.0, 1.0) * 0.92;   // solid dots (LeoLabs density)
+    // slight whiten at the very centre keeps each dot a hot point
+    vec3 col = mix(vColor, vec3(1.0), core * 0.35);
     a *= vDebris > 0.5 ? 0.45 : 1.0;
     gl_FragColor = vec4(col, a);
   }
@@ -419,9 +438,10 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     const launch = new Float32Array(n)
     const isDeb = new Float32Array(n) // 1 = debris/rocket body → smaller in shader
     sats.forEach((s, i) => {
-      // Colour by ALTITUDE BAND (LeoLabs-style structure), not operator — so the
-      // LEO shell, polar layer, MEO nav ring and GEO belt are each legible.
-      const c = bandColor(s.l2, s.type)
+      // Colour by OBJECT TYPE (LeoLabs' signature legend): payload green, rocket
+      // body yellow, debris red, unknown grey-blue — a green dot is working hard-
+      // ware, a red one is tracked junk. More recognisable than altitude bands.
+      const c = typeColor(s.type)
       colors[i * 3] = c[0]; colors[i * 3 + 1] = c[1]; colors[i * 3 + 2] = c[2]
       isDeb[i] = (s.type === "DEB" || s.type === "R/B") ? 1 : 0
       // store launch as days-since-J2000 (small → exact in the float32 attribute)
