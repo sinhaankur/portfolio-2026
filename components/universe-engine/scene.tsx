@@ -2321,13 +2321,18 @@ function Belt({
 }
 
 /* ============================================================
- * Belt asteroids — real Blender rock meshes scattered along a belt ring.
+ * Belt asteroids — REPRESENTATIVE rocky meshes scattered along the belt ring.
  *
- * The point-cloud Belt handles the thousands of distant specks; this adds a
- * few dozen actual rocky meshes (the Blender asteroid/comet-nucleus GLBs) for
- * the chunky bodies the eye catches up close. The 3 GLBs load once and are
- * cloned cheaply, so the cost is geometry-shared, not 40× a megabyte. Rides
- * the same slow belt rotation. Skipped in chart mode (keeps the ink map clean).
+ * TRUTH NOTE: these are NOT specific catalogued asteroids at real positions —
+ * the belt holds ~1.9 million objects >1 km, which can't be individually placed.
+ * These few dozen Blender rock/nucleus meshes stand in for that uncountable
+ * small-body population, scattered by a seeded PRNG across the real belt annulus
+ * (2.2–3.2 AU). The NAMED big-4 — Ceres, Vesta, Pallas, Hygiea — ARE real bodies
+ * at their true orbital positions (see astronomy.ts); those are the ones you can
+ * click + inspect. The scatter is texture; the named bodies are truth.
+ *
+ * The 3 GLBs load once and are cloned cheaply. Rides the slow belt rotation;
+ * skipped in chart mode (keeps the ink map clean).
  * ============================================================ */
 const BELT_ROCK_MODELS = [
   "/models/asteroid-stony.glb",
