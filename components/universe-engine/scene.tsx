@@ -47,6 +47,7 @@ import {
   DoubleSide,
   FogExp2,
   Group,
+  Matrix3,
   Mesh,
   NormalBlending,
   Points,
@@ -2867,6 +2868,55 @@ function radialUVRingGeometry(innerR: number, outerR: number, segments: number) 
   return geo
 }
 
+// Ring shader — keeps the texture's real band structure (C/B/Cassini/A/F) but
+// adds two physically-real details a flat unlit material can't: (1) the planet's
+// SHADOW cast across the rings (a dark arc — the signature Cassini-image look),
+// and (2) a subtle forward/back-scatter brightness from the sun angle so the
+// rings aren't uniformly flat. uv.x is radial (0=inner,1=outer); the shell
+// passes the ring point's local position so we can test it against the shadow.
+const RING_VERTEX_SHADER = `
+  varying vec2 vUv;
+  varying vec3 vLocal;
+  void main() {
+    vUv = uv;
+    vLocal = position;                       // ring-plane local coords
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`
+const RING_FRAGMENT_SHADER = `
+  uniform sampler2D uMap;
+  uniform float uOpacity;
+  uniform vec3  uColor;
+  uniform vec3  uSunDirLocal;   // sun direction in the ring's local frame
+  uniform float uPlanetR;       // planet radius in the same local units
+  uniform float uHasMap;
+  varying vec2 vUv;
+  varying vec3 vLocal;
+  void main() {
+    vec4 tex = uHasMap > 0.5 ? texture2D(uMap, vUv) : vec4(1.0);
+    float alpha = tex.a * uOpacity;
+    if (alpha < 0.003) discard;
+    vec3 col = tex.rgb * uColor;
+
+    // --- Planet shadow on the rings ---------------------------------------
+    // Project the ring point onto the plane perpendicular to the sun; if the
+    // component of its position across the sun-line falls within the planet's
+    // radius AND it's on the far side of the planet from the sun, it's shadowed.
+    vec3 s = normalize(uSunDirLocal);
+    float along = dot(vLocal, s);                  // distance along sun-line
+    vec3 perp = vLocal - s * along;                // offset from the sun-line
+    float perpLen = length(perp);
+    // shadowed = behind the planet (along<0) and within its radius of the line
+    float core = 1.0 - smoothstep(uPlanetR * 0.82, uPlanetR * 1.02, perpLen);
+    float behind = smoothstep(0.0, -0.15, along); // 1 when clearly behind
+    float shadow = core * behind;
+    col *= mix(1.0, 0.12, shadow);                 // deep umbra, soft penumbra
+    alpha *= mix(1.0, 0.55, shadow);               // shadowed ring dims too
+
+    gl_FragColor = vec4(col, alpha);
+  }
+`
+
 function SaturnRings({
   planetRadius,
   invert = false,
@@ -2883,9 +2933,21 @@ function SaturnRings({
   // channel by Solar System Scope (CC BY 4.0, same source as the planet
   // surfaces). Span runs the C ring's inner edge (1.24×) through the F
   // ring's outer edge (2.34×). The Cassini Division shows up naturally as
-  // the texture's transparent band — no manual gap modelling needed.
-  const matRef = useRef<import("three").MeshBasicMaterial>(null)
+  // the texture's transparent band. A shader adds the planet's cast shadow.
+  const matRef = useRef<ShaderMaterial>(null)
   const [texture, setTexture] = useState<Texture | null>(null)
+  const ringUniforms = useMemo(
+    () => ({
+      uMap:         { value: null as Texture | null },
+      uOpacity:     { value: 0 },
+      uColor:       { value: new Color(invert ? "#1a1208" : "#ffffff") },
+      uSunDirLocal: { value: new Vector3(1, 0, 0) },
+      uPlanetR:     { value: planetRadius },
+      uHasMap:      { value: 0 },
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [planetRadius],
+  )
 
   // Custom geometry: u is radial (0 = C ring inner, 1 = F ring outer),
   // v wraps around the circle. Lets the horizontal-strip ring texture
@@ -2895,10 +2957,6 @@ function SaturnRings({
     [planetRadius],
   )
 
-  // Eagerly load the ring texture — Saturn is a common stop, the asset is
-  // tiny (~6 KB WebP with alpha), and the band detail makes the planet
-  // read as "the one with the rings" rather than "an orange ball with
-  // bands". Same always-on treatment we applied to the planet surfaces.
   useEffect(() => {
     if (texture) return
     const loader = new TextureLoader()
@@ -2908,33 +2966,55 @@ function SaturnRings({
       tex.wrapS = ClampToEdgeWrapping
       tex.wrapT = RepeatWrapping
       setTexture(tex)
+      ringUniforms.uMap.value = tex
+      ringUniforms.uHasMap.value = 1
     })
-  }, [texture])
+  }, [texture, ringUniforms])
+
+  useEffect(() => {
+    ringUniforms.uColor.value.set(invert ? "#1a1208" : "#ffffff")
+  }, [invert, ringUniforms])
 
   const idleOpacity = invert ? 0.78 : 0.62
   const hoverOpacity = invert ? 1.0 : 0.95
 
-  // Lerp ring opacity toward the hover target each frame. The whole strip
-  // brightens together — its band structure (C / B / Cassini / A / F)
-  // is baked into the texture itself.
+  const _ringSunWorld = useMemo(() => new Vector3(), [])
+  const _ringGrpWorld = useMemo(() => new Vector3(), [])
+  const _ringDirWorld = useMemo(() => new Vector3(), [])
+  const _ringNormalMat = useMemo(() => new Matrix3(), [])
+  const meshRef = useRef<Mesh>(null)
+
   useFrame((_, delta) => {
     if (!matRef.current) return
     const k = 1 - Math.exp(-delta * 8)
     const target = highlighted ? hoverOpacity : idleOpacity
-    matRef.current.opacity += (target - matRef.current.opacity) * k
+    matRef.current.uniforms.uOpacity.value +=
+      (target - matRef.current.uniforms.uOpacity.value) * k
+    // Sun direction in the ring mesh's LOCAL frame (so the shadow tracks
+    // Saturn's real orbital position + the 26.7° ring tilt). Take the world-space
+    // sun→ring direction, then rotate it into local space with the inverse of the
+    // mesh's world rotation (the normal matrix of the inverse world matrix).
+    if (meshRef.current) {
+      meshRef.current.getWorldPosition(_ringGrpWorld)
+      _ringSunWorld.set(SUN_OFFSET_SCENE, 0, 0)
+      _ringDirWorld.copy(_ringSunWorld).sub(_ringGrpWorld).normalize()
+      _ringNormalMat.getNormalMatrix(meshRef.current.matrixWorld).invert()
+      matRef.current.uniforms.uSunDirLocal.value
+        .copy(_ringDirWorld)
+        .applyMatrix3(_ringNormalMat)
+        .normalize()
+    }
   })
 
   return (
     <group rotation={[Math.PI / 2, 0, 0]}>
-      <mesh geometry={ringGeometry}>
-        <meshBasicMaterial
-          ref={matRef as React.Ref<import("three").MeshBasicMaterial>}
-          map={texture}
-          // Tint goes dark on cream so the rings read as ink-on-paper;
-          // on dark theme the texture's natural amber dominates.
-          color={invert ? "#1a1208" : "#ffffff"}
+      <mesh geometry={ringGeometry} ref={meshRef}>
+        <shaderMaterial
+          ref={matRef as React.Ref<ShaderMaterial>}
+          vertexShader={RING_VERTEX_SHADER}
+          fragmentShader={RING_FRAGMENT_SHADER}
+          uniforms={ringUniforms}
           transparent
-          opacity={0}
           side={DoubleSide}
           depthWrite={false}
         />
