@@ -3200,9 +3200,14 @@ function PlanetBody({
       setFocused(true)
       const obj = positionRef.current
       if (obj) {
+        // In the solar explorer, Earth is the satellite-shell subject — pull the
+        // camera back further so the WHOLE shell wraps visibly around the globe
+        // (the LeoLabs framing) instead of filling the screen with a slice. Other
+        // bodies + the home hero keep the tighter, hero-sized framing.
+        const earthShellFraming = solarOnly && planet.raw.name === "Earth"
         const followDistance = Math.max(
-          planet.visualRadius * (planet.raw.hasRings ? 5 : 3.5),
-          0.5,
+          planet.visualRadius * (earthShellFraming ? 9 : planet.raw.hasRings ? 5 : 3.5),
+          earthShellFraming ? 0.9 : 0.5,
         )
         requestFollow(
           () => {
