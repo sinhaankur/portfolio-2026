@@ -15,12 +15,15 @@
  * without a confirmed real photo yet still show as hotspots — we don't fake one.
  */
 
-import { Suspense, useMemo, useRef, useState } from "react"
+import { Suspense, useEffect, useMemo, useRef, useState } from "react"
 import { Canvas, useFrame, useLoader } from "@react-three/fiber"
-import { OrbitControls } from "@react-three/drei"
+import { OrbitControls, useGLTF, Line } from "@react-three/drei"
 import * as THREE from "three"
 import { motion, AnimatePresence } from "framer-motion"
 import { X, ArrowLeft } from "lucide-react"
+
+// Real Perseverance traverse (public/data/mars-traverse-perseverance.json).
+type Traverse = { rover: string; site: string; distanceKm: number; waypoints: number; path: [number, number][] }
 
 // Real rover/lander sites (subset of Mars surfaceFeatures) with the honest photo
 // mapping. Only the three with confirmed genuine surface panoramas carry a
@@ -69,7 +72,59 @@ function latLonToVec3(latDeg: number, lonDeg: number, r = 1): THREE.Vector3 {
   return new THREE.Vector3(x, y, z)
 }
 
-function MarsGlobe({ onPick }: { onPick: (s: Site) => void }) {
+// Roaming rover: loads the real traverse, draws the genuine path on the globe,
+// places the rover GLB, and drives it along the route (looping) with the km
+// odometer surfaced via onProgress. Lives inside the rotating globe group so it
+// tracks Mars's spin. Radius 1.06 sits just above the displaced surface.
+const PATH_R = 1.06
+function RoverTraverse({ onProgress }: { onProgress: (km: number, sol: string) => void }) {
+  const [trav, setTrav] = useState<Traverse | null>(null)
+  const { scene } = useGLTF("/models/mars-rover.glb")
+  const rover = useMemo(() => scene.clone(), [scene])
+  const roverRef = useRef<THREE.Group>(null)
+  const tRef = useRef(0)
+
+  useEffect(() => {
+    fetch("/data/mars-traverse-perseverance.json").then((r) => r.json()).then(setTrav).catch(() => {})
+  }, [])
+
+  // path points on the globe surface (real lat/lon → sphere)
+  const pts = useMemo(() => {
+    if (!trav) return [] as THREE.Vector3[]
+    return trav.path.map(([lon, lat]) => latLonToVec3(lat, lon, PATH_R))
+  }, [trav])
+
+  useFrame((_, delta) => {
+    if (!roverRef.current || pts.length < 2 || !trav) return
+    // advance along the path; ~0.02 of the route per second (a calm roam)
+    tRef.current = (tRef.current + delta * 0.02) % 1
+    const f = tRef.current * (pts.length - 1)
+    const i = Math.floor(f)
+    const frac = f - i
+    const a = pts[i], b = pts[Math.min(i + 1, pts.length - 1)]
+    const p = a.clone().lerp(b, frac)
+    roverRef.current.position.copy(p)
+    // orient: up = surface normal, face along travel direction
+    const up = p.clone().normalize()
+    const fwd = b.clone().sub(a).normalize()
+    const m = new THREE.Matrix4().lookAt(new THREE.Vector3(), fwd, up)
+    roverRef.current.quaternion.setFromRotationMatrix(m)
+    // report progress (km driven so far + which fraction)
+    onProgress(trav.distanceKm * tRef.current, `${Math.round(tRef.current * 100)}% of the real route`)
+  })
+
+  if (pts.length < 2) return null
+  return (
+    <group>
+      {/* the genuine traverse, drawn on the surface */}
+      <Line points={pts} color="#7affd0" transparent opacity={0.7} lineWidth={1.5} />
+      <primitive ref={roverRef} object={rover} scale={0.02} />
+    </group>
+  )
+}
+useGLTF.preload("/models/mars-rover.glb")
+
+function MarsGlobe({ onPick, onRoverProgress }: { onPick: (s: Site) => void; onRoverProgress: (km: number, sol: string) => void }) {
   const groupRef = useRef<THREE.Group>(null)
   const [color, mola] = useLoader(THREE.TextureLoader, [
     "/textures/mars-4k.webp",
@@ -77,12 +132,18 @@ function MarsGlobe({ onPick }: { onPick: (s: Site) => void }) {
   ])
   color.colorSpace = THREE.SRGBColorSpace
 
+  // Orient the globe so Jezero Crater (the Perseverance traverse, lon 77.4°)
+  // faces the camera on open, then rotate very slowly so the tiny real route is
+  // discoverable rather than hidden on the far side. Rotating the globe by -lon
+  // brings that longitude to the +Z (camera) face.
+  const JEZERO_LON = 77.4
+  const baseRot = useMemo(() => (JEZERO_LON * Math.PI) / 180, [])
   useFrame((_, delta) => {
-    if (groupRef.current) groupRef.current.rotation.y += delta * 0.03
+    if (groupRef.current) groupRef.current.rotation.y += delta * 0.012
   })
 
   return (
-    <group ref={groupRef}>
+    <group ref={groupRef} rotation={[0, baseRot, 0]}>
       {/* Displaced globe: MOLA drives real relief (exaggerated ×0.03 so Olympus
           Mons + Valles Marineris read at globe scale without shattering the mesh). */}
       <mesh>
@@ -111,6 +172,8 @@ function MarsGlobe({ onPick }: { onPick: (s: Site) => void }) {
           </mesh>
         )
       })}
+      {/* Perseverance roaming its real traverse (rotates with the globe). */}
+      <RoverTraverse onProgress={onRoverProgress} />
     </group>
   )
 }
@@ -119,6 +182,13 @@ type Props = { onClose: () => void }
 
 export function MarsCoverage({ onClose }: Props) {
   const [picked, setPicked] = useState<Site | null>(null)
+  const [roverKm, setRoverKm] = useState(0)
+  const roverProgress = useRef<(km: number, sol: string) => void>(() => {})
+  // throttle the km readout to ~3 Hz so it doesn't re-render every frame
+  const lastKm = useRef(0)
+  roverProgress.current = (km) => {
+    if (Math.abs(km - lastKm.current) > 0.05) { lastKm.current = km; setRoverKm(km) }
+  }
 
   return (
     <div className="fixed inset-0 z-50 bg-[#08060a]">
@@ -127,10 +197,19 @@ export function MarsCoverage({ onClose }: Props) {
         <directionalLight position={[5, 3, 5]} intensity={1.5} />
         <directionalLight position={[-5, -2, -3]} intensity={0.5} />
         <Suspense fallback={null}>
-          <MarsGlobe onPick={setPicked} />
+          <MarsGlobe onPick={setPicked} onRoverProgress={(km, sol) => roverProgress.current(km, sol)} />
         </Suspense>
         <OrbitControls enablePan={false} minDistance={1.4} maxDistance={6} enableDamping dampingFactor={0.08} rotateSpeed={0.4} />
       </Canvas>
+
+      {/* Rover odometer — the real traverse the rover is retracing. */}
+      <div className="pointer-events-none absolute bottom-4 left-4 md:left-6 z-10 rounded-lg border border-[#7affd0]/30 bg-black/55 px-3 py-2 backdrop-blur-sm">
+        <p className="font-mono text-[9px] tracking-[0.25em] uppercase text-[#7affd0]/80">Perseverance · real traverse</p>
+        <p className="mt-0.5 font-mono text-sm text-white/90 tabular-nums">{roverKm.toFixed(2)} <span className="text-white/50 text-xs">/ 19.84 km driven</span></p>
+        <p className="mt-1 font-sans text-[10px] text-white/45 leading-snug max-w-[13rem]">
+          Zoom into the cyan site (Jezero) to watch it drive its real route — 19.84 km in 4 years, on a planet 21,000 km around.
+        </p>
+      </div>
 
       {/* Exit */}
       <button
