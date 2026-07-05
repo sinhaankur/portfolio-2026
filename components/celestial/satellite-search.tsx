@@ -238,6 +238,12 @@ export function SatelliteSearch() {
                     </dd>
                   </div>
                   <div className="flex justify-between gap-3">
+                    <dt className="text-muted-foreground">Currently over</dt>
+                    <dd className="text-foreground text-right tabular-nums">
+                      {Math.abs(orbit.subLatDeg).toFixed(1)}°{orbit.subLatDeg >= 0 ? "N" : "S"}, {Math.abs(orbit.subLonDeg).toFixed(1)}°{orbit.subLonDeg >= 0 ? "E" : "W"}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-3">
                     <dt className="text-muted-foreground">Period</dt>
                     <dd className="text-foreground text-right tabular-nums">
                       {orbit.periodMin >= 1440

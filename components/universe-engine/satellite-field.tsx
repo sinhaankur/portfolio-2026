@@ -140,6 +140,9 @@ export type SatOrbit = {
   periodMin: number
   inclinationDeg: number
   regime: string
+  // Live sub-satellite point — the spot on Earth it's directly over right now.
+  subLatDeg: number
+  subLonDeg: number
 }
 export const selectedOrbitRef: { current: SatOrbit | null } = { current: null }
 
@@ -223,6 +226,10 @@ type Vec3 = { x: number; y: number; z: number }
 type Sgp4 = {
   twoline2satrec: (l1: string, l2: string) => unknown
   propagate: (rec: unknown, date: Date) => { position?: Vec3; velocity?: Vec3 } | false
+  gstime: (date: Date) => number
+  eciToGeodetic: (eci: Vec3, gmst: number) => { latitude: number; longitude: number; height: number }
+  degreesLat: (rad: number) => number
+  degreesLong: (rad: number) => number
 }
 // SGP4 satrec fields we read for the orbital readout (satellite.js@5 names).
 type SatRec = { inclo?: number; alta?: number; altp?: number; no?: number; ecco?: number }
@@ -643,6 +650,13 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
               Math.sqrt(p.x * p.x + p.y * p.y + p.z * p.z) - EARTH_RADIUS_KM
             const v = r && r.velocity
             if (v) selectedOrbitRef.current.speedKms = Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z)
+            // Live sub-satellite point — the lat/lon on Earth it's over RIGHT NOW.
+            try {
+              const gmst = lib.gstime(date)
+              const geo = lib.eciToGeodetic(p, gmst)
+              selectedOrbitRef.current.subLatDeg = lib.degreesLat(geo.latitude)
+              selectedOrbitRef.current.subLonDeg = lib.degreesLong(geo.longitude)
+            } catch { /* keep last */ }
           }
           const cur = new THREE.Vector3(p.x * kmToScene, p.z * kmToScene, -p.y * kmToScene)
           // orient the model along its direction of travel (sample a moment ahead)
@@ -718,6 +732,8 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
               periodMin,
               inclinationDeg,
               regime: orbitRegime(apogeeKm, perigeeKm),
+              subLatDeg: 0,
+              subLonDeg: 0,
             }
           }
 
