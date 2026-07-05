@@ -44,6 +44,14 @@ const ENGINE_FOCUSABLE = new Set([
 export function CelestialExplorer() {
   const [openName, setOpenName] = useState<string | null>(null)
   const open = BODIES.find((b) => b.name === openName) ?? null
+  // Title tile is a welcome, not permanent chrome: show it on entry, then fade
+  // it out so the view breathes (declutter). It also hides the moment the user
+  // engages with a body. A small "?" affordance brings it back.
+  const [titleVisible, setTitleVisible] = useState(true)
+  useEffect(() => {
+    const t = setTimeout(() => setTitleVisible(false), 7000)
+    return () => clearTimeout(t)
+  }, [])
 
   // Pick a body: open its detail tile AND fly the engine camera to it (so
   // distant bodies like Pluto are actually findable at true scale, not just a
@@ -52,6 +60,7 @@ export function CelestialExplorer() {
   function pick(name: string) {
     const next = name === openName ? null : name
     setOpenName(next)
+    if (next) setTitleVisible(false) // engaging with a body → drop the welcome
     if (next && ENGINE_FOCUSABLE.has(next)) {
       window.dispatchEvent(
         new CustomEvent("universe:sky-focus", { detail: { pointId: `planet:${next}` } }),
@@ -104,7 +113,10 @@ export function CelestialExplorer() {
         </div>
 
         {/* Title tile */}
-        <div className="absolute top-16 left-4 md:top-20 md:left-6 z-20 max-w-[18rem] pointer-events-none">
+        <div
+          className={`absolute top-16 left-4 md:top-20 md:left-6 z-20 max-w-[18rem] pointer-events-none transition-opacity duration-700 ${titleVisible ? "opacity-100" : "opacity-0"}`}
+          aria-hidden={!titleVisible}
+        >
           <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-accent mb-2">
             Celestial
           </p>
