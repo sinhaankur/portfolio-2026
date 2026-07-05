@@ -59,6 +59,20 @@ const ARCHETYPES: Record<ArchetypeId, Archetype> = {
   weather:    mkArch("/models/satellite-weather.glb",  "Weather / GEO sat",   24, 4.5),
   smallsat:   mkArch("/models/satellite-smallsat.glb", "Smallsat",             2.0, 4.3),
 }
+// SAT-3: a curated set of NOTABLE, recognizable craft that always ride their
+// real orbits as actual 3D hardware (not just dots) — so the scene shows the
+// famous machines where they really are. Real NORAD ids from the catalogue.
+type NotableCraft = { id: number; label: string; arch: ArchetypeId }
+const NOTABLE_CRAFT: NotableCraft[] = [
+  { id: 25544, label: "ISS",      arch: "station" },
+  { id: 20580, label: "Hubble",   arch: "telescope" },
+  { id: 48274, label: "Tiangong", arch: "station" },
+]
+// Notable craft are shown at a legible boosted scale (NOT true 1:1 — a real
+// station is a sub-pixel speck against Earth), so you can actually see the
+// hardware on-orbit. Labeled as a recognizable-scale marker, not a measurement.
+const NOTABLE_VISIBLE_SPAN = 0.05 // scene units — a small but visible craft
+
 // Archetype GLBs (~2.7 MB) are preloaded from SatelliteField's mount effect —
 // NOT at module init. This module is statically imported by scene.tsx, so a
 // module-scope preload would fire for every home visitor; the field itself
@@ -345,6 +359,13 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
 
   const markerRef = useRef<THREE.Group>(null)
   const haloRef = useRef<THREE.Mesh>(null)
+  // SAT-3: one group per notable craft, positioned on its real orbit each frame.
+  const notableRefs = useRef<(THREE.Group | null)[]>([])
+  // resolve each notable craft's catalogue index once sats load.
+  const notableIdx = useMemo(
+    () => NOTABLE_CRAFT.map((c) => sats?.findIndex((s) => s.id === c.id) ?? -1),
+    [sats],
+  )
   const { camera } = useThree()
   const lastSelected = useRef<number | null>(null)
   // Selected satellite's display label ("L179: COSMOS 996"-style) — shown as an
@@ -442,6 +463,34 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
       const a = prevPos.current, b = nextPos.current
       for (let i = 0; i < arr.length; i++) arr[i] = a[i] + (b[i] - a[i]) * t
       pos.needsUpdate = true
+    }
+
+    // SAT-3: position the notable craft on their real orbits EVERY frame (only a
+    // few propagations → cheap), so the famous hardware glides smoothly. Hidden
+    // while a single satellite is isolated (that view is about the one craft).
+    {
+      const recsN = satrecs.current
+      const dateN = new Date(simTimeRef.current.simMs)
+      for (let c = 0; c < NOTABLE_CRAFT.length; c++) {
+        const g = notableRefs.current[c]
+        const idx = notableIdx[c]
+        if (!g) continue
+        if (isolated || idx < 0 || !recsN[idx]) { g.visible = false; continue }
+        let r: { position?: Vec3; velocity?: Vec3 } | false = false
+        try { r = lib.propagate(recsN[idx], dateN) } catch { r = false }
+        const p = r && r.position
+        if (!p) { g.visible = false; continue }
+        g.visible = true
+        g.position.set(p.x * kmToScene, p.z * kmToScene, -p.y * kmToScene)
+        // orient along velocity (sample a moment ahead)
+        let r2: { position?: Vec3 } | false = false
+        try { r2 = lib.propagate(recsN[idx], new Date(dateN.getTime() + 30000)) } catch { r2 = false }
+        const p2 = r2 && r2.position
+        if (p2) {
+          const ahead = new THREE.Vector3(p2.x * kmToScene, p2.z * kmToScene, -p2.y * kmToScene)
+          if (ahead.distanceToSquared(g.position) > 1e-9) g.lookAt(ahead)
+        }
+      }
     }
 
     if (now - lastCompute.current < RECOMPUTE_MS) return
@@ -709,6 +758,27 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
       {groupTracks.map((t, i) => (
         <Line key={`gt-${i}`} points={t.pts} color={t.color} transparent opacity={0.22} lineWidth={1} />
       ))}
+
+      {/* SAT-3: notable craft (ISS, Hubble, Tiangong) as real 3D hardware riding
+          their true orbits, at a legible boosted scale with an always-on label. */}
+      {NOTABLE_CRAFT.map((c, i) => {
+        const a = ARCHETYPES[c.arch]
+        const scale = NOTABLE_VISIBLE_SPAN / a.nativeSpan
+        return (
+          <group
+            key={`nc-${c.id}`}
+            ref={(el) => { notableRefs.current[i] = el }}
+            visible={false}
+          >
+            <SatModel url={a.url} scale={scale} />
+            <Html center zIndexRange={[20, 0]} style={{ pointerEvents: "none", userSelect: "none", transform: "translateY(-18px)" }}>
+              <div className="whitespace-nowrap rounded-sm border border-white/30 bg-background/70 px-1.5 py-0.5 font-mono text-[9px] tracking-wider text-white/85 backdrop-blur-sm">
+                {c.label}
+              </div>
+            </Html>
+          </group>
+        )
+      })}
     </>
   )
 }
