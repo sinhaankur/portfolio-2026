@@ -149,6 +149,20 @@ export function CelestialExplorer() {
     } catch { /* no window */ }
   }, [])
 
+  // Fly to Earth to see the satellite shell. At true scale, LEO sats orbit only
+  // ~6% above Earth's surface — invisible from the solar-system view, visible
+  // only when Earth is framed. This gives users a one-click way there (the
+  // #1 "I don't see satellites" confusion — they're real + true-scale, just
+  // hugging Earth). Closes any open panel + drops the welcome tile.
+  function viewSatellites() {
+    setTitleVisible(false)
+    closePanels()
+    setMenuOpen(false)
+    window.dispatchEvent(
+      new CustomEvent("universe:sky-focus", { detail: { pointId: "planet:Earth" } }),
+    )
+  }
+
   // Pick a body: open its detail tile AND fly the engine camera to it (so
   // distant bodies like Pluto are actually findable at true scale, not just a
   // far speck). Reuses the engine's focus channel — same event the Destinations
@@ -348,6 +362,8 @@ export function CelestialExplorer() {
                   exit={{ opacity: 0, y: 8 }}
                   className="flex flex-col gap-1.5"
                 >
+                  <MenuItem color="#5affc0" icon={<Satellite className="h-3.5 w-3.5" />}
+                    label="View 18,500 satellites" onClick={viewSatellites} />
                   {hasGoogleEarthKey && (
                     <MenuItem color="var(--accent)" icon={<Globe className="h-3.5 w-3.5" />}
                       label="Descend to Earth" onClick={() => { closePanels(); setEarthView(true) }} />
