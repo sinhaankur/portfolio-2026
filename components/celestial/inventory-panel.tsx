@@ -10,7 +10,11 @@
 import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { Layers, X } from "lucide-react"
-import { buildInventory, earthRatio, KNOWN_SIZES, type Inventory } from "@/lib/sat-inventory"
+import { buildInventory, earthRatio, KNOWN_SIZES, type Inventory, type Regime } from "@/lib/sat-inventory"
+import { satRegimeFilterRef } from "@/components/universe-engine/satellite-field"
+
+// census regime → shader regime id (matches classifyRegimeId in satellite-field)
+const REGIME_ID: Record<Regime, number> = { LEO: 0, MEO: 1, GEO: 2, HEO: 3 }
 
 type State = { kind: "loading" } | { kind: "error" } | { kind: "done"; inv: Inventory }
 
@@ -28,6 +32,7 @@ function Bar({ value, max, color }: { value: number; max: number; color: string 
 
 export function InventoryPanel({ onClose }: { onClose: () => void }) {
   const [state, setState] = useState<State>({ kind: "loading" })
+  const [activeRegime, setActiveRegime] = useState<Regime | null>(null)
 
   useEffect(() => {
     let alive = true
@@ -35,8 +40,20 @@ export function InventoryPanel({ onClose }: { onClose: () => void }) {
       .then((r) => r.json())
       .then((d) => { if (alive) setState({ kind: "done", inv: buildInventory(d.sats) }) })
       .catch(() => { if (alive) setState({ kind: "error" }) })
-    return () => { alive = false }
+    // clear any regime filter when the panel closes
+    return () => { alive = false; satRegimeFilterRef.current = -1 }
   }, [])
+
+  // Click a regime to isolate just those objects in the shell (and fly to Earth
+  // so you can see them). Click again to clear.
+  function toggleRegime(reg: Regime) {
+    const next = activeRegime === reg ? null : reg
+    setActiveRegime(next)
+    satRegimeFilterRef.current = next ? REGIME_ID[next] : -1
+    if (next) {
+      window.dispatchEvent(new CustomEvent("universe:sky-focus", { detail: { pointId: "planet:Earth" } }))
+    }
+  }
 
   return (
     <motion.div
@@ -66,21 +83,32 @@ export function InventoryPanel({ onClose }: { onClose: () => void }) {
                 by orbit regime — computed live from each object&apos;s real orbital elements.
               </p>
 
-              <div className="space-y-3">
-                {rows.map((r) => (
-                  <div key={r.regime}>
-                    <div className="flex items-baseline justify-between gap-2 mb-1">
-                      <span className="font-mono text-[11px] tracking-wider" style={{ color: REGIME_COLOR[r.regime] }}>
-                        {r.regime} <span className="text-muted-foreground/70">· {r.altRange}</span>
-                      </span>
-                      <span className="font-mono text-xs text-foreground tabular-nums">{r.total.toLocaleString()}</span>
-                    </div>
-                    <Bar value={r.total} max={maxTotal} color={REGIME_COLOR[r.regime]} />
-                    <p className="mt-1 font-mono text-[9px] text-muted-foreground/70 tabular-nums">
-                      {r.payload.toLocaleString()} payload · {r.rocket.toLocaleString()} rocket · {r.debris.toLocaleString()} debris
-                    </p>
-                  </div>
-                ))}
+              <p className="font-mono text-[9px] tracking-wider text-muted-foreground/60 mb-2">Tap a band to isolate it around Earth</p>
+              <div className="space-y-2">
+                {rows.map((r) => {
+                  const on = activeRegime === r.regime
+                  return (
+                    <button
+                      key={r.regime}
+                      type="button"
+                      onClick={() => toggleRegime(r.regime)}
+                      data-cursor-hover
+                      className={`w-full text-left rounded-lg border px-3 py-2 transition-colors ${on ? "border-current bg-secondary/40" : "border-transparent hover:bg-secondary/30"}`}
+                      style={{ color: on ? REGIME_COLOR[r.regime] : undefined }}
+                    >
+                      <div className="flex items-baseline justify-between gap-2 mb-1">
+                        <span className="font-mono text-[11px] tracking-wider" style={{ color: REGIME_COLOR[r.regime] }}>
+                          {r.regime} <span className="text-muted-foreground/70">· {r.altRange}</span>
+                        </span>
+                        <span className="font-mono text-xs text-foreground tabular-nums">{r.total.toLocaleString()}</span>
+                      </div>
+                      <Bar value={r.total} max={maxTotal} color={REGIME_COLOR[r.regime]} />
+                      <p className="mt-1 font-mono text-[9px] text-muted-foreground/70 tabular-nums">
+                        {r.payload.toLocaleString()} payload · {r.rocket.toLocaleString()} rocket · {r.debris.toLocaleString()} debris
+                      </p>
+                    </button>
+                  )
+                })}
               </div>
 
               <div className="mt-4 rounded-lg border border-border bg-background/60 p-3">

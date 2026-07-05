@@ -171,6 +171,26 @@ export const SAT_GROUPS = [
 ] as const
 export const satGroupFilterRef: { current: number } = { current: -1 }
 
+/** Orbit-REGIME filter (set by the census panel): -1 = all, else 0=LEO 1=MEO
+ *  2=GEO 3=HEO. Parallel to the group filter; both AND together in the shader. */
+export const satRegimeFilterRef: { current: number } = { current: -1 }
+
+/** Classify a catalogue object into an orbit-regime id from its real TLE
+ *  elements (0=LEO, 1=MEO, 2=GEO, 3=HEO). Same thresholds as lib/sat-inventory. */
+export function classifyRegimeId(l2: string): number {
+  const mm = parseFloat(l2.substring(52, 63))
+  if (!(mm > 0)) return 0
+  const ecc = parseFloat("0." + l2.substring(26, 33).trim())
+  if (ecc > 0.25) return 3 // HEO
+  const n = (mm * 2 * Math.PI) / 86400
+  const a = Math.cbrt(398600.4418 / (n * n))
+  const alt = a - 6371
+  if (alt < 2000) return 0  // LEO
+  if (alt < 34000) return 1 // MEO
+  if (alt < 37000) return 2 // GEO
+  return 1
+}
+
 /** Classify a catalogue object into a viewing group (name/type based). */
 export function classifyGroup(name: string, type?: string): number {
   if (type === "DEB") return 4
@@ -280,11 +300,13 @@ const VERT = /* glsl */ `
   attribute vec3 aColor;
   attribute float aDebris;      // 1 = debris / rocket body → render smaller
   attribute float aGroup;       // constellation group id (see SAT_GROUPS)
+  attribute float aRegime;      // orbit regime id (0=LEO 1=MEO 2=GEO 3=HEO)
   uniform float uTimeDay;       // current sim time, days since J2000
   uniform float uSize;
   uniform float uPixelRatio;
   uniform float uIsolate;   // 1.0 = a satellite is selected → hide the whole swarm
   uniform float uGroupSel;  // -1 = all groups; else show only this group id
+  uniform float uRegimeSel; // -1 = all regimes; else show only this regime id
   varying vec3 vColor;
   varying float vHidden;
   varying float vDebris;   // passed to frag → debris drawn dimmer (active stand out)
@@ -293,8 +315,10 @@ const VERT = /* glsl */ `
     vDebris = aDebris;
     // Launch gating: not yet launched → collapse to zero size.
     // Isolate: when one satellite is selected we hide the rest (show only the GLB).
+    // Group + regime filters AND together (both must pass if set).
     vHidden = (aLaunchDay > uTimeDay || uIsolate > 0.5 ||
-               (uGroupSel >= 0.0 && abs(aGroup - uGroupSel) > 0.5)) ? 1.0 : 0.0;
+               (uGroupSel >= 0.0 && abs(aGroup - uGroupSel) > 0.5) ||
+               (uRegimeSel >= 0.0 && abs(aRegime - uRegimeSel) > 0.5)) ? 1.0 : 0.0;
     vec4 mv = modelViewMatrix * vec4(position, 1.0);
     gl_Position = projectionMatrix * mv;
     // Perspective size with distance falloff, BUT clamped to a visible floor so
@@ -453,8 +477,13 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     g.setAttribute("aLaunchDay", new THREE.BufferAttribute(launch, 1))
     g.setAttribute("aDebris", new THREE.BufferAttribute(isDeb, 1))
     const groups = new Float32Array(n)
-    sats.forEach((sv, gi) => { groups[gi] = classifyGroup(sv.name, sv.type) })
+    const regimes = new Float32Array(n)
+    sats.forEach((sv, gi) => {
+      groups[gi] = classifyGroup(sv.name, sv.type)
+      regimes[gi] = classifyRegimeId(sv.l2)
+    })
     g.setAttribute("aGroup", new THREE.BufferAttribute(groups, 1))
+    g.setAttribute("aRegime", new THREE.BufferAttribute(regimes, 1))
     g.boundingSphere = new THREE.Sphere(new THREE.Vector3(), earthVisualRadius * 12)
     return g
   }, [sats, earthVisualRadius])
@@ -463,6 +492,7 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     if (matRef.current) {
       matRef.current.uniforms.uTimeDay.value = msToJ2000Day(simTimeRef.current.simMs)
       matRef.current.uniforms.uGroupSel.value = satGroupFilterRef.current
+      matRef.current.uniforms.uRegimeSel.value = satRegimeFilterRef.current
     }
     const lib = sgp4.current
     if (!geometry || !sats || !lib) return
@@ -744,6 +774,7 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
             uPixelRatio: { value: typeof window !== "undefined" ? Math.min(window.devicePixelRatio, 2) : 1 },
             uIsolate: { value: 0 },
             uGroupSel: { value: -1 },
+            uRegimeSel: { value: -1 },
           }}
         />
       </points>
