@@ -54,7 +54,7 @@ const ARCHETYPES: Record<ArchetypeId, Archetype> = {
   comsat:     mkArch("/models/satellite-dish.glb",     "Dish comsat",        35, 12.22),
   debris:     mkArch("/models/satellite-debris.glb",   "Debris fragment",     1.0, 2.0),
   rocketbody: mkArch("/models/satellite-rocketbody.glb","Spent rocket stage", 10, 4.0),
-  telescope:  mkArch("/models/satellite-telescope.glb","Space telescope",     13, 3.5),
+  telescope:  mkArch("/models/satellite-telescope.glb","Space telescope",     13, 7.5),
   station:    mkArch("/models/satellite-station.glb",  "Space station",      109, 6.75),
   weather:    mkArch("/models/satellite-weather.glb",  "Weather / GEO sat",   24, 4.5),
   smallsat:   mkArch("/models/satellite-smallsat.glb", "Smallsat",             2.0, 4.3),
