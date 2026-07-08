@@ -158,6 +158,13 @@ export type Planet = {
   /** Clean polar-cap colour to fade the top/bottom texture rows toward, when the
    *  equirectangular map streaks at the poles (Mars). Absent = no polar fix. */
   polarTint?: string
+  /** Grayscale elevation/height map (e.g. Mars MOLA) that displaces the surface
+   *  mesh for real terrain relief on deep-zoom. Absent = flat sphere. */
+  elevationUrl?: string
+  /** How far to push the relief along the normal (in visual-radius units).
+   *  Small — enough to read Olympus Mons / Valles Marineris without shattering
+   *  the mesh. Defaults to a gentle value when elevationUrl is set. */
+  elevationScale?: number
   /** Override the formula-derived visual radius. Useful for dwarf planets
    *  whose real radius (Pluto = 0.186 Earth-radii) would render as a
    *  pinprick that's impossible to find from the inner-system view. */

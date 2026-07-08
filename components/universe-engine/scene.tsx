@@ -222,12 +222,22 @@ const SUN_SURFACE_FRAGMENT_SHADER = `
  * pinpricks against the shadow.
  * ============================================================ */
 const DAY_NIGHT_VERTEX_SHADER = `
+  uniform sampler2D tElevation;  // grayscale height map (e.g. Mars MOLA)
+  uniform float uElevation;      // displacement scale; 0 = flat (no relief)
   varying vec2 vUv;
   varying vec3 vWorldNormal;
   void main() {
     vUv = uv;
     vWorldNormal = normalize(mat3(modelMatrix) * normal);
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    // Optional real terrain relief: push each vertex out along its normal by the
+    // sampled elevation. Gated by uElevation (0 for every body without a height
+    // map, so this is a no-op everywhere except bodies that opt in, e.g. Mars).
+    vec3 displaced = position;
+    if (uElevation > 0.0) {
+      float h = texture2D(tElevation, uv).r;
+      displaced += normal * (h * uElevation);
+    }
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(displaced, 1.0);
   }
 `
 const DAY_NIGHT_FRAGMENT_SHADER = `
@@ -3199,6 +3209,7 @@ function PlanetBody({
   const [focused, setFocused] = useState(false)
   const [texture, setTexture] = useState<Texture | null>(null)
   const [nightTexture, setNightTexture] = useState<Texture | null>(null)
+  const [elevationTexture, setElevationTexture] = useState<Texture | null>(null)
   const detailActive = isHovered || focused
 
   // Listen for a global focus-clear (e.g. Reset) so the planet collapses
@@ -3293,6 +3304,22 @@ function PlanetBody({
     return () => clearTimeout(timer)
   }, [nightTextureUrl, nightTexture])
 
+  // Optional elevation/height map (Mars MOLA) for real terrain relief. Loaded
+  // last (after day + night) since it's a deep-zoom nicety, not the primary
+  // surface. NOT sRGB — it's raw height data, sampled linearly in the shader.
+  const elevationUrl = planet.raw.elevationUrl
+  useEffect(() => {
+    if (!elevationUrl || elevationTexture) return
+    const timer = setTimeout(() => {
+      const loader = new TextureLoader()
+      loader.load(elevationUrl, (tex) => {
+        tex.anisotropy = 4
+        setElevationTexture(tex)
+      })
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [elevationUrl, elevationTexture])
+
   // Day/night shader uniforms — stable object so the shader sees the same
   // reference across re-renders. Textures + sun direction are mutated in
   // place after the uniforms are wired up. Earth uses this with both
@@ -3313,6 +3340,11 @@ function PlanetBody({
       // poles (Mars). uPolarTint is the clean cap colour to fade toward.
       uPolarFix:            { value: planet.raw.polarTint ? 1 : 0 },
       uPolarTint:           { value: new Color(planet.raw.polarTint ?? "#ffffff") },
+      // Real terrain relief from a height map (Mars MOLA). tElevation is set
+      // once the map loads; uElevation is 0 until then (and for every body
+      // without an elevationUrl), so displacement is off by default.
+      tElevation:           { value: null as Texture | null },
+      uElevation:           { value: 0 },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
@@ -3320,7 +3352,14 @@ function PlanetBody({
   useEffect(() => {
     if (texture) dayNightUniforms.tDay.value = texture
     if (nightTexture) dayNightUniforms.tNight.value = nightTexture
-  }, [texture, nightTexture, dayNightUniforms])
+    if (elevationTexture) {
+      dayNightUniforms.tElevation.value = elevationTexture
+      // Scale is in visual-radius units; small so relief reads without
+      // shattering the mesh (matches the coverage view's ~0.035 feel).
+      dayNightUniforms.uElevation.value =
+        (planet.raw.elevationScale ?? 0.03) * planet.visualRadius
+    }
+  }, [texture, nightTexture, elevationTexture, dayNightUniforms, planet.raw.elevationScale, planet.visualRadius])
 
   // Procedural cloud shell — Earth only. Animated FBM noise lit by the Sun;
   // togglable via cloudsVisibleRef. uOpacity lerps with the planet's own
@@ -3624,7 +3663,7 @@ function PlanetBody({
                 else uses the standard PBR sphere lit by the Sun point light. */}
             {hasTexture && useDayNightShader && texture && (!nightTextureUrl || nightTexture) && (
               <mesh ref={texMeshRef}>
-                <sphereGeometry args={[planet.visualRadius * 1.005, planet.raw.name === "Earth" ? 96 : 64, planet.raw.name === "Earth" ? 96 : 64]} />
+                <sphereGeometry args={[planet.visualRadius * 1.005, (planet.raw.name === "Earth" || planet.raw.elevationUrl) ? 96 : 64, (planet.raw.name === "Earth" || planet.raw.elevationUrl) ? 96 : 64]} />
                 <shaderMaterial
                   ref={dayNightMatRef as React.Ref<ShaderMaterial>}
                   vertexShader={DAY_NIGHT_VERTEX_SHADER}
