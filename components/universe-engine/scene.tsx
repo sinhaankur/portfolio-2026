@@ -154,8 +154,10 @@ const SUN_SURFACE_VERTEX_SHADER = `
   varying vec3 vPos;
   varying vec3 vWorldNormal;
   varying vec3 vViewDir;
+  varying vec2 vUv;
   void main() {
     vPos = position;                       // unit-sphere position → noise domain
+    vUv = uv;                              // equirect UVs for the baked sun map
     vec4 worldPos = modelMatrix * vec4(position, 1.0);
     vWorldNormal = normalize(mat3(modelMatrix) * normal);
     vViewDir = normalize(cameraPosition - worldPos.xyz);
@@ -168,12 +170,12 @@ const SUN_SURFACE_FRAGMENT_SHADER = `
   varying vec3 vWorldNormal;
   varying vec3 vViewDir;
   uniform float uTime;
-  uniform vec3  uCool;   // granule lane / cooler tone
-  uniform vec3  uWarm;   // granule core / hotter tone
-  uniform vec3  uHot;    // brightest network flash
+  uniform sampler2D uSunTex;  // baked Blender photosphere (equirectangular)
   uniform float uIntensity;
+  varying vec2 vUv;
 
-  // 3D value noise + FBM (cheap, seam-free on a sphere since it samples 3D pos).
+  // Tiny 3D value noise — used ONLY for a gentle live shimmer over the baked
+  // texture, so the Sun churns subtly rather than sitting dead still.
   float hash(vec3 p){ p = fract(p*0.3183099+0.1); p*=17.0; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
   float vnoise(vec3 p){
     vec3 i=floor(p), f=fract(p);
@@ -183,31 +185,19 @@ const SUN_SURFACE_FRAGMENT_SHADER = `
                mix(mix(hash(i+vec3(0,0,1)),hash(i+vec3(1,0,1)),f.x),
                    mix(hash(i+vec3(0,1,1)),hash(i+vec3(1,1,1)),f.x),f.y),f.z);
   }
-  float fbm(vec3 p){
-    float v=0.0, a=0.5;
-    for(int i=0;i<6;i++){ v+=a*vnoise(p); p=p*2.02+vec3(11.3,7.1,3.7); a*=0.5; }
-    return v;
-  }
   void main() {
     vec3 p = normalize(vPos);
-    float t = uTime * 0.06;
-    // Two noise scales: fine granulation + a slow domain warp so cells churn.
-    vec3 warp = vec3(fbm(p*3.0 + t), fbm(p*3.0 + 5.2), fbm(p*3.0 - 2.4)) - 0.5;
-    float gran = fbm(p*14.0 + warp*1.5 + vec3(0.0, t*1.3, 0.0));    // convection cells
-    float lanes = fbm(p*7.0 - warp + vec3(t*0.4));                  // supergranule network
-    // Combine: bright granule interiors, darker intergranular lanes.
-    float cell = smoothstep(0.35, 0.75, gran);
-    float lane = smoothstep(0.30, 0.60, lanes);
-    vec3 col = mix(uCool, uWarm, cell);
-    col = mix(col, uHot, pow(cell, 3.0) * 0.7);            // hot network flashes
-    col *= mix(0.72, 1.0, lane);                            // sink the lanes
-    // Occasional sunspot: rare dark pooling where low-freq noise dips.
-    float spot = smoothstep(0.16, 0.05, fbm(p*2.2 + 3.0));
-    col = mix(col, uCool*0.35, spot*0.8);
-    // Limb darkening — the classic dimming toward the disc edge.
+    // Base: the real Blender-rendered photosphere — fiery, molten, alive.
+    vec3 col = texture2D(uSunTex, vUv).rgb;
+    // Subtle animated shimmer so the surface breathes (very light — the texture
+    // already carries the granulation; this just keeps it from looking frozen).
+    float shimmer = vnoise(p * 9.0 + vec3(0.0, uTime * 0.25, uTime * 0.15));
+    col *= 0.9 + 0.18 * shimmer;
+    // Limb darkening — the disc edge is cooler/dimmer than centre.
     float mu = clamp(abs(dot(vWorldNormal, vViewDir)), 0.0, 1.0);
-    float limb = 0.45 + 0.55 * pow(mu, 0.55);
+    float limb = 0.55 + 0.45 * pow(mu, 0.5);
     col *= limb;
+    // Emissive boost so it reads as a light source, not a lit ball.
     gl_FragColor = vec4(col * uIntensity, 1.0);
   }
 `
@@ -4048,23 +4038,24 @@ function SolarSystem({
   const coronaInnerMatRef = useRef<ShaderMaterial>(null)
   const coronaOuterMatRef = useRef<ShaderMaterial>(null)
   const [sunHovered, setSunHovered] = useState(false)
-  // Procedural photosphere uniforms — warm solar palette (chart mode goes amber).
+  // Photosphere = the baked Blender sun map (fiery, molten, real) + a light
+  // live shimmer + limb darkening + an emissive boost so it glows like a star.
+  const sunTexture = useMemo(() => {
+    const tex = new TextureLoader().load("/textures/sun-surface.webp")
+    tex.colorSpace = SRGBColorSpace
+    return tex
+  }, [])
   const sunSurfUniforms = useMemo(
     () => ({
       uTime: { value: 0 },
-      uCool: { value: new Color(invert ? "#8a3a12" : "#e0641e") },
-      uWarm: { value: new Color(invert ? "#c9662a" : "#ffb14a") },
-      uHot:  { value: new Color(invert ? "#e8b070" : "#fff2c8") },
-      uIntensity: { value: invert ? 0.9 : 1.35 },
+      uSunTex: { value: sunTexture },
+      uIntensity: { value: invert ? 1.0 : 1.5 },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   )
   useEffect(() => {
-    sunSurfUniforms.uCool.value.set(invert ? "#8a3a12" : "#e0641e")
-    sunSurfUniforms.uWarm.value.set(invert ? "#c9662a" : "#ffb14a")
-    sunSurfUniforms.uHot.value.set(invert ? "#e8b070" : "#fff2c8")
-    sunSurfUniforms.uIntensity.value = invert ? 0.9 : 1.35
+    sunSurfUniforms.uIntensity.value = invert ? 1.0 : 1.5
   }, [invert, sunSurfUniforms])
   // Chunky belt-rock GLBs (2.7 MB) stream in the first time the user enters
   // explore mode — at passive-backdrop distances the point-cloud belts carry
