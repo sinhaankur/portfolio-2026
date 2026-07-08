@@ -176,34 +176,45 @@ function parseIauCatalog(text) {
  * stellarium and most planetarium software. We linearly clamp to
  * keep colours from going wild at the extremes.
  */
-function bvToRgb(bv) {
-  // Reasonable B-V range: -0.4 (blue) to +2.0 (deep red).
+/**
+ * B-V colour index → effective surface temperature (Kelvin), via Ballesteros'
+ * formula (2012) — a real, published fit, accurate across the main sequence.
+ * This is the physically-grounded path: a star's colour IS its temperature.
+ */
+function bvToTemp(bv) {
   const t = Math.max(-0.4, Math.min(2.0, bv))
+  return 4600 * (1 / (0.92 * t + 1.7) + 1 / (0.92 * t + 0.62))
+}
+
+/**
+ * Blackbody temperature (K) → linear RGB, from the standard blackbody-locus
+ * approximation (Planckian colour). Real physics: a 3,000 K star is genuinely
+ * orange-red, 5,772 K (our Sun) yellow-white, 10,000 K blue-white. Normalised
+ * so the brightest channel is 1 (stars are emissive point sources).
+ */
+function tempToRgb(kelvin) {
+  const t = Math.max(1000, Math.min(40000, kelvin)) / 100
   let r, g, b
-  if (t < 0.0) {
-    // Blue end — hottest stars
-    r = 0.61 + (0.11 * (t + 0.4)) / 0.4
-    g = 0.70 + (0.07 * (t + 0.4)) / 0.4
-    b = 1.0
-  } else if (t < 0.4) {
-    // Blue-white
-    r = 0.83 + (0.17 * t) / 0.4
-    g = 0.87 + (0.11 * t) / 0.4
-    b = 1.0
-  } else if (t < 1.6) {
-    // White → yellow → orange
-    const f = (t - 0.4) / 1.2
-    r = 1.0
-    g = 0.98 - 0.42 * f
-    b = 1.0 - 0.85 * f
-  } else {
-    // Red end — coolest stars
-    const f = Math.min(1, (t - 1.6) / 0.4)
-    r = 1.0 - 0.05 * f
-    g = 0.56 - 0.12 * f
-    b = 0.15
-  }
-  return [r, g, b]
+  // Red
+  if (t <= 66) r = 255
+  else r = 329.7 * Math.pow(t - 60, -0.1332)
+  // Green
+  if (t <= 66) g = 99.47 * Math.log(t) - 161.12
+  else g = 288.12 * Math.pow(t - 60, -0.0755)
+  // Blue
+  if (t >= 66) b = 255
+  else if (t <= 19) b = 0
+  else b = 138.52 * Math.log(t - 10) - 305.04
+  const clamp = (v) => Math.max(0, Math.min(255, v)) / 255
+  const rgb = [clamp(r), clamp(g), clamp(b)]
+  // Renormalise so the peak channel is 1 — keeps stars luminous, preserves hue.
+  const peak = Math.max(rgb[0], rgb[1], rgb[2]) || 1
+  return rgb.map((v) => Number((v / peak).toFixed(3)))
+}
+
+/** Star colour from B-V, the real way: colour index → temperature → blackbody. */
+function bvToRgb(bv) {
+  return tempToRgb(bvToTemp(bv))
 }
 
 /**
@@ -421,6 +432,12 @@ async function main() {
         m: Number(s.mag.toFixed(2)),
         d: s.distLy != null ? Number(s.distLy.toFixed(1)) : null,
         s: r.spect || null,
+        // Real surface temperature (K) from B-V — the physical driver of colour.
+        t: s.bv != null ? Math.round(bvToTemp(s.bv)) : null,
+        // Absolute magnitude → luminosity in solar units (L/L☉ = 10^((4.83−M)/2.5)).
+        l: Number.isFinite(Number(r.absmag))
+          ? Number(Math.pow(10, (4.83 - Number(r.absmag)) / 2.5).toPrecision(2))
+          : null,
         ns: iauName ? "iau" : "hyg", // name source — kept terse
       })
     }
@@ -490,6 +507,10 @@ export type NamedStarMeta = {
   m: number
   d: number | null
   s: string | null
+  /** Surface temperature in Kelvin, from the B-V colour index (Ballesteros). */
+  t: number | null
+  /** Luminosity in solar units, from absolute magnitude. */
+  l: number | null
   ns: "iau" | "hyg"
 }
 

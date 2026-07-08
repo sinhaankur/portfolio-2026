@@ -115,6 +115,8 @@ function buildStarFact(opts: {
   mag: number
   distLy: number | null
   spectralType: string | null
+  tempK: number | null
+  lumSun: number | null
   hr: number | null
   hd: number | null
 }): string {
@@ -124,6 +126,13 @@ function buildStarFact(opts: {
   parts.push(`Apparent magnitude ${opts.mag.toFixed(2)}.`)
   if (opts.distLy != null) parts.push(`${opts.distLy.toFixed(1)} light-years from the Sun.`)
   if (opts.spectralType) parts.push(`Spectral type ${opts.spectralType.trim()}.`)
+  // Real physical data from HYG — the star's actual measured properties.
+  if (opts.tempK != null) parts.push(`Surface temperature ≈ ${opts.tempK.toLocaleString()} K (from its B-V colour).`)
+  if (opts.lumSun != null) {
+    const l = opts.lumSun
+    const lStr = l >= 1000 ? `${Math.round(l).toLocaleString()}×` : l >= 10 ? `${Math.round(l)}×` : `${l}×`
+    parts.push(`Luminosity ≈ ${lStr} the Sun.`)
+  }
   const catalog: string[] = []
   if (opts.hr) catalog.push(`HR ${opts.hr}`)
   if (opts.hd) catalog.push(`HD ${opts.hd}`)
@@ -186,7 +195,8 @@ export function NamedStarHoverLayer({
       // burning" line, appended to the lore/catalog fact.
       const phys = STAR_PHYSICAL[meta.n]
       let fact = buildStarFact({
-        name: meta.n, mag: meta.m, distLy: meta.d, spectralType: meta.s, hr: meta.h, hd: meta.hd,
+        name: meta.n, mag: meta.m, distLy: meta.d, spectralType: meta.s,
+        tempK: meta.t ?? null, lumSun: meta.l ?? null, hr: meta.h, hd: meta.hd,
       })
       if (phys) {
         fact += `\n\n☀ Measured physics — ${phys.tempK.toLocaleString()} K surface, ${phys.radius < 1 ? phys.radius.toFixed(2) : phys.radius.toLocaleString()}× the Sun's radius, ${phys.mass}× its mass. Fusing: ${phys.fusing}. ${phys.comp}`
