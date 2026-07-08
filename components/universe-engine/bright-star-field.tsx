@@ -148,15 +148,16 @@ const STAR_FRAGMENT_SHADER = /* glsl */ `
     float d = length(uv);
     if (d > 0.5) discard;
 
-    // Bright core (0..0.16) + a fuller soft halo (0.14..0.5) so stars read as
+    // Bright core (0..0.18) + a fuller soft halo (0.14..0.5) so stars read as
     // luminous glows, not faint dots. The hard outer cutoff is masked by the
     // additive blending so it doesn't read as a hard circle edge.
-    float core = 1.0 - smoothstep(0.0, 0.16, d);
-    float halo = pow(1.0 - smoothstep(0.14, 0.5, d), 1.5) * 0.8;
+    float core = 1.0 - smoothstep(0.0, 0.18, d);
+    float halo = pow(1.0 - smoothstep(0.13, 0.5, d), 1.4) * 0.9;
     float alpha = max(core, halo);
-    // Lift dimmer stars a touch so the field feels populated, not sparse —
-    // the eye sees far more stars in a real dark sky than a timid field shows.
-    alpha *= 0.75 + 0.35 * vBrightness;
+    // Lift dimmer stars so the field feels populated, not sparse — the eye sees
+    // far more stars in a real dark sky than a timid field shows. Higher floor
+    // (0.85) so even faint stars register instead of vanishing.
+    alpha *= 0.85 + 0.25 * vBrightness;
 
     // Diffraction spike — only the brightest stars (vBrightness > 0.65,
     // ≈ apparent mag < 1). A 4-point cross adds the photographic
@@ -260,7 +261,7 @@ export function BrightStarField({
         uniforms={{
           // Multiplies every star's baked size. 2.6 gives Sirius
           // (size ≈ 3.6) ~9 device-pixels and mag-6 stars ~1 pixel.
-          uSizeBoost: { value: 3.4 },
+          uSizeBoost: { value: 4.0 },
           uTime: { value: 0 },
           uPixelRatio: { value: 1 },
           // Proper-motion drift. Set per frame from simTimeRef.
