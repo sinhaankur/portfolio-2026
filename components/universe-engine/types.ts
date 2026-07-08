@@ -155,6 +155,9 @@ export type Planet = {
    *  thin atmospheres (Mars), 0.18 for thick atmospheres (Earth, Venus).
    *  Only used when nightTextureUrl or useDayNight is set. */
   terminatorSoftness?: number
+  /** Clean polar-cap colour to fade the top/bottom texture rows toward, when the
+   *  equirectangular map streaks at the poles (Mars). Absent = no polar fix. */
+  polarTint?: string
   /** Override the formula-derived visual radius. Useful for dwarf planets
    *  whose real radius (Pluto = 0.186 Earth-radii) would render as a
    *  pinprick that's impossible to find from the inner-system view. */

@@ -238,6 +238,8 @@ const DAY_NIGHT_FRAGMENT_SHADER = `
   uniform float uNightStrength;
   uniform float uHasNight;       // 1 = blend night map, 0 = night side goes to ambient
   uniform float uTerminatorSoftness; // 0.18 for Earth, ~0.04 for airless bodies
+  uniform float uPolarFix;        // >0 = fade the top/bottom texture rows (fixes
+  uniform vec3  uPolarTint;       //   equirectangular polar smear, e.g. Mars caps)
   varying vec2 vUv;
   varying vec3 vWorldNormal;
   void main() {
@@ -248,6 +250,14 @@ const DAY_NIGHT_FRAGMENT_SHADER = `
     // controls how wide the blend zone is.
     float dayMix = smoothstep(-uTerminatorSoftness * 0.4, uTerminatorSoftness, NdotL);
     vec3 dayColor = texture2D(tDay, vUv).rgb;
+    // Fix equirectangular polar smear: the top/bottom rows of some maps (e.g.
+    // Mars) are stretched ice-cap streaks that wrap into blobs at the poles.
+    // Fade the outermost band toward a clean polar tint so the caps read right.
+    if (uPolarFix > 0.5) {
+      float d = min(vUv.y, 1.0 - vUv.y);          // distance from nearest pole
+      float pole = 1.0 - smoothstep(0.0, 0.06, d); // 1 at the pole → 0 by ~6% in
+      dayColor = mix(dayColor, uPolarTint, pole * 0.9);
+    }
     // Night-side colour: either the night map (Earth's city lights) or
     // just an ambient-dimmed version of the day colour (Moon: shadow
     // side still has some earthshine; we approximate as 4% ambient).
@@ -1454,6 +1464,8 @@ function MoonBody({
       uNightStrength:       { value: 0 },
       uHasNight:            { value: 0 },     // airless body
       uTerminatorSoftness:  { value: 0.04 },  // razor-sharp lunar terminator
+      uPolarFix:            { value: 0 },     // moons don't need the polar-smear fix
+      uPolarTint:           { value: new Color("#ffffff") },
     }),
     [],
   )
@@ -3297,6 +3309,10 @@ function PlanetBody({
       uNightStrength:       { value: nightTextureUrl ? 1.8 : 0 },
       uHasNight:            { value: nightTextureUrl ? 1.0 : 0.0 },
       uTerminatorSoftness:  { value: planet.raw.terminatorSoftness ?? 0.18 },
+      // Polar-smear fix: on for bodies whose equirectangular map streaks at the
+      // poles (Mars). uPolarTint is the clean cap colour to fade toward.
+      uPolarFix:            { value: planet.raw.polarTint ? 1 : 0 },
+      uPolarTint:           { value: new Color(planet.raw.polarTint ?? "#ffffff") },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
