@@ -46,9 +46,12 @@ const MAPS = [
     url: "https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/lroc_color_16bit_srgb_4k.tif",
     source: "NASA SVS / LRO LROC CGI Moon Kit 2025 colour mosaic (public domain)",
   },
-  // TODO Mercury: NASA MESSENGER MDIS global mosaic — need a verified direct
-  // 4K JPG/TIF URL (the SVS/USGS paths tried so far 404). Add here when found;
-  // the 2K mercury.webp stays until then. Earth + Moon are the top-value pair.
+  // Mercury: DELIBERATELY 2K-only. The USGS MESSENGER MDIS global mosaics are
+  // 796 MB GeoTIFFs (too big to fetch/convert here) AND false-colour (1000/750/
+  // 430 nm filters → RGB, NOT human-eye colour) — using them would break the
+  // engine's "real, not invented" rule. Mercury is grey + cratered to the eye,
+  // very Moon-like; the 2K mercury.webp (243 KB, already dense) is faithful and
+  // enough. Only revisit with a natural-colour, reasonably-sized source.
 ]
 
 async function ensureDirs() {
