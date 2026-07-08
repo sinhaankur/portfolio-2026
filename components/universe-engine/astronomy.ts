@@ -354,9 +354,21 @@ export function eccentricToTrue(E: number, e: number): number {
  * comets floating off their trails; there is now exactly one.
  * ------------------------------------------------------------------------ */
 
-/** Scene units per sqrt(AU). Distances are sqrt-compressed so the inner
- *  and outer solar system both stay legible in one frame. */
+/** Scene units per sqrt(AU) — retained for the true-scale anchor + any external
+ *  reference. Explore-mode distance compression now uses a log curve (below),
+ *  which gives the inner planets more breathing room AND a tighter total span
+ *  than sqrt did. */
 export const SCENE_SCALE = 3
+
+/** Explore-mode log-compression constants. `ln(1 + AU·K)·M`:
+ *  - K stretches the inner system (log grows fastest near 0, so the cramped
+ *    rocky planets — all within 1.5 AU — separate better than under sqrt),
+ *  - M is tuned so Earth (1 AU) still lands at ~3 units, keeping the inner
+ *    system framed exactly where it was.
+ *  Net vs sqrt: wider inner gaps (Venus→Earth 0.45→0.54) and a smaller overall
+ *  span (18.9→11.0 units), so the whole system frames tighter too. */
+export const LOG_COMPRESS_K = 2.5
+export const LOG_COMPRESS_M = 2.4
 
 /* Scale mode — "explore" (default, sqrt-compressed so the whole solar system
  * is legible in one frame) vs "true" (linear AU, real ratios — honest about the
@@ -390,7 +402,10 @@ export const TRUE_SCALE_AU = 3
 export function compressRadius(rAU: number): number {
   const r = Math.max(rAU, 0)
   if (scaleModeRef.current === "true") return r * TRUE_SCALE_AU
-  return Math.sqrt(r) * SCENE_SCALE
+  // Log compression: opens up the cramped inner planets and tightens the
+  // overall span vs. the old sqrt curve. Monotonic + smooth, so orbit rings,
+  // fly-to framing, and zoom all keep working unchanged.
+  return Math.log(1 + r * LOG_COMPRESS_K) * LOG_COMPRESS_M
 }
 
 /**
