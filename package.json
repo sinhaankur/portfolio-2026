@@ -13,7 +13,8 @@
     "data:deepsky": "node scripts/fetch-deep-sky.mjs",
     "dave:check": "node scripts/validate-dave-levels.ts",
     "test:site": "node scripts/smoke-site.mjs",
-    "test:dave": "node scripts/stress-dave.mjs"
+    "test:dave": "node scripts/stress-dave.mjs",
+    "data:textures": "node scripts/fetch-planet-textures.mjs"
   },
   "dependencies": {
     "3d-tiles-renderer": "^0.4.28",
