@@ -788,9 +788,17 @@ export const SGR_A_INFO: BodyInfo = {
 export const SUN_INFO: BodyInfo = {
   name: "Sun",
   classification: "G2V — Yellow Dwarf",
-  surfaceTempK: { mean: 5778 },
-  surfaceTempC: { mean: 5505 },
-  fact: "Core temperature ≈ 15.7M K. Converts ~4M tonnes of mass into energy every second.",
+  surfaceTempK: { mean: 5772 },
+  surfaceTempC: { mean: 5499 },
+  fact: "Photosphere 5,772 K — its true colour is white; the orange we see is our atmosphere scattering blue away. Core 15.7M K, where fusion converts ~4M tonnes of mass into energy every second. 1.39M km across (109 Earths), 333,000 Earth masses, holding 99.86% of the solar system's mass. ~73% hydrogen, 25% helium by mass; 4.6 billion years old, roughly halfway through its main-sequence life. The visible surface churns with ~1,000 km convection granules that turn over in minutes.",
+  deep: {
+    massEarth: 333000,
+    densityGcc: 1.41,
+    gravity: 274,
+    escapeVelocityKms: 617.5,
+    atmosphere: "Photosphere → chromosphere → million-degree corona; a constant solar wind streams outward",
+    composition: "~73% hydrogen, 25% helium, 2% heavier elements (by mass); plasma throughout",
+  },
 }
 
 export const ASTEROID_BELT_INFO: BodyInfo = {

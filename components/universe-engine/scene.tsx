@@ -4007,23 +4007,33 @@ function SolarSystem({
   const coronaInnerMatRef = useRef<ShaderMaterial>(null)
   const coronaOuterMatRef = useRef<ShaderMaterial>(null)
   const [sunHovered, setSunHovered] = useState(false)
-  // Procedural photosphere uniforms — warm solar palette (chart mode goes amber).
+  // Procedural photosphere uniforms — colours are the REAL blackbody hues of
+  // the Sun's surface temperatures (the Sun is a near-white 5,772 K body, not
+  // orange — that's an atmospheric illusion). Same tempToRgb physics as the
+  // star field, so the Sun is consistent with the catalogue:
+  //   intergranular lanes ~5,400 K #ffecdb · photosphere 5,772 K #fff2e6 ·
+  //   bright network ~6,800 K #faf6ff. Contrast (not orange) reads as
+  //   convection. Chart/invert mode keeps the amber brand tint for legibility
+  //   on the light theme.
+  const SUN_LANE = "#ffe4c4"   // slightly deepened 5,400 K lane for granule contrast
+  const SUN_PHOTO = "#fff2e6"  // real 5,772 K photosphere
+  const SUN_NET = "#fbf7ff"    // ~6,800 K hot network
   const sunSurfUniforms = useMemo(
     () => ({
       uTime: { value: 0 },
-      uCool: { value: new Color(invert ? "#8a3a12" : "#e0641e") },
-      uWarm: { value: new Color(invert ? "#c9662a" : "#ffb14a") },
-      uHot:  { value: new Color(invert ? "#e8b070" : "#fff2c8") },
-      uIntensity: { value: invert ? 0.9 : 1.35 },
+      uCool: { value: new Color(invert ? "#8a3a12" : SUN_LANE) },
+      uWarm: { value: new Color(invert ? "#c9662a" : SUN_PHOTO) },
+      uHot:  { value: new Color(invert ? "#e8b070" : SUN_NET) },
+      uIntensity: { value: invert ? 0.9 : 1.25 },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   )
   useEffect(() => {
-    sunSurfUniforms.uCool.value.set(invert ? "#8a3a12" : "#e0641e")
-    sunSurfUniforms.uWarm.value.set(invert ? "#c9662a" : "#ffb14a")
-    sunSurfUniforms.uHot.value.set(invert ? "#e8b070" : "#fff2c8")
-    sunSurfUniforms.uIntensity.value = invert ? 0.9 : 1.35
+    sunSurfUniforms.uCool.value.set(invert ? "#8a3a12" : SUN_LANE)
+    sunSurfUniforms.uWarm.value.set(invert ? "#c9662a" : SUN_PHOTO)
+    sunSurfUniforms.uHot.value.set(invert ? "#e8b070" : SUN_NET)
+    sunSurfUniforms.uIntensity.value = invert ? 0.9 : 1.25
   }, [invert, sunSurfUniforms])
   // Chunky belt-rock GLBs (2.7 MB) stream in the first time the user enters
   // explore mode — at passive-backdrop distances the point-cloud belts carry
