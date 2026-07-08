@@ -407,6 +407,17 @@ export function compressRadius(rAU: number): number {
   return Math.sqrt(r) * SCENE_SCALE
 }
 
+/** Small-body visual radius (scene units) from a REAL mean diameter (km).
+ *  Compressed-but-truthful: a log curve maps the huge real range (sub-km NEOs
+ *  up to ~940 km Ceres — a ~3,000× span) into a legible, ORDERED visual range,
+ *  so relative sizes reflect reality (Ceres visibly dwarfs a tiny NEO) while
+ *  the smallest bodies stay above a clickable floor. Same honest philosophy as
+ *  compressRadius does for distances — real ratios, gently squeezed, never flat. */
+export function smallBodyVisualRadius(diameterKm: number): number {
+  const d = Math.max(diameterKm, 0)
+  return Math.max(0.018, Math.min(0.11, 0.012 * Math.log(1 + d) + 0.016))
+}
+
 /**
  * Convert orbital elements + a true anomaly into a scene-space position.
  *
@@ -1011,6 +1022,7 @@ export const namedBodies: NamedBody[] = [
     name: "Halley's Comet",
     designation: "1P/Halley",
     kind: "comet",
+    diameterKm: 11,
     aAU: 17.8,
     eccentricity: 0.967,
     inclDeg: 162.3,        // retrograde — orbits backwards relative to the planets
@@ -1027,6 +1039,7 @@ export const namedBodies: NamedBody[] = [
     name: "Comet Swift-Tuttle",
     designation: "109P/Swift–Tuttle",
     kind: "comet",
+    diameterKm: 26,
     aAU: 26.1,
     eccentricity: 0.963,
     inclDeg: 113.4,
@@ -1042,6 +1055,7 @@ export const namedBodies: NamedBody[] = [
     name: "Comet Tempel-Tuttle",
     designation: "55P/Tempel–Tuttle",
     kind: "comet",
+    diameterKm: 3.6,
     aAU: 10.3,
     eccentricity: 0.906,
     inclDeg: 162.5,
@@ -1057,6 +1071,7 @@ export const namedBodies: NamedBody[] = [
     name: "Comet Encke",
     designation: "2P/Encke",
     kind: "comet",
+    diameterKm: 4.8,
     aAU: 2.22,
     eccentricity: 0.848,
     inclDeg: 11.8,
@@ -1072,6 +1087,7 @@ export const namedBodies: NamedBody[] = [
     name: "Comet Giacobini-Zinner",
     designation: "21P/Giacobini–Zinner",
     kind: "comet",
+    diameterKm: 2,
     aAU: 3.5,
     eccentricity: 0.706,
     inclDeg: 31.9,
@@ -1087,6 +1103,7 @@ export const namedBodies: NamedBody[] = [
     name: "Comet Hale-Bopp",
     designation: "C/1995 O1 (Hale–Bopp)",
     kind: "comet",
+    diameterKm: 60,
     aAU: 186,
     eccentricity: 0.995,
     inclDeg: 89.4,           // almost perpendicular to the ecliptic
@@ -1102,6 +1119,7 @@ export const namedBodies: NamedBody[] = [
     name: "Comet 67P",
     designation: "67P/Churyumov–Gerasimenko · Rosetta target",
     kind: "comet",
+    diameterKm: 4.3,
     aAU: 3.46,
     eccentricity: 0.641,
     inclDeg: 7.04,
@@ -1117,6 +1135,7 @@ export const namedBodies: NamedBody[] = [
     name: "Comet Hyakutake",
     designation: "C/1996 B2 (Hyakutake)",
     kind: "comet",
+    diameterKm: 4.2,
     aAU: 1705,                // (0.23 + 3410)/2
     eccentricity: 0.9999,
     inclDeg: 124.92,          // retrograde
@@ -1131,6 +1150,7 @@ export const namedBodies: NamedBody[] = [
     name: "Comet Tsuchinshan-ATLAS",
     designation: "C/2023 A3 (Tsuchinshan–ATLAS)",
     kind: "comet",
+    diameterKm: 6,
     aAU: 1750,                // (0.39 + 3500)/2
     eccentricity: 0.9999,
     inclDeg: 139.1,
@@ -1145,6 +1165,7 @@ export const namedBodies: NamedBody[] = [
     name: "Comet Ikeya-Seki",
     designation: "C/1965 S1 (Ikeya–Seki) · Kreutz sungrazer",
     kind: "comet",
+    diameterKm: 5,
     aAU: 91.6,                // (0.0078 + 183.2)/2
     eccentricity: 0.9999,
     inclDeg: 141.86,          // retrograde, Kreutz group
@@ -1159,6 +1180,7 @@ export const namedBodies: NamedBody[] = [
     name: "Comet NEOWISE",
     designation: "C/2020 F3 (NEOWISE)",
     kind: "comet",
+    diameterKm: 5,
     aAU: 358,
     eccentricity: 0.999,     // essentially parabolic
     inclDeg: 128.9,          // retrograde — handled by inclination > 90 rule
@@ -1173,6 +1195,7 @@ export const namedBodies: NamedBody[] = [
     name: "Comet Tempel 2",
     designation: "10P/Tempel 2",
     kind: "comet",
+    diameterKm: 10.6,
     aAU: 3.052,
     eccentricity: 0.537,
     inclDeg: 12.0,
@@ -1188,6 +1211,7 @@ export const namedBodies: NamedBody[] = [
     name: "Comet PanSTARRS R3",
     designation: "C/2025 R3 (PanSTARRS)",
     kind: "comet",
+    diameterKm: 4,
     aAU: 720,                 // long-period, very loose ellipse
     eccentricity: 0.9991,
     inclDeg: 76.4,
@@ -1204,6 +1228,7 @@ export const namedBodies: NamedBody[] = [
     name: "Apophis",
     designation: "99942 Apophis",
     kind: "asteroid",
+    diameterKm: 0.34,
     aAU: 0.922,
     eccentricity: 0.191,
     inclDeg: 3.34,
@@ -1218,6 +1243,7 @@ export const namedBodies: NamedBody[] = [
     name: "Eros",
     designation: "433 Eros",
     kind: "asteroid",
+    diameterKm: 16.8,
     aAU: 1.458,
     eccentricity: 0.223,
     inclDeg: 10.83,
@@ -1233,6 +1259,7 @@ export const namedBodies: NamedBody[] = [
     name: "Phaethon",
     designation: "3200 Phaethon",
     kind: "asteroid",
+    diameterKm: 5.8,
     aAU: 1.271,
     eccentricity: 0.890,
     inclDeg: 22.26,
@@ -1247,6 +1274,7 @@ export const namedBodies: NamedBody[] = [
     name: "Toutatis",
     designation: "4179 Toutatis",
     kind: "asteroid",
+    diameterKm: 2.8,
     aAU: 2.53,
     eccentricity: 0.629,
     inclDeg: 0.45,
@@ -1261,6 +1289,7 @@ export const namedBodies: NamedBody[] = [
     name: "Itokawa",
     designation: "25143 Itokawa · Hayabusa target",
     kind: "asteroid",
+    diameterKm: 0.33,
     aAU: 1.324,
     eccentricity: 0.280,
     inclDeg: 1.62,
@@ -1275,6 +1304,7 @@ export const namedBodies: NamedBody[] = [
     name: "Florence",
     designation: "3122 Florence",
     kind: "asteroid",
+    diameterKm: 4.9,
     aAU: 1.769,
     eccentricity: 0.423,
     inclDeg: 22.15,
@@ -1289,6 +1319,7 @@ export const namedBodies: NamedBody[] = [
     name: "Chiron",
     designation: "2060 Chiron",
     kind: "asteroid",
+    diameterKm: 218,
     aAU: 13.7,
     eccentricity: 0.379,
     inclDeg: 6.93,
@@ -1303,6 +1334,7 @@ export const namedBodies: NamedBody[] = [
     name: "Vesta",
     designation: "4 Vesta",
     kind: "asteroid",
+    diameterKm: 525.4,
     aAU: 2.362,
     eccentricity: 0.089,
     inclDeg: 7.14,
@@ -1318,6 +1350,7 @@ export const namedBodies: NamedBody[] = [
     name: "Ceres",
     designation: "1 Ceres",
     kind: "asteroid",
+    diameterKm: 939.4,
     aAU: 2.77,
     eccentricity: 0.0758,
     inclDeg: 10.59,
@@ -1333,6 +1366,7 @@ export const namedBodies: NamedBody[] = [
     name: "Pallas",
     designation: "2 Pallas",
     kind: "asteroid",
+    diameterKm: 513,
     aAU: 2.77,
     eccentricity: 0.231,
     inclDeg: 34.84,
@@ -1347,6 +1381,7 @@ export const namedBodies: NamedBody[] = [
     name: "Hygiea",
     designation: "10 Hygiea",
     kind: "asteroid",
+    diameterKm: 434,
     aAU: 3.14,
     eccentricity: 0.114,
     inclDeg: 3.84,
@@ -1361,6 +1396,7 @@ export const namedBodies: NamedBody[] = [
     name: "Bennu",
     designation: "101955 Bennu",
     kind: "asteroid",
+    diameterKm: 0.49,
     aAU: 1.126,
     eccentricity: 0.204,
     inclDeg: 6.03,
@@ -1739,6 +1775,7 @@ export const namedBodies: NamedBody[] = [
     name: "Psyche",
     designation: "Psyche · NASA · 2023",
     kind: "spacecraft",
+    diameterKm: 222,
     aAU: 2.4,                // cruise toward asteroid 16 Psyche
     eccentricity: 0.30,
     inclDeg: 7.0,

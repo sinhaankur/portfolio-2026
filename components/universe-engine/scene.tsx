@@ -76,6 +76,7 @@ import {
   blackHoleHorizonGravityMetersPerSec2,
   buildScenePlanets,
   compressRadius,
+  smallBodyVisualRadius,
   surfaceTextureUrl,
   constellations,
   daysSinceJ2000,
@@ -4455,7 +4456,12 @@ function NamedBodyMesh({
     const a = body.aAU
     const e = body.eccentricity
     const inclination = body.inclDeg * DEG
-    const visualRadius = body.visualRadius ?? 0.05
+    // Size from the body's REAL diameter when known (compressed-but-truthful so
+    // Ceres visibly dwarfs a sub-km NEO); else an explicit visualRadius; else the
+    // flat default.
+    const visualRadius = body.diameterKm != null
+      ? smallBodyVisualRadius(body.diameterKm)
+      : body.visualRadius ?? 0.05
     // Periodic bodies loop; interstellars get a finite "passage window"
     // measured in seconds of scene time so the user can see them coming
     // and going without them living on screen indefinitely.

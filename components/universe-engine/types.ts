@@ -307,7 +307,13 @@ export type NamedBody = {
   startPhase: number
   /** Short fact shown in the info panel. */
   fact: string
-  /** Visual sphere radius in scene units (default 0.05). */
+  /** Real mean diameter in km (NASA/JPL). When present, the render size is
+   *  derived from this via a compressed-but-truthful curve, so relative sizes
+   *  reflect reality (Ceres visibly dwarfs a sub-km NEO) rather than a flat
+   *  default. Absent = falls back to visualRadius / the 0.05 default. */
+  diameterKm?: number
+  /** Visual sphere radius in scene units (default 0.05). Overridden by the
+   *  diameterKm-derived size when that's present. */
   visualRadius?: number
   /** Optional hex colour override. Defaults derived from `kind`. */
   shade?: string
