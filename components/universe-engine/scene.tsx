@@ -3553,7 +3553,10 @@ function PlanetBody({
     // orbit. dot(normal, sunDir) in the shader produces the terminator.
     if (useDayNightShader && texMeshRef.current) {
       const k = 1 - Math.exp(-delta * 8)
-      const target = texture && nightTexture ? 1 : 0
+      // Show the surface once the DAY texture is loaded. Bodies with a night
+      // map (Earth) also wait for it; airless day/night bodies (Mars, Mercury,
+      // Pluto) have no night texture and must NOT stay transparent forever.
+      const target = texture && (!nightTextureUrl || nightTexture) ? 1 : 0
       dayNightUniforms.uOpacity.value += (target - dayNightUniforms.uOpacity.value) * k
       texMeshRef.current.getWorldPosition(_earthWorldPos)
       _sunWorldPos.set(SUN_OFFSET_SCENE, 0, 0)
