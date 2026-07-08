@@ -934,7 +934,7 @@ export function planetToInfo(p: Planet): BodyInfo {
  * ------------------------------------------------------------------------ */
 
 export const moons: MoonData[] = [
-  { name: "Moon (Luna)",     parent: "Earth",   visualRadius: 0.05,  orbitRadius: 0.42, periodDays: 27.32,  shade: "#bdbdbd", fact: "Earth's only natural satellite. Surface temp −173 to +127 °C. Tidally locked — same face always toward Earth.", textureUrl: "/textures/moon.webp", hiResTextureUrl: "/textures/moon-4k.webp", deep: { atmosphere: "Essentially none — a trace exosphere of helium, argon, sodium", composition: "Small iron core, silicate mantle; anorthosite highlands + basaltic maria; polar water-ice in shadowed craters" }, surfaceFeatures: [
+  { name: "Moon (Luna)",     parent: "Earth",   visualRadius: 0.05,  orbitRadius: 0.42, periodDays: 27.32,  shade: "#bdbdbd", fact: "Earth's only natural satellite. Surface temp −173 to +127 °C. Tidally locked — same face always toward Earth.", textureUrl: "/textures/moon.webp", hiResTextureUrl: "/textures/moon-4k.webp", elevationUrl: "/textures/moon-elevation.webp", elevationScale: 0.025, deep: { atmosphere: "Essentially none — a trace exosphere of helium, argon, sodium", composition: "Small iron core, silicate mantle; anorthosite highlands + basaltic maria; polar water-ice in shadowed craters" }, surfaceFeatures: [
     // Apollo crewed landings (1969–1972) — the only human boot-prints
     // off Earth. All six landed on the near side (so Earth was visible
     // from the surface) within ±5° of the lunar equator.

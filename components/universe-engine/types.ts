@@ -208,6 +208,11 @@ export type MoonData = {
   /** Optional 4K surface map, desktop-only (mobile keeps the 2K textureUrl).
    *  Same perf-budget gating as planets — see Planet.hiResTextureUrl. */
   hiResTextureUrl?: string
+  /** Grayscale elevation/height map (e.g. lunar LOLA) that displaces the moon's
+   *  surface mesh for real terrain relief on deep-zoom. Absent = smooth sphere. */
+  elevationUrl?: string
+  /** Displacement scale along the normal (visual-radius units). Defaults gentle. */
+  elevationScale?: number
   /** Surface landing sites / named features — same shape as planet
    *  features so the Moon can carry Apollo landing sites etc. */
   surfaceFeatures?: SurfaceFeature[]

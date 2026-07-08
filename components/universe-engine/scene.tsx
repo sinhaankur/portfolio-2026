@@ -1458,6 +1458,7 @@ function MoonBody({
    *  the planet, the lit hemisphere rotates relative to it = phases. */
   const dayNightMatRef = useRef<ShaderMaterial>(null)
   const [texture, setTexture] = useState<Texture | null>(null)
+  const [elevationTexture, setElevationTexture] = useState<Texture | null>(null)
   const dayNightUniforms = useMemo(
     () => ({
       tDay:                 { value: null as Texture | null },
@@ -1469,12 +1470,34 @@ function MoonBody({
       uTerminatorSoftness:  { value: 0.04 },  // razor-sharp lunar terminator
       uPolarFix:            { value: 0 },     // moons don't need the polar-smear fix
       uPolarTint:           { value: new Color("#ffffff") },
+      // Real terrain relief (e.g. lunar LOLA) — off until a height map loads.
+      tElevation:           { value: null as Texture | null },
+      uElevation:           { value: 0 },
     }),
     [],
   )
   useEffect(() => {
     if (texture) dayNightUniforms.tDay.value = texture
-  }, [texture, dayNightUniforms])
+    if (elevationTexture) {
+      dayNightUniforms.tElevation.value = elevationTexture
+      dayNightUniforms.uElevation.value =
+        (moon.elevationScale ?? 0.03) * moon.visualRadius
+    }
+  }, [texture, elevationTexture, dayNightUniforms, moon.elevationScale, moon.visualRadius])
+
+  // Optional elevation/height map for real terrain relief (Luna → LOLA). Loaded
+  // after the surface texture; linear (raw height data, not sRGB).
+  const elevationUrl = moon.elevationUrl
+  useEffect(() => {
+    if (!elevationUrl || elevationTexture) return
+    const timer = setTimeout(() => {
+      new TextureLoader().load(elevationUrl, (tex) => {
+        tex.anisotropy = 4
+        setElevationTexture(tex)
+      })
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [elevationUrl, elevationTexture])
 
   // Stable phase offset per moon (radians). Derived deterministically from
   // the moon's name rather than Math.random() so scrubbing the timeline
@@ -1578,7 +1601,7 @@ function MoonBody({
             because the Moon has no atmosphere. */}
         {textureUrl && texture && (
           <mesh ref={texMeshRef}>
-            <sphereGeometry args={[moon.visualRadius * 1.01, 48, 48]} />
+            <sphereGeometry args={[moon.visualRadius * 1.01, moon.elevationUrl ? 128 : 48, moon.elevationUrl ? 128 : 48]} />
             <shaderMaterial
               ref={dayNightMatRef as React.Ref<ShaderMaterial>}
               vertexShader={DAY_NIGHT_VERTEX_SHADER}
