@@ -56,6 +56,7 @@ import {
   SRGBColorSpace,
   TextureLoader,
   Vector3,
+  Object3D,
   type Texture,
 } from "three"
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib"
@@ -2390,22 +2391,43 @@ function BeltAsteroids({
       pos: [number, number, number]
       rot: [number, number, number]
       scale: number
+      spinAxis: [number, number, number]
+      spinRate: number
     }[] = []
     for (let i = 0; i < count; i++) {
       const r = innerRadius + rand() * (outerRadius - innerRadius)
       const a = rand() * Math.PI * 2
+      // Per-rock tumble: a random spin axis + rate, so each asteroid rotates on
+      // its OWN axis (real asteroids tumble independently) rather than all
+      // riding one rigid ring. Small rates — a slow, varied churn, not a blur.
+      const ax = rand() * 2 - 1, ay = rand() * 2 - 1, az = rand() * 2 - 1
+      const len = Math.hypot(ax, ay, az) || 1
       out.push({
         model: Math.floor(rand() * BELT_ROCK_MODELS.length),
         pos: [Math.cos(a) * r, (rand() - 0.5) * thickness, Math.sin(a) * r],
         rot: [rand() * Math.PI * 2, rand() * Math.PI * 2, rand() * Math.PI * 2],
         scale: baseScale * (0.4 + rand() * 1.3),
+        spinAxis: [ax / len, ay / len, az / len],
+        spinRate: 0.08 + rand() * 0.35,
       })
     }
     return out
   }, [innerRadius, outerRadius, count, thickness, baseScale, seed])
 
+  // Per-rock refs so each can tumble on its own axis in the frame loop.
+  const rockRefs = useRef<(Object3D | null)[]>([])
+
   useFrame((_, delta) => {
+    // The belt as a whole rides the slow orbital rotation…
     if (ref.current) ref.current.rotation.y += delta * rotationSpeed
+    // …and each rock also tumbles independently, so it reads as thousands of
+    // spinning bodies, not a rigid disc.
+    for (let i = 0; i < rockRefs.current.length; i++) {
+      const o = rockRefs.current[i]
+      if (!o) continue
+      const p = placements[i]
+      o.rotateOnAxis(_tmpAxis.set(p.spinAxis[0], p.spinAxis[1], p.spinAxis[2]), delta * p.spinRate)
+    }
   })
 
   return (
@@ -2413,6 +2435,7 @@ function BeltAsteroids({
       {placements.map((p, i) => (
         <Clone
           key={i}
+          ref={(o: Object3D | null) => { rockRefs.current[i] = o }}
           object={gltfs[p.model].scene}
           position={p.pos}
           rotation={p.rot}
@@ -2422,6 +2445,7 @@ function BeltAsteroids({
     </group>
   )
 }
+const _tmpAxis = new Vector3()
 
 /* ============================================================
  * Satellite shells — human-made orbiters around a body.
