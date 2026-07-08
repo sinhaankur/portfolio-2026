@@ -148,12 +148,15 @@ const STAR_FRAGMENT_SHADER = /* glsl */ `
     float d = length(uv);
     if (d > 0.5) discard;
 
-    // Tight bright core (0..0.12) + soft halo (0.12..0.5). The hard
-    // outer cutoff is masked by the additive blending so it doesn't
-    // read as a hard circle edge.
-    float core = 1.0 - smoothstep(0.0, 0.12, d);
-    float halo = pow(1.0 - smoothstep(0.10, 0.5, d), 1.6) * 0.55;
+    // Bright core (0..0.16) + a fuller soft halo (0.14..0.5) so stars read as
+    // luminous glows, not faint dots. The hard outer cutoff is masked by the
+    // additive blending so it doesn't read as a hard circle edge.
+    float core = 1.0 - smoothstep(0.0, 0.16, d);
+    float halo = pow(1.0 - smoothstep(0.14, 0.5, d), 1.5) * 0.8;
     float alpha = max(core, halo);
+    // Lift dimmer stars a touch so the field feels populated, not sparse —
+    // the eye sees far more stars in a real dark sky than a timid field shows.
+    alpha *= 0.75 + 0.35 * vBrightness;
 
     // Diffraction spike — only the brightest stars (vBrightness > 0.65,
     // ≈ apparent mag < 1). A 4-point cross adds the photographic
@@ -171,10 +174,14 @@ const STAR_FRAGMENT_SHADER = /* glsl */ `
       alpha = max(alpha, spike * 0.55);
     }
 
-    // Brightest stars desaturate slightly toward white — real
-    // perceptual effect (rod saturation) + makes Sirius/Vega read
-    // as the headline stars they are.
-    vec3 col = mix(vColor, vec3(1.0), vBrightness * 0.25);
+    // Brightest stars desaturate slightly toward white — real perceptual
+    // effect (rod saturation) + makes Sirius/Vega read as headline stars. Kept
+    // gentle (0.15) so the physically-accurate blackbody hues stay visible —
+    // the sky should show its blues, golds, and reds, not wash to grey.
+    vec3 col = mix(vColor, vec3(1.0), vBrightness * 0.15);
+    // Boost saturation slightly so the real star colours actually read.
+    float lum = dot(col, vec3(0.299, 0.587, 0.114));
+    col = mix(vec3(lum), col, 1.25);
 
     gl_FragColor = vec4(col, alpha);
   }
@@ -253,7 +260,7 @@ export function BrightStarField({
         uniforms={{
           // Multiplies every star's baked size. 2.6 gives Sirius
           // (size ≈ 3.6) ~9 device-pixels and mag-6 stars ~1 pixel.
-          uSizeBoost: { value: 2.6 },
+          uSizeBoost: { value: 3.4 },
           uTime: { value: 0 },
           uPixelRatio: { value: 1 },
           // Proper-motion drift. Set per frame from simTimeRef.
