@@ -158,6 +158,11 @@ export type Planet = {
   /** Clean polar-cap colour to fade the top/bottom texture rows toward, when the
    *  equirectangular map streaks at the poles (Mars). Absent = no polar fix. */
   polarTint?: string
+  /** Optional high-resolution (4K) surface map, used on DESKTOP only. Mobile
+   *  keeps the lighter `textureUrl` (2K) to honour the perf/texture budget —
+   *  phones can't resolve 4K and shouldn't pay to download it. Absent = the
+   *  base textureUrl is used everywhere. */
+  hiResTextureUrl?: string
   /** Grayscale elevation/height map (e.g. Mars MOLA) that displaces the surface
    *  mesh for real terrain relief on deep-zoom. Absent = flat sphere. */
   elevationUrl?: string
@@ -200,6 +205,9 @@ export type MoonData = {
    *  tidally-locked near-side reads on Earth deep-zoom. Loaded lazily when
    *  the parent planet enters its focused/hovered state. */
   textureUrl?: string
+  /** Optional 4K surface map, desktop-only (mobile keeps the 2K textureUrl).
+   *  Same perf-budget gating as planets — see Planet.hiResTextureUrl. */
+  hiResTextureUrl?: string
   /** Surface landing sites / named features — same shape as planet
    *  features so the Moon can carry Apollo landing sites etc. */
   surfaceFeatures?: SurfaceFeature[]

@@ -54,6 +54,7 @@ import {
   cloudsVisibleRef,
   satellitesVisibleRef,
   scaleModeRef,
+  deviceTierRef,
   timeScaleRef,
   REALTIME_TIME_SCALE,
   setSimMs,
@@ -179,8 +180,13 @@ export function UniverseEngine({
     const mobileMq = window.matchMedia("(max-width: 768px)")
     setReducedMotion(motionMq.matches)
     setMobile(mobileMq.matches)
+    // Gate the 4K textures: desktop loads hi-res, mobile keeps 2K (perf budget).
+    deviceTierRef.current = mobileMq.matches ? "mobile" : "desktop"
     const onMotion = () => setReducedMotion(motionMq.matches)
-    const onMobile = () => setMobile(mobileMq.matches)
+    const onMobile = () => {
+      setMobile(mobileMq.matches)
+      deviceTierRef.current = mobileMq.matches ? "mobile" : "desktop"
+    }
     motionMq.addEventListener("change", onMotion)
     mobileMq.addEventListener("change", onMobile)
     return () => {

@@ -76,6 +76,7 @@ import {
   blackHoleHorizonGravityMetersPerSec2,
   buildScenePlanets,
   compressRadius,
+  surfaceTextureUrl,
   constellations,
   daysSinceJ2000,
   eccentricToTrue,
@@ -1498,7 +1499,7 @@ function MoonBody({
   // Eagerly load the moon's surface texture on mount — same always-visible
   // treatment as the planets. Luna is the only moon shipping a texture today
   // (~550 KB WebP), and TextureLoader is async so first paint still lands fast.
-  const textureUrl = moon.textureUrl
+  const textureUrl = surfaceTextureUrl(moon)  // 4K on desktop, 2K on mobile
   useEffect(() => {
     if (!textureUrl || texture) return
     const loader = new TextureLoader()
@@ -3257,7 +3258,8 @@ function PlanetBody({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [planet.raw.name])
 
-  const textureUrl = planet.raw.textureUrl
+  // 4K on desktop when available, lighter 2K on mobile (perf/texture budget).
+  const textureUrl = surfaceTextureUrl(planet.raw)
   const hasTexture = Boolean(textureUrl)
 
   // Eagerly load each planet's equirectangular surface texture on mount —
