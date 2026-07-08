@@ -43,6 +43,10 @@ type WebGLLabelProps = {
 }
 
 const DPR_CAP = 2
+// Supersample beyond DPR so labels stay pixel-perfect crisp when the camera
+// zooms in on them (the sprite magnifies past its baked size otherwise). 1.5×
+// is a good crispness/memory trade — labels are small textures.
+const SUPERSAMPLE = 1.5
 
 /**
  * Build a canvas texture for `text`, wrapping to `maxWidthPx` using pretext for
@@ -58,7 +62,10 @@ function makeLabelTexture(
 ): { texture: THREE.CanvasTexture; w: number; h: number } | null {
   if (typeof document === "undefined") return null
 
+  // Effective scale = device pixel ratio × supersample, so the baked canvas has
+  // enough real pixels to stay sharp both on retina AND when zoomed close.
   const dpr = Math.min(DPR_CAP, typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1)
+    * SUPERSAMPLE
   const font = `${fontSizePx}px Inter, system-ui, sans-serif`
   const lineHeight = Math.round(fontSizePx * 1.3)
   const padX = Math.round(fontSizePx * 0.6)
@@ -113,7 +120,13 @@ function makeLabelTexture(
   })
 
   const texture = new THREE.CanvasTexture(canvas)
-  texture.anisotropy = 4
+  // Crisp at every distance: trilinear mipmapping keeps far/small labels clean
+  // (no shimmer), a linear mag filter keeps zoomed-in labels smooth, and high
+  // anisotropy sharpens labels viewed at a grazing angle.
+  texture.minFilter = THREE.LinearMipmapLinearFilter
+  texture.magFilter = THREE.LinearFilter
+  texture.generateMipmaps = true
+  texture.anisotropy = 8
   texture.needsUpdate = true
   return { texture, w: cssW, h: cssH }
 }
