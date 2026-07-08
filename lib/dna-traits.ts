@@ -28,6 +28,16 @@ export type TraitCategory =
   | "wellness"
   | "physical"
   | "health"
+  | "pharma"
+
+/** Where a marker's interpretation is sourced from — shown per trait so the
+ *  page reads as honest science, not horoscope-genetics. All open/citable. */
+export type TraitSource =
+  | "GWAS Catalog"
+  | "ClinVar"
+  | "PharmGKB"
+  | "SNPedia"
+  | "peer-reviewed"
 
 export type TraitOutcome = {
   /** Short verdict shown as the headline result, e.g. "Likely lactose intolerant". */
@@ -52,6 +62,12 @@ export type TraitMarker = {
   gene: string
   /** What this trait is about, shown above the result. */
   about: string
+  /** The dataset(s) this interpretation is drawn from — cited on the card so
+   *  the provenance is visible. Optional for legacy markers; new ones set it. */
+  source?: TraitSource
+  /** How strong the evidence is, in plain words ("well-established",
+   *  "reported"). Shown next to the source. */
+  evidence?: string
   /** genotype (alleles sorted A→T) -> outcome. */
   outcomes: Record<string, TraitOutcome>
   /**
@@ -604,6 +620,70 @@ export const TRAIT_MARKERS: TraitMarker[] = [
       GG: { label: "Typical HDL", detail: "The common genotype — standard HDL tendency.", tone: "neutral", feels: "Your HDL responds normally to the usual levers.", tip: "Aerobic exercise, olive oil, and oily fish nudge HDL up; these work well regardless of genotype." },
       AG: { label: "Slightly higher HDL", detail: "One copy associated with marginally higher HDL.", tone: "neutral" },
       AA: { label: "Higher HDL lean", detail: "Associated with a tendency toward higher HDL — generally favourable.", tone: "neutral" },
+    },
+  },
+
+  // ------------------------------------------------ pharmacogenomics ----------
+  // How your body processes common drugs — from PharmGKB (the pharmacogenomics
+  // knowledgebase). Informational only: dosing is ALWAYS a clinician's call on
+  // a validated test, never a consumer chip.
+  {
+    id: "caffeine-metabolism",
+    rsid: "rs762551",
+    category: "pharma",
+    title: "Caffeine metabolism speed",
+    gene: "CYP1A2",
+    source: "PharmGKB",
+    evidence: "well-established",
+    about: "How fast the CYP1A2 enzyme clears caffeine — the difference between a coffee that wears off in hours and one that keeps you up.",
+    outcomes: {
+      AA: { label: "Fast metabolizer", detail: "The *1A/*1A form — caffeine clears quickly, so it affects you for less time.", tone: "neutral", feels: "You can often drink coffee later in the day without it wrecking sleep — you burn it off fast.", tip: "You still have a real limit; fast clearance isn't a licence for unlimited caffeine." },
+      AC: { label: "Slow metabolizer", detail: "One slow allele — caffeine lingers longer, so a late coffee reaches further into the evening.", tone: "notable", feels: "Afternoon coffee more easily disturbs your sleep, and caffeine's jittery edge lasts longer.", tip: "Keep caffeine to the morning; a cut-off around noon–2pm helps sleep." },
+      CC: { label: "Slow metabolizer", detail: "Two slow alleles — caffeine clears slowly and stays in your system for hours.", tone: "notable", feels: "Even a mid-afternoon coffee can cost you sleep; the stimulant effect outstays its welcome.", tip: "Front-load caffeine early; switch to decaf after late morning." },
+    },
+  },
+  {
+    id: "warfarin-sensitivity",
+    rsid: "rs9923231",
+    category: "pharma",
+    title: "Warfarin dose sensitivity",
+    gene: "VKORC1",
+    source: "PharmGKB",
+    evidence: "clinical (CPIC)",
+    about: "A variant that strongly influences how much of the blood thinner warfarin a person needs — one of the best-established pharmacogenetic links.",
+    outcomes: {
+      GG: { label: "Standard sensitivity", detail: "The common form — typically needs a standard warfarin dose.", tone: "neutral" },
+      AG: { label: "Increased sensitivity", detail: "One copy — usually needs a lower warfarin dose to avoid over-thinning.", tone: "notable" },
+      AA: { label: "High sensitivity", detail: "Two copies — needs a notably lower warfarin dose. This is clinically actionable — a doctor uses genotype-guided dosing here.", tone: "notable", tip: "If you're ever prescribed warfarin, mention this — but dosing is decided by a clinician on a validated test, never a consumer chip." },
+    },
+  },
+  {
+    id: "clopidogrel",
+    rsid: "rs4244285",
+    category: "pharma",
+    title: "Clopidogrel (Plavix) response",
+    gene: "CYP2C19",
+    source: "PharmGKB",
+    evidence: "clinical (CPIC)",
+    about: "Whether you activate clopidogrel — a common anti-clotting drug after heart procedures. Poor metabolizers get less benefit from it.",
+    outcomes: {
+      GG: { label: "Normal activator", detail: "The functional form — you activate clopidogrel normally.", tone: "neutral" },
+      AG: { label: "Reduced activator", detail: "One loss-of-function copy — reduced activation, so clopidogrel may work less well.", tone: "notable" },
+      AA: { label: "Poor activator", detail: "Two loss-of-function copies — clopidogrel is poorly activated; clinicians often choose an alternative. Actionable, but only a doctor decides on a validated test.", tone: "notable" },
+    },
+  },
+  {
+    id: "malignant-hyperthermia",
+    rsid: "rs1801086",
+    category: "pharma",
+    title: "Anaesthetic sensitivity (RYR1)",
+    gene: "RYR1",
+    source: "ClinVar",
+    evidence: "clinical",
+    about: "A rare but serious reaction to certain general anaesthetics. A consumer chip covers only a few of the many RYR1 variants — a normal result here does NOT rule it out.",
+    outcomes: {
+      CC: { label: "No flagged variant", detail: "None of the tested RYR1 risk variants present — but a chip can't see most of them, so this is not clearance.", tone: "neutral" },
+      CT: { label: "Variant present — confirm", detail: "A tested variant is present. This must be confirmed clinically; tell an anaesthetist before any surgery.", tone: "notable" },
     },
   },
 ]

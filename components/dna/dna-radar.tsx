@@ -23,8 +23,9 @@ const CATEGORY_LABELS: Record<TraitCategory, string> = {
   wellness: "Wellness",
   physical: "Physical",
   health: "Health",
+  pharma: "Drugs",
 }
-const ORDER: TraitCategory[] = ["diet", "fitness", "skin", "wellness", "physical", "health"]
+const ORDER: TraitCategory[] = ["diet", "fitness", "skin", "wellness", "physical", "pharma", "health"]
 
 type Axis = { cat: TraitCategory; label: string; total: number; notable: number; value: number }
 

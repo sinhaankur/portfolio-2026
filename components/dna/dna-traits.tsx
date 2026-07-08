@@ -37,6 +37,7 @@ const CATEGORY_LABELS: Record<TraitCategory, string> = {
   wellness: "Wellness",
   physical: "Physical traits",
   health: "Health tendencies",
+  pharma: "Drug response",
 }
 const CATEGORY_ORDER: TraitCategory[] = [
   "diet",
@@ -44,6 +45,7 @@ const CATEGORY_ORDER: TraitCategory[] = [
   "skin",
   "wellness",
   "physical",
+  "pharma",
   "health",
 ]
 
@@ -92,6 +94,12 @@ function TraitCard({ r, i }: { r: Resolved; i: number }) {
       </summary>
       <div className="px-5 pb-5 pt-1 border-t border-border/60 space-y-4">
         <p className="font-sans text-xs text-muted-foreground mt-3">{r.marker.about}</p>
+        {r.marker.source && (
+          <p className="font-mono text-[10px] tracking-wider text-muted-foreground/80">
+            Source: <span className="text-foreground/70">{r.marker.source}</span>
+            {r.marker.evidence ? ` · ${r.marker.evidence}` : ""} · {r.marker.rsid}
+          </p>
+        )}
         <p className="font-sans text-sm md:text-base text-foreground/85 leading-relaxed">
           {r.outcome?.detail ??
             "Your genotype at this marker isn't one of the well-characterised forms, so no interpretation is shown."}
@@ -165,9 +173,11 @@ export function DnaTraits({ traits }: { traits: Record<string, string> }) {
       </div>
       <p className="max-w-2xl mb-6 font-sans text-sm md:text-base text-foreground/75 leading-relaxed">
         {resolved.length} well-studied markers read from your actual genotypes —
-        across diet, wellness, physical traits, and broad health tendencies. Tap
-        any trait to expand: what it means, how it shows up day-to-day, what
-        helps, and how it passes to the next generation.
+        across diet, wellness, physical traits, drug response, and broad health
+        tendencies, each drawn from an open dataset (GWAS Catalog, ClinVar,
+        PharmGKB) and cited on the card. Tap any trait to expand: what it means,
+        how it shows up day-to-day, what helps, and how it passes to the next
+        generation.
       </p>
 
       {/* General disclaimer */}
