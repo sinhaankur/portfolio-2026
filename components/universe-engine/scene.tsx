@@ -133,6 +133,7 @@ import {
   COMET_ENVELOPE_VERTEX_SHADER,
   COMET_ENVELOPE_FRAGMENT_SHADER,
 } from "./shaders"
+import { _earthWorldPos, _sunWorldPos, _sunDirTmp, _tmpAxis } from "./scene-shared"
 
 import { CONSTELLATION_FIGURES } from "./constellation-figures"
 import { SPACECRAFT_SHAPES } from "./spacecraft-shapes"
@@ -1940,7 +1941,6 @@ function BeltAsteroids({
     </group>
   )
 }
-const _tmpAxis = new Vector3()
 
 /* ============================================================
  * Satellite shells — human-made orbiters around a body.
@@ -3851,9 +3851,6 @@ const _tailFrom = new Vector3()
 const _tailTo = new Vector3()
 
 // Reusable vectors for the Earth day/night shader's sun-direction uniform.
-const _earthWorldPos = new Vector3()
-const _sunWorldPos = new Vector3()
-const _sunDirTmp = new Vector3()
 
 /**
  * Solve Kepler's equation M = E - e·sin(E) for the eccentric anomaly E.
