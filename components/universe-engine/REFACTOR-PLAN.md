@@ -51,8 +51,17 @@ step and redo with the correct boundary. Never batch risky cuts.
       three sibling-file deps (`timeWarpRef`, `daysSinceJ2000`/`eccentricToTrue`/
       `solveKepler`/`moons`, `SatelliteField`) were caught by the build gate, not
       the pre-scan. The gate works; the pre-scan should be exhaustive.
-- [ ] **Step 6 — NamedBodyMesh → `small-bodies.tsx`** (~918 lines). Comets
-      + asteroids (tails, envelope, tumble, diameter sizing).
+- [x] **Step 6 — NamedBodyMesh + NamedBodies → `small-bodies.tsx`** (918-line
+      component + its thin collection wrapper → 1,042-line file). The minor-body
+      sub-engine: comets, asteroids, and spacecraft on real Kepler orbits (real
+      elements → cartesian, log-curve diameter sizing, per-rock tumble, comet
+      ion/dust tail + coma envelope). Moved the comet-tail scratch vectors
+      (`_tailFrom`/`_tailTo`) in with it. scene.tsx 5,118 → 4,125 lines (−41%
+      from the 7,012 session start). Build green + smoke clean + celestial render
+      identical. Two build-gate catches (`getCometAffordance`/`getCometDynamicProfile`
+      from ./celestial-sub-engine, `SPACECRAFT_SHAPES`, the tail scratch vectors)
+      — reinforced the exhaustive-scan lesson; added a scene-module-const leak
+      check to the pre-scan.
 - [ ] **Step 7 — Galaxy/Nebula/BlackHole detail → their own files**
       (GalaxyDetail ~523, NebulaDetail ~215, BlackHoleDetail ~194).
 - [ ] **Step 8 — MilkyWay + SkyPointMesh + ConstellationStarMesh → sky files.**
@@ -72,7 +81,7 @@ universe-engine/
   moon-body.tsx       one moon renderer                       [step 4 ✓]
   orbit-ring.tsx      one planet's orbital path (shared)       [step 5a ✓]
   planet-body.tsx     one planet renderer                     [step 5b ✓]
-  small-bodies.tsx    comets + asteroids                      [step 6]
+  small-bodies.tsx    comets + asteroids                      [step 6 ✓]
   galaxy/nebula/…     the deep-space sub-engines              [step 7-8]
   scene.tsx           the ORCHESTRATOR — composes the above   [end state]
   hud.tsx / …         meaning layer (data → understanding)    [already separate]
