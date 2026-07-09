@@ -27,12 +27,17 @@ step and redo with the correct boundary. Never batch risky cuts.
       type, and the surface-pin `RoverPin`. −546 lines from scene.tsx
       (7,012 → 6,466). Build green + smoke test clean + celestial render clean.
 
+- [x] **Step 4 — MoonBody → `moon-body.tsx`** (283 → 336-line file). The moon
+      sub-engine: one natural-satellite renderer (day/night phase shader, LOLA
+      relief, landing-site pins, orbiter shell). Imports `RoverPin` +
+      `SatelliteShells` from `./scene-satellites`, the day/night shader from
+      `./shaders`, the scratch pool from `./scene-shared`. scene.tsx
+      6,466 → 6,187 lines. Build green + smoke clean + home engine renders
+      (zero console errors). Also swept up two now-orphaned type imports
+      (`MoonData`, `SurfaceFeature`).
+
 ## Next steps (big components — now that shared primitives are importable)
 
-- [ ] **Step 4 — MoonBody → `moon-body.tsx`** (~283 lines, L903). Now unblocked:
-      imports `RoverPin`/`SatelliteShells` from `./scene-satellites`, the shaders
-      from `./shaders`, the scratch pool from `./scene-shared`. We recently worked
-      here (LOLA relief).
 - [ ] **Step 5 — PlanetBody → `planet-body.tsx`** (~776 lines). The planet
       renderer (textures, MOLA displacement, day/night, clouds, aurora, rings).
 - [ ] **Step 6 — NamedBodyMesh → `small-bodies.tsx`** (~918 lines). Comets
@@ -53,7 +58,7 @@ universe-engine/
   shaders.ts          ALL engine GLSL                        [step 1 ✓]
   scene-shared.ts     temp-vector pool + small shared helpers [step 2 ✓]
   scene-satellites.tsx orbiters + hero craft + surface pins  [step 3 ✓]
-  moon-body.tsx       one moon renderer                       [step 4]
+  moon-body.tsx       one moon renderer                       [step 4 ✓]
   planet-body.tsx     one planet renderer                     [step 5]
   small-bodies.tsx    comets + asteroids                      [step 6]
   galaxy/nebula/…     the deep-space sub-engines              [step 7-8]
