@@ -16,27 +16,31 @@ step and redo with the correct boundary. Never batch risky cuts.
 - [x] **Step 1 — Shaders → `shaders.ts`** (commit 6daa03e). All 20 body shaders
       (corona, sun, day/night, cloud, aurora, bands, nebula, atmos, comet) +
       the galaxy shaders now live in one library. −549 lines from scene.tsx.
+- [x] **Step 2 — Shared scratch-vector pool → `scene-shared.ts`** (commit b71dc7b).
+      The reused temp `Vector3`s (`_earthWorldPos`, `_sunWorldPos`, `_sunDirTmp`,
+      `_tmpAxis`) — one canonical pool every sub-engine imports.
+- [x] **Step 3 — Shared render components → `scene-satellites.tsx`.** The two
+      "things around a body" concerns needed by BOTH the moon and planet
+      renderers, moved out ahead of the big components (correct dependency
+      order): `SatelliteShells` + `SatelliteShellPoints` + `HeroSatellite` +
+      the `SATELLITE_CATALOG`/`HERO_CRAFT` data tables + the `SatelliteShell`
+      type, and the surface-pin `RoverPin`. −546 lines from scene.tsx
+      (7,012 → 6,466). Build green + smoke test clean + celestial render clean.
 
-## Next steps (ordered: shared primitives first, then big components)
+## Next steps (big components — now that shared primitives are importable)
 
-- [ ] **Step 2 — Shared primitives → `scene-shared.ts`.** The small helpers used
-      across many components must move FIRST so the big components can then
-      import them cleanly:
-      - the temp-vector pool (`_tmpAxis`, `_earthWorldPos`, `_sunWorldPos`,
-        `_sunDirTmp`, …) — scattered at L1943, L3854-3856
-      - `RoverPin` component (L2579)
-      - shared types already in `./types` (HoverHandler etc. — leave there)
-      - `latLonToVec3` and any other pure geometry helpers
-- [ ] **Step 3 — MoonBody → `moon-body.tsx`** (~301 lines, L902). Now cleaner
-      once shaders + shared primitives are importable. We just worked here (LOLA).
-- [ ] **Step 4 — PlanetBody → `planet-body.tsx`** (~776 lines, L2684). The planet
+- [ ] **Step 4 — MoonBody → `moon-body.tsx`** (~283 lines, L903). Now unblocked:
+      imports `RoverPin`/`SatelliteShells` from `./scene-satellites`, the shaders
+      from `./shaders`, the scratch pool from `./scene-shared`. We recently worked
+      here (LOLA relief).
+- [ ] **Step 5 — PlanetBody → `planet-body.tsx`** (~776 lines). The planet
       renderer (textures, MOLA displacement, day/night, clouds, aurora, rings).
-- [ ] **Step 5 — NamedBodyMesh → `small-bodies.tsx`** (~918 lines, L3900). Comets
+- [ ] **Step 6 — NamedBodyMesh → `small-bodies.tsx`** (~918 lines). Comets
       + asteroids (tails, envelope, tumble, diameter sizing).
-- [ ] **Step 6 — Galaxy/Nebula/BlackHole detail → their own files**
+- [ ] **Step 7 — Galaxy/Nebula/BlackHole detail → their own files**
       (GalaxyDetail ~523, NebulaDetail ~215, BlackHoleDetail ~194).
-- [ ] **Step 7 — MilkyWay + SkyPointMesh + ConstellationStarMesh → sky files.**
-- [ ] **Step 8 — What remains in scene.tsx = the orchestrator** (`SolarSystem`,
+- [ ] **Step 8 — MilkyWay + SkyPointMesh + ConstellationStarMesh → sky files.**
+- [ ] **Step 9 — What remains in scene.tsx = the orchestrator** (`SolarSystem`,
       `SceneContents`, `FlyToController`, `SceneClock`) — the thin composition
       layer that wires the sub-engines together. This is the end state: scene.tsx
       becomes a readable ORCHESTRATOR, not a god-file.
@@ -47,11 +51,12 @@ step and redo with the correct boundary. Never batch risky cuts.
 universe-engine/
   astronomy.ts        truth spine — data + math (no React)   [already clean]
   shaders.ts          ALL engine GLSL                        [step 1 ✓]
-  scene-shared.ts     temp-vector pool + small shared helpers [step 2]
-  moon-body.tsx       one moon renderer                       [step 3]
-  planet-body.tsx     one planet renderer                     [step 4]
-  small-bodies.tsx    comets + asteroids                      [step 5]
-  galaxy/nebula/…     the deep-space sub-engines              [step 6-7]
+  scene-shared.ts     temp-vector pool + small shared helpers [step 2 ✓]
+  scene-satellites.tsx orbiters + hero craft + surface pins  [step 3 ✓]
+  moon-body.tsx       one moon renderer                       [step 4]
+  planet-body.tsx     one planet renderer                     [step 5]
+  small-bodies.tsx    comets + asteroids                      [step 6]
+  galaxy/nebula/…     the deep-space sub-engines              [step 7-8]
   scene.tsx           the ORCHESTRATOR — composes the above   [end state]
   hud.tsx / …         meaning layer (data → understanding)    [already separate]
 ```
