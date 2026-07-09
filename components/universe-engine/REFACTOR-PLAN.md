@@ -38,8 +38,19 @@ step and redo with the correct boundary. Never batch risky cuts.
 
 ## Next steps (big components — now that shared primitives are importable)
 
-- [ ] **Step 5 — PlanetBody → `planet-body.tsx`** (~776 lines). The planet
-      renderer (textures, MOLA displacement, day/night, clouds, aurora, rings).
+- [x] **Step 5 — PlanetBody → `planet-body.tsx`** (776-line component → 1,054-line
+      file). The biggest, most-interwoven renderer: surface textures + MOLA/LOLA
+      displacement, day/night terminator, cloud + band shells, aurora, atmosphere
+      glow, Saturn's ring system, moons, orbiters, orbital path. Done in two safe
+      cuts: **5a** pulled the shared `OrbitRing` (used by planet + orchestrator)
+      into its own tiny `orbit-ring.tsx` so there's no scene↔planet-body import
+      cycle; **5b** moved the ring geometry/shaders + `SaturnRings` + `PlanetBody`.
+      scene.tsx 6,187 → 5,118 lines (from 7,012 at session start — −27%).
+      Build green + smoke clean + home & celestial render identically.
+      Lesson logged: scan imports against the FULL export list, not a guess list —
+      three sibling-file deps (`timeWarpRef`, `daysSinceJ2000`/`eccentricToTrue`/
+      `solveKepler`/`moons`, `SatelliteField`) were caught by the build gate, not
+      the pre-scan. The gate works; the pre-scan should be exhaustive.
 - [ ] **Step 6 — NamedBodyMesh → `small-bodies.tsx`** (~918 lines). Comets
       + asteroids (tails, envelope, tumble, diameter sizing).
 - [ ] **Step 7 — Galaxy/Nebula/BlackHole detail → their own files**
@@ -59,7 +70,8 @@ universe-engine/
   scene-shared.ts     temp-vector pool + small shared helpers [step 2 ✓]
   scene-satellites.tsx orbiters + hero craft + surface pins  [step 3 ✓]
   moon-body.tsx       one moon renderer                       [step 4 ✓]
-  planet-body.tsx     one planet renderer                     [step 5]
+  orbit-ring.tsx      one planet's orbital path (shared)       [step 5a ✓]
+  planet-body.tsx     one planet renderer                     [step 5b ✓]
   small-bodies.tsx    comets + asteroids                      [step 6]
   galaxy/nebula/…     the deep-space sub-engines              [step 7-8]
   scene.tsx           the ORCHESTRATOR — composes the above   [end state]
