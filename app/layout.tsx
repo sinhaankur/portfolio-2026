@@ -197,6 +197,21 @@ const personSchema = {
   ],
 }
 
+// WebSite schema — names the site as a distinct entity (separate from the Person)
+// and declares its publisher, so search engines can consolidate the domain and
+// are eligible to render sitelinks under the main result.
+const websiteSchema = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: SITE_NAME,
+  alternateName: `${SITE_NAME} · ${SITE_TAGLINE}`,
+  url: SITE_URL,
+  description: SITE_DESCRIPTION,
+  inLanguage: "en",
+  author: { "@type": "Person", name: SITE_NAME, url: SITE_URL },
+  publisher: { "@type": "Person", name: SITE_NAME, url: SITE_URL },
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -236,6 +251,9 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         </Script>
         <Script id="person-schema" type="application/ld+json" strategy="beforeInteractive">
           {JSON.stringify(personSchema)}
+        </Script>
+        <Script id="website-schema" type="application/ld+json" strategy="beforeInteractive">
+          {JSON.stringify(websiteSchema)}
         </Script>
       </head>
       <body className="font-sans antialiased overflow-x-hidden bg-background text-foreground">

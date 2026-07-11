@@ -5,7 +5,9 @@ import { canonicalPath } from "@/lib/seo"
 
 export const metadata: Metadata = {
   ...canonicalPath("/writing/universe-engine"),
-  title: "How I built a real-data universe engine — Ankur Sinha",
+  // The root layout's title template already appends "· Ankur Sinha", so this
+  // stands alone (avoids the doubled-name "… — Ankur Sinha · Ankur Sinha").
+  title: "How I built a real-data universe engine",
   description:
     "18,500 satellites on real SGP4 orbits, a true-scale solar system, Mars rover coverage, and validated Earth→Mars transfer math — in the browser, from real NASA / NORAD / NOAA data. A technical walkthrough.",
   keywords: [
@@ -17,6 +19,29 @@ export const metadata: Metadata = {
     "react three fiber",
     "space data visualization",
   ],
+}
+
+// Universe Engine as a distinct entity — a rich-result-eligible SoftwareApplication.
+// It's the site's most link-worthy asset, so giving it its own schema (rather than
+// leaving it implicit under the Person) helps search engines surface it directly.
+const engineSchema = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "Universe Engine",
+  applicationCategory: "MultimediaApplication",
+  operatingSystem: "Web browser (WebGL)",
+  url: "https://www.sinhaankur.com/lab/celestial/",
+  author: { "@type": "Person", name: "Ankur Sinha", url: "https://www.sinhaankur.com" },
+  description:
+    "A real-time, real-data 3D universe in the browser: 18,500 satellites on SGP4 orbits, a true-scale solar system, Mars rover coverage, and validated Earth→Mars transfer math — built from NASA / NORAD / NOAA data.",
+  featureList: [
+    "18,500 satellites on real SGP4 orbits",
+    "True-scale solar system with real planet positions (JPL Horizons)",
+    "Mars rover traverse coverage",
+    "Live space weather and aurora (NOAA SWPC)",
+    "Validated Earth→Mars transfer math",
+  ],
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
 }
 
 // A tiny prose helper so the article reads consistently without a markdown dep.
@@ -33,6 +58,11 @@ function Code({ children }: { children: React.ReactNode }) {
 export default function UniverseEnginePost() {
   return (
     <main className="mx-auto max-w-3xl px-6 md:px-12 py-20 md:py-28">
+      <script
+        type="application/ld+json"
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(engineSchema) }}
+      />
       <Link
         href="/writing"
         className="group inline-flex items-center gap-2 font-mono text-[10px] tracking-widest uppercase text-foreground/60 hover:text-foreground transition-colors mb-12"

@@ -5,7 +5,8 @@ import { canonicalPath } from "@/lib/seo"
 
 export const metadata: Metadata = {
   ...canonicalPath("/writing"),
-  title: "Writing — Ankur Sinha",
+  // Root layout appends "· Ankur Sinha" — keep this standalone to avoid doubling.
+  title: "Writing",
   description:
     "Notes on building things: the Universe Engine, real-data 3D, design-in-code, and the reasoning behind the work.",
 }
