@@ -59,8 +59,6 @@ import {
   ASTEROID_BELT_INFO,
   GALACTIC_PLANE_TILT_RAD,
   KUIPER_BELT_INFO,
-  MILKY_WAY_INFO,
-  SGR_A_INFO,
   SKY_SHELL_DISTANCE,
   SOLAR_SYSTEM_POSITION,
   SUN_INFO,
@@ -71,7 +69,6 @@ import {
   buildScenePlanets,
   flyToRef,
   followRef,
-  gauss,
   moons,
   raDecToScenePos,
   requestFlyTo,
@@ -85,7 +82,6 @@ import {
   DEFAULT_CAMERA_NEAR,
   DEFAULT_MIN_DISTANCE,
 } from "./astronomy"
-import { GALAXY_FRAGMENT_SHADER, GALAXY_VERTEX_SHADER } from "./shaders"
 
 import {
   CORONA_VERTEX_SHADER,
@@ -93,12 +89,11 @@ import {
   SUN_SURFACE_VERTEX_SHADER,
   SUN_SURFACE_FRAGMENT_SHADER,
 } from "./shaders"
-import { _tmpAxis } from "./scene-shared"
+import { _tmpAxis, makeFocusHandler } from "./scene-shared"
 import { OrbitRing } from "./orbit-ring"
 import { PlanetBody } from "./planet-body"
 import { NamedBodies } from "./small-bodies"
 import {
-  NebulaClouds,
   NebulaDetail,
   VolumetricNebula,
   NEBULA_SPRITES,
@@ -108,6 +103,7 @@ import { BlackHoleDetail } from "./black-hole"
 import { GalaxyDetail, Galaxy3D, GalaxySprite, GALAXY_3D } from "./galaxy"
 import { Constellations } from "./constellations"
 import { ExoplanetSystem, PulsarDetail } from "./star-details"
+import { MilkyWay } from "./milky-way"
 
 import {
   getPulsarDynamicProfile,
@@ -321,355 +317,6 @@ function SceneClock() {
       dt * TIME_WARP_DAYS_PER_SEC * timeWarpRef.current * timeScaleRef.current * 86_400_000
   })
   return null
-}
-
-/**
- * Build an onClick handler that asks the controller to fly to the body's
- * current world position. Used by every interactive body (planet, sun,
- * sky point, named body, Sgr A*).
- *
- * `interactive` gates the click — outside explore mode, clicks shouldn't
- * hijack the scene, since the canvas is below the typography + scrolls
- * with the page. When passive, this returns undefined so React doesn't
- * register a handler at all.
- */
-function makeFocusHandler(
-  interactive: boolean,
-  desiredDistance: number,
-  label?: string,
-) {
-  if (!interactive) return undefined
-  return (e: { stopPropagation: () => void; object: import("three").Object3D }) => {
-    e.stopPropagation()
-    const world = new Vector3()
-    e.object.getWorldPosition(world)
-    requestFlyTo({ x: world.x, y: world.y, z: world.z }, desiredDistance, label)
-  }
-}
-
-/* ============================================================
- * Milky Way backdrop — 4 spiral arms + bulge, with hover hit-zones
- * for Sgr A* (galactic centre) and the galaxy itself.
- * ============================================================ */
-
-function MilkyWay({
-  onHover,
-  mobile = false,
-  invert = false,
-  interactive = false,
-}: {
-  onHover: HoverHandler
-  mobile?: boolean
-  invert?: boolean
-  interactive?: boolean
-}) {
-  const pointsRef = useRef<Points>(null)
-  const matRef = useRef<ShaderMaterial>(null)
-  const { gl } = useThree()
-
-  const geometry = useMemo(() => {
-    // Mobile counts run ~40% of desktop to keep the GPU breathing. The
-    // shader is single-draw, so per-star count is the dominant cost.
-    const armCount    = mobile ? 9000  : 30000
-    const bulgeCount  = mobile ? 2800  : 7000
-    const barCount    = mobile ? 900   : 2200
-    // HII regions are distributed across a number of anchor clumps so they
-    // read as discrete pink star-forming knots tracing the arms, not a haze.
-    const hiiClumps   = mobile ? 16    : 38
-    const hiiPerClump = 22
-    const hiiCount    = hiiClumps * hiiPerClump
-    // Globular cluster halo — sparse bright dots in a sphere around the disc.
-    const haloCount   = mobile ? 50    : 110
-
-    const total = armCount + bulgeCount + barCount + hiiCount + haloCount
-    const positions = new Float32Array(total * 3)
-    const sizes     = new Float32Array(total)
-    const alphas    = new Float32Array(total)
-    const colors    = new Float32Array(total * 3)
-
-    const radius = 130
-    const branches = 4
-    const spin = 1.3
-
-    // Chart-mode (invert) suppresses per-star colour — every star multiplies
-    // through the dark uStarColor uniform, so we want a flat 1,1,1 here.
-    // Dark-mode lets the palette through.
-    const writeColor = (idx: number, r: number, g: number, b: number) => {
-      const i3 = idx * 3
-      if (invert) {
-        colors[i3] = 1; colors[i3 + 1] = 1; colors[i3 + 2] = 1
-      } else {
-        colors[i3] = r; colors[i3 + 1] = g; colors[i3 + 2] = b
-      }
-    }
-
-    // -- Arm stars: young blue O/B stars dominate the outer arms, white
-    //    main-sequence stars in the mid arms, warmer yellows shading toward
-    //    the bulge. This is what gives the spiral structure a real palette
-    //    instead of a flat white wash.
-    for (let i = 0; i < armCount; i++) {
-      const r = Math.pow(Math.random(), 1.6) * radius
-      const branchAngle = ((i % branches) / branches) * Math.PI * 2
-      const spinAngle = r * spin * 0.04
-      // Arm spurs/feathering — real spiral arms aren't smooth logarithmic
-      // curves; they branch into spurs + feathers. A small radius-varying sine
-      // perturbation on the angle gives that frayed, structured look instead of
-      // four clean ribbons.
-      const spur = Math.sin(r * 0.9 + branchAngle * 3.0) * 0.10
-        + Math.sin(r * 2.7) * 0.04
-      const armAngle = branchAngle + spinAngle + spur
-
-      const randomness = 0.28
-      const rx = Math.pow(Math.random(), 2.6) * (Math.random() < 0.5 ? 1 : -1) * randomness * r
-      const ry = Math.pow(Math.random(), 2.6) * (Math.random() < 0.5 ? 1 : -1) * randomness * r * 0.12
-      const rz = Math.pow(Math.random(), 2.6) * (Math.random() < 0.5 ? 1 : -1) * randomness * r
-
-      const i3 = i * 3
-      positions[i3]     = Math.cos(armAngle) * r + rx
-      positions[i3 + 1] = ry
-      positions[i3 + 2] = Math.sin(armAngle) * r + rz
-
-      const sizeRoll = Math.pow(Math.random(), 3.5)
-      sizes[i] = 1.0 + sizeRoll * 5
-      const normR = r / radius
-      alphas[i] = (0.08 + (1 - normR) * 0.25) * (0.5 + Math.random() * 0.5)
-
-      // Color: bias warmer toward the centre, bluer toward the outskirts.
-      const cRoll = Math.random()
-      const blueBias = 0.18 + normR * 0.32 // 18% inner → 50% outer chance of a blue/white star
-      if (cRoll < blueBias) {
-        // Hot young blue-white star (O/B class)
-        writeColor(i, 0.74 + Math.random() * 0.10, 0.82 + Math.random() * 0.08, 1.0)
-      } else if (cRoll < blueBias + 0.30) {
-        // White main-sequence
-        const j = 0.95 + Math.random() * 0.05
-        writeColor(i, j, j, j)
-      } else if (cRoll < blueBias + 0.72) {
-        // Warm yellow (sun-like)
-        writeColor(i, 1.0, 0.93 + Math.random() * 0.04, 0.72 + Math.random() * 0.06)
-      } else {
-        // Cool orange / red giant
-        writeColor(i, 1.0, 0.78 + Math.random() * 0.05, 0.58 + Math.random() * 0.06)
-      }
-    }
-
-    // -- Bulge: older Population II — predominantly warm yellows and oranges.
-    for (let i = 0; i < bulgeCount; i++) {
-      const idx = armCount + i
-      const i3 = idx * 3
-      const r = Math.abs(gauss()) * radius * 0.18
-      const theta = Math.random() * Math.PI * 2
-      const phi = (Math.random() - 0.5) * 0.55
-
-      positions[i3]     = r * Math.cos(theta) * Math.cos(phi)
-      positions[i3 + 1] = r * Math.sin(phi) * 0.6
-      positions[i3 + 2] = r * Math.sin(theta) * Math.cos(phi)
-
-      const sizeRoll = Math.pow(Math.random(), 3)
-      sizes[idx] = 2 + sizeRoll * 8
-      alphas[idx] = 0.3 + Math.random() * 0.2
-
-      // Warm bulge palette — amber-cream with the occasional red giant.
-      if (Math.random() < 0.75) {
-        writeColor(idx, 1.0, 0.90 + Math.random() * 0.05, 0.68 + Math.random() * 0.07)
-      } else {
-        writeColor(idx, 1.0, 0.74 + Math.random() * 0.06, 0.50 + Math.random() * 0.06)
-      }
-    }
-
-    // -- Central bar: the Milky Way is SBbc — an elongated stellar bar
-    //    runs through the bulge along a fixed axis. ~7000 ly half-length
-    //    in real units → ~18 scene units half-length. Aligned along X
-    //    so the disc rotation carries it naturally.
-    const barHalfLength = radius * 0.21
-    const barHalfWidth  = radius * 0.045
-    const barHalfHeight = radius * 0.020
-    for (let i = 0; i < barCount; i++) {
-      const idx = armCount + bulgeCount + i
-      const i3 = idx * 3
-      // Concentrate stars toward the bar's long axis: cube the random
-      // for length (mild tapering toward the ends) and gauss-fall for
-      // width/height (thin in cross-section).
-      const u = (Math.random() * 2 - 1) // -1..1 along the bar
-      const along = Math.sign(u) * Math.pow(Math.abs(u), 0.9) * barHalfLength
-      const across = gauss() * barHalfWidth * 0.55
-      const vert   = gauss() * barHalfHeight * 0.55
-
-      positions[i3]     = along
-      positions[i3 + 1] = vert
-      positions[i3 + 2] = across
-
-      sizes[idx] = 2 + Math.pow(Math.random(), 2.5) * 6
-      alphas[idx] = 0.32 + Math.random() * 0.22
-
-      // Bar shares the bulge's old-population palette.
-      writeColor(idx, 1.0, 0.88 + Math.random() * 0.05, 0.62 + Math.random() * 0.07)
-    }
-
-    // -- HII star-forming regions: pinkish/magenta clumps tracing the
-    //    arms (Hα emission from ionised hydrogen around young hot stars).
-    //    Each clump anchors on a spiral-arm position, then sprays a few
-    //    points around it for a soft nebular cluster look.
-    for (let c = 0; c < hiiClumps; c++) {
-      const armR = (0.18 + Math.random() * 0.72) * radius
-      const armBranch = Math.floor(Math.random() * branches)
-      const branchAngle = (armBranch / branches) * Math.PI * 2
-      const spinAngle = armR * spin * 0.04
-      const armX = Math.cos(branchAngle + spinAngle) * armR
-      const armZ = Math.sin(branchAngle + spinAngle) * armR
-
-      const clumpScatter = 1.6 + Math.random() * 2.2
-      for (let k = 0; k < hiiPerClump; k++) {
-        const idx = armCount + bulgeCount + barCount + c * hiiPerClump + k
-        const i3 = idx * 3
-        const dx = gauss() * clumpScatter
-        const dy = gauss() * 0.5
-        const dz = gauss() * clumpScatter
-        positions[i3]     = armX + dx
-        positions[i3 + 1] = dy
-        positions[i3 + 2] = armZ + dz
-
-        sizes[idx]  = 3 + Math.random() * 4
-        alphas[idx] = 0.35 + Math.random() * 0.35
-        // Pink Hα emission with a touch of magenta variation. Hot blue stars
-        // sometimes peek through as bluer cores — vary slightly per point.
-        if (Math.random() < 0.18) {
-          writeColor(idx, 0.78, 0.86, 1.0)
-        } else {
-          writeColor(idx, 1.0, 0.46 + Math.random() * 0.08, 0.70 + Math.random() * 0.10)
-        }
-      }
-    }
-
-    // -- Globular cluster halo: a sparse sphere of bright old clusters
-    //    surrounding the disc. Spread well above and below the plane to
-    //    sell the 3D structure of the galaxy.
-    for (let i = 0; i < haloCount; i++) {
-      const idx = armCount + bulgeCount + barCount + hiiCount + i
-      const i3 = idx * 3
-      // Spherical distribution biased outside the disc.
-      const haloR = radius * (0.45 + Math.pow(Math.random(), 1.4) * 0.85)
-      const theta = Math.random() * Math.PI * 2
-      const phi = Math.acos(2 * Math.random() - 1)
-      positions[i3]     = haloR * Math.sin(phi) * Math.cos(theta)
-      positions[i3 + 1] = haloR * Math.cos(phi) * 0.85
-      positions[i3 + 2] = haloR * Math.sin(phi) * Math.sin(theta)
-
-      sizes[idx] = 4 + Math.random() * 4
-      alphas[idx] = 0.55 + Math.random() * 0.25
-      // Warm old-cluster colour.
-      writeColor(idx, 1.0, 0.86 + Math.random() * 0.05, 0.62 + Math.random() * 0.08)
-    }
-
-    const geo = new BufferGeometry()
-    geo.setAttribute("position", new BufferAttribute(positions, 3))
-    geo.setAttribute("aSize", new BufferAttribute(sizes, 1))
-    geo.setAttribute("aAlpha", new BufferAttribute(alphas, 1))
-    geo.setAttribute("aColor", new BufferAttribute(colors, 3))
-    return geo
-  }, [mobile, invert])
-
-  const uniforms = useMemo(
-    () => ({
-      uTime: { value: 0 },
-      uPixelRatio: { value: Math.min(gl.getPixelRatio(), 2) },
-      uStarColor: { value: new Color(invert ? "#0a0a0a" : "#ffffff") },
-      // Dark-mode brightness gain so the Milky Way band reads clearly against
-      // ink (additive + ACES tone-mapping was washing it faint). Chart mode
-      // keeps 1.0 — its NormalBlending ink look was already correct.
-      uBrightness: { value: invert ? 1.0 : 1.9 },
-    }),
-    [gl, invert],
-  )
-
-  useFrame((_, delta) => {
-    // Galactic rotation — real Milky Way takes ~225 million years per
-    // rotation at the Sun's distance from the core. Even at our maximum
-    // time warp that resolves to imperceptible drift, so we keep a small
-    // base drift scaled to time warp: feels alive at idle, speeds up
-    // noticeably when the user pushes the warp slider. Was a flat 0.008
-    // rad/s — ~75,000× too fast and read as a carousel spin.
-    if (pointsRef.current) {
-      pointsRef.current.rotation.y += delta * 0.0004 * (1 + timeWarpRef.current * 0.05)
-    }
-    if (matRef.current) {
-      ;(matRef.current.uniforms.uTime as { value: number }).value += delta
-    }
-  })
-
-  return (
-    <group>
-      <points ref={pointsRef} geometry={geometry}>
-        <shaderMaterial
-          ref={matRef}
-          vertexShader={GALAXY_VERTEX_SHADER}
-          fragmentShader={GALAXY_FRAGMENT_SHADER}
-          uniforms={uniforms}
-          transparent
-          depthWrite={false}
-          // Additive looks right against ink; on cream paper additive blending
-          // bleaches stars to invisible — fall back to NormalBlending then.
-          blending={invert ? NormalBlending : AdditiveBlending}
-        />
-      </points>
-
-      {/* Diffuse nebula / dust haze — soft glowing gas clouds tracing the
-          arms (Hα-pink, dusty blue, amber). Skipped in chart mode. */}
-      {!invert && <NebulaClouds mobile={mobile} />}
-
-      {/* Sgr A* — the Milky Way's 4.15 million-M☉ supermassive black hole.
-          Visible mark sized to be a small accent inside the bulge, not a
-          dominant feature. (Earlier 0.9 / 2.4 was wildly too large — looked
-          like a marble swallowing the core.) Real Sgr A* would be invisibly
-          small at this scale; this is just a "you are here" mark. */}
-      <mesh position={[0, 0, 0]}>
-        <sphereGeometry args={[0.12, 24, 24]} />
-        <meshBasicMaterial color="#000000" />
-      </mesh>
-      <mesh position={[0, 0, 0]}>
-        <sphereGeometry args={[0.35, 20, 20]} />
-        <meshBasicMaterial
-          color={invert ? "#5a2818" : "#ffb878"}
-          transparent
-          opacity={invert ? 0.30 : 0.45}
-          blending={invert ? NormalBlending : AdditiveBlending}
-          depthWrite={false}
-        />
-      </mesh>
-      {/* Hit-target — larger sphere so the BH is easy to hover/click against
-          the dense star backdrop. Invisible material. */}
-      <mesh
-        position={[0, 0, 0]}
-        onPointerOver={(e) => {
-          e.stopPropagation()
-          onHover(SGR_A_INFO)
-        }}
-        onPointerOut={() => {
-          onHover(null)
-        }}
-        onClick={makeFocusHandler(interactive, 38, "Sagittarius A*")}
-      >
-        <sphereGeometry args={[6, 24, 24]} />
-        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
-      </mesh>
-
-      {/* Wider Milky Way bulge hit-zone */}
-      <mesh
-        position={[0, 0, 0]}
-        onPointerOver={(e) => {
-          e.stopPropagation()
-          onHover(MILKY_WAY_INFO)
-        }}
-        onPointerOut={() => {
-          onHover(null)
-        }}
-      >
-        <sphereGeometry args={[35, 24, 24]} />
-        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
-      </mesh>
-
-    </group>
-  )
 }
 
 /* ============================================================
