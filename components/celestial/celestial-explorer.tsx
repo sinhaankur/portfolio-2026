@@ -12,7 +12,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import dynamic from "next/dynamic"
 import { motion, AnimatePresence } from "framer-motion"
-import { ArrowLeft, X, Rotate3d, Globe, Satellite, Sparkles, Rocket, Route, Orbit, Layers } from "lucide-react"
+import { ArrowLeft, X, Rotate3d, Globe, Satellite, Sparkles, Rocket, Route, Orbit, Layers, Radio } from "lucide-react"
 import { CustomCursor } from "@/components/custom-cursor"
 import { StaticStarfield } from "@/components/universe-engine/static-starfield"
 import { BODIES } from "@/lib/celestial-data"
@@ -57,6 +57,13 @@ const LaunchFeed = dynamic(
 // Earth→Mars transfer calculator.
 const TransferTool = dynamic(
   () => import("./transfer-tool").then((m) => m.TransferTool),
+  { ssr: false },
+)
+
+// Ground-station pass planner — ISS passes from named tracking stations
+// (the operator counterpart to "ISS over you").
+const PassPlanner = dynamic(
+  () => import("./pass-planner").then((m) => m.PassPlanner),
   { ssr: false },
 )
 
@@ -117,6 +124,8 @@ export function CelestialExplorer() {
   const [launchesOpen, setLaunchesOpen] = useState(false)
   // Earth→Mars transfer calculator.
   const [transferOpen, setTransferOpen] = useState(false)
+  // Ground-station pass planner (ISS passes from named tracking stations).
+  const [stationOpen, setStationOpen] = useState(false)
   // Near-Earth asteroids.
   const [neoOpen, setNeoOpen] = useState(false)
   // Orbital-population census.
@@ -124,7 +133,7 @@ export function CelestialExplorer() {
   // The feature-launcher menu (collapses all the tools into one chip so the
   // bottom-left doesn't stack 5+ buttons on mobile).
   const [menuOpen, setMenuOpen] = useState(false)
-  const closePanels = () => { setPassesOpen(false); setWeatherOpen(false); setLaunchesOpen(false); setTransferOpen(false); setNeoOpen(false); setInventoryOpen(false) }
+  const closePanels = () => { setPassesOpen(false); setWeatherOpen(false); setLaunchesOpen(false); setTransferOpen(false); setStationOpen(false); setNeoOpen(false); setInventoryOpen(false) }
   // `?earth=1` auto-opens the photoreal view — for capture/testing + deep-links.
   useEffect(() => {
     try {
@@ -385,6 +394,8 @@ export function CelestialExplorer() {
                     label="Mars · what we've seen" onClick={() => { closePanels(); setMarsView(true) }} />
                   <MenuItem color="var(--accent)" icon={<Satellite className="h-3.5 w-3.5" />}
                     label="ISS over you" onClick={() => { closePanels(); setPassesOpen(true) }} />
+                  <MenuItem color="#7affd0" icon={<Radio className="h-3.5 w-3.5" />}
+                    label="Ground-station tracker" onClick={() => { closePanels(); setStationOpen(true) }} />
                   <MenuItem color="#7affd0" icon={<Sparkles className="h-3.5 w-3.5" />}
                     label="Space weather · aurora" onClick={() => { closePanels(); setWeatherOpen(true) }} />
                   <MenuItem color="#ffd27a" icon={<Rocket className="h-3.5 w-3.5" />}
@@ -430,6 +441,11 @@ export function CelestialExplorer() {
           {transferOpen && (
             <div className="absolute bottom-24 left-4 md:left-6 z-40">
               <TransferTool onClose={() => setTransferOpen(false)} />
+            </div>
+          )}
+          {stationOpen && (
+            <div className="absolute bottom-24 left-4 md:left-6 z-40">
+              <PassPlanner onClose={() => setStationOpen(false)} />
             </div>
           )}
           {neoOpen && (
