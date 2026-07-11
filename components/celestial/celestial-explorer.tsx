@@ -67,6 +67,12 @@ const PassPlanner = dynamic(
   { ssr: false },
 )
 
+// Live ISS position — where the station is right now, ticking each second.
+const IssLivePanel = dynamic(
+  () => import("./iss-live-panel").then((m) => m.IssLivePanel),
+  { ssr: false },
+)
+
 // Near-Earth asteroid approaches (NASA NeoWs).
 const NeoPanel = dynamic(
   () => import("./neo-panel").then((m) => m.NeoPanel),
@@ -126,6 +132,8 @@ export function CelestialExplorer() {
   const [transferOpen, setTransferOpen] = useState(false)
   // Ground-station pass planner (ISS passes from named tracking stations).
   const [stationOpen, setStationOpen] = useState(false)
+  // Live ISS position (sub-point, altitude, speed — ticks each second).
+  const [issLiveOpen, setIssLiveOpen] = useState(false)
   // Near-Earth asteroids.
   const [neoOpen, setNeoOpen] = useState(false)
   // Orbital-population census.
@@ -133,7 +141,7 @@ export function CelestialExplorer() {
   // The feature-launcher menu (collapses all the tools into one chip so the
   // bottom-left doesn't stack 5+ buttons on mobile).
   const [menuOpen, setMenuOpen] = useState(false)
-  const closePanels = () => { setPassesOpen(false); setWeatherOpen(false); setLaunchesOpen(false); setTransferOpen(false); setStationOpen(false); setNeoOpen(false); setInventoryOpen(false) }
+  const closePanels = () => { setPassesOpen(false); setWeatherOpen(false); setLaunchesOpen(false); setTransferOpen(false); setStationOpen(false); setIssLiveOpen(false); setNeoOpen(false); setInventoryOpen(false) }
   // `?earth=1` auto-opens the photoreal view — for capture/testing + deep-links.
   useEffect(() => {
     try {
@@ -392,6 +400,8 @@ export function CelestialExplorer() {
                   )}
                   <MenuItem color="#ff9a6b" icon={<Globe className="h-3.5 w-3.5" />}
                     label="Mars · what we've seen" onClick={() => { closePanels(); setMarsView(true) }} />
+                  <MenuItem color="#7affd0" icon={<Satellite className="h-3.5 w-3.5" />}
+                    label="ISS live position" onClick={() => { closePanels(); setIssLiveOpen(true) }} />
                   <MenuItem color="var(--accent)" icon={<Satellite className="h-3.5 w-3.5" />}
                     label="ISS over you" onClick={() => { closePanels(); setPassesOpen(true) }} />
                   <MenuItem color="#7affd0" icon={<Radio className="h-3.5 w-3.5" />}
@@ -446,6 +456,11 @@ export function CelestialExplorer() {
           {stationOpen && (
             <div className="absolute bottom-24 left-4 md:left-6 z-40">
               <PassPlanner onClose={() => setStationOpen(false)} />
+            </div>
+          )}
+          {issLiveOpen && (
+            <div className="absolute bottom-24 left-4 md:left-6 z-40">
+              <IssLivePanel onClose={() => setIssLiveOpen(false)} />
             </div>
           )}
           {neoOpen && (
