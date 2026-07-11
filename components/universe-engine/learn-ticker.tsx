@@ -19,23 +19,36 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { planetsData, moons, namedBodies } from "./astronomy"
 
-type Fact = { subject: string; fact: string }
+// `focusId` (when set) is the exact pointId the scene's `universe:sky-focus`
+// handlers match on, so tapping the subject flies the camera to that body —
+// turning a passive fact into an invitation to go look. Planets resolve on
+// `planet:<Name>` (planet-body.tsx) and named bodies on `named:<Name>`
+// (small-bodies.tsx); moons have no focus handler, so they stay plain text
+// rather than offering a click that would do nothing.
+type Fact = { subject: string; fact: string; focusId?: string }
 
 /** Gather real, non-empty facts from the body data into one shuffled pool. */
 function collectFacts(): Fact[] {
   const out: Fact[] = []
-  const push = (subject: string, fact?: string) => {
-    if (fact && fact.trim().length > 0) out.push({ subject, fact: fact.trim() })
+  const push = (subject: string, fact: string | undefined, focusId?: string) => {
+    if (fact && fact.trim().length > 0) out.push({ subject, fact: fact.trim(), focusId })
   }
-  planetsData.forEach((p) => push(p.name, p.fact))
-  moons.forEach((m) => push(m.name, m.fact))
-  namedBodies.forEach((b) => push(b.name, b.fact))
+  planetsData.forEach((p) => push(p.name, p.fact, `planet:${p.name}`))
+  moons.forEach((m) => push(m.name, m.fact)) // moons aren't a fly-to target
+  namedBodies.forEach((b) => push(b.name, b.fact, `named:${b.name}`))
   // Fisher–Yates shuffle so the order differs each load.
   for (let i = out.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1))
     ;[out[i], out[j]] = [out[j], out[i]]
   }
   return out
+}
+
+/** Ask the scene to fly to a body by its pointId — the same event the "Jump to"
+ *  destinations menu dispatches, so it works across both scale modes. */
+function focusBody(focusId: string) {
+  if (typeof window === "undefined") return
+  window.dispatchEvent(new CustomEvent("universe:sky-focus", { detail: { pointId: focusId } }))
 }
 
 const ROTATE_MS = 11000
@@ -64,7 +77,12 @@ export function LearnTicker({ suppressed = false }: { suppressed?: boolean }) {
 
   return (
     <div
-      className="pointer-events-none fixed inset-x-0 bottom-[max(84px,calc(env(safe-area-inset-bottom)+84px))] z-20 flex justify-center px-3 md:bottom-24"
+      // Mobile: sit ABOVE the hero's bottom-left CTA stack (VIEW MY WORK /
+      // RÉSUMÉ / UPCOMING), which wraps to ~2 rows at ≤640px — 172px clears it
+      // with a gap so the now-tappable subject never sits under those buttons.
+      // Desktop: the CTAs are bottom-left and this is centered, so bottom-24 is
+      // already clear. env() keeps it above the home-bar on notched phones.
+      className="pointer-events-none fixed inset-x-0 bottom-[max(172px,calc(env(safe-area-inset-bottom)+172px))] z-20 flex justify-center px-3 md:bottom-24"
       aria-live="polite"
     >
       <div
@@ -76,7 +94,30 @@ export function LearnTicker({ suppressed = false }: { suppressed?: boolean }) {
           Did you know
         </span>
         <p className="min-w-0 flex-1 text-[12px] leading-relaxed text-foreground/80 md:text-[13px]">
-          <span className="font-medium text-foreground/95">{current.subject}.</span>{" "}
+          {current.focusId ? (
+            // Focusable subject → a real button that flies you there. The
+            // inline-flex + min-h-[44px] guarantees a comfortable touch target
+            // on mobile without inflating the visible text; -my-2 keeps it on
+            // the sentence baseline. underline dotted signals "this is a link".
+            <button
+              type="button"
+              onClick={() => focusBody(current.focusId!)}
+              onPointerUp={() => focusBody(current.focusId!)}
+              data-cursor-hover
+              aria-label={`Fly to ${current.subject}`}
+              className="
+                -my-2 mr-1 inline-flex min-h-[44px] items-center align-baseline
+                font-medium text-accent underline decoration-dotted underline-offset-2
+                transition-colors hover:text-foreground focus-visible:outline-none
+                focus-visible:ring-2 focus-visible:ring-accent rounded
+              "
+            >
+              {current.subject}
+            </button>
+          ) : (
+            <span className="font-medium text-foreground/95">{current.subject}</span>
+          )}
+          <span className="text-foreground/95">.</span>{" "}
           {current.fact}
         </p>
         <button
