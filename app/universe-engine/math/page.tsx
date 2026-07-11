@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   ...canonicalPath("/universe-engine/math"),
   title: "The Math Behind the Universe Engine",
   description:
-    "The exact equations that drive the Universe Engine — Kepler's equation, J2000 mean-anomaly propagation, RA/Dec → Cartesian, Schwarzschild & Kerr horizons, and the scene-scale transforms — shown beside the real TypeScript that runs them.",
+    "The exact equations that drive the Universe Engine — SGP4 satellite propagation and topocentric look-angles, Kepler's equation, J2000 mean-anomaly propagation, RA/Dec → Cartesian, Schwarzschild & Kerr horizons, and the scene-scale transforms — shown beside the real TypeScript that runs them.",
 }
 
 /**
@@ -107,6 +107,54 @@ const r = (baseR * (1 - eccentricity * eccentricity)) /
     ],
   },
   {
+    heading: "Tracking a real satellite",
+    blurb:
+      "The ISS pass planner and live-position readout aren't animations either — they run the same astrodynamics a ground station uses: SGP4 propagation of real NORAD elements, then coordinate-frame transforms into look-angles and a sub-satellite point. This is graduate-level orbital mechanics, not position = velocity × time.",
+    eqs: [
+      {
+        id: "sgp4",
+        title: "SGP4 — propagate real orbital elements",
+        formula: "TLE  →  SGP4(t)  →  r⃗, v⃗   (ECI, km and km/s)",
+        what:
+          "A satellite's public state is a Two-Line Element set (TLE) — mean orbital elements at an epoch. SGP4 is the NORAD analytic model that propagates them to any time t, accounting for Earth's oblateness (J2–J4 zonal harmonics), atmospheric drag, and secular + periodic perturbations. It returns position and velocity in an Earth-Centred Inertial (ECI) frame. There is no simpler correct substitute — this is the model orbital data is published to be used with.",
+        code: `// lib/sat-passes.ts — the same propagation the tracker runs
+const sat = (await import("satellite.js")) as unknown as Sgp4
+const rec = sat.twoline2satrec(tle[0], tle[1])   // parse the TLE
+const pv  = sat.propagate(rec, date)             // → { position, velocity } in ECI`,
+      },
+      {
+        id: "look-angles",
+        title: "ECI → topocentric look-angles (azimuth, elevation)",
+        formula: "r⃗_ECI --[GMST]--> r⃗_ECEF --[station]--> (az, el, range)",
+        what:
+          "To know where to point an antenna, the satellite's ECI position is rotated into an Earth-fixed (ECEF) frame using Greenwich Mean Sidereal Time — the Earth's true rotation angle at that instant — then expressed relative to the station's local horizon (a topocentric SEZ frame). Elevation > 0 means the satellite is above the horizon; azimuth is the compass bearing to it. Get the sidereal-time rotation wrong and every pass is silently mis-timed.",
+        code: `// lib/sat-passes.ts — inside elevAt(date)
+const gmst = sat.gstime(date)                       // Earth's rotation angle
+const ecf  = sat.eciToEcf(pv.position, gmst)        // ECI → Earth-fixed
+const la   = sat.ecfToLookAngles(observer, ecf)     // → azimuth, elevation, range
+// la.elevation / DEG  →  degrees above the horizon at the station`,
+      },
+      {
+        id: "sub-point",
+        title: "ECI → geodetic sub-satellite point",
+        formula: "r⃗_ECI --[GMST]--> geodetic (lat φ, lon λ, height h)",
+        what:
+          "The live-position readout answers 'where on Earth is it right now?'. The same GMST rotation carries the ECI position to a geodetic latitude/longitude/altitude on the WGS-ellipsoid — the spot the ISS is directly above. Orbital speed is the ECI velocity magnitude |v⃗| (~7.66 km/s for the ISS), the real number, not a ground-track speed.",
+        code: `// lib/iss-live.ts — the live sub-point
+const gmst = sat.gstime(date)
+const geo  = sat.eciToGeodetic(pv.position, gmst)   // → { latitude, longitude, height }
+const speedKms = Math.hypot(v.x, v.y, v.z)          // |v⃗|, orbital speed
+return {
+  latDeg: sat.degreesLat(geo.latitude),
+  lonDeg: wrapLon(sat.degreesLong(geo.longitude)),
+  altKm:  geo.height,
+  speedKms,
+  at: date,
+}`,
+      },
+    ],
+  },
+  {
     heading: "Sky → scene",
     blurb:
       "Stars, galaxies, and constellations are catalogued in equatorial coordinates (right ascension + declination). Placing them in the 3D scene is a spherical-to-Cartesian transform onto the sky shell.",
@@ -198,10 +246,11 @@ export default function UniverseMathPage() {
           </h1>
           <p className="max-w-2xl text-foreground/75 leading-relaxed">
             The Universe Engine computes real positions, not animations. Below is
-            the exact maths it runs — Kepler's equation, J2000 propagation, the
-            sky transform, relativistic horizons, the scene-scale modes — each
-            equation shown beside the real TypeScript that executes it. Copied
-            verbatim from the engine source; this is what's actually running.
+            the exact maths it runs — SGP4 satellite tracking and topocentric
+            look-angles, Kepler's equation, J2000 propagation, the sky transform,
+            relativistic horizons, the scene-scale modes — each equation shown
+            beside the real TypeScript that executes it. Copied verbatim from the
+            engine source; this is what&apos;s actually running.
           </p>
         </header>
 
