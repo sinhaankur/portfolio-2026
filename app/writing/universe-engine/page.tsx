@@ -139,6 +139,17 @@ export default function UniverseEnginePost() {
           &ldquo;Cosmos 2546&rdquo; and watch a satellite from a real GPS-interference investigation
           trace its true Molniya orbit — because the data is real enough that it&apos;s just there.
         </p>
+
+        <p className="font-sans text-[15px] md:text-base text-foreground/70 leading-relaxed mt-6">
+          Questions about the Universe Engine? Email{" "}
+          <a
+            href="mailto:sinhaankur827@gmail.com?subject=Universe%20Engine"
+            className="text-accent hover:underline"
+          >
+            sinhaankur827@gmail.com
+          </a>
+          .
+        </p>
       </article>
     </main>
   )
