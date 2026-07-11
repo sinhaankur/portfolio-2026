@@ -28,7 +28,6 @@ import { GravityOverlay } from "./gravity-overlay"
 import { WebGLLabel } from "./webgl-label"
 import { TrajectoryTrails } from "./trajectory-trails"
 import { SphereOfInfluence } from "./sphere-of-influence"
-import "./three-line"
 
 // The black-hole mesh (8.4 MB — "Blackhole" by rubykamen, CC-BY-4.0,
 // https://sketchfab.com/3d-models/blackhole-74cbeaeae2174a218fe9455d77902b5c)
@@ -42,7 +41,6 @@ import {
   BufferGeometry,
   Color,
   FogExp2,
-  Group,
   Mesh,
   NormalBlending,
   ShaderMaterial,
@@ -60,7 +58,6 @@ import {
   SKY_SHELL_DISTANCE,
   SOLAR_SYSTEM_POSITION,
   SUN_INFO,
-  SUN_OFFSET_SCENE,
   GALAXY_RADIUS_SCENE,
   TIME_WARP_DAYS_PER_SEC,
   blackHoleHorizonGravityMetersPerSec2,
@@ -103,6 +100,7 @@ import { Constellations } from "./constellations"
 import { ExoplanetSystem, PulsarDetail } from "./star-details"
 import { MilkyWay } from "./milky-way"
 import { Belt, BeltAsteroids } from "./belt"
+import { ShootingStars } from "./shooting-stars"
 
 import {
   getPulsarDynamicProfile,
@@ -316,116 +314,6 @@ function SceneClock() {
       dt * TIME_WARP_DAYS_PER_SEC * timeWarpRef.current * timeScaleRef.current * 86_400_000
   })
   return null
-}
-
-/* ============================================================
- * Moons — orbit their parent planet's equatorial plane.
- * ============================================================ */
-
-/* ============================================================
- * Shooting stars — cyclical meteor streaks across the sky.
- * ============================================================ */
-
-function Meteor({ baseDelay, invert = false }: { baseDelay: number; invert?: boolean }) {
-  const groupRef = useRef<Group>(null)
-  const stateRef = useRef({
-    t: -baseDelay,
-    duration: 2.2 + Math.random() * 1.8,
-    cooldown: 6 + Math.random() * 14,
-    origin: [0, 0, 0] as [number, number, number],
-    direction: [0, 0, 0] as [number, number, number],
-    length: 0,
-  })
-
-  const resetMeteor = () => {
-    const r = 50 + Math.random() * 30
-    const theta = Math.random() * Math.PI * 2
-    const phi = Math.acos(2 * Math.random() - 1)
-    const ox = r * Math.sin(phi) * Math.cos(theta) + SUN_OFFSET_SCENE
-    const oy = r * Math.cos(phi) * 0.5
-    const oz = r * Math.sin(phi) * Math.sin(theta)
-
-    const tx = SUN_OFFSET_SCENE + (Math.random() - 0.5) * 30
-    const ty = (Math.random() - 0.5) * 10
-    const tz = (Math.random() - 0.5) * 30
-    const dx = tx - ox
-    const dy = ty - oy
-    const dz = tz - oz
-    const mag = Math.hypot(dx, dy, dz)
-
-    stateRef.current.origin = [ox, oy, oz]
-    stateRef.current.direction = [dx / mag, dy / mag, dz / mag]
-    stateRef.current.length = 30 + Math.random() * 25
-    stateRef.current.duration = 2.2 + Math.random() * 1.8
-    stateRef.current.cooldown = 6 + Math.random() * 14
-    stateRef.current.t = 0
-  }
-
-  useEffect(() => {
-    resetMeteor()
-    stateRef.current.t = -baseDelay
-  }, [baseDelay])
-
-  useFrame((_, delta) => {
-    const s = stateRef.current
-    s.t += delta
-
-    if (!groupRef.current) return
-
-    if (s.t < 0) {
-      groupRef.current.visible = false
-      return
-    }
-    if (s.t > s.duration) {
-      groupRef.current.visible = false
-      if (s.t > s.duration + s.cooldown) {
-        resetMeteor()
-      }
-      return
-    }
-
-    groupRef.current.visible = true
-    const progress = s.t / s.duration
-    const x = s.origin[0] + s.direction[0] * progress * s.length
-    const y = s.origin[1] + s.direction[1] * progress * s.length
-    const z = s.origin[2] + s.direction[2] * progress * s.length
-    groupRef.current.position.set(x, y, z)
-  })
-
-  const streakGeometry = useMemo(() => {
-    const arr = new Float32Array(2 * 3)
-    arr[0] = 0; arr[1] = 0; arr[2] = 0
-    arr[3] = -1.2; arr[4] = 0; arr[5] = 0
-    const geo = new BufferGeometry()
-    geo.setAttribute("position", new BufferAttribute(arr, 3))
-    return geo
-  }, [])
-
-  // On cream paper, ink streaks read as inked-meteor lines on a chart.
-  const meteorColor = invert ? "#0a0a0a" : "#ffffff"
-  const streakOpacity = invert ? 0.6 : 0.4
-
-  return (
-    <group ref={groupRef}>
-      <mesh>
-        <sphereGeometry args={[0.06, 16, 16]} />
-        <meshBasicMaterial color={meteorColor} />
-      </mesh>
-      <threeLine geometry={streakGeometry}>
-        <lineBasicMaterial color={meteorColor} transparent opacity={streakOpacity} />
-      </threeLine>
-    </group>
-  )
-}
-
-function ShootingStars({ count = 6, invert = false }: { count?: number; invert?: boolean }) {
-  return (
-    <group>
-      {Array.from({ length: count }).map((_, i) => (
-        <Meteor key={i} baseDelay={i * 3 + Math.random() * 5} invert={invert} />
-      ))}
-    </group>
-  )
 }
 
 /* ============================================================
