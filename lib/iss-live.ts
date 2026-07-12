@@ -74,7 +74,27 @@ export async function createIssTracker(tle: [string, string]) {
     }
   }
 
-  return { stateAt }
+  /**
+   * The ground track — the sub-point sampled across a span of time, so the whole
+   * orbit sweep is drawable as a line on a map. `minutesEachWay` reaches back and
+   * ahead from `center` (the ISS orbits Earth in ~92 min, so ±50 covers a bit
+   * more than one full revolution). Returned as {lat, lon} in degrees.
+   */
+  function groundTrack(
+    center: Date = new Date(),
+    minutesEachWay = 50,
+    stepSec = 30,
+  ): { latDeg: number; lonDeg: number }[] {
+    const out: { latDeg: number; lonDeg: number }[] = []
+    const t0 = center.getTime()
+    for (let s = -minutesEachWay * 60; s <= minutesEachWay * 60; s += stepSec) {
+      const st = stateAt(new Date(t0 + s * 1000))
+      if (st) out.push({ latDeg: st.latDeg, lonDeg: st.lonDeg })
+    }
+    return out
+  }
+
+  return { stateAt, groundTrack }
 }
 
 /**

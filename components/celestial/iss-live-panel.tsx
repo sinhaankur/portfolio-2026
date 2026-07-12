@@ -27,22 +27,30 @@ function fmtLon(d: number): string {
   return `${Math.abs(d).toFixed(2)}° ${d >= 0 ? "E" : "W"}`
 }
 
+type Tracker = {
+  stateAt: (d?: Date) => IssState | null
+  groundTrack: (c?: Date, m?: number, s?: number) => { latDeg: number; lonDeg: number }[]
+}
+
 export function IssLivePanel({ onClose }: { onClose?: () => void }) {
   const [state, setState] = useState<IssState | null>(null)
+  const [track, setTrack] = useState<{ latDeg: number; lonDeg: number }[]>([])
   const [status, setStatus] = useState<"loading" | "live" | "error">("loading")
-  const trackerRef = useRef<{ stateAt: (d?: Date) => IssState | null } | null>(null)
+  const trackerRef = useRef<Tracker | null>(null)
 
   useEffect(() => {
     let alive = true
-    let raf = 0
     let interval: ReturnType<typeof setInterval> | null = null
 
     ;(async () => {
       try {
         const tle = await fetchIssTle()
-        const tracker = await createIssTracker(tle)
+        const tracker = (await createIssTracker(tle)) as Tracker
         if (!alive) return
         trackerRef.current = tracker
+        // Ground track is a whole-orbit shape — compute it once (recomputed if the
+        // panel is reopened). The live dot moves along it each second below.
+        setTrack(tracker.groundTrack(new Date()))
         const tick = () => {
           const s = tracker.stateAt(new Date())
           if (s) { setState(s); setStatus("live") }
@@ -59,7 +67,6 @@ export function IssLivePanel({ onClose }: { onClose?: () => void }) {
     return () => {
       alive = false
       if (interval) clearInterval(interval)
-      cancelAnimationFrame(raf)
     }
   }, [])
 
@@ -102,6 +109,9 @@ export function IssLivePanel({ onClose }: { onClose?: () => void }) {
               .
             </p>
 
+            {/* Ground track — the orbit sweep, with the live dot on it. */}
+            {track.length > 1 && <GroundTrackMap track={track} live={state} />}
+
             {/* The numbers, updating each second. */}
             <dl className="mt-3 grid grid-cols-2 gap-px overflow-hidden rounded-md border border-border bg-border">
               <Stat label="Latitude" value={fmtLat(state.latDeg)} />
@@ -123,13 +133,97 @@ export function IssLivePanel({ onClose }: { onClose?: () => void }) {
         )}
 
         <p className="mt-4 border-t border-border pt-3 text-[10px] leading-relaxed text-muted-foreground">
-          Sub-satellite point computed locally from the ISS&apos;s live NORAD
-          elements (CelesTrak) with SGP4 — the spot on Earth it&apos;s directly
-          above. Orbital speed is |v|, not ground-track speed. Region is a coarse,
+          Sub-satellite point + ground track computed locally from the ISS&apos;s
+          live NORAD elements (CelesTrak) with SGP4 — the spot on Earth it&apos;s
+          directly above, and the ~92-minute orbit sweep either side of now.
+          Orbital speed is |v|, not ground-track speed. Region is a coarse,
           offline approximation.
         </p>
       </div>
     </motion.div>
+  )
+}
+
+/**
+ * GroundTrackMap — the orbit sweep on an equirectangular world map.
+ *
+ * The classic mission-control view: longitude → x, latitude → y (plate carrée),
+ * so the sinuous ground track reads at a glance. The track is split into
+ * segments wherever it crosses the ±180° antimeridian, so the wrap doesn't draw
+ * a false horizontal streak across the map. A faint lat/lon graticule + equator
+ * give it scale; the live dot pulses at the current sub-point.
+ */
+const MAP_W = 320
+const MAP_H = 160
+function project(latDeg: number, lonDeg: number): [number, number] {
+  const x = ((lonDeg + 180) / 360) * MAP_W
+  const y = ((90 - latDeg) / 180) * MAP_H
+  return [x, y]
+}
+function GroundTrackMap({
+  track,
+  live,
+}: {
+  track: { latDeg: number; lonDeg: number }[]
+  live: { latDeg: number; lonDeg: number } | null
+}) {
+  // Split the polyline where longitude jumps by >180° (an antimeridian wrap).
+  const segments: string[] = []
+  let cur: string[] = []
+  let prevLon: number | null = null
+  for (const p of track) {
+    if (prevLon != null && Math.abs(p.lonDeg - prevLon) > 180) {
+      if (cur.length > 1) segments.push(cur.join(" "))
+      cur = []
+    }
+    const [x, y] = project(p.latDeg, p.lonDeg)
+    cur.push(`${x.toFixed(1)},${y.toFixed(1)}`)
+    prevLon = p.lonDeg
+  }
+  if (cur.length > 1) segments.push(cur.join(" "))
+
+  const dot = live ? project(live.latDeg, live.lonDeg) : null
+
+  return (
+    <svg
+      viewBox={`0 0 ${MAP_W} ${MAP_H}`}
+      className="mt-3 w-full rounded-md border border-border bg-black/30"
+      role="img"
+      aria-label="ISS ground track on a world map"
+    >
+      {/* graticule */}
+      {[-60, -30, 0, 30, 60].map((lat) => {
+        const y = ((90 - lat) / 180) * MAP_H
+        return (
+          <line key={`lat${lat}`} x1={0} y1={y} x2={MAP_W} y2={y}
+            stroke="currentColor" strokeWidth={lat === 0 ? 0.8 : 0.4}
+            className={lat === 0 ? "text-[#7affd0]/40" : "text-foreground/12"} />
+        )
+      })}
+      {[-120, -60, 0, 60, 120].map((lon) => {
+        const x = ((lon + 180) / 360) * MAP_W
+        return (
+          <line key={`lon${lon}`} x1={x} y1={0} x2={x} y2={MAP_H}
+            stroke="currentColor" strokeWidth={0.4} className="text-foreground/12" />
+        )
+      })}
+      {/* ground track segments */}
+      {segments.map((pts, i) => (
+        <polyline key={i} points={pts} fill="none"
+          stroke="currentColor" strokeWidth={1.4} strokeLinejoin="round"
+          className="text-[#7affd0]/80" />
+      ))}
+      {/* live sub-point */}
+      {dot && (
+        <>
+          <circle cx={dot[0]} cy={dot[1]} r={5} className="fill-[#7affd0]/25">
+            <animate attributeName="r" values="4;8;4" dur="2s" repeatCount="indefinite" />
+            <animate attributeName="opacity" values="0.5;0.1;0.5" dur="2s" repeatCount="indefinite" />
+          </circle>
+          <circle cx={dot[0]} cy={dot[1]} r={2.6} className="fill-[#7affd0]" />
+        </>
+      )}
+    </svg>
   )
 }
 
