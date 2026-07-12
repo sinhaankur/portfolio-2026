@@ -60,6 +60,9 @@ import {
   setSimMs,
 } from "./astronomy"
 import { SceneContents } from "./scene"
+import {
+  initDeviceTier, qualityForTier, perfTierRef, downgradeTier, type DeviceTier,
+} from "@/lib/device-tier"
 import { CloudToggle, DeepDiveToggle, DestinationsMenu, GravityToggle, InfoPanel, ResetViewButton, SatelliteGroupChips, SatelliteToggle, ScaleToggle, TimelineControl } from "./hud"
 import { LearnTicker } from "./learn-ticker"
 import { MobileBodySheet } from "./mobile-sheet"
@@ -136,6 +139,8 @@ export function UniverseEngine({
   const [mounted, setMounted] = useState(false)
   const [reducedMotion, setReducedMotion] = useState(false)
   const [mobile, setMobile] = useState(false)
+  // Adaptive quality: detected device tier (low/mid/high) → per-tier DPR + density.
+  const [tier, setTier] = useState<DeviceTier>("mid")
   // Gates the render loop: the hero is h-screen, so once the user scrolls past
   // it the Canvas is fully off-screen yet keeps rendering at 60fps. Pausing the
   // frameloop while hidden frees the GPU for the rest of the page.
@@ -180,6 +185,13 @@ export function UniverseEngine({
     const mobileMq = window.matchMedia("(max-width: 768px)")
     setReducedMotion(motionMq.matches)
     setMobile(mobileMq.matches)
+    // Adaptive quality — detect the real device tier (GPU / cores / RAM / OS) and
+    // scale DPR + scene density to fit, so strong machines get the full scene and
+    // weak ones stay smooth. Keeps deviceTierRef (mobile/desktop) for the texture
+    // gate; the finer low/mid/high tier drives DPR + density below.
+    const profile = initDeviceTier()
+    setTier(profile.tier)
+    if (process.env.NODE_ENV !== "production") console.info("[universe-engine] device:", profile.reason)
     // Gate the 4K textures: desktop loads hi-res, mobile keeps 2K (perf budget).
     deviceTierRef.current = mobileMq.matches ? "mobile" : "desktop"
     const onMotion = () => setReducedMotion(motionMq.matches)
@@ -194,6 +206,37 @@ export function UniverseEngine({
       mobileMq.removeEventListener("change", onMobile)
     }
   }, [])
+
+  // Live-FPS safety net — the static tier is a GUESS; actual frames are truth.
+  // Sample once the scene has settled; if the median frame is slow, step the tier
+  // DOWN one level (which lowers DPR). Only ever downgrades, never up, and runs
+  // once — so it can't oscillate.
+  useEffect(() => {
+    if (!mounted) return
+    let raf = 0
+    const frames: number[] = []
+    let last = performance.now()
+    const startAt = last + 2500 // let textures + init settle before judging
+    const tick = () => {
+      const now = performance.now()
+      if (now >= startAt) frames.push(now - last)
+      last = now
+      if (frames.length < 90) { raf = requestAnimationFrame(tick); return }
+      frames.sort((a, b) => a - b)
+      const median = frames[frames.length >> 1]
+      // >~28 ms median ≈ under ~36 fps → the current tier is too heavy here.
+      if (median > 28) {
+        const next = downgradeTier(perfTierRef.current)
+        if (next !== perfTierRef.current) {
+          perfTierRef.current = next
+          setTier(next)
+          if (process.env.NODE_ENV !== "production") console.info("[universe-engine] fps downgrade →", next, `(median ${Math.round(median)}ms)`)
+        }
+      }
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [mounted])
 
   // Pause the render loop when the engine scrolls out of view. A small
   // negative rootMargin keeps it running through the scroll transition so the
@@ -337,7 +380,10 @@ export function UniverseEngine({
         // starfield where the visual gain is negligible — a real frame-rate cost
         // (the fill-rate / overdraw the profiler flags). 1.5 stays crisp; phones
         // cap tighter still. This is the single biggest smoothness win on Retina.
-        dpr={mobile ? [1, 1.25] : [1, 1.5]}
+        // Adaptive DPR from the detected tier: high → up to 2× (crisp on a strong
+        // GPU), mid → 1.5×, low → 1.25×. Replaces the old binary mobile/desktop
+        // guess so a weak desktop GPU is also throttled, and a strong one isn't.
+        dpr={qualityForTier(tier).dpr}
         // Stop drawing entirely while scrolled past the hero (see onScreen).
         frameloop={onScreen ? "always" : "never"}
         gl={{ antialias: true, alpha: true, toneMappingExposure: 1.05 }}

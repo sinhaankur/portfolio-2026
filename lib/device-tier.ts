@@ -1,0 +1,214 @@
+/**
+ * Copyright (c) 2026 Ankur Sinha. All rights reserved.
+ * Part of the Universe Engine. Others may reference this work.
+ * https://github.com/sinhaankur/portfolio-2026
+ *
+ * device-tier — classify the visitor's hardware into low / mid / high so the
+ * Universe Engine can scale its quality to fit. The goal: a powerful machine
+ * gets the full rich scene, a weak one stays SMOOTH instead of janky — instead
+ * of one compromise setting that's wrong for both.
+ *
+ * Two layers:
+ *   1. A STATIC capability guess from real browser signals (below), for the
+ *      initial quality on first paint.
+ *   2. (optional, wired in the engine) a LIVE FPS probe that downgrades the tier
+ *      if the scene actually runs slow — the ground truth over any guess.
+ *
+ * Signals are all best-effort — none is guaranteed cross-browser — so the tier
+ * is a weighted vote, biased toward NOT over-promising (a wrong "high" janks; a
+ * wrong "mid" just looks slightly plainer).
+ */
+
+export type DeviceTier = "low" | "mid" | "high"
+
+export type OS = "macos" | "ios" | "ipados" | "windows" | "android" | "linux" | "unknown"
+
+export type DeviceProfile = {
+  tier: DeviceTier
+  /** Operating system, best-effort from UA + platform + touch. */
+  os: OS
+  /** CPU logical cores (navigator.hardwareConcurrency), or null if unknown. */
+  cores: number | null
+  /** Device RAM in GB (navigator.deviceMemory, Chromium-only), or null. */
+  memoryGB: number | null
+  /** Raw GPU renderer string (WEBGL_debug_renderer_info), or null. */
+  gpu: string | null
+  /** Coarse pointer → touch device. */
+  touch: boolean
+  /** devicePixelRatio at detection time. */
+  dpr: number
+  /** Small-viewport phone (the old `mobile` heuristic), kept for compatibility. */
+  smallViewport: boolean
+  /** One-line human explanation of why this tier was chosen (for debugging). */
+  reason: string
+}
+
+/** Best-effort OS detection. iPadOS masquerades as macOS in Safari, so a
+ *  "Mac" UA WITH touch points is treated as an iPad. */
+function detectOS(): OS {
+  if (typeof navigator === "undefined") return "unknown"
+  const ua = navigator.userAgent || ""
+  const plat = (navigator.platform || "").toLowerCase()
+  const touchPoints = navigator.maxTouchPoints || 0
+  if (/iphone|ipod/i.test(ua)) return "ios"
+  if (/ipad/i.test(ua)) return "ipados"
+  // iPadOS 13+ reports as "MacIntel" but with touch — distinguish from a real Mac.
+  if ((plat === "macintel" || /macintosh/i.test(ua)) && touchPoints > 1) return "ipados"
+  if (/mac os x|macintosh/i.test(ua) || plat.startsWith("mac")) return "macos"
+  if (/android/i.test(ua)) return "android"
+  if (/windows|win32|win64/i.test(ua) || plat.startsWith("win")) return "windows"
+  if (/linux/i.test(ua) || plat.includes("linux")) return "linux"
+  return "unknown"
+}
+
+/** Read the GPU renderer string via the debug-renderer-info extension. Returns
+ *  null if WebGL or the extension is unavailable (some privacy modes block it). */
+function readGpu(): string | null {
+  if (typeof document === "undefined") return null
+  try {
+    const canvas = document.createElement("canvas")
+    const gl = (canvas.getContext("webgl") || canvas.getContext("experimental-webgl")) as WebGLRenderingContext | null
+    if (!gl) return null
+    const ext = gl.getExtension("WEBGL_debug_renderer_info")
+    if (!ext) return null
+    const r = gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) as string
+    return typeof r === "string" ? r : null
+  } catch {
+    return null
+  }
+}
+
+/** Classify a GPU renderer string into a rough tier hint, or null if unknown. */
+function gpuTierHint(gpu: string | null): DeviceTier | null {
+  if (!gpu) return null
+  const g = gpu.toLowerCase()
+  // Discrete / high-end desktop GPUs.
+  if (/rtx|radeon rx|geforce (gtx|rtx)|quadro|arc a[0-9]/.test(g)) return "high"
+  // Apple Silicon: Pro/Max/Ultra are clearly high; base M-series is solidly mid-high.
+  if (/apple m[0-9]+ (pro|max|ultra)/.test(g)) return "high"
+  if (/apple m[0-9]/.test(g)) return "mid" // base M1/M2/M3 → mid (safe; live probe can lift)
+  // Integrated / mobile GPUs that struggle with a heavy full-screen scene.
+  if (/intel.*(hd|uhd) graphics|intel.*iris|mali|adreno|powervr|swiftshader|llvmpipe/.test(g)) return "low"
+  if (/intel/.test(g)) return "mid"
+  return null
+}
+
+/**
+ * Detect the device profile from static signals. Safe to call once on mount.
+ * The tier is a vote: GPU string (strongest) + cores + memory + touch + DPR.
+ */
+export function detectDeviceProfile(): DeviceProfile {
+  const nav = typeof navigator !== "undefined" ? navigator : ({} as Navigator)
+  const cores = typeof nav.hardwareConcurrency === "number" ? nav.hardwareConcurrency : null
+  const memoryGB = typeof (nav as Navigator & { deviceMemory?: number }).deviceMemory === "number"
+    ? (nav as Navigator & { deviceMemory?: number }).deviceMemory ?? null
+    : null
+  const gpu = readGpu()
+  const os = detectOS()
+  const touch = typeof window !== "undefined" && typeof window.matchMedia === "function"
+    ? window.matchMedia("(pointer: coarse)").matches
+    : false
+  const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1
+  const smallViewport = typeof window !== "undefined" && typeof window.matchMedia === "function"
+    ? window.matchMedia("(max-width: 768px)").matches
+    : false
+
+  // --- weighted vote toward a tier ---
+  const gpuHint = gpuTierHint(gpu)
+  let score = 0 // negative → low, ~0 → mid, positive → high
+  const notes: string[] = []
+
+  if (gpuHint === "high") { score += 2; notes.push(`GPU:${gpu}`) }
+  else if (gpuHint === "low") { score -= 2; notes.push(`weak GPU:${gpu}`) }
+  else if (gpuHint === "mid") { score += 0; notes.push(`GPU:${gpu ?? "mid"}`) }
+
+  if (cores != null) {
+    if (cores >= 8) { score += 1; notes.push(`${cores} cores`) }
+    else if (cores <= 4) { score -= 1; notes.push(`${cores} cores`) }
+  }
+  if (memoryGB != null) {
+    if (memoryGB >= 8) { score += 1; notes.push(`${memoryGB}GB`) }
+    else if (memoryGB <= 4) { score -= 1; notes.push(`${memoryGB}GB`) }
+  }
+  // A touch device on a small screen is a phone/tablet → cap toward low/mid.
+  if (touch && smallViewport) { score -= 1; notes.push("touch+small") }
+
+  // OS signal. When the GPU string is unavailable (blocked in some browsers),
+  // the OS is a useful fallback prior: desktop macOS/Windows skew stronger than a
+  // phone OS. Weight it lightly so it never overrides a known GPU.
+  if (gpuHint == null) {
+    if (os === "macos") { score += 1; notes.push("macOS") }
+    else if (os === "windows" || os === "linux") { notes.push(os) } // neutral — huge range
+    else if (os === "android") { score -= 1; notes.push("Android") }
+    else if (os === "ios") { score -= 1; notes.push("iOS") }
+    else if (os === "ipados") { notes.push("iPadOS") } // modern iPads are strong
+  } else {
+    notes.push(os)
+  }
+
+  let tier: DeviceTier
+  if (score >= 2) tier = "high"
+  else if (score <= -1) tier = "low"
+  else tier = "mid"
+
+  // Hard floor: a phone never gets the "high" heavy scene.
+  if ((os === "ios" || os === "android") && tier === "high") tier = "mid"
+  if (touch && smallViewport && tier === "high") tier = "mid"
+
+  return {
+    tier,
+    os,
+    cores,
+    memoryGB,
+    gpu,
+    touch,
+    dpr,
+    smallViewport,
+    reason: `${tier} · ${os} (score ${score}: ${notes.join(", ") || "no signals"})`,
+  }
+}
+
+/** Per-tier quality knobs the engine reads to scale the scene. One place to tune. */
+export type QualitySettings = {
+  /** Canvas dpr clamp [min, max]. */
+  dpr: [number, number]
+  /** Multiplier on decorative point counts (Milky Way, stars, nebulae, meteors). */
+  densityScale: number
+  /** Allow the 4K deep-zoom planet textures. */
+  allowHiResTextures: boolean
+  /** Allow the heaviest optional effects (volumetric nebulae, etc.). */
+  allowHeavyEffects: boolean
+}
+
+/** Module-scoped current tier + profile, so any engine component can read the
+ *  device tier without prop-drilling (same pattern as the other engine refs).
+ *  Starts at "mid" — a safe default before detection runs on mount. */
+export const deviceProfileRef: { current: DeviceProfile | null } = { current: null }
+export const perfTierRef: { current: DeviceTier } = { current: "mid" }
+
+/** Run detection once and latch it into the shared refs. Returns the profile. */
+export function initDeviceTier(): DeviceProfile {
+  const p = detectDeviceProfile()
+  deviceProfileRef.current = p
+  perfTierRef.current = p.tier
+  return p
+}
+
+/** Order tiers so a live probe can only ever step DOWN (never optimistically up). */
+const TIER_ORDER: DeviceTier[] = ["low", "mid", "high"]
+export function downgradeTier(t: DeviceTier): DeviceTier {
+  const i = TIER_ORDER.indexOf(t)
+  return TIER_ORDER[Math.max(0, i - 1)]
+}
+
+export function qualityForTier(tier: DeviceTier): QualitySettings {
+  switch (tier) {
+    case "high":
+      return { dpr: [1, 2], densityScale: 1.0, allowHiResTextures: true, allowHeavyEffects: true }
+    case "mid":
+      return { dpr: [1, 1.5], densityScale: 0.7, allowHiResTextures: true, allowHeavyEffects: true }
+    case "low":
+    default:
+      return { dpr: [1, 1.25], densityScale: 0.4, allowHiResTextures: false, allowHeavyEffects: false }
+  }
+}
