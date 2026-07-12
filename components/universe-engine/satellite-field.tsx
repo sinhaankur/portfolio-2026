@@ -206,16 +206,31 @@ export function classifyGroup(name: string, type?: string): number {
   return 6
 }
 
-// Shared catalogue cache so the search box and the field don't double-fetch.
-let _catalogPromise: Promise<SatMeta[]> | null = null
-export function loadSatelliteCatalog(): Promise<SatMeta[]> {
-  if (!_catalogPromise) {
-    _catalogPromise = fetch("/data/satellites.json")
+// Full catalogue record — id/name/owner/type/launch + the raw TLE lines the
+// SGP4 propagator needs. Kept as one shape so every consumer shares ONE fetch.
+export type SatRecord = SatMeta & { l1: string; l2: string }
+
+// Shared FULL-catalogue cache. The 4.3 MB satellites.json is fetched + parsed
+// exactly ONCE here; the field (which needs TLEs), the search box (metadata
+// only), and the conjunction screener all derive from this single promise
+// instead of each re-downloading the file.
+let _fullCatalogPromise: Promise<SatRecord[]> | null = null
+export function loadFullCatalog(): Promise<SatRecord[]> {
+  if (!_fullCatalogPromise) {
+    _fullCatalogPromise = fetch("/data/satellites.json")
       .then((r) => r.json())
-      .then((d) => (d.sats as SatMeta[]).map((s) => ({ id: s.id, name: s.name, owner: s.owner, type: s.type, launchMs: s.launchMs })))
+      .then((d) => d.sats as SatRecord[])
       .catch(() => [])
   }
-  return _catalogPromise
+  return _fullCatalogPromise
+}
+
+/** Metadata-only view of the catalogue (for the search box). Derived from the
+ *  shared full-catalogue fetch — no second download. */
+export function loadSatelliteCatalog(): Promise<SatMeta[]> {
+  return loadFullCatalog().then((sats) =>
+    sats.map((s) => ({ id: s.id, name: s.name, owner: s.owner, type: s.type, launchMs: s.launchMs })),
+  )
 }
 
 // satellite.js is imported DYNAMICALLY (below), not at the top level — a static
@@ -396,19 +411,20 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
 
   useEffect(() => {
     let cancelled = false
-    // Load satellite.js + the catalogue in parallel, then build satrecs.
+    // Load satellite.js + the catalogue in parallel, then build satrecs. The
+    // catalogue comes from the SHARED cache (loadFullCatalog) so the 4.3 MB file
+    // is fetched + parsed once for the whole app, not per consumer.
     Promise.all([
       import("satellite.js") as Promise<unknown> as Promise<Sgp4>,
-      fetch("/data/satellites.json").then((r) => r.json()),
+      loadFullCatalog(),
     ])
-      .then(([lib, d]) => {
+      .then(([lib, list]) => {
         if (cancelled) return
         sgp4.current = lib
-        const list: Sat[] = d.sats
         satrecs.current = list.map((s) => {
           try { return lib.twoline2satrec(s.l1, s.l2) } catch { return null }
         })
-        setSats(list)
+        setSats(list as Sat[])
       })
       .catch(() => setSats([]))
     return () => { cancelled = true }

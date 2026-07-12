@@ -11,7 +11,7 @@ import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { Layers, X } from "lucide-react"
 import { buildInventory, earthRatio, KNOWN_SIZES, type Inventory, type Regime } from "@/lib/sat-inventory"
-import { satRegimeFilterRef } from "@/components/universe-engine/satellite-field"
+import { satRegimeFilterRef, loadFullCatalog } from "@/components/universe-engine/satellite-field"
 
 // census regime → shader regime id (matches classifyRegimeId in satellite-field)
 const REGIME_ID: Record<Regime, number> = { LEO: 0, MEO: 1, GEO: 2, HEO: 3 }
@@ -36,9 +36,9 @@ export function InventoryPanel({ onClose }: { onClose: () => void }) {
 
   useEffect(() => {
     let alive = true
-    fetch("/data/satellites.json")
-      .then((r) => r.json())
-      .then((d) => { if (alive) setState({ kind: "done", inv: buildInventory(d.sats) }) })
+    // Shared catalogue cache — no second 4.3 MB download.
+    loadFullCatalog()
+      .then((sats) => { if (alive) setState({ kind: "done", inv: buildInventory(sats) }) })
       .catch(() => { if (alive) setState({ kind: "error" }) })
     // clear any regime filter when the panel closes
     return () => { alive = false; satRegimeFilterRef.current = -1 }
