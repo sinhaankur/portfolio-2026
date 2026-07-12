@@ -380,6 +380,11 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
   // glides smoothly along its orbits instead of stepping every 250 ms.
   const prevPos = useRef<Float32Array | null>(null)
   const nextPos = useRef<Float32Array | null>(null)
+  // Time-sliced SGP4 sweep: instead of propagating all ~15,700 sats in one frame
+  // (a 4 Hz stutter), we propagate a budget per frame into nextPos, advancing a
+  // cursor; a full pass rolls next→prev. Same freshness, no single-frame stall.
+  const sweepCursor = useRef(0)
+  const sweepStartMs = useRef(0)
   // scene units per km, so satellite altitudes sit just above Earth's sphere
   const kmToScene = earthVisualRadius / EARTH_RADIUS_KM
 
@@ -524,7 +529,10 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     if (!isolated && prevPos.current && nextPos.current) {
       const pos = geometry.getAttribute("position") as THREE.BufferAttribute
       const arr = pos.array as Float32Array
-      const t = Math.min(1, (now - lastCompute.current) / RECOMPUTE_MS)
+      // Interpolate prev→next across the current sweep window. The window lasts
+      // RECOMPUTE_MS; a completed sweep resets sweepStartMs (below), so `t` glides
+      // 0→1 over the window regardless of how many frames the slices took.
+      const t = Math.min(1, (now - sweepStartMs.current) / RECOMPUTE_MS)
       const a = prevPos.current, b = nextPos.current
       for (let i = 0; i < arr.length; i++) arr[i] = a[i] + (b[i] - a[i]) * t
       pos.needsUpdate = true
@@ -563,12 +571,7 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
       }
     }
 
-    if (now - lastCompute.current < RECOMPUTE_MS) return
-    lastCompute.current = now
-
     const date = new Date(simTimeRef.current.simMs)
-    const pos = geometry.getAttribute("position") as THREE.BufferAttribute
-    const arr = pos.array as Float32Array
     const recs = satrecs.current
 
     // SAT-1: when the group filter changes, (re)build a sampled set of orbit-
@@ -602,34 +605,54 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     }
 
     if (!isolated) {
-      // swarm view: propagate every satellite (throttled to 4 Hz) into the NEXT
-      // buffer; the previous NEXT becomes PREV so the per-frame lerp above glides
-      // prev→next. First run seeds both buffers to the same positions (no jump).
+      // Swarm view — TIME-SLICED SGP4 sweep. Propagating all ~15,700 satellites in
+      // one frame is a 4 Hz stutter; instead we do a fixed BUDGET per frame into
+      // nextPos, advancing sweepCursor. When the cursor wraps a full pass we roll
+      // next→prev and restart the interpolation window (sweepStartMs). Positions
+      // stay just as fresh, but no single frame ever stalls on the whole catalogue.
       const n = recs.length * 3
-      const firstFill = !nextPos.current || nextPos.current.length !== n
-      if (firstFill) {
-        nextPos.current = new Float32Array(n)
-        prevPos.current = new Float32Array(n)
-      }
-      // roll next → prev (start of a new 250 ms segment)
-      prevPos.current!.set(nextPos.current!)
-      const nx = nextPos.current!
-      for (let i = 0; i < recs.length; i++) {
-        const rec = recs[i]
-        if (!rec) { nx[i * 3] = 0; nx[i * 3 + 1] = 0; nx[i * 3 + 2] = 0; continue }
+      const propagateInto = (buf: Float32Array, j: number) => {
+        const rec = recs[j / 3]
+        if (!rec) { buf[j] = 0; buf[j + 1] = 0; buf[j + 2] = 0; return }
         let r: { position?: { x: number; y: number; z: number } } | false = false
         try { r = lib.propagate(rec, date) } catch { r = false }
         const p = r && r.position
-        if (!p) { nx[i * 3] = 0; nx[i * 3 + 1] = 0; nx[i * 3 + 2] = 0; continue }
+        if (!p) { buf[j] = 0; buf[j + 1] = 0; buf[j + 2] = 0; return }
         // ECI km → scene units. Map ECI (x,y,z) to scene (x, z, -y) so the orbital
         // plane sits around Earth's equator in scene space.
-        nx[i * 3] = p.x * kmToScene
-        nx[i * 3 + 1] = p.z * kmToScene
-        nx[i * 3 + 2] = -p.y * kmToScene
+        buf[j] = p.x * kmToScene
+        buf[j + 1] = p.z * kmToScene
+        buf[j + 2] = -p.y * kmToScene
       }
-      // seed prev==next on the very first fill so the swarm doesn't animate in
-      // from the origin before the first interpolation window.
-      if (firstFill) prevPos.current!.set(nx)
+
+      const firstFill = !nextPos.current || nextPos.current.length !== n
+      if (firstFill) {
+        // One full immediate fill so the swarm appears in place; seed prev==next.
+        nextPos.current = new Float32Array(n)
+        prevPos.current = new Float32Array(n)
+        for (let k = 0; k < n; k += 3) propagateInto(nextPos.current, k)
+        prevPos.current.set(nextPos.current)
+        sweepCursor.current = n // parked at end → next window starts a fresh sweep
+        sweepStartMs.current = now
+      } else {
+        const nx = nextPos.current!
+        // Start a NEW sweep once the window elapsed and the previous sweep finished
+        // (cursor parked at end). Rolling prev←next HERE keeps a clean double buffer:
+        // prev = last complete positions, next = being filled this window.
+        if (sweepCursor.current >= n && now - sweepStartMs.current >= RECOMPUTE_MS) {
+          prevPos.current!.set(nx)
+          sweepCursor.current = 0
+          sweepStartMs.current = now
+          lastCompute.current = now
+        }
+        // Propagate a BUDGET of sats this frame (spread across ~a dozen frames so no
+        // single frame stalls on the whole catalogue).
+        const budget = Math.max(1500, Math.ceil(recs.length / 12)) * 3 // *3: floats
+        let done = 0
+        let j = sweepCursor.current
+        while (done < budget && j < n) { propagateInto(nx, j); j += 3; done += 3 }
+        sweepCursor.current = j
+      }
     }
 
     // --- selected satellite: position the GLB marker, orient it, follow, orbit ---
