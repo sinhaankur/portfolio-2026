@@ -18,7 +18,7 @@ import { StaticStarfield } from "@/components/universe-engine/static-starfield"
 import { BODIES } from "@/lib/celestial-data"
 import { SatelliteSearch } from "./satellite-search"
 import { selectedSatRef, satGroupFilterRef } from "@/components/universe-engine/satellite-field"
-import { setSimMs, timeScaleRef } from "@/components/universe-engine/astronomy"
+import { setSimMs, timeScaleRef, hiResTexturesRef } from "@/components/universe-engine/astronomy"
 import { hasGoogleEarthKey } from "@/components/universe-engine/google-earth-tiles"
 
 // The photoreal-Earth view pulls in the (heavy) 3D-tiles renderer. Lazy-load it
@@ -120,6 +120,12 @@ export function CelestialExplorer() {
   // it out so the view breathes (declutter). It also hides the moment the user
   // engages with a body. A small "?" affordance brings it back.
   const [titleVisible, setTitleVisible] = useState(true)
+  // This is the deep-zoom explorer — enable the 4K planet surfaces (the hero keeps
+  // 2K, since there planets are dots and 4K just costs a GPU upload stall).
+  useEffect(() => {
+    hiResTexturesRef.current = true
+    return () => { hiResTexturesRef.current = false }
+  }, [])
   useEffect(() => {
     const t = setTimeout(() => setTitleVisible(false), 7000)
     return () => clearTimeout(t)

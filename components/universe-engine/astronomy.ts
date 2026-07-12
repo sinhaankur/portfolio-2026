@@ -376,8 +376,19 @@ export const deviceTierRef: { current: "mobile" | "desktop" } = { current: "desk
 
 /** The surface texture to actually load for a body: the 4K hi-res map on
  *  desktop when one exists, else the lighter base map (always on mobile). */
+/**
+ * Gates the 4K surface textures. The home hero shows planets as small dots in a
+ * wide solar-system view, where 4K is invisible but still costs a big one-time
+ * `texSubImage2D` GPU upload stall on load. So 4K is OFF by default (hero → 2K)
+ * and only the deep-zoom explorer (/lab/celestial) flips this on, where you
+ * actually dolly up to a planet's surface. Also still gated to desktop.
+ */
+export const hiResTexturesRef: { current: boolean } = { current: false }
+
 export function surfaceTextureUrl(planet: { textureUrl?: string; hiResTextureUrl?: string }): string | undefined {
-  if (deviceTierRef.current === "desktop" && planet.hiResTextureUrl) return planet.hiResTextureUrl
+  if (hiResTexturesRef.current && deviceTierRef.current === "desktop" && planet.hiResTextureUrl) {
+    return planet.hiResTextureUrl
+  }
   return planet.textureUrl
 }
 
