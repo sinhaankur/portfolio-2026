@@ -73,6 +73,12 @@ const IssLivePanel = dynamic(
   { ssr: false },
 )
 
+// Earth→Mars porkchop plot — launch windows from a Lambert C3 grid.
+const PorkchopPlot = dynamic(
+  () => import("./porkchop-plot").then((m) => m.PorkchopPlot),
+  { ssr: false },
+)
+
 // Near-Earth asteroid approaches (NASA NeoWs).
 const NeoPanel = dynamic(
   () => import("./neo-panel").then((m) => m.NeoPanel),
@@ -134,6 +140,8 @@ export function CelestialExplorer() {
   const [stationOpen, setStationOpen] = useState(false)
   // Live ISS position (sub-point, altitude, speed — ticks each second).
   const [issLiveOpen, setIssLiveOpen] = useState(false)
+  // Earth→Mars porkchop plot (launch windows from a Lambert C3 grid).
+  const [porkchopOpen, setPorkchopOpen] = useState(false)
   // Near-Earth asteroids.
   const [neoOpen, setNeoOpen] = useState(false)
   // Orbital-population census.
@@ -141,7 +149,7 @@ export function CelestialExplorer() {
   // The feature-launcher menu (collapses all the tools into one chip so the
   // bottom-left doesn't stack 5+ buttons on mobile).
   const [menuOpen, setMenuOpen] = useState(false)
-  const closePanels = () => { setPassesOpen(false); setWeatherOpen(false); setLaunchesOpen(false); setTransferOpen(false); setStationOpen(false); setIssLiveOpen(false); setNeoOpen(false); setInventoryOpen(false) }
+  const closePanels = () => { setPassesOpen(false); setWeatherOpen(false); setLaunchesOpen(false); setTransferOpen(false); setStationOpen(false); setIssLiveOpen(false); setPorkchopOpen(false); setNeoOpen(false); setInventoryOpen(false) }
   // `?earth=1` auto-opens the photoreal view — for capture/testing + deep-links.
   useEffect(() => {
     try {
@@ -412,6 +420,8 @@ export function CelestialExplorer() {
                     label="Launches" onClick={() => { closePanels(); setLaunchesOpen(true) }} />
                   <MenuItem color="#7affd0" icon={<Route className="h-3.5 w-3.5" />}
                     label="Earth → Mars transfer" onClick={() => { closePanels(); setTransferOpen(true) }} />
+                  <MenuItem color="#7affd0" icon={<Orbit className="h-3.5 w-3.5" />}
+                    label="Launch windows (porkchop)" onClick={() => { closePanels(); setPorkchopOpen(true) }} />
                   <MenuItem color="#ffd27a" icon={<Orbit className="h-3.5 w-3.5" />}
                     label="Asteroids near Earth" onClick={() => { closePanels(); setNeoOpen(true) }} />
                 </motion.div>
@@ -461,6 +471,11 @@ export function CelestialExplorer() {
           {issLiveOpen && (
             <div className="absolute bottom-24 left-4 md:left-6 z-40">
               <IssLivePanel onClose={() => setIssLiveOpen(false)} />
+            </div>
+          )}
+          {porkchopOpen && (
+            <div className="absolute bottom-24 left-4 md:left-6 z-40">
+              <PorkchopPlot onClose={() => setPorkchopOpen(false)} />
             </div>
           )}
           {neoOpen && (
