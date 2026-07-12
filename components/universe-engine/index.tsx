@@ -332,10 +332,12 @@ export function UniverseEngine({
         // solar-neighbourhood stars (NearbyStars3D, LY_SCALE 20: Alpha Cen ≈ 86,
         // Sirius ≈ 172 scene units). maxDistance (below) keeps the everyday feel.
         camera={{ position: [SUN_OFFSET_SCENE + 4, 6, 13], fov: 50, near: 0.012, far: 3000 }}
-        // Cap device-pixel-ratio lower on phones — rendering this scene at full
-        // 2× on a mobile GPU is a real frame-rate + battery cost for little
-        // visible gain. Desktop keeps the crisp [1, 2] range.
-        dpr={mobile ? [1, 1.5] : [1, 2]}
+        // Cap device-pixel-ratio: on a Retina/high-DPR display, rendering this
+        // full-screen scene at 2× means ~78% more shaded pixels than 1.5× for a
+        // starfield where the visual gain is negligible — a real frame-rate cost
+        // (the fill-rate / overdraw the profiler flags). 1.5 stays crisp; phones
+        // cap tighter still. This is the single biggest smoothness win on Retina.
+        dpr={mobile ? [1, 1.25] : [1, 1.5]}
         // Stop drawing entirely while scrolled past the hero (see onScreen).
         frameloop={onScreen ? "always" : "never"}
         gl={{ antialias: true, alpha: true, toneMappingExposure: 1.05 }}

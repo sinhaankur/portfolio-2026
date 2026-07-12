@@ -244,7 +244,9 @@ export function NamedStarHoverLayer({
   if (invert) return null
 
   return (
-    <group>
+    // Static placement — affordances only animate opacity (material), never their
+    // transform — so freeze the subtree's world-matrix updates.
+    <group matrixWorldAutoUpdate={false}>
       {stars.map((s) => (
         <group key={`star-affordance-${s.meta.i}`} position={[s.x, s.y, s.z]}>
           {/* Persistent label for bright stars */}

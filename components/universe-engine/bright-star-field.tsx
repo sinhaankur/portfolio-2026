@@ -245,7 +245,10 @@ export function BrightStarField({
   if (invert) return null
 
   return (
-    <points geometry={geometry} frustumCulled={false}>
+    // Static root — the field never moves as an object (all twinkle/proper-motion
+    // is in the shader), so skip the per-frame world-matrix recompute three does
+    // by default. One of several static subtrees frozen to cut the idle matrix cost.
+    <points geometry={geometry} frustumCulled={false} matrixAutoUpdate={false}>
       <shaderMaterial
         ref={matRef}
         vertexShader={STAR_VERTEX_SHADER}

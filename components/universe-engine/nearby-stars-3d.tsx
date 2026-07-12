@@ -110,7 +110,9 @@ export function NearbyStars3D({
   if (invert) return null
 
   return (
-    <group>
+    // Static subtree — nearby stars are placed once and never move; freeze the
+    // whole subtree's world-matrix updates to cut the per-frame recompute cost.
+    <group matrixWorldAutoUpdate={false}>
       {stars.map((s) => (
         <group key={`near-${s.i}`} position={s.pos}>
           {/* the star itself — small bright additive dot */}
