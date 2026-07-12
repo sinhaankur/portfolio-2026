@@ -14,6 +14,7 @@ const socials: Array<{ label: string; href: string; download?: boolean }> = [
   { label: "GitHub", href: "https://github.com/sinhaankur" },
   { label: "Writing", href: "/writing" },
   { label: "The Math", href: "/universe-engine/math" },
+  { label: "Academic", href: "/academic/p2p-streaming" },
   { label: "Resume", href: "/ankur-sinha-resume.pdf", download: true },
 ]
 

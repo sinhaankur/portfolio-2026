@@ -17,6 +17,8 @@ const ROUTES = [
   ["/works/oracle/", 3000],
   ["/skills/", 3000],
   ["/usability/", 3000],
+  ["/academic/p2p-streaming/", 2500],
+  ["/academic/rubik-cube/", 2500],
 ]
 
 const base = process.env.SMOKE_BASE ?? "http://localhost:8899"
