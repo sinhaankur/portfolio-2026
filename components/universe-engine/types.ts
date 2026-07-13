@@ -130,6 +130,12 @@ export type Planet = {
    *  Combined with m0Deg + eccentricity this fixes both where the body is
    *  AND which direction it's heading on its ellipse. */
   periDeg?: number
+  /** Longitude of the ascending node Ω at J2000 (degrees), from JPL mean
+   *  orbital elements. The last element needed to fully orient the orbit
+   *  plane in 3D — with i, ϖ and M₀ it yields a rigorous heliocentric
+   *  position (and, differenced against Earth, a real geocentric RA/Dec
+   *  for the "Tonight's Sky" companion). */
+  longNodeDeg?: number
   shade: string
   surfaceTempK: { min?: number; mean: number; max?: number }
   classification: string

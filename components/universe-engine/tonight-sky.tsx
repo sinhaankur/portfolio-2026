@@ -19,20 +19,25 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { constellations } from "./astronomy"
-import type { Constellation, ConstellationId } from "./types"
+import { constellations, planetsData } from "./astronomy"
+import type { Constellation, ConstellationId, Planet } from "./types"
 import {
   altitudeBand,
   centroidRaDec,
   compassPoint,
   equatorialToHorizontal,
+  planetEquatorial,
   riseTransitSet,
   type EquatorialCoord,
+  type KeplerianElements,
   type Observer,
 } from "@/lib/sky-position"
 
+type SkyKind = "planet" | "constellation"
+
 interface SkyRow {
-  id: ConstellationId
+  id: string
+  kind: SkyKind
   name: string
   designation: string
   fact: string
@@ -42,6 +47,33 @@ interface SkyRow {
   compass: string
   band: ReturnType<typeof altitudeBand>
 }
+
+/** Earth's elements — the observer's own orbit, differenced against each
+ *  planet to get its geocentric direction. */
+function earthElements(): KeplerianElements | null {
+  return planetToElements(planetsData.find((p) => p.name === "Earth"))
+}
+
+/** Map a Planet record to the Keplerian element shape the ephemeris needs.
+ *  Returns null if any orbital element is missing (honest — no guessing). */
+function planetToElements(p?: Planet): KeplerianElements | null {
+  if (!p || p.m0Deg === undefined || p.periDeg === undefined || p.longNodeDeg === undefined) return null
+  const e = p.deep?.eccentricity
+  if (e === undefined) return null
+  return {
+    aAU: p.aAU,
+    eccentricity: e,
+    inclDeg: p.inclDeg,
+    longNodeDeg: p.longNodeDeg,
+    periLonDeg: p.periDeg,
+    m0Deg: p.m0Deg,
+    periodDays: p.periodDays,
+  }
+}
+
+/** The planets a naked-eye observer would actually look for (skip Earth;
+ *  the outer ice giants + Pluto need optical aid but we still report them). */
+const VISIBLE_PLANET_NAMES = ["Mercury", "Venus", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune"]
 
 /** Only the named, recognisable constellations make good "look up" targets —
  *  skip the faint IAU filler that carries no fact so the list stays legible. */
@@ -69,7 +101,7 @@ export function TonightSky() {
   const [open, setOpen] = useState(false)
   const [observer, setObserver] = useState<Observer | null>(null)
   const [locState, setLocState] = useState<"idle" | "asking" | "denied" | "unavailable">("idle")
-  const [expandedId, setExpandedId] = useState<ConstellationId | null>(null)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
   // Tick drives the live recompute so altitudes update as the sky turns.
   const [tick, setTick] = useState(0)
 
@@ -79,6 +111,18 @@ export function TonightSky() {
     () => targets.map((c) => ({ c, coord: centroidRaDec(c.stars) })),
     [targets],
   )
+
+  // Planets carry Keplerian elements → geocentric RA/Dec is recomputed each
+  // tick (they move). Earth is the observer's own orbit, differenced out.
+  const planets = useMemo(() => {
+    const earth = earthElements()
+    if (!earth) return []
+    return VISIBLE_PLANET_NAMES.map((name) => {
+      const p = planetsData.find((pd) => pd.name === name)
+      const el = planetToElements(p)
+      return el && p ? { name, designation: p.classification, fact: p.fact ?? "", el, earth } : null
+    }).filter((x): x is NonNullable<typeof x> => x !== null)
+  }, [])
 
   // Recompute the sky ~every 20s while open + located (it drifts ~0.25°/min).
   useEffect(() => {
@@ -103,34 +147,43 @@ export function TonightSky() {
     )
   }, [])
 
-  // Build + sort the live list: above-horizon first, by descending altitude.
+  // Build + sort the live list: planets + constellations, above-horizon first,
+  // by descending altitude. Planets get their live geocentric RA/Dec first.
   const rows = useMemo<SkyRow[]>(() => {
     if (!observer) return []
     const now = new Date()
-    const out: SkyRow[] = centroids.map(({ c, coord }) => {
+
+    const toRow = (
+      id: string, kind: SkyKind, name: string, designation: string, fact: string, coord: EquatorialCoord,
+    ): SkyRow => {
       const h = equatorialToHorizontal(coord, observer, now)
       return {
-        id: c.id,
-        name: c.name,
-        designation: c.designation,
-        fact: c.fact,
-        coord,
+        id, kind, name, designation, fact, coord,
         altitudeDeg: h.altitudeDeg,
         azimuthDeg: h.azimuthDeg,
         compass: compassPoint(h.azimuthDeg),
         band: altitudeBand(h.altitudeDeg),
       }
-    })
+    }
+
+    const planetRows = planets.map((p) =>
+      toRow(`planet:${p.name}`, "planet", p.name, p.designation, p.fact, planetEquatorial(p.el, p.earth, now)),
+    )
+    const constRows = centroids.map(({ c, coord }) =>
+      toRow(`const:${c.id}`, "constellation", c.name, c.designation, c.fact, coord),
+    )
+
+    const out = [...planetRows, ...constRows]
     out.sort((a, b) => b.altitudeDeg - a.altitudeDeg)
     return out
     // `tick` is the recompute trigger: the 20s interval bumps it so the live
     // Date() read above re-runs and altitudes track the turning sky.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [observer, centroids, tick])
+  }, [observer, centroids, planets, tick])
 
   const upNow = rows.filter((r) => r.altitudeDeg > 0)
 
-  const highlight = useCallback((id: ConstellationId | null) => {
+  const highlightConstellation = useCallback((id: ConstellationId | null) => {
     if (typeof window === "undefined") return
     window.dispatchEvent(
       new CustomEvent("universe:highlight-constellation", { detail: { id } }),
@@ -140,14 +193,20 @@ export function TonightSky() {
   // Clear any highlight when the panel closes so the sky doesn't stay lit.
   const prevOpen = useRef(open)
   useEffect(() => {
-    if (prevOpen.current && !open) highlight(null)
+    if (prevOpen.current && !open) highlightConstellation(null)
     prevOpen.current = open
-  }, [open, highlight])
+  }, [open, highlightConstellation])
 
   const toggleRow = (r: SkyRow) => {
     const next = expandedId === r.id ? null : r.id
     setExpandedId(next)
-    highlight(next)
+    if (r.kind === "constellation") {
+      // Light up the asterism (strip the "const:" prefix back to the raw id).
+      highlightConstellation(next ? r.id.replace(/^const:/, "") : null)
+    } else {
+      // Planets have no asterism to highlight — clear any lit constellation.
+      highlightConstellation(null)
+    }
   }
 
   return (
@@ -202,9 +261,10 @@ export function TonightSky() {
           {!observer ? (
             <div className="px-4 py-5 flex flex-col gap-3">
               <p className="font-sans text-[12px] leading-relaxed text-foreground/70">
-                Share your location and I&apos;ll compute exactly which constellations
-                are above your horizon this second — altitude, compass bearing, and
-                tonight&apos;s rise &amp; set times. The same math a telescope mount runs.
+                Share your location and I&apos;ll compute exactly which planets and
+                constellations are above your horizon this second — altitude, compass
+                bearing, and tonight&apos;s rise &amp; set times. The same math a
+                telescope mount runs.
               </p>
               <button
                 type="button"
@@ -255,14 +315,23 @@ export function TonightSky() {
                       `}
                     >
                       <div className="flex items-baseline justify-between gap-2">
-                        <span className="font-sans text-[13px] text-foreground/90 truncate">
-                          {r.name}
+                        <span className="flex items-baseline gap-1.5 min-w-0">
+                          {r.kind === "planet" && (
+                            <span
+                              aria-hidden
+                              className="inline-block h-1.5 w-1.5 rounded-full bg-accent shrink-0 translate-y-[-1px]"
+                            />
+                          )}
+                          <span className="font-sans text-[13px] text-foreground/90 truncate">
+                            {r.name}
+                          </span>
                         </span>
                         <span className="font-mono text-[10px] tabular-nums text-foreground/60 shrink-0">
                           {isUp ? `${Math.round(r.altitudeDeg)}° ${r.compass}` : "below"}
                         </span>
                       </div>
                       <div className="mt-0.5 font-mono text-[9px] tracking-[0.14em] uppercase text-foreground/40">
+                        {r.kind === "planet" ? "Planet · " : ""}
                         {isUp ? BAND_LABEL[r.band] : "not up right now"}
                       </div>
 
@@ -310,10 +379,18 @@ function RowDetail({ row, observer }: { row: SkyRow; observer: Observer }) {
           <span className="text-foreground/75 tabular-nums">{Math.round(rts.transitAltitudeDeg)}° up</span>
         </div>
       </dl>
-      <p className="mt-2 font-sans text-[11px] leading-snug text-foreground/60">{row.fact}</p>
-      <p className="mt-1.5 font-mono text-[8px] tracking-[0.14em] uppercase text-accent/70">
-        Tap again to un-highlight
-      </p>
+      {row.fact && (
+        <p className="mt-2 font-sans text-[11px] leading-snug text-foreground/60">{row.fact}</p>
+      )}
+      {row.kind === "planet" ? (
+        <p className="mt-1.5 font-mono text-[8px] tracking-[0.14em] uppercase text-foreground/40">
+          Position computed live from JPL orbital elements
+        </p>
+      ) : (
+        <p className="mt-1.5 font-mono text-[8px] tracking-[0.14em] uppercase text-accent/70">
+          Tap again to un-highlight
+        </p>
+      )}
     </div>
   )
 }

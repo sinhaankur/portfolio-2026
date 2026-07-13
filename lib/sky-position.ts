@@ -248,6 +248,115 @@ function refineHorizon(
   return new Date((lo + hi) / 2)
 }
 
+/* ==========================================================================
+ * Planet ephemeris — geocentric RA/Dec of a planet from its Keplerian
+ * elements, so "Tonight's Sky" can place the planets (which move) alongside
+ * the fixed constellations. Meeus ch. 25 (Sun/Earth) + ch. 33 (planets):
+ *   1. heliocentric ecliptic position of the planet AND of Earth, in real AU;
+ *   2. geocentric ecliptic = planet − Earth;
+ *   3. ecliptic (λ, β) → equatorial (RA, Dec) via the obliquity ε.
+ * Positions are J2000-mean-element accurate (arc-minutes over the engine's
+ * timeline) — honest real geometry, not a stand-in.
+ * ======================================================================== */
+
+/** Minimal orbital-element record — the fields planetsData already carries. */
+export interface KeplerianElements {
+  aAU: number
+  eccentricity: number
+  /** Inclination to the ecliptic, degrees. */
+  inclDeg: number
+  /** Longitude of the ascending node Ω, degrees. */
+  longNodeDeg: number
+  /** Longitude of perihelion ϖ = Ω + ω, degrees (matches engine `periDeg`). */
+  periLonDeg: number
+  /** Mean anomaly at J2000, degrees (engine `m0Deg`). */
+  m0Deg: number
+  /** Orbital period, days. */
+  periodDays: number
+}
+
+const J2000_MS = Date.UTC(2000, 0, 1, 12, 0, 0) // J2000.0 = 2000-01-01 12:00 TT ≈ UTC here
+const OBLIQUITY_J2000_DEG = 23.439_291 // mean obliquity of the ecliptic at J2000
+
+function daysSinceJ2000(date: Date): number {
+  return (date.getTime() - J2000_MS) / 86_400_000
+}
+
+/** Solve Kepler's equation M = E − e·sin E for the eccentric anomaly E (rad). */
+function solveEccentricAnomaly(mRad: number, e: number): number {
+  let E = e < 0.8 ? mRad : Math.PI
+  for (let i = 0; i < 60; i++) {
+    const dE = (E - e * Math.sin(E) - mRad) / (1 - e * Math.cos(E))
+    E -= dE
+    if (Math.abs(dE) < 1e-9) break
+  }
+  return E
+}
+
+/**
+ * Heliocentric ECLIPTIC rectangular coordinates (real AU, J2000 frame) for a
+ * body at `date`. x → vernal equinox, z → ecliptic north. Standard element
+ * rotations (ω in-plane, i, then Ω about the pole), with ω = ϖ − Ω.
+ */
+function heliocentricEcliptic(el: KeplerianElements, date: Date): { x: number; y: number; z: number } {
+  const M = norm360(el.m0Deg + (360 * daysSinceJ2000(date)) / el.periodDays) * DEG
+  const e = el.eccentricity
+  const E = solveEccentricAnomaly(M, e)
+
+  // Position in the orbital plane (perifocal), AU.
+  const xv = el.aAU * (Math.cos(E) - e)
+  const yv = el.aAU * (Math.sqrt(1 - e * e) * Math.sin(E))
+
+  const omega = (el.periLonDeg - el.longNodeDeg) * DEG // argument of perihelion ω
+  const node = el.longNodeDeg * DEG
+  const incl = el.inclDeg * DEG
+
+  const cosO = Math.cos(node), sinO = Math.sin(node)
+  const cosW = Math.cos(omega), sinW = Math.sin(omega)
+  const cosI = Math.cos(incl), sinI = Math.sin(incl)
+
+  // Rotate perifocal → ecliptic (Meeus eq. after 33; standard PQW → ecliptic).
+  const x =
+    (cosO * cosW - sinO * sinW * cosI) * xv +
+    (-cosO * sinW - sinO * cosW * cosI) * yv
+  const y =
+    (sinO * cosW + cosO * sinW * cosI) * xv +
+    (-sinO * sinW + cosO * cosW * cosI) * yv
+  const z = (sinW * sinI) * xv + (cosW * sinI) * yv
+
+  return { x, y, z }
+}
+
+/**
+ * Geocentric apparent RA/Dec of a planet at `date`, given both the planet's
+ * and Earth's Keplerian elements. Returns RA in hours, Dec in degrees — the
+ * same shape the horizontal transform consumes.
+ */
+export function planetEquatorial(
+  planet: KeplerianElements,
+  earth: KeplerianElements,
+  date: Date,
+): EquatorialCoord {
+  const p = heliocentricEcliptic(planet, date)
+  const eth = heliocentricEcliptic(earth, date)
+
+  // Geocentric ecliptic vector (planet as seen from Earth).
+  const gx = p.x - eth.x
+  const gy = p.y - eth.y
+  const gz = p.z - eth.z
+
+  // Ecliptic → equatorial rotation about the x-axis by the obliquity ε.
+  const eps = OBLIQUITY_J2000_DEG * DEG
+  const cosE = Math.cos(eps), sinE = Math.sin(eps)
+  const xe = gx
+  const ye = gy * cosE - gz * sinE
+  const ze = gy * sinE + gz * cosE
+
+  const raDeg = norm360(Math.atan2(ye, xe) / DEG)
+  const decDeg = Math.atan2(ze, Math.sqrt(xe * xe + ye * ye)) / DEG
+  return { raHours: raDeg / HOURS_TO_DEG, decDeg }
+}
+
 /**
  * Centroid (mean) RA/Dec of a set of stars, for placing a constellation as a
  * single point in the observer's sky. RA is averaged on the circle (via the
