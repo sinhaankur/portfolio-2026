@@ -118,12 +118,15 @@ export function Lab() {
           <p className="font-mono text-xs tracking-[0.3em] text-muted-foreground mb-4">
             THE LAB — EXPLORATION
           </p>
-          <h2
+          {/* h1: this component only renders on the standalone /lab page (moved
+              off the home scroll 2026-06-17), where it is the page's title —
+              the ScrollCinema overture above is aria-hidden decoration. */}
+          <h1
             id="lab-heading"
             className="font-display text-3xl md:text-5xl lg:text-6xl font-light italic tracking-[-0.01em] leading-[1.05]"
           >
             How I'm learning AI — by building it.
-          </h2>
+          </h1>
           <p className="mt-6 font-sans text-base md:text-lg text-foreground/75 max-w-2xl leading-relaxed">
             Self-directed, <span className="text-foreground">open-source</span>{" "}
             experiments — not client or employer work. Each is a way to learn the

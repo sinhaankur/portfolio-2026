@@ -29,7 +29,20 @@ import {
 /** Per-viewport scroll length each line occupies. <1 keeps the scrub brisk. */
 const VH_PER_LINE = 0.85
 
-export function ScrollCinema({ lines }: { lines: string[] }) {
+export function ScrollCinema({
+  lines,
+  startVisible = false,
+}: {
+  lines: string[]
+  /**
+   * Render the first line at full opacity at scroll position 0. Off by default:
+   * as a mid-page act break the empty-stage opening works because the visitor
+   * arrives already scrolling. Turn it ON when the cinema is the first thing on
+   * a page (e.g. /lab) — otherwise landing there is a blank viewport with no
+   * cue that anything exists below.
+   */
+  startVisible?: boolean
+}) {
   const ref = useRef<HTMLElement>(null)
   const prefersReducedMotion = useReducedMotion()
   const { scrollYProgress } = useScroll({
@@ -58,6 +71,7 @@ export function ScrollCinema({ lines }: { lines: string[] }) {
             index={i}
             total={lines.length}
             progress={scrollYProgress}
+            startVisible={startVisible && i === 0}
           />
         ))}
 
@@ -77,14 +91,18 @@ function CinemaLine({
   index,
   total,
   progress,
+  startVisible = false,
 }: {
   text: string
   index: number
   total: number
   progress: MotionValue<number>
+  startVisible?: boolean
 }) {
   // Each line owns an equal window of the scrub; it blooms in over the first
   // quarter, holds (stationary = readable), and recedes over the last quarter.
+  // A startVisible line skips the bloom: already on stage at progress 0, it
+  // only holds and recedes.
   const start = index / total
   const end = (index + 1) / total
   const q = (end - start) / 4
@@ -92,14 +110,14 @@ function CinemaLine({
   const opacity = useTransform(
     progress,
     [start, start + q, end - q, end],
-    [0, 1, 1, 0],
+    [startVisible ? 1 : 0, 1, 1, 0],
   )
   const scale = useTransform(
     progress,
     [start, start + q, end - q, end],
-    [0.94, 1, 1, 1.03],
+    [startVisible ? 1 : 0.94, 1, 1, 1.03],
   )
-  const y = useTransform(progress, [start, end], [28, -28])
+  const y = useTransform(progress, [start, end], [startVisible ? 0 : 28, -28])
 
   return (
     <motion.p

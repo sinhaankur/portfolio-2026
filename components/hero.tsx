@@ -171,7 +171,12 @@ export function Hero() {
                       : "opacity 1100ms cubic-bezier(0.16, 1, 0.3, 1), transform 1400ms cubic-bezier(0.16, 1, 0.3, 1)",
                   }}
                 >
-                  <UniverseEngine interactive={interactive} scrollDriveRef={scrollDriveRef} showMusic={true} minimalControls />
+                  {/* quietMobileChrome: on phones the engine's always-on bottom
+                      chrome (LearnTicker, explore-mode timeline bar) lands in the
+                      same band as the hero's own typography + CTAs — the ticker
+                      sat directly on the "02 — DOMAIN" block. Same scene-first
+                      trade as /lab/celestial; desktop keeps everything. */}
+                  <UniverseEngine interactive={interactive} scrollDriveRef={scrollDriveRef} showMusic={true} minimalControls quietMobileChrome />
                 </div>
               )}
             </>
@@ -376,12 +381,16 @@ export function Hero() {
           </p>
         </motion.div>
 
-        {/* CTA — anchored bottom-left, out of the way of the central sun */}
+        {/* CTA — anchored bottom-left, out of the way of the central sun.
+            Stacked vertically on phones: side-by-side the Résumé pill reaches
+            under the fixed UPCOMING badge (bottom-6 right-6) and the engine's
+            music chip (bottom-20 right-6) — the column keeps both CTAs in the
+            left lane so the right-edge chrome never overlaps a tap target. */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
-          className="absolute bottom-12 left-8 md:bottom-20 md:left-12 z-20 pointer-events-auto flex flex-wrap items-center gap-3"
+          className="absolute bottom-12 left-8 md:bottom-20 md:left-12 z-20 pointer-events-auto flex flex-col items-start gap-3 sm:flex-row sm:flex-wrap sm:items-center"
         >
           {/* Primary — high-contrast, obvious. The one thing to do next. */}
           <motion.a

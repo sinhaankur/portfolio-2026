@@ -66,10 +66,12 @@ App-router routes under [`app/`](./app):
 
 ## Component conventions
 
-- Section eyebrow numbering on home: `01 — DISCIPLINE`, `02 — DOMAIN`,
-  `03 — PHILOSOPHY`, `04 — EXPERIENCE`, `06 — HOW I WORK`, `07 — STACK & BELIEFS`,
-  `08 — CONTACT`. (`05 — THE LAB` now lives on the standalone `/lab` page, so the
-  home sequence skips 05.) Keep them in order if you add a new section.
+- Section eyebrow numbering on home: `02 — DOMAIN`, `03 — PHILOSOPHY`,
+  `04 — EXPERIENCE`, `06 — USABILITY`, `07 — STACK`, `08 — CONTACT`.
+  (`01 — DISCIPLINE` was retired when the hero's top-left became the name
+  block, and `05 — THE LAB` now lives on the standalone `/lab` page, so the
+  home sequence starts at 02 and skips 05.) Keep them in order if you add a
+  new section.
 - All sections wrap content in `max-w-6xl px-6 md:px-12` (or the `Container`
   primitive) so nothing stretches edge-to-edge on wide displays.
 - Type ramp: `Inter` (sans), `Fraunces` (display + italic moments, with `opsz`/`SOFT`/`WONK`

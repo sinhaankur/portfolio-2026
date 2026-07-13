@@ -22,8 +22,11 @@ export default function LabPage() {
       <main id="main" className="pt-24">
         {/* Cinematic overture — two claims from the Lab's own copy, pinned +
             scroll-scrubbed (same primitive as the home act break). Short on
-            purpose: this is a destination page, so two scenes, then the work. */}
+            purpose: this is a destination page, so two scenes, then the work.
+            startVisible: the cinema opens the page, so the first line must be
+            on stage at scroll 0 — without it, landing here is a blank viewport. */}
         <ScrollCinema
+          startVisible
           lines={[
             "How I'm learning AI — by building it.",
             "The design argument, shipped as working software.",
