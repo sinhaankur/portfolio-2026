@@ -55,7 +55,7 @@ async function main() {
     const {
       julianDate, gmstDeg, equatorialToHorizontal, riseTransitSet,
       planetEquatorial, sunEquatorial, twilightPhase, darknessWindow,
-      centroidRaDec, localSiderealDeg,
+      centroidRaDec, localSiderealDeg, moonEquatorial, moonPhase,
     } = mod
 
     // ---- 1. Time + sidereal (Meeus Example 12.a) -------------------------
@@ -119,7 +119,25 @@ async function main() {
       dw.sunset && Math.abs((dw.sunset.getTime() - Date.UTC(2025, 5, 22, 0, 31)) / 60000) < 15,
       dw.sunset ? dw.sunset.toISOString().slice(11, 16) + " UT" : "null")
 
-    // ---- 6. Constellation centroid ---------------------------------------
+    // ---- 6. The Moon: phase (exact) + position vs JPL Horizons -----------
+    // Known lunar phases 2025 (UT): Full 01-13 22:27, New 01-29 12:36, FQ 02-05 08:02.
+    const mFull = moonPhase(new Date(Date.UTC(2025, 0, 13, 22, 27)))
+    const mNew = moonPhase(new Date(Date.UTC(2025, 0, 29, 12, 36)))
+    const mFQ = moonPhase(new Date(Date.UTC(2025, 1, 5, 8, 2)))
+    ok("Moon full: >97% lit + named Full Moon", mFull.illumination > 0.97 && mFull.name === "Full Moon",
+      `${(mFull.illumination * 100).toFixed(0)}%`)
+    ok("Moon new: <3% lit + named New Moon", mNew.illumination < 0.03 && mNew.name === "New Moon",
+      `${(mNew.illumination * 100).toFixed(0)}%`)
+    ok("Moon first quarter: ~50% lit + waxing", mFQ.illumination > 0.4 && mFQ.illumination < 0.6 && mFQ.waxing,
+      `${(mFQ.illumination * 100).toFixed(0)}%`)
+    // JPL Horizons: Moon 2025-01-13 22:27 UT = RA 07h45m31s (7.7586h) Dec +25.892°.
+    const moon = moonEquatorial(new Date(Date.UTC(2025, 0, 13, 22, 27)))
+    ok("Moon RA vs JPL Horizons (<0.5°)", angErr(moon.raHours * 15, 7.7586 * 15) < 0.5,
+      `Δ ${(angErr(moon.raHours * 15, 7.7586 * 15) * 60).toFixed(0)}′`)
+    ok("Moon Dec vs JPL Horizons (<0.5°)", Math.abs(moon.decDeg - 25.892) < 0.5,
+      `Δ ${(Math.abs(moon.decDeg - 25.892) * 60).toFixed(0)}′`)
+
+    // ---- 7. Constellation centroid ---------------------------------------
     const c = centroidRaDec([
       { raHours: 5.533, decDeg: -0.299 }, { raHours: 5.604, decDeg: -1.202 }, { raHours: 5.679, decDeg: -1.943 },
     ])

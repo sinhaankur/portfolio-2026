@@ -365,20 +365,144 @@ export function planetEquatorial(
  * (accurate to ~0.01°, far better than we need to answer "is it dark?").
  * ======================================================================== */
 
+/** Mean obliquity of the ecliptic (radians) at `d` days from J2000. */
+function obliquityRad(d: number): number {
+  const T = d / 36_525
+  return (23.439 - 0.000_000_36 * d - 0.013_004 * T) * DEG
+}
+
+/** Convert ecliptic (λ, β) in radians → equatorial RA/Dec at obliquity ε. */
+function eclipticToEquatorial(lambda: number, beta: number, eps: number): EquatorialCoord {
+  const sinL = Math.sin(lambda), cosL = Math.cos(lambda)
+  const sinB = Math.sin(beta), cosB = Math.cos(beta), tanB = Math.tan(beta)
+  const sinE = Math.sin(eps), cosE = Math.cos(eps)
+  const raDeg = norm360(Math.atan2(sinL * cosE - tanB * sinE, cosL) / DEG)
+  const decDeg = Math.asin(sinB * cosE + cosB * sinE * sinL) / DEG
+  return { raHours: raDeg / HOURS_TO_DEG, decDeg }
+}
+
+/** The Sun's apparent ecliptic longitude (radians) at `d` days from J2000. */
+function sunEclipticLongitude(d: number): number {
+  const L0 = norm360(280.460 + 0.985_647_4 * d)
+  const g = norm360(357.528 + 0.985_600_3 * d) * DEG
+  return (L0 + 1.915 * Math.sin(g) + 0.020 * Math.sin(2 * g)) * DEG
+}
+
 /** Apparent geocentric RA/Dec of the Sun at `date` (Meeus ch. 25, low-precision). */
 export function sunEquatorial(date: Date): EquatorialCoord {
-  const d = julianDate(date) - 2_451_545.0 // days since J2000.0
+  const d = julianDate(date) - 2_451_545.0
+  const lambda = sunEclipticLongitude(d)
+  return eclipticToEquatorial(lambda, 0, obliquityRad(d))
+}
+
+/* ==========================================================================
+ * The Moon — a dedicated low-precision lunar theory (Meeus ch. 47, principal
+ * periodic terms). The Moon's orbit is too perturbed for the simple Keplerian
+ * ephemeris used for planets, so it gets the main additive terms in longitude
+ * and latitude. Accurate to ~0.1–0.3° — honest for "where's the Moon, and what
+ * phase is it?" The phase comes from the Sun–Moon elongation.
+ * ======================================================================== */
+
+interface MoonEcliptic {
+  /** Apparent geocentric ecliptic longitude, radians. */
+  lambda: number
+  /** Ecliptic latitude, radians. */
+  beta: number
+  /** Days from J2000 (reused by the phase computation). */
+  d: number
+}
+
+function moonEcliptic(date: Date): MoonEcliptic {
+  const d = julianDate(date) - 2_451_545.0
   const T = d / 36_525
-  const L0 = norm360(280.460 + 0.985_647_4 * d) // geometric mean longitude
-  const g = norm360(357.528 + 0.985_600_3 * d) * DEG // mean anomaly
-  // Ecliptic longitude with the equation of centre (first two terms).
-  const lambda =
-    (L0 + 1.915 * Math.sin(g) + 0.020 * Math.sin(2 * g)) * DEG
-  // Obliquity of the ecliptic (slowly decreasing).
-  const eps = (23.439 - 0.000_000_36 * d - 0.013_004 * T) * DEG
-  const raDeg = norm360(Math.atan2(Math.cos(eps) * Math.sin(lambda), Math.cos(lambda)) / DEG)
-  const decDeg = Math.asin(Math.sin(eps) * Math.sin(lambda)) / DEG
-  return { raHours: raDeg / HOURS_TO_DEG, decDeg }
+  // Fundamental arguments (Meeus 47), degrees → radians.
+  const Lp = norm360(218.316 + 13.176_396 * d) * DEG          // mean longitude
+  const M  = norm360(357.529 + 0.985_600_3 * d) * DEG         // Sun's mean anomaly
+  const Mp = norm360(134.963 + 13.064_993 * d) * DEG          // Moon's mean anomaly
+  const D  = norm360(297.850 + 12.190_749 * d) * DEG          // mean elongation
+  const F  = norm360(93.272 + 13.229_350 * d) * DEG           // argument of latitude
+
+  // Principal periodic terms in longitude (degrees). The leading terms carry
+  // the bulk of the signal (the great inequality of evection + variation).
+  const lonDeg =
+    6.289 * Math.sin(Mp) +
+    1.274 * Math.sin(2 * D - Mp) +
+    0.658 * Math.sin(2 * D) +
+    0.214 * Math.sin(2 * Mp) +
+    -0.186 * Math.sin(M) +
+    -0.114 * Math.sin(2 * F) +
+    0.059 * Math.sin(2 * D - 2 * Mp) +
+    0.057 * Math.sin(2 * D - M - Mp) +
+    0.053 * Math.sin(2 * D + Mp) +
+    -0.046 * Math.sin(2 * D - M) +
+    0.041 * Math.sin(Mp - M)
+
+  // Principal periodic terms in latitude (degrees).
+  const latDeg =
+    5.128 * Math.sin(F) +
+    0.281 * Math.sin(Mp + F) +
+    0.278 * Math.sin(Mp - F) +
+    0.176 * Math.sin(2 * D - F) +
+    0.115 * Math.sin(2 * D - Mp + F) +
+    0.055 * Math.sin(2 * D - Mp - F) +
+    -0.049 * Math.sin(Mp - F - 2 * D) // small; keeps the near-node latitude honest
+
+  void T
+  return {
+    lambda: Lp + lonDeg * DEG,
+    beta: latDeg * DEG,
+    d,
+  }
+}
+
+/** Apparent geocentric RA/Dec of the Moon at `date`. */
+export function moonEquatorial(date: Date): EquatorialCoord {
+  const m = moonEcliptic(date)
+  return eclipticToEquatorial(m.lambda, m.beta, obliquityRad(m.d))
+}
+
+export type MoonPhaseName =
+  | "New Moon" | "Waxing Crescent" | "First Quarter" | "Waxing Gibbous"
+  | "Full Moon" | "Waning Gibbous" | "Last Quarter" | "Waning Crescent"
+
+export interface MoonPhase {
+  /** Illuminated fraction of the disc, 0 (new) → 1 (full). */
+  illumination: number
+  /** Age in days since the last new moon (0–29.53). */
+  ageDays: number
+  /** Named phase. */
+  name: MoonPhaseName
+  /** True while the illuminated fraction is growing (new → full). */
+  waxing: boolean
+}
+
+/**
+ * The Moon's phase at `date` — illuminated fraction + named phase — from the
+ * geocentric Sun–Moon elongation (the phase angle). Accurate to a percent or
+ * two, plenty to say "gibbous, 78% lit, waxing".
+ */
+export function moonPhase(date: Date): MoonPhase {
+  const d = julianDate(date) - 2_451_545.0
+  const moonLon = moonEcliptic(date).lambda
+  const sunLon = sunEclipticLongitude(d)
+  // Elongation of the Moon from the Sun, 0..360 (0 = new, 180 = full).
+  const elong = norm360((moonLon - sunLon) / DEG)
+  const phaseAngle = (180 - elong) * DEG // Sun–Moon–Earth angle
+  const illumination = (1 + Math.cos(phaseAngle)) / 2
+  const ageDays = (elong / 360) * 29.530_588_9
+  const waxing = elong < 180
+
+  let name: MoonPhaseName
+  if (elong < 11.25 || elong >= 348.75) name = "New Moon"
+  else if (elong < 78.75) name = "Waxing Crescent"
+  else if (elong < 101.25) name = "First Quarter"
+  else if (elong < 168.75) name = "Waxing Gibbous"
+  else if (elong < 191.25) name = "Full Moon"
+  else if (elong < 258.75) name = "Waning Gibbous"
+  else if (elong < 281.25) name = "Last Quarter"
+  else name = "Waning Crescent"
+
+  return { illumination, ageDays, name, waxing }
 }
 
 /** The Sun's altitude above the horizon (degrees) for an observer + instant. */

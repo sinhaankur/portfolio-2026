@@ -27,16 +27,19 @@ import {
   compassPoint,
   darknessWindow,
   equatorialToHorizontal,
+  moonEquatorial,
+  moonPhase,
   planetEquatorial,
   riseTransitSet,
   type DarknessWindow,
   type EquatorialCoord,
   type KeplerianElements,
+  type MoonPhase,
   type Observer,
   type TwilightPhase,
 } from "@/lib/sky-position"
 
-type SkyKind = "planet" | "constellation"
+type SkyKind = "moon" | "planet" | "constellation"
 
 interface SkyRow {
   id: string
@@ -49,6 +52,8 @@ interface SkyRow {
   azimuthDeg: number
   compass: string
   band: ReturnType<typeof altitudeBand>
+  /** Present only on the Moon row — its live phase. */
+  moon?: MoonPhase
 }
 
 /** Earth's elements — the observer's own orbit, differenced against each
@@ -98,6 +103,20 @@ const BAND_LABEL: Record<ReturnType<typeof altitudeBand>, string> = {
 function fmtTime(d: Date | null): string {
   if (!d) return "—"
   return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+}
+
+/** A Unicode phase glyph for the Moon row — a compact visual of tonight's Moon. */
+function moonGlyph(m: MoonPhase): string {
+  switch (m.name) {
+    case "New Moon": return "🌑"
+    case "Waxing Crescent": return "🌒"
+    case "First Quarter": return "🌓"
+    case "Waxing Gibbous": return "🌔"
+    case "Full Moon": return "🌕"
+    case "Waning Gibbous": return "🌖"
+    case "Last Quarter": return "🌗"
+    case "Waning Crescent": return "🌘"
+  }
 }
 
 export function TonightSky() {
@@ -169,6 +188,16 @@ export function TonightSky() {
       }
     }
 
+    // The Moon — its own low-precision lunar theory + live phase. Headline row.
+    const phase = moonPhase(now)
+    const moonRow = toRow(
+      "moon:luna", "moon", "Moon",
+      `${phase.name} · ${Math.round(phase.illumination * 100)}% lit`,
+      "Earth's only natural satellite — the brightest thing in the night sky, and the one that decides how much else you'll see.",
+      moonEquatorial(now),
+    )
+    moonRow.moon = phase
+
     const planetRows = planets.map((p) =>
       toRow(`planet:${p.name}`, "planet", p.name, p.designation, p.fact, planetEquatorial(p.el, p.earth, now)),
     )
@@ -176,7 +205,7 @@ export function TonightSky() {
       toRow(`const:${c.id}`, "constellation", c.name, c.designation, c.fact, coord),
     )
 
-    const out = [...planetRows, ...constRows]
+    const out = [moonRow, ...planetRows, ...constRows]
     out.sort((a, b) => b.altitudeDeg - a.altitudeDeg)
     return out
     // `tick` is the recompute trigger: the 20s interval bumps it so the live
@@ -272,10 +301,10 @@ export function TonightSky() {
           {!observer ? (
             <div className="px-4 py-5 flex flex-col gap-3">
               <p className="font-sans text-[12px] leading-relaxed text-foreground/70">
-                Share your location and I&apos;ll compute exactly which planets and
-                constellations are above your horizon this second — altitude, compass
-                bearing, and tonight&apos;s rise &amp; set times. The same math a
-                telescope mount runs.
+                Share your location and I&apos;ll compute exactly what&apos;s above your
+                horizon this second — the Moon and its phase, the planets, the
+                constellations — with altitude, compass bearing, and tonight&apos;s
+                rise &amp; set times. The same math a telescope mount runs.
               </p>
               <button
                 type="button"
@@ -329,6 +358,11 @@ export function TonightSky() {
                     >
                       <div className="flex items-baseline justify-between gap-2">
                         <span className="flex items-baseline gap-1.5 min-w-0">
+                          {r.kind === "moon" && r.moon && (
+                            <span aria-hidden className="shrink-0 translate-y-[1px] text-[12px] leading-none">
+                              {moonGlyph(r.moon)}
+                            </span>
+                          )}
                           {r.kind === "planet" && (
                             <span
                               aria-hidden
@@ -345,6 +379,7 @@ export function TonightSky() {
                       </div>
                       <div className="mt-0.5 font-mono text-[9px] tracking-[0.14em] uppercase text-foreground/40">
                         {r.kind === "planet" ? "Planet · " : ""}
+                        {r.kind === "moon" && r.moon ? `${r.moon.name} · ${Math.round(r.moon.illumination * 100)}% · ` : ""}
                         {isUp ? BAND_LABEL[r.band] : "not up right now"}
                       </div>
 
@@ -448,12 +483,32 @@ function RowDetail({ row, observer }: { row: SkyRow; observer: Observer }) {
           <span className="text-foreground/75 tabular-nums">{Math.round(rts.transitAltitudeDeg)}° up</span>
         </div>
       </dl>
+
+      {/* Moon phase strip — illuminated fraction as a little meter + age. */}
+      {row.kind === "moon" && row.moon && (
+        <div className="mt-2.5">
+          <div className="flex items-center justify-between font-mono text-[9px] tracking-[0.14em] uppercase">
+            <span className="text-foreground/55">{row.moon.name}</span>
+            <span className="text-foreground/75 tabular-nums">
+              {Math.round(row.moon.illumination * 100)}% · {row.moon.ageDays.toFixed(0)}d old
+            </span>
+          </div>
+          <div className="mt-1 h-[3px] w-full overflow-hidden rounded-full bg-foreground/10">
+            <div className="h-full rounded-full bg-foreground/60" style={{ width: `${Math.round(row.moon.illumination * 100)}%` }} />
+          </div>
+        </div>
+      )}
+
       {row.fact && (
         <p className="mt-2 font-sans text-[11px] leading-snug text-foreground/60">{row.fact}</p>
       )}
       {row.kind === "planet" ? (
         <p className="mt-1.5 font-mono text-[8px] tracking-[0.14em] uppercase text-foreground/40">
           Position computed live from JPL orbital elements
+        </p>
+      ) : row.kind === "moon" ? (
+        <p className="mt-1.5 font-mono text-[8px] tracking-[0.14em] uppercase text-foreground/40">
+          Position + phase computed live (lunar theory)
         </p>
       ) : (
         <p className="mt-1.5 font-mono text-[8px] tracking-[0.14em] uppercase text-accent/70">
