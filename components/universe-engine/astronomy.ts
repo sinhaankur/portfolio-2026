@@ -18,7 +18,6 @@
 import type {
   BodyInfo,
   Constellation,
-  ConstellationStar,
   MoonData,
   NamedBody,
   Planet,

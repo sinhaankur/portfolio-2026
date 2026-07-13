@@ -18,7 +18,7 @@
 
 import { useMemo, useRef } from "react"
 import { useFrame } from "@react-three/fiber"
-import { BufferGeometry, Float32BufferAttribute, Vector3 } from "three"
+import { BufferGeometry, Float32BufferAttribute } from "three"
 import type * as THREE from "three"
 import "./three-line"
 import {
@@ -26,7 +26,6 @@ import {
   buildScenePlanets,
   eccentricToTrue,
   meanAnomalyAt,
-  moons,
   namedBodies,
   orbitalElementsToCartesian,
   simTimeRef,

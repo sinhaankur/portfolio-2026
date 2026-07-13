@@ -48,12 +48,6 @@ export function PorkchopPlot({ onClose }: { onClose?: () => void }) {
 
   const nx = grid.departDays.length
   const ny = grid.arriveDays.length
-  const cellOf = useMemo(() => {
-    const map = new Map<string, (typeof grid.cells)[number]>()
-    for (const c of grid.cells) map.set(`${c.departDay}:${c.arriveDay}`, c)
-    return map
-  }, [grid])
-
   // SVG geometry
   const W = 300
   const H = 220

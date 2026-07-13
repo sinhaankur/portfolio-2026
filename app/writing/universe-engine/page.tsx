@@ -60,7 +60,6 @@ export default function UniverseEnginePost() {
     <main className="mx-auto max-w-3xl px-6 md:px-12 py-20 md:py-28">
       <script
         type="application/ld+json"
-        // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: JSON.stringify(engineSchema) }}
       />
       <Link

@@ -72,4 +72,5 @@ export const createInterface = noop
 
 // Default export covers `import x from '...'` and any property access
 // the SDK does via `someNamespace.unknownThing`.
-export default new Proxy({}, { get: () => noop })
+const anythingShim = new Proxy({}, { get: () => noop })
+export default anythingShim

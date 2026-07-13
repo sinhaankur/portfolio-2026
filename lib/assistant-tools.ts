@@ -16,14 +16,10 @@
 
 import type { Tool } from "@anthropic-ai/sdk/resources/messages"
 import {
-  buildScenePlanets,
   cancelFollow,
   cancelFlyTo,
   constellations,
   daysSinceJ2000,
-  flyToRef,
-  followRef,
-  J2000_MS,
   namedBodies,
   planetsData,
   requestFlyTo,

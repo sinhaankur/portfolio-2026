@@ -52,6 +52,8 @@ import {
   SUN_OFFSET_SCENE,
   compressRadius,
   surfaceTextureUrl,
+  hiResTexturesRef,
+  deviceTierRef,
   meanAnomalyAt,
   requestFollow,
   simTimeRef,
@@ -59,7 +61,6 @@ import {
   satellitesVisibleRef,
   planetToInfo,
   timeWarpRef,
-  daysSinceJ2000,
   eccentricToTrue,
   solveKepler,
   moons,
@@ -85,7 +86,6 @@ import {
   HERO_CRAFT,
 } from "./scene-satellites"
 import { MoonBody } from "./moon-body"
-import { OrbitRing } from "./orbit-ring"
 import { SatelliteField } from "./satellite-field"
 
 /**
@@ -414,10 +414,15 @@ export function PlanetBody({
   // Optional elevation/height map (Mars MOLA) for real terrain relief. Loaded
   // last (after day + night) since it's a deep-zoom nicety, not the primary
   // surface. NOT sRGB — it's raw height data, sampled linearly in the shader.
+  // Gated on hiResTexturesRef like the 4K maps: relief is invisible at the
+  // hero's wide view but the MOLA map alone is ~1 MB — only the deep-zoom
+  // explorer (/lab/celestial) pays for it. Read inside the timeout so the
+  // gate reflects the consumer's mount-time flip.
   const elevationUrl = planet.raw.elevationUrl
   useEffect(() => {
     if (!elevationUrl || elevationTexture) return
     const timer = setTimeout(() => {
+      if (!hiResTexturesRef.current || deviceTierRef.current !== "desktop") return
       const loader = new TextureLoader()
       loader.load(elevationUrl, (tex) => {
         tex.anisotropy = 4

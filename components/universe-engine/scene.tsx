@@ -20,12 +20,10 @@ import { Suspense, useRef, useMemo, useEffect, useState } from "react"
 import { useFrame, useThree } from "@react-three/fiber"
 import { Html } from "@react-three/drei"
 import { BrightStarField } from "./bright-star-field"
-import { SatelliteField } from "./satellite-field"
 import { NamedStarHoverLayer } from "./named-star-hover-layer"
 import { BrightStarPicker } from "./bright-star-picker"
 import { NearbyStars3D } from "./nearby-stars-3d"
 import { GravityOverlay } from "./gravity-overlay"
-import { WebGLLabel } from "./webgl-label"
 import { TrajectoryTrails } from "./trajectory-trails"
 import { SphereOfInfluence } from "./sphere-of-influence"
 
@@ -47,7 +45,6 @@ import {
   SRGBColorSpace,
   TextureLoader,
   Vector3,
-  type Texture,
 } from "three"
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib"
 
@@ -58,21 +55,17 @@ import {
   SKY_SHELL_DISTANCE,
   SOLAR_SYSTEM_POSITION,
   SUN_INFO,
-  GALAXY_RADIUS_SCENE,
   TIME_WARP_DAYS_PER_SEC,
   blackHoleHorizonGravityMetersPerSec2,
   buildScenePlanets,
   flyToRef,
   followRef,
-  moons,
   raDecToScenePos,
   requestFlyTo,
-  requestFollow,
   simTimeRef,
   skyPoints,
   timeWarpRef,
   timeScaleRef,
-  satellitesVisibleRef,
   focusDepthRef,
   DEFAULT_CAMERA_NEAR,
   DEFAULT_MIN_DISTANCE,

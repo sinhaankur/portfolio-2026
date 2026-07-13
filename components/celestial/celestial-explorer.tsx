@@ -188,7 +188,6 @@ export function CelestialExplorer() {
           timeScaleRef.current = 0 // freeze so real-time doesn't drift us back
           setSimMs(Date.UTC(parseInt(y, 10), 0, 1))
         }, 300)
-        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
         void t
       }
       if (q.has("mars")) setMarsView(true)

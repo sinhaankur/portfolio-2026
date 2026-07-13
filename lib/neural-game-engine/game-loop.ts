@@ -1,4 +1,4 @@
-import type { GameState, GameEntity, ActionCommand, GameEvent } from './types';
+import type { GameState, GameEntity, ActionCommand } from './types';
 import type { EntityManager } from './entity-manager';
 import type { CollisionSystem } from './collision-system';
 
@@ -142,7 +142,7 @@ export class GameLoop {
   /**
    * Firing phase: beam is visible, resolving hits.
    */
-  private updateFiring(deltaTime: number) {
+  private updateFiring(_deltaTime: number) {
     // Beam duration is 220ms; once it expires, back to exploration
     const firingDuration = 0.22;
     if (this.gameState.simTime - (this.gameState.waveStartTime || 0) > firingDuration) {
@@ -154,7 +154,7 @@ export class GameLoop {
   /**
    * Victory phase: wave cleared, advance or show upgrade screen.
    */
-  private updateVictory(deltaTime: number) {
+  private updateVictory(_deltaTime: number) {
     // Delay before transition (for UI show/hide)
     const victoryDuration = 2.0;
     if (this.gameState.simTime - (this.gameState.waveStartTime || 0) > victoryDuration) {
@@ -180,7 +180,7 @@ export class GameLoop {
   /**
    * Defeat phase: planet destroyed.
    */
-  private updateDefeat(deltaTime: number) {
+  private updateDefeat(_deltaTime: number) {
     const defeatDuration = 3.0;
     if (this.gameState.simTime - (this.gameState.waveStartTime || 0) > defeatDuration) {
       // Restart world

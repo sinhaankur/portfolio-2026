@@ -39,11 +39,6 @@ function surfaces(level: Level): Surface[] {
   }))
 }
 
-function hGap(a: Surface, b: Surface): number {
-  if (a.x1 >= b.x0 && b.x1 >= a.x0) return 0 // overlap
-  return a.x1 < b.x0 ? b.x0 - a.x1 : a.x0 - b.x1
-}
-
 /* --------------------------------------------------------------------------
  * REAL jump simulation — the old closed-form check ignored head-bonks and
  * overestimated rising reach, so screens passed on paper and failed in hand.

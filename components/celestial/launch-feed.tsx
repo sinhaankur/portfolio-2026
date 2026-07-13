@@ -24,7 +24,7 @@ function statusColor(s: string): string {
   return "text-muted-foreground"
 }
 
-function Row({ l, upcoming }: { l: LaunchItem; upcoming: boolean }) {
+function Row({ l }: { l: LaunchItem; upcoming: boolean }) {
   return (
     <li className="rounded-lg border border-border bg-background/60 p-3">
       <div className="flex items-center justify-between gap-3">

@@ -257,7 +257,6 @@ export function MarsCoverage({ onClose }: Props) {
             </div>
             {picked.photo ? (
               <figure className="m-0">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={picked.photo} alt={`Real surface panorama from ${picked.name}`} className="w-full aspect-[3/1] object-cover" loading="lazy" />
                 <figcaption className="px-4 py-1.5 font-mono text-[9px] tracking-wider text-white/45">
                   {picked.photoCredit}

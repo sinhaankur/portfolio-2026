@@ -107,7 +107,6 @@ export function GalaxyDetail({
   const armsGeometry = useMemo(() => {
     const numStars = 9000
     const numBulge = Math.floor(numStars * 0.30)
-    const numArms = numStars - numBulge
     const positions = new Float32Array(numStars * 3)
     const colors = new Float32Array(numStars * 3)
 

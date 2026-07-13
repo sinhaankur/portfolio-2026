@@ -82,22 +82,6 @@ type OpenAITool = {
   }
 }
 
-function flattenContent(content: AnthropicMessage["content"]): string {
-  if (typeof content === "string") return content
-  return content
-    .map((block) => {
-      if (block.type === "text") return block.text
-      if (block.type === "tool_result") {
-        return typeof block.content === "string"
-          ? block.content
-          : block.content.map((c) => c.text).join("\n")
-      }
-      return ""
-    })
-    .filter(Boolean)
-    .join("\n")
-}
-
 /**
  * Convert the Anthropic-shaped conversation history into a sequence
  * of OpenAI-shaped chat messages. The mapping:
@@ -246,7 +230,6 @@ async function* streamOpenAICompat(opts: {
   let finishReason: string | null = null
   let usage: AssistantUsage | null = null
 
-  // eslint-disable-next-line no-constant-condition
   while (true) {
     const { done, value } = await reader.read()
     if (done) break

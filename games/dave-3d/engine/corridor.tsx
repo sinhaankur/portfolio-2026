@@ -118,8 +118,6 @@ export function Corridor({ onDone }: { onDone: () => void }) {
   )
 }
 
-const tmp = new THREE.Vector3()
-
 function CorridorDoor({ x, mat, glow }: { x: number; mat: THREE.Material; glow?: boolean }) {
   return (
     <group position={[x, FLOOR_Y + 1.1, 0]}>

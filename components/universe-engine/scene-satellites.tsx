@@ -36,7 +36,6 @@ import {
   BufferAttribute,
   BufferGeometry,
   Group,
-  Mesh,
   Points,
   Vector3,
 } from "three"

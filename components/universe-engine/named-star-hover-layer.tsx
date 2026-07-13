@@ -16,7 +16,7 @@
 import { useMemo, useState, useRef } from "react"
 import { useFrame } from "@react-three/fiber"
 import { Html } from "@react-three/drei"
-import { AdditiveBlending, MeshBasicMaterial, SphereGeometry, Vector3 } from "three"
+import { AdditiveBlending, MeshBasicMaterial } from "three"
 import type * as THREE from "three"
 import {
   BRIGHT_STAR_POSITIONS,

@@ -45,6 +45,8 @@ import {
   simTimeRef,
   satellitesVisibleRef,
   surfaceTextureUrl,
+  hiResTexturesRef,
+  deviceTierRef,
 } from "./astronomy"
 import type { HoverHandler, MoonData } from "./types"
 import { DAY_NIGHT_VERTEX_SHADER, DAY_NIGHT_FRAGMENT_SHADER } from "./shaders"
@@ -110,11 +112,14 @@ export function MoonBody({
   }, [texture, elevationTexture, dayNightUniforms, moon.elevationScale, moon.visualRadius])
 
   // Optional elevation/height map for real terrain relief (Luna → LOLA). Loaded
-  // after the surface texture; linear (raw height data, not sRGB).
+  // after the surface texture; linear (raw height data, not sRGB). Gated on
+  // hiResTexturesRef like the 4K maps — relief is a deep-zoom nicety, so only
+  // the /lab/celestial explorer pays the download (see planet-body.tsx).
   const elevationUrl = moon.elevationUrl
   useEffect(() => {
     if (!elevationUrl || elevationTexture) return
     const timer = setTimeout(() => {
+      if (!hiResTexturesRef.current || deviceTierRef.current !== "desktop") return
       new TextureLoader().load(elevationUrl, (tex) => {
         tex.anisotropy = 4
         setElevationTexture(tex)

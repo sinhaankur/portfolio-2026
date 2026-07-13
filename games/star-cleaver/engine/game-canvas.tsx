@@ -15,7 +15,6 @@ import {
   createGameLoop,
   type GameState,
   type GameEntity,
-  type ActionCommand,
 } from '../../../lib/neural-game-engine';
 // import { createNeuralAgent, type NeuralAgent } from '../../../lib/neural-game-engine/ai-agent';
 import { createInitialGameState, startIgnition, startExploration, selectGameMode, formatScore, IGNITION_STARTUP_DURATION } from './game-state';
@@ -1984,7 +1983,6 @@ function GameScene({
   /** fired once per enemy kill (any combat mode) for the explosion sound. */
   onKill?: () => void;
 }) {
-  const { camera, scene } = useThree();
   const gameLoopRef = useRef<GameLoop | null>(null);
   const entityManagerRef = useRef<EntityManager | null>(null);
   const collisionSystemRef = useRef<CollisionSystem | null>(null);
@@ -1994,7 +1992,6 @@ function GameScene({
   const hazardsCacheRef = useRef<{ worldIndex: number; hazards: GravityHazard[] } | null>(null);
   const encounterTimerRef = useRef(ENCOUNTER_INTERVAL_S * 0.5); // first patrol comes a touch sooner
   const enemyIdCounterRef = useRef(0);
-  const frameCountRef = useRef(0);
   const forwardSpeedRef = useRef(0);
   const throttleRef = useRef(0.34);
   const boostSpoolRef = useRef(0);
@@ -3097,7 +3094,6 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
   const deviceOrientationRef = useRef({ alpha: 0, beta: 0, gamma: 0 });
   const joystickRef = useRef({ active: false, originX: 0, originY: 0, dx: 0, dy: 0 });
   const audioContextRef = useRef<AudioContext | null>(null);
-  const lastCoreAudioRef = useRef<number>(-1);
   const engineAudioRef = useRef<{
     ctx: AudioContext;
     osc: OscillatorNode;
@@ -4181,6 +4177,6 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
   );
 }
 
-export default function GameCanvas({ onGameEnd, onPhaseChange, onReady }: GameCanvasProps) {
+export default function GameCanvas({ onReady }: GameCanvasProps) {
   return <GameRenderer onReady={onReady} />;
 }

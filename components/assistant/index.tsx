@@ -544,7 +544,6 @@ function Composer({
   onAbort,
   disabled,
   thinking,
-  onConfigureKey,
 }: {
   value: string
   onChange: (v: string) => void

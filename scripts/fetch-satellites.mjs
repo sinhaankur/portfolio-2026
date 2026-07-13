@@ -32,9 +32,10 @@ const OUT = path.join(ROOT, "public/data/satellites.json")
 const SATCAT_URL = "https://celestrak.org/satcat/records.php?GROUP=active&FORMAT=json"
 const TLE_URL = "https://celestrak.org/NORAD/elements/gp.php?GROUP=active&FORMAT=tle"
 // Major real debris clouds (fragmentation events) — TLE groups CelesTrak hosts.
-// These are the bulk of trackable LEO debris; merged into the TLE map so the
-// SATCAT debris/rocket-body records have elements to propagate.
-const DEBRIS_TLE_URLS = [
+// These are the bulk of trackable LEO debris. PARKED: the merge into the TLE
+// map isn't wired yet — kept (underscored) as the reference list for when the
+// SATCAT debris/rocket-body records get elements to propagate.
+const _DEBRIS_TLE_URLS = [
   "https://celestrak.org/NORAD/elements/gp.php?GROUP=cosmos-1408-debris&FORMAT=tle",
   "https://celestrak.org/NORAD/elements/gp.php?GROUP=fengyun-1c-debris&FORMAT=tle",
   "https://celestrak.org/NORAD/elements/gp.php?GROUP=iridium-33-debris&FORMAT=tle",

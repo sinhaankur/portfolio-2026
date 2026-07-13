@@ -24,7 +24,6 @@ import type { MirofishDashboard } from "@/lib/mirofish"
 const ACCENT = new THREE.Color("#7dd3a8")
 const ACCENT_DIM = new THREE.Color("#3f6b54")
 const WARM = new THREE.Color("#f0b86c")
-const PINK = new THREE.Color("#f06c8d")
 const INK = new THREE.Color("#0b0e0d")
 
 /* -------------------------------------------------------------------------- */

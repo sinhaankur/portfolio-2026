@@ -63,7 +63,7 @@ export class NeuralAgent {
         const action = JSON.parse(content.text) as ActionCommand;
         this.lastActionReason = action.reason || '';
         return action;
-      } catch (parseError) {
+      } catch {
         console.warn(`[Agent ${this.config.id}] Failed to parse action JSON:`, content.text);
         return { type: 'idle' };
       }

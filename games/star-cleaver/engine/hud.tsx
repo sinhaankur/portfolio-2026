@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { GameState } from '../../../lib/neural-game-engine';
 import { formatScore, getCurrentWorldName, IGNITION_STARTUP_DURATION } from './game-state';
 import type { ShipModelAuditReport } from './ship-model-qa';
-import { SHIP_CONFIGS, type SelectedShip, getAvailableShips } from './ship-selector';
+import { type SelectedShip } from './ship-selector';
 
 declare global {
   interface Window {
@@ -23,7 +23,7 @@ interface HUDProps {
  * HUD: Desktop-first heads-up display for Helion Drift.
  * Matches universe-engine/hud.tsx design language: font-mono, tracking-wide, backdrop-blur-sm.
  */
-export function HUD({ gameState, showForwardDebug = false, onShipSelect, waypoints }: HUDProps) {
+export function HUD({ gameState, showForwardDebug = false, waypoints }: HUDProps) {
   const [shipAudit, setShipAudit] = useState<ShipModelAuditReport | null>(null);
   const [graphicsTier, setGraphicsTier] = useState<string | null>(null);
   const healthPercent = (gameState.playerEntity.health / gameState.playerMaxHealth) * 100;
@@ -34,22 +34,7 @@ export function HUD({ gameState, showForwardDebug = false, onShipSelect, waypoin
   // its identity never changes and memoizing on it would freeze the readout.
   const { x: velX, y: velY, z: velZ } = gameState.playerEntity.velocity;
   const speed = Math.sqrt(velX * velX + velY * velY + velZ * velZ);
-  const throttle = Number(gameState.playerEntity.metadata?.throttle ?? 0);
   const maxForwardSpeed = Number(gameState.playerEntity.metadata?.maxForwardSpeed ?? 30);
-  const brakeActive = Boolean(gameState.playerEntity.metadata?.rcsBrake);
-  const flightAssistActive = Boolean(gameState.playerEntity.metadata?.flightAssistActive ?? true);
-  const stopLock = Boolean(gameState.playerEntity.metadata?.stopLock);
-  const nearStop = speed < 0.6;
-  const stopAssistActive = stopLock || (Math.abs(throttle) < 0.05 && speed > 0.6) || brakeActive;
-  const flightStateLabel = nearStop
-    ? 'HOLD'
-    : stopAssistActive
-      ? 'STOPPING'
-      : throttle > 0.05
-        ? 'THRUST'
-        : throttle < -0.05
-          ? 'REVERSE'
-          : 'DRIFT';
   const heading = useMemo(() => {
     const deg = (gameState.playerEntity.rotation.y * 180) / Math.PI;
     return Math.round(((deg % 360) + 360) % 360);
@@ -57,21 +42,11 @@ export function HUD({ gameState, showForwardDebug = false, onShipSelect, waypoin
   const cruisePercent = Math.min(100, (speed / Math.max(8, maxForwardSpeed)) * 100);
   const boostActive = Boolean(gameState.playerEntity.metadata?.boostActive);
   const attackMode = Boolean(gameState.playerEntity.metadata?.attackMode);
-  const gasCloudDensity = Number(gameState.playerEntity.metadata?.gasCloudDensity ?? 0);
-  const interstellarDrive = String(gameState.playerEntity.metadata?.interstellarDrive ?? 'Fusion Torch');
-  const accelKick = Number(gameState.playerEntity.metadata?.accelKick ?? 0);
-  const speedJerk = Number(gameState.playerEntity.metadata?.speedJerk ?? 0);
-  const routeName = String(gameState.metadata?.activeRouteName ?? 'Inner System Survey');
-  const routeProgress = String(gameState.metadata?.activeRouteProgress ?? '0/0');
   const routeMessage = String(gameState.metadata?.routeMessage ?? '');
   const routeMessageUntil = Number(gameState.metadata?.routeMessageUntil ?? 0);
-  const weaponMode = String(gameState.playerEntity.metadata?.weaponMode ?? 'wing-cannons');
   const weaponHeat = Number(gameState.playerEntity.metadata?.weaponHeat ?? 0);
   const weaponOverheated = Boolean(gameState.playerEntity.metadata?.weaponOverheated);
   const weaponStatus = String(gameState.playerEntity.metadata?.weaponStatus ?? 'NOMINAL');
-  const weaponPreset = String(gameState.playerEntity.metadata?.weaponPreset ?? 'sim');
-  const gravityLoad = Number(gameState.playerEntity.metadata?.gravityLoad ?? 0);
-  const boundaryLoad = Number(gameState.playerEntity.metadata?.boundaryLoad ?? 0);
   const gravityWarning = String(gameState.playerEntity.metadata?.gravityWarning ?? '');
   // Deep Run status
   const runMode = gameState.gameMode === 'run';

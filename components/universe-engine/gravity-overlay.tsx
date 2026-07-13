@@ -35,7 +35,6 @@ import {
   MeshBasicMaterial,
   PlaneGeometry,
   Quaternion,
-  SphereGeometry,
   Vector3,
 } from "three"
 
@@ -202,7 +201,6 @@ function InfluenceSpheres({
   // Precompute static sphere count so useFrame knows which mesh is which.
   const solarSystemCount = 1 + planets.length // Sun + planets
   const distantCount = SKY_MASSIVE_BODIES.length + 1 // sky BHs + Sgr A*
-  const totalCount = solarSystemCount + distantCount
 
   useFrame(() => {
     if (!groupRef.current) return

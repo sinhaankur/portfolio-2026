@@ -30,7 +30,7 @@
  * Output: public/data/dna.enc.json
  */
 
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs"
+import { writeFileSync, mkdirSync } from "node:fs"
 import { createReadStream } from "node:fs"
 import { createInterface } from "node:readline"
 import { randomBytes, pbkdf2Sync, createCipheriv } from "node:crypto"

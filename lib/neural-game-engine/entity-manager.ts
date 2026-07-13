@@ -1,4 +1,4 @@
-import type { GameEntity, GameState } from './types';
+import type { GameEntity } from './types';
 
 /**
  * Entity Manager: Registry and query system for all game entities.
