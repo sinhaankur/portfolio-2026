@@ -25,12 +25,15 @@ import {
   altitudeBand,
   centroidRaDec,
   compassPoint,
+  darknessWindow,
   equatorialToHorizontal,
   planetEquatorial,
   riseTransitSet,
+  type DarknessWindow,
   type EquatorialCoord,
   type KeplerianElements,
   type Observer,
+  type TwilightPhase,
 } from "@/lib/sky-position"
 
 type SkyKind = "planet" | "constellation"
@@ -183,6 +186,14 @@ export function TonightSky() {
 
   const upNow = rows.filter((r) => r.altitudeDeg > 0)
 
+  // Twilight / darkness — is it dark enough to observe, and when does it get
+  // dark? Recomputed on the same tick so the phase + countdown stay live.
+  const darkness = useMemo<DarknessWindow | null>(() => {
+    if (!observer) return null
+    return darknessWindow(observer, new Date())
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [observer, tick])
+
   const highlightConstellation = useCallback((id: ConstellationId | null) => {
     if (typeof window === "undefined") return
     window.dispatchEvent(
@@ -297,7 +308,9 @@ export function TonightSky() {
               </p>
             </div>
           ) : (
-            <ul className="overflow-y-auto px-1.5 py-1.5 [scrollbar-width:thin]">
+            <>
+              {darkness && <DarknessBanner d={darkness} />}
+              <ul className="overflow-y-auto px-1.5 py-1.5 [scrollbar-width:thin]">
               {rows.map((r) => {
                 const isUp = r.altitudeDeg > 0
                 const expanded = expandedId === r.id
@@ -342,10 +355,66 @@ export function TonightSky() {
                   </li>
                 )
               })}
-            </ul>
+              </ul>
+            </>
           )}
         </div>
       )}
+    </div>
+  )
+}
+
+const PHASE_LABEL: Record<TwilightPhase, string> = {
+  day: "Daytime",
+  civil: "Civil twilight",
+  nautical: "Nautical twilight",
+  astronomical: "Astronomical twilight",
+  night: "Full darkness",
+}
+
+/** How lit the sky is 0..1, for the banner's gradient dot (day → dark). */
+function phaseGlow(phase: TwilightPhase): string {
+  switch (phase) {
+    case "day": return "#ffd27a"
+    case "civil": return "#ff9a6b"
+    case "nautical": return "#7a86c8"
+    case "astronomical": return "#3a4a8a"
+    default: return "#1a2352"
+  }
+}
+
+/**
+ * Darkness banner — the observer's actual "is it dark yet?" answer. Leads with
+ * the twilight phase + Sun altitude, then the single most useful next event:
+ * sunset while it's day, when astronomical dark begins during twilight, or
+ * "dark until sunrise" once it's genuinely dark.
+ */
+function DarknessBanner({ d }: { d: DarknessWindow }) {
+  let lead: string
+  if (d.phase === "day") {
+    lead = d.sunset ? `Sunset ${fmtTime(d.sunset)}` : "Sun is up"
+  } else if (d.isDark) {
+    lead = d.darkEnd ? `Dark until ${fmtTime(d.darkEnd)}` : "Dark now"
+  } else {
+    // In twilight: how much longer until full (astronomical) darkness.
+    lead = d.darkStart ? `Dark at ${fmtTime(d.darkStart)}` : `Doesn't fully darken`
+  }
+  return (
+    <div className="flex items-center gap-2.5 px-4 py-2.5 border-b border-foreground/10 bg-foreground/[0.03]">
+      <span
+        aria-hidden
+        className="h-2.5 w-2.5 rounded-full shrink-0 ring-1 ring-white/10"
+        style={{ background: phaseGlow(d.phase) }}
+      />
+      <div className="min-w-0 flex-1">
+        <p className="font-mono text-[10px] tracking-[0.14em] uppercase text-foreground/85 truncate">
+          {PHASE_LABEL[d.phase]}
+          {d.isDark && <span className="text-accent"> · best viewing</span>}
+        </p>
+        <p className="font-mono text-[9px] tracking-[0.12em] uppercase text-foreground/45 tabular-nums">
+          Sun {d.sunAltitudeDeg >= 0 ? "+" : ""}{d.sunAltitudeDeg.toFixed(1)}° · {lead}
+        </p>
+      </div>
     </div>
   )
 }

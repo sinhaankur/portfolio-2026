@@ -357,6 +357,113 @@ export function planetEquatorial(
   return { raHours: raDeg / HOURS_TO_DEG, decDeg }
 }
 
+/* ==========================================================================
+ * Sun position + twilight — so "Tonight's Sky" knows when it is actually dark
+ * enough to observe. The Sun's altitude below the horizon defines the
+ * standard twilight phases (civil −6°, nautical −12°, astronomical −18°);
+ * below −18° the sky is truly dark. Meeus ch. 25 low-precision solar formula
+ * (accurate to ~0.01°, far better than we need to answer "is it dark?").
+ * ======================================================================== */
+
+/** Apparent geocentric RA/Dec of the Sun at `date` (Meeus ch. 25, low-precision). */
+export function sunEquatorial(date: Date): EquatorialCoord {
+  const d = julianDate(date) - 2_451_545.0 // days since J2000.0
+  const T = d / 36_525
+  const L0 = norm360(280.460 + 0.985_647_4 * d) // geometric mean longitude
+  const g = norm360(357.528 + 0.985_600_3 * d) * DEG // mean anomaly
+  // Ecliptic longitude with the equation of centre (first two terms).
+  const lambda =
+    (L0 + 1.915 * Math.sin(g) + 0.020 * Math.sin(2 * g)) * DEG
+  // Obliquity of the ecliptic (slowly decreasing).
+  const eps = (23.439 - 0.000_000_36 * d - 0.013_004 * T) * DEG
+  const raDeg = norm360(Math.atan2(Math.cos(eps) * Math.sin(lambda), Math.cos(lambda)) / DEG)
+  const decDeg = Math.asin(Math.sin(eps) * Math.sin(lambda)) / DEG
+  return { raHours: raDeg / HOURS_TO_DEG, decDeg }
+}
+
+/** The Sun's altitude above the horizon (degrees) for an observer + instant. */
+export function sunAltitude(observer: Observer, date: Date): number {
+  return equatorialToHorizontal(sunEquatorial(date), observer, date).altitudeDeg
+}
+
+export type TwilightPhase = "day" | "civil" | "nautical" | "astronomical" | "night"
+
+/** Map a Sun altitude to the standard observing phase. */
+export function twilightPhase(sunAltitudeDeg: number): TwilightPhase {
+  if (sunAltitudeDeg > -0.833) return "day" // upper limb at the horizon (refraction)
+  if (sunAltitudeDeg > -6) return "civil"
+  if (sunAltitudeDeg > -12) return "nautical"
+  if (sunAltitudeDeg > -18) return "astronomical"
+  return "night"
+}
+
+export interface DarknessWindow {
+  /** Current Sun altitude, degrees. */
+  sunAltitudeDeg: number
+  /** Current phase from that altitude. */
+  phase: TwilightPhase
+  /** Sunset (upper limb crossing the horizon) tonight, local time, or null. */
+  sunset: Date | null
+  /** Sunrise tomorrow morning, local time, or null. */
+  sunrise: Date | null
+  /** When astronomical darkness begins tonight (Sun reaches −18°), or null if
+   *  it never gets that dark from this latitude at this time of year. */
+  darkStart: Date | null
+  /** When astronomical darkness ends (Sun climbs back to −18°), or null. */
+  darkEnd: Date | null
+  /** True if the Sun is currently below −18° — genuinely dark, best viewing. */
+  isDark: boolean
+}
+
+/**
+ * Tonight's darkness window for an observer: the sunset/sunrise bracket and the
+ * astronomical-darkness sub-window inside it. The Sun's RA/Dec drifts <1°/day,
+ * so treating it as fixed over the search night is fine here. Crossings are
+ * found by scanning the Sun's altitude forward from `date` and bisecting.
+ */
+export function darknessWindow(observer: Observer, date: Date): DarknessWindow {
+  const altAt = (t: number) => sunAltitude(observer, new Date(t))
+  const now = date.getTime()
+
+  // Find the next time the Sun's altitude crosses `edge` (deg), scanning
+  // forward up to 24h in coarse steps, then bisecting the bracket. `dir`:
+  // "down" = descending crossing (e.g. sunset), "up" = ascending (sunrise).
+  const nextCrossing = (edge: number, dir: "down" | "up"): Date | null => {
+    const stepMs = 10 * 60_000 // 10-min scan
+    let prevT = now
+    let prevV = altAt(prevT) - edge
+    for (let t = now + stepMs; t <= now + 24 * 3_600_000; t += stepMs) {
+      const v = altAt(t) - edge
+      const crossed = dir === "down" ? prevV > 0 && v <= 0 : prevV < 0 && v >= 0
+      if (crossed) {
+        let lo = prevT
+        let hi = t
+        for (let i = 0; i < 40; i++) {
+          const mid = (lo + hi) / 2
+          const mv = altAt(mid) - edge
+          if ((mv > 0) === (dir === "down")) lo = mid
+          else hi = mid
+        }
+        return new Date((lo + hi) / 2)
+      }
+      prevT = t
+      prevV = v
+    }
+    return null
+  }
+
+  const sunAltitudeDeg = altAt(now)
+  return {
+    sunAltitudeDeg,
+    phase: twilightPhase(sunAltitudeDeg),
+    sunset: nextCrossing(-0.833, "down"),
+    sunrise: nextCrossing(-0.833, "up"),
+    darkStart: nextCrossing(-18, "down"),
+    darkEnd: nextCrossing(-18, "up"),
+    isDark: sunAltitudeDeg <= -18,
+  }
+}
+
 /**
  * Centroid (mean) RA/Dec of a set of stars, for placing a constellation as a
  * single point in the observer's sky. RA is averaged on the circle (via the
