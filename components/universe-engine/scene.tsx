@@ -83,6 +83,8 @@ import {
   CORONA_FRAGMENT_SHADER,
   SUN_SURFACE_VERTEX_SHADER,
   SUN_SURFACE_FRAGMENT_SHADER,
+  ZODIACAL_VERTEX_SHADER,
+  ZODIACAL_FRAGMENT_SHADER,
 } from "./shaders"
 import { makeFocusHandler } from "./scene-shared"
 import { OrbitRing } from "./orbit-ring"
@@ -322,6 +324,82 @@ function SceneClock() {
 
 
 
+/**
+ * Zodiacal light — the faint glow of sunlight scattered off the interplanetary
+ * dust disc in the ecliptic plane. A real, previously-missing phenomenon: it
+ * fills the space between the planets with a diffuse triangular glow, brightest
+ * near the Sun (forward-scattering), with a faint gegenschein opposite it.
+ *
+ * A large flat disc in the local x–z plane (the scene's ecliptic), centred on
+ * the Sun at the group origin. The shader shapes the brightness; here we just
+ * feed it the live camera position + time and fade it by proximity so it only
+ * shows once the viewer is actually inside the solar system (never from the
+ * far galaxy hero, where it would be physically wrong to see it).
+ *
+ * Deliberately dim + additive — reverence over spectacle; it must never
+ * compete with a planet or the corona.
+ */
+function ZodiacalLight({ invert }: { invert: boolean }) {
+  const meshRef = useRef<Mesh>(null)
+  const matRef = useRef<ShaderMaterial>(null)
+  const RADIUS = 13 // scene units — covers the inner + giant planets
+  const _localCam = useMemo(() => new Vector3(), [])
+  const uniforms = useMemo(
+    () => ({
+      uColor: { value: new Color(invert ? "#e8d8b0" : "#fff0d8") },
+      uOpacity: { value: 0 },
+      uRadius: { value: RADIUS },
+      uTime: { value: 0 },
+      uCamPos: { value: new Vector3() },
+    }),
+    [invert],
+  )
+
+  useFrame((state, delta) => {
+    const m = matRef.current
+    const mesh = meshRef.current
+    if (!m || !mesh) return
+    m.uniforms.uTime.value += delta
+    // Camera position in THIS MESH's local frame (Sun at local origin), so the
+    // shader's sunward geometry is correct regardless of world placement and
+    // the mesh's own -π/2 tilt. worldToLocal mutates in place → copy first.
+    _localCam.copy(state.camera.position)
+    mesh.worldToLocal(_localCam)
+    m.uniforms.uCamPos.value.copy(_localCam)
+
+    // Proximity fade: the dust glow is only realistic when you're within the
+    // planetary region. Fade from ~0 far out to full when the camera is within
+    // a few disc-radii of the Sun. Very low ceiling so it stays a whisper.
+    const dist = _localCam.length()
+    const near = 1 - smoothstepScalar(RADIUS * 0.6, RADIUS * 2.4, dist)
+    const target = near * (invert ? 0.10 : 0.16)
+    m.uniforms.uOpacity.value += (target - m.uniforms.uOpacity.value) * Math.min(1, delta * 2)
+  })
+
+  return (
+    <mesh ref={meshRef} rotation={[-Math.PI / 2, 0, 0]} renderOrder={-2}>
+      {/* Flat disc in x–z once rotated; high enough segments for smooth radial falloff. */}
+      <circleGeometry args={[RADIUS, 96]} />
+      <shaderMaterial
+        ref={matRef as React.Ref<ShaderMaterial>}
+        vertexShader={ZODIACAL_VERTEX_SHADER}
+        fragmentShader={ZODIACAL_FRAGMENT_SHADER}
+        uniforms={uniforms}
+        transparent
+        depthWrite={false}
+        blending={invert ? NormalBlending : AdditiveBlending}
+        toneMapped={false}
+      />
+    </mesh>
+  )
+}
+
+/** Scalar smoothstep (GLSL semantics) for the proximity fade above. */
+function smoothstepScalar(edge0: number, edge1: number, x: number): number {
+  const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)))
+  return t * t * (3 - 2 * t)
+}
+
 function SolarSystem({
   onHover,
   invert = false,
@@ -507,6 +585,12 @@ function SolarSystem({
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
       <pointLight position={[0, 0, 0]} intensity={pointLightIntensity} distance={60} color="#ffffff" decay={1.3} />
+
+      {/* Zodiacal light — faint sunlit-dust glow in the ecliptic plane, so the
+          space between the planets reads as a real dust disc, not black void.
+          Renders under the planets; fades in only when the camera is inside
+          the planetary region. */}
+      <ZodiacalLight invert={invert} />
 
       {scenePlanets.map((p) => (
         <OrbitRing

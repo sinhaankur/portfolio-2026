@@ -604,3 +604,74 @@ export const COMET_ENVELOPE_FRAGMENT_SHADER = `
     gl_FragColor = vec4(uColor, falloff * uOpacity);
   }
 `
+
+/* ============================================================
+ * Zodiacal light — sunlight scattered off the interplanetary
+ * dust disc that lies in the ecliptic plane.
+ *
+ * A real, faint phenomenon: a diffuse triangular glow along the
+ * ecliptic, brightest near the Sun (forward-scattering by the dust),
+ * tapering outward, with a subtle brightening at the anti-solar point
+ * (the gegenschein — backscatter). Rendered as a large flat disc in the
+ * local x–z plane centred on the Sun; the shader shapes the glow so the
+ * space between planets stops reading as pure black void.
+ *
+ * Deliberately dim + additive (reverence over spectacle): it must never
+ * compete with a planet or the corona. Brightness, not girth.
+ * ============================================================ */
+export const ZODIACAL_VERTEX_SHADER = `
+  varying vec2  vDisc;       // disc-plane coords, native to the CircleGeometry (x–y)
+  varying vec3  vLocalPos;   // local-space fragment position (Sun at local origin)
+  void main() {
+    vDisc = position.xy;                             // CircleGeometry lies in x–y (z=0)
+    vLocalPos = position;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`
+export const ZODIACAL_FRAGMENT_SHADER = `
+  uniform vec3  uColor;      // warm sunlit-dust tint
+  uniform float uOpacity;    // master fade (focus/proximity × toggle)
+  uniform float uRadius;     // disc outer radius (local units)
+  uniform float uTime;       // slow mottle drift
+  uniform vec3  uCamPos;     // camera position in THIS MESH's local frame (Sun = origin)
+  varying vec2  vDisc;
+  varying vec3  vLocalPos;
+
+  float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7)))*43758.5453123); }
+  float vnoise(vec2 p){
+    vec2 i=floor(p); vec2 f=fract(p); vec2 u=f*f*(3.0-2.0*f);
+    return mix(mix(hash(i),hash(i+vec2(1,0)),u.x), mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),u.x), u.y);
+  }
+  float fbm(vec2 p){ float v=0.0,a=0.5; for(int i=0;i<4;i++){ v+=a*vnoise(p); p*=2.05; a*=0.5; } return v; }
+
+  void main() {
+    // Radial distance from the Sun (local origin), normalised to the disc.
+    float r = length(vDisc);
+    float rn = r / uRadius;
+    if (rn > 1.0) discard;
+
+    // Dust column density falls ~1/r; scattered brightness falls faster.
+    // A soft inner cap keeps the glow from blowing out right at the Sun
+    // (the corona owns that region).
+    float radial = smoothstep(0.02, 0.10, rn) * (1.0 / (0.15 + rn * rn * 3.0));
+
+    // View geometry, all in local space (Sun at origin). Is the camera looking
+    // toward the Sun through this dust? Forward-scattering makes the near-Sun
+    // dust much brighter than the rest.
+    vec3 toSun    = normalize(-vLocalPos);              // fragment → Sun
+    vec3 toCam    = normalize(uCamPos - vLocalPos);     // fragment → camera
+    float phase   = dot(toCam, -toSun);                 // +1 = looking sunward through dust
+    float forward = pow(clamp(phase * 0.5 + 0.5, 0.0, 1.0), 3.0);   // strong forward lobe
+    float gegen   = pow(clamp(-phase, 0.0, 1.0), 8.0) * 0.35;        // faint backscatter bump
+
+    // Gentle mottle so the band isn't a perfectly smooth wash.
+    float mottle = 0.75 + 0.25 * fbm(vDisc * 0.6 + vec2(uTime * 0.01, 0.0));
+
+    float intensity = radial * (0.35 + 0.65 * forward + gegen) * mottle;
+
+    // Warm tint, cooling slightly outward (dust reddening near the Sun).
+    vec3 col = mix(uColor, uColor * vec3(0.82, 0.86, 1.0), smoothstep(0.1, 0.9, rn));
+
+    gl_FragColor = vec4(col, clamp(intensity, 0.0, 1.0) * uOpacity);
+  }
+`
