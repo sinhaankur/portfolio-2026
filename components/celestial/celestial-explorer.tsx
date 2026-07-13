@@ -402,34 +402,43 @@ export function CelestialExplorer() {
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 8 }}
-                  className="flex flex-col gap-1.5"
+                  className="flex flex-col gap-1.5 max-h-[62vh] overflow-y-auto pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                 >
+                  {/* Grouped so 12 tools scan fast instead of reading as one
+                      undifferentiated stack. Headings are non-interactive. */}
+                  <MenuHeading>Satellites & ISS</MenuHeading>
                   <MenuItem color="#5affc0" icon={<Satellite className="h-3.5 w-3.5" />}
                     label="View 18,500 satellites" onClick={viewSatellites} />
-                  <MenuItem color="#9fe0ff" icon={<Layers className="h-3.5 w-3.5" />}
-                    label="Orbital census" onClick={() => { closePanels(); setInventoryOpen(true) }} />
-                  {hasGoogleEarthKey && (
-                    <MenuItem color="var(--accent)" icon={<Globe className="h-3.5 w-3.5" />}
-                      label="Descend to Earth" onClick={() => { closePanels(); setEarthView(true) }} />
-                  )}
-                  <MenuItem color="#ff9a6b" icon={<Globe className="h-3.5 w-3.5" />}
-                    label="Mars · what we've seen" onClick={() => { closePanels(); setMarsView(true) }} />
                   <MenuItem color="#7affd0" icon={<Satellite className="h-3.5 w-3.5" />}
                     label="ISS live position" onClick={() => { closePanels(); setIssLiveOpen(true) }} />
                   <MenuItem color="var(--accent)" icon={<Satellite className="h-3.5 w-3.5" />}
                     label="ISS over you" onClick={() => { closePanels(); setPassesOpen(true) }} />
                   <MenuItem color="#7affd0" icon={<Radio className="h-3.5 w-3.5" />}
                     label="Ground-station tracker" onClick={() => { closePanels(); setStationOpen(true) }} />
-                  <MenuItem color="#7affd0" icon={<Sparkles className="h-3.5 w-3.5" />}
-                    label="Space weather · aurora" onClick={() => { closePanels(); setWeatherOpen(true) }} />
-                  <MenuItem color="#ffd27a" icon={<Rocket className="h-3.5 w-3.5" />}
-                    label="Launches" onClick={() => { closePanels(); setLaunchesOpen(true) }} />
+                  <MenuItem color="#9fe0ff" icon={<Layers className="h-3.5 w-3.5" />}
+                    label="Orbital census" onClick={() => { closePanels(); setInventoryOpen(true) }} />
+
+                  <MenuHeading>Trajectories</MenuHeading>
                   <MenuItem color="#7affd0" icon={<Route className="h-3.5 w-3.5" />}
                     label="Earth → Mars transfer" onClick={() => { closePanels(); setTransferOpen(true) }} />
                   <MenuItem color="#7affd0" icon={<Orbit className="h-3.5 w-3.5" />}
                     label="Launch windows (porkchop)" onClick={() => { closePanels(); setPorkchopOpen(true) }} />
+
+                  <MenuHeading>Deep space</MenuHeading>
                   <MenuItem color="#ffd27a" icon={<Orbit className="h-3.5 w-3.5" />}
                     label="Asteroids near Earth" onClick={() => { closePanels(); setNeoOpen(true) }} />
+                  <MenuItem color="#7affd0" icon={<Sparkles className="h-3.5 w-3.5" />}
+                    label="Space weather · aurora" onClick={() => { closePanels(); setWeatherOpen(true) }} />
+                  <MenuItem color="#ffd27a" icon={<Rocket className="h-3.5 w-3.5" />}
+                    label="Launches" onClick={() => { closePanels(); setLaunchesOpen(true) }} />
+
+                  <MenuHeading>Surfaces</MenuHeading>
+                  {hasGoogleEarthKey && (
+                    <MenuItem color="var(--accent)" icon={<Globe className="h-3.5 w-3.5" />}
+                      label="Descend to Earth" onClick={() => { closePanels(); setEarthView(true) }} />
+                  )}
+                  <MenuItem color="#ff9a6b" icon={<Globe className="h-3.5 w-3.5" />}
+                    label="Mars · what we've seen" onClick={() => { closePanels(); setMarsView(true) }} />
                 </motion.div>
               )}
             </AnimatePresence>
@@ -504,6 +513,15 @@ export function CelestialExplorer() {
       {/* Mars coverage map — real MOLA globe + rover-site panoramas. */}
       {marsView && <MarsCoverage onClose={() => setMarsView(false)} />}
     </>
+  )
+}
+
+/** A non-interactive section label in the Explore launcher menu. */
+function MenuHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="px-2 pt-2 pb-0.5 first:pt-0 font-mono text-[8px] tracking-[0.28em] uppercase text-foreground/40 select-none">
+      {children}
+    </p>
   )
 }
 

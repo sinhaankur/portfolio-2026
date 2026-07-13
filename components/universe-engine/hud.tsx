@@ -1117,3 +1117,166 @@ export function DestinationsMenu() {
     </div>
   )
 }
+
+/** One labelled on/off row inside the LayersMenu popover. A pill dot shows
+ *  state (filled = on) so the whole menu reads as a stack of switches. */
+function LayerToggleRow({
+  label,
+  active,
+  onToggle,
+}: {
+  label: string
+  active: boolean
+  onToggle: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-pressed={active}
+      className="flex w-full items-center justify-between gap-3 px-3 py-2 rounded-lg text-left hover:bg-foreground/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+    >
+      <span
+        className={`font-mono text-[10px] tracking-[0.18em] uppercase transition-colors ${
+          active ? "text-accent" : "text-foreground/75"
+        }`}
+      >
+        {label}
+      </span>
+      <span
+        aria-hidden
+        className={`grid place-items-center h-4 w-4 rounded-full border transition-colors shrink-0 ${
+          active ? "border-accent/70 bg-accent/15" : "border-foreground/25"
+        }`}
+      >
+        <span className={`h-1.5 w-1.5 rounded-full ${active ? "bg-accent" : "bg-foreground/30"}`} />
+      </span>
+    </button>
+  )
+}
+
+/** Collapses the whole overlay-control cluster (Clouds · Satellites ·
+ *  True Scale · Gravity · Deep Dive · Jump-to) into a single "Layers"
+ *  button + popover, so the explorer's bottom-right no longer stacks six
+ *  chips plus a wrapping filter row. Only mounted in the solar explorer
+ *  (the home hero passes minimalControls, so it never sees this). */
+export function LayersMenu({
+  showClouds,
+  onToggleClouds,
+  showSatellites,
+  onToggleSatellites,
+  showSatGroups,
+  trueScale,
+  onToggleScale,
+  showGravity,
+  onToggleGravity,
+  showDeepDive,
+  onToggleDeepDive,
+}: {
+  showClouds: boolean
+  onToggleClouds: () => void
+  showSatellites: boolean
+  onToggleSatellites: () => void
+  /** Include the per-constellation filter chips (solar explorer + sats on). */
+  showSatGroups: boolean
+  trueScale: boolean
+  onToggleScale: () => void
+  showGravity: boolean
+  onToggleGravity: () => void
+  showDeepDive: boolean
+  onToggleDeepDive: () => void
+}) {
+  const [open, setOpen] = useState(false)
+  // Close on outside-click / Escape so the popover behaves like a menu.
+  const rootRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const onDoc = (e: MouseEvent) => {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false)
+    }
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false) }
+    document.addEventListener("mousedown", onDoc)
+    document.addEventListener("keydown", onKey)
+    return () => {
+      document.removeEventListener("mousedown", onDoc)
+      document.removeEventListener("keydown", onKey)
+    }
+  }, [open])
+
+  // Count of active layers → a subtle badge on the chip so users know
+  // something's on even while the menu is closed.
+  const activeCount = [showClouds, showSatellites, trueScale, showGravity, showDeepDive].filter(Boolean).length
+
+  return (
+    <div ref={rootRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-label="Layers and overlays"
+        className={`
+          inline-flex items-center gap-2 px-3.5 py-2.5 rounded-full border
+          backdrop-blur-sm transition-colors duration-300
+          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+          ${open || activeCount > 0
+            ? "border-accent/60 bg-accent/10 text-accent"
+            : "border-foreground/25 bg-background/50 text-foreground/70 hover:text-foreground/90"}
+        `}
+      >
+        <span className="font-mono text-[10px] tracking-[0.2em] uppercase">Layers</span>
+        {activeCount > 0 && (
+          <span className="font-mono text-[9px] tabular-nums text-accent/90">{activeCount}</span>
+        )}
+        <span className={`text-[9px] transition-transform ${open ? "rotate-180" : ""}`}>▾</span>
+      </button>
+
+      {open && (
+        <div className="absolute bottom-full mb-2 right-0 w-60 max-h-[62vh] overflow-y-auto rounded-xl border border-foreground/15 bg-background/90 backdrop-blur-xl p-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.3)]">
+          <div className="px-3 pt-1.5 pb-1 font-mono text-[8px] tracking-[0.24em] uppercase text-foreground/40">
+            Overlays
+          </div>
+          <LayerToggleRow label="Clouds" active={showClouds} onToggle={onToggleClouds} />
+          <LayerToggleRow label="Satellites" active={showSatellites} onToggle={onToggleSatellites} />
+          {showSatGroups && (
+            <div className="px-3 py-2">
+              <SatelliteGroupChips />
+            </div>
+          )}
+          <LayerToggleRow label="True Scale" active={trueScale} onToggle={onToggleScale} />
+          <LayerToggleRow label="Gravity" active={showGravity} onToggle={onToggleGravity} />
+          <LayerToggleRow label="Deep Dive" active={showDeepDive} onToggle={onToggleDeepDive} />
+
+          <div className="mt-1 border-t border-foreground/10 pt-1.5">
+            <div className="px-3 pt-1 pb-1 font-mono text-[8px] tracking-[0.24em] uppercase text-foreground/40">
+              Jump to
+            </div>
+            {JUMP_DESTINATIONS.map((group) => (
+              <div key={group.section} className="mb-1 last:mb-0">
+                <div className="px-3 pt-1 pb-0.5 font-mono text-[8px] tracking-[0.2em] uppercase text-foreground/30">
+                  {group.section}
+                </div>
+                <div className="flex flex-wrap gap-1 px-2 pb-1">
+                  {group.items.map((d) => (
+                    <button
+                      key={d.pointId}
+                      type="button"
+                      onClick={() => {
+                        if (typeof window !== "undefined") {
+                          window.dispatchEvent(new CustomEvent("universe:sky-focus", { detail: { pointId: d.pointId } }))
+                        }
+                        setOpen(false)
+                      }}
+                      className="px-2 py-1 rounded-md font-mono text-[9px] tracking-[0.14em] uppercase text-foreground/70 hover:bg-foreground/10 hover:text-foreground transition-colors"
+                    >
+                      {d.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
