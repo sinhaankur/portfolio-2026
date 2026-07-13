@@ -15,8 +15,10 @@ import { motion, AnimatePresence } from "framer-motion"
 import { ArrowLeft, X, Rotate3d, Globe, Satellite, Sparkles, Rocket, Route, Orbit, Layers, Radio } from "lucide-react"
 import { CustomCursor } from "@/components/custom-cursor"
 import { StaticStarfield } from "@/components/universe-engine/static-starfield"
+import { TimelineControl } from "@/components/universe-engine/hud"
 import { BODIES } from "@/lib/celestial-data"
 import { SatelliteSearch } from "./satellite-search"
+import { useIsMobile, MobileBar, BodiesSheet, Sheet } from "./mobile-controls"
 import { selectedSatRef, satGroupFilterRef } from "@/components/universe-engine/satellite-field"
 import { setSimMs, timeScaleRef, hiResTexturesRef } from "@/components/universe-engine/astronomy"
 import { hasGoogleEarthKey } from "@/components/universe-engine/google-earth-tiles"
@@ -155,6 +157,13 @@ export function CelestialExplorer() {
   // The feature-launcher menu (collapses all the tools into one chip so the
   // bottom-left doesn't stack 5+ buttons on mobile).
   const [menuOpen, setMenuOpen] = useState(false)
+  // Mobile-only sheets. On phones the body rail + Explore menu + timeline are
+  // replaced by one slim bar that opens these drag-dismissable sheets, so the
+  // scene owns the screen and a scroll never opens a body detail.
+  const mobile = useIsMobile()
+  const [bodiesSheet, setBodiesSheet] = useState(false)
+  const [toolsSheet, setToolsSheet] = useState(false)
+  const [timeSheet, setTimeSheet] = useState(false)
   const closePanels = () => { setPassesOpen(false); setWeatherOpen(false); setLaunchesOpen(false); setTransferOpen(false); setStationOpen(false); setIssLiveOpen(false); setPorkchopOpen(false); setNeoOpen(false); setInventoryOpen(false) }
   // `?earth=1` auto-opens the photoreal view — for capture/testing + deep-links.
   useEffect(() => {
@@ -236,6 +245,50 @@ export function CelestialExplorer() {
     }
   }, [])
 
+  // The 12 tools, grouped — shared by the desktop Explore menu AND the mobile
+  // Tools sheet so there's a single source of truth. Each closes the launcher
+  // context it was opened from.
+  const renderToolItems = (afterPick?: () => void) => {
+    const go = (fn: () => void) => () => { closePanels(); fn(); afterPick?.() }
+    return (
+      <>
+        <MenuHeading>Satellites &amp; ISS</MenuHeading>
+        <MenuItem color="#5affc0" icon={<Satellite className="h-3.5 w-3.5" />}
+          label="View 18,500 satellites" onClick={() => { viewSatellites(); afterPick?.() }} />
+        <MenuItem color="#7affd0" icon={<Satellite className="h-3.5 w-3.5" />}
+          label="ISS live position" onClick={go(() => setIssLiveOpen(true))} />
+        <MenuItem color="var(--accent)" icon={<Satellite className="h-3.5 w-3.5" />}
+          label="ISS over you" onClick={go(() => setPassesOpen(true))} />
+        <MenuItem color="#7affd0" icon={<Radio className="h-3.5 w-3.5" />}
+          label="Ground-station tracker" onClick={go(() => setStationOpen(true))} />
+        <MenuItem color="#9fe0ff" icon={<Layers className="h-3.5 w-3.5" />}
+          label="Orbital census" onClick={go(() => setInventoryOpen(true))} />
+
+        <MenuHeading>Trajectories</MenuHeading>
+        <MenuItem color="#7affd0" icon={<Route className="h-3.5 w-3.5" />}
+          label="Earth → Mars transfer" onClick={go(() => setTransferOpen(true))} />
+        <MenuItem color="#7affd0" icon={<Orbit className="h-3.5 w-3.5" />}
+          label="Launch windows (porkchop)" onClick={go(() => setPorkchopOpen(true))} />
+
+        <MenuHeading>Deep space</MenuHeading>
+        <MenuItem color="#ffd27a" icon={<Orbit className="h-3.5 w-3.5" />}
+          label="Asteroids near Earth" onClick={go(() => setNeoOpen(true))} />
+        <MenuItem color="#7affd0" icon={<Sparkles className="h-3.5 w-3.5" />}
+          label="Space weather · aurora" onClick={go(() => setWeatherOpen(true))} />
+        <MenuItem color="#ffd27a" icon={<Rocket className="h-3.5 w-3.5" />}
+          label="Launches" onClick={go(() => setLaunchesOpen(true))} />
+
+        <MenuHeading>Surfaces</MenuHeading>
+        {hasGoogleEarthKey && (
+          <MenuItem color="var(--accent)" icon={<Globe className="h-3.5 w-3.5" />}
+            label="Descend to Earth" onClick={go(() => setEarthView(true))} />
+        )}
+        <MenuItem color="#ff9a6b" icon={<Globe className="h-3.5 w-3.5" />}
+          label="Mars · what we've seen" onClick={go(() => setMarsView(true))} />
+      </>
+    )
+  }
+
   return (
     <>
       <CustomCursor />
@@ -244,7 +297,7 @@ export function CelestialExplorer() {
             gestures to the engine's OrbitControls (the page is fixed/non-scroll
             here) so drag-to-rotate + pinch-zoom are seamless on mobile. */}
         <div className="absolute inset-0 touch-none">
-          <UniverseEngine interactive showHud showMusic={false} defaultTrueScale solarOnly />
+          <UniverseEngine interactive showHud showMusic={false} defaultTrueScale solarOnly quietMobileChrome />
         </div>
 
         {/* Back link */}
@@ -283,19 +336,15 @@ export function CelestialExplorer() {
           </p>
         </div>
 
-        {/* Body rail.
-            DESKTOP: vertical strip on the RIGHT edge, vertically centred — the
-            engine's HUD lives along the bottom (timeline centre, reset/info
-            left, music/legend right-bottom) and top-centre (explore badge), so
-            the right-middle edge is the one clear band. The detail tile (z-30)
-            slides over it from the right when a body is open.
-            MOBILE: a horizontal strip pinned just ABOVE the engine's bottom HUD
-            band, clear of the top-centre badge; hidden while a tile is open. */}
+        {/* Body rail — DESKTOP ONLY now. Vertical strip on the RIGHT edge,
+            vertically centred (the one clear band beside the engine's bottom
+            HUD). The detail tile (z-30) slides over it from the right when a
+            body is open. On MOBILE the rail is replaced by the Bodies sheet
+            (opened from the bottom bar) so scrolling can't misfire a tap. */}
         <div
-          className={`absolute z-20 pointer-events-none
-            left-0 right-0 bottom-32 px-3
-            md:left-auto md:right-2 md:bottom-auto md:top-1/2 md:-translate-y-1/2 md:px-0
-            ${open ? "hidden md:hidden" : ""}`}
+          className={`hidden md:block absolute z-20 pointer-events-none
+            md:left-auto md:right-2 md:top-1/2 md:-translate-y-1/2
+            ${open ? "md:hidden" : ""}`}
         >
           <div className="pointer-events-auto w-fit max-w-full mx-auto md:mx-0 md:max-h-[64vh] overflow-x-auto md:overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <ul className="flex md:flex-col items-center gap-2.5 md:gap-3 min-w-max md:min-w-0 py-1 md:px-1">
@@ -336,16 +385,21 @@ export function CelestialExplorer() {
           </div>
         </div>
 
-        {/* Detail tile — slides in from the right when a body is picked */}
+        {/* Detail tile. DESKTOP: slides in from the right. MOBILE: a bottom
+            sheet that slides up (full-width, above the bottom bar), matching the
+            Bodies/Tools sheets so the whole mobile experience is one language. */}
         <AnimatePresence>
           {open && (
             <motion.aside
               key={open.name}
-              initial={{ opacity: 0, x: 40 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 40 }}
+              initial={mobile ? { opacity: 0, y: 60 } : { opacity: 0, x: 40 }}
+              animate={mobile ? { opacity: 1, y: 0 } : { opacity: 1, x: 0 }}
+              exit={mobile ? { opacity: 0, y: 60 } : { opacity: 0, x: 40 }}
               transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-              className="absolute z-40 top-4 right-4 bottom-32 md:top-6 md:right-6 md:bottom-32 w-[calc(100%-2rem)] sm:w-[24rem] md:w-[26rem] overflow-y-auto rounded-xl border border-border bg-background/90 backdrop-blur-md shadow-[0_24px_80px_-24px_rgba(0,0,0,0.7)]"
+              style={mobile ? { paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" } : undefined}
+              className="absolute z-40 overflow-y-auto border border-border bg-background/95 md:bg-background/90 backdrop-blur-md shadow-[0_24px_80px_-24px_rgba(0,0,0,0.7)]
+                left-0 right-0 bottom-0 max-h-[70vh] rounded-t-2xl border-b-0
+                md:left-auto md:top-6 md:right-6 md:bottom-32 md:w-[26rem] md:max-h-none md:rounded-xl md:border-b"
             >
               <div className="sticky top-0 flex items-center justify-between gap-3 px-5 py-3 border-b border-border bg-background/80 backdrop-blur">
                 <p className="font-mono text-[10px] tracking-[0.25em] uppercase text-accent">{open.tagline}</p>
@@ -390,12 +444,12 @@ export function CelestialExplorer() {
           )}
         </AnimatePresence>
 
-        {/* Feature launcher — a single "Explore" chip that expands to the tools,
-            so the bottom-left never stacks 5+ buttons (mobile-first). Panels open
-            above it. Each tool is a deliberate click (Earth tiles stay key-gated
-            + cost-protected). */}
+        {/* Feature launcher — DESKTOP: a single "Explore" chip that expands to
+            the tools. On MOBILE the same tools live in the Tools sheet (opened
+            from the bottom bar), so this desktop chip is hidden there. Each tool
+            is a deliberate click (Earth tiles stay key-gated + cost-protected). */}
         {!earthView && !marsView && (
-          <div className="absolute bottom-6 left-4 md:left-6 z-30 flex flex-col items-start gap-2">
+          <div className="hidden md:flex absolute bottom-6 left-4 md:left-6 z-30 flex-col items-start gap-2">
             <AnimatePresence>
               {menuOpen && (
                 <motion.div
@@ -404,41 +458,9 @@ export function CelestialExplorer() {
                   exit={{ opacity: 0, y: 8 }}
                   className="flex flex-col gap-1.5 max-h-[62vh] overflow-y-auto pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                 >
-                  {/* Grouped so 12 tools scan fast instead of reading as one
-                      undifferentiated stack. Headings are non-interactive. */}
-                  <MenuHeading>Satellites & ISS</MenuHeading>
-                  <MenuItem color="#5affc0" icon={<Satellite className="h-3.5 w-3.5" />}
-                    label="View 18,500 satellites" onClick={viewSatellites} />
-                  <MenuItem color="#7affd0" icon={<Satellite className="h-3.5 w-3.5" />}
-                    label="ISS live position" onClick={() => { closePanels(); setIssLiveOpen(true) }} />
-                  <MenuItem color="var(--accent)" icon={<Satellite className="h-3.5 w-3.5" />}
-                    label="ISS over you" onClick={() => { closePanels(); setPassesOpen(true) }} />
-                  <MenuItem color="#7affd0" icon={<Radio className="h-3.5 w-3.5" />}
-                    label="Ground-station tracker" onClick={() => { closePanels(); setStationOpen(true) }} />
-                  <MenuItem color="#9fe0ff" icon={<Layers className="h-3.5 w-3.5" />}
-                    label="Orbital census" onClick={() => { closePanels(); setInventoryOpen(true) }} />
-
-                  <MenuHeading>Trajectories</MenuHeading>
-                  <MenuItem color="#7affd0" icon={<Route className="h-3.5 w-3.5" />}
-                    label="Earth → Mars transfer" onClick={() => { closePanels(); setTransferOpen(true) }} />
-                  <MenuItem color="#7affd0" icon={<Orbit className="h-3.5 w-3.5" />}
-                    label="Launch windows (porkchop)" onClick={() => { closePanels(); setPorkchopOpen(true) }} />
-
-                  <MenuHeading>Deep space</MenuHeading>
-                  <MenuItem color="#ffd27a" icon={<Orbit className="h-3.5 w-3.5" />}
-                    label="Asteroids near Earth" onClick={() => { closePanels(); setNeoOpen(true) }} />
-                  <MenuItem color="#7affd0" icon={<Sparkles className="h-3.5 w-3.5" />}
-                    label="Space weather · aurora" onClick={() => { closePanels(); setWeatherOpen(true) }} />
-                  <MenuItem color="#ffd27a" icon={<Rocket className="h-3.5 w-3.5" />}
-                    label="Launches" onClick={() => { closePanels(); setLaunchesOpen(true) }} />
-
-                  <MenuHeading>Surfaces</MenuHeading>
-                  {hasGoogleEarthKey && (
-                    <MenuItem color="var(--accent)" icon={<Globe className="h-3.5 w-3.5" />}
-                      label="Descend to Earth" onClick={() => { closePanels(); setEarthView(true) }} />
-                  )}
-                  <MenuItem color="#ff9a6b" icon={<Globe className="h-3.5 w-3.5" />}
-                    label="Mars · what we've seen" onClick={() => { closePanels(); setMarsView(true) }} />
+                  {/* Grouped so 12 tools scan fast. Closing the menu after a
+                      pick keeps the desktop launcher tidy. */}
+                  {renderToolItems(() => setMenuOpen(false))}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -504,6 +526,49 @@ export function CelestialExplorer() {
             </div>
           )}
         </AnimatePresence>
+
+        {/* ── MOBILE controls ──────────────────────────────────────────────
+            One slim bar + drag-dismissable sheets replace the desktop rail +
+            Explore chip + always-on timeline. The scene keeps the top of the
+            screen; a scroll inside a sheet never fires a body select. */}
+        {mobile && !earthView && !marsView && (
+          <>
+            {/* Hide the bar while a sheet or the detail tile is open so it
+                doesn't peek under them. */}
+            {!bodiesSheet && !toolsSheet && !timeSheet && !open && (
+              <MobileBar
+                onOpenBodies={() => { setToolsSheet(false); setTimeSheet(false); setBodiesSheet(true) }}
+                onOpenTools={() => { setBodiesSheet(false); setTimeSheet(false); setToolsSheet(true) }}
+                onOpenTime={() => { setBodiesSheet(false); setToolsSheet(false); setTimeSheet(true) }}
+              />
+            )}
+
+            <AnimatePresence>
+              {bodiesSheet && (
+                <BodiesSheet
+                  bodies={BODIES}
+                  openName={openName}
+                  onPick={(name) => { pick(name); setBodiesSheet(false) }}
+                  onClose={() => setBodiesSheet(false)}
+                />
+              )}
+              {toolsSheet && (
+                <Sheet key="tools" title="Explore tools" onClose={() => setToolsSheet(false)}>
+                  <div className="flex flex-col gap-1.5">
+                    {renderToolItems(() => setToolsSheet(false))}
+                  </div>
+                </Sheet>
+              )}
+              {timeSheet && (
+                <Sheet key="time" title="Timeline" onClose={() => setTimeSheet(false)}>
+                  <div className="flex justify-center pb-2">
+                    <TimelineControl />
+                  </div>
+                </Sheet>
+              )}
+            </AnimatePresence>
+          </>
+        )}
       </main>
 
       {/* Photoreal Earth overlay — mounts (and starts streaming tiles) only after

@@ -105,6 +105,14 @@ export type UniverseEngineProps = {
    * (/lab/celestial) leaves them on. Defaults to false (show everything).
    */
   minimalControls?: boolean
+  /**
+   * On MOBILE only, hide the engine's always-on bottom chrome (the LearnTicker
+   * and the ever-present TimelineControl bar) so a consumer can supply its own
+   * mobile UX and keep the screen scene-first. Desktop is unaffected. The
+   * /lab/celestial explorer sets this and provides its own bottom bar + sheets
+   * (which surface the timeline on demand). Defaults to false.
+   */
+  quietMobileChrome?: boolean
 }
 
 export function UniverseEngine({
@@ -116,6 +124,7 @@ export function UniverseEngine({
   defaultTrueScale = false,
   solarOnly = false,
   minimalControls = false,
+  quietMobileChrome = false,
 }: UniverseEngineProps) {
   // Set the module-scoped scale ref synchronously on first render so the very
   // first scene mount already lays bodies out at true ratios (the effect below
@@ -468,8 +477,9 @@ export function UniverseEngine({
           )}
 
           {/* Ambient teaching — rotating real facts about the bodies. Steps aside
-              while a body is focused so it never collides with its info panel. */}
-          <LearnTicker suppressed={Boolean(hovered)} />
+              while a body is focused so it never collides with its info panel.
+              Hidden on mobile when the consumer runs its own quiet chrome. */}
+          {!(quietMobileChrome && mobile) && <LearnTicker suppressed={Boolean(hovered)} />}
 
           {/* Deep Dive legend — compact key for the orbital overlays. */}
           {showDeepDive && !mobile && (
@@ -607,11 +617,12 @@ export function UniverseEngine({
           </div>
 
           {/* Timeline — the time machine. Bottom-centre so it reads as the
-              primary control on every viewport (phones included). Only shown
-              in interactive mode since it drives the shared simulation clock;
-              the passive hero render keeps a still, present-day sky. Sits
-              above UPCOMING/music (bottom-6) with clearance. */}
-          {interactive && (
+              primary control on every viewport. Only shown in interactive mode
+              since it drives the shared simulation clock; the passive hero
+              render keeps a still, present-day sky. On mobile with quiet chrome
+              the consumer surfaces the timeline in its own sheet instead, so we
+              hide the always-on bar there (desktop keeps it). */}
+          {interactive && !(quietMobileChrome && mobile) && (
             <div className="absolute bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-30 flex justify-center">
               <TimelineControl />
             </div>
