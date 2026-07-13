@@ -64,6 +64,7 @@ import {
   initDeviceTier, qualityForTier, perfTierRef, downgradeTier, type DeviceTier,
 } from "@/lib/device-tier"
 import { InfoPanel, LayersMenu, ResetViewButton, TimelineControl } from "./hud"
+import { TonightSky } from "./tonight-sky"
 import { LearnTicker } from "./learn-ticker"
 import { MobileBodySheet } from "./mobile-sheet"
 import { StaticStarfield } from "./static-starfield"
@@ -583,7 +584,10 @@ export function UniverseEngine({
               // All overlay/scale/jump controls collapse into one "Layers"
               // popover so the explorer's bottom-right stays a single chip
               // instead of a six-chip row plus a wrapping filter strip.
+              // The "Tonight" companion sits alongside it — the observatory-grade
+              // "what's above your horizon right now" readout (opt-in location).
               <div className="hidden md:flex items-center gap-2">
+                <TonightSky />
                 <LayersMenu
                   showClouds={showClouds}
                   onToggleClouds={() => setShowClouds(v => !v)}

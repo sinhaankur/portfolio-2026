@@ -19,7 +19,7 @@
  * Stars project from real J2000 RA/Dec onto the sky-shell around the Sun.
  */
 
-import { useState, useMemo, useRef } from "react"
+import { useState, useMemo, useRef, useEffect } from "react"
 import { useFrame } from "@react-three/fiber"
 import { Html } from "@react-three/drei"
 import {
@@ -486,6 +486,21 @@ export function Constellations({
   invert?: boolean
 }) {
   const [active, setActive] = useState<ConstellationId | null>(null)
+
+  // External highlight bridge — the "Tonight's Sky" companion (a DOM HUD panel)
+  // dispatches `universe:highlight-constellation` with a constellation id so
+  // tapping a row in the list lights up that asterism in the sky. Passing null
+  // clears it. Kept separate from the camera `universe:sky-focus` channel: this
+  // only toggles the highlight, it doesn't fly the view (constellations live on
+  // the far sky shell and are highlighted, not approached).
+  useEffect(() => {
+    const onHighlight = (e: Event) => {
+      const id = (e as CustomEvent<{ id: ConstellationId | null }>).detail?.id ?? null
+      setActive(id)
+    }
+    window.addEventListener("universe:highlight-constellation", onHighlight)
+    return () => window.removeEventListener("universe:highlight-constellation", onHighlight)
+  }, [])
 
   return (
     <group>
