@@ -214,6 +214,9 @@ export function TonightSky() {
   }, [observer, centroids, planets, tick])
 
   const upNow = rows.filter((r) => r.altitudeDeg > 0)
+  // The live Moon row (always present) — its altitude + phase drive how much it
+  // brightens the sky, which the darkness verdict factors in.
+  const moonRow = rows.find((r) => r.kind === "moon") ?? null
 
   // Twilight / darkness — is it dark enough to observe, and when does it get
   // dark? Recomputed on the same tick so the phase + countdown stay live.
@@ -338,7 +341,7 @@ export function TonightSky() {
             </div>
           ) : (
             <>
-              {darkness && <DarknessBanner d={darkness} />}
+              {darkness && <DarknessBanner d={darkness} moon={moonRow} />}
               <ul className="overflow-y-auto px-1.5 py-1.5 [scrollbar-width:thin]">
               {rows.map((r) => {
                 const isUp = r.altitudeDeg > 0
@@ -422,9 +425,11 @@ function phaseGlow(phase: TwilightPhase): string {
  * Darkness banner — the observer's actual "is it dark yet?" answer. Leads with
  * the twilight phase + Sun altitude, then the single most useful next event:
  * sunset while it's day, when astronomical dark begins during twilight, or
- * "dark until sunrise" once it's genuinely dark.
+ * "dark until sunrise" once it's genuinely dark. When it IS dark, the "best
+ * viewing" verdict factors in the Moon: a bright Moon high in the sky floods
+ * out faint objects even in a dark-Sun sky, so we say so honestly.
  */
-function DarknessBanner({ d }: { d: DarknessWindow }) {
+function DarknessBanner({ d, moon }: { d: DarknessWindow; moon: SkyRow | null }) {
   let lead: string
   if (d.phase === "day") {
     lead = d.sunset ? `Sunset ${fmtTime(d.sunset)}` : "Sun is up"
@@ -434,6 +439,19 @@ function DarknessBanner({ d }: { d: DarknessWindow }) {
     // In twilight: how much longer until full (astronomical) darkness.
     lead = d.darkStart ? `Dark at ${fmtTime(d.darkStart)}` : `Doesn't fully darken`
   }
+
+  // Moonlight verdict: only meaningful once the Sun is down. A Moon that's up
+  // AND fairly bright washes out the faint sky; a thin crescent or a Moon below
+  // the horizon leaves it dark. Thresholds are deliberately simple + honest.
+  let verdict: string | null = null
+  if (d.isDark && moon) {
+    const moonUp = moon.altitudeDeg > 0
+    const illum = moon.moon?.illumination ?? 0
+    if (moonUp && illum > 0.6) verdict = "bright moon — faint sky washed out"
+    else if (moonUp && illum > 0.25) verdict = "some moonlight"
+    else verdict = "dark & moonless — best viewing"
+  }
+
   return (
     <div className="flex items-center gap-2.5 px-4 py-2.5 border-b border-foreground/10 bg-foreground/[0.03]">
       <span
@@ -444,7 +462,11 @@ function DarknessBanner({ d }: { d: DarknessWindow }) {
       <div className="min-w-0 flex-1">
         <p className="font-mono text-[10px] tracking-[0.14em] uppercase text-foreground/85 truncate">
           {PHASE_LABEL[d.phase]}
-          {d.isDark && <span className="text-accent"> · best viewing</span>}
+          {verdict && (
+            <span className={verdict.startsWith("dark &") ? "text-accent" : "text-foreground/50"}>
+              {" · "}{verdict}
+            </span>
+          )}
         </p>
         <p className="font-mono text-[9px] tracking-[0.12em] uppercase text-foreground/45 tabular-nums">
           Sun {d.sunAltitudeDeg >= 0 ? "+" : ""}{d.sunAltitudeDeg.toFixed(1)}° · {lead}
