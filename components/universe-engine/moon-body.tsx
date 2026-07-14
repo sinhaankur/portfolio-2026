@@ -251,6 +251,7 @@ export function MoonBody({
             feature={feature}
             planetRadius={moon.visualRadius}
             invert={invert}
+            interactive={interactive}
             onHover={onHover}
           />
         ))}

@@ -26,7 +26,7 @@
  * faked live conjunction events.
  */
 
-import { useRef, useMemo, useState, Suspense } from "react"
+import { useRef, useMemo, useState, useEffect, Suspense } from "react"
 import { useFrame } from "@react-three/fiber"
 import { Html, useGLTF } from "@react-three/drei"
 import {
@@ -39,7 +39,7 @@ import {
   Points,
   Vector3,
 } from "three"
-import { DEG, simTimeRef, requestFollow } from "./astronomy"
+import { DEG, simTimeRef, requestFollow, cancelFollow, followRef } from "./astronomy"
 import type { HoverHandler, SurfaceFeature } from "./types"
 import "./three-line"
 
@@ -486,18 +486,34 @@ export function SatelliteShells({
 /** Single rover landing-site pin — a tiny coloured dome on the planet
  *  surface plus an invisible larger hit-zone so the pin is touch-findable.
  *  Hover surfaces the rover's full name + date + fact as a floating label. */
+/* Scratch vectors for RoverPin's label occlusion test — module-scoped so the
+ * per-frame check allocates nothing. */
+const _pinWorld = new Vector3()
+const _pinCenterWorld = new Vector3()
+const _pinToCam = new Vector3()
+
 export function RoverPin({
   feature,
   planetRadius,
   invert,
+  interactive = false,
   onHover,
 }: {
   feature: SurfaceFeature
   planetRadius: number
   invert: boolean
+  /** Explore mode — gates the click-to-fly camera move (the auto journey owns
+   *  the camera in passive mode, so pins only annotate there). */
+  interactive?: boolean
   onHover?: HoverHandler
 }) {
   const [isHovered, setIsHovered] = useState(false)
+  // Sticky selection — the tag + InfoPanel open on CLICK (tap), not hover, so
+  // the interaction works identically on touch and the label can't ambush the
+  // scene just because the cursor crossed a hit zone. Re-click dismisses.
+  const [selected, setSelected] = useState(false)
+  const groupRef = useRef<Group>(null)
+  const labelRef = useRef<HTMLDivElement>(null)
   const latRad = feature.lat * DEG
   const lonRad = feature.lon * DEG
   // Lat / lon → 3D position on the planet's surface in mesh-local frame
@@ -519,71 +535,162 @@ export function RoverPin({
     feature.status === "completed" ? (invert ? "#7a4a14" : "#ffc878") :
     feature.status === "lost"      ? (invert ? "#7a2828" : "#ff8888") :
     /* natural */                    (invert ? "#7a5028" : "#f0c890")
+  const year = feature.date !== "natural" ? feature.date.slice(0, 4) : null
+
+  // Rich detail for the InfoPanel (desktop) / bottom sheet (mobile).
+  const pinInfo = () => {
+    const statusLabel =
+      feature.status === "natural" ? "Surface feature" :
+      feature.status === "active" ? "Mission · active" :
+      feature.status === "lost" ? "Mission · lost" : "Mission · completed"
+    const agencyDate = [feature.agency !== "—" ? feature.agency : null, feature.date !== "natural" ? feature.date : null]
+      .filter(Boolean).join(" · ")
+    return {
+      name: feature.name,
+      classification: agencyDate ? `${statusLabel} · ${agencyDate}` : statusLabel,
+      fact: feature.fact,
+    }
+  }
+
+  // Hover is only an affordance now: flip the custom cursor into its target
+  // ring so the pin reads as clickable. Opening the detail is click's job.
+  const broadcastCursor = (hovering: boolean) => {
+    if (typeof window === "undefined") return
+    window.dispatchEvent(
+      new CustomEvent("universe:hover", {
+        detail: { body: hovering ? pinInfo() : null, clickable: hovering },
+      }),
+    )
+  }
+
+  const select = () => {
+    setSelected(true)
+    onHover?.(pinInfo())
+    // Single annotation at a time — other pins listen and stand down.
+    window.dispatchEvent(new CustomEvent("ue:pin-select", { detail: { name: feature.name } }))
+    // "View that place": ease the camera down to the site itself. The getter
+    // tracks the pin's live world position, so the camera rides the body's
+    // rotation and the site stays centred. Explore mode only — the passive
+    // hero's journey owns the camera.
+    if (interactive && groupRef.current) {
+      const obj = groupRef.current
+      requestFollow(
+        () => {
+          const v = new Vector3()
+          obj.getWorldPosition(v)
+          return { x: v.x, y: v.y, z: v.z }
+        },
+        Math.max(planetRadius * 1.6, 0.07),
+        feature.name,
+      )
+    }
+  }
+  const deselect = () => {
+    setSelected(false)
+    onHover?.(null)
+    // Release the camera only if this pin's follow is still the active one.
+    if (followRef.current?.label === feature.name) cancelFollow()
+  }
+
+  // Stand down when another pin takes the selection (it owns the InfoPanel
+  // now, so don't clear it) or when any sky-focus / reset supersedes us.
+  useEffect(() => {
+    if (!selected) return
+    const onPin = (e: Event) => {
+      const name = (e as CustomEvent<{ name?: string }>).detail?.name
+      if (name !== feature.name) setSelected(false)
+    }
+    const onSkyFocus = () => setSelected(false)
+    window.addEventListener("ue:pin-select", onPin)
+    window.addEventListener("universe:sky-focus", onSkyFocus)
+    return () => {
+      window.removeEventListener("ue:pin-select", onPin)
+      window.removeEventListener("universe:sky-focus", onSkyFocus)
+    }
+  }, [selected, feature.name])
+
+  // Far-side occlusion — the pin's dot depth-tests against the globe, but the
+  // Html tag floats above the canvas, so fade it when the site rotates away
+  // from the camera. Dot product of the site's outward normal with the
+  // pin→camera direction; no raycast, no allocation.
+  useFrame(({ camera }) => {
+    if (!selected || !labelRef.current || !groupRef.current) return
+    groupRef.current.getWorldPosition(_pinWorld)
+    groupRef.current.parent?.getWorldPosition(_pinCenterWorld)
+    _pinToCam.copy(camera.position).sub(_pinWorld)
+    const facing = _pinWorld.sub(_pinCenterWorld).dot(_pinToCam) > 0
+    labelRef.current.style.opacity = facing ? "1" : "0"
+  })
 
   return (
-    <group position={[x, y, z]}>
+    <group ref={groupRef} position={[x, y, z]}>
       {/* Naturals render as a thin outline ring instead of a solid dot —
           they represent extended regions (volcanoes, canyons, basins),
-          not point landing sites. Mission pins keep the solid sphere. */}
-      {isNatural ? (
-        <mesh>
-          <torusGeometry args={[pinRadius, pinRadius * 0.15, 8, 24]} />
-          <meshBasicMaterial color={color} transparent opacity={0.85} />
-        </mesh>
-      ) : (
-        <mesh>
-          <sphereGeometry args={[pinRadius, 10, 10]} />
-          <meshBasicMaterial color={color} />
-        </mesh>
-      )}
+          not point landing sites. Mission pins keep the solid sphere.
+          Hover/selection swells the marker slightly as the click cue. */}
+      <group scale={isHovered || selected ? 1.45 : 1}>
+        {isNatural ? (
+          <mesh>
+            <torusGeometry args={[pinRadius, pinRadius * 0.15, 8, 24]} />
+            <meshBasicMaterial color={color} transparent opacity={0.85} />
+          </mesh>
+        ) : (
+          <mesh>
+            <sphereGeometry args={[pinRadius, 10, 10]} />
+            <meshBasicMaterial color={color} />
+          </mesh>
+        )}
+      </group>
       {/* Touch-friendly hit zone — invisible sphere larger than the visible
           pin so a finger or cursor can land on the landing site without
-          surgical precision. */}
+          surgical precision. Click (tap) toggles the annotation + detail. */}
       <mesh
         onPointerOver={(e) => {
           e.stopPropagation()
           setIsHovered(true)
-          // Route the rich detail to the standard left InfoPanel (like planets,
-          // stars, comets) instead of a big centred floating tooltip. The pin
-          // keeps a tiny name label for the in-3D location cue.
-          const statusLabel =
-            feature.status === "natural" ? "Surface feature" :
-            feature.status === "active" ? "Mission · active" :
-            feature.status === "lost" ? "Mission · lost" : "Mission · completed"
-          const agencyDate = [feature.agency !== "—" ? feature.agency : null, feature.date !== "natural" ? feature.date : null]
-            .filter(Boolean).join(" · ")
-          onHover?.({
-            name: feature.name,
-            classification: agencyDate ? `${statusLabel} · ${agencyDate}` : statusLabel,
-            fact: feature.fact,
-          })
+          broadcastCursor(true)
         }}
-        onPointerOut={() => { setIsHovered(false); onHover?.(null) }}
+        onPointerOut={() => {
+          setIsHovered(false)
+          broadcastCursor(false)
+        }}
+        onClick={(e) => {
+          e.stopPropagation()
+          if (selected) deselect()
+          else select()
+        }}
       >
         <sphereGeometry args={[hitRadius, 8, 8]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
-      {/* Just a small name tag at the pin — the full detail (agency, date,
-          fact) now shows in the standard left InfoPanel via onHover, so this
-          is only the in-3D location cue, not a big centred popup. */}
-      {isHovered && (
-        <Html
-          position={[0, pinRadius * 3, 0]}
-          center
-          distanceFactor={5}
-          zIndexRange={[20, 0]}
-          style={{ pointerEvents: "none" }}
-        >
+      {/* Annotation tag — constant screen size (no distanceFactor: world-scaled
+          Html blows up to a screen-wide slab at close zoom in the compressed
+          scene). Chart-annotation styling: status dot + name + year in a quiet
+          translucent chip, hairline leader line down to the pin. */}
+      {selected && (
+        <Html position={[0, pinRadius * 2.5, 0]} zIndexRange={[20, 0]} style={{ pointerEvents: "none" }}>
           <div
-            className={`
-              whitespace-nowrap select-none pointer-events-none
-              font-mono text-[9px] tracking-[0.22em] uppercase
-              px-2 py-1 rounded
-              ${invert ? "bg-white/90 text-foreground" : "bg-black/75 text-white"}
-            `}
+            ref={labelRef}
+            className="pointer-events-none flex -translate-x-1/2 -translate-y-full select-none flex-col items-center transition-opacity duration-200"
             style={{ animation: "ue-label-in 220ms ease-out both" }}
           >
-            {feature.name}
+            <div
+              className={`
+                flex items-center gap-1.5 whitespace-nowrap
+                rounded-full border px-2.5 py-1 backdrop-blur-sm
+                font-mono text-[9px] tracking-[0.22em] uppercase
+                ${invert ? "border-black/15 bg-white/85 text-black/80" : "border-white/15 bg-black/55 text-white/90"}
+              `}
+            >
+              <span
+                aria-hidden="true"
+                className="h-1.5 w-1.5 shrink-0 rounded-full"
+                style={{ background: color }}
+              />
+              {feature.name}
+              {year && <span className={invert ? "text-black/45" : "text-white/45"}>· {year}</span>}
+            </div>
+            <span aria-hidden="true" className={`h-2.5 w-px ${invert ? "bg-black/30" : "bg-white/30"}`} />
           </div>
         </Html>
       )}
