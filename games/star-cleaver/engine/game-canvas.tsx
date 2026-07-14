@@ -519,16 +519,16 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
   const engineMounts = useMemo(
     () => {
       if (usingDefaultMountMap) {
-        // Mount map aligned to the Vanguard GLB's TWO engine cores — one at each
-        // boom rear. In GLB source space the cores sit at lateral ±0.86, vertical
-        // ~0, rear +z. The thruster FX renders four plumes, so we pair two per
-        // engine (a tight inner/outer stack at the same core) rather than the
-        // old four-corner X-wing splay. Keeps both booms lit without floating FX.
+        // Mount map aligned to the Vanguard Mk II GLB's TWO engine cores — a
+        // close-set pair on the tail centerline (the old twin booms are gone).
+        // In GLB source space the cores sit at lateral ±0.185, vertical ~0,
+        // rear +z ≈ 1.9. The thruster FX renders four plumes, so we pair two
+        // per engine (a tight inner/outer stack at the same core).
         return [
-          [-0.86, 0.06, 1.05] as [number, number, number],
-          [-0.86, -0.06, 1.05] as [number, number, number],
-          [0.86, 0.06, 1.05] as [number, number, number],
-          [0.86, -0.06, 1.05] as [number, number, number],
+          [-0.185, 0.06, 1.3] as [number, number, number],
+          [-0.185, -0.06, 1.3] as [number, number, number],
+          [0.185, 0.06, 1.3] as [number, number, number],
+          [0.185, -0.06, 1.3] as [number, number, number],
         ];
       }
 
@@ -544,14 +544,14 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
   const rearNozzleZs = useMemo(
     () =>
       usingDefaultMountMap
-        ? [1.10, 1.20, 1.10, 1.20]
+        ? [1.35, 1.45, 1.35, 1.45]
         : [thrusterPreset.nozzleZ, thrusterPreset.nozzleZ, thrusterPreset.nozzleZ, thrusterPreset.nozzleZ],
     [usingDefaultMountMap, thrusterPreset.nozzleZ]
   );
   const rearOuterNozzleZs = useMemo(
     () =>
       usingDefaultMountMap
-        ? [1.26, 1.36, 1.26, 1.36]
+        ? [1.51, 1.61, 1.51, 1.61]
         : [thrusterPreset.outerNozzleZ, thrusterPreset.outerNozzleZ, thrusterPreset.outerNozzleZ, thrusterPreset.outerNozzleZ],
     [usingDefaultMountMap, thrusterPreset.outerNozzleZ]
   );

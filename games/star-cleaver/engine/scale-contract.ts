@@ -3,11 +3,12 @@ import * as THREE from 'three';
 export const SCENE_METERS_PER_UNIT = 3;
 
 // Player ship calibration.
-// Active ship: the original "Vanguard" twin-boom interceptor
+// Active ship: the original "Vanguard Mk II" quad-blade interceptor
 // (blender/space-assets/build_vanguard.py → vanguard.glb), measured longitudinal
-// length 3.72 source units (Blender +Y → three -Z after export_yup).
+// length 4.13 source units (Blender +Y → three -Z after export_yup; printed by
+// the build as VANGUARD_BUILD_OK dims).
 export const DEFAULT_VANGUARD_LENGTH_METERS = 12.5;
-export const GLB_SOURCE_LENGTH_UNITS = 3.72;
+export const GLB_SOURCE_LENGTH_UNITS = 4.13;
 export const CALIBRATED_SHIP_SCALE =
   (DEFAULT_VANGUARD_LENGTH_METERS / SCENE_METERS_PER_UNIT) / GLB_SOURCE_LENGTH_UNITS;
 // Visual boost keeps the ship legible + hero-sized on high-FOV / high-DPI
