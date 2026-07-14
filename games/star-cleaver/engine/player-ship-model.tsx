@@ -9,11 +9,13 @@ import { auditShipModel } from './ship-model-qa';
 import type { SelectedShip } from './ship-selector';
 import { GAMEPLAY_SHIP_RENDER_SCALE, PREVIEW_SHIP_RENDER_SCALE } from './scale-contract';
 
-// Active player ship: the "Vanguard" — an ORIGINAL Blender-authored twin-boom
-// interceptor (blender/space-assets/build_vanguard.py → vanguard.glb). Central
-// delta cockpit pod, two engine booms with emissive cores + forward cannon tips.
-const PLAYER_SHIP_MODEL_PATH = '/models/vanguard.glb';
-// The Vanguard GLB is exported +Y-forward / +Z-up in Blender with export_yup=true,
+// Active player ship: the "Peregrine" — an ORIGINAL Blender-authored quad-foil
+// strike fighter (blender/space-assets/build_peregrine.py → peregrine.glb).
+// Long chisel nose, rear-set HUD-glow canopy, four strike-foils in a shallow X,
+// an engine nacelle at each wing root, four forward wingtip cannons. The
+// previous Vanguard GLB stays in public/models/ so this swap is revertible.
+const PLAYER_SHIP_MODEL_PATH = '/models/peregrine.glb';
+// The Peregrine GLB is exported +Y-forward / +Z-up in Blender with export_yup=true,
 // so in three-space it already arrives nose -Z (game forward) and up +Y — no
 // basis rotation needed.
 export const SHIP_MODEL_BASIS_ROTATION: [number, number, number] = [0, 0, 0];

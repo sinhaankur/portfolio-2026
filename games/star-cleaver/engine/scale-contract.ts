@@ -3,16 +3,16 @@ import * as THREE from 'three';
 export const SCENE_METERS_PER_UNIT = 3;
 
 // Player ship calibration.
-// Active ship: the original "Vanguard Mk II" quad-blade interceptor
-// (blender/space-assets/build_vanguard.py → vanguard.glb), measured longitudinal
-// length 4.13 source units (Blender +Y → three -Z after export_yup; printed by
-// the build as VANGUARD_BUILD_OK dims).
+// Active ship: the original "Peregrine" quad-foil strike fighter
+// (blender/space-assets/build_peregrine.py → peregrine.glb), measured
+// longitudinal length 4.285 source units (Blender +Y → three -Z after
+// export_yup; printed by the build as PEREGRINE_BUILD_OK dims).
 export const DEFAULT_VANGUARD_LENGTH_METERS = 12.5;
-export const GLB_SOURCE_LENGTH_UNITS = 4.13;
+export const GLB_SOURCE_LENGTH_UNITS = 4.285;
 export const CALIBRATED_SHIP_SCALE =
   (DEFAULT_VANGUARD_LENGTH_METERS / SCENE_METERS_PER_UNIT) / GLB_SOURCE_LENGTH_UNITS;
 // Visual boost keeps the ship legible + hero-sized on high-FOV / high-DPI
-// displays. Bumped so the Vanguard reads as the clear focal point in flight.
+// displays. Bumped so the player ship reads as the clear focal point in flight.
 export const GAMEPLAY_SHIP_RENDER_SCALE = CALIBRATED_SHIP_SCALE * 1.7;
 export const PREVIEW_SHIP_RENDER_SCALE = CALIBRATED_SHIP_SCALE * 1.4;
 

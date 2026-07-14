@@ -16,10 +16,12 @@ export interface ShipConfig {
 }
 
 export const SHIP_CONFIGS: Record<string, ShipConfig> = {
+  // id stays 'default-vanguard' so existing saves/state keep resolving; the
+  // craft itself is now the Peregrine quad-foil strike fighter.
   'default-vanguard': {
     id: 'default-vanguard',
-    name: 'Vanguard Interceptor',
-    description: 'Styled GLB interceptor with tactical hull accents and cockpit HUD.',
+    name: 'Peregrine Strike Fighter',
+    description: 'Quad-foil strike fighter — wing-root nacelles, four wingtip cannons, cockpit HUD.',
     visualSource: 'glb',
     visualNote: 'Styled GLB',
     stats: {
@@ -34,7 +36,7 @@ export type SelectedShip = 'default-vanguard';
 
 /**
  * Get available ships based on worlds completed
- * Vanguard: always available
+ * Peregrine: always available
  * T-70: unlocked after 2 worlds
  * X-Blade: unlocked after 5 worlds
  */

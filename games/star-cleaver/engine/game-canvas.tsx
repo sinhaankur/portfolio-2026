@@ -519,16 +519,15 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
   const engineMounts = useMemo(
     () => {
       if (usingDefaultMountMap) {
-        // Mount map aligned to the Vanguard Mk II GLB's TWO engine cores — a
-        // close-set pair on the tail centerline (the old twin booms are gone).
-        // In GLB source space the cores sit at lateral ±0.185, vertical ~0,
-        // rear +z ≈ 1.9. The thruster FX renders four plumes, so we pair two
-        // per engine (a tight inner/outer stack at the same core).
+        // Mount map aligned to the Peregrine GLB's FOUR wing-root nacelle
+        // exhausts — one plume per nacelle. Positions come straight from the
+        // build's printed exhausts_three (build_peregrine.py):
+        // (±0.681, ±0.146, 1.997) in GLB source space.
         return [
-          [-0.185, 0.06, 1.3] as [number, number, number],
-          [-0.185, -0.06, 1.3] as [number, number, number],
-          [0.185, 0.06, 1.3] as [number, number, number],
-          [0.185, -0.06, 1.3] as [number, number, number],
+          [-0.681, 0.146, 1.997] as [number, number, number],
+          [-0.681, -0.146, 1.997] as [number, number, number],
+          [0.681, 0.146, 1.997] as [number, number, number],
+          [0.681, -0.146, 1.997] as [number, number, number],
         ];
       }
 
@@ -544,14 +543,14 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
   const rearNozzleZs = useMemo(
     () =>
       usingDefaultMountMap
-        ? [1.35, 1.45, 1.35, 1.45]
+        ? [2.05, 2.05, 2.05, 2.05]
         : [thrusterPreset.nozzleZ, thrusterPreset.nozzleZ, thrusterPreset.nozzleZ, thrusterPreset.nozzleZ],
     [usingDefaultMountMap, thrusterPreset.nozzleZ]
   );
   const rearOuterNozzleZs = useMemo(
     () =>
       usingDefaultMountMap
-        ? [1.51, 1.61, 1.51, 1.61]
+        ? [2.21, 2.21, 2.21, 2.21]
         : [thrusterPreset.outerNozzleZ, thrusterPreset.outerNozzleZ, thrusterPreset.outerNozzleZ, thrusterPreset.outerNozzleZ],
     [usingDefaultMountMap, thrusterPreset.outerNozzleZ]
   );
@@ -752,11 +751,12 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
           <pointLight position={[0, 0.72, 0.1]} intensity={0.26} distance={9} color={0xffffff} />
 
           {/* REMOVED: the big additive aura icosahedron, the cockpit-glow sphere,
-              and the procedural canopy-glass shell. The Blender Vanguard GLB already
-              has its own canopy + emissive engine cores; these add-ons were sized/placed
-              for the retired procedural hull and rendered as oversized glassy blobs
-              floating beside the ship — the "looks funny" bug. We keep only the
-              small, realigned exhaust plumes behind the real engine cores below. */}
+              and the procedural canopy-glass shell. The Blender player-ship GLB
+              already has its own canopy + emissive engine cores; these add-ons were
+              sized/placed for the retired procedural hull and rendered as oversized
+              glassy blobs floating beside the ship — the "looks funny" bug. We keep
+              only the small, realigned exhaust plumes behind the real engine cores
+              below. */}
 
           {/* Rear engine nozzle lips + cores for cleaner, higher-fidelity engine ends. */}
           {engineMounts.map((mount, idx) => (
@@ -3748,7 +3748,7 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
           <MemoPlayerShipGroup gameState={gameState} showForwardDebug={showForwardDebug} />
         )}
 
-        {/* Hero key-light that rides with the ship so the Vanguard is always
+        {/* Hero key-light that rides with the ship so the player ship is always
             clearly lit no matter where it flies (fixes "ship hard to see"). */}
         {gameState.playerEntity && <ShipKeyLight gameState={gameState} />}
 
