@@ -157,8 +157,11 @@ export function SettingsDrawer({
     setStatus("idle")
     setErrorMsg(null)
     setAvailableModels([])
-    void runLocalDetection()
-  }, [open, runLocalDetection])
+    // NO auto-scan on open. The drawer auto-opens for first-time visitors
+    // (no key configured), so scanning here port-probed localhost on every
+    // fresh page load — console errors for all, and against the house rule
+    // that nothing acts without explicit user action. The Scan button does it.
+  }, [open])
 
   /* ------------------------------------------------------------ */
   /* Save handlers — one per provider so each has its own validate */
@@ -331,7 +334,7 @@ export function SettingsDrawer({
                       disabled={detectingLocal}
                       className="px-3 py-1.5 rounded-full border border-border/70 text-[10px] font-mono tracking-[0.16em] uppercase text-foreground/80 hover:border-accent disabled:opacity-50 transition-colors"
                     >
-                      {detectingLocal ? "Scanning..." : "Rescan"}
+                      {detectingLocal ? "Scanning..." : localDetection ? "Rescan" : "Scan"}
                     </button>
                   </div>
 

@@ -172,7 +172,9 @@ export function Footer() {
           >
             {/* Legal — the license file is one click away from the claim. */}
             <p>
-              © {new Date().getFullYear()} Ankur Sinha ·{" "}
+              {/* Build-time UTC year, not the visitor's clock — same hydration
+                  rule as the deploy date below (see #418 note). */}
+              © {new Date(BUILD_TIME).getUTCFullYear()} Ankur Sinha ·{" "}
               <a
                 href="https://github.com/sinhaankur/portfolio-2026/blob/main/LICENSE"
                 target="_blank"
