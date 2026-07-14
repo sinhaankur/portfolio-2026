@@ -195,10 +195,15 @@ export function Footer() {
               Toronto ·{" "}
               <time aria-live="off">{time}</time> local · Updated{" "}
               <time dateTime={BUILD_TIME}>
+                {/* Pinned to UTC: the CI server bakes this string into the HTML
+                    in UTC, so letting the browser re-render it in the visitor's
+                    timezone flips the date across midnight → React hydration
+                    error #418 on every page. One timezone, one truth. */}
                 {new Date(BUILD_TIME).toLocaleDateString("en-US", {
                   year: "numeric",
                   month: "short",
                   day: "numeric",
+                  timeZone: "UTC",
                 })}
               </time>
             </p>

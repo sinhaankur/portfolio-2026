@@ -44,11 +44,16 @@ export function Intro() {
   const engineReadyRef = useRef(false)
   const raf = useRef<number | null>(null)
 
-  // The cosmic-ignition intro belongs to the site entry, not the arcade or the
-  // blog: a direct hit on /games/* or /writing/* should drop straight to content
-  // (a reader wants the words, not a 6-second space preamble). We don't mark the
-  // session, so the full intro still plays if they later land on the home page.
-  const skipIntroRoute = pathname?.startsWith("/games") || pathname?.startsWith("/writing")
+  // The cosmic-ignition intro belongs to the site ENTRY — the home page, where
+  // the Universe Engine it announces actually ignites beneath the curtain.
+  // Every other route (the Lab index, case studies, games, writing) is a
+  // destination in itself: a direct hit should drop straight to content, not
+  // hold the visitor behind ~7 seconds of black for an engine that page never
+  // starts. We don't mark the session on skipped routes, so the full intro
+  // still plays if they later land on home. (Static export serves trailing
+  // slashes, so normalize before comparing.)
+  const normalized = (pathname ?? "/").replace(/\/+$/, "") || "/"
+  const skipIntroRoute = normalized !== "/"
 
   useEffect(() => {
     if (skipIntroRoute) return
