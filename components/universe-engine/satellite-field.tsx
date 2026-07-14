@@ -252,6 +252,9 @@ type SatRec = { inclo?: number; alta?: number; altp?: number; no?: number; ecco?
 const EARTH_RADIUS_KM = 6371
 const RECOMPUTE_MS = 250 // SGP4 refresh cadence (4 Hz)
 
+// Scratch vector for the per-frame overview-LOD measurement (no allocation).
+const _fieldWorld = new THREE.Vector3()
+
 // Debris + rocket bodies read as a hazard colour (dull red/amber), distinct from
 // the altitude-band palette — the LeoLabs-style "junk vs active" separation.
 const DEBRIS_COLOR: [number, number, number] = [1.0, 0.42, 0.32]
@@ -323,24 +326,49 @@ const VERT = /* glsl */ `
   attribute float aDebris;      // 1 = debris / rocket body → render smaller
   attribute float aGroup;       // constellation group id (see SAT_GROUPS)
   attribute float aRegime;      // orbit regime id (0=LEO 1=MEO 2=GEO 3=HEO)
+  attribute float aRand;        // stable per-sat random [0,1) → stratified LOD cull
   uniform float uTimeDay;       // current sim time, days since J2000
   uniform float uSize;
   uniform float uPixelRatio;
   uniform float uIsolate;   // 1.0 = a satellite is selected → hide the whole swarm
   uniform float uGroupSel;  // -1 = all groups; else show only this group id
   uniform float uRegimeSel; // -1 = all regimes; else show only this regime id
+  uniform float uLod;       // 0 = Earth fills the frame (full catalogue) → 1 = Earth
+                            // small on screen (LEO thinned to a calm haze)
+  uniform float uKeepScale; // viewport-area dot budget: 1 on desktop, ~0.25 on a
+                            // phone — a 390px-wide screen can't carry 18k dots
+  uniform float uMaxPx;     // dot size ceiling (CSS px) — also area-scaled so
+                            // close-range dots don't bloat into moss on mobile
   varying vec3 vColor;
   varying float vHidden;
   varying float vDebris;   // passed to frag → debris drawn dimmer (active stand out)
+  varying float vFade;     // LOD alpha multiplier (LEO haze at overview zoom)
   void main() {
     vColor = aColor;
     vDebris = aDebris;
+    // Overview declutter, LEO only. ~85% of the catalogue lives in a band just
+    // 6–30% above the surface; at overview zoom 18k min-px dots in that thin
+    // annulus fuse into a solid crust over Earth. Thin LEO to a stratified
+    // sample as Earth shrinks on screen (aRand is stable per satellite, so the
+    // same sats persist frame to frame — no shimmer). MEO / GEO / HEO are
+    // sparse and ARE the structure (nav shell, GEO belt), so they never cull.
+    // Any explicit filter or isolate means the user asked for a specific
+    // subset — show it in full.
+    float lodEff = (uGroupSel >= 0.0 || uRegimeSel >= 0.0 || uIsolate > 0.5) ? 0.0 : uLod;
+    float keep = mix(1.0, 0.32, lodEff) * uKeepScale;
+    // Soft cull edge: each dot fades over a small aRand band around the moving
+    // threshold instead of popping, so zooming reads as the haze *resolving*
+    // into satellites, not dots switching on.
+    float cullFade = (aRegime < 0.5) ? (1.0 - smoothstep(keep - 0.08, keep, aRand)) : 1.0;
     // Launch gating: not yet launched → collapse to zero size.
     // Isolate: when one satellite is selected we hide the rest (show only the GLB).
     // Group + regime filters AND together (both must pass if set).
-    vHidden = (aLaunchDay > uTimeDay || uIsolate > 0.5 ||
+    vHidden = (aLaunchDay > uTimeDay || uIsolate > 0.5 || cullFade < 0.01 ||
                (uGroupSel >= 0.0 && abs(aGroup - uGroupSel) > 0.5) ||
                (uRegimeSel >= 0.0 && abs(aRegime - uRegimeSel) > 0.5)) ? 1.0 : 0.0;
+    // Surviving LEO dots soften at overview so the band reads as a luminous
+    // haze around the globe, resolving into crisp dots as you zoom in.
+    vFade = ((aRegime < 0.5) ? mix(1.0, 0.6, lodEff) : 1.0) * cullFade;
     vec4 mv = modelViewMatrix * vec4(position, 1.0);
     gl_Position = projectionMatrix * mv;
     // Perspective size with distance falloff, BUT clamped to a visible floor so
@@ -351,9 +379,10 @@ const VERT = /* glsl */ `
     float persp = uSize * sizeMul * uPixelRatio * (1.0 / -mv.z);
     // floor ~1.1 device px keeps every satellite legible without blooming; a
     // tighter ceiling (4.5px) keeps dots CRISP like LeoLabs instead of fat blobs
-    // that wash over Earth.
-    float minPx = 1.1 * uPixelRatio * sizeMul;
-    float s = vHidden > 0.5 ? 0.0 : clamp(persp, minPx, 4.5 * uPixelRatio);
+    // that wash over Earth. At overview zoom the floor eases to ~0.7px so the
+    // thinned LEO band stays a haze instead of re-fusing into a crust.
+    float minPx = mix(1.1, 0.7, lodEff) * uPixelRatio * sizeMul;
+    float s = vHidden > 0.5 ? 0.0 : clamp(persp, minPx, uMaxPx * uPixelRatio);
     gl_PointSize = s;
   }
 `
@@ -362,6 +391,7 @@ const FRAG = /* glsl */ `
   varying vec3 vColor;
   varying float vHidden;
   varying float vDebris;
+  varying float vFade;
   void main() {
     if (vHidden > 0.5) discard;
     // Crisp catalogued dot: a bright tight core + a small soft rim. Denser than
@@ -379,6 +409,7 @@ const FRAG = /* glsl */ `
     // slight whiten at the very centre keeps each dot a hot point
     vec3 col = mix(vColor, vec3(1.0), core * 0.35);
     a *= vDebris > 0.5 ? 0.45 : 1.0;
+    a *= vFade;   // overview LOD: LEO softens into haze when Earth is small
     gl_FragColor = vec4(col, a);
   }
 `
@@ -432,6 +463,7 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
 
   const markerRef = useRef<THREE.Group>(null)
   const haloRef = useRef<THREE.Mesh>(null)
+  const geoRingRef = useRef<THREE.Mesh>(null)
   // SAT-3: one group per notable craft, positioned on its real orbit each frame.
   const notableRefs = useRef<(THREE.Group | null)[]>([])
   // resolve each notable craft's catalogue index once sats load.
@@ -439,7 +471,17 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     () => NOTABLE_CRAFT.map((c) => sats?.findIndex((s) => s.id === c.id) ?? -1),
     [sats],
   )
-  const { camera, raycaster } = useThree()
+  const { camera, raycaster, size } = useThree()
+  const viewportH = size.height
+  // Viewport-area dot budget, relative to the 1440×900 desktop the dot density
+  // was tuned on. A phone has ~25% of those pixels — it gets ~25% of the LEO
+  // dots and a smaller size ceiling, or the swarm reads as moss at any zoom.
+  const areaScale = Math.min(1, Math.max(0.22, (size.width * size.height) / (1440 * 900)))
+  const maxPx = 2.2 + 2.3 * Math.sqrt(areaScale) // 4.5 CSS px desktop → ~3.3 phone
+  // Smoothed overview-LOD state (0 = full catalogue, 1 = decluttered haze).
+  // Starts at 1: the field first appears at solar-system zoom, where the
+  // decluttered read is the right one.
+  const lodRef = useRef(1)
   // Points are dimensionless to a ray, so give the raycaster a hit radius. Sized
   // to ~a few % of Earth's visual radius so clicking near a dot in the shell
   // registers, without grabbing everything. (World units.)
@@ -512,21 +554,53 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     g.setAttribute("aDebris", new THREE.BufferAttribute(isDeb, 1))
     const groups = new Float32Array(n)
     const regimes = new Float32Array(n)
+    const rands = new Float32Array(n)
     sats.forEach((sv, gi) => {
       groups[gi] = classifyGroup(sv.name, sv.type)
       regimes[gi] = classifyRegimeId(sv.l2)
+      // Stable per-satellite random for the overview LOD cull — hashed from the
+      // NORAD id (not the index) so the visible sample never reshuffles when
+      // the catalogue refreshes.
+      rands[gi] = Math.abs(Math.sin(sv.id * 12.9898) * 43758.5453) % 1
     })
     g.setAttribute("aGroup", new THREE.BufferAttribute(groups, 1))
     g.setAttribute("aRegime", new THREE.BufferAttribute(regimes, 1))
+    g.setAttribute("aRand", new THREE.BufferAttribute(rands, 1))
     g.boundingSphere = new THREE.Sphere(new THREE.Vector3(), earthVisualRadius * 12)
     return g
   }, [sats, earthVisualRadius])
 
-  useFrame(() => {
+  useFrame((_, delta) => {
     if (matRef.current) {
       matRef.current.uniforms.uTimeDay.value = msToJ2000Day(simTimeRef.current.simMs)
       matRef.current.uniforms.uGroupSel.value = satGroupFilterRef.current
       matRef.current.uniforms.uRegimeSel.value = satRegimeFilterRef.current
+      matRef.current.uniforms.uKeepScale.value = areaScale
+      matRef.current.uniforms.uMaxPx.value = maxPx
+      // Overview LOD from Earth's APPARENT size on screen (not raw camera
+      // distance — screen-relative, so it holds across viewports + FOVs).
+      // Earth ≥ ~380px radius → 0 (full catalogue); ≤ ~180px → 1 (LEO haze).
+      // Smoothed so crossing the band never pops.
+      if (pointsRef.current) {
+        pointsRef.current.getWorldPosition(_fieldWorld)
+        const dist = camera.position.distanceTo(_fieldWorld)
+        const halfFovTan = Math.tan(((camera as THREE.PerspectiveCamera).fov * Math.PI) / 360)
+        const apparentPx = (earthVisualRadius / Math.max(dist * halfFovTan, 1e-6)) * (viewportH / 2)
+        const targetLod = THREE.MathUtils.clamp((380 - apparentPx) / (380 - 180), 0, 1)
+        lodRef.current += (targetLod - lodRef.current) * (1 - Math.exp(-delta * 5))
+        matRef.current.uniforms.uLod.value = lodRef.current
+      }
+      // GEO belt guide follows the LOD: a faint arc at overview (when the belt
+      // is the structure worth reading), gone up close / filtered / isolated.
+      if (geoRingRef.current) {
+        const m = geoRingRef.current.material as THREE.MeshBasicMaterial
+        const quiet =
+          selectedSatRef.current != null ||
+          satGroupFilterRef.current >= 0 ||
+          satRegimeFilterRef.current >= 0
+        m.opacity = quiet ? 0 : 0.14 * lodRef.current
+        geoRingRef.current.visible = m.opacity > 0.005
+      }
     }
     const lib = sgp4.current
     if (!geometry || !sats || !lib) return
@@ -831,6 +905,15 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     if (idx == null || !sats || !sats[idx]) return
     // don't select a not-yet-launched sat (respect the timeline gate)
     if (simTimeRef.current.simMs < sats[idx].launchMs) return
+    // Don't select a dot the overview LOD has culled — the raycaster still sees
+    // it, but flying the camera to an invisible satellite reads as a glitch.
+    // Mirrors the shader: LEO only, same NORAD-id hash, same keep threshold.
+    if (classifyRegimeId(sats[idx].l2) === 0) {
+      const filtered = satGroupFilterRef.current >= 0 || satRegimeFilterRef.current >= 0
+      const keep = (filtered ? 1 : 1 - 0.68 * lodRef.current) * areaScale
+      const rand = Math.abs(Math.sin(sats[idx].id * 12.9898) * 43758.5453) % 1
+      if (rand > keep - 0.04) return
+    }
     e.stopPropagation()
     selectedSatRef.current = sats[idx].id
   }
@@ -865,9 +948,22 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
             uIsolate: { value: 0 },
             uGroupSel: { value: -1 },
             uRegimeSel: { value: -1 },
+            uLod: { value: 1 },
+            uKeepScale: { value: 1 },
+            uMaxPx: { value: 4.5 },
           }}
         />
       </points>
+
+      {/* GEO belt guide — the geostationary ring is real, sharply defined
+          structure (35,786 km above the equator, 42,164 km from Earth's
+          center); at overview zoom this faint arc traces it so the sparse
+          orange dots read as THE BELT. Opacity rides the LOD: it hands over
+          to the dots as you zoom in, and stands down for filters/isolate. */}
+      <mesh ref={geoRingRef} rotation={[Math.PI / 2, 0, 0]} visible={false}>
+        <torusGeometry args={[42164 * kmToScene, earthVisualRadius * 0.004, 6, 160]} />
+        <meshBasicMaterial color="#ff9a6b" transparent opacity={0} depthWrite={false} />
+      </mesh>
 
       {/* Selected satellite, riding its live SGP4 position. Shown at a VISIBLE,
           recognizable scale (NOT true 1:1 — a real satellite is a sub-pixel speck

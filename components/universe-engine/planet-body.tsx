@@ -347,6 +347,17 @@ export function PlanetBody({
           planet.visualRadius * (earthShellFraming ? 5 : planet.raw.hasRings ? 5 : 3.5),
           earthShellFraming ? 0.6 : 0.5,
         )
+        // Arrive on the SUNLIT side (offset ~30° so the terminator + night-side
+        // city lights stay in frame). Without this the camera keeps whatever
+        // angle it held — often the night side, which reads as a black disc.
+        let approachDir: { x: number; y: number; z: number } | undefined
+        if (earthShellFraming) {
+          const earthW = new Vector3()
+          obj.getWorldPosition(earthW)
+          const sunward = new Vector3(SUN_OFFSET_SCENE, 0, 0).sub(earthW).normalize()
+          const side = new Vector3().crossVectors(sunward, new Vector3(0, 1, 0)).normalize()
+          approachDir = sunward.addScaledVector(side, 0.55).add(new Vector3(0, 0.28, 0)).normalize()
+        }
         requestFollow(
           () => {
             const v = new Vector3()
@@ -355,6 +366,7 @@ export function PlanetBody({
           },
           followDistance,
           planet.raw.name,
+          approachDir,
         )
       }
     }
@@ -870,6 +882,7 @@ export function PlanetBody({
                     feature={feature}
                     planetRadius={planet.visualRadius}
                     invert={invert}
+                    interactive={interactive}
                     onHover={onHover}
                   />
                 ))}

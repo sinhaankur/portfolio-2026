@@ -128,6 +128,7 @@ import type {
 const _flyCamDir = new Vector3()
 const _flyTargetVec = new Vector3()
 const _flyDesiredCamPos = new Vector3()
+const _flyApproachDir = new Vector3()
 
 function FlyToController({ interactive }: { interactive: boolean }) {
   const { camera, controls } = useThree() as unknown as {
@@ -187,6 +188,17 @@ function FlyToController({ interactive }: { interactive: boolean }) {
         } else {
           _flyCamDir.normalize()
         }
+        // Vantage swing: when the follow chose an approach direction (e.g.
+        // Earth arriving on its sunlit limb), ease the view direction toward
+        // it during the fly-in. Slightly faster than the dolly so the swing
+        // completes before arrival hands control back to the user.
+        let dirErr = 0
+        if (follow.approachDir) {
+          _flyApproachDir.set(follow.approachDir.x, follow.approachDir.y, follow.approachDir.z).normalize()
+          const kDir = 1 - Math.exp(-delta * 6.0)
+          _flyCamDir.lerp(_flyApproachDir, kDir).normalize()
+          dirErr = _flyCamDir.angleTo(_flyApproachDir)
+        }
         const nextDist = currentDist + (follow.distance - currentDist) * k
         _flyDesiredCamPos.copy(controls.target).addScaledVector(_flyCamDir, nextDist)
         camera.position.copy(_flyDesiredCamPos)
@@ -196,9 +208,11 @@ function FlyToController({ interactive }: { interactive: boolean }) {
         // (whirling around the Sun at 88-day period) arrives as
         // reliably as Pluto. Once arrived, the controller stops
         // overriding camera position entirely — pinch/scroll zooms
-        // and drag-rotate respond normally.
+        // and drag-rotate respond normally. (With a vantage swing, the
+        // direction must also have settled, or the lit-side arc would
+        // cut off mid-swing.)
         const distErr = Math.abs(currentDist - follow.distance) / Math.max(follow.distance, 0.001)
-        if (distErr < 0.08) {
+        if (distErr < 0.08 && dirErr < 0.06) {
           follow.arrived = true
         }
       } else {

@@ -593,6 +593,12 @@ export const followRef: {
     getter: FollowGetter
     distance: number
     label?: string
+    /** Optional world-space unit direction the camera should arrive FROM
+     *  (body → camera). During the fly-in the controller swings the current
+     *  view direction toward this, so a focus can choose its vantage — e.g.
+     *  Earth in the solar explorer arrives on the sunlit side instead of
+     *  whatever night-side angle the camera happened to hold. */
+    approachDir?: { x: number; y: number; z: number }
     /** Set true by the FlyToController once the initial fly-in has
      *  arrived at the target. After that, the camera-distance lerp
      *  stops fighting user input — drag rotates, scroll zooms, and
@@ -602,9 +608,14 @@ export const followRef: {
 } = { current: null }
 
 /** Request follow mode. Cancels any in-flight fly-to. */
-export function requestFollow(getter: FollowGetter, distance: number, label?: string) {
+export function requestFollow(
+  getter: FollowGetter,
+  distance: number,
+  label?: string,
+  approachDir?: { x: number; y: number; z: number },
+) {
   flyToRef.current.active = false
-  followRef.current = { getter, distance, label, arrived: false }
+  followRef.current = { getter, distance, label, approachDir, arrived: false }
 }
 
 /** Cancel follow mode (called by reset, by a new fly, by Esc / explore toggle). */
