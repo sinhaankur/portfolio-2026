@@ -453,6 +453,13 @@ const ENCOUNTER_DESPAWN_BEHIND = 260; // cull patrols that fall this far behind
 const ENCOUNTER_MAX_LIVE = 9; // hard cap on simultaneous hostiles
 const ENEMY_DRIFT_SPEED = 9; // units/sec each hostile closes on the player
 const ENEMY_FIRE_RANGE = 170; // hostiles open fire within this distance
+// Deep Run sector-entry weapons hold: sector hostiles seed close enough to be
+// inside fire range immediately, which killed an idle/orienting player within
+// ~10s of a first launch. On sector entry hostiles still close in but hold
+// fire briefly — longest on the run's first sector, short deeper in so the
+// veteran pacing is unchanged.
+const SECTOR_GRACE_FIRST_S = 8;
+const SECTOR_GRACE_DEEP_S = 4;
 const ENEMY_BOLT_SPEED = 95; // units/sec for enemy projectiles
 const ENEMY_BOLT_RADIUS = 0.32; // generous so hits register against the player
 const PLAYER_HIT_RADIUS = 2.2; // player collision radius for incoming bolts
@@ -2055,9 +2062,11 @@ function GameScene({
     if (!em) return;
     const count = sectorEnemyCount(sectorIndex);
     const threat = sectorThreatScale(sectorIndex);
+    // 1.5× (was 1.2×) puts the seed just OUTSIDE fire range (210 vs 170), so
+    // hostiles readably approach before engaging instead of shooting on frame 1.
     const base = _encounterSpawn
       .copy(forward)
-      .multiplyScalar(ENCOUNTER_SPAWN_AHEAD * 1.2)
+      .multiplyScalar(ENCOUNTER_SPAWN_AHEAD * 1.5)
       .add(gameState.playerEntity.position as THREE.Vector3);
     for (let i = 0; i < count; i++) {
       const lateral = _encounterLateral
@@ -2331,6 +2340,9 @@ function GameScene({
             }
             sectorSpawnedRef.current = true;
             run.sectorCleared = false;
+            // weapons-hold window on entry (see SECTOR_GRACE_* constants)
+            md.holdFireUntil =
+              gameState.simTime + (run.sectorIndex === 0 ? SECTOR_GRACE_FIRST_S : SECTOR_GRACE_DEEP_S);
             const info = sectorInfo(run.sectorIndex);
             md.sectorFact = isBossSector
               ? `⚠ CAPITAL HOSTILE INBOUND — ${info.name}. Break it to clear the sector.`
@@ -2503,7 +2515,8 @@ function GameScene({
             // actually bite. (Deep Run + Defend; not pure free-roam Explore.)
             const isBoss = enemy.metadata?.class === 'boss';
             const fireRange = isBoss ? ENEMY_FIRE_RANGE * 1.6 : ENEMY_FIRE_RANGE;
-            if (gameState.gameMode !== 'explore' && dist < fireRange) {
+            const holdFireUntil = Number(gameState.playerEntity.metadata?.holdFireUntil ?? 0);
+            if (gameState.gameMode !== 'explore' && dist < fireRange && gameState.simTime >= holdFireUntil) {
               const md = (enemy.metadata ??= {});
               const cd = Number(md.fireCooldown ?? Math.random() * 1.2);
               const next = cd - clampedDelta;
