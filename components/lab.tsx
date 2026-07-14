@@ -64,6 +64,8 @@ type Product = {
   status?: ProductStatus
 }
 
+// HAND-PICKED by Ankur (2026-07-14): this is a curated shelf, not an
+// auto-synced GitHub feed. Add or remove entries ONLY on his call.
 const products: Product[] = [
   {
     name: "WatchTower",
@@ -76,13 +78,13 @@ const products: Product[] = [
     status: "exploration",
   },
   {
-    name: "GovLens",
-    tagline: "Context-aware overlay for government portals",
+    name: "Cognitive Twin",
+    tagline: "Digital-twin agent architecture",
     blurb:
-      "Chrome extension that activates on 25+ national gov TLDs. Translation, structural navigation, a 0–100 usability score, and a region-aware jargon explainer. A three-engine translation cascade tells you which engine will answer before you click.",
-    stack: ["Chrome ext", "On-device AI", "Claude SDK"],
-    href: "https://github.com/sinhaankur/GovLens",
-    highlight: "25+ TLDs · 100+ languages",
+      "The public repo behind the blueprint above: local-first context store, behavioral rehearsal, deterministic guardrails. A personal agent that learns decision style, not just prompts — and runs entirely on your machine.",
+    stack: ["Python", "Local-first", "Agents"],
+    href: "https://github.com/sinhaankur/cognitive-twin-agent",
+    highlight: "Blueprint at /lab/cognitive-twin",
     status: "building",
   },
   {
@@ -251,6 +253,19 @@ export function Lab() {
           </Link>
         </motion.div>
 
+        {/* Live experiments — the four working demos at GRID weight, so the
+            two flagship case studies above keep the lead. One deliberate
+            rhythm break instead of six identical full-width slabs in a row
+            (the old page scrolled like the same card six times). */}
+        <div className="flex items-baseline justify-between gap-4 mb-6">
+          <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-muted-foreground">
+            Live experiments
+          </p>
+          <span aria-hidden="true" className="flex-1 h-px bg-border" />
+          <p className="font-mono text-[10px] tracking-widest text-muted-foreground/70">4</p>
+        </div>
+        <div className="grid gap-4 md:gap-5 md:grid-cols-2 mb-14 md:mb-16">
+
         {/* Universe Engine Assistant — AI lab entry. Frames the engine
             as a canvas and the assistant as the new piece. The engine
             itself is already the hero, so this card is about the LLM
@@ -260,19 +275,19 @@ export function Lab() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-60px" }}
           transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
-          className="mb-14 md:mb-16"
+          className="h-full"
         >
           <Link
             href="/lab/universe-assistant"
             data-cursor-hover
             aria-label="Universe Engine Assistant — read the case study"
             className="
-              group relative block
+              group relative flex h-full flex-col
               border border-border rounded-2xl
               bg-card hover:border-accent/60 transition-colors duration-300
               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
               focus-visible:ring-offset-4 focus-visible:ring-offset-background
-              p-7 md:p-10 lg:p-12
+              p-6 md:p-8
             "
           >
             <div className="flex flex-wrap items-center gap-2 mb-6">
@@ -284,11 +299,11 @@ export function Lab() {
               </span>
             </div>
 
-            <h3 className="font-display text-3xl md:text-4xl lg:text-5xl font-light tracking-[-0.02em] leading-[1.05] text-foreground">
+            <h3 className="font-display text-2xl md:text-3xl font-light tracking-[-0.02em] leading-[1.1] text-foreground">
               Universe Engine Assistant — <span className="italic">talk to the sky.</span>
             </h3>
 
-            <p className="mt-5 max-w-2xl font-sans text-base md:text-lg text-foreground/80 leading-relaxed">
+            <p className="mt-4 flex-1 font-sans text-sm md:text-base text-foreground/80 leading-relaxed">
               Natural-language queries against the same 3D scene from the
               hero. Thirteen tools — eight read the dataset, five steer the
               camera and time. Browser-direct Anthropic streaming, prompt
@@ -310,42 +325,42 @@ export function Lab() {
           </Link>
         </motion.div>
 
-        {/* Cognitive Twin Agent — architecture-first lab case study.
-            Private repository, public blueprint. */}
+        {/* Cognitive Twin Agent — architecture-first lab case study. */}
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-60px" }}
           transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.12 }}
-          className="mb-14 md:mb-16"
+          className="h-full"
         >
           <Link
             href="/lab/cognitive-twin"
             data-cursor-hover
             aria-label="Cognitive Twin Agent — read the case study"
             className="
-              group relative block
+              group relative flex h-full flex-col
               border border-border rounded-2xl
               bg-card hover:border-accent/60 transition-colors duration-300
               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
               focus-visible:ring-offset-4 focus-visible:ring-offset-background
-              p-7 md:p-10 lg:p-12
+              p-6 md:p-8
             "
           >
             <div className="flex flex-wrap items-center gap-2 mb-6">
               <span className="font-mono text-[10px] tracking-[0.25em] uppercase px-2.5 py-1 border border-border text-foreground/85 rounded-full">
                 Architecture · In progress
               </span>
+              {/* Repo went public 2026-07 — chip updated from "Private repo". */}
               <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 border border-border text-foreground/75 rounded-full">
-                Private repo
+                Open source
               </span>
             </div>
 
-            <h3 className="font-display text-3xl md:text-4xl lg:text-5xl font-light tracking-[-0.02em] leading-[1.05] text-foreground">
+            <h3 className="font-display text-2xl md:text-3xl font-light tracking-[-0.02em] leading-[1.1] text-foreground">
               Cognitive Twin Agent — <span className="italic">decision style, not just prompts.</span>
             </h3>
 
-            <p className="mt-5 max-w-2xl font-sans text-base md:text-lg text-foreground/80 leading-relaxed">
+            <p className="mt-4 flex-1 font-sans text-sm md:text-base text-foreground/80 leading-relaxed">
               A personal AI operator architecture built around local-first context,
               behavioral rehearsal, and deterministic guardrails. Three-layer
               execution model: persona, tools, and critique loop.
@@ -371,19 +386,19 @@ export function Lab() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-60px" }}
           transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.12 }}
-          className="mb-14 md:mb-16"
+          className="h-full"
         >
           <Link
             href="/lab/optical-flow"
             data-cursor-hover
             aria-label="Optical Flow — live feature tracking in the browser"
             className="
-              group relative block overflow-hidden
+              group relative flex h-full flex-col overflow-hidden
               border border-border rounded-2xl
               bg-card hover:border-accent/60 transition-colors duration-300
               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
               focus-visible:ring-offset-4 focus-visible:ring-offset-background
-              p-7 md:p-10 lg:p-12
+              p-6 md:p-8
             "
           >
             {/* a scatter of faint dots in the corner — a nod to the effect */}
@@ -392,7 +407,7 @@ export function Lab() {
               className="pointer-events-none absolute -right-16 -top-16 w-64 h-64 rounded-full opacity-40 md:opacity-60 transition-transform duration-700 group-hover:scale-105"
               style={{ background: "radial-gradient(circle, rgba(255,180,120,0.4), rgba(80,200,255,0.18) 50%, transparent 72%)" }}
             />
-            <div className="relative">
+            <div className="relative flex flex-1 flex-col">
               <div className="flex flex-wrap items-center gap-2 mb-6">
                 <span className="font-mono text-[10px] tracking-[0.25em] uppercase px-2.5 py-1 border border-border text-foreground/85 rounded-full">
                   Live · Computer vision
@@ -402,11 +417,11 @@ export function Lab() {
                 </span>
               </div>
 
-              <h3 className="font-display text-3xl md:text-4xl lg:text-5xl font-light tracking-[-0.02em] leading-[1.05] text-foreground">
+              <h3 className="font-display text-2xl md:text-3xl font-light tracking-[-0.02em] leading-[1.1] text-foreground">
                 Optical Flow — <span className="italic">watch yourself become data.</span>
               </h3>
 
-              <p className="mt-5 max-w-2xl font-sans text-base md:text-lg text-foreground/80 leading-relaxed">
+              <p className="mt-4 flex-1 font-sans text-sm md:text-base text-foreground/80 leading-relaxed">
                 Shi-Tomasi corner detection and Lucas-Kanade optical flow,
                 ported by hand to TypeScript and run live on your camera —
                 you resolve into a cloud of tracked feature points. No OpenCV,
@@ -434,19 +449,19 @@ export function Lab() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-60px" }}
           transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.12 }}
-          className="mb-14 md:mb-16"
+          className="h-full"
         >
           <Link
             href="/lab/celestial"
             data-cursor-hover
             aria-label="Celestial — a live real-time solar system explorer with real satellite orbits, Mars imaging coverage, and live space data"
             className="
-              group relative block overflow-hidden
+              group relative flex h-full flex-col overflow-hidden
               border border-border rounded-2xl
               bg-card hover:border-accent/60 transition-colors duration-300
               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
               focus-visible:ring-offset-4 focus-visible:ring-offset-background
-              p-7 md:p-10 lg:p-12
+              p-6 md:p-8
             "
           >
             {/* Mars peeking from the corner */}
@@ -457,7 +472,7 @@ export function Lab() {
               loading="lazy"
               className="pointer-events-none absolute -right-16 -top-16 w-56 md:w-72 opacity-40 md:opacity-60 transition-transform duration-700 group-hover:scale-105"
             />
-            <div className="relative">
+            <div className="relative flex flex-1 flex-col">
               <div className="flex flex-wrap items-center gap-2 mb-6">
                 <span className="font-mono text-[10px] tracking-[0.25em] uppercase px-2.5 py-1 border border-border text-foreground/85 rounded-full">
                   Blender · 3D
@@ -467,11 +482,11 @@ export function Lab() {
                 </span>
               </div>
 
-              <h3 className="font-display text-3xl md:text-4xl lg:text-5xl font-light tracking-[-0.02em] leading-[1.05] text-foreground">
+              <h3 className="font-display text-2xl md:text-3xl font-light tracking-[-0.02em] leading-[1.1] text-foreground">
                 Celestial — <span className="italic">real worlds, rendered true.</span>
               </h3>
 
-              <p className="mt-5 max-w-2xl font-sans text-base md:text-lg text-foreground/80 leading-relaxed">
+              <p className="mt-4 flex-1 font-sans text-sm md:text-base text-foreground/80 leading-relaxed">
                 The Sun and every planet, modelled in Blender from real NASA/USGS
                 data — photoreal and interactive. Rotate each world in your browser;
                 editable scenes and renders, open for anyone.
@@ -491,6 +506,9 @@ export function Lab() {
             </div>
           </Link>
         </motion.div>
+
+        </div>
+        {/* end Live experiments grid */}
 
         {/* Big Bang — HIDDEN from the Lab index (2026-06-29): the card oversells
             what the page currently delivers — it doesn't yet showcase the idea.
@@ -561,14 +579,13 @@ export function Lab() {
         </motion.div>
         )}
 
-        {/* Supporting open-source products — single eyebrow lifted from
-            each card to the section level. Cards are now leaner: name,
-            tagline, blurb, optional highlight, stack tags. No per-card
-            mini-header repeating "Open source". */}
+        {/* From the GitHub — Ankur's hand-picked repo shelf (see the comment
+            on `products` above: curated, never auto-synced). Sits last on the
+            page by design: flagships → experiments → the code itself. */}
         <div className="flex items-baseline justify-between gap-4 mb-6">
           <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-muted-foreground inline-flex items-center gap-2">
             <Github className="w-3 h-3" aria-hidden="true" />
-            Supporting open-source
+            From the GitHub · hand-picked
           </p>
           <span aria-hidden="true" className="flex-1 h-px bg-border" />
           <p className="font-mono text-[10px] tracking-widest text-muted-foreground/70">
@@ -663,8 +680,6 @@ export function Lab() {
           ))}
         </div>
 
-        {/* Trilogy — slim inline strip rather than its own bordered band.
-            Three small chips linking to the live demos. */}
       </div>
     </section>
   )
