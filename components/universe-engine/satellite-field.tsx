@@ -255,6 +255,16 @@ const RECOMPUTE_MS = 250 // SGP4 refresh cadence (4 Hz)
 // Scratch vector for the per-frame overview-LOD measurement (no allocation).
 const _fieldWorld = new THREE.Vector3()
 
+// Never thin the swarm below this many visible LEO dots: in the sparse eras
+// (scrub to 1965 — a few hundred objects total) or a small filtered group,
+// the pixel-budget cull would misrepresent an almost-empty sky as emptier.
+const MIN_VISIBLE_DOTS = 1200
+
+// Syncom 2, 26 Jul 1963 — the first geosynchronous satellite. The GEO guide
+// ring is an annotation of a real populated belt; before this date there was
+// no belt to annotate.
+const FIRST_GEO_MS = Date.UTC(1963, 6, 26)
+
 // Debris + rocket bodies read as a hazard colour (dull red/amber), distinct from
 // the altitude-band palette — the LeoLabs-style "junk vs active" separation.
 const DEBRIS_COLOR: [number, number, number] = [1.0, 0.42, 0.32]
@@ -337,6 +347,9 @@ const VERT = /* glsl */ `
                             // small on screen (LEO thinned to a calm haze)
   uniform float uKeepScale; // viewport-area dot budget: 1 on desktop, ~0.25 on a
                             // phone — a 390px-wide screen can't carry 18k dots
+  uniform float uKeepFloor; // never thin below ~1,200 visible dots: in sparse
+                            // eras (1960s scrub) or small filtered groups, the
+                            // cull would misrepresent an almost-empty sky
   uniform float uMaxPx;     // dot size ceiling (CSS px) — also area-scaled so
                             // close-range dots don't bloat into moss on mobile
   varying vec3 vColor;
@@ -355,7 +368,7 @@ const VERT = /* glsl */ `
     // Any explicit filter or isolate means the user asked for a specific
     // subset — show it in full.
     float lodEff = (uGroupSel >= 0.0 || uRegimeSel >= 0.0 || uIsolate > 0.5) ? 0.0 : uLod;
-    float keep = mix(1.0, 0.32, lodEff) * uKeepScale;
+    float keep = max(mix(1.0, 0.32, lodEff) * uKeepScale, uKeepFloor);
     // Soft cull edge: each dot fades over a small aRand band around the moving
     // threshold instead of popping, so zooming reads as the haze *resolving*
     // into satellites, not dots switching on.
@@ -482,6 +495,10 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
   // Starts at 1: the field first appears at solar-system zoom, where the
   // decluttered read is the right one.
   const lodRef = useRef(1)
+  // Current cull floor (mirrors uKeepFloor) + LEO member count of the active
+  // group filter (null = no filter → use the launched-LEO count instead).
+  const keepFloorRef = useRef(0)
+  const filterLeoCountRef = useRef<number | null>(null)
   // Points are dimensionless to a ray, so give the raycaster a hit radius. Sized
   // to ~a few % of Earth's visual radius so clicking near a dot in the shell
   // registers, without grabbing everything. (World units.)
@@ -508,6 +525,17 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     const m = new Map<number, number>()
     sats?.forEach((s, i) => m.set(s.id, i))
     return m
+  }, [sats])
+
+  // Sorted LEO launch days (days since J2000) — binary-searched each frame for
+  // "how many LEO satellites exist at the current sim time", which drives the
+  // cull floor (sparse eras must show everything they have).
+  const leoLaunchDays = useMemo(() => {
+    if (!sats) return new Float64Array(0)
+    const days: number[] = []
+    for (const s of sats) if (classifyRegimeId(s.l2) === 0) days.push(msToJ2000Day(s.launchMs))
+    days.sort((a, b) => a - b)
+    return Float64Array.from(days)
   }, [sats])
 
   // Propagate one full orbit of a satrec into scene-space points (for the path
@@ -590,14 +618,33 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
         lodRef.current += (targetLod - lodRef.current) * (1 - Math.exp(-delta * 5))
         matRef.current.uniforms.uLod.value = lodRef.current
       }
+      // Cull floor: how many LEO satellites exist at the current sim time
+      // (binary search over sorted launch days), or the filtered group's LEO
+      // member count. If that's small, the cull stands down entirely — an
+      // almost-empty 1960s sky must show every object it has.
+      {
+        const day = msToJ2000Day(simTimeRef.current.simMs)
+        let lo = 0
+        let hi = leoLaunchDays.length
+        while (lo < hi) {
+          const mid = (lo + hi) >> 1
+          if (leoLaunchDays[mid] <= day) lo = mid + 1
+          else hi = mid
+        }
+        const leoCount = filterLeoCountRef.current ?? lo
+        keepFloorRef.current = Math.min(1, MIN_VISIBLE_DOTS / Math.max(leoCount, 1))
+        matRef.current.uniforms.uKeepFloor.value = keepFloorRef.current
+      }
       // GEO belt guide follows the LOD: a faint arc at overview (when the belt
-      // is the structure worth reading), gone up close / filtered / isolated.
+      // is the structure worth reading), gone up close / filtered / isolated —
+      // and gone before Syncom 2 (1963): no belt existed to annotate.
       if (geoRingRef.current) {
         const m = geoRingRef.current.material as THREE.MeshBasicMaterial
         const quiet =
           selectedSatRef.current != null ||
           satGroupFilterRef.current >= 0 ||
-          satRegimeFilterRef.current >= 0
+          satRegimeFilterRef.current >= 0 ||
+          simTimeRef.current.simMs < FIRST_GEO_MS
         m.opacity = quiet ? 0 : 0.14 * lodRef.current
         geoRingRef.current.visible = m.opacity > 0.005
       }
@@ -672,12 +719,18 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
       lastGroupSel.current = gSel
       if (gSel < 0 || isolated) {
         setGroupTracks([])
+        filterLeoCountRef.current = null
       } else {
         const MAX_TRACKS = 60 // enough to read the shell/ring; cheap to draw
         const members: number[] = []
         for (let i = 0; i < sats.length; i++) {
           if (classifyGroup(sats[i].name, sats[i].type) === gSel) members.push(i)
         }
+        // LEO member count feeds the cull floor: a small filtered group
+        // (Stations, ~a dozen craft) must never lose members to the budget.
+        let leoMembers = 0
+        for (const mi of members) if (classifyRegimeId(sats[mi].l2) === 0) leoMembers++
+        filterLeoCountRef.current = leoMembers
         // even stride sample so the tracks span the whole constellation
         const stride = Math.max(1, Math.floor(members.length / MAX_TRACKS))
         const tracks: { pts: THREE.Vector3[]; color: string }[] = []
@@ -891,6 +944,21 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
 
   if (!geometry) return null
 
+  // Is this dot actually on screen right now? The raycaster sees every point
+  // in the buffer — including ones hidden by the launch gate or the overview
+  // LOD cull — so click/hover must mirror the shader's visibility rules
+  // (same NORAD-id hash, same keep threshold, same floor) or the cursor flips
+  // and the camera flies to satellites the user can't see.
+  const isDotVisible = (idx: number) => {
+    if (!sats || !sats[idx]) return false
+    if (simTimeRef.current.simMs < sats[idx].launchMs) return false
+    if (classifyRegimeId(sats[idx].l2) !== 0) return true
+    const filtered = satGroupFilterRef.current >= 0 || satRegimeFilterRef.current >= 0
+    const keep = Math.max((filtered ? 1 : 1 - 0.68 * lodRef.current) * areaScale, keepFloorRef.current)
+    const rand = Math.abs(Math.sin(sats[idx].id * 12.9898) * 43758.5453) % 1
+    return rand <= keep - 0.04
+  }
+
   // Click a dot in the 3D view → select that satellite (draw its orbit, follow,
   // show its data). R3F raycasts the points; we take the closest hit, map its
   // buffer index back to the NORAD id, and set the selection ref. Only fires when
@@ -902,20 +970,9 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
   }) => {
     if (selectedSatRef.current != null) return
     const idx = e.index ?? e.intersections?.[0]?.index
-    if (idx == null || !sats || !sats[idx]) return
-    // don't select a not-yet-launched sat (respect the timeline gate)
-    if (simTimeRef.current.simMs < sats[idx].launchMs) return
-    // Don't select a dot the overview LOD has culled — the raycaster still sees
-    // it, but flying the camera to an invisible satellite reads as a glitch.
-    // Mirrors the shader: LEO only, same NORAD-id hash, same keep threshold.
-    if (classifyRegimeId(sats[idx].l2) === 0) {
-      const filtered = satGroupFilterRef.current >= 0 || satRegimeFilterRef.current >= 0
-      const keep = (filtered ? 1 : 1 - 0.68 * lodRef.current) * areaScale
-      const rand = Math.abs(Math.sin(sats[idx].id * 12.9898) * 43758.5453) % 1
-      if (rand > keep - 0.04) return
-    }
+    if (idx == null || !isDotVisible(idx)) return
     e.stopPropagation()
-    selectedSatRef.current = sats[idx].id
+    selectedSatRef.current = sats![idx].id
   }
 
   return (
@@ -925,7 +982,11 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
         geometry={geometry}
         frustumCulled={false}
         onClick={onPointsClick}
-        onPointerOver={() => { document.body.style.cursor = "pointer" }}
+        onPointerOver={(e: { index?: number }) => {
+          // Only flip the cursor for dots that are actually visible — the
+          // pointer ring promising a click on empty-looking space is a lie.
+          if (e.index == null || isDotVisible(e.index)) document.body.style.cursor = "pointer"
+        }}
         onPointerOut={() => { document.body.style.cursor = "" }}
       >
         <shaderMaterial
@@ -950,6 +1011,7 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
             uRegimeSel: { value: -1 },
             uLod: { value: 1 },
             uKeepScale: { value: 1 },
+            uKeepFloor: { value: 0 },
             uMaxPx: { value: 4.5 },
           }}
         />
