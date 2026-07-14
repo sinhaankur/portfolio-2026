@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { ThemeToggle } from "./theme-toggle"
@@ -22,7 +23,19 @@ export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const pathname = usePathname()
-  const onHome = pathname === "/"
+  // Static export serves trailing slashes — normalize before comparing.
+  const path = (pathname ?? "/").replace(/\/+$/, "") || "/"
+  const onHome = path === "/"
+
+  // "You are here": a route link is active when the visitor is on it or in
+  // its section (Lab stays lit on /lab/celestial, Games on /games/dave-3d).
+  // Anchor links have no active state — they're jump points, not places.
+  const isActiveLink = (href: string) => {
+    if (href.startsWith("#")) return false
+    if (href.startsWith("/games/")) return path.startsWith("/games")
+    const target = href.replace(/\/+$/, "")
+    return path === target || path.startsWith(`${target}/`)
+  }
 
   useEffect(() => {
     const handleScroll = () => {
@@ -65,12 +78,17 @@ export function Navbar() {
           aria-label="Primary"
           className="flex items-center justify-between px-6 py-4 md:px-12 md:py-5"
         >
-          {/* Logo */}
-          <a
-            href="#"
+          {/* Wordmark — site convention: this is the way HOME. On the home
+              page it smooth-scrolls to the top; anywhere else it navigates
+              to "/" (the old behavior scrolled the CURRENT page to top,
+              which stranded visitors on case studies). */}
+          <Link
+            href="/"
             onClick={(e) => {
-              e.preventDefault()
-              window.scrollTo({ top: 0, behavior: "smooth" })
+              if (onHome) {
+                e.preventDefault()
+                window.scrollTo({ top: 0, behavior: "smooth" })
+              }
             }}
             aria-label="Home — Ankur Sinha"
             className="
@@ -87,7 +105,7 @@ export function Navbar() {
               aria-hidden="true"
               className="w-1.5 h-1.5 rounded-full bg-accent group-hover:scale-150 transition-transform duration-300"
             />
-          </a>
+          </Link>
 
           {/* Desktop Navigation */}
           <ul className="hidden md:flex items-center gap-8">
@@ -116,19 +134,25 @@ export function Navbar() {
                   ) : (
                     <a
                       href={resolved}
-                      className="
+                      aria-current={isActiveLink(link.href) ? "page" : undefined}
+                      className={`
                         group relative inline-flex items-center
                         font-mono text-xs tracking-wider
-                        text-muted-foreground hover:text-foreground
                         transition-colors duration-300
                         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
                         focus-visible:ring-offset-4 focus-visible:ring-offset-background
                         rounded
-                      "
+                        ${isActiveLink(link.href) ? "text-foreground" : "text-muted-foreground hover:text-foreground"}
+                      `}
                     >
                       <span className="text-accent mr-1">0{index + 1}</span>
                       {link.label.toUpperCase()}
-                      <span className="absolute -bottom-1 left-0 w-0 h-px bg-foreground group-hover:w-full transition-all duration-300" />
+                      {/* underline: persistent when active ("you are here"), sweep on hover otherwise */}
+                      <span
+                        className={`absolute -bottom-1 left-0 h-px transition-all duration-300 ${
+                          isActiveLink(link.href) ? "w-full bg-accent" : "w-0 bg-foreground group-hover:w-full"
+                        }`}
+                      />
                     </a>
                   )}
                 </li>
@@ -203,17 +227,24 @@ export function Navbar() {
                   >
                     <Tag
                       {...props}
-                      className="
-                        group text-4xl font-sans tracking-tight text-foreground
+                      aria-current={isActiveLink(link.href) ? "page" : undefined}
+                      className={`
+                        group text-4xl font-sans tracking-tight
                         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
                         focus-visible:ring-offset-4 focus-visible:ring-offset-background
                         rounded
-                      "
+                        ${isActiveLink(link.href) ? "italic text-accent" : "text-foreground"}
+                      `}
                     >
                       <span className="text-accent font-mono text-sm mr-2">
                         0{index + 1}
                       </span>
                       {link.label}
+                      {isActiveLink(link.href) && (
+                        <span className="ml-3 align-middle font-mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground">
+                          · here
+                        </span>
+                      )}
                     </Tag>
                   </motion.div>
                 )
