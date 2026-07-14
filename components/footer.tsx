@@ -8,6 +8,95 @@ import { SignalTuner } from "./signal-tuner"
 // now in dev. Reflects each deploy, not the visitor's clock.
 const BUILD_TIME = process.env.NEXT_PUBLIC_BUILD_TIME || new Date().toISOString()
 
+/* ── FooterSky — the quiet night sky behind the contact section ──────────
+   House rule holds even for decoration: REAL data. The asterism is the Big
+   Dipper plotted from the seven stars' actual J2000 RA/Dec (gnomonic-ish
+   flat projection), dot radius following real apparent magnitude — Alioth
+   and Dubhe largest, Megrez (3.3ᵐ) smallest. The same asterism the Universe
+   Engine draws overhead in the hero.
+
+   Star specks are positioned by a pure function of their index (no
+   Math.random in render — build HTML and client hydration must agree, see
+   the #418 note by the deploy date below). Twinkle is CSS-only and wrapped
+   in prefers-reduced-motion. */
+const DIPPER_STARS: Array<{ x: number; y: number; r: number; name: string }> = [
+  { x: 12.1, y: 9.7, r: 1.25, name: "Dubhe" },   // α UMa · 1.79ᵐ
+  { x: 11.1, y: 28.0, r: 1.05, name: "Merak" },  // β UMa · 2.34ᵐ
+  { x: 35.9, y: 37.1, r: 1.0, name: "Phecda" },  // γ UMa · 2.41ᵐ
+  { x: 46.1, y: 25.8, r: 0.8, name: "Megrez" },  // δ UMa · 3.32ᵐ
+  { x: 64.5, y: 29.4, r: 1.3, name: "Alioth" },  // ε UMa · 1.76ᵐ
+  { x: 78.8, y: 32.9, r: 1.1, name: "Mizar" },   // ζ UMa · 2.23ᵐ
+  { x: 90.0, y: 52.0, r: 1.2, name: "Alkaid" },  // η UMa · 1.86ᵐ
+]
+const DIPPER_LINES: Array<[number, number]> = [
+  [0, 1], [1, 2], [2, 3], [3, 0], // the bowl
+  [3, 4], [4, 5], [5, 6],         // the handle
+]
+const SPECK_COUNT = 22
+
+function FooterSky() {
+  return (
+    <div aria-hidden="true" className="pointer-events-none absolute inset-0 text-foreground">
+      {/* drifting specks — deterministic positions from the index */}
+      <div className="absolute inset-0 opacity-50">
+        {Array.from({ length: SPECK_COUNT }, (_, i) => {
+          const x = ((i * 47 + 11) % 100)
+          const y = ((i * 29 + 13) % 97)
+          const s = 1 + ((i * 7) % 3) * 0.5
+          const dur = 2.6 + ((i * 13) % 5) * 0.8
+          const delay = ((i * 17) % 40) / 10
+          return (
+            <span
+              key={i}
+              className="absolute rounded-full bg-current"
+              style={{
+                left: `${x}%`,
+                top: `${y}%`,
+                width: s,
+                height: s,
+                opacity: 0.18,
+                animation: `footer-twinkle ${dur}s ease-in-out ${delay}s infinite`,
+              }}
+            />
+          )
+        })}
+      </div>
+
+      {/* the Big Dipper — top-right, faint, hairline-linked */}
+      <svg
+        viewBox="0 0 100 60"
+        className="absolute right-4 top-8 w-36 opacity-25 md:right-16 md:top-12 md:w-56"
+        fill="currentColor"
+        stroke="currentColor"
+      >
+        {DIPPER_LINES.map(([a, b]) => (
+          <line
+            key={`${a}-${b}`}
+            x1={DIPPER_STARS[a].x}
+            y1={DIPPER_STARS[a].y}
+            x2={DIPPER_STARS[b].x}
+            y2={DIPPER_STARS[b].y}
+            strokeWidth="0.3"
+            opacity="0.5"
+          />
+        ))}
+        {DIPPER_STARS.map((st) => (
+          <circle key={st.name} cx={st.x} cy={st.y} r={st.r} stroke="none" />
+        ))}
+      </svg>
+
+      <style>{`
+        @media (prefers-reduced-motion: no-preference) {
+          @keyframes footer-twinkle {
+            0%, 100% { opacity: 0.08; }
+            50% { opacity: 0.38; }
+          }
+        }
+      `}</style>
+    </div>
+  )
+}
+
 const socials: Array<{ label: string; href: string; download?: boolean }> = [
   { label: "Email", href: "mailto:sinhaankur@ymail.com" },
   { label: "LinkedIn", href: "https://www.linkedin.com/in/sinhaankur27" },
@@ -45,9 +134,10 @@ export function Footer() {
           read the PDF than open a mail client. */}
       <section
         aria-labelledby="contact-heading"
-        className="relative px-6 md:px-12 py-20 md:py-28 border-t border-border"
+        className="relative overflow-hidden px-6 md:px-12 py-20 md:py-28 border-t border-border"
       >
-        <div className="mx-auto max-w-6xl">
+        <FooterSky />
+        <div className="relative mx-auto max-w-6xl">
           <div className="grid gap-10 md:gap-12 lg:gap-16 md:grid-cols-2 md:items-start">
             <div className="max-w-2xl">
               <p className="font-mono text-xs tracking-[0.3em] text-muted-foreground mb-4">
@@ -146,9 +236,13 @@ export function Footer() {
                           : link.label
                       }
                       className="
-                        font-mono text-xs tracking-widest
+                        relative font-mono text-xs tracking-widest
                         text-muted-foreground hover:text-foreground
                         transition-colors duration-300
+                        after:absolute after:-bottom-1 after:left-0 after:h-px after:w-full
+                        after:origin-left after:scale-x-0 after:bg-accent
+                        after:transition-transform after:duration-300 after:ease-out
+                        hover:after:scale-x-100
                         focus-visible:outline-none
                         focus-visible:ring-2 focus-visible:ring-accent
                         focus-visible:ring-offset-2 focus-visible:ring-offset-background
