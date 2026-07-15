@@ -458,7 +458,9 @@ const ENEMY_FIRE_RANGE = 170; // hostiles open fire within this distance
 // ~10s of a first launch. On sector entry hostiles still close in but hold
 // fire briefly — longest on the run's first sector, short deeper in so the
 // veteran pacing is unchanged.
-const SECTOR_GRACE_FIRST_S = 8;
+// First-sector grace matches the ~11s sector-fact banner so a new player can
+// finish reading before the first bolt flies.
+const SECTOR_GRACE_FIRST_S = 10;
 const SECTOR_GRACE_DEEP_S = 4;
 const ENEMY_BOLT_SPEED = 95; // units/sec for enemy projectiles
 const ENEMY_BOLT_RADIUS = 0.32; // generous so hits register against the player
@@ -2091,6 +2093,9 @@ function GameScene({
       entity.maxHealth = entity.health;
       if (entity.metadata) {
         entity.metadata.damage = Math.round((Number(entity.metadata.damage) || 10) * threat);
+        // Stagger the pack's first shots so the end of the entry grace is a
+        // trickle that escalates, not a simultaneous alpha strike.
+        entity.metadata.fireCooldown = 0.6 + i * 0.8 + Math.random() * 0.4;
       }
       em.register(entity);
       gameState.enemies.push(entity);

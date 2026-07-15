@@ -168,6 +168,10 @@ export function shipModsFor(meta: MetaState): ShipMods {
 
 /** Enemies to spawn in a sector at the given depth. */
 export function sectorEnemyCount(sectorIndex: number): number {
+  // Sector 0 is the run's on-ramp: a 3-ship patrol the player can learn
+  // against. Playtest: 4 ships at full rate killed even a reacting first-time
+  // pilot before the sector fact finished displaying.
+  if (sectorIndex === 0) return 3;
   return 4 + sectorIndex * 2;
 }
 
