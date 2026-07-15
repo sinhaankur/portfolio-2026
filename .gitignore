@@ -70,6 +70,9 @@ blender/space-assets/reference/
 # Blender backup saves
 *.blend1
 
+# Python bytecode from Blender build scripts
+__pycache__/
+
 # Blender master + backups now live in the dedicated assets repo
 # (sinhaankur/star-cleaver-assets). Don't re-commit the heavy sources here.
 blender/space-assets/space-assets.blend
