@@ -21,7 +21,7 @@
 
 export type DeviceTier = "low" | "mid" | "high"
 
-export type OS = "macos" | "ios" | "ipados" | "windows" | "android" | "linux" | "unknown"
+export type OS = "macos" | "ios" | "ipados" | "windows" | "android" | "linux" | "webos" | "unknown"
 
 export type DeviceProfile = {
   tier: DeviceTier
@@ -50,6 +50,8 @@ function detectOS(): OS {
   const ua = navigator.userAgent || ""
   const plat = (navigator.platform || "").toLowerCase()
   const touchPoints = navigator.maxTouchPoints || 0
+  // webOS TVs report "Web0S" (zero) + Linux — check BEFORE the generic Linux match.
+  if (/web0s|webos|smart-?tv|netcast/i.test(ua)) return "webos"
   if (/iphone|ipod/i.test(ua)) return "ios"
   if (/ipad/i.test(ua)) return "ipados"
   // iPadOS 13+ reports as "MacIntel" but with touch — distinguish from a real Mac.
@@ -154,6 +156,9 @@ export function detectDeviceProfile(): DeviceProfile {
   // Hard floor: a phone never gets the "high" heavy scene.
   if ((os === "ios" || os === "android") && tier === "high") tier = "mid"
   if (touch && smallViewport && tier === "high") tier = "mid"
+  // TVs: always the TV profile — webOS panels are fill-rate-bound; the engine
+  // gives them an absolute pixel budget + their own quality knobs below.
+  if (os === "webos") { tier = "low"; notes.push("webOS TV") }
 
   return {
     tier,
@@ -194,6 +199,18 @@ export function initDeviceTier(): DeviceProfile {
   return p
 }
 
+/** R3F Canvas dpr for the current device. TVs get an ABSOLUTE pixel budget:
+ *  the canvas renders at most ~1920 px wide and the panel upscales it —
+ *  invisible at couch distance, 4× less fill on a 4K TV (the difference
+ *  between a slideshow and a smooth drift on a TV GPU). Everything else keeps
+ *  the tier's [min, max] clamp. */
+export function dprForCanvas(clamp: [number, number]): number | [number, number] {
+  if (deviceProfileRef.current?.os === "webos" && typeof window !== "undefined") {
+    return Math.min(clamp[1], Math.max(0.5, 1920 / Math.max(window.innerWidth, 1)))
+  }
+  return clamp
+}
+
 /** Order tiers so a live probe can only ever step DOWN (never optimistically up). */
 const TIER_ORDER: DeviceTier[] = ["low", "mid", "high"]
 export function downgradeTier(t: DeviceTier): DeviceTier {
@@ -202,6 +219,14 @@ export function downgradeTier(t: DeviceTier): DeviceTier {
 }
 
 export function qualityForTier(tier: DeviceTier): QualitySettings {
+  // webOS TV profile: the absolute pixel budget (dprForCanvas) does the heavy
+  // lifting — a 4K panel renders ≤1080p and upscales, 4× less fill — which buys
+  // back enough headroom to keep the sky RICHER than generic "low" (0.6 density,
+  // not 0.4). Big-screen quality with TV-chip smoothness; textures/effects
+  // stay conservative.
+  if (deviceProfileRef.current?.os === "webos") {
+    return { dpr: [0.5, 1], densityScale: 0.6, allowHiResTextures: false, allowHeavyEffects: false }
+  }
   switch (tier) {
     case "high":
       return { dpr: [1, 2], densityScale: 1.0, allowHiResTextures: true, allowHeavyEffects: true }

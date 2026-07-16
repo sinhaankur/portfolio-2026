@@ -61,7 +61,7 @@ import {
 } from "./astronomy"
 import { SceneContents } from "./scene"
 import {
-  initDeviceTier, qualityForTier, perfTierRef, downgradeTier, type DeviceTier,
+  initDeviceTier, qualityForTier, perfTierRef, downgradeTier, dprForCanvas, type DeviceTier,
 } from "@/lib/device-tier"
 import { InfoPanel, LayersMenu, ResetViewButton, TimelineControl } from "./hud"
 import { TonightSky } from "./tonight-sky"
@@ -393,7 +393,7 @@ export function UniverseEngine({
         // Adaptive DPR from the detected tier: high → up to 2× (crisp on a strong
         // GPU), mid → 1.5×, low → 1.25×. Replaces the old binary mobile/desktop
         // guess so a weak desktop GPU is also throttled, and a strong one isn't.
-        dpr={qualityForTier(tier).dpr}
+        dpr={dprForCanvas(qualityForTier(tier).dpr)}
         // Stop drawing entirely while scrolled past the hero (see onScreen).
         frameloop={onScreen ? "always" : "never"}
         gl={{ antialias: true, alpha: true, toneMappingExposure: 1.05 }}
