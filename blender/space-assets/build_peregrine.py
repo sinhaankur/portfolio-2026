@@ -109,6 +109,9 @@ def make_materials():
     MATS["INTAKE"] = mat("Intake", (0.05, 0.07, 0.1), metallic=0.6, rough=0.5,
                          emit=(0.1, 0.35, 0.5), emit_strength=1.4)
     MATS["CANNON"] = mat("Cannon", (1.0, 0.25, 0.2), rough=0.4, emit=(1.0, 0.2, 0.15), emit_strength=10.0)
+    # navigation lights — real aviation convention: port red, starboard green
+    MATS["NAV_PORT"] = mat("NavPort", (0.3, 0.02, 0.02), rough=0.3, emit=(1.0, 0.08, 0.05), emit_strength=6.0)
+    MATS["NAV_STBD"] = mat("NavStbd", (0.02, 0.3, 0.05), rough=0.3, emit=(0.1, 1.0, 0.25), emit_strength=6.0)
 
 
 def add_mat(obj, m):
@@ -261,6 +264,23 @@ def build():
     # short dorsal antenna at the tail
     parts.append(cyl("Antenna", r=0.018, depth=0.34, loc=(0.10, -1.55, 0.28),
                      material=HULL_DARK, verts=8))
+    # dorsal spine ridge — the avionics hump flowing aft into the bulkhead
+    parts.append(cube("SpineRidge", size=(0.10, 0.62, 0.05), loc=(0, -1.38, 0.185),
+                      material=HULL_DARK, bevel=0.015))
+    # nose RCS thruster nubs — two per flank at the taper, matching the game's
+    # rcsNose puff FX; positioned from the same taper maths as the stripes
+    t_rcs = taper_t(1.60)
+    rcs_x = FUS_HW * (1.0 - t_rcs * TAPER_X) + 0.012
+    rcs_zc = -t_rcs * t_rcs * DROOP
+    for s in (-1, 1):
+        for dz in (0.045, -0.045):
+            parts.append(cyl(f"RCS_{s}_{1 if dz > 0 else 0}", r=0.022, depth=0.05,
+                             loc=(s * rcs_x, 1.60, rcs_zc + dz),
+                             rot=(0, math.radians(90), 0), material=HULL_DARK, verts=10))
+    # belly vent pair on the aft flanks
+    for s in (-1, 1):
+        parts.append(cube(f"Vent_{s}", size=(0.10, 0.30, 0.03), loc=(s * 0.13, -1.45, -0.175),
+                          material=HULL_DARK, bevel=0.01))
 
     # --- FOUR strike-foils in a shallow X. Flat tapered panels whose roots
     # converge at the fuselage flanks; slight leading-edge rake outboard.
@@ -296,6 +316,16 @@ def build():
             parts.append(cube(f"WingBand_{s}_{u}", size=(0.10, band_chord * 0.96, 0.075),
                               loc=(band_x, -1.18 - 0.62 * 0.16, band_z),
                               rot=(0, -s * u * DIHEDRAL, 0), material=ACCENT))
+            # panel-joint lines at 38% + 85% span — same hug-the-wing maths as
+            # the accent band; keeps the flat foils from reading untextured
+            for pf, pw in ((0.38, 0.055), (0.85, 0.045)):
+                px = s * (1.10 - 0.975 + pf * 1.95) * math.cos(DIHEDRAL)
+                pz = u * (0.26 + (pf * 1.95 - 0.975) * math.tan(DIHEDRAL) * math.cos(DIHEDRAL))
+                pchord = 0.88 * (1.0 - pf * 0.30)
+                parts.append(cube(f"WingJoint_{s}_{u}_{int(pf * 100)}",
+                                  size=(pw, pchord * 0.90, 0.068),
+                                  loc=(px, -1.18 - pf * 0.16, pz),
+                                  rot=(0, -s * u * DIHEDRAL, 0), material=HULL_DARK))
 
     # --- engine nacelles + wingtip cannons, both derived from the REAL wing
     # geometry (hand-computed mounts kept drifting on the Vanguard build).
@@ -358,6 +388,12 @@ def build():
         # wingtip accent chevron plate
         parts.append(cube(f"TipPlate_{s}_{u}", size=(0.30, 0.16, 0.075), loc=(tx - s * 0.18, ty, cz),
                           rot=(0, -s * u * DIHEDRAL, 0), material=ACCENT))
+        # nav light on the upper foils — port red / starboard green
+        if u > 0:
+            parts.append(cyl(f"NavLight_{s}", r=0.032, depth=0.045,
+                             loc=(tx - s * 0.07, ty - 0.12, cz + 0.045),
+                             material=MATS["NAV_PORT"] if s < 0 else MATS["NAV_STBD"],
+                             verts=10))
 
     # --- panel greebles: deterministic plates on the mid/aft deck + flanks.
     # Fixed list, not random — the build must be reproducible.
