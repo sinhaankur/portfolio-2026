@@ -2,56 +2,30 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#050505" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Universe Engine TV</title>
     <link rel="stylesheet" href="css/style.css" />
   </head>
   <body>
-    <main class="shell" aria-label="Universe Engine TV">
-      <section class="hero" aria-labelledby="title">
-        <p class="eyebrow">LG webOS · Smart TV screensaver</p>
-        <h1 id="title">Universe Engine TV</h1>
-        <p class="lede">
-          Choose between a calm solar system watch mode or a slower drift
-          through known space. Arrow keys move focus, OK activates, Back
-          returns home.
+    <!-- Launcher shell: brand splash + connectivity gate. OK opens the live
+         sky; offline shows an honest message and OK retries. Back (461)
+         exits the app — LG QA requirement. -->
+    <main class="shell">
+      <div class="stars" aria-hidden="true"></div>
+      <section class="card" aria-labelledby="title">
+        <p class="eyebrow">A quiet place</p>
+        <h1 id="title">The Sky</h1>
+        <p class="lede" id="statusText">
+          The real night sky, drifting in real time &mdash; planets, the Milky
+          Way, black holes &mdash; with optional piano.
         </p>
-
-        <div class="controls" role="list" aria-label="Screensaver modes">
-          <button class="action action--primary is-focused" type="button" data-action="solar" role="listitem">
-            <span class="action__label">Solar system</span>
-            <span class="action__meta">Watch mode</span>
-          </button>
-          <button class="action" type="button" data-action="space" role="listitem">
-            <span class="action__label">Known space</span>
-            <span class="action__meta">Slow drift</span>
-          </button>
-          <button class="action" type="button" data-action="signature" role="listitem">
-            <span class="action__label">Signature screen</span>
-            <span class="action__meta">Branding</span>
-          </button>
-        </div>
-
-        <div class="signature-card" aria-label="Signature of Ankur Sinha">
-          <p class="signature-card__eyebrow">Signature of Sinhaankur</p>
-          <p class="signature-card__body">Ankur Sinha · Universe Engine · TV edition</p>
-        </div>
-
-        <p class="footer-note">Built for the webOS community by Ankur Sinha. Package this folder with webOS Studio, then test in the LG simulator or on a TV in Developer Mode.</p>
-      </section>
-
-      <section class="preview" aria-label="Engine preview">
-        <div class="preview__frame" id="previewFrame">
-          <div class="stars"></div>
-          <div class="preview__overlay">
-            <p class="preview__kicker">Mode preview</p>
-            <p id="statusText">Solar system mode is ready. Pick a screen from the left.</p>
-          </div>
-        </div>
+        <button class="action" type="button" id="enterBtn" autofocus>
+          <span class="action__label">Enter the sky</span>
+          <span class="action__meta">OK to begin &middot; Back to exit</span>
+        </button>
+        <p class="footer-note">Ankur Sinha &middot; Universe Engine &middot; real positions, real time</p>
       </section>
     </main>
-
     <script src="js/main.js"></script>
   </body>
 </html>

@@ -49,6 +49,25 @@ export function SkyExperience() {
     }
   }, [])
 
+  // webOS TV support (?tv=1 or a webOS user agent): OK/Enter toggles the piano
+  // and the remote's Back key (461) exits the app cleanly — both LG QA
+  // requirements. Desktop keyboards are unaffected beyond Enter-as-play.
+  useEffect(() => {
+    const tv =
+      /web0s|webos/i.test(navigator.userAgent) ||
+      new URLSearchParams(window.location.search).has("tv")
+    if (!tv) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Enter") {
+        document.getElementById("sky-music")?.querySelector<HTMLButtonElement>("button")?.click()
+      } else if (e.keyCode === 461) {
+        window.close()
+      }
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [])
+
   const chrome = `transition-opacity duration-1000 ${restful ? "opacity-0" : "opacity-100"}`
 
   return (
@@ -73,8 +92,9 @@ export function SkyExperience() {
         </p>
       </div>
 
-      {/* The page's single control: opt-in piano. */}
-      <div className={`absolute bottom-6 right-6 md:bottom-8 md:right-10 z-20 ${chrome}`}>
+      {/* The page's single control: opt-in piano. (id used by the TV remote's
+          OK key — see the webOS handler above.) */}
+      <div id="sky-music" className={`absolute bottom-6 right-6 md:bottom-8 md:right-10 z-20 ${chrome}`}>
         <GalaxyMusic />
       </div>
 

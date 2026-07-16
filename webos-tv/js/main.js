@@ -1,132 +1,68 @@
+/* Universe Engine TV — launcher logic.
+ *
+ * QA contract (LG Pretest):
+ *  - 5-way: one focusable control (Enter the sky), autofocused; OK activates.
+ *  - Back (keyCode 461) on this page exits the app via window.close().
+ *  - Network loss shows a clear message + OK retries (no silent hang).
+ *
+ * The sky itself is the live engine at sinhaankur.com/sky?tv=1 (that page
+ * handles OK = piano toggle and Back = exit once loaded). Keeping the engine
+ * hosted means every fidelity improvement ships to TVs with no app update.
+ */
 (function () {
-  var buttons = Array.prototype.slice.call(document.querySelectorAll(".action"));
-  var statusText = document.getElementById("statusText");
-  var previewFrame = document.getElementById("previewFrame");
-  var hero = document.querySelector(".hero");
-  var controls = document.querySelector(".controls");
-  var signatureCard = document.querySelector(".signature-card");
-  var focusedIndex = 0;
-  var idleTimer = null;
-  var autoCycleTimer = null;
-  var idleDelay = 9000;
-  var cycleDelay = 20000;
-  var modeOrder = ["solar", "space", "signature"];
-  var currentMode = 0;
+  "use strict";
 
-  function setFocused(index) {
-    focusedIndex = (index + buttons.length) % buttons.length;
-    buttons.forEach(function (button, currentIndex) {
-      button.classList.toggle("is-focused", currentIndex === focusedIndex);
-    });
-    buttons[focusedIndex].focus();
+  var SKY_URL = "https://www.sinhaankur.com/sky?tv=1";
+  var PING_URL = "https://www.sinhaankur.com/favicon.ico";
+  var btn = document.getElementById("enterBtn");
+  var status = document.getElementById("statusText");
+  var checking = false;
+
+  function setStatus(text) {
+    if (status) status.textContent = text;
   }
 
-  function updateStatus(message) {
-    if (statusText) statusText.textContent = message;
+  function enter() {
+    if (checking) return;
+    checking = true;
+    setStatus("Opening the sky…");
+    // Connectivity gate: a tiny fetch with a timeout. Online -> go; offline ->
+    // honest message + retry on OK.
+    var done = false;
+    var timer = setTimeout(function () {
+      if (done) return;
+      done = true;
+      checking = false;
+      setStatus("No connection — the sky needs the internet. Press OK to try again.");
+    }, 6000);
+    fetch(PING_URL + "?t=" + Date.now(), { mode: "no-cors", cache: "no-store" })
+      .then(function () {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        window.location.href = SKY_URL;
+      })
+      .catch(function () {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        checking = false;
+        setStatus("No connection — the sky needs the internet. Press OK to try again.");
+      });
   }
 
-  function setIdleUi(hidden) {
-    if (hero) hero.classList.toggle("is-idle", hidden);
-    if (controls) controls.style.opacity = hidden ? "0" : "1";
-    if (signatureCard) signatureCard.style.opacity = hidden ? "0" : "1";
+  if (btn) {
+    btn.addEventListener("click", enter);
+    btn.focus();
   }
 
-  function clearCycle() {
-    if (idleTimer) {
-      window.clearTimeout(idleTimer);
-      idleTimer = null;
+  document.addEventListener("keydown", function (e) {
+    if (e.keyCode === 461) {
+      // webOS remote Back: exit the app from the launcher.
+      e.preventDefault();
+      window.close();
+    } else if (e.keyCode === 13) {
+      enter();
     }
-    if (autoCycleTimer) {
-      window.clearInterval(autoCycleTimer);
-      autoCycleTimer = null;
-    }
-  }
-
-  function activateMode(action, fromAutoCycle) {
-    previewFrame.classList.remove("is-solar", "is-space", "is-signature");
-
-    if (action === "solar") {
-      previewFrame.classList.add("is-solar");
-      updateStatus(fromAutoCycle ? "Auto cycle: solar system mode." : "Solar system mode selected. This is the calm watch face for the Universe Engine.");
-      currentMode = 0;
-      return;
-    }
-
-    if (action === "space") {
-      previewFrame.classList.add("is-space");
-      updateStatus(fromAutoCycle ? "Auto cycle: known space drift." : "Known space selected. The app should drift slowly through the wider sky.");
-      currentMode = 1;
-      return;
-    }
-
-    if (action === "signature") {
-      previewFrame.classList.add("is-signature");
-      if (signatureCard) {
-        signatureCard.scrollIntoView({ block: "nearest", behavior: "smooth" });
-      }
-      updateStatus(fromAutoCycle ? "Auto cycle: signature screen." : "Signature screen selected. This is the branded end-card for the TV app.");
-      currentMode = 2;
-    }
-  }
-
-  function startIdleCycle() {
-    clearCycle();
-    setIdleUi(false);
-    idleTimer = window.setTimeout(function () {
-      setIdleUi(true);
-      autoCycleTimer = window.setInterval(function () {
-        currentMode = (currentMode + 1) % modeOrder.length;
-        activateMode(modeOrder[currentMode], true);
-      }, cycleDelay);
-    }, idleDelay);
-  }
-
-  function handleActivate(action) {
-    clearCycle();
-    activateMode(action, false);
-    startIdleCycle();
-  }
-
-  buttons.forEach(function (button, index) {
-    button.addEventListener("click", function () {
-      handleActivate(button.getAttribute("data-action"));
-    });
-
-    button.addEventListener("focus", function () {
-      setFocused(index);
-    });
   });
-
-  window.addEventListener("pointermove", startIdleCycle, { passive: true });
-  window.addEventListener("mousemove", startIdleCycle, { passive: true });
-  window.addEventListener("touchstart", startIdleCycle, { passive: true });
-
-  window.addEventListener("keydown", function (event) {
-    if (!buttons.length) return;
-
-    if (event.key === "ArrowDown" || event.key === "ArrowRight") {
-      event.preventDefault();
-      setFocused(focusedIndex + 1);
-    }
-
-    if (event.key === "ArrowUp" || event.key === "ArrowLeft") {
-      event.preventDefault();
-      setFocused(focusedIndex - 1);
-    }
-
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      buttons[focusedIndex].click();
-    }
-
-    if (event.key === "Escape" || event.key === "Backspace") {
-      updateStatus("Back action received. Hook this to home navigation in the packaged app.");
-    }
-
-    startIdleCycle();
-  });
-
-  setFocused(0);
-  activateMode("solar", true);
-  startIdleCycle();
 })();
