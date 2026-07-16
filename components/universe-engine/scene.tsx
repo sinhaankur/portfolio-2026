@@ -52,7 +52,6 @@ import {
   ASTEROID_BELT_INFO,
   GALACTIC_PLANE_TILT_RAD,
   KUIPER_BELT_INFO,
-  SKY_SHELL_DISTANCE,
   SOLAR_SYSTEM_POSITION,
   SUN_INFO,
   TIME_WARP_DAYS_PER_SEC,
@@ -79,7 +78,8 @@ import {
   ZODIACAL_VERTEX_SHADER,
   ZODIACAL_FRAGMENT_SHADER,
 } from "./shaders"
-import { makeFocusHandler } from "./scene-shared"
+import { makeFocusHandler, parseDistanceLy, skyDepthRadius } from "./scene-shared"
+import { ClusterDetail, ClusterStarField, isGlobular } from "./cluster-detail"
 import { OrbitRing } from "./orbit-ring"
 import { PlanetBody } from "./planet-body"
 import { NamedBodies } from "./small-bodies"
@@ -781,31 +781,9 @@ function SolarSystem({
  * label + InfoPanel + mobile sheet all light up the same way.
  * ============================================================ */
 
-/** Parse a SkyPoint distance string → light-years (best effort). Handles
- *  "2.5 million ly", "31 Mly", "1,344 ly", "40.7 ly". Returns null if unknown. */
-function parseDistanceLy(distance?: string): number | null {
-  if (!distance) return null
-  const s = distance.toLowerCase().replace(/,/g, "")
-  const num = parseFloat(s)
-  if (!isFinite(num)) return null
-  if (s.includes("billion") || /\bgly\b/.test(s)) return num * 1e9
-  if (s.includes("million") || /\bmly\b/.test(s)) return num * 1e6
-  if (s.includes("thousand") || /\bkly\b/.test(s)) return num * 1e3
-  return num // plain light-years
-}
-
-/** Map a deep-sky object's real distance → a scene radius. The fixed-star shell
- *  is 150; deep-sky objects sit from ~the shell outward, log-spread by distance,
- *  so nearer nebulae parallax in front of farther galaxies. */
-function skyDepthRadius(distance?: string): number {
-  const ly = parseDistanceLy(distance)
-  if (ly == null) return SKY_SHELL_DISTANCE
-  // log10(ly): nebulae ~3–4 (thousands), local-group galaxies ~6–7 (millions),
-  // far galaxies ~7–8. Spread that ~3.5→8 range onto ~140→340 scene units.
-  const L = Math.log10(Math.max(ly, 100))
-  const t = Math.min(1, Math.max(0, (L - 3.0) / 5.0)) // 0 at 1k ly → 1 at 1e8 ly
-  return 140 + t * 200
-}
+// parseDistanceLy + skyDepthRadius moved to scene-shared.ts — the merged
+// ClusterStarField needs the same distance→depth math to sit exactly on
+// each cluster's glow.
 
 function SkyPointMesh({
   point,
@@ -832,11 +810,31 @@ function SkyPointMesh({
     const onSkyFocus = (e: Event) => {
       const id = (e as CustomEvent<{ pointId: string | null }>).detail?.pointId
       // Clear focus on any other point's click or on global reset (id===null).
-      if (id !== point.id) setFocused(false)
+      if (id !== point.id) {
+        setFocused(false)
+        return
+      }
+      // Event targeted at THIS point from outside the scene (Jump-to menu,
+      // assistant tools). A direct click already set focused + flew; doing it
+      // here too is idempotent, and it makes every deep-sky id addressable on
+      // the same channel planets ("planet:X") and comets ("named:X") already
+      // use — previously these ids had no handler, so jumping to a cluster or
+      // nebula silently did nothing.
+      setFocused(true)
+      const [wx, wy, wz] = raDecToScenePos(
+        point.raHours,
+        point.decDeg,
+        skyDepthRadius(point.distance),
+      )
+      requestFlyTo(
+        { x: wx, y: wy, z: wz },
+        point.kind === "exoplanet-host" || point.kind === "star" ? 4 : Math.max((point.visualSize ?? 2) * 3.5, 9),
+        point.name,
+      )
     }
     window.addEventListener("universe:sky-focus", onSkyFocus)
     return () => window.removeEventListener("universe:sky-focus", onSkyFocus)
-  }, [point.id])
+  }, [point.id, point.raHours, point.decDeg, point.distance, point.kind, point.visualSize, point.name])
   const detailActive = hovered || focused
   // Real DEPTH: place each deep-sky object at a radius that grows with its true
   // distance (log-compressed), instead of pinning everything to the flat shell —
@@ -880,6 +878,18 @@ function SkyPointMesh({
   const isPulsar = point.kind === "exoplanet-host" && !!pulsarDynamic
 
   useFrame((_, delta) => {
+    // Clusters: the fuzzy glow is UNRESOLVED light. When the member stars
+    // resolve on hover/focus (ClusterDetail), the glow dissolves to a faint
+    // remnant — otherwise a loose open cluster (M37) keeps reading as a grey
+    // blob underneath its own sparse resolved stars. Eased, not switched.
+    if (point.kind === "cluster") {
+      const coreMat = starCoreMatRef.current
+      if (!coreMat || invert) return
+      const k = 1 - Math.exp(-delta * 5)
+      const target = skyAffordance.coreOpacity * (detailActive ? 0.12 : 1)
+      coreMat.opacity += (target - coreMat.opacity) * k
+      return
+    }
     if (point.kind !== "star" && !isPulsar) return
     const haloMat = starHaloMatRef.current
     const coreMat = starCoreMatRef.current
@@ -956,7 +966,7 @@ function SkyPointMesh({
             14,
           ]} />
           <meshBasicMaterial
-            ref={(point.kind === "star" || isPulsar) ? (starCoreMatRef as React.Ref<import("three").MeshBasicMaterial>) : undefined}
+            ref={(point.kind === "star" || isPulsar || point.kind === "cluster") ? (starCoreMatRef as React.Ref<import("three").MeshBasicMaterial>) : undefined}
             color={skyAffordance.core}
             transparent
             opacity={skyAffordance.coreOpacity}
@@ -1032,9 +1042,21 @@ function SkyPointMesh({
           />
         </Suspense>
       )}
-      {/* Cluster spray — for star clusters, add a handful of bright pinpoints
-          around the core to suggest individual stars. */}
-      {point.kind === "cluster" && (
+      {/* Cluster resolve — on hover/focus the cluster stops being a glow and
+          RESOLVES into its member stars (Plummer profile + honest population
+          colours, revealed core-outward like a telescope pulling focus). The
+          idle sprinkle for every cluster lives in the merged ClusterStarField.
+          Chart mode keeps a small ink spray instead — additive points don't
+          read on paper. */}
+      {point.kind === "cluster" && !invert && (
+        <ClusterDetail
+          pointId={point.id}
+          fact={point.fact}
+          size={visualSize}
+          active={detailActive}
+        />
+      )}
+      {point.kind === "cluster" && invert && (
         <group>
           {[
             [0.7, 0.5, 0],
@@ -1051,7 +1073,7 @@ function SkyPointMesh({
                 color={skyAffordance.core}
                 transparent
                 opacity={0.9}
-                blending={invert ? NormalBlending : AdditiveBlending}
+                blending={NormalBlending}
                 depthWrite={false}
               />
             </mesh>
@@ -1068,7 +1090,7 @@ function SkyPointMesh({
           const classBase =
             point.kind === "galaxy"     ? "Galaxy" :
             point.kind === "nebula"     ? "Nebula" :
-            point.kind === "cluster"    ? "Star cluster" :
+            point.kind === "cluster"    ? (isGlobular(point.fact) ? "Globular cluster" : "Open cluster") :
             point.kind === "black-hole" ? "Black hole" :
             point.kind === "star"       ? "Star" :
             isPulsar                     ? "Pulsar host star" :
@@ -1082,7 +1104,8 @@ function SkyPointMesh({
                       note: "Newtonian-equivalent acceleration at the event horizon",
                     }
                   : undefined
-          const factWithDistance = point.distance
+          // Skip the catalog's "—" placeholder — "Distance · —" reads broken.
+          const factWithDistance = point.distance && point.distance !== "—"
             ? `${point.fact} Distance · ${point.distance}.`
             : point.fact
           onHover({
@@ -1271,6 +1294,11 @@ export function SceneContents({
       {!solarOnly && (
         <BrightStarField invert={invert} mobile={mobile} enableMotion={enableMotion} />
       )}
+      {/* Idle member stars for all ~395 catalog clusters, merged into ONE
+          points draw — the fuzzy cluster glows granulate into real star
+          sprinkles (globulars warm/old, open clusters blue/young). Replaces
+          the old per-cluster 7-sphere spray (~2,800 draw calls → 1). */}
+      {!solarOnly && !invert && <ClusterStarField mobile={mobile} />}
 
       {/* Hover layer for the 358 stars with proper names (Sirius, Vega,
           Betelgeuse, Polaris…). Invisible pointer-eventable spheres

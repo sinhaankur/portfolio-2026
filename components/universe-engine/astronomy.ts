@@ -3068,9 +3068,38 @@ const skyPointsCurated: SkyPoint[] = [
 // version overrides the generic "Galaxy in X. apparent magnitude N." stub.
 // Dedup by id, curated first.
 const _curatedIds = new Set(skyPointsCurated.map((p) => p.id))
+
+// Real distances for the famous Messier clusters — OpenNGC doesn't carry
+// distances, so the auto-generated catalog says "—". These are the standard
+// published values (SEDS/NASA). Applied at merge so the InfoPanel shows a real
+// number AND skyDepthRadius places each cluster at its true parallax depth
+// (M4 at 7,200 ly really does sit in front of M2 at 37,500 ly).
+const CLUSTER_DISTANCES: Record<string, string> = {
+  m2: "37,500 ly",
+  m3: "33,900 ly",
+  m4: "7,200 ly", // the nearest globular
+  m5: "24,500 ly",
+  m6: "1,600 ly", // Butterfly Cluster
+  m7: "980 ly", // Ptolemy's Cluster
+  m10: "14,300 ly",
+  m11: "6,200 ly", // Wild Duck Cluster
+  m12: "15,700 ly",
+  m15: "33,600 ly",
+  m22: "10,600 ly",
+  m35: "2,800 ly",
+  m36: "4,100 ly",
+  m37: "4,500 ly", // richest of the Auriga trio
+  m38: "4,200 ly",
+  m44: "577 ly", // Beehive / Praesepe
+  m67: "2,700 ly",
+  m92: "26,700 ly",
+}
+
 export const skyPoints: SkyPoint[] = [
   ...skyPointsCurated,
-  ...DEEP_SKY_CATALOG.filter((p) => !_curatedIds.has(p.id)),
+  ...DEEP_SKY_CATALOG.filter((p) => !_curatedIds.has(p.id)).map((p) =>
+    CLUSTER_DISTANCES[p.id] ? { ...p, distance: CLUSTER_DISTANCES[p.id] } : p,
+  ),
 ]
 
 /** Total catalog size — curated + auto-generated. */

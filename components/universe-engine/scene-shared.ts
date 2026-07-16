@@ -14,7 +14,7 @@
 
 import { Vector3 } from "three"
 
-import { requestFlyTo } from "./astronomy"
+import { requestFlyTo, SKY_SHELL_DISTANCE } from "./astronomy"
 
 /** Reused for a body's world position when computing the sun direction, etc. */
 export const _earthWorldPos = new Vector3()
@@ -44,4 +44,29 @@ export function makeFocusHandler(
     e.object.getWorldPosition(world)
     requestFlyTo({ x: world.x, y: world.y, z: world.z }, desiredDistance, label)
   }
+}
+
+/** Parse a human distance string ("4,500 ly", "2.5 million ly") → light-years. */
+export function parseDistanceLy(distance?: string): number | null {
+  if (!distance) return null
+  const s = distance.toLowerCase().replace(/,/g, "")
+  const num = parseFloat(s)
+  if (!isFinite(num)) return null
+  if (s.includes("billion") || /\bgly\b/.test(s)) return num * 1e9
+  if (s.includes("million") || /\bmly\b/.test(s)) return num * 1e6
+  if (s.includes("thousand") || /\bkly\b/.test(s)) return num * 1e3
+  return num // plain light-years
+}
+
+/** Map a deep-sky object's real distance → a scene radius. The fixed-star shell
+ *  is 150; deep-sky objects sit from ~the shell outward, log-spread by distance,
+ *  so nearer objects parallax in front of farther ones as the camera moves. */
+export function skyDepthRadius(distance?: string): number {
+  const ly = parseDistanceLy(distance)
+  if (ly == null) return SKY_SHELL_DISTANCE
+  // log10(ly): nebulae ~3–4 (thousands), local-group galaxies ~6–7 (millions),
+  // far galaxies ~7–8. Spread that ~3.5→8 range onto ~140→340 scene units.
+  const L = Math.log10(Math.max(ly, 100))
+  const t = Math.min(1, Math.max(0, (L - 3.0) / 5.0)) // 0 at 1k ly → 1 at 1e8 ly
+  return 140 + t * 200
 }
