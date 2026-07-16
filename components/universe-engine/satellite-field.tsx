@@ -42,7 +42,7 @@ import { simTimeRef, requestFollow, focusDepthRef, daysSinceJ2000 } from "./astr
  *  nativeSpan  the GLB's native width in model units (measured at export)
  *  k           scale coefficient: trueScale = k * earthVisualRadius
  */
-type ArchetypeId = "cubesat" | "starlink" | "gps" | "comsat" | "debris" | "rocketbody" | "telescope" | "station" | "weather" | "smallsat"
+type ArchetypeId = "cubesat" | "starlink" | "gps" | "comsat" | "debris" | "rocketbody" | "telescope" | "station" | "weather" | "smallsat" | "iss"
 type Archetype = { url: string; label: string; realSpanM: number; nativeSpan: number; k: number }
 function mkArch(url: string, label: string, realSpanM: number, nativeSpan: number): Archetype {
   return { url, label, realSpanM, nativeSpan, k: realSpanM / 1000 / 6371 / nativeSpan }
@@ -58,13 +58,16 @@ const ARCHETYPES: Record<ArchetypeId, Archetype> = {
   station:    mkArch("/models/satellite-station.glb",  "Space station",      109, 6.75),
   weather:    mkArch("/models/satellite-weather.glb",  "Weather / GEO sat",   24, 4.5),
   smallsat:   mkArch("/models/satellite-smallsat.glb", "Smallsat",             2.0, 4.3),
+  // Flagship of the one-satellite-at-a-time program: faithful ISS (8 wings in
+  // 4 pairs, full module stack, radiator banks) — build_iss_detailed.py.
+  iss:        mkArch("/models/iss.glb",                "International Space Station", 109, 11.27),
 }
 // SAT-3: a curated set of NOTABLE, recognizable craft that always ride their
 // real orbits as actual 3D hardware (not just dots) — so the scene shows the
 // famous machines where they really are. Real NORAD ids from the catalogue.
 type NotableCraft = { id: number; label: string; arch: ArchetypeId }
 const NOTABLE_CRAFT: NotableCraft[] = [
-  { id: 25544, label: "ISS",      arch: "station" },
+  { id: 25544, label: "ISS",      arch: "iss" },
   { id: 20580, label: "Hubble",   arch: "telescope" },
   { id: 48274, label: "Tiangong", arch: "station" },
 ]
@@ -85,9 +88,9 @@ export function classifyArchetype(name: string, owner: string, altKm: number, ty
   if (type === "DEB") return "debris"
   if (type === "R/B") return "rocketbody"
   const n = name.toUpperCase()
-  // Crewed stations
-  if (n.includes("ISS") || n.includes("ZARYA") || n.includes("TIANGONG") ||
-      n.includes("CSS (") || n.includes("MIR") || n.includes("TIANHE"))
+  // The ISS gets its own faithful model; other crewed stations share the bus.
+  if (n.includes("ISS") || n.includes("ZARYA")) return "iss"
+  if (n.includes("TIANGONG") || n.includes("CSS (") || n.includes("MIR") || n.includes("TIANHE"))
     return "station"
   // Space telescopes / observatories
   if (n.includes("HUBBLE") || n.includes("HST") || n.includes("KEPLER") || n.includes("TESS") ||
