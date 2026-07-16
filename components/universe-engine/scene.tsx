@@ -90,7 +90,7 @@ import {
   VOLUMETRIC_NEBULAE,
 } from "./nebula"
 import { BlackHoleDetail } from "./black-hole"
-import { GalaxyDetail, Galaxy3D, GalaxySprite, GALAXY_3D } from "./galaxy"
+import { GalaxyDetail, Galaxy3D, GalaxySprite, GALAXY_3D, BESPOKE_GALAXY_IDS, ProceduralGalaxy } from "./galaxy"
 import { Constellations } from "./constellations"
 import { ExoplanetSystem, PulsarDetail } from "./star-details"
 import { MilkyWay } from "./milky-way"
@@ -876,18 +876,34 @@ function SkyPointMesh({
     [point.kind, point.id],
   )
   const isPulsar = point.kind === "exoplanet-host" && !!pulsarDynamic
+  // Galaxies that resolve via the generic morphology-driven model: everything
+  // except the bespoke headliners + the Blender-baked 3D discs, IF OpenNGC
+  // actually classified them (no morphology → keep the honest halo).
+  const galaxyResolves =
+    point.kind === "galaxy" &&
+    !GALAXY_3D[point.id] &&
+    !BESPOKE_GALAXY_IDS.has(point.id) &&
+    Boolean(point.morphology)
 
   useFrame((_, delta) => {
-    // Clusters: the fuzzy glow is UNRESOLVED light. When the member stars
-    // resolve on hover/focus (ClusterDetail), the glow dissolves to a faint
-    // remnant — otherwise a loose open cluster (M37) keeps reading as a grey
-    // blob underneath its own sparse resolved stars. Eased, not switched.
-    if (point.kind === "cluster") {
-      const coreMat = starCoreMatRef.current
-      if (!coreMat || invert) return
+    // Clusters + morphology-resolving galaxies: the fuzzy glow is UNRESOLVED
+    // light. When the real structure resolves on hover/focus (ClusterDetail /
+    // ProceduralGalaxy), the glow dissolves to a faint remnant — otherwise a
+    // loose open cluster (M37) or a sparse spiral keeps reading as a blob
+    // underneath its own resolved stars. Eased, not switched.
+    if (point.kind === "cluster" || galaxyResolves) {
+      if (invert) return
       const k = 1 - Math.exp(-delta * 5)
-      const target = skyAffordance.coreOpacity * (detailActive ? 0.12 : 1)
-      coreMat.opacity += (target - coreMat.opacity) * k
+      const coreMat = starCoreMatRef.current
+      if (coreMat) {
+        const target = skyAffordance.coreOpacity * (detailActive ? 0.12 : 1)
+        coreMat.opacity += (target - coreMat.opacity) * k
+      }
+      const haloMat = starHaloMatRef.current
+      if (haloMat) {
+        const target = skyAffordance.haloOpacity * (detailActive ? 0.1 : 1)
+        haloMat.opacity += (target - haloMat.opacity) * k
+      }
       return
     }
     if (point.kind !== "star" && !isPulsar) return
@@ -946,7 +962,7 @@ function SkyPointMesh({
         <mesh>
           <sphereGeometry args={[visualSize * skyAffordance.haloRadiusMul, 16, 16]} />
           <meshBasicMaterial
-            ref={(point.kind === "star" || isPulsar) ? (starHaloMatRef as React.Ref<import("three").MeshBasicMaterial>) : undefined}
+            ref={(point.kind === "star" || isPulsar || galaxyResolves) ? (starHaloMatRef as React.Ref<import("three").MeshBasicMaterial>) : undefined}
             color={skyAffordance.halo}
             transparent
             opacity={skyAffordance.haloOpacity}
@@ -966,7 +982,7 @@ function SkyPointMesh({
             14,
           ]} />
           <meshBasicMaterial
-            ref={(point.kind === "star" || isPulsar || point.kind === "cluster") ? (starCoreMatRef as React.Ref<import("three").MeshBasicMaterial>) : undefined}
+            ref={(point.kind === "star" || isPulsar || point.kind === "cluster" || galaxyResolves) ? (starCoreMatRef as React.Ref<import("three").MeshBasicMaterial>) : undefined}
             color={skyAffordance.core}
             transparent
             opacity={skyAffordance.coreOpacity}
@@ -979,7 +995,13 @@ function SkyPointMesh({
           plus the Trapezium for Orion. Idle cost is ~3 inert meshes at scale 0.
           Uses `detailActive` so the bloom persists after a click → fly-to lands. */}
       {point.kind === "nebula" && (
-        <NebulaDetail pointId={point.id} size={visualSize} hovered={detailActive} invert={invert} />
+        <NebulaDetail
+          pointId={point.id}
+          size={visualSize}
+          hovered={detailActive}
+          invert={invert}
+          nebulaType={point.nebulaType}
+        />
       )}
       {/* True 3D raymarched gas volume — real depth/parallax you can move through,
           mounted only for listed nebulae and only while focused (perf). */}
@@ -1012,10 +1034,25 @@ function SkyPointMesh({
           beamColor={pulsarDynamic.beamColor}
         />
       )}
-      {/* Galaxy hover detail — currently Andromeda only. Spiral arm point
-          cloud + bulge + dust lane + companions M32 / M110 bloom in. */}
+      {/* Galaxy hover detail — bespoke hand-tuned models for the headliners
+          (Andromeda + companions, Triangulum, Whirlpool…). */}
       {point.kind === "galaxy" && (
         <GalaxyDetail pointId={point.id} size={visualSize} hovered={detailActive} invert={invert} />
+      )}
+      {/* Every OTHER catalog galaxy resolves too — point-cloud built from its
+          real OpenNGC Hubble morphology (spiral/barred/elliptical/lenticular/
+          irregular), inclined by its measured axis ratio, rotated to its
+          catalog position angle. Galaxies with no classification keep the
+          halo — the engine doesn't invent shapes. */}
+      {galaxyResolves && (
+        <ProceduralGalaxy
+          morphology={point.morphology}
+          axisRatio={point.axisRatio}
+          posAngDeg={point.posAngDeg}
+          size={visualSize}
+          active={detailActive}
+          invert={invert}
+        />
       )}
       {/* Black-hole hover detail — Sketchfab "Blackhole" by rubykamen
           (CC-BY-4.0), 8.4 MB GLB preloaded at module init. Wrapped in

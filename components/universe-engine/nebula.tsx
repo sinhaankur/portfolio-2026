@@ -238,11 +238,17 @@ export function NebulaDetail({
   size,
   hovered,
   invert,
+  nebulaType,
 }: {
   pointId: string
   size: number
   hovered: boolean
   invert: boolean
+  /** OpenNGC sub-type — generalizes the per-id variants to the whole catalog:
+   *  every planetary nebula gets the M57-style shell, every SNR the Crab-style
+   *  filaments, reflection nebulae go blue, dark nebulae become dust
+   *  silhouettes instead of glowing. */
+  nebulaType?: "planetary" | "snr" | "emission" | "reflection" | "dark"
 }) {
   const rootRef = useRef<Group>(null)
   const swirlRef = useRef<Group>(null)
@@ -260,7 +266,9 @@ export function NebulaDetail({
       scale: number
       stretch: [number, number, number]
     }
-    if (pointId === "m57") {
+    if (pointId === "m57" || nebulaType === "planetary") {
+      // Planetary nebula — an expanding shell of ionized gas around the dying
+      // star's exposed core (a white dwarf): teal O III annulus + warm centre.
       return {
         variant: "ring" as const,
         ringColor: invert ? "#1e3a3a" : "#7adfd2",
@@ -268,7 +276,38 @@ export function NebulaDetail({
         clouds: [] as NebulaCloud[],
       }
     }
-    if (pointId === "m1") {
+    if (nebulaType === "reflection") {
+      // Reflection nebula — starlight scattered by dust; blue for the same
+      // reason the daytime sky is (scattering efficiency rises with frequency).
+      const clouds: NebulaCloud[] = [
+        { color: invert ? "#243a5a" : "#8fb6ff", offset: [0.40, 0.14, 0.10], scale: 1.5, stretch: [1.5, 0.75, 1.2] },
+        { color: invert ? "#1f3a4a" : "#7fd6e8", offset: [-0.42, -0.16, 0.14], scale: 1.3, stretch: [1.25, 0.7, 1.5] },
+        { color: invert ? "#2b3b56" : "#a8c8ff", offset: [0.05, 0.34, -0.26], scale: 1.1, stretch: [1.3, 0.8, 1.2] },
+        { color: invert ? "#264963" : "#bfe4ff", offset: [-0.20, 0.30, 0.20], scale: 0.85, stretch: [1.05, 0.65, 1.3] },
+      ]
+      return {
+        variant: "clouds" as const,
+        ringColor: "",
+        coreColor: invert ? "#2b3b56" : "#c6dcff",
+        clouds,
+      }
+    }
+    if (nebulaType === "dark") {
+      // Dark nebula — cold dust that BLOCKS light. It must not glow: near-black
+      // brown silhouettes rendered with normal blending against the starfield.
+      const clouds: NebulaCloud[] = [
+        { color: invert ? "#c9bfae" : "#140b06", offset: [0.35, 0.10, 0.08], scale: 1.6, stretch: [1.6, 0.8, 1.2] },
+        { color: invert ? "#bdb2a0" : "#0e0804", offset: [-0.38, -0.14, 0.12], scale: 1.4, stretch: [1.3, 0.75, 1.4] },
+        { color: invert ? "#cfc6b6" : "#1a0f08", offset: [0.02, -0.30, -0.20], scale: 1.1, stretch: [1.2, 0.7, 1.1] },
+      ]
+      return {
+        variant: "dark" as const,
+        ringColor: "",
+        coreColor: invert ? "#c9bfae" : "#0e0804",
+        clouds,
+      }
+    }
+    if (pointId === "m1" || nebulaType === "snr") {
       const clouds: NebulaCloud[] = [
         { color: invert ? "#5a1c4a" : "#ff7ab8", offset: [0.42, 0.20, 0.04],  scale: 1.5, stretch: [1.5, 0.8, 1.3] },
         { color: invert ? "#243a5a" : "#7ec8ff", offset: [-0.52, -0.28, 0.16], scale: 1.2, stretch: [1.2, 0.7, 1.6] },
@@ -296,7 +335,7 @@ export function NebulaDetail({
       coreColor: invert ? "#5a2436" : "#ffb6c9",
       clouds,
     }
-  }, [pointId, invert])
+  }, [pointId, invert, nebulaType])
 
   // Trapezium positions — the four bright young O-class stars at the heart of
   // Orion. Approximate relative layout, scaled into the local frame.
@@ -327,7 +366,9 @@ export function NebulaDetail({
       swirlRef.current.rotation.z += delta * 0.05
     }
 
-    const cloudTarget = hovered ? (invert ? 0.55 : 0.62) : 0
+    // Dark nebulae silhouette rather than glow — slightly lower ceiling so the
+    // dust reads as absence-of-stars, not a brown lamp.
+    const cloudTarget = hovered ? (config.variant === "dark" ? 0.5 : invert ? 0.55 : 0.62) : 0
     cloudMatRefs.current.forEach((m) => {
       if (!m) return
       m.opacity += (cloudTarget - m.opacity) * k
@@ -345,7 +386,8 @@ export function NebulaDetail({
     })
   })
 
-  const blending = invert ? NormalBlending : AdditiveBlending
+  // Dark nebulae must occlude (normal blending) — additive can only add light.
+  const blending = invert || config.variant === "dark" ? NormalBlending : AdditiveBlending
   // Detail scale: the cloud structure should bloom out well past the idle halo
   // so the hover state reads as a real reveal, not a subtle tint.
   const detailScale = size * 2.4

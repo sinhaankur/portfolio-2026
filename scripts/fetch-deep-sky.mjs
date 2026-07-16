@@ -153,6 +153,12 @@ function parseCSV(csv) {
     m: col("M"),
     identifiers: col("Identifiers"),
     common: col("Common names"),
+    // Morphology + on-sky geometry — drives per-galaxy procedural rendering
+    // (spiral vs elliptical vs lenticular…) and true inclination/orientation.
+    hubble: col("Hubble"),
+    majAx: col("MajAx"),
+    minAx: col("MinAx"),
+    posAng: col("PosAng"),
   }
   const rows = []
   for (let i = 1; i < lines.length; i++) {
@@ -168,9 +174,50 @@ function parseCSV(csv) {
       m: f[I.m],
       identifiers: f[I.identifiers],
       common: f[I.common],
+      hubble: f[I.hubble],
+      majAx: f[I.majAx],
+      minAx: f[I.minAx],
+      posAng: f[I.posAng],
     })
   }
   return rows
+}
+
+// OpenNGC type code → the engine's nebula sub-type union (drives the
+// per-type procedural rendering: planetary shell, SNR filaments, red
+// emission cloud, blue reflection wisps). "Cl+N" stays generic.
+const NEBULA_SUBTYPE = {
+  PN: "planetary",
+  SNR: "snr",
+  RfN: "reflection",
+  EmN: "emission",
+  HII: "emission",
+  Neb: "emission",
+  DrkN: "dark",
+}
+
+// Extra fields shared by both entry builders: galaxy morphology (raw Hubble
+// string like "SBbc" / "E2") + axis ratio (cos-inclination proxy for a thin
+// disc) + position angle; nebula sub-type. Omitted when OpenNGC has no value —
+// the renderer treats missing morphology as "unknown" and keeps the plain
+// halo rather than inventing a shape.
+function extraFields(row, kind) {
+  const out = {}
+  if (kind === "galaxy") {
+    const hubble = (row.hubble || "").trim()
+    if (hubble) out.morphology = hubble
+    const maj = parseFloat(row.majAx)
+    const min = parseFloat(row.minAx)
+    if (isFinite(maj) && isFinite(min) && maj > 0 && min > 0) {
+      out.axisRatio = +(Math.min(1, min / maj)).toFixed(2)
+    }
+    const pa = parseFloat(row.posAng)
+    if (isFinite(pa)) out.posAngDeg = +pa.toFixed(1)
+  }
+  if (kind === "nebula" && NEBULA_SUBTYPE[row.type]) {
+    out.nebulaType = NEBULA_SUBTYPE[row.type]
+  }
+  return out
 }
 
 function pickMagnitude(row) {
@@ -228,6 +275,7 @@ function buildEntry(catKey, catNum, row) {
     distance: "—",
     fact,
     visualSize,
+    ...extraFields(row, kind),
   }
 }
 
@@ -263,6 +311,7 @@ function buildEntryFromName(row) {
     distance: "—",
     fact,
     visualSize: +(baseSize + magBoost).toFixed(2),
+    ...extraFields(row, kind),
   }
 }
 

@@ -96,7 +96,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 5.8,
     "distance": "—",
     "fact": "Nebula in Sagittarius. apparent magnitude 5.8.",
-    "visualSize": 1.98
+    "visualSize": 1.98,
+    "nebulaType": "emission"
   },
   {
     "id": "m9",
@@ -180,7 +181,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 7,
     "distance": "—",
     "fact": "Nebula in Sagittarius. apparent magnitude 7.0.",
-    "visualSize": 1.88
+    "visualSize": 1.88,
+    "nebulaType": "emission"
   },
   {
     "id": "m18",
@@ -216,7 +218,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 8.5,
     "distance": "—",
     "fact": "Nebula in Sagittarius. apparent magnitude 8.5.",
-    "visualSize": 1.8
+    "visualSize": 1.8,
+    "nebulaType": "emission"
   },
   {
     "id": "m21",
@@ -300,7 +303,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 7.4,
     "distance": "—",
     "fact": "Planetary nebula in Vulpecula. apparent magnitude 7.4.",
-    "visualSize": 1.85
+    "visualSize": 1.85,
+    "nebulaType": "planetary"
   },
   {
     "id": "m28",
@@ -348,7 +352,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 8.13,
     "distance": "—",
     "fact": "Galaxy in Andromeda. apparent magnitude 8.1.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "E",
+    "axisRatio": 0.63,
+    "posAngDeg": 170
   },
   {
     "id": "m34",
@@ -444,7 +451,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9,
     "distance": "—",
     "fact": "HII region in Orion. apparent magnitude 9.0.",
-    "visualSize": 1.8
+    "visualSize": 1.8,
+    "nebulaType": "emission"
   },
   {
     "id": "m44",
@@ -504,7 +512,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 8.28,
     "distance": "—",
     "fact": "Galaxy in Virgo. apparent magnitude 8.3.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "E",
+    "axisRatio": 0.82,
+    "posAngDeg": 156
   },
   {
     "id": "m50",
@@ -528,7 +539,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 8.36,
     "distance": "—",
     "fact": "Galaxy in Canes Venatici. apparent magnitude 8.4.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "SABb",
+    "axisRatio": 0.85,
+    "posAngDeg": 163
   },
   {
     "id": "m52",
@@ -600,7 +614,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 10.3,
     "distance": "—",
     "fact": "Galaxy in Virgo. apparent magnitude 10.3.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "Sb",
+    "axisRatio": 0.77,
+    "posAngDeg": 90
   },
   {
     "id": "m59",
@@ -612,7 +629,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.56,
     "distance": "—",
     "fact": "Galaxy in Virgo. apparent magnitude 9.6.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "E",
+    "axisRatio": 0.71,
+    "posAngDeg": 165
   },
   {
     "id": "m60",
@@ -624,7 +644,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 8.79,
     "distance": "—",
     "fact": "Galaxy in Virgo. apparent magnitude 8.8.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "E",
+    "axisRatio": 0.8,
+    "posAngDeg": 105
   },
   {
     "id": "m61",
@@ -636,7 +659,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 10.25,
     "distance": "—",
     "fact": "Galaxy in Virgo. apparent magnitude 10.3.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "Sbc",
+    "axisRatio": 0.95,
+    "posAngDeg": 20
   },
   {
     "id": "m62",
@@ -660,7 +686,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 8.61,
     "distance": "—",
     "fact": "Galaxy in Canes Venatici. apparent magnitude 8.6.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "Sbc",
+    "axisRatio": 0.61,
+    "posAngDeg": 103
   },
   {
     "id": "m64",
@@ -672,7 +701,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 8.52,
     "distance": "—",
     "fact": "Galaxy in Coma Berenices. apparent magnitude 8.5.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "SABa",
+    "axisRatio": 0.51,
+    "posAngDeg": 114
   },
   {
     "id": "m65",
@@ -684,7 +716,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.32,
     "distance": "—",
     "fact": "Galaxy in Leo. apparent magnitude 9.3.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "Sa",
+    "axisRatio": 0.26,
+    "posAngDeg": 173
   },
   {
     "id": "m66",
@@ -696,7 +731,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 8.92,
     "distance": "—",
     "fact": "Galaxy in Leo. apparent magnitude 8.9.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "Sb",
+    "axisRatio": 0.45,
+    "posAngDeg": 168
   },
   {
     "id": "m67",
@@ -780,7 +818,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.31,
     "distance": "—",
     "fact": "Galaxy in Pisces. apparent magnitude 9.3.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "Sc",
+    "axisRatio": 0.94,
+    "posAngDeg": 87
   },
   {
     "id": "m75",
@@ -804,7 +845,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 10.1,
     "distance": "—",
     "fact": "Planetary nebula in Perseus. apparent magnitude 10.1.",
-    "visualSize": 1.8
+    "visualSize": 1.8,
+    "nebulaType": "planetary"
   },
   {
     "id": "m77",
@@ -816,7 +858,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.29,
     "distance": "—",
     "fact": "Galaxy in Cetus. apparent magnitude 9.3.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "Sb",
+    "axisRatio": 0.92,
+    "posAngDeg": 12
   },
   {
     "id": "m78",
@@ -828,7 +873,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 8,
     "distance": "—",
     "fact": "Reflection nebula in Orion. apparent magnitude 8.0.",
-    "visualSize": 1.8
+    "visualSize": 1.8,
+    "nebulaType": "reflection"
   },
   {
     "id": "m79",
@@ -864,7 +910,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 6.92,
     "distance": "—",
     "fact": "Galaxy in Ursa Major. apparent magnitude 6.9.",
-    "visualSize": 1.69
+    "visualSize": 1.69,
+    "morphology": "Sab",
+    "axisRatio": 0.52,
+    "posAngDeg": 157
   },
   {
     "id": "m82",
@@ -876,7 +925,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 8.3,
     "distance": "—",
     "fact": "Galaxy in Ursa Major. apparent magnitude 8.3.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "S?",
+    "axisRatio": 0.46,
+    "posAngDeg": 66
   },
   {
     "id": "m83",
@@ -888,7 +940,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 7.21,
     "distance": "—",
     "fact": "Galaxy in Hydra. apparent magnitude 7.2.",
-    "visualSize": 1.66
+    "visualSize": 1.66,
+    "morphology": "Sc",
+    "axisRatio": 0.97,
+    "posAngDeg": 45
   },
   {
     "id": "m84",
@@ -900,7 +955,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.79,
     "distance": "—",
     "fact": "Galaxy in Virgo. apparent magnitude 9.8.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "E",
+    "axisRatio": 0.87,
+    "posAngDeg": 133
   },
   {
     "id": "m85",
@@ -912,7 +970,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.05,
     "distance": "—",
     "fact": "Galaxy in Coma Berenices. apparent magnitude 9.1.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "S0-a",
+    "axisRatio": 0.77,
+    "posAngDeg": 12
   },
   {
     "id": "m86",
@@ -924,7 +985,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 8.86,
     "distance": "—",
     "fact": "Galaxy in Virgo. apparent magnitude 8.9.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "E",
+    "axisRatio": 0.73,
+    "posAngDeg": 128
   },
   {
     "id": "m87",
@@ -936,7 +1000,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9,
     "distance": "—",
     "fact": "Galaxy in Virgo. apparent magnitude 9.0.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "E",
+    "axisRatio": 0.94,
+    "posAngDeg": 153
   },
   {
     "id": "m88",
@@ -948,7 +1015,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 10.33,
     "distance": "—",
     "fact": "Galaxy in Coma Berenices. apparent magnitude 10.3.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "Sb",
+    "axisRatio": 0.51,
+    "posAngDeg": 138
   },
   {
     "id": "m89",
@@ -960,7 +1030,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 10.08,
     "distance": "—",
     "fact": "Galaxy in Virgo. apparent magnitude 10.1.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "E",
+    "axisRatio": 0.98,
+    "posAngDeg": 150
   },
   {
     "id": "m90",
@@ -972,7 +1045,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.54,
     "distance": "—",
     "fact": "Galaxy in Virgo. apparent magnitude 9.5.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "Sab",
+    "axisRatio": 0.42,
+    "posAngDeg": 22
   },
   {
     "id": "m91",
@@ -984,7 +1060,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 10.96,
     "distance": "—",
     "fact": "Galaxy in Coma Berenices. apparent magnitude 11.0.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "Sb",
+    "axisRatio": 0.81,
+    "posAngDeg": 150
   },
   {
     "id": "m92",
@@ -1020,7 +1099,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 8.24,
     "distance": "—",
     "fact": "Galaxy in Canes Venatici. apparent magnitude 8.2.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "SABa",
+    "axisRatio": 0.86,
+    "posAngDeg": 105
   },
   {
     "id": "m95",
@@ -1032,7 +1114,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.77,
     "distance": "—",
     "fact": "Galaxy in Leo. apparent magnitude 9.8.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "Sb",
+    "axisRatio": 0.62,
+    "posAngDeg": 11
   },
   {
     "id": "m96",
@@ -1044,7 +1129,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.21,
     "distance": "—",
     "fact": "Galaxy in Leo. apparent magnitude 9.2.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "Sab",
+    "axisRatio": 0.67,
+    "posAngDeg": 5
   },
   {
     "id": "m97",
@@ -1056,7 +1144,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.9,
     "distance": "—",
     "fact": "Planetary nebula in Ursa Major. apparent magnitude 9.9.",
-    "visualSize": 1.8
+    "visualSize": 1.8,
+    "nebulaType": "planetary"
   },
   {
     "id": "m98",
@@ -1068,7 +1157,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 10.84,
     "distance": "—",
     "fact": "Galaxy in Coma Berenices. apparent magnitude 10.8.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "SABb",
+    "axisRatio": 0.24,
+    "posAngDeg": 152
   },
   {
     "id": "m99",
@@ -1080,7 +1172,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.84,
     "distance": "—",
     "fact": "Galaxy in Coma Berenices. apparent magnitude 9.8.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "Sc",
+    "axisRatio": 0.94,
+    "posAngDeg": 23
   },
   {
     "id": "m100",
@@ -1092,7 +1187,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.47,
     "distance": "—",
     "fact": "Galaxy in Coma Berenices. apparent magnitude 9.5.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "SABb",
+    "axisRatio": 0.92,
+    "posAngDeg": 108
   },
   {
     "id": "m101",
@@ -1104,7 +1202,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 7.9,
     "distance": "—",
     "fact": "Galaxy in Ursa Major. apparent magnitude 7.9.",
-    "visualSize": 1.61
+    "visualSize": 1.61,
+    "morphology": "SABc",
+    "axisRatio": 0.96,
+    "posAngDeg": 28
   },
   {
     "id": "m103",
@@ -1128,7 +1229,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 8.59,
     "distance": "—",
     "fact": "Galaxy in Virgo. apparent magnitude 8.6.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "Sa",
+    "axisRatio": 0.58,
+    "posAngDeg": 90
   },
   {
     "id": "m105",
@@ -1140,7 +1244,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.27,
     "distance": "—",
     "fact": "Galaxy in Leo. apparent magnitude 9.3.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "E",
+    "axisRatio": 0.87,
+    "posAngDeg": 71
   },
   {
     "id": "m106",
@@ -1152,7 +1259,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.29,
     "distance": "—",
     "fact": "Galaxy in Canes Venatici. apparent magnitude 9.3.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "Sbc",
+    "axisRatio": 0.43,
+    "posAngDeg": 150
   },
   {
     "id": "m107",
@@ -1176,7 +1286,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 10.05,
     "distance": "—",
     "fact": "Galaxy in Ursa Major. apparent magnitude 10.1.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "Sc",
+    "axisRatio": 0.42,
+    "posAngDeg": 79
   },
   {
     "id": "m109",
@@ -1188,7 +1301,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.88,
     "distance": "—",
     "fact": "Galaxy in Ursa Major. apparent magnitude 9.9.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "Sbc",
+    "axisRatio": 0.7,
+    "posAngDeg": 78
   },
   {
     "id": "m110",
@@ -1200,7 +1316,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 8.15,
     "distance": "—",
     "fact": "Galaxy in Andromeda. apparent magnitude 8.2.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "E",
+    "axisRatio": 0.59,
+    "posAngDeg": 170
   },
   {
     "id": "c1",
@@ -1224,7 +1343,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 11.89,
     "distance": "—",
     "fact": "Planetary nebula in Cepheus. apparent magnitude 11.9.",
-    "visualSize": 1.8
+    "visualSize": 1.8,
+    "nebulaType": "planetary"
   },
   {
     "id": "c3",
@@ -1236,7 +1356,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.77,
     "distance": "—",
     "fact": "Galaxy in Draco. apparent magnitude 9.8.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "SBd",
+    "axisRatio": 0.29,
+    "posAngDeg": 161
   },
   {
     "id": "c4",
@@ -1248,7 +1371,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 7.2,
     "distance": "—",
     "fact": "Nebula in Cepheus. apparent magnitude 7.2.",
-    "visualSize": 1.86
+    "visualSize": 1.86,
+    "nebulaType": "emission"
   },
   {
     "id": "c5",
@@ -1260,7 +1384,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.68,
     "distance": "—",
     "fact": "Galaxy in Camelopardalis. apparent magnitude 9.7.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "SABc",
+    "axisRatio": 0.95,
+    "posAngDeg": 0
   },
   {
     "id": "c6",
@@ -1272,7 +1399,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.01,
     "distance": "—",
     "fact": "Planetary nebula in Draco. apparent magnitude 9.0.",
-    "visualSize": 1.8
+    "visualSize": 1.8,
+    "nebulaType": "planetary"
   },
   {
     "id": "c7",
@@ -1284,7 +1412,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 8.43,
     "distance": "—",
     "fact": "Galaxy in Camelopardalis. apparent magnitude 8.4.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "SABc",
+    "axisRatio": 0.5,
+    "posAngDeg": 126
   },
   {
     "id": "c8",
@@ -1320,7 +1451,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 11,
     "distance": "—",
     "fact": "HII region in Cassiopeia. apparent magnitude 11.0.",
-    "visualSize": 1.8
+    "visualSize": 1.8,
+    "nebulaType": "emission"
   },
   {
     "id": "c12",
@@ -1332,7 +1464,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.05,
     "distance": "—",
     "fact": "Galaxy in Cygnus. apparent magnitude 9.1.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "SABc",
+    "axisRatio": 0.95,
+    "posAngDeg": 52
   },
   {
     "id": "c13",
@@ -1356,7 +1491,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.44,
     "distance": "—",
     "fact": "Planetary nebula in Cygnus. apparent magnitude 9.4.",
-    "visualSize": 1.8
+    "visualSize": 1.8,
+    "nebulaType": "planetary"
   },
   {
     "id": "c16",
@@ -1380,7 +1516,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.72,
     "distance": "—",
     "fact": "Galaxy in Cassiopeia. apparent magnitude 9.7.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "E",
+    "axisRatio": 0.58,
+    "posAngDeg": 26
   },
   {
     "id": "c18",
@@ -1392,7 +1531,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.2,
     "distance": "—",
     "fact": "Galaxy in Cassiopeia. apparent magnitude 9.2.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "E",
+    "axisRatio": 0.83,
+    "posAngDeg": 38
   },
   {
     "id": "c19",
@@ -1416,7 +1558,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 4,
     "distance": "—",
     "fact": "HII region in Cygnus. apparent magnitude 4.0.",
-    "visualSize": 2.12
+    "visualSize": 2.12,
+    "nebulaType": "emission"
   },
   {
     "id": "c21",
@@ -1428,7 +1571,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.64,
     "distance": "—",
     "fact": "Galaxy in Canes Venatici. apparent magnitude 9.6.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "IB",
+    "axisRatio": 0.58,
+    "posAngDeg": 51
   },
   {
     "id": "c22",
@@ -1440,7 +1586,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 8.3,
     "distance": "—",
     "fact": "Planetary nebula in Andromeda. apparent magnitude 8.3.",
-    "visualSize": 1.8
+    "visualSize": 1.8,
+    "nebulaType": "planetary"
   },
   {
     "id": "c23",
@@ -1452,7 +1599,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 10.01,
     "distance": "—",
     "fact": "Galaxy in Andromeda. apparent magnitude 10.0.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "Sb",
+    "axisRatio": 0.23,
+    "posAngDeg": 22
   },
   {
     "id": "c24",
@@ -1464,7 +1614,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 12.24,
     "distance": "—",
     "fact": "Galaxy in Perseus. apparent magnitude 12.2.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "S0",
+    "axisRatio": 0.67,
+    "posAngDeg": 110
   },
   {
     "id": "c25",
@@ -1488,7 +1641,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 10.18,
     "distance": "—",
     "fact": "Galaxy in Canes Venatici. apparent magnitude 10.2.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "Sc",
+    "axisRatio": 0.45,
+    "posAngDeg": 45
   },
   {
     "id": "c27",
@@ -1500,7 +1656,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 7.44,
     "distance": "—",
     "fact": "HII region in Cygnus. apparent magnitude 7.4.",
-    "visualSize": 1.84
+    "visualSize": 1.84,
+    "nebulaType": "emission"
   },
   {
     "id": "c28",
@@ -1524,7 +1681,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 10.71,
     "distance": "—",
     "fact": "Galaxy in Canes Venatici. apparent magnitude 10.7.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "SABb",
+    "axisRatio": 0.32,
+    "posAngDeg": 70
   },
   {
     "id": "c30",
@@ -1536,7 +1696,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.41,
     "distance": "—",
     "fact": "Galaxy in Pegasus. apparent magnitude 9.4.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "Sbc",
+    "axisRatio": 0.41,
+    "posAngDeg": 170
   },
   {
     "id": "c31",
@@ -1548,7 +1711,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 10,
     "distance": "—",
     "fact": "Nebula in Auriga. apparent magnitude 10.0.",
-    "visualSize": 1.8
+    "visualSize": 1.8,
+    "nebulaType": "emission"
   },
   {
     "id": "c32",
@@ -1560,7 +1724,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.24,
     "distance": "—",
     "fact": "Galaxy in Canes Venatici. apparent magnitude 9.2.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "SBcd",
+    "axisRatio": 0.15,
+    "posAngDeg": 86
   },
   {
     "id": "c33",
@@ -1572,7 +1739,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 7,
     "distance": "—",
     "fact": "Supernova remnant in Cygnus. apparent magnitude 7.0.",
-    "visualSize": 1.88
+    "visualSize": 1.88,
+    "nebulaType": "snr"
   },
   {
     "id": "c34",
@@ -1584,7 +1752,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 7,
     "distance": "—",
     "fact": "Supernova remnant in Cygnus. apparent magnitude 7.0.",
-    "visualSize": 1.88
+    "visualSize": 1.88,
+    "nebulaType": "snr"
   },
   {
     "id": "c35",
@@ -1596,7 +1765,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 11.45,
     "distance": "—",
     "fact": "Galaxy in Coma Berenices. apparent magnitude 11.4.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "E",
+    "axisRatio": 0.65,
+    "posAngDeg": 80
   },
   {
     "id": "c36",
@@ -1608,7 +1780,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.92,
     "distance": "—",
     "fact": "Galaxy in Coma Berenices. apparent magnitude 9.9.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "Sc",
+    "axisRatio": 0.46,
+    "posAngDeg": 148
   },
   {
     "id": "c37",
@@ -1632,7 +1807,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 10.86,
     "distance": "—",
     "fact": "Galaxy in Coma Berenices. apparent magnitude 10.9.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "Sb",
+    "axisRatio": 0.17,
+    "posAngDeg": 135
   },
   {
     "id": "c39",
@@ -1644,7 +1822,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.61,
     "distance": "—",
     "fact": "Planetary nebula in Gemini. apparent magnitude 9.6.",
-    "visualSize": 1.8
+    "visualSize": 1.8,
+    "nebulaType": "planetary"
   },
   {
     "id": "c40",
@@ -1656,7 +1835,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 10.98,
     "distance": "—",
     "fact": "Galaxy in Leo. apparent magnitude 11.0.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "S0-a",
+    "axisRatio": 0.66,
+    "posAngDeg": 157
   },
   {
     "id": "c42",
@@ -1680,7 +1862,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 10.6,
     "distance": "—",
     "fact": "Galaxy in Pegasus. apparent magnitude 10.6.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "Sab",
+    "axisRatio": 0.43,
+    "posAngDeg": 135
   },
   {
     "id": "c44",
@@ -1692,7 +1877,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 11.09,
     "distance": "—",
     "fact": "Galaxy in Pegasus. apparent magnitude 11.1.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "SBbc",
+    "axisRatio": 0.75,
+    "posAngDeg": 26
   },
   {
     "id": "c45",
@@ -1704,7 +1892,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.97,
     "distance": "—",
     "fact": "Galaxy in Boötes. apparent magnitude 10.0.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "SABb",
+    "axisRatio": 0.58,
+    "posAngDeg": 120
   },
   {
     "id": "c46",
@@ -1716,7 +1907,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 11.85,
     "distance": "—",
     "fact": "Reflection nebula in Monoceros. apparent magnitude 11.8.",
-    "visualSize": 1.8
+    "visualSize": 1.8,
+    "nebulaType": "reflection"
   },
   {
     "id": "c47",
@@ -1740,7 +1932,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 10.24,
     "distance": "—",
     "fact": "Galaxy in Cancer. apparent magnitude 10.2.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "Sab",
+    "axisRatio": 0.79,
+    "posAngDeg": 159
   },
   {
     "id": "c49",
@@ -1752,7 +1947,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 6,
     "distance": "—",
     "fact": "HII region in Monoceros. apparent magnitude 6.0.",
-    "visualSize": 1.96
+    "visualSize": 1.96,
+    "nebulaType": "emission"
   },
   {
     "id": "c50",
@@ -1776,7 +1972,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.54,
     "distance": "—",
     "fact": "Galaxy in Cetus. apparent magnitude 9.5.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "I",
+    "axisRatio": 0.94,
+    "posAngDeg": 50
   },
   {
     "id": "c52",
@@ -1788,7 +1987,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.37,
     "distance": "—",
     "fact": "Galaxy in Virgo. apparent magnitude 9.4.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "E",
+    "axisRatio": 0.58,
+    "posAngDeg": 83
   },
   {
     "id": "c53",
@@ -1800,7 +2002,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.09,
     "distance": "—",
     "fact": "Galaxy in Sextans. apparent magnitude 9.1.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "E-S0",
+    "axisRatio": 0.42,
+    "posAngDeg": 43
   },
   {
     "id": "c54",
@@ -1824,7 +2029,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 8,
     "distance": "—",
     "fact": "Planetary nebula in Aquarius. apparent magnitude 8.0.",
-    "visualSize": 1.8
+    "visualSize": 1.8,
+    "nebulaType": "planetary"
   },
   {
     "id": "c56",
@@ -1836,7 +2042,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 10.9,
     "distance": "—",
     "fact": "Planetary nebula in Cetus. apparent magnitude 10.9.",
-    "visualSize": 1.8
+    "visualSize": 1.8,
+    "nebulaType": "planetary"
   },
   {
     "id": "c57",
@@ -1848,7 +2055,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 10.05,
     "distance": "—",
     "fact": "Galaxy in Sagittarius. apparent magnitude 10.1.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "IB",
+    "axisRatio": 0.96,
+    "posAngDeg": 27
   },
   {
     "id": "c58",
@@ -1872,7 +2082,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 7.7,
     "distance": "—",
     "fact": "Planetary nebula in Hydra. apparent magnitude 7.7.",
-    "visualSize": 1.82
+    "visualSize": 1.82,
+    "nebulaType": "planetary"
   },
   {
     "id": "c60",
@@ -1884,7 +2095,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 10.2,
     "distance": "—",
     "fact": "Galaxy in Corvus. apparent magnitude 10.2.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "SBm",
+    "axisRatio": 0.7,
+    "posAngDeg": 80
   },
   {
     "id": "c61",
@@ -1896,7 +2110,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 11.04,
     "distance": "—",
     "fact": "Galaxy in Corvus. apparent magnitude 11.0.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "SBm",
+    "axisRatio": 0.51,
+    "posAngDeg": 50
   },
   {
     "id": "c62",
@@ -1908,7 +2125,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.21,
     "distance": "—",
     "fact": "Galaxy in Cetus. apparent magnitude 9.2.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "SABc",
+    "axisRatio": 0.28,
+    "posAngDeg": 167
   },
   {
     "id": "c63",
@@ -1920,7 +2140,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 7.3,
     "distance": "—",
     "fact": "Planetary nebula in Aquarius. apparent magnitude 7.3.",
-    "visualSize": 1.86
+    "visualSize": 1.86,
+    "nebulaType": "planetary"
   },
   {
     "id": "c64",
@@ -1944,7 +2165,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 11.11,
     "distance": "—",
     "fact": "Galaxy in Sculptor. apparent magnitude 11.1.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "SABc",
+    "axisRatio": 0.17,
+    "posAngDeg": 53
   },
   {
     "id": "c66",
@@ -1968,7 +2192,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.76,
     "distance": "—",
     "fact": "Galaxy in Fornax. apparent magnitude 9.8.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "SBb",
+    "axisRatio": 0.61,
+    "posAngDeg": 138
   },
   {
     "id": "c68",
@@ -1980,7 +2207,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 99,
     "distance": "—",
     "fact": "Nebula in Corona Australis.",
-    "visualSize": 1.8
+    "visualSize": 1.8,
+    "nebulaType": "emission"
   },
   {
     "id": "c69",
@@ -1992,7 +2220,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.6,
     "distance": "—",
     "fact": "Planetary nebula in Scorpius. apparent magnitude 9.6.",
-    "visualSize": 1.8
+    "visualSize": 1.8,
+    "nebulaType": "planetary"
   },
   {
     "id": "c70",
@@ -2004,7 +2233,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 8.66,
     "distance": "—",
     "fact": "Galaxy in Sculptor. apparent magnitude 8.7.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "Scd",
+    "axisRatio": 0.67,
+    "posAngDeg": 114
   },
   {
     "id": "c71",
@@ -2028,7 +2260,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 8.54,
     "distance": "—",
     "fact": "Galaxy in Sculptor. apparent magnitude 8.5.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "SBm",
+    "axisRatio": 0.1,
+    "posAngDeg": 101
   },
   {
     "id": "c73",
@@ -2052,7 +2287,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.2,
     "distance": "—",
     "fact": "Planetary nebula in Vela. apparent magnitude 9.2.",
-    "visualSize": 1.8
+    "visualSize": 1.8,
+    "nebulaType": "planetary"
   },
   {
     "id": "c75",
@@ -2088,7 +2324,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 7.22,
     "distance": "—",
     "fact": "Galaxy in Centaurus. apparent magnitude 7.2.",
-    "visualSize": 1.66
+    "visualSize": 1.66,
+    "morphology": "S0",
+    "axisRatio": 0.76,
+    "posAngDeg": 33
   },
   {
     "id": "c78",
@@ -2160,7 +2399,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 11.86,
     "distance": "—",
     "fact": "Galaxy in Centaurus. apparent magnitude 11.9.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "SBc",
+    "axisRatio": 0.17,
+    "posAngDeg": 44
   },
   {
     "id": "c84",
@@ -2244,7 +2486,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.7,
     "distance": "—",
     "fact": "Planetary nebula in Carina. apparent magnitude 9.7.",
-    "visualSize": 1.8
+    "visualSize": 1.8,
+    "nebulaType": "planetary"
   },
   {
     "id": "c91",
@@ -2268,7 +2511,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 3,
     "distance": "—",
     "fact": "HII region in Carina. apparent magnitude 3.0.",
-    "visualSize": 2.2
+    "visualSize": 2.2,
+    "nebulaType": "emission"
   },
   {
     "id": "c93",
@@ -2364,7 +2608,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.25,
     "distance": "—",
     "fact": "Galaxy in Pavo. apparent magnitude 9.3.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "morphology": "Sbc",
+    "axisRatio": 0.62,
+    "posAngDeg": 15
   },
   {
     "id": "c102",
@@ -2388,7 +2635,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 7.25,
     "distance": "—",
     "fact": "HII region in Dorado. apparent magnitude 7.3.",
-    "visualSize": 1.86
+    "visualSize": 1.86,
+    "nebulaType": "emission"
   },
   {
     "id": "c104",
@@ -2460,7 +2708,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 11.6,
     "distance": "—",
     "fact": "Planetary nebula in Chamaeleon. apparent magnitude 11.6.",
-    "visualSize": 1.8
+    "visualSize": 1.8,
+    "nebulaType": "planetary"
   },
   {
     "id": "ic0127",
@@ -2472,7 +2721,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.2,
     "distance": "—",
     "fact": "Galaxy in Cetus. apparent magnitude 9.2.",
-    "visualSize": 1.34
+    "visualSize": 1.34,
+    "morphology": "Sb",
+    "axisRatio": 0.27,
+    "posAngDeg": 110
   },
   {
     "id": "ic0418",
@@ -2484,7 +2736,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.44,
     "distance": "—",
     "fact": "Planetary nebula in Lepus. apparent magnitude 9.4.",
-    "visualSize": 1.53
+    "visualSize": 1.53,
+    "nebulaType": "planetary"
   },
   {
     "id": "ic0444",
@@ -2496,7 +2749,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 7.03,
     "distance": "—",
     "fact": "Reflection nebula in Gemini. apparent magnitude 7.0.",
-    "visualSize": 1.65
+    "visualSize": 1.65,
+    "nebulaType": "reflection"
   },
   {
     "id": "ic0447",
@@ -2508,7 +2762,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 7.7,
     "distance": "—",
     "fact": "HII region in Monoceros. apparent magnitude 7.7.",
-    "visualSize": 1.61
+    "visualSize": 1.61,
+    "nebulaType": "emission"
   },
   {
     "id": "ic1284",
@@ -2520,7 +2775,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 7.7,
     "distance": "—",
     "fact": "Nebula in Sagittarius. apparent magnitude 7.7.",
-    "visualSize": 1.61
+    "visualSize": 1.61,
+    "nebulaType": "emission"
   },
   {
     "id": "ic1287",
@@ -2532,7 +2788,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 6.1,
     "distance": "—",
     "fact": "Reflection nebula in Scutum. apparent magnitude 6.1.",
-    "visualSize": 1.7
+    "visualSize": 1.7,
+    "nebulaType": "reflection"
   },
   {
     "id": "ic1442",
@@ -2664,7 +2921,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 3.9,
     "distance": "—",
     "fact": "Reflection nebula in Scorpius. apparent magnitude 3.9.",
-    "visualSize": 1.8
+    "visualSize": 1.8,
+    "nebulaType": "reflection"
   },
   {
     "id": "ic4604",
@@ -2676,7 +2934,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 5.1,
     "distance": "—",
     "fact": "Nebula in Ophiuchus. apparent magnitude 5.1.",
-    "visualSize": 1.75
+    "visualSize": 1.75,
+    "nebulaType": "emission"
   },
   {
     "id": "ic4605",
@@ -2688,7 +2947,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 4.7,
     "distance": "—",
     "fact": "Nebula in Scorpius. apparent magnitude 4.7.",
-    "visualSize": 1.77
+    "visualSize": 1.77,
+    "nebulaType": "emission"
   },
   {
     "id": "ic4651",
@@ -2724,7 +2984,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 6,
     "distance": "—",
     "fact": "Nebula in Se2. apparent magnitude 6.0.",
-    "visualSize": 1.7
+    "visualSize": 1.7,
+    "nebulaType": "emission"
   },
   {
     "id": "ic4756",
@@ -2760,7 +3021,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 8,
     "distance": "—",
     "fact": "HII region in Cygnus. apparent magnitude 8.0.",
-    "visualSize": 1.6
+    "visualSize": 1.6,
+    "nebulaType": "emission"
   },
   {
     "id": "ngc0103",
@@ -2832,7 +3094,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 3.44,
     "distance": "—",
     "fact": "Galaxy in Andromeda. apparent magnitude 3.4.",
-    "visualSize": 1.63
+    "visualSize": 1.63,
+    "morphology": "Sb",
+    "axisRatio": 0.39,
+    "posAngDeg": 35
   },
   {
     "id": "ngc0225",
@@ -2868,7 +3133,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 2.3,
     "distance": "—",
     "fact": "Galaxy in Tucana. apparent magnitude 2.3.",
-    "visualSize": 1.69
+    "visualSize": 1.69,
+    "morphology": "SBm",
+    "axisRatio": 0.6,
+    "posAngDeg": 45
   },
   {
     "id": "ngc0330",
@@ -2916,7 +3184,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 5.79,
     "distance": "—",
     "fact": "Galaxy in Triangulum. apparent magnitude 5.8.",
-    "visualSize": 1.51
+    "visualSize": 1.51,
+    "morphology": "Sc",
+    "axisRatio": 0.59,
+    "posAngDeg": 23
   },
   {
     "id": "ngc0637",
@@ -3024,7 +3295,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.47,
     "distance": "—",
     "fact": "Galaxy in Perseus. apparent magnitude 9.5.",
-    "visualSize": 1.33
+    "visualSize": 1.33,
+    "morphology": "E-S0",
+    "axisRatio": 0.41,
+    "posAngDeg": 87
   },
   {
     "id": "ngc1027",
@@ -3060,7 +3334,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 8.7,
     "distance": "—",
     "fact": "Galaxy in Eridanus. apparent magnitude 8.7.",
-    "visualSize": 1.36
+    "visualSize": 1.36,
+    "morphology": "S0-a",
+    "axisRatio": 0.89,
+    "posAngDeg": 156
   },
   {
     "id": "ngc1313",
@@ -3072,7 +3349,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.49,
     "distance": "—",
     "fact": "Galaxy in Reticulum. apparent magnitude 9.5.",
-    "visualSize": 1.33
+    "visualSize": 1.33,
+    "morphology": "SBcd",
+    "axisRatio": 0.83,
+    "posAngDeg": 27
   },
   {
     "id": "ngc1316",
@@ -3084,7 +3364,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 8.48,
     "distance": "—",
     "fact": "Galaxy in Fornax. apparent magnitude 8.5.",
-    "visualSize": 1.38
+    "visualSize": 1.38,
+    "morphology": "S0",
+    "axisRatio": 0.57,
+    "posAngDeg": 50
   },
   {
     "id": "ngc1342",
@@ -3108,7 +3391,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.4,
     "distance": "—",
     "fact": "Planetary nebula in Fornax. apparent magnitude 9.4.",
-    "visualSize": 1.53
+    "visualSize": 1.53,
+    "nebulaType": "planetary"
   },
   {
     "id": "ngc1380",
@@ -3120,7 +3404,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.94,
     "distance": "—",
     "fact": "Galaxy in Fornax. apparent magnitude 9.9.",
-    "visualSize": 1.3
+    "visualSize": 1.3,
+    "morphology": "S0",
+    "axisRatio": 0.48,
+    "posAngDeg": 6
   },
   {
     "id": "ngc1395",
@@ -3132,7 +3419,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.65,
     "distance": "—",
     "fact": "Galaxy in Eridanus. apparent magnitude 9.7.",
-    "visualSize": 1.32
+    "visualSize": 1.32,
+    "morphology": "E",
+    "axisRatio": 0.84,
+    "posAngDeg": 105
   },
   {
     "id": "ngc1398",
@@ -3144,7 +3434,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.55,
     "distance": "—",
     "fact": "Galaxy in Fornax. apparent magnitude 9.6.",
-    "visualSize": 1.32
+    "visualSize": 1.32,
+    "morphology": "SBab",
+    "axisRatio": 0.71,
+    "posAngDeg": 100
   },
   {
     "id": "ngc1399",
@@ -3156,7 +3449,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.4,
     "distance": "—",
     "fact": "Galaxy in Fornax. apparent magnitude 9.4.",
-    "visualSize": 1.33
+    "visualSize": 1.33,
+    "morphology": "E",
+    "axisRatio": 0.9,
+    "posAngDeg": 150
   },
   {
     "id": "ngc1404",
@@ -3168,7 +3464,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.93,
     "distance": "—",
     "fact": "Galaxy in Eridanus. apparent magnitude 9.9.",
-    "visualSize": 1.3
+    "visualSize": 1.3,
+    "morphology": "E",
+    "axisRatio": 0.87,
+    "posAngDeg": 163
   },
   {
     "id": "ngc1407",
@@ -3180,7 +3479,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.65,
     "distance": "—",
     "fact": "Galaxy in Eridanus. apparent magnitude 9.7.",
-    "visualSize": 1.32
+    "visualSize": 1.32,
+    "morphology": "E",
+    "axisRatio": 0.92,
+    "posAngDeg": 60
   },
   {
     "id": "ngc1433",
@@ -3192,7 +3494,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.95,
     "distance": "—",
     "fact": "Galaxy in Horologium. apparent magnitude 9.9.",
-    "visualSize": 1.3
+    "visualSize": 1.3,
+    "morphology": "SBa",
+    "axisRatio": 0.48,
+    "posAngDeg": 95
   },
   {
     "id": "ngc1444",
@@ -3228,7 +3533,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 5,
     "distance": "—",
     "fact": "Nebula in Perseus. apparent magnitude 5.0.",
-    "visualSize": 1.75
+    "visualSize": 1.75,
+    "nebulaType": "emission"
   },
   {
     "id": "ngc1502",
@@ -3276,7 +3582,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.6,
     "distance": "—",
     "fact": "Planetary nebula in Eridanus. apparent magnitude 9.6.",
-    "visualSize": 1.52
+    "visualSize": 1.52,
+    "nebulaType": "planetary"
   },
   {
     "id": "ngc1545",
@@ -3300,7 +3607,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.75,
     "distance": "—",
     "fact": "Galaxy in Dorado. apparent magnitude 9.8.",
-    "visualSize": 1.31
+    "visualSize": 1.31,
+    "morphology": "E",
+    "axisRatio": 0.85,
+    "posAngDeg": 138
   },
   {
     "id": "ngc1553",
@@ -3312,7 +3622,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.31,
     "distance": "—",
     "fact": "Galaxy in Dorado. apparent magnitude 9.3.",
-    "visualSize": 1.33
+    "visualSize": 1.33,
+    "morphology": "S0",
+    "axisRatio": 0.69,
+    "posAngDeg": 150
   },
   {
     "id": "ngc1555",
@@ -3324,7 +3637,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.98,
     "distance": "—",
     "fact": "Reflection nebula in Taurus. apparent magnitude 10.0.",
-    "visualSize": 1.5
+    "visualSize": 1.5,
+    "nebulaType": "reflection"
   },
   {
     "id": "ngc1566",
@@ -3336,7 +3650,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.73,
     "distance": "—",
     "fact": "Galaxy in Dorado. apparent magnitude 9.7.",
-    "visualSize": 1.31
+    "visualSize": 1.31,
+    "morphology": "SABb",
+    "axisRatio": 0.69,
+    "posAngDeg": 45
   },
   {
     "id": "ngc1582",
@@ -3468,7 +3785,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 5.8,
     "distance": "—",
     "fact": "Reflection nebula in Orion. apparent magnitude 5.8.",
-    "visualSize": 1.71
+    "visualSize": 1.71,
+    "nebulaType": "reflection"
   },
   {
     "id": "ngc1807",
@@ -3612,7 +3930,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 8.4,
     "distance": "—",
     "fact": "Supernova remnant in Taurus. apparent magnitude 8.4.",
-    "visualSize": 1.58
+    "visualSize": 1.58,
+    "nebulaType": "snr"
   },
   {
     "id": "ngc1955",
@@ -3624,7 +3943,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 8.87,
     "distance": "—",
     "fact": "HII region in Dorado. apparent magnitude 8.9.",
-    "visualSize": 1.56
+    "visualSize": 1.56,
+    "nebulaType": "emission"
   },
   {
     "id": "ngc1968",
@@ -3648,7 +3968,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 7,
     "distance": "—",
     "fact": "Nebula in Orion. apparent magnitude 7.0.",
-    "visualSize": 1.65
+    "visualSize": 1.65,
+    "nebulaType": "emission"
   },
   {
     "id": "ngc1975",
@@ -3660,7 +3981,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 7,
     "distance": "—",
     "fact": "Nebula in Orion. apparent magnitude 7.0.",
-    "visualSize": 1.65
+    "visualSize": 1.65,
+    "nebulaType": "emission"
   },
   {
     "id": "ngc1976",
@@ -3720,7 +4042,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.5,
     "distance": "—",
     "fact": "Reflection nebula in Orion. apparent magnitude 9.5.",
-    "visualSize": 1.52
+    "visualSize": 1.52,
+    "nebulaType": "reflection"
   },
   {
     "id": "ngc2004",
@@ -3744,7 +4067,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 8.97,
     "distance": "—",
     "fact": "Nebula in Dorado. apparent magnitude 9.0.",
-    "visualSize": 1.55
+    "visualSize": 1.55,
+    "nebulaType": "emission"
   },
   {
     "id": "ngc2042",
@@ -3792,7 +4116,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.59,
     "distance": "—",
     "fact": "Supernova remnant in Dorado. apparent magnitude 9.6.",
-    "visualSize": 1.52
+    "visualSize": 1.52,
+    "nebulaType": "snr"
   },
   {
     "id": "ngc2071",
@@ -3924,7 +4249,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9,
     "distance": "—",
     "fact": "Reflection nebula in Monoceros. apparent magnitude 9.0.",
-    "visualSize": 1.55
+    "visualSize": 1.55,
+    "nebulaType": "reflection"
   },
   {
     "id": "ngc2186",
@@ -4020,7 +4346,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 8.5,
     "distance": "—",
     "fact": "Reflection nebula in Monoceros. apparent magnitude 8.5.",
-    "visualSize": 1.57
+    "visualSize": 1.57,
+    "nebulaType": "reflection"
   },
   {
     "id": "ngc2250",
@@ -4128,7 +4455,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 10,
     "distance": "—",
     "fact": "HII region in Monoceros. apparent magnitude 10.0.",
-    "visualSize": 1.5
+    "visualSize": 1.5,
+    "nebulaType": "emission"
   },
   {
     "id": "ngc2286",
@@ -4452,7 +4780,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.4,
     "distance": "—",
     "fact": "Planetary nebula in Puppis. apparent magnitude 9.4.",
-    "visualSize": 1.53
+    "visualSize": 1.53,
+    "nebulaType": "planetary"
   },
   {
     "id": "ngc2451",
@@ -4740,7 +5069,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.69,
     "distance": "—",
     "fact": "Galaxy in Lynx. apparent magnitude 9.7.",
-    "visualSize": 1.32
+    "visualSize": 1.32,
+    "morphology": "Sb",
+    "axisRatio": 0.28,
+    "posAngDeg": 44
   },
   {
     "id": "ngc2768",
@@ -4752,7 +5084,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.87,
     "distance": "—",
     "fact": "Galaxy in Ursa Major. apparent magnitude 9.9.",
-    "visualSize": 1.31
+    "visualSize": 1.31,
+    "morphology": "E",
+    "axisRatio": 0.4,
+    "posAngDeg": 93
   },
   {
     "id": "ngc2808",
@@ -4776,7 +5111,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 8.91,
     "distance": "—",
     "fact": "Galaxy in Leo. apparent magnitude 8.9.",
-    "visualSize": 1.35
+    "visualSize": 1.35,
+    "morphology": "Sbc",
+    "axisRatio": 0.44,
+    "posAngDeg": 22
   },
   {
     "id": "ngc2910",
@@ -4824,7 +5162,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.41,
     "distance": "—",
     "fact": "Galaxy in Antlia. apparent magnitude 9.4.",
-    "visualSize": 1.33
+    "visualSize": 1.33,
+    "morphology": "SABc",
+    "axisRatio": 0.61,
+    "posAngDeg": 97
   },
   {
     "id": "ngc3033",
@@ -4848,7 +5189,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.88,
     "distance": "—",
     "fact": "Galaxy in Ursa Major. apparent magnitude 9.9.",
-    "visualSize": 1.31
+    "visualSize": 1.31,
+    "morphology": "S?",
+    "axisRatio": 0.83,
+    "posAngDeg": 49
   },
   {
     "id": "ngc3105",
@@ -4884,7 +5228,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.84,
     "distance": "—",
     "fact": "Galaxy in Ursa Major. apparent magnitude 9.8.",
-    "visualSize": 1.31
+    "visualSize": 1.31,
+    "morphology": "SABc",
+    "axisRatio": 0.97,
+    "posAngDeg": 117
   },
   {
     "id": "ngc3228",
@@ -4908,7 +5255,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 7.6,
     "distance": "—",
     "fact": "HII region in Carina. apparent magnitude 7.6.",
-    "visualSize": 1.62
+    "visualSize": 1.62,
+    "nebulaType": "emission"
   },
   {
     "id": "ngc3293",
@@ -4956,7 +5304,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.98,
     "distance": "—",
     "fact": "Galaxy in Leo Minor. apparent magnitude 10.0.",
-    "visualSize": 1.3
+    "visualSize": 1.3,
+    "morphology": "Sbc",
+    "axisRatio": 0.95,
+    "posAngDeg": 150
   },
   {
     "id": "ngc3384",
@@ -4968,7 +5319,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.96,
     "distance": "—",
     "fact": "Galaxy in Leo. apparent magnitude 10.0.",
-    "visualSize": 1.3
+    "visualSize": 1.3,
+    "morphology": "E-S0",
+    "axisRatio": 0.45,
+    "posAngDeg": 53
   },
   {
     "id": "ngc3496",
@@ -5004,7 +5358,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.11,
     "distance": "—",
     "fact": "Galaxy in Leo. apparent magnitude 9.1.",
-    "visualSize": 1.34
+    "visualSize": 1.34,
+    "morphology": "SABb",
+    "axisRatio": 0.54,
+    "posAngDeg": 162
   },
   {
     "id": "ngc3572",
@@ -5028,7 +5385,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.69,
     "distance": "—",
     "fact": "Galaxy in Hydra. apparent magnitude 9.7.",
-    "visualSize": 1.32
+    "visualSize": 1.32,
+    "morphology": "E",
+    "axisRatio": 0.49,
+    "posAngDeg": 104
   },
   {
     "id": "ngc3590",
@@ -5052,7 +5412,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 10,
     "distance": "—",
     "fact": "Galaxy in Leo. apparent magnitude 10.0.",
-    "visualSize": 1.3
+    "visualSize": 1.3,
+    "morphology": "E-S0",
+    "axisRatio": 0.88,
+    "posAngDeg": 120
   },
   {
     "id": "ngc3621",
@@ -5064,7 +5427,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.55,
     "distance": "—",
     "fact": "Galaxy in Hydra. apparent magnitude 9.6.",
-    "visualSize": 1.32
+    "visualSize": 1.32,
+    "morphology": "SBcd",
+    "axisRatio": 0.41,
+    "posAngDeg": 161
   },
   {
     "id": "ngc3628",
@@ -5076,7 +5442,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.45,
     "distance": "—",
     "fact": "Galaxy in Leo. apparent magnitude 9.4.",
-    "visualSize": 1.33
+    "visualSize": 1.33,
+    "morphology": "SBb",
+    "axisRatio": 0.31,
+    "posAngDeg": 104
   },
   {
     "id": "ngc3680",
@@ -5100,7 +5469,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 8.1,
     "distance": "—",
     "fact": "Planetary nebula in Centaurus. apparent magnitude 8.1.",
-    "visualSize": 1.59
+    "visualSize": 1.59,
+    "nebulaType": "planetary"
   },
   {
     "id": "ngc3923",
@@ -5112,7 +5482,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.6,
     "distance": "—",
     "fact": "Galaxy in Hydra. apparent magnitude 9.6.",
-    "visualSize": 1.32
+    "visualSize": 1.32,
+    "morphology": "E",
+    "axisRatio": 0.66,
+    "posAngDeg": 48
   },
   {
     "id": "ngc3960",
@@ -5160,7 +5533,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.71,
     "distance": "—",
     "fact": "Galaxy in Draco. apparent magnitude 9.7.",
-    "visualSize": 1.31
+    "visualSize": 1.31,
+    "morphology": "E",
+    "axisRatio": 0.78,
+    "posAngDeg": 95
   },
   {
     "id": "ngc4214",
@@ -5172,7 +5548,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.77,
     "distance": "—",
     "fact": "Galaxy in Canes Venatici. apparent magnitude 9.8.",
-    "visualSize": 1.31
+    "visualSize": 1.31,
+    "morphology": "I",
+    "axisRatio": 0.78,
+    "posAngDeg": 128
   },
   {
     "id": "ngc4216",
@@ -5184,7 +5563,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.93,
     "distance": "—",
     "fact": "Galaxy in Virgo. apparent magnitude 9.9.",
-    "visualSize": 1.3
+    "visualSize": 1.3,
+    "morphology": "SABb",
+    "axisRatio": 0.24,
+    "posAngDeg": 20
   },
   {
     "id": "ngc4230",
@@ -5232,7 +5614,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.43,
     "distance": "—",
     "fact": "Galaxy in Virgo. apparent magnitude 9.4.",
-    "visualSize": 1.33
+    "visualSize": 1.33,
+    "morphology": "E",
+    "axisRatio": 0.71,
+    "posAngDeg": 40
   },
   {
     "id": "ngc4439",
@@ -5268,7 +5653,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.72,
     "distance": "—",
     "fact": "Galaxy in Canes Venatici. apparent magnitude 9.7.",
-    "visualSize": 1.31
+    "visualSize": 1.31,
+    "morphology": "SBcd",
+    "axisRatio": 0.25,
+    "posAngDeg": 133
   },
   {
     "id": "ngc4494",
@@ -5280,7 +5668,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.8,
     "distance": "—",
     "fact": "Galaxy in Coma Berenices. apparent magnitude 9.8.",
-    "visualSize": 1.31
+    "visualSize": 1.31,
+    "morphology": "E",
+    "axisRatio": 0.95,
+    "posAngDeg": 173
   },
   {
     "id": "ngc4526",
@@ -5292,7 +5683,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.59,
     "distance": "—",
     "fact": "Galaxy in Virgo. apparent magnitude 9.6.",
-    "visualSize": 1.32
+    "visualSize": 1.32,
+    "morphology": "S0",
+    "axisRatio": 0.36,
+    "posAngDeg": 138
   },
   {
     "id": "ngc4535",
@@ -5304,7 +5698,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.89,
     "distance": "—",
     "fact": "Galaxy in Virgo. apparent magnitude 9.9.",
-    "visualSize": 1.31
+    "visualSize": 1.31,
+    "morphology": "Sc",
+    "axisRatio": 0.92,
+    "posAngDeg": 27
   },
   {
     "id": "ngc4636",
@@ -5316,7 +5713,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.99,
     "distance": "—",
     "fact": "Galaxy in Virgo. apparent magnitude 10.0.",
-    "visualSize": 1.3
+    "visualSize": 1.3,
+    "morphology": "E",
+    "axisRatio": 0.74,
+    "posAngDeg": 150
   },
   {
     "id": "ngc4699",
@@ -5328,7 +5728,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.53,
     "distance": "—",
     "fact": "Galaxy in Virgo. apparent magnitude 9.5.",
-    "visualSize": 1.32
+    "visualSize": 1.32,
+    "morphology": "SABb",
+    "axisRatio": 0.76,
+    "posAngDeg": 35
   },
   {
     "id": "ngc4725",
@@ -5340,7 +5743,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.38,
     "distance": "—",
     "fact": "Galaxy in Coma Berenices. apparent magnitude 9.4.",
-    "visualSize": 1.33
+    "visualSize": 1.33,
+    "morphology": "SABa",
+    "axisRatio": 0.73,
+    "posAngDeg": 36
   },
   {
     "id": "ngc4753",
@@ -5352,7 +5758,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.66,
     "distance": "—",
     "fact": "Galaxy in Virgo. apparent magnitude 9.7.",
-    "visualSize": 1.32
+    "visualSize": 1.32,
+    "morphology": "S0-a",
+    "axisRatio": 0.47,
+    "posAngDeg": 86
   },
   {
     "id": "ngc4815",
@@ -5400,7 +5809,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.88,
     "distance": "—",
     "fact": "Galaxy in Centaurus. apparent magnitude 9.9.",
-    "visualSize": 1.31
+    "visualSize": 1.31,
+    "morphology": "E-S0",
+    "axisRatio": 0.38,
+    "posAngDeg": 49
   },
   {
     "id": "ngc5138",
@@ -5436,7 +5848,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.58,
     "distance": "—",
     "fact": "Galaxy in Canes Venatici. apparent magnitude 9.6.",
-    "visualSize": 1.32
+    "visualSize": 1.32,
+    "morphology": "SBa",
+    "axisRatio": 0.79,
+    "posAngDeg": 79
   },
   {
     "id": "ngc5281",
@@ -5460,7 +5875,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.8,
     "distance": "—",
     "fact": "Planetary nebula in Circinus. apparent magnitude 9.8.",
-    "visualSize": 1.51
+    "visualSize": 1.51,
+    "nebulaType": "planetary"
   },
   {
     "id": "ngc5316",
@@ -5592,7 +6008,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.89,
     "distance": "—",
     "fact": "Galaxy in Draco. apparent magnitude 9.9.",
-    "visualSize": 1.31
+    "visualSize": 1.31,
+    "morphology": "S0-a",
+    "axisRatio": 0.43,
+    "posAngDeg": 126
   },
   {
     "id": "ngc5897",
@@ -5748,7 +6167,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 6.71,
     "distance": "—",
     "fact": "Nebula in Norma. apparent magnitude 6.7.",
-    "visualSize": 1.66
+    "visualSize": 1.66,
+    "nebulaType": "emission"
   },
   {
     "id": "ngc6165",
@@ -5760,7 +6180,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 6.71,
     "distance": "—",
     "fact": "Nebula in Norma. apparent magnitude 6.7.",
-    "visualSize": 1.66
+    "visualSize": 1.66,
+    "nebulaType": "emission"
   },
   {
     "id": "ngc6167",
@@ -5868,7 +6289,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.65,
     "distance": "—",
     "fact": "Planetary nebula in Hercules. apparent magnitude 9.7.",
-    "visualSize": 1.52
+    "visualSize": 1.52,
+    "nebulaType": "planetary"
   },
   {
     "id": "ngc6229",
@@ -6288,7 +6710,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 8.1,
     "distance": "—",
     "fact": "Planetary nebula in Ophiuchus. apparent magnitude 8.1.",
-    "visualSize": 1.59
+    "visualSize": 1.59,
+    "nebulaType": "planetary"
   },
   {
     "id": "ngc6583",
@@ -6324,7 +6747,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.8,
     "distance": "—",
     "fact": "Reflection nebula in Sagittarius. apparent magnitude 9.8.",
-    "visualSize": 1.51
+    "visualSize": 1.51,
+    "nebulaType": "reflection"
   },
   {
     "id": "ngc6604",
@@ -6360,7 +6784,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 6,
     "distance": "—",
     "fact": "Nebula in Se2. apparent magnitude 6.0.",
-    "visualSize": 1.7
+    "visualSize": 1.7,
+    "nebulaType": "emission"
   },
   {
     "id": "ngc6625",
@@ -6528,7 +6953,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 8.8,
     "distance": "—",
     "fact": "Planetary nebula in Lyra. apparent magnitude 8.8.",
-    "visualSize": 1.56
+    "visualSize": 1.56,
+    "nebulaType": "planetary"
   },
   {
     "id": "ngc6738",
@@ -6624,7 +7050,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.3,
     "distance": "—",
     "fact": "Planetary nebula in Sagittarius. apparent magnitude 9.3.",
-    "visualSize": 1.53
+    "visualSize": 1.53,
+    "nebulaType": "planetary"
   },
   {
     "id": "ngc6819",
@@ -6756,7 +7183,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 7,
     "distance": "—",
     "fact": "Supernova remnant in Cygnus. apparent magnitude 7.0.",
-    "visualSize": 1.65
+    "visualSize": 1.65,
+    "nebulaType": "snr"
   },
   {
     "id": "ngc6997",
@@ -6780,7 +7208,8 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 8.5,
     "distance": "—",
     "fact": "Planetary nebula in Cygnus. apparent magnitude 8.5.",
-    "visualSize": 1.57
+    "visualSize": 1.57,
+    "nebulaType": "planetary"
   },
   {
     "id": "ngc7031",
@@ -7056,7 +7485,10 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "magnitude": 9.29,
     "distance": "—",
     "fact": "Galaxy in Sculptor. apparent magnitude 9.3.",
-    "visualSize": 1.34
+    "visualSize": 1.34,
+    "morphology": "Scd",
+    "axisRatio": 0.58,
+    "posAngDeg": 89
   }
 ]
 

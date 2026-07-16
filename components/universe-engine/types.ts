@@ -379,6 +379,24 @@ export type SkyPoint = {
    */
   shade?: string
   /**
+   * Galaxy morphology — the raw Hubble type string from OpenNGC ("Sb",
+   * "SBbc", "E2", "S0", "IB(s)m"…). Drives the procedural galaxy model
+   * (spiral / barred / elliptical / lenticular / irregular). Absent when
+   * OpenNGC has no classification — the renderer then keeps the plain halo
+   * rather than inventing a shape.
+   */
+  morphology?: string
+  /** Apparent minor/major axis ratio (0–1) — cos-inclination proxy for discs. */
+  axisRatio?: number
+  /** On-sky position angle of the major axis, degrees E of N (OpenNGC). */
+  posAngDeg?: number
+  /**
+   * Nebula sub-type from the OpenNGC object class — drives per-type
+   * procedural rendering (planetary shell, SNR filaments, red emission
+   * cloud, blue reflection wisps, dark silhouette).
+   */
+  nebulaType?: "planetary" | "snr" | "emission" | "reflection" | "dark"
+  /**
    * Optional exoplanet system — child worlds rendered around an
    * exoplanet-host star when focused. Each one is a tiny dot at its
    * orbital distance (heavily scene-scale-compressed). Real orbital

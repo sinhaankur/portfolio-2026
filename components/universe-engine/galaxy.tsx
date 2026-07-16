@@ -730,3 +730,259 @@ export function GalaxySprite({ url, size }: { url: string; size: number }) {
     </mesh>
   )
 }
+
+/* ============================================================
+ * ProceduralGalaxy — every catalog galaxy resolves, not just the
+ * famous ones.
+ *
+ * The ~110 OpenNGC galaxies without a bespoke model used to stay
+ * generic warm halos forever ("blobs"). Each now blooms into a
+ * point-cloud built from its REAL measured morphology:
+ *
+ *   Hubble type (OpenNGC)  →  rendered form
+ *   E, E1..E7                 elliptical — smooth old-star ellipsoid,
+ *                             projected flattening from the axis ratio
+ *   S0 / E-S0                 lenticular — disc + dominant bulge, no arms
+ *   Sa..Sd, SAB*, Sm          spiral — two log arms + bulge + pink H II
+ *   SB*                       barred spiral — the same + a stellar bar
+ *   I*, IB*                   irregular — clumpy blue star-forming dwarf
+ *
+ * Inclination comes from the measured axis ratio (cos i ≈ b/a for a
+ * thin disc) and the on-sky position angle from OpenNGC — so an
+ * edge-on catalog galaxy renders edge-on at the catalog's angle.
+ * Galaxies with NO Hubble classification keep the plain halo — the
+ * engine doesn't invent a shape it doesn't know (inference stops at
+ * the data). Projection frame reuses the same PA/tilt convention as
+ * the bespoke GalaxyDetail models.
+ * ============================================================ */
+
+export type GalaxyForm = "spiral" | "barred" | "lenticular" | "elliptical" | "irregular"
+
+/** Raw OpenNGC Hubble string → rendered form. Null = unknown, keep the halo. */
+export function classifyMorphology(hubble?: string): GalaxyForm | null {
+  if (!hubble) return null
+  const s = hubble.trim()
+  if (/^E-?S0/i.test(s) || /^S0/i.test(s)) return "lenticular"
+  if (/^E/i.test(s)) return "elliptical"
+  if (/^S(B|AB)/i.test(s)) return "barred"
+  if (/^S/i.test(s)) return "spiral"
+  if (/^I/i.test(s)) return "irregular"
+  return null
+}
+
+/** Ids with a bespoke hand-tuned model (GalaxyDetail / GALAXY_3D) — the
+ *  generic procedural path skips these so the richer model wins. */
+export const BESPOKE_GALAXY_IDS = new Set([
+  "m31", "m33", "m51", "m81", "m82", "m101", "m104", "lmc", "smc",
+])
+
+function buildGalaxyForm(form: GalaxyForm, axisRatio: number): BufferGeometry {
+  const n = form === "elliptical" ? 2400 : 2800
+  const positions = new Float32Array(n * 3)
+  const colors = new Float32Array(n * 3)
+
+  const warm = (i3: number) => {
+    colors[i3] = 0.95 + Math.random() * 0.05
+    colors[i3 + 1] = 0.82 + Math.random() * 0.10
+    colors[i3 + 2] = 0.60 + Math.random() * 0.14
+  }
+  const blue = (i3: number) => {
+    colors[i3] = 0.62 + Math.random() * 0.18
+    colors[i3 + 1] = 0.72 + Math.random() * 0.18
+    colors[i3 + 2] = 0.92 + Math.random() * 0.08
+  }
+  const pink = (i3: number) => {
+    colors[i3] = 0.92 + Math.random() * 0.08
+    colors[i3 + 1] = 0.50 + Math.random() * 0.10
+    colors[i3 + 2] = 0.70 + Math.random() * 0.10
+  }
+
+  for (let i = 0; i < n; i++) {
+    const i3 = i * 3
+
+    if (form === "elliptical") {
+      // de-Vaucouleurs-ish concentration: steep core, extended envelope.
+      const r = Math.min(1.1, Math.pow(-Math.log(Math.max(1e-4, Math.random())), 0.75) * 0.3)
+      const v = Math.random() * 2 - 1
+      const theta = Math.random() * Math.PI * 2
+      const s = Math.sqrt(1 - v * v)
+      // Projected flattening on the sky (local xz); LOS depth intermediate.
+      positions[i3] = r * s * Math.cos(theta)
+      positions[i3 + 1] = r * v * ((1 + axisRatio) / 2) * 0.9
+      positions[i3 + 2] = r * s * Math.sin(theta) * Math.max(0.3, axisRatio)
+      warm(i3)
+      continue
+    }
+
+    if (form === "irregular") {
+      // Clumpy star-forming dwarf — 4 seeded clumps + loose envelope.
+      const CLUMPS: [number, number, number][] = [
+        [0.35, 0, -0.2], [-0.4, 0.02, 0.25], [0.05, -0.02, 0.45], [-0.15, 0.01, -0.4],
+      ]
+      if (Math.random() < 0.55) {
+        const [cx, cy, cz] = CLUMPS[i % CLUMPS.length]
+        positions[i3] = cx + (Math.random() - 0.5) * 0.5
+        positions[i3 + 1] = cy + (Math.random() - 0.5) * 0.16
+        positions[i3 + 2] = cz + (Math.random() - 0.5) * 0.5
+      } else {
+        const r = Math.pow(Math.random(), 0.6)
+        const theta = Math.random() * Math.PI * 2
+        positions[i3] = r * Math.cos(theta)
+        positions[i3 + 1] = (Math.random() - 0.5) * 0.2
+        positions[i3 + 2] = r * Math.sin(theta) * 0.8
+      }
+      const t = Math.random()
+      if (t < 0.55) blue(i3)
+      else if (t < 0.75) pink(i3)
+      else warm(i3)
+      continue
+    }
+
+    // Disc forms: spiral / barred / lenticular. Bulge fraction rises from
+    // spiral → lenticular (S0s are nearly all bulge + smooth disc).
+    const bulgeFrac = form === "lenticular" ? 0.5 : 0.26
+    const barFrac = form === "barred" ? 0.14 : 0
+    const roll = i / n
+
+    if (roll < bulgeFrac) {
+      const r = -Math.log(Math.max(1e-4, Math.random())) * 0.16
+      const theta = Math.random() * Math.PI * 2
+      positions[i3] = r * Math.cos(theta)
+      positions[i3 + 1] = (Math.random() - 0.5) * 0.11 * Math.exp(-r * 1.5)
+      positions[i3 + 2] = r * Math.sin(theta)
+      warm(i3)
+    } else if (roll < bulgeFrac + barFrac) {
+      // Stellar bar — elongated, warm, thin.
+      const along = (Math.random() - 0.5) * 0.72
+      positions[i3] = along
+      positions[i3 + 1] = (Math.random() - 0.5) * 0.05
+      positions[i3 + 2] = (Math.random() - 0.5) * 0.11 * (1 - Math.abs(along) * 0.9)
+      warm(i3)
+    } else if (form === "lenticular") {
+      // Smooth featureless disc — exponential falloff, no arms, no H II.
+      const r = 0.14 + Math.pow(Math.random(), 0.65) * 0.9
+      const theta = Math.random() * Math.PI * 2
+      positions[i3] = r * Math.cos(theta)
+      positions[i3 + 1] = (Math.random() - 0.5) * 0.05
+      positions[i3 + 2] = r * Math.sin(theta)
+      warm(i3)
+    } else {
+      // Two logarithmic arms (barred spirals' arms start at the bar ends).
+      const a = form === "barred" ? 0.3 : 0.07
+      const b = 0.24
+      const r = 0.16 + Math.pow(Math.random(), 0.68) * 0.92
+      let theta = Math.log(Math.max(r, a * 1.01) / a) / b + (i % 2) * Math.PI
+      theta += (Math.random() - 0.5) * (0.42 / (r + 0.1))
+      positions[i3] = r * Math.cos(theta)
+      positions[i3 + 1] = (Math.random() - 0.5) * 0.045
+      positions[i3 + 2] = r * Math.sin(theta)
+      if (Math.random() < 0.13) pink(i3)
+      else blue(i3)
+    }
+  }
+
+  const geo = new BufferGeometry()
+  geo.setAttribute("position", new BufferAttribute(positions, 3))
+  geo.setAttribute("color", new BufferAttribute(colors, 3))
+  return geo
+}
+
+export function ProceduralGalaxy({
+  morphology,
+  axisRatio,
+  posAngDeg,
+  size,
+  active,
+  invert,
+}: {
+  morphology?: string
+  axisRatio?: number
+  posAngDeg?: number
+  size: number
+  active: boolean
+  invert: boolean
+}) {
+  const rootRef = useRef<Group>(null)
+  const spinRef = useRef<Group>(null)
+  const starsMatRef = useRef<import("three").PointsMaterial>(null)
+  const bulgeMatRef = useRef<import("three").MeshBasicMaterial>(null)
+
+  const form = classifyMorphology(morphology)
+  const ratio = Math.min(1, Math.max(0.08, axisRatio ?? 0.8))
+
+  // Build lazily on first activation, then keep for instant re-hovers.
+  const [built, setBuilt] = useState(false)
+  useEffect(() => {
+    if (active && form) setBuilt(true)
+  }, [active, form])
+
+  const geometry = useMemo(
+    () => (built && form ? buildGalaxyForm(form, ratio) : null),
+    [built, form, ratio],
+  )
+
+  useFrame((_, delta) => {
+    const k = 1 - Math.exp(-delta * 6)
+    if (rootRef.current) {
+      const target = active ? 1.0 : 0.001
+      const s = rootRef.current.scale.x
+      const next = s + (target - s) * k
+      rootRef.current.scale.set(next, next, next)
+    }
+    // Same slow in-place rotation as the bespoke models — alive, not a spinner.
+    if (spinRef.current && active) spinRef.current.rotation.y += delta * 0.02
+    if (starsMatRef.current) {
+      const target = active ? (invert ? 0.45 : 0.6) : 0
+      starsMatRef.current.opacity += (target - starsMatRef.current.opacity) * k
+    }
+    if (bulgeMatRef.current) {
+      const target = active ? (invert ? 0.5 : 0.7) : 0
+      bulgeMatRef.current.opacity += (target - bulgeMatRef.current.opacity) * k
+    }
+  })
+
+  if (!form || !geometry) return null
+
+  // Disc forms tilt to the measured inclination (cos i ≈ b/a); ellipticals
+  // carry their flattening in the geometry instead. PA orients the major axis.
+  const isDisc = form === "spiral" || form === "barred" || form === "lenticular"
+  const tilt = isDisc ? Math.acos(ratio) : 0
+  const pa = (posAngDeg ?? 0) * DEG
+  const detailScale = size * 2.0
+  const bulgeColor = invert ? "#5a3416" : "#ffdcb2"
+
+  return (
+    <group ref={rootRef} scale={0.001}>
+      <group rotation={[0, 0, pa]}>
+        <group rotation={[tilt, 0, 0]}>
+          <group ref={spinRef}>
+            <points geometry={geometry} scale={detailScale}>
+              <pointsMaterial
+                ref={starsMatRef as React.Ref<import("three").PointsMaterial>}
+                size={detailScale * 0.028}
+                sizeAttenuation
+                vertexColors
+                transparent
+                opacity={0}
+                blending={invert ? NormalBlending : AdditiveBlending}
+                depthWrite={false}
+              />
+            </points>
+            {/* Unresolvable inner core — soft warm glow, denser for bulge-heavy forms. */}
+            <mesh scale={detailScale * (form === "elliptical" || form === "lenticular" ? 0.2 : 0.13)}>
+              <sphereGeometry args={[1, 16, 16]} />
+              <meshBasicMaterial
+                ref={bulgeMatRef as React.Ref<import("three").MeshBasicMaterial>}
+                color={bulgeColor}
+                transparent
+                opacity={0}
+                blending={invert ? NormalBlending : AdditiveBlending}
+                depthWrite={false}
+              />
+            </mesh>
+          </group>
+        </group>
+      </group>
+    </group>
+  )
+}
