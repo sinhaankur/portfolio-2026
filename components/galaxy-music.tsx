@@ -128,10 +128,15 @@ export function GalaxyMusic() {
   }
 
   // Iframe is loaded but kept visually hidden — we control playback via the widget API.
-  // src has auto_play=false so nothing happens until the user clicks the button.
+  // auto_play=true is SAFE and still strictly opt-in: this iframe only MOUNTS after
+  // the user clicks the play chip (that click is the consent). It also FIXES the
+  // "clicked but nothing plays" bug: calling widget.play() from the async READY
+  // callback lands outside the browser's user-activation window and Chrome silently
+  // blocks the audio — letting the widget start itself inside the click-initiated
+  // load is the reliable path.
   const embedSrc = `https://w.soundcloud.com/player/?url=${encodeURIComponent(
     TRACK_URL,
-  )}&auto_play=false&buying=false&sharing=false&download=false&show_artwork=false&show_comments=false&show_playcount=false&show_user=false&visual=false`
+  )}&auto_play=true&buying=false&sharing=false&download=false&show_artwork=false&show_comments=false&show_playcount=false&show_user=false&visual=false`
 
   if (loadError) return null
 
