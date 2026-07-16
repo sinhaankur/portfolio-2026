@@ -90,7 +90,7 @@ export interface GameState {
   simTime: number; // cumulative seconds since game start
   waveStartTime: number;
   ignitionStartTime?: number; // when ignition sequence began (for timing animation)
-  selectedShip?: 'default-vanguard'; // currently selected procedural ship variant
+  selectedShip?: string; // currently selected ship id (registry lives in the game's ship-selector)
   worldsCompleted: number; // total worlds beaten (for ship unlocks)
 
   playerEntity: GameEntity;

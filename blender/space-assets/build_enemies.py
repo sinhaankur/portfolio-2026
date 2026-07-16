@@ -112,10 +112,15 @@ def cyl(name, r=0.5, depth=1.0, loc=(0, 0, 0), rot=(0, 0, 0), material=None, ver
     return o
 
 
-def cone(name, r1=0.5, r2=0.0, depth=1.0, loc=(0, 0, 0), rot=(0, 0, 0), material=None, verts=18, squash=1.0):
+def cone(name, r1=0.5, r2=0.0, depth=1.0, loc=(0, 0, 0), rot=(0, 0, 0), material=None, verts=18, squash=1.0, spin=0.0):
     bpy.ops.mesh.primitive_cone_add(radius1=r1, radius2=r2, depth=depth, location=loc, vertices=verts)
     o = bpy.context.active_object
     o.name = name
+    if spin:
+        # spin about the cone's OWN axis first (Blender euler XYZ applies Z
+        # last, so folding the spin into `rot` tilts the axis 45° sideways)
+        o.rotation_euler = (0, 0, spin)
+        bpy.ops.object.transform_apply(location=False, rotation=True, scale=False)
     o.rotation_euler = rot
     bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
     if squash != 1.0:
@@ -144,7 +149,7 @@ def build_fighter():
     C, D, E, EN = MATS["CORP"], MATS["CORP_DARK"], MATS["EYE"], MATS["ENGINE"]
     parts = [cube("Hull", (1.0, 1.9, 0.5), (0, -0.15, 0), material=C, bevel=0.14)]
     parts.append(cone("Nose", r1=0.50, r2=0.06, depth=0.85, loc=(0, 1.1, 0),
-                      rot=(math.radians(-90), 0, math.radians(45)), material=C, verts=4, squash=0.5))
+                      rot=(math.radians(-90), 0, 0), spin=math.radians(45), material=C, verts=4, squash=0.5))
     parts.append(cube("EyeSlit", (0.44, 0.06, 0.09), (0, 0.66, 0.22), material=E, bevel=0.01))
     parts.append(cube("DorsalPlate", (0.55, 0.9, 0.08), (0, -0.35, 0.26), material=D, bevel=0.03))
     parts.append(cube("GunPod", (0.28, 0.8, 0.20), (0, 0.35, -0.28), material=D, bevel=0.05))
@@ -184,9 +189,9 @@ def build_swarm():
     """Tiny faceted dart, ~0.7. Reads as an angry red-eyed chip of metal."""
     C, D, E, EN = MATS["CORP"], MATS["CORP_DARK"], MATS["EYE"], MATS["ENGINE"]
     parts = [cone("Body", r1=0.22, r2=0.03, depth=0.38, loc=(0, 0.15, 0),
-                  rot=(math.radians(-90), 0, math.radians(45)), material=C, verts=4, squash=0.85)]
+                  rot=(math.radians(-90), 0, 0), spin=math.radians(45), material=C, verts=4, squash=0.85)]
     parts.append(cone("BodyAft", r1=0.19, r2=0.06, depth=0.26, loc=(0, -0.17, 0),
-                      rot=(math.radians(90), 0, math.radians(45)), material=D, verts=4, squash=0.85))
+                      rot=(math.radians(90), 0, 0), spin=math.radians(45), material=D, verts=4, squash=0.85))
     parts.append(cube("Core", (0.24, 0.22, 0.20), (0, -0.02, 0), material=D, bevel=0.04))
     parts.append(cube("TopFin", (0.025, 0.15, 0.13), (0, -0.10, 0.16), material=C))
     parts.append(cube("Eye", (0.07, 0.05, 0.05), (0, 0.21, 0.06), material=E))
@@ -202,7 +207,7 @@ def build_boss():
     C, D, E, EN = MATS["CORP"], MATS["CORP_DARK"], MATS["EYE"], MATS["ENGINE"]
     parts = [cube("Slab", (1.8, 4.0, 0.9), (0, -0.55, 0), material=C, bevel=0.20)]
     parts.append(cone("Prow", r1=0.68, r2=0.10, depth=1.3, loc=(0, 2.0, 0),
-                      rot=(math.radians(-90), 0, math.radians(45)), material=C, verts=4, squash=0.55))
+                      rot=(math.radians(-90), 0, 0), spin=math.radians(45), material=C, verts=4, squash=0.55))
     parts.append(cube("Tower", (0.8, 1.0, 0.55), (0, -1.5, 0.65), material=C, bevel=0.10))
     parts.append(cube("TowerEye", (0.5, 0.05, 0.10), (0, -0.99, 0.72), material=E, bevel=0.01))
     for i in range(5):

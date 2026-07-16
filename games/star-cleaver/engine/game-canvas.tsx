@@ -478,6 +478,11 @@ const SHIP_THRUSTER_PRESETS: Record<SelectedShip, {
 }> = {
   // Tuned mount points for the default procedural interceptor.
   'default-vanguard': { lateral: 0.26, vertical: 0.22, coreZ: 0.78, nozzleZ: 0.98, outerNozzleZ: 1.14 },
+  // Derived from the printed GLB exhausts (KESTREL_BUILD_OK ±0.14, ±0.10, 2.187;
+  // GYRFALCON_BUILD_OK ±0.62, ±0.14, 2.438) via the same preset↔GLB mapping the
+  // Peregrine uses (±0.681, ±0.146, 1.997 → 0.26/0.22/0.78).
+  kestrel: { lateral: 0.05, vertical: 0.15, coreZ: 0.85, nozzleZ: 1.07, outerNozzleZ: 1.25 },
+  gyrfalcon: { lateral: 0.24, vertical: 0.21, coreZ: 0.95, nozzleZ: 1.2, outerNozzleZ: 1.39 },
 };
 
 /**

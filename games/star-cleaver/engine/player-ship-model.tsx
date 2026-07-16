@@ -14,14 +14,19 @@ import { GAMEPLAY_SHIP_RENDER_SCALE, PREVIEW_SHIP_RENDER_SCALE } from './scale-c
 // Long chisel nose, rear-set HUD-glow canopy, four strike-foils in a shallow X,
 // an engine nacelle at each wing root, four forward wingtip cannons. The
 // previous Vanguard GLB stays in public/models/ so this swap is revertible.
-const PLAYER_SHIP_MODEL_PATH = '/models/peregrine.glb';
-// The Peregrine GLB is exported +Y-forward / +Z-up in Blender with export_yup=true,
-// so in three-space it already arrives nose -Z (game forward) and up +Y — no
+const SHIP_MODEL_PATHS: Record<SelectedShip, string> = {
+	'default-vanguard': '/models/peregrine.glb',
+	kestrel: '/models/kestrel.glb',
+	gyrfalcon: '/models/gyrfalcon.glb',
+};
+const DEFAULT_SHIP_PATH = SHIP_MODEL_PATHS['default-vanguard'];
+// All fleet GLBs are exported +Y-forward / +Z-up in Blender with export_yup=true,
+// so in three-space they already arrive nose -Z (game forward) and up +Y — no
 // basis rotation needed.
 export const SHIP_MODEL_BASIS_ROTATION: [number, number, number] = [0, 0, 0];
 
 type PlayerShipMode = 'game' | 'preview';
-type ShipVariant = 'default-vanguard';
+type ShipVariant = SelectedShip;
 
 type ShipTransform = {
 	scale: number;
@@ -29,11 +34,17 @@ type ShipTransform = {
 	rotation: [number, number, number];
 };
 
+// One shared render scale: the GLBs keep their authored relative proportions
+// (Peregrine 4.285u = 12.5 m, Kestrel 4.434u ≈ 12.9 m, Gyrfalcon 4.945u ≈ 14.4 m).
+const FLEET_TRANSFORM = {
+	preview: { scale: PREVIEW_SHIP_RENDER_SCALE, position: [0, 0, 0] as [number, number, number], rotation: [0, 0, 0] as [number, number, number] },
+	game: { scale: GAMEPLAY_SHIP_RENDER_SCALE, position: [0, 0, 0] as [number, number, number], rotation: [0, 0, 0] as [number, number, number] },
+};
+
 const SHIP_TRANSFORMS: Record<ShipVariant, { game: ShipTransform; preview: ShipTransform }> = {
-	'default-vanguard': {
-	       preview: { scale: PREVIEW_SHIP_RENDER_SCALE, position: [0, 0, 0], rotation: [0, 0, 0] },
-	       game: { scale: GAMEPLAY_SHIP_RENDER_SCALE, position: [0, 0, 0], rotation: [0, 0, 0] },
-       },
+	'default-vanguard': FLEET_TRANSFORM,
+	kestrel: FLEET_TRANSFORM,
+	gyrfalcon: FLEET_TRANSFORM,
 };
 
 export function getPlayerShipTransform(shipId: SelectedShip, mode: PlayerShipMode = 'game'): ShipTransform {
@@ -175,15 +186,16 @@ export function PlayerShipModel({
        applyTransform?: boolean;
 	applyBasisCorrection?: boolean;
 }) {
-	const playerShipGltf = useGLTF(PLAYER_SHIP_MODEL_PATH);
+	const modelPath = SHIP_MODEL_PATHS[shipId] ?? DEFAULT_SHIP_PATH;
+	const playerShipGltf = useGLTF(modelPath);
 	const fallbackShip = useMemo(() => createProceduralPlayerShip(shipId, mode), [shipId, mode]);
 	const shipObject = useMemo(() => cloneAndStyleShipModel(playerShipGltf.scene), [playerShipGltf.scene]);
 	const resolvedShip = shipObject ?? fallbackShip;
 	const hasGltfShip = Boolean(shipObject);
 
 	useEffect(() => {
-		auditShipModel(playerShipGltf.scene, PLAYER_SHIP_MODEL_PATH);
-	}, [playerShipGltf.scene]);
+		auditShipModel(playerShipGltf.scene, modelPath);
+	}, [playerShipGltf.scene, modelPath]);
 
 	const shipVisual = hasGltfShip ? (
 		<>
@@ -221,4 +233,4 @@ export function PlayerShipModel({
        );
 }
 
-useGLTF.preload(PLAYER_SHIP_MODEL_PATH);
+Object.values(SHIP_MODEL_PATHS).forEach((p) => useGLTF.preload(p));

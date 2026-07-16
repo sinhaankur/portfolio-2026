@@ -3,7 +3,7 @@
 import type { GameState } from '../../../lib/neural-game-engine';
 
 export interface ShipConfig {
-  id: 'default-vanguard';
+  id: SelectedShip;
   name: string;
   description: string;
   visualSource: 'glb' | 'procedural';
@@ -30,19 +30,42 @@ export const SHIP_CONFIGS: Record<string, ShipConfig> = {
       weapons: 4,
     },
   },
+  // Falcon family, same fleet palette (blender/space-assets/build_new_ships.py).
+  kestrel: {
+    id: 'kestrel',
+    name: 'Kestrel Interceptor',
+    description: 'Forward-swept interceptor — canards, twin canted tails, quad micro-nozzle cluster.',
+    visualSource: 'glb',
+    visualNote: 'Styled GLB',
+    stats: {
+      speed: 5,
+      armor: 2,
+      weapons: 3,
+    },
+  },
+  gyrfalcon: {
+    id: 'gyrfalcon',
+    name: 'Gyrfalcon Gunship',
+    description: 'Twin-hull gunship — paired chin guns, dorsal turret, four heavy engines.',
+    visualSource: 'glb',
+    visualNote: 'Styled GLB',
+    stats: {
+      speed: 2,
+      armor: 5,
+      weapons: 5,
+    },
+  },
 };
 
-export type SelectedShip = 'default-vanguard';
+export type SelectedShip = 'default-vanguard' | 'kestrel' | 'gyrfalcon';
 
 /**
- * Get available ships based on worlds completed
- * Peregrine: always available
- * T-70: unlocked after 2 worlds
- * X-Blade: unlocked after 5 worlds
+ * Get available ships based on worlds completed.
+ * All three hulls fly today; unlock gating can return when progression wants it.
  */
 export function getAvailableShips(worldsCompleted: number): ShipConfig[] {
   void worldsCompleted;
-  return [SHIP_CONFIGS['default-vanguard']];
+  return [SHIP_CONFIGS['default-vanguard'], SHIP_CONFIGS['kestrel'], SHIP_CONFIGS['gyrfalcon']];
 }
 
 interface ShipSelectorProps {
