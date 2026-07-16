@@ -588,6 +588,14 @@ export function requestFlyTo(
 
 export type FollowGetter = () => { x: number; y: number; z: number } | null
 
+/** Travel frame of a followed body: unit travel direction `t` + radial-out
+ *  `up`. Lets the controller hold the camera in the body's ROTATING frame
+ *  (chase view) instead of a world-fixed offset. */
+export type FollowFrameGetter = () => {
+  t: { x: number; y: number; z: number }
+  up: { x: number; y: number; z: number }
+} | null
+
 export const followRef: {
   current: {
     getter: FollowGetter
@@ -604,6 +612,12 @@ export const followRef: {
      *  stops fighting user input — drag rotates, scroll zooms, and
      *  the controller only keeps the *target* tracking the body. */
     arrived: boolean
+    /** When set, the arrived camera keeps its offset in the body's travel
+     *  frame (LeoLabs-style chase): "behind" stays behind around the orbit. */
+    frame?: FollowFrameGetter
+    /** Controller state: camera offset expressed in the travel frame
+     *  (s = t×up sideways, up, t forward). Updated after user input. */
+    chaseLocal?: { x: number; y: number; z: number }
   } | null
 } = { current: null }
 
@@ -613,9 +627,10 @@ export function requestFollow(
   distance: number,
   label?: string,
   approachDir?: { x: number; y: number; z: number },
+  frame?: FollowFrameGetter,
 ) {
   flyToRef.current.active = false
-  followRef.current = { getter, distance, label, approachDir, arrived: false }
+  followRef.current = { getter, distance, label, approachDir, arrived: false, frame }
 }
 
 /** Cancel follow mode (called by reset, by a new fly, by Esc / explore toggle). */

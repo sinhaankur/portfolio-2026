@@ -254,6 +254,11 @@ const RECOMPUTE_MS = 250 // SGP4 refresh cadence (4 Hz)
 
 // Scratch vector for the per-frame overview-LOD measurement (no allocation).
 const _fieldWorld = new THREE.Vector3()
+// Chase-frame scratch (travel direction + radial-out for the follow camera).
+const _sfQ = new THREE.Quaternion()
+const _sfT = new THREE.Vector3()
+const _sfUp = new THREE.Vector3()
+const _sfE = new THREE.Vector3()
 
 // Never thin the swarm below this many visible LEO dots: in the sparse eras
 // (scrub to 1965 — a few hundred objects total) or a small filtered group,
@@ -325,6 +330,31 @@ type Sat = { id: number; name: string; owner: string; type?: SatType; launchMs: 
 // Reuse the engine's canonical J2000 epoch + day helper (see astronomy.ts).
 const msToJ2000Day = (ms: number) => daysSinceJ2000(ms)
 
+// MODELED debris lifetime — a rough perigee-based re-entry forecast (drag falls
+// off exponentially with altitude), used ONLY to visualize orbital decay as the
+// timeline plays forward: junk sinks out of the sky over years-to-centuries.
+// This is a labeled heuristic, NOT tracking data — real decay depends on
+// mass/area and solar activity the catalogue doesn't carry.
+function modeledLifetimeDays(perigeeKm: number): number {
+  if (perigeeKm < 200) return 30
+  if (perigeeKm < 300) return 240
+  if (perigeeKm < 400) return 365 * 2.5
+  if (perigeeKm < 500) return 365 * 9
+  if (perigeeKm < 600) return 365 * 25
+  if (perigeeKm < 800) return 365 * 90
+  if (perigeeKm < 1000) return 365 * 400
+  return 365 * 5000
+}
+
+/** TLE epoch (line 1 cols 19–32, YYDDD.DDDD…) → days since J2000. */
+function tleEpochDay(l1: string): number {
+  const yy = parseInt(l1.substring(18, 20), 10)
+  const doy = parseFloat(l1.substring(20, 32))
+  if (!Number.isFinite(yy) || !Number.isFinite(doy)) return 0
+  const year = yy < 57 ? 2000 + yy : 1900 + yy
+  return daysSinceJ2000(Date.UTC(year, 0, 1)) + (doy - 1)
+}
+
 const VERT = /* glsl */ `
   // NOTE: launch gating uses DAYS-since-J2000, not epoch-milliseconds. A GLSL
   // float is 32-bit (~24-bit mantissa, exact only to ~16.7M), so epoch-ms values
@@ -332,6 +362,8 @@ const VERT = /* glsl */ `
   // 'launched yet?' comparison and leak pre-Space-Age satellites. Days-since-J2000
   // (|value| < ~25,000) is exact in float32, so the gate is reliable.
   attribute float aLaunchDay;   // days since J2000 (2000-01-01 12:00 UTC)
+  attribute float aDecayDay;    // MODELED re-entry day (debris/rocket bodies;
+                                // perigee-based lifetime forecast, not tracking)
   attribute vec3 aColor;
   attribute float aDebris;      // 1 = debris / rocket body → render smaller
   attribute float aGroup;       // constellation group id (see SAT_GROUPS)
@@ -373,15 +405,21 @@ const VERT = /* glsl */ `
     // threshold instead of popping, so zooming reads as the haze *resolving*
     // into satellites, not dots switching on.
     float cullFade = (aRegime < 0.5) ? (1.0 - smoothstep(keep - 0.08, keep, aRand)) : 1.0;
+    // Debris decay: past its modeled re-entry day the fragment is GONE (burned
+    // up); it dims over its last ~60 days so scrubbing forward reads as the
+    // junk population slowly dying, not dots blinking off.
+    float decayed = (aDebris > 0.5 && uTimeDay > aDecayDay) ? 1.0 : 0.0;
+    float decayFade = (aDebris > 0.5) ? clamp((aDecayDay - uTimeDay) / 60.0, 0.0, 1.0) : 1.0;
     // Launch gating: not yet launched → collapse to zero size.
-    // Isolate: when one satellite is selected we hide the rest (show only the GLB).
+    // Selection no longer hides the swarm (LeoLabs read: the field stays alive,
+    // dimmed via uIsolate in the fragment shader, with the pick highlighted).
     // Group + regime filters AND together (both must pass if set).
-    vHidden = (aLaunchDay > uTimeDay || uIsolate > 0.5 || cullFade < 0.01 ||
+    vHidden = (aLaunchDay > uTimeDay || decayed > 0.5 || cullFade < 0.01 ||
                (uGroupSel >= 0.0 && abs(aGroup - uGroupSel) > 0.5) ||
                (uRegimeSel >= 0.0 && abs(aRegime - uRegimeSel) > 0.5)) ? 1.0 : 0.0;
     // Surviving LEO dots soften at overview so the band reads as a luminous
     // haze around the globe, resolving into crisp dots as you zoom in.
-    vFade = ((aRegime < 0.5) ? mix(1.0, 0.6, lodEff) : 1.0) * cullFade;
+    vFade = ((aRegime < 0.5) ? mix(1.0, 0.6, lodEff) : 1.0) * cullFade * max(decayFade, 0.0);
     vec4 mv = modelViewMatrix * vec4(position, 1.0);
     gl_Position = projectionMatrix * mv;
     // Perspective size with distance falloff, BUT clamped to a visible floor so
@@ -401,6 +439,9 @@ const VERT = /* glsl */ `
 `
 const FRAG = /* glsl */ `
   precision mediump float;
+  uniform highp float uIsolate;  // 1 = selected → dim (not hide) the swarm; highp to
+                                 // match the vertex declaration or the program fails
+                                 // validation (precision mismatch)
   varying vec3 vColor;
   varying float vHidden;
   varying float vDebris;
@@ -423,6 +464,9 @@ const FRAG = /* glsl */ `
     vec3 col = mix(vColor, vec3(1.0), core * 0.35);
     a *= vDebris > 0.5 ? 0.45 : 1.0;
     a *= vFade;   // overview LOD: LEO softens into haze when Earth is small
+    // Selection dims the swarm to context instead of hiding it — the LeoLabs
+    // read keeps the whole field alive with the pick + its orbit highlighted.
+    a *= mix(1.0, 0.22, uIsolate);
     gl_FragColor = vec4(col, a);
   }
 `
@@ -583,6 +627,7 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     const groups = new Float32Array(n)
     const regimes = new Float32Array(n)
     const rands = new Float32Array(n)
+    const decays = new Float32Array(n)
     sats.forEach((sv, gi) => {
       groups[gi] = classifyGroup(sv.name, sv.type)
       regimes[gi] = classifyRegimeId(sv.l2)
@@ -590,10 +635,28 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
       // NORAD id (not the index) so the visible sample never reshuffles when
       // the catalogue refreshes.
       rands[gi] = Math.abs(Math.sin(sv.id * 12.9898) * 43758.5453) % 1
+      // Modeled re-entry day for junk: TLE epoch + perigee lifetime, jittered
+      // ±35% per object so the population dies off gradually as the timeline
+      // plays into the future, not in banded steps. Payloads never decay here
+      // (we can't know which are dead + station-keeping).
+      if (sv.type === "DEB" || sv.type === "R/B") {
+        const mm = parseFloat(sv.l2.substring(52, 63))
+        const ecc = parseFloat("0." + sv.l2.substring(26, 33).trim())
+        let perigee = 400
+        if (mm > 0) {
+          const nRad = (mm * 2 * Math.PI) / 86400
+          const aKm = Math.cbrt(398600.4418 / (nRad * nRad))
+          perigee = aKm * (1 - (Number.isFinite(ecc) ? ecc : 0)) - EARTH_RADIUS_KM
+        }
+        decays[gi] = tleEpochDay(sv.l1) + modeledLifetimeDays(perigee) * (0.65 + 0.7 * rands[gi])
+      } else {
+        decays[gi] = 1e9
+      }
     })
     g.setAttribute("aGroup", new THREE.BufferAttribute(groups, 1))
     g.setAttribute("aRegime", new THREE.BufferAttribute(regimes, 1))
     g.setAttribute("aRand", new THREE.BufferAttribute(rands, 1))
+    g.setAttribute("aDecayDay", new THREE.BufferAttribute(decays, 1))
     g.boundingSphere = new THREE.Sphere(new THREE.Vector3(), earthVisualRadius * 12)
     return g
   }, [sats, earthVisualRadius])
@@ -653,17 +716,16 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     if (!geometry || !sats || !lib) return
     const sel = selectedSatRef.current
     const isolated = sel != null
-    // Isolate mode hides the whole swarm → tell the shader + skip the (expensive)
-    // full-catalogue SGP4 sweep; we only propagate the one selected satellite.
+    // Selection DIMS the swarm (fragment shader) — it stays alive + propagating,
+    // the LeoLabs read: the pick + its orbit are highlighted against live context.
     if (matRef.current) matRef.current.uniforms.uIsolate.value = isolated ? 1 : 0
 
     const now = performance.now()
 
     // SAT-2: per-frame interpolation. Every frame (not just on the 4 Hz SGP4
     // step) we lerp the live positions from prevPos→nextPos by how far we are
-    // through the current 250 ms window, so the swarm moves continuously. Skipped
-    // while isolated (the swarm is hidden) or before the first SGP4 fill.
-    if (!isolated && prevPos.current && nextPos.current) {
+    // through the current 250 ms window, so the swarm moves continuously.
+    if (prevPos.current && nextPos.current) {
       const pos = geometry.getAttribute("position") as THREE.BufferAttribute
       const arr = pos.array as Float32Array
       // Interpolate prev→next across the current sweep window. The window lasts
@@ -690,7 +752,7 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
         // happily propagate ISS to 6000 BC — but it didn't exist then. Only show
         // once the sim clock has reached the satellite's actual launch.
         const launched = idx >= 0 && sats[idx] ? nowMs >= sats[idx].launchMs : false
-        if (isolated || idx < 0 || !recsN[idx] || !launched) { g.visible = false; continue }
+        if (idx < 0 || !recsN[idx] || !launched) { g.visible = false; continue }
         let r: { position?: Vec3; velocity?: Vec3 } | false = false
         try { r = lib.propagate(recsN[idx], dateN) } catch { r = false }
         const p = r && r.position
@@ -747,8 +809,9 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
       }
     }
 
-    if (!isolated) {
-      // Swarm view — TIME-SLICED SGP4 sweep. Propagating all ~15,700 satellites in
+    {
+      // Swarm view — TIME-SLICED SGP4 sweep (runs even while a satellite is
+      // selected: the dimmed field keeps flying). Propagating all ~15,700 in
       // one frame is a 4 Hz stutter; instead we do a fixed BUDGET per frame into
       // nextPos, advancing sweepCursor. When the cursor wraps a full pass we roll
       // next→prev and restart the interpolation window (sweepStartMs). Positions
@@ -927,6 +990,23 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
             // frame the craft with breathing room — model + locator ring both read.
             span * 10,
             meta?.name,
+            undefined,
+            // Travel frame for the chase camera: the marker's +Z is aimed along
+            // its orbit (lookAt at the propagated ahead-point), radial-out is
+            // position − Earth centre (the field's parent group). With this,
+            // "behind the satellite" stays behind all the way around the orbit.
+            () => {
+              m.getWorldQuaternion(_sfQ)
+              _sfT.set(0, 0, 1).applyQuaternion(_sfQ)
+              m.getWorldPosition(_sfUp)
+              if (m.parent) m.parent.getWorldPosition(_sfE)
+              else _sfE.set(0, 0, 0)
+              _sfUp.sub(_sfE)
+              return {
+                t: { x: _sfT.x, y: _sfT.y, z: _sfT.z },
+                up: { x: _sfUp.x, y: _sfUp.y, z: _sfUp.z },
+              }
+            },
           )
         }
       }
@@ -953,7 +1033,8 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     if (!sats || !sats[idx]) return false
     if (simTimeRef.current.simMs < sats[idx].launchMs) return false
     if (classifyRegimeId(sats[idx].l2) !== 0) return true
-    const filtered = satGroupFilterRef.current >= 0 || satRegimeFilterRef.current >= 0
+    const filtered =
+      satGroupFilterRef.current >= 0 || satRegimeFilterRef.current >= 0 || selectedSatRef.current != null
     const keep = Math.max((filtered ? 1 : 1 - 0.68 * lodRef.current) * areaScale, keepFloorRef.current)
     const rand = Math.abs(Math.sin(sats[idx].id * 12.9898) * 43758.5453) % 1
     return rand <= keep - 0.04
@@ -968,10 +1049,12 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     intersections?: { index?: number }[]
     stopPropagation: () => void
   }) => {
-    if (selectedSatRef.current != null) return
     const idx = e.index ?? e.intersections?.[0]?.index
     if (idx == null || !isDotVisible(idx)) return
     e.stopPropagation()
+    // The swarm stays visible while one craft is selected, so clicking another
+    // dot re-targets the chase — LeoLabs-style hop from object to object.
+    if (sats![idx].id === selectedSatRef.current) return
     selectedSatRef.current = sats![idx].id
   }
 

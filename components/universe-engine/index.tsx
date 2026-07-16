@@ -547,7 +547,10 @@ export function UniverseEngine({
                   ))}
                 </ul>
                 <p className="mt-3 pt-2.5 border-t border-foreground/10 font-sans text-[10px] leading-4 text-foreground/45">
-                  Coloured by object type. Open the Explore menu → Orbital census to split by orbit (LEO / MEO / GEO). Click any dot for its live orbit + position.
+                  Coloured by object type. Open the Explore menu → Orbital census to split by orbit (LEO / MEO / GEO). Click any dot to chase it — its orbit draws, the field dims, drag to ride behind it.
+                </p>
+                <p className="mt-1.5 font-sans text-[10px] leading-4 text-foreground/40">
+                  Play the timeline forward and debris slowly de-orbits and dies — a modelled perigee-lifetime forecast, not tracking data.
                 </p>
               </div>
             </motion.div>

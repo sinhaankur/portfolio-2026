@@ -129,6 +129,11 @@ const _flyCamDir = new Vector3()
 const _flyTargetVec = new Vector3()
 const _flyDesiredCamPos = new Vector3()
 const _flyApproachDir = new Vector3()
+// Chase-frame scratch (orbital-frame follow): travel dir, radial up, sideways.
+const _chT = new Vector3()
+const _chUp = new Vector3()
+const _chS = new Vector3()
+const _chOff = new Vector3()
 
 function FlyToController({ interactive }: { interactive: boolean }) {
   const { camera, controls } = useThree() as unknown as {
@@ -217,7 +222,37 @@ function FlyToController({ interactive }: { interactive: boolean }) {
         }
       } else {
         // Arrived — track the moving target without overriding camera
-        // distance. OrbitControls preserves the user's spherical
+        // distance.
+        const fr = follow.frame ? follow.frame() : null
+        if (fr) {
+          // ORBITAL-FRAME chase (satellites): hold the camera's offset in the
+          // body's travel frame (s = sideways, up = radial out, t = forward),
+          // so "behind the craft" STAYS behind as it sweeps its orbit — a
+          // world-fixed offset drifts to a side view within seconds on a
+          // 90-minute LEO orbit. Drag/zoom still work: OrbitControls applies
+          // user input in update(), and we re-record the offset afterward.
+          _chT.set(fr.t.x, fr.t.y, fr.t.z).normalize()
+          _chUp.set(fr.up.x, fr.up.y, fr.up.z)
+          _chUp.addScaledVector(_chT, -_chT.dot(_chUp)).normalize()
+          _chS.crossVectors(_chT, _chUp)
+          const local = follow.chaseLocal
+          if (local) {
+            camera.position
+              .copy(_flyTargetVec)
+              .addScaledVector(_chS, local.x)
+              .addScaledVector(_chUp, local.y)
+              .addScaledVector(_chT, local.z)
+          } else {
+            _chOff.copy(_flyTargetVec).sub(controls.target)
+            camera.position.add(_chOff)
+          }
+          controls.target.copy(_flyTargetVec)
+          controls.update()
+          _chOff.copy(camera.position).sub(controls.target)
+          follow.chaseLocal = { x: _chOff.dot(_chS), y: _chOff.dot(_chUp), z: _chOff.dot(_chT) }
+          return
+        }
+        // Planets/comets: OrbitControls preserves the user's spherical
         // offset (radius + angles), so as the body sweeps through
         // space the camera slides along with it while drag/zoom
         // respond to input normally. We move target + camera by the
