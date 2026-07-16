@@ -17,7 +17,8 @@ const UniverseEngine = dynamic(
  * /sky — the Universe Engine as a calm ambient window. No HUD, no labels, no
  * timeline: the passive journey drifts through the real sky (Milky Way, the
  * solar system, Saturn, Sgr A*, M87*…) and asks nothing of you. The one
- * control on the page is the opt-in piano (Einaudi). Fullscreen it and leave
+ * control on the page is the opt-in music cycle — quiet → piano (Einaudi) →
+ * Deep Field drone (original, synthesized) → quiet. Fullscreen it and leave
  * it on.
  */
 export function SkyExperience() {
@@ -49,9 +50,10 @@ export function SkyExperience() {
     }
   }, [])
 
-  // webOS TV support (?tv=1 or a webOS user agent): OK/Enter toggles the piano
-  // and the remote's Back key (461) exits the app cleanly — both LG QA
-  // requirements. Desktop keyboards are unaffected beyond Enter-as-play.
+  // webOS TV support (?tv=1 or a webOS user agent): OK/Enter advances the music
+  // cycle (quiet → piano → drone → quiet) and the remote's Back key (461) exits
+  // the app cleanly — both LG QA requirements. Desktop keyboards are unaffected
+  // beyond Enter-as-play.
   useEffect(() => {
     const tv =
       /web0s|webos/i.test(navigator.userAgent) ||
@@ -92,8 +94,8 @@ export function SkyExperience() {
         </p>
       </div>
 
-      {/* The page's single control: opt-in piano. (id used by the TV remote's
-          OK key — see the webOS handler above.) */}
+      {/* The page's single control: the opt-in music cycle. (id used by the TV
+          remote's OK key — see the webOS handler above.) */}
       <div id="sky-music" className={`absolute bottom-6 right-6 md:bottom-8 md:right-10 z-20 ${chrome}`}>
         <GalaxyMusic />
       </div>

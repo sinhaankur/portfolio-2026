@@ -5,7 +5,7 @@ import { SkyExperience } from "@/components/sky-experience"
 export const metadata: Metadata = {
   title: "The Sky — a quiet place",
   description:
-    "The real night sky, drifting in real time — planets, the Milky Way, black holes — with optional piano. Nothing to click, nothing asked of you. Fullscreen it and relax.",
+    "The real night sky, drifting in real time — planets, the Milky Way, black holes — with optional piano or a deep-space drone. Nothing to click, nothing asked of you. Fullscreen it and relax.",
   ...canonicalPath("/sky"),
 }
 

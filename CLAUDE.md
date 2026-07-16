@@ -125,11 +125,18 @@ the seven constellations (Big Dipper, Polaris, Orion, Cassiopeia, Leo, Lyra, Cyg
 
 ## Music attribution
 
-The galaxy hero embeds a SoundCloud widget pointing at
-`https://soundcloud.com/ludovicoeinaudi/experience-reimagined` and exposes a small
-opt-in play button. Playback only starts after the user clicks; it never auto-plays.
-The widget iframe is visually hidden — all control runs through the SoundCloud
-Widget API.
+The galaxy hero's music chip cycles **quiet → piano → drone → quiet**
+(one button; the webOS TV remote's OK key clicks the same button on `/sky`):
+
+- **Piano** — SoundCloud widget pointing at
+  `https://soundcloud.com/ludovicoeinaudi/experience-reimagined`. The iframe is
+  visually hidden — all control runs through the SoundCloud Widget API.
+- **Deep Field drone** — an original generative ambient bed synthesized live in
+  pure Web Audio ([`lib/space-drone.ts`](./lib/space-drone.ts)). No samples, no
+  streaming, no licensing; it works offline, so TVs still get music when the
+  SoundCloud embed can't load (the cycle then skips the piano).
+
+Playback only starts after the user clicks; it never auto-plays.
 
 ## Navbar
 
