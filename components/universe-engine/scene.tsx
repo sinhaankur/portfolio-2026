@@ -27,9 +27,8 @@ import { GravityOverlay } from "./gravity-overlay"
 import { TrajectoryTrails } from "./trajectory-trails"
 import { SphereOfInfluence } from "./sphere-of-influence"
 
-// Black holes are pure GLSL (null-geodesic raymarch in black-hole.tsx) — no
-// mesh download at all since 2026-07-17; the shader mounts on first
-// hover/focus engagement.
+// The black-hole GLB (13 MB) loads on first hover/focus engagement, not at
+// module init — the fly-to flight time hides the download.
 import {
   AdditiveBlending,
   BufferAttribute,
@@ -812,8 +811,11 @@ function blackHoleVantage(
   )
   if (dir.lengthSq() < 1e-6) dir.set(0.6, 0.4, 1)
   dir.normalize()
-  if (Math.abs(dir.y) < 0.34) {
-    dir.y = dir.y >= 0 ? 0.34 : -0.34
+  // ~30° elevation: high enough that the disk presents as a plate (20° left
+  // it foreshortened into a sliver), low enough to keep the lensed far-side
+  // arcs over the shadow.
+  if (Math.abs(dir.y) < 0.5) {
+    dir.y = dir.y >= 0 ? 0.5 : -0.5
     dir.normalize()
   }
   return {
@@ -874,7 +876,7 @@ function SkyPointMesh({
             : point.kind === "black-hole"
               // Frame from the physics: far enough out that the shadow +
               // lensed disk both fit, whatever the mass/spin.
-              ? Math.max(computeBlackHoleProportions(point.massSolar ?? 1e8, point.spin ?? 0, point.visualSize ?? 2).shadowR * 9, 10)
+              ? Math.max(computeBlackHoleProportions(point.massSolar ?? 1e8, point.spin ?? 0, point.visualSize ?? 2).shadowR * 5, 8)
               : Math.max((point.visualSize ?? 2) * 3.5, 9)
       requestFlyTo(
         target,
@@ -1107,20 +1109,30 @@ function SkyPointMesh({
           invert={invert}
         />
       )}
-      {/* Black-hole hover detail — pure-GLSL null-geodesic raymarch (real
-          gravitational lensing of the photographic sky, Doppler disk,
-          emergent shadow + photon ring). No asset download: the former
-          13 MB Sketchfab GLB was retired 2026-07-17. */}
+      {/* Black-hole hover detail — Sketchfab "Blackhole" by rubykamen
+          (CC-BY-4.0) GLB, restored 2026-07-17 on Ankur's call after the
+          raymarch experiment ("the GLB was better"). The GLSL null-geodesic
+          raymarcher lives in git history (3c54d13e) with its remaining
+          units bug diagnosed — candidate to return once it beats the GLB. */}
       {point.kind === "black-hole" && (
-        <BlackHoleDetail
-          size={visualSize}
-          hovered={detailActive}
-          invert={invert}
-          massSolar={point.massSolar}
-          spin={point.spin}
-          name={point.name}
-          jet={point.jet}
-        />
+        <Suspense
+          fallback={
+            <mesh>
+              <sphereGeometry args={[visualSize * 0.5, 16, 16]} />
+              <meshBasicMaterial color="#000000" />
+            </mesh>
+          }
+        >
+          <BlackHoleDetail
+            size={visualSize}
+            hovered={detailActive}
+            invert={invert}
+            massSolar={point.massSolar}
+            spin={point.spin}
+            name={point.name}
+            jet={point.jet}
+          />
+        </Suspense>
       )}
       {/* Cluster resolve — on hover/focus the cluster stops being a glow and
           RESOLVES into its member stars (Plummer profile + honest population
@@ -1222,7 +1234,7 @@ function SkyPointMesh({
                       ? Math.max(visualSize * 6, 12) // frame the cloud, don't sit inside it
                       : point.kind === "black-hole"
                         // Frame from the physics — shadow + lensed disk fit.
-                        ? Math.max(computeBlackHoleProportions(point.massSolar ?? 1e8, point.spin ?? 0, visualSize).shadowR * 9, 10)
+                        ? Math.max(computeBlackHoleProportions(point.massSolar ?? 1e8, point.spin ?? 0, visualSize).shadowR * 5, 8)
                         : Math.max(visualSize * 3.5, 9)
                 requestFlyTo(
                   clickTarget,

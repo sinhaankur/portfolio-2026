@@ -57,16 +57,15 @@ TRUE 3D heliocentric depth), `Constellations` → `ConstellationStarMesh` /
 ## Black-hole engine
 **Data:** black-hole `SkyPoint`s (Cygnus X-1, Sgr A*, M87*, TON 618, Phoenix A…)
 with real `massSolar` + `spin`.
-**Render:** `BlackHoleRaymarch` — a pure-GLSL per-pixel null-geodesic march
-(Schwarzschild `a = −3/2·h²·x/r⁵`): the shadow, photon ring, and the disk's
-far side arcing over/under the hole all *emerge* from the integration, and
-escaping rays sample the ESO photographic sky through the panorama's exact
-galactic mapping — real gravitational lensing of the real Milky Way. Plus
-Doppler-beamed disk emission and GLSL `BlackHoleJets`, sized by
-`computeBlackHoleProportions` (real Schwarzschild/Kerr horizon → log-scaled
-visual). Replaced the former 13 MB Sketchfab GLB on 2026-07-17 (owner call —
-superseding the earlier "liked as-is" note): zero download, and the physics
-does the drawing.
+**Render:** the baked `blackhole.glb` mesh (`useGLTF` + `<Clone>`,
+Suspense-wrapped, loads on first engagement) for the lensed horizon, plus GLSL
+`BlackHoleJets`, sized by `computeBlackHoleProportions` (real
+Schwarzschild/Kerr horizon → log-scaled visual). Arrivals frame from the
+physics (`shadowR × 5`) and approach ≥ ~30° above the disk plane.
+A pure-GLSL null-geodesic raymarcher (real lensing of the photographic sky)
+was trialled and reverted the same day on the owner's call — "the GLB was
+better"; it lives at commit 3c54d13e with its remaining scale bug diagnosed,
+and returns only if/when it beats the GLB on looks.
 
 ## Nebula engine
 **Data:** nebula `SkyPoint`s (M42, M16, Carina, M57, M1, Helix…) at real RA/Dec.
