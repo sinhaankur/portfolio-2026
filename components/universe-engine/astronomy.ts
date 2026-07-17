@@ -672,8 +672,16 @@ export function cancelFlyTo() {
  * ------------------------------------------------------------------------ */
 
 export type JourneyWaypoint = {
-  target: { x: number; y: number; z: number }
-  distance: number
+  /** Direct camera target. Omitted when `focusPointId` drives the stop. */
+  target?: { x: number; y: number; z: number }
+  distance?: number
+  /** Deep-sky point id ("m87-star", "phoenix-a"…) — the journey dispatches
+   *  `universe:sky-focus` instead of a raw fly-to, so the stop gets the same
+   *  treatment a user click does: true depth position, physics-based
+   *  framing, the above-plane vantage, and the ENGAGED detail (the black
+   *  hole's accretion disk actually blooms during the tour instead of
+   *  drifting past an idle dark dot). */
+  focusPointId?: string
   label?: string
   /** ms to linger before flying to the next waypoint. */
   linger: number
@@ -762,20 +770,25 @@ export const DEFAULT_JOURNEY: JourneyWaypoint[] = [
     linger: 9000,
   },
   // 6. M87* / Pōwehi — first black hole ever imaged (EHT, April 2019).
-  // Projected onto the sky shell from its real RA/Dec.
+  // Focus-driven stop: the accretion disk blooms and the camera frames the
+  // shadow from above the disk plane, exactly like a user visit.
   {
-    target: _shellPos(12.514, 12.39),
-    distance: 22,
+    focusPointId: "m87-star",
     label: "M87* · Pōwehi",
-    linger: 7000,
+    caption:
+      "The first black hole ever imaged — the Event Horizon Telescope unveiled its glowing ring in April 2019. 6.5 billion solar masses at the heart of galaxy Messier 87.",
+    captionSource: "Virgo · 53.5 million light-years",
+    linger: 12000,
   },
   // 7. Phoenix A — possibly the largest known black hole in the
   // universe (~100 billion solar masses).
   {
-    target: _shellPos(23.722, -42.72),
-    distance: 22,
+    focusPointId: "phoenix-a",
     label: "Phoenix A",
-    linger: 6500,
+    caption:
+      "Possibly the most massive black hole known — around 100 billion solar masses at the heart of the Phoenix Cluster. Its event horizon would swallow our solar system tens of times over.",
+    captionSource: "Phoenix · 5.7 billion light-years",
+    linger: 9500,
   },
   // 8. Polaris — the north star. ~89° declination, nearly straight
   // up from Earth's vantage. The constellation Ursa Minor wraps

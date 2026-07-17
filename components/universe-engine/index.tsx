@@ -341,15 +341,40 @@ export function UniverseEngine({
     let cancelled = false
     let i = 0
     let timer: ReturnType<typeof setTimeout> | null = null
+    let lastWasFocus = false
 
     const tick = () => {
       if (cancelled) return
       const wp = DEFAULT_JOURNEY[i]
-      requestFlyTo(wp.target, wp.distance, wp.label, {
-        cameraPos: wp.cameraPos,
-        caption: wp.caption,
-        captionSource: wp.captionSource,
-      })
+      if (wp.focusPointId) {
+        // Focus-driven stop (black holes): ride the same channel a user
+        // click/Jump-to uses — the SkyPointMesh listener flies with true
+        // depth, physics framing and the above-plane vantage, AND engages
+        // the detail so the accretion disk blooms during the tour. The
+        // listener runs synchronously inside dispatchEvent, so patching the
+        // caption onto the now-active fly right after is race-free.
+        window.dispatchEvent(
+          new CustomEvent("universe:sky-focus", { detail: { pointId: wp.focusPointId } }),
+        )
+        flyToRef.current.label = wp.label
+        flyToRef.current.caption = wp.caption ?? null
+        flyToRef.current.captionSource = wp.captionSource ?? null
+        lastWasFocus = true
+      } else if (wp.target && wp.distance !== undefined) {
+        // Leaving a focus stop for a plain waypoint: clear the sky focus so
+        // the engaged detail collapses instead of staying lit behind us.
+        if (lastWasFocus) {
+          window.dispatchEvent(
+            new CustomEvent("universe:sky-focus", { detail: { pointId: null } }),
+          )
+          lastWasFocus = false
+        }
+        requestFlyTo(wp.target, wp.distance, wp.label, {
+          cameraPos: wp.cameraPos,
+          caption: wp.caption,
+          captionSource: wp.captionSource,
+        })
+      }
       i = (i + 1) % DEFAULT_JOURNEY.length
       timer = setTimeout(tick, wp.linger)
     }
