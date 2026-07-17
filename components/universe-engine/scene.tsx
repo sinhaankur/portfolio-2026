@@ -80,6 +80,7 @@ import {
 } from "./shaders"
 import { makeFocusHandler, parseDistanceLy, skyDepthRadius } from "./scene-shared"
 import { ClusterDetail, ClusterStarField, isGlobular } from "./cluster-detail"
+import { SkyPanorama } from "./sky-panorama"
 import { OrbitRing } from "./orbit-ring"
 import { PlanetBody } from "./planet-body"
 import { NamedBodies } from "./small-bodies"
@@ -1336,6 +1337,12 @@ export function SceneContents({
           sprinkles (globulars warm/old, open clusters blue/young). Replaces
           the old per-cluster 7-sphere spray (~2,800 draw calls → 1). */}
       {!solarOnly && !invert && <ClusterStarField mobile={mobile} />}
+      {/* The real photographic sky (ESO/Brunier 360° panorama, CC BY 4.0) —
+          actual dust lanes, star clouds and the Magellanic Clouds, mapped
+          through the true J2000 galactic→equatorial rotation. Visible from
+          the solar-system vantage; fades out as the camera flies to deep-sky
+          distances where the 3D galaxy model takes over. */}
+      {!solarOnly && !invert && <SkyPanorama mobile={mobile} />}
 
       {/* Hover layer for the 358 stars with proper names (Sirius, Vega,
           Betelgeuse, Polaris…). Invisible pointer-eventable spheres

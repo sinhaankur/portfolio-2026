@@ -107,6 +107,12 @@ const GROUPS: { heading: string; blurb: string; sources: Source[] }[] = [
         license: "Public domain (NASA)",
         href: "https://visibleearth.nasa.gov/",
       },
+      {
+        name: "ESO / Serge Brunier — The Milky Way panorama",
+        detail: "The 360° photographic all-sky panorama behind the engine's solar-system vantage — real dust lanes, star clouds, and the Magellanic Clouds, mapped through the J2000 galactic-to-equatorial rotation.",
+        license: "CC BY 4.0",
+        href: "https://www.eso.org/public/images/eso0932a/",
+      },
     ],
   },
   {
