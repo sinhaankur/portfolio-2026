@@ -829,7 +829,11 @@ function SkyPointMesh({
       )
       requestFlyTo(
         { x: wx, y: wy, z: wz },
-        point.kind === "exoplanet-host" || point.kind === "star" ? 4 : Math.max((point.visualSize ?? 2) * 3.5, 9),
+        point.kind === "exoplanet-host" || point.kind === "star"
+          ? 4
+          : point.kind === "nebula"
+            ? Math.max((point.visualSize ?? 2) * 6, 12) // frame the cloud, don't sit inside it
+            : Math.max((point.visualSize ?? 2) * 3.5, 9),
         point.name,
       )
     }
@@ -1174,7 +1178,11 @@ function SkyPointMesh({
                 e.object.getWorldPosition(world)
                 requestFlyTo(
                   { x: world.x, y: world.y, z: world.z },
-                  point.kind === "exoplanet-host" || point.kind === "star" ? 4 : Math.max(visualSize * 3.5, 9),
+                  point.kind === "exoplanet-host" || point.kind === "star"
+                    ? 4
+                    : point.kind === "nebula"
+                      ? Math.max(visualSize * 6, 12) // frame the cloud, don't sit inside it
+                      : Math.max(visualSize * 3.5, 9),
                   point.name,
                 )
               }

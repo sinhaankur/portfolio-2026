@@ -37,6 +37,10 @@ import {
 
 import { GALAXY_RADIUS_SCENE, timeWarpRef } from "./astronomy"
 import { NEBULA_VERTEX_SHADER, NEBULA_FRAGMENT_SHADER } from "./shaders"
+import { Vector3 } from "three"
+
+// Scratch for the close-approach hand-off distance check (no per-frame alloc).
+const _nebulaWorldPos = new Vector3()
 
 /* ============================================================
  * NebulaClouds — background gas haze + dark dust lanes.
@@ -253,6 +257,7 @@ export function NebulaDetail({
   const rootRef = useRef<Group>(null)
   const swirlRef = useRef<Group>(null)
   const cloudMatRefs = useRef<Array<import("three").MeshBasicMaterial | null>>([])
+  const envelopeMatRefs = useRef<Array<import("three").MeshBasicMaterial | null>>([])
   const ringMatRef = useRef<import("three").MeshBasicMaterial>(null)
   const trapeziumMatRefs = useRef<Array<import("three").MeshBasicMaterial | null>>([])
 
@@ -349,7 +354,7 @@ export function NebulaDetail({
     [],
   )
 
-  useFrame((_, delta) => {
+  useFrame((state, delta) => {
     const k = 1 - Math.exp(-delta * 6)
 
     // Lerp the whole detail group's scale toward the hover target so the
@@ -366,12 +371,34 @@ export function NebulaDetail({
       swirlRef.current.rotation.z += delta * 0.05
     }
 
+    // Close-approach hand-off: the billow spheres are a MID-RANGE reveal.
+    // When the camera flies all the way in they overlap across the whole
+    // frame and their additive opacities stack to a white blow-out (M8) —
+    // so they thin out with proximity and the raymarched VolumetricNebula
+    // (built for the close vantage) carries the view instead. Dark nebulae
+    // are normal-blended silhouettes and don't stack the same way.
+    let proximity = 1
+    if (rootRef.current && config.variant !== "dark") {
+      rootRef.current.getWorldPosition(_nebulaWorldPos)
+      const dist = state.camera.position.distanceTo(_nebulaWorldPos)
+      // Aggressive curve: three+ billows overlap on screen at arrival
+      // distance, so their ADDITIVE sum has to stay < ~0.4 up close or the
+      // centre clips to white. Full classic reveal only from ~30 units out.
+      proximity = Math.min(1, Math.max(0, (dist - 10) / 20)) // 0 inside → 1 at ≥30
+    }
+
     // Dark nebulae silhouette rather than glow — slightly lower ceiling so the
     // dust reads as absence-of-stars, not a brown lamp.
-    const cloudTarget = hovered ? (config.variant === "dark" ? 0.5 : invert ? 0.55 : 0.62) : 0
+    const cloudBase = config.variant === "dark" ? 0.5 : invert ? 0.55 : 0.62
+    const cloudTarget = hovered ? cloudBase * (0.08 + 0.92 * proximity) : 0
     cloudMatRefs.current.forEach((m) => {
       if (!m) return
       m.opacity += (cloudTarget - m.opacity) * k
+    })
+    const envelopeTarget = (invert ? 0.16 : 0.14) * (0.05 + 0.95 * proximity)
+    envelopeMatRefs.current.forEach((m) => {
+      if (!m) return
+      m.opacity += (envelopeTarget - m.opacity) * k
     })
 
     if (ringMatRef.current) {
@@ -451,6 +478,7 @@ export function NebulaDetail({
               <mesh scale={[c.stretch[0] * 1.35, c.stretch[1] * 1.35, c.stretch[2] * 1.35]}>
                 <sphereGeometry args={[detailScale * 0.54 * c.scale, 24, 24]} />
                 <meshBasicMaterial
+                  ref={(m) => { envelopeMatRefs.current[i] = m }}
                   color={c.color}
                   transparent
                   opacity={invert ? 0.16 : 0.14}

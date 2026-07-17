@@ -28,6 +28,7 @@ import {
   AdditiveBlending,
   BufferAttribute,
   BufferGeometry,
+  CanvasTexture,
   DoubleSide,
   Group,
   Mesh,
@@ -39,6 +40,26 @@ import {
 } from "three"
 
 import { DEG } from "./astronomy"
+
+// Soft radial sprite shared by every galaxy PointsMaterial. Without a map,
+// three renders points as raw SQUARES — invisible at 1–2 px, but at fly-in
+// distances (sizeAttenuation × close camera) the LMC turned into white
+// blocks. One 64px canvas gradient fixes every model at once.
+let _pointSprite: Texture | null = null
+function pointSprite(): Texture {
+  if (_pointSprite) return _pointSprite
+  const c = document.createElement("canvas")
+  c.width = c.height = 64
+  const ctx = c.getContext("2d")!
+  const g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32)
+  g.addColorStop(0, "rgba(255,255,255,1)")
+  g.addColorStop(0.35, "rgba(255,255,255,0.6)")
+  g.addColorStop(1, "rgba(255,255,255,0)")
+  ctx.fillStyle = g
+  ctx.fillRect(0, 0, 64, 64)
+  _pointSprite = new CanvasTexture(c)
+  return _pointSprite
+}
 
 /**
  * GalaxyDetail
@@ -246,17 +267,25 @@ export function GalaxyDetail({
           positions[i3 + 1] = (Math.random() - 0.5) * 0.10 + Math.sin(theta * 2.2) * 0.03
           positions[i3 + 2] = r * Math.sin(theta) * 0.7 + 0.08
         } else {
+          // Gaussian (Box-Muller) falloff — uniform box offsets read as
+          // literal RECTANGLES of stars once the points get sprite-soft.
           const clump = Math.random() < 0.5 ? [-0.42, 0.0, 0.32] : [0.35, 0.0, -0.28]
-          positions[i3] = clump[0] + (Math.random() - 0.5) * 0.18
-          positions[i3 + 1] = clump[1] + (Math.random() - 0.5) * 0.10
-          positions[i3 + 2] = clump[2] + (Math.random() - 0.5) * 0.16
+          const g = () =>
+            Math.sqrt(-2 * Math.log(Math.max(1e-9, Math.random()))) *
+            Math.cos(Math.random() * Math.PI * 2)
+          positions[i3] = clump[0] + g() * 0.07
+          positions[i3 + 1] = clump[1] + g() * 0.04
+          positions[i3 + 2] = clump[2] + g() * 0.06
         }
       } else {
         const core = Math.random() < 0.62 ? [0.12, 0.0, 0.08] : [-0.38, 0.02, -0.24]
         const bridgePull = Math.random()
-        positions[i3] = core[0] + (Math.random() - 0.5) * 0.34 + bridgePull * 0.18
-        positions[i3 + 1] = core[1] + (Math.random() - 0.5) * 0.11
-        positions[i3 + 2] = core[2] + (Math.random() - 0.5) * 0.30 - bridgePull * 0.12
+        const g = () =>
+          Math.sqrt(-2 * Math.log(Math.max(1e-9, Math.random()))) *
+          Math.cos(Math.random() * Math.PI * 2)
+        positions[i3] = core[0] + g() * 0.13 + bridgePull * 0.18
+        positions[i3 + 1] = core[1] + g() * 0.045
+        positions[i3 + 2] = core[2] + g() * 0.115 - bridgePull * 0.12
       }
 
       if (Math.random() < (useSpiralModel ? 0.24 : isLmc ? 0.28 : 0.22)) {
@@ -347,7 +376,7 @@ export function GalaxyDetail({
     if (dustMatRef.current) {
       dustMatRef.current.opacity += (dustTarget - dustMatRef.current.opacity) * k
     }
-    const irregularTarget = hovered ? (invert ? 0.42 : 0.55) : 0
+    const irregularTarget = hovered ? (invert ? 0.42 : 0.45) : 0
     if (irregularMatRef.current) {
       irregularMatRef.current.opacity += (irregularTarget - irregularMatRef.current.opacity) * k
     }
@@ -401,6 +430,7 @@ export function GalaxyDetail({
               <>
                 <points geometry={haloGeometry} scale={detailScale * 1.14}>
                   <pointsMaterial
+                    map={pointSprite()}
                     ref={haloMatRef as React.Ref<import("three").PointsMaterial>}
                     size={detailScale * 0.018}
                     sizeAttenuation
@@ -415,6 +445,7 @@ export function GalaxyDetail({
 
                 <points geometry={barGeometry} scale={detailScale * 0.72} rotation={[0, 0, Math.PI / 8]}>
                   <pointsMaterial
+                    map={pointSprite()}
                     ref={barMatRef as React.Ref<import("three").PointsMaterial>}
                     size={detailScale * 0.032}
                     sizeAttenuation
@@ -429,6 +460,7 @@ export function GalaxyDetail({
 
                 <points geometry={armsGeometry} scale={detailScale}>
                   <pointsMaterial
+                    map={pointSprite()}
                     ref={armsMatRef as React.Ref<import("three").PointsMaterial>}
                     size={detailScale * 0.045}
                     sizeAttenuation
@@ -470,8 +502,9 @@ export function GalaxyDetail({
                 {irregularHaloGeometry && (
                   <points geometry={irregularHaloGeometry} scale={detailScale * (isSmc ? 1.04 : 1.10)}>
                     <pointsMaterial
+                      map={pointSprite()}
                       ref={irregularHaloMatRef as React.Ref<import("three").PointsMaterial>}
-                      size={detailScale * 0.020}
+                      size={detailScale * 0.014}
                       sizeAttenuation
                       vertexColors
                       color={isTriangulum ? (invert ? "#6c6a64" : "#d5e4ff") : (invert ? "#61584f" : "#dce1f2")}
@@ -486,8 +519,9 @@ export function GalaxyDetail({
                 {irregularGeometry && (
                   <points geometry={irregularGeometry} scale={detailScale}>
                     <pointsMaterial
+                      map={pointSprite()}
                       ref={irregularMatRef as React.Ref<import("three").PointsMaterial>}
-                      size={detailScale * (isSmc ? 0.05 : 0.045)}
+                      size={detailScale * (isSmc ? 0.03 : 0.026)}
                       sizeAttenuation
                       vertexColors
                       color={"#ffffff"}
@@ -958,6 +992,7 @@ export function ProceduralGalaxy({
           <group ref={spinRef}>
             <points geometry={geometry} scale={detailScale}>
               <pointsMaterial
+                map={pointSprite()}
                 ref={starsMatRef as React.Ref<import("three").PointsMaterial>}
                 size={detailScale * 0.028}
                 sizeAttenuation
