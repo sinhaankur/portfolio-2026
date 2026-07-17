@@ -56,13 +56,40 @@ function raDecDir(raHours: number, decDeg: number): Vector3 {
 }
 
 // True J2000 galactic basis (IAU): X → galactic centre, Z → north galactic
-// pole, Y = Z × X completes the right-handed frame.
-function galacticBasis(): { x: Vector3; y: Vector3; z: Vector3 } {
+// pole, Y = Z × X completes the right-handed frame. Exported — the black-hole
+// raymarcher lenses this exact sky, so both must share one mapping.
+export function galacticBasis(): { x: Vector3; y: Vector3; z: Vector3 } {
   const z = raDecDir(12.8571, 27.128) // NGP
   const x = raDecDir(17.7611, -28.936) // galactic centre
   x.addScaledVector(z, -z.dot(x)).normalize() // orthogonalize against Z
   const y = new Vector3().crossVectors(z, x)
   return { x, y, z }
+}
+
+// Shared, cached texture load — the panorama sphere and every black hole's
+// lensing shader pull from the same promise so the sky downloads once.
+const _texCache = new Map<string, Promise<Texture>>()
+export function loadAllSkyTexture(mobile: boolean): Promise<Texture> {
+  const url = mobile
+    ? "/textures/allsky-brunier-2k.webp"
+    : "/textures/allsky-brunier-4k.webp"
+  let p = _texCache.get(url)
+  if (!p) {
+    p = new Promise((resolve, reject) => {
+      new TextureLoader().load(
+        url,
+        (t) => {
+          t.colorSpace = SRGBColorSpace
+          t.wrapS = RepeatWrapping // no seam at the l = ±180° join
+          resolve(t)
+        },
+        undefined,
+        reject,
+      )
+    })
+    _texCache.set(url, p)
+  }
+  return p
 }
 
 const PANO_VERT = /* glsl */ `
@@ -108,14 +135,8 @@ export function SkyPanorama({ mobile = false }: { mobile?: boolean }) {
 
   useEffect(() => {
     let alive = true
-    const url = mobile
-      ? "/textures/allsky-brunier-2k.webp"
-      : "/textures/allsky-brunier-4k.webp"
-    new TextureLoader().load(url, (t) => {
-      if (!alive) return
-      t.colorSpace = SRGBColorSpace
-      t.wrapS = RepeatWrapping // no seam at the l = ±180° join
-      setTex(t)
+    loadAllSkyTexture(mobile).then((t) => {
+      if (alive) setTex(t)
     })
     return () => {
       alive = false

@@ -27,12 +27,9 @@ import { GravityOverlay } from "./gravity-overlay"
 import { TrajectoryTrails } from "./trajectory-trails"
 import { SphereOfInfluence } from "./sphere-of-influence"
 
-// The black-hole mesh (8.4 MB — "Blackhole" by rubykamen, CC-BY-4.0,
-// https://sketchfab.com/3d-models/blackhole-74cbeaeae2174a218fe9455d77902b5c)
-// is NOT preloaded at module init: that cost every visitor ~8.4 MB whether or
-// not they ever engaged a black hole. BlackHoleDetail fetches it on first
-// hover/focus intent instead — the fly-to flight time hides the download, and
-// drei's loader cache shares the result across every BH instance.
+// Black holes are pure GLSL (null-geodesic raymarch in black-hole.tsx) — no
+// mesh download at all since 2026-07-17; the shader mounts on first
+// hover/focus engagement.
 import {
   AdditiveBlending,
   BufferAttribute,
@@ -90,7 +87,7 @@ import {
   NEBULA_SPRITES,
   VOLUMETRIC_NEBULAE,
 } from "./nebula"
-import { BlackHoleDetail } from "./black-hole"
+import { BlackHoleDetail, computeBlackHoleProportions } from "./black-hole"
 import { GalaxyDetail, Galaxy3D, GalaxySprite, GALAXY_3D, BESPOKE_GALAXY_IDS, ProceduralGalaxy } from "./galaxy"
 import { Constellations } from "./constellations"
 import { ExoplanetSystem, PulsarDetail } from "./star-details"
@@ -299,7 +296,7 @@ function FlyToController({ interactive }: { interactive: boolean }) {
     if (state.cameraPos) {
       // Narrative-vantage mode — lerp the camera toward a *specific*
       // world point instead of along the existing ray. Used by waypoints
-      // like Pale Blue Dot where the camera angle is itself the story.
+      // like Pale Blue Dot and the black holes' above-the-disk approach.
       _flyDesiredCamPos.set(state.cameraPos.x, state.cameraPos.y, state.cameraPos.z)
       camera.position.lerp(_flyDesiredCamPos, k)
       nextDist = camera.position.distanceTo(controls.target)
@@ -329,6 +326,18 @@ function FlyToController({ interactive }: { interactive: boolean }) {
     if (targetErr < 0.08 && arrivedCamera) {
       controls.target.copy(_flyTargetVec)
       state.active = false
+    }
+
+    // Headless-test / debug readout: real camera + fly state, no guessing.
+    if (typeof window !== "undefined") {
+      ;(window as unknown as { __ueFly?: object }).__ueFly = {
+        cam: [camera.position.x, camera.position.y, camera.position.z],
+        target: [controls.target.x, controls.target.y, controls.target.z],
+        want: state.cameraPos ? [state.cameraPos.x, state.cameraPos.y, state.cameraPos.z] : null,
+        dist: state.distance,
+        active: state.active,
+        targetErr,
+      }
     }
   })
 
@@ -786,6 +795,34 @@ function SolarSystem({
 // ClusterStarField needs the same distance→depth math to sit exactly on
 // each cluster's glow.
 
+// Black holes: approach from ≥ ~20° above the disk plane. An in-plane
+// arrival (common when flying out from the solar system) sees the razor-thin
+// disk exactly edge-on and the whole show collapses to a hairline —
+// Interstellar framed Gargantua from above the plane for the same reason.
+// Viewing angle is presentation; the physics stays untouched.
+function blackHoleVantage(
+  camPos: Vector3,
+  target: { x: number; y: number; z: number },
+  dist: number,
+): { x: number; y: number; z: number } {
+  const dir = new Vector3(
+    camPos.x - target.x,
+    camPos.y - target.y,
+    camPos.z - target.z,
+  )
+  if (dir.lengthSq() < 1e-6) dir.set(0.6, 0.4, 1)
+  dir.normalize()
+  if (Math.abs(dir.y) < 0.34) {
+    dir.y = dir.y >= 0 ? 0.34 : -0.34
+    dir.normalize()
+  }
+  return {
+    x: target.x + dir.x * dist,
+    y: target.y + dir.y * dist,
+    z: target.z + dir.z * dist,
+  }
+}
+
 function SkyPointMesh({
   point,
   onHover,
@@ -798,6 +835,7 @@ function SkyPointMesh({
   interactive?: boolean
 }) {
   const [hovered, setHovered] = useState(false)
+  const camera = useThree((s) => s.camera)
   const starHaloMatRef = useRef<import("three").MeshBasicMaterial>(null)
   const starCoreMatRef = useRef<import("three").MeshBasicMaterial>(null)
   const starPulseRef = useRef(Math.random() * Math.PI * 2)
@@ -827,14 +865,24 @@ function SkyPointMesh({
         point.decDeg,
         skyDepthRadius(point.distance),
       )
-      requestFlyTo(
-        { x: wx, y: wy, z: wz },
+      const target = { x: wx, y: wy, z: wz }
+      const dist =
         point.kind === "exoplanet-host" || point.kind === "star"
           ? 4
           : point.kind === "nebula"
             ? Math.max((point.visualSize ?? 2) * 6, 12) // frame the cloud, don't sit inside it
-            : Math.max((point.visualSize ?? 2) * 3.5, 9),
+            : point.kind === "black-hole"
+              // Frame from the physics: far enough out that the shadow +
+              // lensed disk both fit, whatever the mass/spin.
+              ? Math.max(computeBlackHoleProportions(point.massSolar ?? 1e8, point.spin ?? 0, point.visualSize ?? 2).shadowR * 9, 10)
+              : Math.max((point.visualSize ?? 2) * 3.5, 9)
+      requestFlyTo(
+        target,
+        dist,
         point.name,
+        point.kind === "black-hole"
+          ? { cameraPos: blackHoleVantage(camera.position, target, dist) }
+          : undefined,
       )
     }
     window.addEventListener("universe:sky-focus", onSkyFocus)
@@ -1059,30 +1107,20 @@ function SkyPointMesh({
           invert={invert}
         />
       )}
-      {/* Black-hole hover detail — Sketchfab "Blackhole" by rubykamen
-          (CC-BY-4.0), 8.4 MB GLB preloaded at module init. Wrapped in
-          Suspense so the first BH render doesn't unmount the rest of
-          the scene while the asset is still in flight; fallback is the
-          plain black shadow sphere sized to the BH's apparent shadow. */}
+      {/* Black-hole hover detail — pure-GLSL null-geodesic raymarch (real
+          gravitational lensing of the photographic sky, Doppler disk,
+          emergent shadow + photon ring). No asset download: the former
+          13 MB Sketchfab GLB was retired 2026-07-17. */}
       {point.kind === "black-hole" && (
-        <Suspense
-          fallback={
-            <mesh>
-              <sphereGeometry args={[visualSize * 0.5, 16, 16]} />
-              <meshBasicMaterial color="#000000" />
-            </mesh>
-          }
-        >
-          <BlackHoleDetail
-            size={visualSize}
-            hovered={detailActive}
-            invert={invert}
-            massSolar={point.massSolar}
-            spin={point.spin}
-            name={point.name}
-            jet={point.jet}
-          />
-        </Suspense>
+        <BlackHoleDetail
+          size={visualSize}
+          hovered={detailActive}
+          invert={invert}
+          massSolar={point.massSolar}
+          spin={point.spin}
+          name={point.name}
+          jet={point.jet}
+        />
       )}
       {/* Cluster resolve — on hover/focus the cluster stops being a glow and
           RESOLVES into its member stars (Plummer profile + honest population
@@ -1176,14 +1214,23 @@ function SkyPointMesh({
                 )
                 const world = new Vector3()
                 e.object.getWorldPosition(world)
-                requestFlyTo(
-                  { x: world.x, y: world.y, z: world.z },
+                const clickTarget = { x: world.x, y: world.y, z: world.z }
+                const clickDist =
                   point.kind === "exoplanet-host" || point.kind === "star"
                     ? 4
                     : point.kind === "nebula"
                       ? Math.max(visualSize * 6, 12) // frame the cloud, don't sit inside it
-                      : Math.max(visualSize * 3.5, 9),
+                      : point.kind === "black-hole"
+                        // Frame from the physics — shadow + lensed disk fit.
+                        ? Math.max(computeBlackHoleProportions(point.massSolar ?? 1e8, point.spin ?? 0, visualSize).shadowR * 9, 10)
+                        : Math.max(visualSize * 3.5, 9)
+                requestFlyTo(
+                  clickTarget,
+                  clickDist,
                   point.name,
+                  point.kind === "black-hole"
+                    ? { cameraPos: blackHoleVantage(camera.position, clickTarget, clickDist) }
+                    : undefined,
                 )
               }
             : undefined
