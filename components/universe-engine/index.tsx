@@ -63,7 +63,7 @@ import { SceneContents } from "./scene"
 import {
   initDeviceTier, qualityForTier, perfTierRef, downgradeTier, dprForCanvas, type DeviceTier,
 } from "@/lib/device-tier"
-import { InfoPanel, LayersMenu, ResetViewButton, TimelineControl } from "./hud"
+import { DestinationsMenu, InfoPanel, LayersMenu, ResetViewButton, TimelineControl } from "./hud"
 import { TonightSky } from "./tonight-sky"
 import { LearnTicker } from "./learn-ticker"
 import { MobileBodySheet } from "./mobile-sheet"
@@ -614,6 +614,17 @@ export function UniverseEngine({
                   showDeepDive={showDeepDive}
                   onToggleDeepDive={() => setShowDeepDive(v => !v)}
                 />
+              </div>
+            )}
+            {/* Jump-to destinations — wayfinding, not a power-user toggle, so it
+                shows even with minimalControls (the home hero). Without it the
+                black holes were unreachable: idle they render as a dark dot
+                with no halo (honestly — nothing escapes), so a browsable list
+                is the only real affordance to FIND one. Desktop chip; the
+                mobile sheet is the touch path (jump list there is a follow-up). */}
+            {interactive && (
+              <div className="hidden md:block">
+                <DestinationsMenu />
               </div>
             )}
             {showMusic && <GalaxyMusic />}

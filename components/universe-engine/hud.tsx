@@ -1068,6 +1068,39 @@ const JUMP_DESTINATIONS: { section: string; items: { label: string; pointId: str
       { label: "Sedna", pointId: "named:Sedna" },
     ],
   },
+  // Deep-sky ids became addressable on the universe:sky-focus channel
+  // (scene.tsx SkyPointMesh flies + resolves on a matching id), so the
+  // menu can finally take people to them. Black holes especially — idle
+  // they're a dark dot with no halo (honest: nothing escapes), which made
+  // them impossible to FIND without already knowing where to look.
+  {
+    section: "Black holes",
+    items: [
+      { label: "M87* — first imaged", pointId: "m87-star" },
+      { label: "Cygnus X-1", pointId: "cygnus-x1" },
+      { label: "V404 Cygni", pointId: "v404-cygni" },
+      { label: "TON 618", pointId: "ton-618" },
+      { label: "Phoenix A*", pointId: "phoenix-a" },
+      { label: "OJ 287", pointId: "oj-287" },
+      { label: "NGC 1277", pointId: "ngc1277-bh" },
+      { label: "GW150914", pointId: "gw150914" },
+    ],
+  },
+  {
+    section: "Deep sky",
+    items: [
+      { label: "Orion Nebula", pointId: "m42" },
+      { label: "Andromeda", pointId: "m31" },
+      { label: "Pleiades", pointId: "m45" },
+      { label: "Hercules Cluster", pointId: "m13" },
+      { label: "M22 · Sagittarius", pointId: "m22" },
+      { label: "M37 · open cluster", pointId: "m37" },
+      { label: "Ring Nebula", pointId: "m57" },
+      { label: "Dumbbell Nebula", pointId: "m27" },
+      { label: "Whirlpool Galaxy", pointId: "m51" },
+      { label: "Sombrero Galaxy", pointId: "m104" },
+    ],
+  },
 ]
 
 export function DestinationsMenu() {
@@ -1094,7 +1127,7 @@ export function DestinationsMenu() {
         <span className="font-mono text-[10px] tracking-[0.2em] uppercase">Jump to ▸</span>
       </button>
       {open && (
-        <div className="absolute bottom-full mb-2 left-0 min-w-48 max-h-[60vh] overflow-y-auto rounded-xl border border-foreground/15 bg-background/90 backdrop-blur-xl p-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.3)]">
+        <div className="absolute bottom-full mb-2 right-0 min-w-48 max-h-[60vh] overflow-y-auto rounded-xl border border-foreground/15 bg-background/90 backdrop-blur-xl p-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.3)]">
           {JUMP_DESTINATIONS.map((group) => (
             <div key={group.section} className="mb-1 last:mb-0">
               <div className="px-3 pt-1.5 pb-1 font-mono text-[8px] tracking-[0.24em] uppercase text-foreground/40">
