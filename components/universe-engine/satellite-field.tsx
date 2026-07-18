@@ -42,7 +42,7 @@ import { simTimeRef, requestFollow, focusDepthRef, daysSinceJ2000 } from "./astr
  *  nativeSpan  the GLB's native width in model units (measured at export)
  *  k           scale coefficient: trueScale = k * earthVisualRadius
  */
-type ArchetypeId = "cubesat" | "starlink" | "gps" | "comsat" | "debris" | "rocketbody" | "telescope" | "station" | "weather" | "smallsat" | "iss"
+type ArchetypeId = "cubesat" | "starlink" | "gps" | "comsat" | "debris" | "rocketbody" | "telescope" | "station" | "weather" | "smallsat" | "iss" | "oneweb" | "kuiper" | "iridium"
 type Archetype = { url: string; label: string; realSpanM: number; nativeSpan: number; k: number }
 function mkArch(url: string, label: string, realSpanM: number, nativeSpan: number): Archetype {
   return { url, label, realSpanM, nativeSpan, k: realSpanM / 1000 / 6371 / nativeSpan }
@@ -52,7 +52,7 @@ const ARCHETYPES: Record<ArchetypeId, Archetype> = {
   starlink:   mkArch("/models/satellite-starlink.glb", "Starlink flat-pack", 30, 8.31),
   gps:        mkArch("/models/satellite-gps.glb",      "Navigation craft",   17, 11.42),
   comsat:     mkArch("/models/satellite-dish.glb",     "Dish comsat",        35, 12.22),
-  debris:     mkArch("/models/satellite-debris.glb",   "Debris fragment",     1.0, 2.0),
+  debris:     mkArch("/models/satellite-debris.glb",   "Debris fragment",     1.5, 1.44),
   rocketbody: mkArch("/models/satellite-rocketbody.glb","Spent rocket stage", 10, 4.0),
   telescope:  mkArch("/models/satellite-telescope.glb","Space telescope",     13, 7.5),
   station:    mkArch("/models/satellite-station.glb",  "Space station",      109, 6.75),
@@ -61,6 +61,13 @@ const ARCHETYPES: Record<ArchetypeId, Archetype> = {
   // Flagship of the one-satellite-at-a-time program: faithful ISS (8 wings in
   // 4 pairs, full module stack, radiator banks) — build_iss_detailed.py.
   iss:        mkArch("/models/iss.glb",                "International Space Station", 109, 11.27),
+  // Constellation craft — the top actors in the conjunction screening list,
+  // built to published proportions (build_constellation_sats.py). Kuiper's
+  // real design isn't public: modelled as the known envelope, and the label
+  // says so — never present a guess as the real craft.
+  oneweb:     mkArch("/models/satellite-oneweb.glb",   "OneWeb bus",          5.6, 2.39),
+  kuiper:     mkArch("/models/satellite-kuiper.glb",   "Kuiper flat-bus (approx.)", 9.0, 4.48),
+  iridium:    mkArch("/models/satellite-iridium.glb",  "Iridium NEXT",        9.4, 8.05),
 }
 // SAT-3: a curated set of NOTABLE, recognizable craft that always ride their
 // real orbits as actual 3D hardware (not just dots) — so the scene shows the
@@ -98,6 +105,9 @@ export function classifyArchetype(name: string, owner: string, altKm: number, ty
       n.includes("GAIA") || n.includes("XMM") || n.includes("TELESCOPE"))
     return "telescope"
   if (n.includes("STARLINK")) return "starlink"
+  if (n.includes("ONEWEB")) return "oneweb"
+  if (n.includes("KUIPER")) return "kuiper"
+  if (n.includes("IRIDIUM")) return "iridium"
   if (n.includes("GPS") || n.includes("GLONASS") || n.includes("GALILEO") ||
       n.includes("NAVSTAR") || n.includes("BEIDOU") || n.includes("IRNSS") || n.includes("QZS"))
     return "gps"

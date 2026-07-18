@@ -537,13 +537,10 @@ export function CelestialExplorer() {
               <ConjunctionPanel
                 onClose={() => setConjOpen(false)}
                 onJump={() => {
-                  // The swarm hugs Earth at true scale — frame Earth so the
-                  // approach is actually watchable. Panel stays open for
-                  // browsing more rows.
+                  // Selection triggers the field's own chase-follow (deep zoom
+                  // + orbital frame) — no extra fly-to here, it would race the
+                  // follow. Panel stays open for browsing more rows.
                   setTitleVisible(false)
-                  window.dispatchEvent(
-                    new CustomEvent("universe:sky-focus", { detail: { pointId: "planet:Earth" } }),
-                  )
                 }}
               />
             </div>

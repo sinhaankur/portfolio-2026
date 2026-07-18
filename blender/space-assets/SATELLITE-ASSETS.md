@@ -1,46 +1,66 @@
-# Satellite asset program — one craft at a time, max detail
+# Satellite asset program — every selected object gets its real design
 
 The /lab/celestial swarm classifies every catalog object into an archetype
-(`satellite-field.tsx` → `selectedArchetypeRef`), renders a procedural shape by
-default, and swaps in a real Blender GLB on selection (the ISS and LEOPARD
-CubeSat already do this). This is the build list for the rest — ordered by how
-often each appears in the conjunction screening results, because those are the
-craft people will actually fly to now.
+(`satellite-field.tsx` → `classifyArchetype`: type → name → operator → orbit
+altitude), renders the points field by default, and swaps a real Blender GLB
+onto the selected object's live orbit. Coverage is TOTAL — every one of the
+18,000+ objects resolves to some archetype — and the program's job is to keep
+replacing generic fallbacks with faithful craft, ordered by who actually
+appears in the conjunction screening results.
 
-Pipeline per asset (matches the ISS build, craft 1):
-Blender (headless, real dimensions from public references) → GLB →
-`public/models/` → wire in the archetype→GLB map on select. Real proportions
-from published spec sheets/imagery only — no guessed geometry.
+Pipeline per asset: headless Blender build script (real published dimensions,
+metres = model units) → GLB → `public/models/` → archetype table entry
+(realSpanM + nativeSpan printed at export) → classifier line.
 
-## Build order
+## Archetype library (current)
 
-| # | Asset | Why / where it shows | Real-world reference | Status |
-|---|-------|----------------------|----------------------|--------|
-| 1 | **Starlink v2 Mini** | Dominates the catalog (~7k) AND the conjunction list | Flat-pack bus ~2.7×1.4 m, TWO 12.8 m solar wings, argon Hall thrusters | TODO — next craft |
-| 2 | **Starlink v1.5** | The earlier shells, still thousands on orbit | Flat bus, SINGLE solar wing (the classic "flying panel") | TODO |
-| 3 | **OneWeb** | Second mega-constellation, 1,200 km shell | Compact boxy bus, two small square wings, ~150 kg | TODO |
-| 4 | **Kuiper** | Newest constellation, already in the top conjunctions | Ka-band flat panel bus (public imagery is limited — model conservatively, label as approximate) | TODO |
-| 5 | **Iridium NEXT** | Famous constellation, polar shell, historic collision family | Distinctive slanted L-band panel + two wings, ~860 kg | TODO |
-| 6 | **GPS III** | The navigation layer everyone actually uses | Big single-body bus + two 4-panel wings | TODO |
-| 7 | **Falcon 9 second stage** | The most common ROCKET BODY in the R/B class | 3.7 m Ø cylinder, MVac bell, ~12 m | TODO |
-| 8 | **Generic EO bus (Sentinel-class)** | Covers the many single-payload earth observers | Rectangular bus + single wing + telescope baffle | TODO |
-| 9 | **Debris fragment set** | DEB class (Fengyun-1C, Cosmos-2251, Iridium-33 families) | Irregular shards — upgrade the existing `debris.glb` with a 3-variant set | exists, upgrade |
+| Archetype | Model | Real span | Status |
+|---|---|---|---|
+| ISS | `iss.glb` | 109 m | ✅ faithful (craft 1: 8 wings, module stack, radiators) |
+| Starlink flat-pack | `satellite-starlink.glb` | 30 m | ✅ (v1.5 single-wing; v2 Mini twin-wing refresh = next craft) |
+| OneWeb bus | `satellite-oneweb.glb` | 5.6 m | ✅ 2026-07-18 — box bus, V-masted twin panels |
+| Kuiper flat-bus | `satellite-kuiper.glb` | ~9 m | ✅ 2026-07-18 — envelope only; label says "approx." (design not public) |
+| Iridium NEXT | `satellite-iridium.glb` | 9.4 m | ✅ 2026-07-18 — signature 40° L-band panel + twin wings |
+| Debris fragment | `satellite-debris.glb` | ~1.5 m | ✅ 2026-07-18 — 3-shard torn-metal cluster (replaced placeholder) |
+| Navigation craft | `satellite-gps.glb` | 17 m | ✅ generic GPS/GLONASS/Galileo bus |
+| Dish comsat | `satellite-dish.glb` | 35 m | ✅ generic GEO comsat |
+| Weather / GEO sat | `satellite-weather.glb` | 24 m | ✅ generic |
+| Space telescope | `satellite-telescope.glb` | 13 m | ✅ Hubble-class |
+| Space station | `satellite-station.glb` | 109 m | ✅ Tiangong/Mir-class |
+| Spent rocket stage | `satellite-rocketbody.glb` | 10 m | ✅ generic (Falcon 9 S2 upgrade queued) |
+| Smallsat | `satellite-smallsat.glb` | 2 m | ✅ Dove/Lemur-class |
+| CubeSat | `satellite-leopard.glb` | 1.7 m | ✅ LEOPARD (the program's proof) |
 
-## Already built
+## Build queue (fidelity upgrades, in order)
 
-- **ISS** — `public/models/iss.glb` (craft 1: 8 wings in 4 pairs, module stack,
-  radiators, docked Soyuz/Dragon)
-- **LEOPARD CubeSat** — select-swap already wired (the archetype program's proof)
-- **satellite-telescope / satellite-station** — generic archetypes in
-  `blender/space-assets/`
+1. **Starlink v2 Mini** — the current-generation craft (~7k on orbit): flat
+   bus + TWO 12.8 m wings (existing model is the single-wing v1.5 read).
+2. **Falcon 9 second stage** — most common R/B: 3.7 m Ø, MVac bell, ~12 m.
+3. **GPS III** — replace the generic nav bus with the real III-series body.
+4. **Sentinel-class EO bus** — telescope-baffle + single wing for the many
+   sun-sync earth observers now falling to `cubesat`.
+
+## Known debris families (in the catalog + conjunction results)
+
+These are the named clouds the screening keeps surfacing — real events, real
+fragment counts from our CelesTrak snapshot:
+
+| Family | Event | Fragments tracked | Notes |
+|---|---|---|---|
+| **Fengyun-1C** | 2007 Chinese ASAT test (865 km) | 1,910 | Largest debris event ever; crosses Starlink shells daily — #1 in our screen |
+| **Cosmos-2251** | 2009 collision with Iridium 33 (789 km) | 592 | First accidental hypervelocity collision between intact satellites |
+| **Iridium-33** | Same 2009 collision, the other half | 110 | Its partner family |
+
+All three swap to the debris-shard cluster on selection; the InfoPanel's
+provenance line (satellite-search) explains WHERE a selected fragment came
+from. Future: per-family shard tinting (Fengyun = darker carbon composite,
+Iridium = bus-panel shards).
 
 ## Rules
 
-- Headless Blender via the project pipeline (blender-* skills); real dimensions
-  from published references; bake textures, keep GLBs lean (≤ ~300 KB each —
-  these swap in at close range only).
+- Headless Blender (`build_constellation_sats.py` pattern); real dimensions
+  from published references; keep GLBs lean (these swap in at close range).
 - Where the real design is not public (Kuiper), model the known envelope and
-  say "approximate" in the archetype label — never present a guess as the
-  real craft.
-- One at a time, finished properly, wired into the select-swap before starting
-  the next.
+  put "(approx.)" in the archetype label — never present a guess as the real
+  craft.
+- One craft at a time, finished and wired before the next.
