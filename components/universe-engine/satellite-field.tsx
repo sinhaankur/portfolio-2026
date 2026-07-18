@@ -29,7 +29,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { useFrame, useThree } from "@react-three/fiber"
 import { useGLTF, Line, Html } from "@react-three/drei"
 import * as THREE from "three"
-import { simTimeRef, requestFollow, focusDepthRef, daysSinceJ2000 } from "./astronomy"
+import { simTimeRef, requestFollow, focusDepthRef, daysSinceJ2000, timeScaleRef, REALTIME_TIME_SCALE } from "./astronomy"
 
 /**
  * Satellite archetypes — a small library of real-design Blender models picked by
@@ -1008,6 +1008,11 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
           }
           // expose the chosen archetype label to the search card (DOM side)
           selectedArchetypeRef.current = a.label
+          // Following is a HUMAN view: snap to real time so the ground below
+          // moves the way an astronaut sees it, even if the user had the
+          // timeline running at warp. They can re-scrub afterwards — only the
+          // moment of selection resets the pace.
+          timeScaleRef.current = REALTIME_TIME_SCALE
           const m = marker
           requestFollow(
             () => {

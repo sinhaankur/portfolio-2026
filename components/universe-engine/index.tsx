@@ -66,6 +66,7 @@ import {
 import { DestinationsMenu, InfoPanel, LayersMenu, ResetViewButton, TimelineControl } from "./hud"
 import { TonightSky } from "./tonight-sky"
 import { LearnTicker } from "./learn-ticker"
+import { selectedSatRef } from "./satellite-field"
 import { MobileBodySheet } from "./mobile-sheet"
 import { StaticStarfield } from "./static-starfield"
 import { GalaxyMusic } from "../galaxy-music"
@@ -157,6 +158,18 @@ export function UniverseEngine({
   const [onScreen, setOnScreen] = useState(true)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [hovered, setHovered] = useState<BodyInfo | null>(null)
+  // DOM-side mirror of the satellite follow state (module ref, R3F-side) —
+  // drives chrome step-asides (legend + ticker) while chasing a craft.
+  const [satFollowed, setSatFollowed] = useState(false)
+  useEffect(() => {
+    const t = setInterval(() => {
+      setSatFollowed((prev) => {
+        const now = selectedSatRef.current != null
+        return now === prev ? prev : now
+      })
+    }, 400)
+    return () => clearInterval(t)
+  }, [])
   // Sticky selection — mobile devices fire pointerover/pointerout in pairs on
   // each tap, so `hovered` clears immediately. `selectedBody` latches on the
   // most-recent tap and only clears when the user dismisses the bottom sheet.
@@ -504,7 +517,9 @@ export function UniverseEngine({
           {/* Ambient teaching — rotating real facts about the bodies. Steps aside
               while a body is focused so it never collides with its info panel.
               Hidden on mobile when the consumer runs its own quiet chrome. */}
-          {!(quietMobileChrome && mobile) && <LearnTicker suppressed={Boolean(hovered)} />}
+          {!(quietMobileChrome && mobile) && (
+            <LearnTicker suppressed={Boolean(hovered) || satFollowed} />
+          )}
 
           {/* Deep Dive legend — compact key for the orbital overlays. */}
           {showDeepDive && !mobile && (
@@ -545,8 +560,10 @@ export function UniverseEngine({
           )}
 
           {/* Satellites legend — color key for the orbital shells, shown while
-              the Satellites layer is on. */}
-          {showSatellites && !mobile && (
+              the Satellites layer is on. Steps aside during a follow: the
+              operator card + FOLLOWING chip carry the context then, and the
+              legend was colliding with the right rail + timeline cluster. */}
+          {showSatellites && !mobile && !satFollowed && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -572,10 +589,8 @@ export function UniverseEngine({
                   ))}
                 </ul>
                 <p className="mt-3 pt-2.5 border-t border-foreground/10 font-sans text-[10px] leading-4 text-foreground/45">
-                  Coloured by object type. Open the Explore menu → Orbital census to split by orbit (LEO / MEO / GEO). Click any dot to chase it — its orbit draws, the field dims, drag to ride behind it.
-                </p>
-                <p className="mt-1.5 font-sans text-[10px] leading-4 text-foreground/40">
-                  Play the timeline forward and debris slowly de-orbits and dies — a modelled perigee-lifetime forecast, not tracking data.
+                  Click any dot to chase it. Scrub the timeline and debris
+                  slowly de-orbits — a modelled forecast, not tracking data.
                 </p>
               </div>
             </motion.div>
