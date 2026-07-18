@@ -266,7 +266,7 @@ const _sfE = new THREE.Vector3()
 // Never thin the swarm below this many visible LEO dots: in the sparse eras
 // (scrub to 1965 — a few hundred objects total) or a small filtered group,
 // the pixel-budget cull would misrepresent an almost-empty sky as emptier.
-const MIN_VISIBLE_DOTS = 1200
+const MIN_VISIBLE_DOTS = 2400
 
 // Syncom 2, 26 Jul 1963 — the first geosynchronous satellite. The GEO guide
 // ring is an annotation of a real populated belt; before this date there was
@@ -403,7 +403,7 @@ const VERT = /* glsl */ `
     // Any explicit filter or isolate means the user asked for a specific
     // subset — show it in full.
     float lodEff = (uGroupSel >= 0.0 || uRegimeSel >= 0.0 || uIsolate > 0.5) ? 0.0 : uLod;
-    float keep = max(mix(1.0, 0.32, lodEff) * uKeepScale, uKeepFloor);
+    float keep = max(mix(1.0, 0.55, lodEff) * uKeepScale, uKeepFloor);
     // Soft cull edge: each dot fades over a small aRand band around the moving
     // threshold instead of popping, so zooming reads as the haze *resolving*
     // into satellites, not dots switching on.
@@ -1038,7 +1038,7 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     if (classifyRegimeId(sats[idx].l2) !== 0) return true
     const filtered =
       satGroupFilterRef.current >= 0 || satRegimeFilterRef.current >= 0 || selectedSatRef.current != null
-    const keep = Math.max((filtered ? 1 : 1 - 0.68 * lodRef.current) * areaScale, keepFloorRef.current)
+    const keep = Math.max((filtered ? 1 : 1 - 0.45 * lodRef.current) * areaScale, keepFloorRef.current)
     const rand = Math.abs(Math.sin(sats[idx].id * 12.9898) * 43758.5453) % 1
     return rand <= keep - 0.04
   }
