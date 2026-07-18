@@ -12,6 +12,7 @@
 import { readFileSync } from "node:fs"
 import { screenConjunctions, type ScreeningObject } from "../lib/conjunction.ts"
 
+async function main() {
 const hours = Number(process.argv[2] ?? 6)
 
 const catalog = JSON.parse(
@@ -62,3 +63,8 @@ for (const c of results.slice(0, 15)) {
       `${c.a.name} (${c.a.type ?? "?"}/${c.a.owner ?? "?"}) × ${c.b.name} (${c.b.type ?? "?"}/${c.b.owner ?? "?"})`,
   )
 }
+}
+
+// Wrapped in main() — Next's type-check covers scripts/ and its module target
+// disallows top-level await.
+void main()
