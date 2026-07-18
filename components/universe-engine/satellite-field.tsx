@@ -52,7 +52,7 @@ const ARCHETYPES: Record<ArchetypeId, Archetype> = {
   starlink:   mkArch("/models/satellite-starlink.glb", "Starlink flat-pack", 30, 8.31),
   gps:        mkArch("/models/satellite-gps.glb",      "Navigation craft",   17, 11.42),
   comsat:     mkArch("/models/satellite-dish.glb",     "Dish comsat",        35, 12.22),
-  debris:     mkArch("/models/satellite-debris.glb",   "Debris fragment",     1.5, 1.44),
+  debris:     mkArch("/models/satellite-debris.glb",   "Debris fragment",     1.5, 1.09),
   rocketbody: mkArch("/models/satellite-rocketbody.glb","Spent rocket stage", 10, 4.0),
   telescope:  mkArch("/models/satellite-telescope.glb","Space telescope",     13, 7.5),
   station:    mkArch("/models/satellite-station.glb",  "Space station",      109, 6.75),
@@ -78,10 +78,17 @@ const NOTABLE_CRAFT: NotableCraft[] = [
   { id: 20580, label: "Hubble",   arch: "telescope" },
   { id: 48274, label: "Tiangong", arch: "station" },
 ]
-// Notable craft are shown at a legible boosted scale (NOT true 1:1 — a real
-// station is a sub-pixel speck against Earth), so you can actually see the
-// hardware on-orbit. Labeled as a recognizable-scale marker, not a measurement.
-const NOTABLE_VISIBLE_SPAN = 0.05 // scene units — a small but visible craft
+// The always-on notable riders (ISS/Hubble/Tiangong) are shown at a legible
+// boosted scale (labeled markers you can spot from orbit-overview distance).
+// The SELECTED craft is different: it renders TRUE 1:1 — see the marker
+// group below — because the chase-follow frames it at a span-proportional
+// distance, so a 109 m station and a 1.5 m debris shard each fill a sane
+// fraction of the screen at arrival while their PROPORTIONS stay honest.
+const NOTABLE_VISIBLE_SPAN = 0.03 // scene units — boosted marker span
+// Selected-craft scale: real metres × this. Proportions between craft are
+// REAL; the shared boost is a float32-precision necessity (see the selection
+// block), not a per-craft fudge.
+const SELECTED_SCALE_BOOST = 1200
 
 // Archetype GLBs (~2.7 MB) are preloaded from SatelliteField's mount effect —
 // NOT at module init. This module is statically imported by scene.tsx, so a
@@ -533,6 +540,10 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
 
   const markerRef = useRef<THREE.Group>(null)
   const haloRef = useRef<THREE.Mesh>(null)
+  // True 1:1 span (scene units) of the currently selected craft — set on
+  // selection, read by the locator-halo fade so the ring hands off to the
+  // real model at the right distance for EACH craft's actual size.
+  const selectedSpanRef = useRef(0.01)
   const geoRingRef = useRef<THREE.Mesh>(null)
   // SAT-3: one group per notable craft, positioned on its real orbit each frame.
   const notableRefs = useRef<(THREE.Group | null)[]>([])
@@ -922,10 +933,10 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
             marker.getWorldPosition(world)
             const dist = camera.position.distanceTo(world)
             // Keep a soft locator ring around the craft at ALL distances so you
-            // always see WHERE it is — the model is small even at visible scale, so
-            // the ring is the reliable "here it is" cue. Only fades right at the
-            // very end of a close approach so the model can read on its own.
-            const span = NOTABLE_VISIBLE_SPAN
+            // always see WHERE it is — a true-1:1 craft is sub-pixel from afar,
+            // so the ring is the reliable "here it is" cue. Fades near the end
+            // of a close approach so the real model reads on its own.
+            const span = selectedSpanRef.current
             const fade = Math.min(1, Math.max(0.35, (dist / span - 1) / 20))
             // local scale ÷ marker's world scale so the screen size is distance-stable
             const worldScale = marker.getWorldScale(new THREE.Vector3()).x || 1
@@ -982,14 +993,18 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
             }
           }
 
-          // On-screen span of the model as RENDERED (visible scale, not true 1:1),
-          // so the camera frames the craft at a size you can actually see. This is
-          // the fix for 'follows but I see nothing' — the old true-scale span made
-          // the camera stop microscopically close to a sub-pixel model.
-          const span = NOTABLE_VISIBLE_SPAN
+          // PROPORTIONALLY-TRUE span: real deployed metres × one shared boost.
+          // Literal 1:1 is unrenderable here — at world coords ~150 units,
+          // float32 precision is ~1e-5 units, and a 9 m craft IS ~1e-5 units.
+          // The ×SELECTED_SCALE_BOOST keeps every craft above that floor while
+          // the PROPORTIONS stay honest: the ISS really is ~70× the debris
+          // shard. Follow distance + near-plane scale with each craft's span,
+          // so arrival frames a 1.5 m fragment as tightly as a station.
+          const span = a.k * earthVisualRadius * a.nativeSpan * SELECTED_SCALE_BOOST
+          selectedSpanRef.current = span
           focusDepthRef.current = {
-            near: Math.max(span * 0.5, 1e-4),
-            minDistance: Math.max(span * 0.8, 1e-3),
+            near: Math.max(span * 0.35, 2e-4),
+            minDistance: Math.max(span * 1.1, 6e-4),
           }
           // expose the chosen archetype label to the search card (DOM side)
           selectedArchetypeRef.current = a.label
@@ -1001,7 +1016,7 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
               return { x: v.x, y: v.y, z: v.z }
             },
             // frame the craft with breathing room — model + locator ring both read.
-            span * 10,
+            span * 12,
             meta?.name,
             undefined,
             // Travel frame for the chase camera: the marker's +Z is aimed along
@@ -1123,14 +1138,14 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
         <meshBasicMaterial color="#ff9a6b" transparent opacity={0} depthWrite={false} />
       </mesh>
 
-      {/* Selected satellite, riding its live SGP4 position. Shown at a VISIBLE,
-          recognizable scale (NOT true 1:1 — a real satellite is a sub-pixel speck
-          against Earth, which made the followed craft invisible). The card + label
-          are honest that this is a recognizable-scale marker, not a measurement;
-          the craft's real size lives in the data. A locator halo marks the spot
-          from afar and fades as you approach + the model reads. */}
+      {/* Selected satellite, riding its live SGP4 position at PROPORTIONALLY-
+          TRUE scale: real deployed metres × one shared boost (float32 world
+          coords can't carry literal 1:1 — see SELECTED_SCALE_BOOST). A 109 m
+          station and a 1.5 m fragment keep their real 70:1 ratio. The chase-
+          follow's span-proportional arrival distance frames each craft; the
+          locator halo marks the spot from afar and fades as the model reads. */}
       <group ref={markerRef} visible={false}>
-        <SatModel url={arch.url} scale={NOTABLE_VISIBLE_SPAN / arch.nativeSpan} />
+        <SatModel url={arch.url} scale={arch.k * earthVisualRadius * SELECTED_SCALE_BOOST} />
         <mesh ref={haloRef}>
           <sphereGeometry args={[1, 16, 16]} />
           <meshBasicMaterial color="#ffd24a" transparent opacity={0.85} toneMapped={false} depthWrite={false} />
