@@ -23,12 +23,12 @@ metres = model units) → GLB → `public/models/` → archetype table entry
 | Kuiper flat-bus | `satellite-kuiper.glb` | ~9 m | ✅ 2026-07-18 — envelope only; label says "approx." (design not public) |
 | Iridium NEXT | `satellite-iridium.glb` | 9.4 m | ✅ 2026-07-18 — signature 40° L-band panel + twin wings |
 | Debris fragment | `satellite-debris.glb` | ~1.5 m | ✅ 2026-07-18 — 3-shard torn-metal cluster (replaced placeholder) |
-| Navigation craft | `satellite-gps.glb` | 17 m | ✅ generic GPS/GLONASS/Galileo bus |
+| GPS III-class nav craft | `satellite-gps.glb` | 17 m | ✅ 2026-07-19 — antenna farm + twin wings |
 | Dish comsat | `satellite-dish.glb` | 35 m | ✅ generic GEO comsat |
 | Weather / GEO sat | `satellite-weather.glb` | 24 m | ✅ generic |
 | Space telescope | `satellite-telescope.glb` | 13 m | ✅ Hubble-class |
 | Space station | `satellite-station.glb` | 109 m | ✅ Tiangong/Mir-class |
-| Spent rocket stage | `satellite-rocketbody.glb` | 10 m | ✅ generic (Falcon 9 S2 upgrade queued) |
+| Spent upper stage | `satellite-rocketbody.glb` | 13.8 m | ✅ 2026-07-19 — Falcon 9 S2: white tank, interstage band, MVac bell |
 | Smallsat | `satellite-smallsat.glb` | 2 m | ✅ Dove/Lemur-class |
 | CubeSat | `satellite-leopard.glb` | 1.7 m | ✅ LEOPARD (the program's proof) |
 
@@ -65,3 +65,12 @@ Iridium = bus-panel shards).
   put "(approx.)" in the archetype label — never present a guess as the real
   craft.
 - One craft at a time, finished and wired before the next.
+
+## 2026-07-19 additions
+
+- **Earth-observation bus** (`satellite-eobus.glb`, 12 m) — Sentinel-class:
+  foil-wrapped bus, nadir telescope baffle, single wing. Classifier routes
+  SENTINEL / LANDSAT / TERRA / AQUA / SPOT / PLEIADES / WORLDVIEW / GEOEYE /
+  CARTOSAT / RESOURCESAT / RADARSAT / KOMPSAT / GAOFEN here (previously fell
+  to the generic CubeSat).
+- Build queue is now EMPTY — every archetype carries a real design.

@@ -42,7 +42,7 @@ import { simTimeRef, requestFollow, focusDepthRef, daysSinceJ2000, timeScaleRef,
  *  nativeSpan  the GLB's native width in model units (measured at export)
  *  k           scale coefficient: trueScale = k * earthVisualRadius
  */
-type ArchetypeId = "cubesat" | "starlink" | "starlink2" | "gps" | "comsat" | "debris" | "rocketbody" | "telescope" | "station" | "weather" | "smallsat" | "iss" | "oneweb" | "kuiper" | "iridium"
+type ArchetypeId = "cubesat" | "starlink" | "starlink2" | "gps" | "comsat" | "debris" | "rocketbody" | "telescope" | "station" | "weather" | "smallsat" | "iss" | "oneweb" | "kuiper" | "iridium" | "eobus"
 type Archetype = { url: string; label: string; realSpanM: number; nativeSpan: number; k: number }
 function mkArch(url: string, label: string, realSpanM: number, nativeSpan: number): Archetype {
   return { url, label, realSpanM, nativeSpan, k: realSpanM / 1000 / 6371 / nativeSpan }
@@ -54,10 +54,10 @@ const ARCHETYPES: Record<ArchetypeId, Archetype> = {
   // v1.5 had one. Split from v1 by launch date (v2 Mini flights began
   // 2023-02) — the catalog name alone can't tell the generations apart.
   starlink2:  mkArch("/models/satellite-starlink2.glb", "Starlink v2 Mini", 30, 23.9),
-  gps:        mkArch("/models/satellite-gps.glb",      "Navigation craft",   17, 11.42),
+  gps:        mkArch("/models/satellite-gps.glb",      "GPS III-class nav craft", 17, 11.9),
   comsat:     mkArch("/models/satellite-dish.glb",     "Dish comsat",        35, 12.22),
   debris:     mkArch("/models/satellite-debris.glb",   "Debris fragment",     1.5, 1.09),
-  rocketbody: mkArch("/models/satellite-rocketbody.glb","Spent rocket stage", 10, 4.0),
+  rocketbody: mkArch("/models/satellite-rocketbody.glb","Spent upper stage (Falcon 9-class)", 13.8, 13.6),
   telescope:  mkArch("/models/satellite-telescope.glb","Space telescope",     13, 7.5),
   station:    mkArch("/models/satellite-station.glb",  "Space station",      109, 6.75),
   weather:    mkArch("/models/satellite-weather.glb",  "Weather / GEO sat",   24, 4.5),
@@ -70,6 +70,7 @@ const ARCHETYPES: Record<ArchetypeId, Archetype> = {
   // real design isn't public: modelled as the known envelope, and the label
   // says so — never present a guess as the real craft.
   oneweb:     mkArch("/models/satellite-oneweb.glb",   "OneWeb bus",          5.6, 2.39),
+  eobus:      mkArch("/models/satellite-eobus.glb",    "Earth-observation bus (Sentinel-class)", 12, 7.45),
   kuiper:     mkArch("/models/satellite-kuiper.glb",   "Kuiper flat-bus (approx.)", 9.0, 4.48),
   iridium:    mkArch("/models/satellite-iridium.glb",  "Iridium NEXT",        9.4, 8.05),
 }
@@ -127,6 +128,13 @@ export function classifyArchetype(name: string, owner: string, altKm: number, ty
   if (n.includes("GOES") || n.includes("METEOSAT") || n.includes("HIMAWARI") ||
       n.includes("NOAA") || n.includes("METOP") || n.includes("FENGYUN") || n.includes("INSAT"))
     return "weather"
+  // Dedicated earth-observation buses (sun-sync imagers/radar)
+  if (n.includes("SENTINEL") || n.includes("LANDSAT") || n.includes("TERRA") ||
+      n.includes("AQUA") || n.includes("SPOT") || n.includes("PLEIADES") ||
+      n.includes("WORLDVIEW") || n.includes("GEOEYE") || n.includes("CARTOSAT") ||
+      n.includes("RESOURCESAT") || n.includes("RADARSAT") || n.includes("KOMPSAT") ||
+      n.includes("GAOFEN"))
+    return "eobus"
   // Small commercial constellations / cubesats
   if (n.includes("FLOCK") || n.includes("DOVE") || n.includes("SUPERDOVE") ||
       n.includes("LEMUR") || n.includes("SPIRE") || n.includes("ICEYE") || n.includes("CUBESAT"))
