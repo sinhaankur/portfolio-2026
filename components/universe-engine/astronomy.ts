@@ -135,6 +135,28 @@ export function daysSinceJ2000(simMs: number): number {
   return (simMs - J2000_MS) / 86_400_000
 }
 
+/** Texture-longitude calibration (radians): where the Earth colour map's
+ *  Greenwich meridian sits relative to the scene's +X axis at GMST 0. Tuned by
+ *  eye against a known sub-satellite point (e.g. the ISS ground track crossing a
+ *  recognisable coastline). Start at 0; adjust live. */
+export const EARTH_TEXTURE_LON_OFFSET = 0
+
+/**
+ * Greenwich Mean Sidereal Time as an ABSOLUTE rotation angle (radians) for the
+ * given instant — the honest replacement for Earth's free-running spin. Standard
+ * IAU expression: θ = 280.46061837° + 360.98564736629°·d  (d = days since J2000),
+ * wrapped to [0, 2π). Anchoring Earth's mesh rotation to this makes the visible
+ * globe show TRUE longitudes for the sim time, so a real ground track lands over
+ * the right continents. Pure function of date — scrubbable like everything else.
+ */
+export function earthRotationAngle(simMs: number): number {
+  const d = daysSinceJ2000(simMs)
+  const deg = 280.46061837 + 360.98564736629 * d
+  const rad = (deg * Math.PI) / 180 + EARTH_TEXTURE_LON_OFFSET
+  const twoPi = Math.PI * 2
+  return ((rad % twoPi) + twoPi) % twoPi
+}
+
 /**
  * Mean anomaly (radians, wrapped to [0, 2π)) for an orbiting body at a
  * given simulation instant. Pure function of date — the foundation of the

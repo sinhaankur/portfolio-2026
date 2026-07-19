@@ -55,6 +55,7 @@ import {
   hiResTexturesRef,
   deviceTierRef,
   meanAnomalyAt,
+  earthRotationAngle,
   requestFollow,
   simTimeRef,
   cloudsVisibleRef,
@@ -596,7 +597,16 @@ export function PlanetBody({
 
   useFrame((_, delta) => {
     const tw = timeWarpRef.current
-    if (meshRef.current) meshRef.current.rotation.y += delta * visibleRotSpeed * tw
+    // Earth's spin is DATE-ANCHORED (GMST): its rotation is an absolute function
+    // of the sim time, not a free-running increment, so the visible globe shows
+    // true longitudes — required for a real ground track to land over the right
+    // continents, and the point of a "time & date accurate" Earth. All other
+    // bodies keep the incremental spin (their exact phase isn't the subject here).
+    const earthAngle = isEarth ? earthRotationAngle(simTimeRef.current.simMs) : null
+    if (meshRef.current) {
+      if (earthAngle != null) meshRef.current.rotation.y = earthAngle
+      else meshRef.current.rotation.y += delta * visibleRotSpeed * tw
+    }
 
     // Mean anomaly for this frame. Anchored bodies derive it straight from
     // the simulation date (deterministic, scrubbable); legacy bodies keep
@@ -645,15 +655,18 @@ export function PlanetBody({
     // also tracks the same spin so rover pins stay glued to their
     // landing coordinates as Mars rotates.
     if (surfaceRotRef.current) {
-      surfaceRotRef.current.rotation.y += delta * visibleRotSpeed * tw
+      if (earthAngle != null) surfaceRotRef.current.rotation.y = earthAngle
+      else surfaceRotRef.current.rotation.y += delta * visibleRotSpeed * tw
     }
     if (texMeshRef.current) {
-      texMeshRef.current.rotation.y += delta * visibleRotSpeed * tw
+      if (earthAngle != null) texMeshRef.current.rotation.y = earthAngle
+      else texMeshRef.current.rotation.y += delta * visibleRotSpeed * tw
     }
     // Band shell spins in lockstep with the texture so the drifting bands stay
     // glued to the globe's longitude.
     if (bandsMeshRef.current) {
-      bandsMeshRef.current.rotation.y += delta * visibleRotSpeed * tw
+      if (earthAngle != null) bandsMeshRef.current.rotation.y = earthAngle
+      else bandsMeshRef.current.rotation.y += delta * visibleRotSpeed * tw
     }
     // Lerp the textured material's opacity to full as soon as the JPEG lands —
     // the photo-real globe is the default state now, not a hover reveal.
