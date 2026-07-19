@@ -4,6 +4,10 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  # Daily data-refresh deploy: the /lab/celestial catalog + conjunction screen
+  # are baked static data — this keeps them fresh without a code push.
+  schedule:
+    - cron: "0 6 * * *"
 
 # One concurrent deploy at a time; cancel any in-flight run that gets queued.
 concurrency:
@@ -35,11 +39,21 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # 24: the conjunction bake runs .ts directly via Node's native
+          # type-stripping (23.6+).
+          node-version: 24
           cache: pnpm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile=false
+
+      - name: Refresh orbital data (CelesTrak TLEs + conjunction screen)
+        # Live-ish data on a static site: re-fetch the 18k-object catalog and
+        # re-screen the next 24h of close approaches on every deploy AND the
+        # daily scheduled run. If CelesTrak is unreachable, deploy proceeds on
+        # the committed snapshot — never break the site on a third-party outage.
+        run: |
+          (node scripts/fetch-satellites.mjs && node scripts/bake-conjunctions.ts) || echo "::warning::orbital data refresh failed — deploying with committed snapshot"
 
       - name: Build (Next.js static export)
         # NEXT_PUBLIC_GOOGLE_MAPS_KEY is inlined into the client bundle at build

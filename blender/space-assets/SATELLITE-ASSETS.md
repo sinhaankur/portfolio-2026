@@ -17,7 +17,8 @@ metres = model units) → GLB → `public/models/` → archetype table entry
 | Archetype | Model | Real span | Status |
 |---|---|---|---|
 | ISS | `iss.glb` | 109 m | ✅ faithful (craft 1: 8 wings, module stack, radiators) |
-| Starlink flat-pack | `satellite-starlink.glb` | 30 m | ✅ (v1.5 single-wing; v2 Mini twin-wing refresh = next craft) |
+| Starlink v1 flat-pack | `satellite-starlink.glb` | 30 m | ✅ v1.5 single-wing (pre-2023 launches) |
+| Starlink v2 Mini | `satellite-starlink2.glb` | 30 m | ✅ 2026-07-19 — twin 12 m wings, split by launch date |
 | OneWeb bus | `satellite-oneweb.glb` | 5.6 m | ✅ 2026-07-18 — box bus, V-masted twin panels |
 | Kuiper flat-bus | `satellite-kuiper.glb` | ~9 m | ✅ 2026-07-18 — envelope only; label says "approx." (design not public) |
 | Iridium NEXT | `satellite-iridium.glb` | 9.4 m | ✅ 2026-07-18 — signature 40° L-band panel + twin wings |

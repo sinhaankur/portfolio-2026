@@ -42,14 +42,18 @@ import { simTimeRef, requestFollow, focusDepthRef, daysSinceJ2000, timeScaleRef,
  *  nativeSpan  the GLB's native width in model units (measured at export)
  *  k           scale coefficient: trueScale = k * earthVisualRadius
  */
-type ArchetypeId = "cubesat" | "starlink" | "gps" | "comsat" | "debris" | "rocketbody" | "telescope" | "station" | "weather" | "smallsat" | "iss" | "oneweb" | "kuiper" | "iridium"
+type ArchetypeId = "cubesat" | "starlink" | "starlink2" | "gps" | "comsat" | "debris" | "rocketbody" | "telescope" | "station" | "weather" | "smallsat" | "iss" | "oneweb" | "kuiper" | "iridium"
 type Archetype = { url: string; label: string; realSpanM: number; nativeSpan: number; k: number }
 function mkArch(url: string, label: string, realSpanM: number, nativeSpan: number): Archetype {
   return { url, label, realSpanM, nativeSpan, k: realSpanM / 1000 / 6371 / nativeSpan }
 }
 const ARCHETYPES: Record<ArchetypeId, Archetype> = {
   cubesat:    mkArch("/models/satellite-leopard.glb",  "CubeSat",            1.7, 15.84),
-  starlink:   mkArch("/models/satellite-starlink.glb", "Starlink flat-pack", 30, 8.31),
+  starlink:   mkArch("/models/satellite-starlink.glb", "Starlink v1 flat-pack", 30, 8.31),
+  // v2 Mini — the current generation (~7k on orbit): twin 12 m wings where
+  // v1.5 had one. Split from v1 by launch date (v2 Mini flights began
+  // 2023-02) — the catalog name alone can't tell the generations apart.
+  starlink2:  mkArch("/models/satellite-starlink2.glb", "Starlink v2 Mini", 30, 23.9),
   gps:        mkArch("/models/satellite-gps.glb",      "Navigation craft",   17, 11.42),
   comsat:     mkArch("/models/satellite-dish.glb",     "Dish comsat",        35, 12.22),
   debris:     mkArch("/models/satellite-debris.glb",   "Debris fragment",     1.5, 1.09),
@@ -98,7 +102,7 @@ const SELECTED_SCALE_BOOST = 1200
 
 /** Pick an archetype from the satellite's type, name, operator, and orbit
  *  altitude. Debris + rocket bodies get their own shapes (not a clean sat). */
-export function classifyArchetype(name: string, owner: string, altKm: number, type?: string): ArchetypeId {
+export function classifyArchetype(name: string, owner: string, altKm: number, type?: string, launchMs?: number): ArchetypeId {
   if (type === "DEB") return "debris"
   if (type === "R/B") return "rocketbody"
   const n = name.toUpperCase()
@@ -111,7 +115,8 @@ export function classifyArchetype(name: string, owner: string, altKm: number, ty
       n.includes("SPITZER") || n.includes("CHANDRA") || n.includes("JWST") || n.includes("WEBB") ||
       n.includes("GAIA") || n.includes("XMM") || n.includes("TELESCOPE"))
     return "telescope"
-  if (n.includes("STARLINK")) return "starlink"
+  if (n.includes("STARLINK"))
+    return launchMs !== undefined && launchMs >= Date.UTC(2023, 1, 1) ? "starlink2" : "starlink"
   if (n.includes("ONEWEB")) return "oneweb"
   if (n.includes("KUIPER")) return "kuiper"
   if (n.includes("IRIDIUM")) return "iridium"
@@ -967,7 +972,7 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
             const vv = rr && rr.velocity
             if (vv) speedKms = Math.sqrt(vv.x * vv.x + vv.y * vv.y + vv.z * vv.z)
           }
-          const a = ARCHETYPES[classifyArchetype(meta?.name ?? "", meta?.owner ?? "", altKm, meta?.type)]
+          const a = ARCHETYPES[classifyArchetype(meta?.name ?? "", meta?.owner ?? "", altKm, meta?.type, meta?.launchMs)]
           archRef.current = a
           setArch(a)
           setSelectedLabel(meta ? `${meta.id} · ${meta.name}` : null)
