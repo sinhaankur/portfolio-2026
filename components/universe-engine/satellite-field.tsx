@@ -698,6 +698,19 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
   const [selectedLabel, setSelectedLabel] = useState<string | null>(null)
   // Orbit-path polyline for the selected satellite (recomputed on selection).
   const [orbitPts, setOrbitPts] = useState<THREE.Vector3[] | null>(null)
+  // Ground track — the curve the sub-satellite point traces ON Earth's surface
+  // over one orbit (the real "path over the ground"), + the live radial tether
+  // from the current sub-point up to the craft (the honest "surface → orbit"
+  // link; the actual launch ascent isn't in TLE data, so we draw geometry that
+  // IS true: where it is over Earth, and how far above the surface it flies).
+  const [groundTrack, setGroundTrack] = useState<THREE.Vector3[] | null>(null)
+  // Two-point line geometry for the surface→craft tether; its endpoints are
+  // rewritten each frame (craft moves), so create it once and mutate in place.
+  const tetherGeom = useMemo(() => {
+    const g = new THREE.BufferGeometry()
+    g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(6), 3))
+    return g
+  }, [])
   // SAT-1: orbit-track ellipses for the currently-FILTERED group — a sampled
   // subset (drawing all ~18k would be thousands of lines), each colored by its
   // altitude band, so you see the constellation's STRUCTURE (Starlink shell, GPS
@@ -747,6 +760,36 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
       try { r = lib.propagate(rec, t) } catch { r = false }
       const p = r && r.position
       if (p) out.push(new THREE.Vector3(p.x * kmToScene, p.z * kmToScene, -p.y * kmToScene))
+    }
+    return out
+  }
+
+  // Ground track: the sub-satellite curve on Earth's surface, one point per orbit
+  // sample, projected RADIALLY from each orbital position down to the surface.
+  // The orbit points live in the inertial (ECI) scene frame, so a radial project
+  // of the same ECI position lands the sub-point EXACTLY beneath the orbit line
+  // (verified: alignment dot = 1.0). Going via geodetic lat/lon instead would put
+  // it in the Earth-fixed frame and slip off the orbit by the GMST rotation. This
+  // is the honest "path over the ground" that stays visually locked under the arc.
+  function computeGroundTrack(rec: unknown): THREE.Vector3[] {
+    const lib = sgp4.current
+    if (!lib || !rec) return []
+    const no = (rec as { no?: number }).no ?? 0
+    const periodMin = no > 0 ? (2 * Math.PI) / no : 95
+    const start = simTimeRef.current.simMs
+    const steps = 128
+    const surfR = earthVisualRadius * 1.002 // hug the surface, avoid z-fight
+    const out: THREE.Vector3[] = []
+    for (let i = 0; i <= steps; i++) {
+      const t = new Date(start + (periodMin * 60000 * i) / steps)
+      let r: { position?: Vec3 } | false = false
+      try { r = lib.propagate(rec, t) } catch { r = false }
+      const p = r && r.position
+      if (!p) continue
+      // ECI → scene (x, z, -y), then normalize to the surface radius.
+      const v = new THREE.Vector3(p.x * kmToScene, p.z * kmToScene, -p.y * kmToScene)
+      const len = v.length()
+      if (len > 1e-9) out.push(v.multiplyScalar(surfR / len))
     }
     return out
   }
@@ -1056,6 +1099,18 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
           try { r2 = lib.propagate(rec, new Date(date.getTime() + 30000)) } catch { r2 = false }
           const p2 = r2 && r2.position
           marker.position.copy(cur)
+
+          // Update the surface→craft tether: from the sub-point (craft direction
+          // projected onto Earth's surface) up to the craft. Its length = real
+          // altitude to scale, the honest "how high above the ground it flies".
+          {
+            const posAttr = tetherGeom.getAttribute("position") as THREE.BufferAttribute
+            const dir = cur.clone().normalize()
+            const surf = dir.multiplyScalar(earthVisualRadius * 1.002)
+            posAttr.setXYZ(0, surf.x, surf.y, surf.z)
+            posAttr.setXYZ(1, cur.x, cur.y, cur.z)
+            posAttr.needsUpdate = true
+          }
           if (p2) {
             const ahead = new THREE.Vector3(p2.x * kmToScene, p2.z * kmToScene, -p2.y * kmToScene)
             if (ahead.distanceToSquared(cur) > 1e-9) marker.lookAt(ahead)
@@ -1107,6 +1162,7 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
         if (sel !== lastSelected.current) {
           lastSelected.current = sel
           setOrbitPts(computeOrbit(rec))
+          setGroundTrack(computeGroundTrack(rec))
 
           // altitude + speed (km, km/s) from a fresh propagate → drives archetype
           // choice AND the live card readout.
@@ -1216,6 +1272,7 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
       if (lastSelected.current !== null) {
         lastSelected.current = null
         setOrbitPts(null)
+        setGroundTrack(null)
         setSelectedLabel(null)
         selectedOrbitRef.current = null
         focusDepthRef.current = null   // restore normal near-plane / zoom limits
@@ -1342,6 +1399,24 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
       {/* Orbital path of the selected satellite (one full revolution). */}
       {orbitPts && orbitPts.length > 1 && (
         <Line points={orbitPts} color="#ffd24a" transparent opacity={0.4} lineWidth={1} />
+      )}
+
+      {/* Ground track — the sub-satellite curve ON Earth's surface, directly
+          beneath the orbit. The honest "path over the ground": for LEO it sweeps
+          a swath as Earth turns; for GEO it collapses to a point. Cyan to read as
+          "on the surface", distinct from the amber orbit above it. */}
+      {groundTrack && groundTrack.length > 1 && (
+        <Line points={groundTrack} color="#5affc0" transparent opacity={0.5} lineWidth={1.5} />
+      )}
+
+      {/* Live tether — the radial link from the current sub-point up to the craft,
+          i.e. surface → orbit. Its length IS the craft's real altitude, drawn to
+          scale. Geometry updated each frame in the marker useFrame block. Only
+          shown while a craft is selected. */}
+      {orbitPts && orbitPts.length > 1 && (
+        <threeLine geometry={tetherGeom}>
+          <lineBasicMaterial color="#5affc0" transparent opacity={0.35} depthWrite={false} />
+        </threeLine>
       )}
 
       {/* SAT-1: orbit-track ellipses for the selected group — the constellation's
