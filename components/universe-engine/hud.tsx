@@ -22,6 +22,7 @@ import {
   TIMELINE_RANGE_YEARS,
   TIMELINE_WAYPOINTS,
   YEAR_MS,
+  followRef,
   getSimMs,
   jumpToNow,
   setSimMs,
@@ -503,7 +504,7 @@ export function DateReadout() {
  * function of simMs, dragging here moves the entire solar system to its
  * true configuration for that instant.
  * ============================================================ */
-export function TimelineControl() {
+export function TimelineControl({ hideSpeed = false }: { hideSpeed?: boolean } = {}) {
   // Slider position is a normalised offset in [-1, 1] around REAL_NOW_MS;
   // we convert to/from absolute simMs. We hold the displayed date in state
   // (polled), but the slider itself is uncontrolled-feeling: while dragging
@@ -513,6 +514,16 @@ export function TimelineControl() {
   const [speedIdx, setSpeedIdx] = useState<number>(2) // default 1× (index 0=LIVE, 1=0.25×)
   const [waypointsOpen, setWaypointsOpen] = useState(false)
   const draggingRef = useRef(false)
+  // Self-detect follow mode so BOTH mount sites (desktop engine + mobile time
+  // sheet) hide the speed cycler while a body is followed — the Following
+  // banner's ride chips own the speed then. Polls the same followRef the banner
+  // does. The hideSpeed prop is an explicit override on top of this.
+  const [following, setFollowing] = useState(() => followRef.current != null)
+  useEffect(() => {
+    const id = setInterval(() => setFollowing(followRef.current != null), 200)
+    return () => clearInterval(id)
+  }, [])
+  const speedHidden = hideSpeed || following
 
   // Poll the clock so the readout + slider track playback without a
   // per-frame React re-render. While the user is dragging we own simMs, so
@@ -616,20 +627,26 @@ export function TimelineControl() {
           <TransportButton label={playing ? "Pause" : "Play"} active={playing} onClick={togglePlay}>
             {playing ? "⏸" : "▶"}
           </TransportButton>
-          <button
-            type="button"
-            onClick={cycleSpeed}
-            aria-label={`Playback speed ${speedLabel(speed)}, tap to change`}
-            className={`
-              min-h-8 px-2.5 rounded-full border
-              font-mono text-[10px] tracking-widest tabular-nums
-              hover:border-accent/60 hover:text-foreground transition-colors
-              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
-              ${speed === LIVE_SPEED ? "border-accent/70 text-accent" : "border-foreground/25 text-foreground/85"}
-            `}
-          >
-            {speedLabel(speed)}
-          </button>
+          {/* Speed cycler — hidden while following a body, because the
+              Following banner's ride-speed chips (Real time / 60× / 600×)
+              become the single speed control then. Two controls on the same
+              clock read as a contradiction. */}
+          {!speedHidden && (
+            <button
+              type="button"
+              onClick={cycleSpeed}
+              aria-label={`Playback speed ${speedLabel(speed)}, tap to change`}
+              className={`
+                min-h-8 px-2.5 rounded-full border
+                font-mono text-[10px] tracking-widest tabular-nums
+                hover:border-accent/60 hover:text-foreground transition-colors
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+                ${speed === LIVE_SPEED ? "border-accent/70 text-accent" : "border-foreground/25 text-foreground/85"}
+              `}
+            >
+              {speedLabel(speed)}
+            </button>
+          )}
         </div>
       </div>
 

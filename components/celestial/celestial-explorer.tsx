@@ -14,6 +14,7 @@ import dynamic from "next/dynamic"
 import { motion, AnimatePresence } from "framer-motion"
 import { ArrowLeft, X, Rotate3d, Globe, Satellite, Sparkles, Rocket, Route, Orbit, Layers, Radio, Crosshair } from "lucide-react"
 import { CustomCursor } from "@/components/custom-cursor"
+import { ThemeToggle } from "@/components/theme-toggle"
 import { StaticStarfield } from "@/components/universe-engine/static-starfield"
 import { TimelineControl } from "@/components/universe-engine/hud"
 import { BODIES } from "@/lib/celestial-data"
@@ -219,6 +220,19 @@ export function CelestialExplorer() {
     )
   }
 
+  // "Earth, its satellites & the Moon" — frames Earth wide enough that the
+  // satellite shell AND the Moon's orbit (Luna) both sit in one view.
+  function viewEarthMoon() {
+    setTitleVisible(false)
+    closePanels()
+    setMenuOpen(false)
+    window.dispatchEvent(
+      new CustomEvent("universe:sky-focus", {
+        detail: { pointId: "planet:Earth", framing: "earth-moon" },
+      }),
+    )
+  }
+
   // Pick a body: open its detail tile AND fly the engine camera to it (so
   // distant bodies like Pluto are actually findable at true scale, not just a
   // far speck). Reuses the engine's focus channel — same event the Destinations
@@ -259,7 +273,9 @@ export function CelestialExplorer() {
       <>
         <MenuHeading>Satellites &amp; ISS</MenuHeading>
         <MenuItem color="#5affc0" icon={<Satellite className="h-3.5 w-3.5" />}
-          label="View 18,500 satellites" onClick={() => { viewSatellites(); afterPick?.() }} />
+          label="View all 18,600+ satellites" onClick={() => { viewSatellites(); afterPick?.() }} />
+        <MenuItem color="#9fe0ff" icon={<Globe className="h-3.5 w-3.5" />}
+          label="Earth, satellites & the Moon" onClick={() => { viewEarthMoon(); afterPick?.() }} />
         <MenuItem color="#7affd0" icon={<Satellite className="h-3.5 w-3.5" />}
           label="ISS live position" onClick={go(() => setIssLiveOpen(true))} />
         <MenuItem color="var(--accent)" icon={<Satellite className="h-3.5 w-3.5" />}
@@ -307,17 +323,21 @@ export function CelestialExplorer() {
           <UniverseEngine interactive showHud showMusic={false} defaultTrueScale solarOnly quietMobileChrome />
         </div>
 
-        {/* Back link */}
-        <Link
-          href="/lab"
-          data-cursor-hover
-          className="absolute top-4 left-4 md:top-6 md:left-6 z-30 group inline-flex items-center gap-2 font-mono text-[10px] tracking-widest uppercase text-foreground/75 hover:text-foreground bg-background/40 backdrop-blur-sm border border-border rounded-full px-3 py-2 transition-colors"
-        >
-          <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-1" />
-          The Lab
-        </Link>
+        {/* Top-left cluster — back link + theme toggle (dark/light). The engine
+            reads the theme (invert) so the whole scene flips with it. */}
+        <div className="absolute top-4 left-4 md:top-6 md:left-6 z-30 flex items-center gap-2">
+          <Link
+            href="/lab"
+            data-cursor-hover
+            className="group inline-flex items-center gap-2 font-mono text-[10px] tracking-widest uppercase text-foreground/75 hover:text-foreground bg-background/40 backdrop-blur-sm border border-border rounded-full px-3 py-2 transition-colors"
+          >
+            <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-1" />
+            The Lab
+          </Link>
+          <ThemeToggle className="w-9 h-9" />
+        </div>
 
-        {/* Satellite search — find + follow any of the ~15.7k real satellites.
+        {/* Satellite search — find + follow any of the ~18,600 real satellites.
             Top-right, clear of the back link (top-left), rail (right-middle), and
             the engine's bottom HUD. */}
         <div className="absolute top-4 right-4 md:top-6 md:right-6 z-40">

@@ -13,8 +13,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Search, X, Crosshair } from "lucide-react"
-import { loadSatelliteCatalog, selectedSatRef, selectedArchetypeRef, selectedOrbitRef, type SatMeta, type SatOrbit } from "@/components/universe-engine/satellite-field"
+import { Search, X, Crosshair, Locate } from "lucide-react"
+import { loadSatelliteCatalog, selectedSatRef, selectedArchetypeRef, selectedOrbitRef, observerRef, findNearestOverhead, type SatMeta, type SatOrbit, type NearestSat } from "@/components/universe-engine/satellite-field"
 
 const OWNER_LABEL: Record<string, string> = {
   US: "🇺🇸 United States", PRC: "🇨🇳 China", CIS: "🇷🇺 Russia / CIS",
@@ -55,11 +55,68 @@ export function SatelliteSearch() {
   // field derives both from SGP4, so we poll the bridge refs while one is picked.
   const [archetype, setArchetype] = useState<string | null>(null)
   const [orbit, setOrbit] = useState<SatOrbit | null>(null)
+  // Observer location for the "distance from you" slant range. "idle" until the
+  // user asks; "prompt" while the browser dialog is open; "on" once granted;
+  // "denied"/"off" if they decline or it's unavailable. Sets the module-level
+  // observerRef the R3F field reads each tick.
+  const [geoState, setGeoState] = useState<"idle" | "prompt" | "on" | "off">("idle")
+  // Nearest-overhead scan result (the object physically closest to you right now).
+  const [nearest, setNearest] = useState<NearestSat | null>(null)
+  const [scanning, setScanning] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     loadSatelliteCatalog().then(setCatalog)
   }, [])
+
+  // If the site already has location permission (e.g. the "ISS over you" panel
+  // used it), light up the slant range automatically — no second prompt.
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !navigator.permissions?.query) return
+    navigator.permissions.query({ name: "geolocation" }).then((p) => {
+      if (p.state === "granted") requestLocation()
+    }).catch(() => { /* permissions API unavailable — user can tap the button */ })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  function requestLocation() {
+    if (typeof navigator === "undefined" || !navigator.geolocation) { setGeoState("off"); return }
+    setGeoState("prompt")
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude, altitude } = pos.coords
+        // satellite.js observerGd wants radians + height in km (ground ≈ 0 is fine
+        // for a slant range of hundreds of km).
+        observerRef.current = {
+          latitude: (latitude * Math.PI) / 180,
+          longitude: (longitude * Math.PI) / 180,
+          height: (altitude ?? 0) / 1000,
+        }
+        setGeoState("on")
+      },
+      () => setGeoState("off"),
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 600000 },
+    )
+  }
+
+  // Scan the full catalogue for the object physically closest to you right now.
+  // If location isn't shared yet, ask for it first, then the button reads "scan".
+  function scanNearest() {
+    if (!observerRef.current) { requestLocation(); return }
+    setScanning(true)
+    // Defer so the "scanning…" label paints before the synchronous SGP4 sweep.
+    setTimeout(() => {
+      const hit = findNearestOverhead()
+      setNearest(hit)
+      setScanning(false)
+    }, 20)
+  }
+
+  // Once location arrives, run the first scan automatically so the panel isn't empty.
+  useEffect(() => {
+    if (geoState === "on" && !nearest && !scanning) scanNearest()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [geoState])
 
   useEffect(() => {
     if (!selected) { setArchetype(null); setOrbit(null); return }
@@ -109,6 +166,13 @@ export function SatelliteSearch() {
     selectedArchetypeRef.current = null
   }
 
+  // Select + fly to the nearest-overhead result. Resolve the full catalogue entry
+  // (for the operator/launch/type detail) from its NORAD id.
+  function pickNearest(n: NearestSat) {
+    const meta = catalog?.find((s) => s.id === n.id)
+    if (meta) pick(meta)
+  }
+
   return (
     <div className="w-[min(20rem,calc(100vw-2rem))]">
       {/* Search input */}
@@ -148,6 +212,42 @@ export function SatelliteSearch() {
             {opt.label}
           </button>
         ))}
+      </div>
+
+      {/* What's overhead right now — nearest object to the user's own location. */}
+      <div className="mt-2">
+        <button
+          type="button"
+          onClick={scanNearest}
+          disabled={scanning}
+          data-cursor-hover
+          className="flex w-full items-center justify-center gap-1.5 rounded-full border border-accent/40 bg-accent/[0.07] px-3 py-1.5 font-mono text-[9px] tracking-[0.15em] uppercase text-accent hover:bg-accent/15 disabled:opacity-60 transition-colors"
+        >
+          <Locate className="h-3 w-3" aria-hidden />
+          {scanning ? "scanning sky…" : geoState === "on" ? "what's overhead now" : "find what's overhead"}
+        </button>
+
+        <AnimatePresence>
+          {nearest && (
+            <motion.button
+              type="button"
+              onClick={() => pickNearest(nearest)}
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              data-cursor-hover
+              className="mt-1.5 block w-full rounded-lg border border-accent/30 bg-background/80 backdrop-blur-md px-3 py-2 text-left hover:bg-secondary/50 transition-colors"
+            >
+              <span className="flex items-baseline justify-between gap-2">
+                <span className="font-sans text-sm text-foreground truncate">{nearest.name}</span>
+                <span className="font-mono text-[11px] tabular-nums text-accent shrink-0">{fmtKm(nearest.slantRangeKm)}</span>
+              </span>
+              <span className="mt-0.5 block font-mono text-[9px] tracking-wider text-muted-foreground">
+                closest to you · {nearest.elevationDeg.toFixed(0)}° above horizon · {fmtKm(nearest.altitudeKm)} up
+              </span>
+            </motion.button>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Results dropdown */}
@@ -241,6 +341,33 @@ export function SatelliteSearch() {
                     <dt className="text-muted-foreground">Currently over</dt>
                     <dd className="text-foreground text-right tabular-nums">
                       {Math.abs(orbit.subLatDeg).toFixed(1)}°{orbit.subLatDeg >= 0 ? "N" : "S"}, {Math.abs(orbit.subLonDeg).toFixed(1)}°{orbit.subLonDeg >= 0 ? "E" : "W"}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-muted-foreground">Distance from you</dt>
+                    <dd className="text-right tabular-nums">
+                      {geoState === "on" && orbit.slantRangeKm != null ? (
+                        <span className="text-accent">
+                          {fmtKm(orbit.slantRangeKm)}
+                          <span className="ml-1 text-[10px] text-muted-foreground">
+                            {orbit.elevationDeg != null && orbit.elevationDeg >= 0
+                              ? `· ${orbit.elevationDeg.toFixed(0)}° up`
+                              : "· below horizon"}
+                          </span>
+                        </span>
+                      ) : geoState === "prompt" ? (
+                        <span className="text-muted-foreground">locating…</span>
+                      ) : geoState === "off" ? (
+                        <span className="text-muted-foreground">location unavailable</span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={requestLocation}
+                          className="text-accent underline decoration-dotted underline-offset-2 hover:text-accent/80 transition-colors"
+                        >
+                          use my location
+                        </button>
+                      )}
                     </dd>
                   </div>
                   <div className="flex justify-between gap-3">

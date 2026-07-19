@@ -322,11 +322,16 @@ export function PlanetBody({
   // back to its idle chart-marker appearance.
   useEffect(() => {
     const onSkyFocus = (e: Event) => {
-      const id = (e as CustomEvent<{ pointId: string | null }>).detail?.pointId
+      const detail = (e as CustomEvent<{ pointId: string | null; framing?: string }>).detail
+      const id = detail?.pointId
       if (id !== `planet:${planet.raw.name}`) {
         setFocused(false)
         return
       }
+      // "earth-moon" framing pulls the camera back far enough to hold BOTH Earth
+      // (with its satellite shell) AND the Moon's orbit (0.42 units out) in one
+      // view — the "Earth, its satellites, and Luna" preset.
+      const earthMoonView = detail?.framing === "earth-moon" && planet.raw.name === "Earth"
       // This planet is the warp target — fly the camera to it. Mirrors the
       // click handler: follow the planet's live world position (read from the
       // orbital position group) so it stays framed as it orbits. This is what
@@ -343,10 +348,13 @@ export function PlanetBody({
         // above the surface at true scale) reads as a visible ring, but pulled
         // back enough to see it wrap the whole globe. (3.5× = only a slice; 9× =
         // Earth too small, shell too thin to see.)
-        const followDistance = Math.max(
-          planet.visualRadius * (earthShellFraming ? 5 : planet.raw.hasRings ? 5 : 3.5),
-          earthShellFraming ? 0.6 : 0.5,
-        )
+        const followDistance = earthMoonView
+          // Frame Earth + the Moon's whole orbit (Moon at 0.42) with headroom.
+          ? 1.05
+          : Math.max(
+              planet.visualRadius * (earthShellFraming ? 5 : planet.raw.hasRings ? 5 : 3.5),
+              earthShellFraming ? 0.6 : 0.5,
+            )
         // Arrive on the SUNLIT side (offset ~30° so the terminator + night-side
         // city lights stay in frame). Without this the camera keeps whatever
         // angle it held — often the night side, which reads as a black disc.

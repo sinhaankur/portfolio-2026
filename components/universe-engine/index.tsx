@@ -697,7 +697,10 @@ export function UniverseEngine({
               hide the always-on bar there (desktop keeps it). */}
           {interactive && !(quietMobileChrome && mobile) && (
             <div className="absolute bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-30 flex justify-center">
-              <TimelineControl />
+              {/* While following a body the ride-speed chips in the Following
+                  banner own the speed; hide this panel's cycler so there's one
+                  speed control, not two. */}
+              <TimelineControl hideSpeed={!!followingLabel} />
             </div>
           )}
 
@@ -708,7 +711,11 @@ export function UniverseEngine({
               the chip to stop following; Reset (top-right) also clears it. */}
           {interactive && followingLabel && (
             // Mobile: sit above the bottom-20 timeline bar; desktop: original slot.
-            <div className="absolute bottom-44 left-6 md:bottom-32 md:left-12 z-30 pointer-events-auto flex flex-col items-start gap-1.5">
+            // One unit: label chip + ride speed share the timeline's surface
+            // (bg-background/60 · backdrop-blur-md · foreground/25 border) so the
+            // Following banner reads as part of the same control system, not a
+            // second, differently-styled widget.
+            <div className="absolute bottom-44 left-6 md:bottom-32 md:left-12 z-30 pointer-events-auto flex flex-col items-start gap-1">
               <button
                 type="button"
                 onClick={stopFollowing}
@@ -716,7 +723,7 @@ export function UniverseEngine({
                 className="
                   inline-flex items-center gap-2 px-3 py-1.5
                   border border-accent/60 rounded-full
-                  bg-background/70 backdrop-blur-sm
+                  bg-background/60 backdrop-blur-md
                   font-mono text-[10px] tracking-[0.25em] uppercase
                   text-foreground hover:border-accent
                   transition-colors duration-300
@@ -732,18 +739,20 @@ export function UniverseEngine({
               </button>
               {/* Ride speed — explicit, human control. Real time is the
                   astronaut's window view; the boosts are labeled honestly as
-                  time multiples, not hidden warp state. */}
-              <div className="inline-flex items-center gap-1 rounded-full border border-foreground/20 bg-background/70 backdrop-blur-sm px-1.5 py-1">
+                  time multiples, not hidden warp state. Styled to match the
+                  timeline's speed cycler (accent-active = border-accent/70
+                  text-accent) so both speed reads look identical. */}
+              <div className="inline-flex items-center gap-1 rounded-full border border-foreground/25 bg-background/60 backdrop-blur-md px-1.5 py-1">
                 {FOLLOW_SPEEDS.map((s) => (
                   <button
                     key={s.mult}
                     type="button"
                     onClick={() => { timeScaleRef.current = REALTIME_TIME_SCALE * s.mult; setFollowSpeed(s.mult) }}
                     aria-pressed={followSpeed === s.mult}
-                    className={`px-2 py-0.5 rounded-full font-mono text-[9px] tracking-[0.18em] uppercase transition-colors ${
+                    className={`min-h-6 px-2 py-0.5 rounded-full font-mono text-[9px] tracking-[0.18em] uppercase tabular-nums border transition-colors ${
                       followSpeed === s.mult
-                        ? "bg-accent/25 text-foreground border border-accent/50"
-                        : "text-foreground/60 hover:text-foreground border border-transparent"
+                        ? "border-accent/70 text-accent"
+                        : "border-transparent text-foreground/60 hover:text-foreground hover:border-accent/40"
                     }`}
                   >
                     {s.label}

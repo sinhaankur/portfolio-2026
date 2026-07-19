@@ -49,12 +49,12 @@ function mkArch(url: string, label: string, realSpanM: number, nativeSpan: numbe
 }
 const ARCHETYPES: Record<ArchetypeId, Archetype> = {
   cubesat:    mkArch("/models/satellite-leopard.glb",  "CubeSat",            1.7, 15.84),
-  starlink:   mkArch("/models/satellite-starlink.glb", "Starlink v1 flat-pack", 30, 8.31),
+  starlink:   mkArch("/models/satellite-starlink.glb", "Starlink v1 flat-pack", 30, 26.97),
   // v2 Mini — the current generation (~7k on orbit): twin 12 m wings where
   // v1.5 had one. Split from v1 by launch date (v2 Mini flights began
   // 2023-02) — the catalog name alone can't tell the generations apart.
   starlink2:  mkArch("/models/satellite-starlink2.glb", "Starlink v2 Mini", 30, 23.9),
-  gps:        mkArch("/models/satellite-gps.glb",      "GPS III-class nav craft", 17, 11.9),
+  gps:        mkArch("/models/satellite-gps.glb",      "GPS III-class nav craft", 17, 15.98),
   comsat:     mkArch("/models/satellite-dish.glb",     "Dish comsat",        35, 12.22),
   debris:     mkArch("/models/satellite-debris.glb",   "Debris fragment",     1.5, 1.09),
   rocketbody: mkArch("/models/satellite-rocketbody.glb","Spent upper stage (Falcon 9-class)", 13.8, 13.6),
@@ -72,7 +72,7 @@ const ARCHETYPES: Record<ArchetypeId, Archetype> = {
   oneweb:     mkArch("/models/satellite-oneweb.glb",   "OneWeb bus",          5.6, 2.39),
   eobus:      mkArch("/models/satellite-eobus.glb",    "Earth-observation bus (Sentinel-class)", 12, 7.45),
   kuiper:     mkArch("/models/satellite-kuiper.glb",   "Kuiper flat-bus (approx.)", 9.0, 4.48),
-  iridium:    mkArch("/models/satellite-iridium.glb",  "Iridium NEXT",        9.4, 8.05),
+  iridium:    mkArch("/models/satellite-iridium.glb",  "Iridium NEXT",        9.4, 9.07),
 }
 // SAT-3: a curated set of NOTABLE, recognizable craft that always ride their
 // real orbits as actual 3D hardware (not just dots) — so the scene shows the
@@ -94,6 +94,32 @@ const NOTABLE_VISIBLE_SPAN = 0.03 // scene units — boosted marker span
 // REAL; the shared boost is a float32-precision necessity (see the selection
 // block), not a per-craft fudge.
 const SELECTED_SCALE_BOOST = 1200
+// FLOAT32 PRECISION FLOOR — the fix for "small selected craft (Iridium, OneWeb,
+// debris) render as nothing". Earth sits at world-coord ~66 (SUN_OFFSET_SCENE+3);
+// float32's representable step there is ~7.9e-6 scene units. A craft's rendered
+// span = realSpanM/1000/6371 × earthVisualRadius(0.05) × BOOST, so a 9.4 m Iridium
+// lands at ~8.9e-5 units — only ~11 precision steps — and its near-plane at ~4
+// steps, so the z-buffer collapses it into invisibility. The ISS (109 m, ~1e-3 ≈
+// 130 steps) survives; every small craft doesn't. Clamping the rendered span to a
+// floor comfortably above the wall makes EVERY craft visible. Proportions stay
+// honest among craft already above the floor (GPS↑); only sub-~40 m craft get
+// lifted to a shared minimum — the right trade: visible-and-slightly-uniform beats
+// true-ratio-and-invisible. (The exact-proportion path is the local-render-frame
+// refactor, logged for the Satellite Engine's deep-zoom detail tiers.)
+const MIN_VISIBLE_SPAN = 1.0e-3 // ≈ ISS render span ≈ 130 float32 steps @ world66
+/** Lift a craft's true rendered span above the precision floor so it's always
+ *  visible against Earth — but with a SOFT floor that PRESERVES relative order:
+ *  a hard max() would flatten every sub-ISS craft to one identical size (a 1.5 m
+ *  shard would look as big as a 30 m Starlink). Instead we map trueSpan through
+ *  span = sqrt(true² + MIN²): well above MIN it's ≈ trueSpan (real proportion
+ *  preserved), well below it asymptotes to MIN (visible), and in between it grows
+ *  monotonically — so a bigger craft is still drawn bigger. Better-than-LeoLabs
+ *  read: everything is findable AND the size still carries honest information.
+ *  Returns { span, lift } — lift ≥ 1 is the model-scale multiplier. */
+function clampSpan(trueSpan: number): { span: number; lift: number } {
+  const span = Math.sqrt(trueSpan * trueSpan + MIN_VISIBLE_SPAN * MIN_VISIBLE_SPAN)
+  return { span, lift: span / trueSpan }
+}
 
 // Archetype GLBs (~2.7 MB) are preloaded from SatelliteField's mount effect —
 // NOT at module init. This module is statically imported by scene.tsx, so a
@@ -176,8 +202,76 @@ export type SatOrbit = {
   // Live sub-satellite point — the spot on Earth it's directly over right now.
   subLatDeg: number
   subLonDeg: number
+  // Live distance from the user's own location (slant range, straight line) and
+  // how high above their horizon the object sits. null until they grant location
+  // — altitudeKm (height above ground) is always known; this is "far from ME".
+  slantRangeKm: number | null
+  elevationDeg: number | null
 }
 export const selectedOrbitRef: { current: SatOrbit | null } = { current: null }
+
+/** The user's own location, in RADIANS (satellite.js observerGd form), set by the
+ *  search card once geolocation is granted. While null, the slant-range readout
+ *  stays "—". Height is metres → km-agnostic (satellite.js takes km); ground level
+ *  is a fine approximation for a distance that runs to hundreds/thousands of km. */
+export const observerRef: {
+  current: { longitude: number; latitude: number; height: number } | null
+} = { current: null }
+
+/** Bridge refs the field publishes once the catalogue + satellite.js load, so the
+ *  DOM card can scan the whole catalogue on demand (nearest-overhead) without
+ *  re-fetching or re-parsing anything. satrecsRef is aligned index-for-index with
+ *  satsRef. Both stay null until the field has mounted + loaded. */
+export const satLibRef: { current: Sgp4 | null } = { current: null }
+export const satrecsRef: { current: unknown[] } = { current: [] }
+export const satsRef: { current: Sat[] } = { current: [] }
+
+export type NearestSat = {
+  id: number
+  name: string
+  slantRangeKm: number
+  elevationDeg: number
+  altitudeKm: number
+}
+
+/** Scan the FULL catalogue for the object physically closest to the user right now
+ *  (smallest slant range), among those actually above their horizon. One SGP4 pass
+ *  over ~18.7k records (~a few hundred ms) — call on demand, not per frame. Returns
+ *  null if location isn't shared or the catalogue hasn't loaded. The elevation gate
+ *  (>0°) is the honest filter: an object below the horizon is on the far side of
+ *  Earth — "nearest" should mean nearest thing you could actually look up at. */
+export function findNearestOverhead(atMs: number = Date.now()): NearestSat | null {
+  const lib = satLibRef.current
+  const obs = observerRef.current
+  const recs = satrecsRef.current
+  const sats = satsRef.current
+  if (!lib || !obs || recs.length === 0) return null
+  const date = new Date(atMs)
+  let gmst: number
+  try { gmst = lib.gstime(date) } catch { return null }
+  let best: NearestSat | null = null
+  for (let i = 0; i < recs.length; i++) {
+    const rec = recs[i]
+    if (!rec) continue
+    let r: { position?: Vec3 } | false = false
+    try { r = lib.propagate(rec, date) } catch { r = false }
+    const p = r && r.position
+    if (!p) continue
+    const ecf = lib.eciToEcf(p, gmst)
+    const la = lib.ecfToLookAngles(obs, ecf)
+    if (la.elevation <= 0) continue // below horizon — far side of Earth
+    if (best && la.rangeSat >= best.slantRangeKm) continue
+    const s = sats[i]
+    best = {
+      id: s?.id ?? -1,
+      name: s?.name ?? "Unknown",
+      slantRangeKm: la.rangeSat,
+      elevationDeg: (la.elevation * 180) / Math.PI,
+      altitudeKm: Math.sqrt(p.x * p.x + p.y * p.y + p.z * p.z) - EARTH_RADIUS_KM,
+    }
+  }
+  return best
+}
 
 /** Name the orbit band from apogee/perigee — the quick "where does it live?"
  *  read most people recognise (ISS = LEO, GPS = MEO, comsats = GEO). */
@@ -278,6 +372,13 @@ type Sgp4 = {
   eciToGeodetic: (eci: Vec3, gmst: number) => { latitude: number; longitude: number; height: number }
   degreesLat: (rad: number) => number
   degreesLong: (rad: number) => number
+  // Observer-relative geometry — the "how far from me right now" slant range.
+  degreesToRadians: (deg: number) => number
+  eciToEcf: (eci: Vec3, gmst: number) => Vec3
+  ecfToLookAngles: (
+    observer: { longitude: number; latitude: number; height: number },
+    ecf: Vec3,
+  ) => { azimuth: number; elevation: number; rangeSat: number }
 }
 // SGP4 satrec fields we read for the orbital readout (satellite.js@5 names).
 type SatRec = { inclo?: number; alta?: number; altp?: number; no?: number; ecco?: number }
@@ -546,6 +647,11 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
           try { return lib.twoline2satrec(s.l1, s.l2) } catch { return null }
         })
         setSats(list as Sat[])
+        // Publish to the DOM-side bridge so the search card can scan the whole
+        // catalogue on demand (nearest-overhead) using these same parsed satrecs.
+        satLibRef.current = lib
+        satrecsRef.current = satrecs.current
+        satsRef.current = list as Sat[]
       })
       .catch(() => setSats([]))
     return () => { cancelled = true }
@@ -601,6 +707,12 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
   // Which archetype model the selected satellite uses (chosen on selection).
   const [arch, setArch] = useState<Archetype>(ARCHETYPES.cubesat)
   const archRef = useRef<Archetype>(ARCHETYPES.cubesat)
+  // Precision-floor lift for the selected craft (see MIN_VISIBLE_SPAN): ≥1, the
+  // factor by which the model is enlarged so it clears the float32 wall and is
+  // visible. State drives the marker's <SatModel> scale; the ref keeps useFrame
+  // in sync without waiting on a re-render.
+  const [selectedLift, setSelectedLift] = useState(1)
+  const selectedLiftRef = useRef(1)
   // NORAD id → buffer index, for fast selection lookup.
   const idToIndex = useMemo(() => {
     const m = new Map<number, number>()
@@ -916,12 +1028,26 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
               Math.sqrt(p.x * p.x + p.y * p.y + p.z * p.z) - EARTH_RADIUS_KM
             const v = r && r.velocity
             if (v) selectedOrbitRef.current.speedKms = Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z)
-            // Live sub-satellite point — the lat/lon on Earth it's over RIGHT NOW.
+            // Live sub-satellite point — the lat/lon on Earth it's over RIGHT NOW —
+            // plus, if the user shared their location, the straight-line distance
+            // from THEM to the object (slant range) and its elevation over their
+            // horizon. Same topocentric math as the pass planner (eciToEcf →
+            // look angles), so "how far is it from me" is a real number, not altitude.
             try {
               const gmst = lib.gstime(date)
               const geo = lib.eciToGeodetic(p, gmst)
               selectedOrbitRef.current.subLatDeg = lib.degreesLat(geo.latitude)
               selectedOrbitRef.current.subLonDeg = lib.degreesLong(geo.longitude)
+              const obs = observerRef.current
+              if (obs) {
+                const ecf = lib.eciToEcf(p, gmst)
+                const la = lib.ecfToLookAngles(obs, ecf)
+                selectedOrbitRef.current.slantRangeKm = la.rangeSat
+                selectedOrbitRef.current.elevationDeg = (la.elevation * 180) / Math.PI
+              } else {
+                selectedOrbitRef.current.slantRangeKm = null
+                selectedOrbitRef.current.elevationDeg = null
+              }
             } catch { /* keep last */ }
           }
           const cur = new THREE.Vector3(p.x * kmToScene, p.z * kmToScene, -p.y * kmToScene)
@@ -935,6 +1061,21 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
             if (ahead.distanceToSquared(cur) > 1e-9) marker.lookAt(ahead)
           }
           marker.visible = true
+
+          // Debug readout for the "selected craft won't render" diagnosis: real
+          // marker state (no guessing). Read window.__ueSat headlessly or in devtools.
+          if (typeof window !== "undefined") {
+            const w = new THREE.Vector3(); marker.getWorldPosition(w)
+            const meshCount = (() => { let n = 0; marker.traverse((o) => { if ((o as THREE.Mesh).isMesh) n++ }); return n })()
+            ;(window as unknown as { __ueSat?: object }).__ueSat = {
+              sel, archUrl: archRef.current.url, archLabel: archRef.current.label,
+              markerVisible: marker.visible,
+              markerWorld: [w.x, w.y, w.z],
+              camDist: camera.position.distanceTo(w),
+              meshCountUnderMarker: meshCount, // 0 = GLB not mounted/loaded
+              span: selectedSpanRef.current,
+            }
+          }
 
           // Locator halo: subtends a ~constant small screen size when far (so you
           // can FIND the otherwise-invisible 1:1 craft), then shrinks + fades to
@@ -1003,6 +1144,8 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
               regime: orbitRegime(apogeeKm, perigeeKm),
               subLatDeg: 0,
               subLonDeg: 0,
+              slantRangeKm: null,
+              elevationDeg: null,
             }
           }
 
@@ -1013,7 +1156,13 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
           // the PROPORTIONS stay honest: the ISS really is ~70× the debris
           // shard. Follow distance + near-plane scale with each craft's span,
           // so arrival frames a 1.5 m fragment as tightly as a station.
-          const span = a.k * earthVisualRadius * a.nativeSpan * SELECTED_SCALE_BOOST
+          const trueSpan = a.k * earthVisualRadius * a.nativeSpan * SELECTED_SCALE_BOOST
+          // Lift the span above the float32 precision floor so small craft
+          // (Iridium, OneWeb, debris) are actually visible; apply the SAME lift
+          // to the model scale (via selectedLiftRef) so framing + model agree.
+          const { span, lift } = clampSpan(trueSpan)
+          selectedLiftRef.current = lift
+          setSelectedLift(lift)
           selectedSpanRef.current = span
           focusDepthRef.current = {
             near: Math.max(span * 0.35, 2e-4),
@@ -1163,7 +1312,7 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
           follow's span-proportional arrival distance frames each craft; the
           locator halo marks the spot from afar and fades as the model reads. */}
       <group ref={markerRef} visible={false}>
-        <SatModel url={arch.url} scale={arch.k * earthVisualRadius * SELECTED_SCALE_BOOST} />
+        <SatModel url={arch.url} scale={arch.k * earthVisualRadius * SELECTED_SCALE_BOOST * selectedLift} />
         <mesh ref={haloRef}>
           <sphereGeometry args={[1, 16, 16]} />
           <meshBasicMaterial color="#ffd24a" transparent opacity={0.85} toneMapped={false} depthWrite={false} />
