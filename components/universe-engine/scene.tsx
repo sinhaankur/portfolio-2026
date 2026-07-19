@@ -131,6 +131,9 @@ const _chT = new Vector3()
 const _chUp = new Vector3()
 const _chS = new Vector3()
 const _chOff = new Vector3()
+// Remembers that WE turned auto-rotate off for a follow (vs it being off
+// by prop), so it's restored exactly when the chase ends.
+let _autoRotateSuspended = false
 
 function FlyToController({ interactive }: { interactive: boolean }) {
   const { camera, controls } = useThree() as unknown as {
@@ -155,6 +158,17 @@ function FlyToController({ interactive }: { interactive: boolean }) {
     if (controls.minDistance !== wantMin) controls.minDistance = wantMin
 
     const follow = followRef.current
+    // Defense: auto-rotate during a chase gets baked into the re-recorded
+    // chase offset every frame and compounds into a corkscrew around the
+    // target ("the whole engine goes into a spiral"). Hard-off while any
+    // follow is active; restored the moment it ends.
+    if (follow && controls.autoRotate) {
+      _autoRotateSuspended = true
+      controls.autoRotate = false
+    } else if (!follow && _autoRotateSuspended) {
+      _autoRotateSuspended = false
+      controls.autoRotate = true
+    }
     // Follow mode wins over fly mode if both somehow set (requestFlyTo and
     // requestFollow both clear the other ref, but defending the order
     // here keeps the controller predictable).

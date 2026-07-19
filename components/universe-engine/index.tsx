@@ -67,6 +67,15 @@ import { DestinationsMenu, InfoPanel, LayersMenu, ResetViewButton, TimelineContr
 import { TonightSky } from "./tonight-sky"
 import { LearnTicker } from "./learn-ticker"
 import { selectedSatRef } from "./satellite-field"
+
+// Ride-speed presets while following a craft — honest time multiples.
+// 1× = the astronaut's window view; 60× = a full LEO orbit in ~90 s;
+// 600× = the orbit as a sweep. No hidden warp states.
+const FOLLOW_SPEEDS = [
+  { mult: 1, label: "Real time" },
+  { mult: 60, label: "60×" },
+  { mult: 600, label: "600×" },
+]
 import { MobileBodySheet } from "./mobile-sheet"
 import { StaticStarfield } from "./static-starfield"
 import { GalaxyMusic } from "../galaxy-music"
@@ -311,8 +320,18 @@ export function UniverseEngine({
   // interval — cheap enough vs. re-rendering on every frame, fresh enough
   // that the banner appears/disappears in step with the user's actions.
   const [followingLabel, setFollowingLabel] = useState<string | null>(null)
+  // Ride-speed selector state (multiples of real time). Reset to real time
+  // whenever a new follow starts — selection snaps the clock to 1× and the
+  // chips must agree with reality.
+  const [followSpeed, setFollowSpeed] = useState(1)
   useEffect(() => {
-    const tick = () => setFollowingLabel(followRef.current?.label ?? null)
+    const tick = () => {
+      const label = followRef.current?.label ?? null
+      setFollowingLabel((prev) => {
+        if (label && !prev) setFollowSpeed(1) // new follow → real time
+        return label
+      })
+    }
     tick()
     const id = setInterval(tick, 200)
     return () => clearInterval(id)
@@ -689,7 +708,7 @@ export function UniverseEngine({
               the chip to stop following; Reset (top-right) also clears it. */}
           {interactive && followingLabel && (
             // Mobile: sit above the bottom-20 timeline bar; desktop: original slot.
-            <div className="absolute bottom-44 left-6 md:bottom-32 md:left-12 z-30 pointer-events-auto">
+            <div className="absolute bottom-44 left-6 md:bottom-32 md:left-12 z-30 pointer-events-auto flex flex-col items-start gap-1.5">
               <button
                 type="button"
                 onClick={stopFollowing}
@@ -711,6 +730,26 @@ export function UniverseEngine({
                 Following · {followingLabel}
                 <span aria-hidden="true" className="text-foreground/60 ml-1">×</span>
               </button>
+              {/* Ride speed — explicit, human control. Real time is the
+                  astronaut's window view; the boosts are labeled honestly as
+                  time multiples, not hidden warp state. */}
+              <div className="inline-flex items-center gap-1 rounded-full border border-foreground/20 bg-background/70 backdrop-blur-sm px-1.5 py-1">
+                {FOLLOW_SPEEDS.map((s) => (
+                  <button
+                    key={s.mult}
+                    type="button"
+                    onClick={() => { timeScaleRef.current = REALTIME_TIME_SCALE * s.mult; setFollowSpeed(s.mult) }}
+                    aria-pressed={followSpeed === s.mult}
+                    className={`px-2 py-0.5 rounded-full font-mono text-[9px] tracking-[0.18em] uppercase transition-colors ${
+                      followSpeed === s.mult
+                        ? "bg-accent/25 text-foreground border border-accent/50"
+                        : "text-foreground/60 hover:text-foreground border border-transparent"
+                    }`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
