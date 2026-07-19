@@ -1167,6 +1167,12 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
           focusDepthRef.current = {
             near: Math.max(span * 0.35, 2e-4),
             minDistance: Math.max(span * 1.1, 6e-4),
+            // Pull FAR in to just past Earth (centre ~0.42 from a LEO craft, radius
+            // 0.05) + generous margin: with near this tight, the FULL linear depth
+            // buffer now falls on the craft ↔ Earth range, so the craft stops
+            // z-fighting the limb. 6 units covers Earth + the whole satellite shell
+            // while dropping the wasted 3000 of empty far space.
+            far: 6,
           }
           // expose the chosen archetype label to the search card (DOM side)
           selectedArchetypeRef.current = a.label

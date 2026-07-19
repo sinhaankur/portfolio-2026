@@ -63,6 +63,7 @@ import {
   timeScaleRef,
   focusDepthRef,
   DEFAULT_CAMERA_NEAR,
+  DEFAULT_CAMERA_FAR,
   DEFAULT_MIN_DISTANCE,
 } from "./astronomy"
 
@@ -151,8 +152,13 @@ function FlyToController({ interactive }: { interactive: boolean }) {
     const fd = focusDepthRef.current
     const wantNear = fd ? fd.near : DEFAULT_CAMERA_NEAR
     const wantMin = fd ? fd.minDistance : DEFAULT_MIN_DISTANCE
-    if (camera.near !== wantNear) {
+    // Pull FAR in during a satellite close-follow so the linear depth buffer's
+    // precision concentrates near the craft (kills z-fighting vs Earth's limb);
+    // restore the full 3000 for everything else so distant stars still draw.
+    const wantFar = fd && fd.far ? fd.far : DEFAULT_CAMERA_FAR
+    if (camera.near !== wantNear || camera.far !== wantFar) {
       camera.near = wantNear
+      camera.far = wantFar
       camera.updateProjectionMatrix()
     }
     if (controls.minDistance !== wantMin) controls.minDistance = wantMin

@@ -398,9 +398,15 @@ export function surfaceTextureUrl(planet: { textureUrl?: string; hiResTextureUrl
  * DEFAULT_* values (index.tsx), and FlyToController reads focusDepthRef each
  * frame to apply/restore. Same module-ref pattern as scaleModeRef. */
 export const DEFAULT_CAMERA_NEAR = 0.012
+export const DEFAULT_CAMERA_FAR = 3000
 export const DEFAULT_MIN_DISTANCE = 0.02
+// `far` is optional: when a tiny craft is close-followed, pulling the FAR plane in
+// from 3000 to a few units concentrates the entire (linear) depth buffer on the
+// craft — the shader-safe way to kill z-fighting on close approaches without a
+// logarithmic buffer (which the engine's custom shaders don't support). Restored
+// to DEFAULT_CAMERA_FAR the moment focus clears.
 export const focusDepthRef: {
-  current: { near: number; minDistance: number } | null
+  current: { near: number; minDistance: number; far?: number } | null
 } = { current: null }
 
 /** Scene units per AU in true-scale mode. Earth (1 AU) lands at the same ~3
