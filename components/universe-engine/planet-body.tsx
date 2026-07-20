@@ -401,20 +401,42 @@ export function PlanetBody({
   // inner-system textures (which are smaller in scene size + closer to the
   // camera on default load) win the browser's first round of fetch slots.
   // Total bandwidth is unchanged; first-paint quality improves on phones.
+  // PROGRESSIVE load — Earth (and any planet) must show its surface FAST, then
+  // sharpen. Always load the light base texture FIRST so the globe appears
+  // immediately; if a hi-res tier applies (desktop deep-zoom, e.g. Earth's 8K),
+  // load it in the background and swap it in when ready. The old code loaded
+  // ONLY surfaceTextureUrl() — which returns the 8K on the celestial page — so
+  // the globe stayed grey until 2.7 MB finished (or forever if it stalled). That
+  // was the "grey ball" bug on deep-zoom.
   useEffect(() => {
-    if (!textureUrl || texture) return
+    if (texture) return
     const isOuterPlanet = planet.raw.aAU > 4
     const delay = isOuterPlanet ? 500 : 0
+    const baseUrl = planet.raw.textureUrl
+    const hiResUrl = surfaceTextureUrl(planet.raw) // may be the hi-res tier
+    if (!baseUrl && !hiResUrl) return
+    let cancelled = false
     const timer = setTimeout(() => {
       const loader = new TextureLoader()
-      loader.load(textureUrl, (tex) => {
+      // 1) base first — the globe appears the moment this lands.
+      loader.load(baseUrl ?? hiResUrl!, (tex) => {
+        if (cancelled) return
         tex.colorSpace = SRGBColorSpace
         tex.anisotropy = 8
         setTexture(tex)
+        // 2) upgrade to hi-res in the background, if different, then swap.
+        if (hiResUrl && hiResUrl !== baseUrl) {
+          loader.load(hiResUrl, (hi) => {
+            if (cancelled) return
+            hi.colorSpace = SRGBColorSpace
+            hi.anisotropy = 8
+            setTexture(hi)
+          })
+        }
       })
     }, delay)
-    return () => clearTimeout(timer)
-  }, [textureUrl, texture, planet.raw.aAU])
+    return () => { cancelled = true; clearTimeout(timer) }
+  }, [texture, planet.raw.aAU, planet.raw.textureUrl])
 
   // Optional night-side texture (city lights). Currently only Earth ships
   // this — drives the day/night shader below. Loaded with a small delay
@@ -422,22 +444,34 @@ export function PlanetBody({
   // desktop deep-zoom explorer it swaps to the 8K Black Marble (city lights
   // resolve into individual cities) just like the day map's hiRes tier.
   const nightTextureUrl = planet.raw.nightTextureUrl
-  const nightUrlToLoad =
+  const hiResNightUrl =
     hiResTexturesRef.current && deviceTierRef.current === "desktop" && planet.raw.hiResNightTextureUrl
       ? planet.raw.hiResNightTextureUrl
-      : nightTextureUrl
+      : undefined
+  // Progressive, like the day map: load the light base night texture first (so the
+  // day/night globe can show), then swap the 8K city-lights in behind it.
   useEffect(() => {
-    if (!nightUrlToLoad || nightTexture) return
+    if (!nightTextureUrl || nightTexture) return
+    let cancelled = false
     const timer = setTimeout(() => {
       const loader = new TextureLoader()
-      loader.load(nightUrlToLoad, (tex) => {
+      loader.load(nightTextureUrl, (tex) => {
+        if (cancelled) return
         tex.colorSpace = SRGBColorSpace
         tex.anisotropy = 8
         setNightTexture(tex)
+        if (hiResNightUrl && hiResNightUrl !== nightTextureUrl) {
+          loader.load(hiResNightUrl, (hi) => {
+            if (cancelled) return
+            hi.colorSpace = SRGBColorSpace
+            hi.anisotropy = 8
+            setNightTexture(hi)
+          })
+        }
       })
     }, 300)
-    return () => clearTimeout(timer)
-  }, [nightUrlToLoad, nightTexture])
+    return () => { cancelled = true; clearTimeout(timer) }
+  }, [nightTextureUrl, nightTexture, hiResNightUrl])
 
   // Optional elevation/height map (Mars MOLA) for real terrain relief. Loaded
   // last (after day + night) since it's a deep-zoom nicety, not the primary
@@ -492,6 +526,11 @@ export function PlanetBody({
   useEffect(() => {
     if (texture) dayNightUniforms.tDay.value = texture
     if (nightTexture) dayNightUniforms.tNight.value = nightTexture
+    // Only tell the shader there's a night map once it's ACTUALLY loaded — the
+    // globe shows as soon as the DAY texture is ready (dark side falls to ambient
+    // until the city-lights land), instead of staying grey waiting on both.
+    dayNightUniforms.uHasNight.value = nightTexture ? 1.0 : 0.0
+    dayNightUniforms.uNightStrength.value = nightTexture ? 1.8 : 0.0
     if (elevationTexture) {
       dayNightUniforms.tElevation.value = elevationTexture
       // Scale is in visual-radius units; small so relief reads without
@@ -688,10 +727,11 @@ export function PlanetBody({
     // orbit. dot(normal, sunDir) in the shader produces the terminator.
     if (useDayNightShader && texMeshRef.current) {
       const k = 1 - Math.exp(-delta * 8)
-      // Show the surface once the DAY texture is loaded. Bodies with a night
-      // map (Earth) also wait for it; airless day/night bodies (Mars, Mercury,
-      // Pluto) have no night texture and must NOT stay transparent forever.
-      const target = texture && (!nightTextureUrl || nightTexture) ? 1 : 0
+      // Show the surface as soon as the DAY texture is loaded — the night/city-
+      // lights map fades in later via uHasNight. Waiting on BOTH left Earth a grey
+      // ball on deep-zoom while 4 MB of 8K textures loaded (the live "this sucks"
+      // bug). Airless day/night bodies (Mars, Mercury) never had a night map anyway.
+      const target = texture ? 1 : 0
       dayNightUniforms.uOpacity.value += (target - dayNightUniforms.uOpacity.value) * k
       texMeshRef.current.getWorldPosition(_earthWorldPos)
       _sunWorldPos.set(SUN_OFFSET_SCENE, 0, 0)
@@ -816,7 +856,7 @@ export function PlanetBody({
                 Earth takes the day/night shader path (lit + city-lights
                 hemispheres separated by a smoothed terminator); everyone
                 else uses the standard PBR sphere lit by the Sun point light. */}
-            {hasTexture && useDayNightShader && texture && (!nightTextureUrl || nightTexture) && (
+            {hasTexture && useDayNightShader && texture && (
               <mesh ref={texMeshRef}>
                 <sphereGeometry args={[planet.visualRadius * 1.005, (planet.raw.name === "Earth" || planet.raw.elevationUrl) ? 96 : 64, (planet.raw.name === "Earth" || planet.raw.elevationUrl) ? 96 : 64]} />
                 <shaderMaterial
