@@ -23,13 +23,29 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      # Checkout WITHOUT LFS first: fetching LFS blobs during checkout is the most
+      # failure-prone part (a single LFS smudge/network hiccup fails the whole
+      # checkout step and skips the entire deploy — the 2026-07-20 transient
+      # failure). We pull LFS separately, with retries, so a blip no longer kills
+      # the deploy.
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          lfs: true
+          lfs: false
 
-      - name: Ensure Git LFS assets are present
-        run: git lfs pull
+      - name: Ensure Git LFS assets are present (retryable)
+        run: |
+          for attempt in 1 2 3; do
+            echo "git lfs pull attempt $attempt…"
+            if git lfs pull; then
+              echo "LFS assets present."
+              exit 0
+            fi
+            echo "::warning::git lfs pull failed (attempt $attempt) — retrying in 10s"
+            sleep 10
+          done
+          echo "::error::git lfs pull failed after 3 attempts"
+          exit 1
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
