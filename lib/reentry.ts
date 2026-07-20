@@ -93,6 +93,21 @@ function baselineLifetimeDays(perigeeKm: number): number {
   return 365 * 5000
 }
 
+/** Decay status band from perigee alone — usable when you already have the
+ *  perigee (e.g. from a live SGP4 readout) and don't want to re-parse the TLE.
+ *  Same thresholds as estimateDecay's status. */
+export function statusFromPerigee(perigeeKm: number): DecayEstimate["status"] {
+  if (perigeeKm < 300) return "imminent"
+  if (perigeeKm < 600) return "decaying"
+  if (perigeeKm < 2000) return "leo-longterm"
+  return "stable"
+}
+
+/** Coarse remaining-lifetime label from perigee alone (no B* refinement). */
+export function lifetimeFromPerigee(perigeeKm: number): number {
+  return baselineLifetimeDays(perigeeKm)
+}
+
 export type DecayEstimate = {
   perigeeKm: number
   apogeeKm: number

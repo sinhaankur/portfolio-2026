@@ -15,11 +15,28 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Search, X, Crosshair, Locate } from "lucide-react"
 import { loadSatelliteCatalog, selectedSatRef, selectedArchetypeRef, selectedOrbitRef, observerRef, findNearestOverhead, type SatMeta, type SatOrbit, type NearestSat } from "@/components/universe-engine/satellite-field"
+import { statusFromPerigee, lifetimeFromPerigee, lifetimeLabel } from "@/lib/reentry"
 
 const OWNER_LABEL: Record<string, string> = {
   US: "🇺🇸 United States", PRC: "🇨🇳 China", CIS: "🇷🇺 Russia / CIS",
   UK: "🇬🇧 United Kingdom", ESA: "🇪🇺 ESA", JPN: "🇯🇵 Japan", IND: "🇮🇳 India",
   FR: "🇫🇷 France", GER: "🇩🇪 Germany", ITSO: "🌐 Intelsat", TBD: "—",
+}
+
+// One baked close-approach record (subset of conjunctions.json used here).
+type ObjConjunction = {
+  aId: number; aName: string; bId: number; bName: string
+  tcaMs: number; missKm: number; relSpeedKms: number
+}
+
+// Decay status → colour + label (matches the Re-entry watch panel's read).
+const DECAY_TONE: Record<string, string> = {
+  imminent: "text-[#ff7a6b]", decaying: "text-[#ffd166]",
+  "leo-longterm": "text-[#9fe0ff]", stable: "text-foreground/70",
+}
+const DECAY_LABEL: Record<string, string> = {
+  imminent: "Re-entry imminent", decaying: "Decaying",
+  "leo-longterm": "Long-term LEO", stable: "Stable orbit",
 }
 
 function fmtDate(ms: number) {
@@ -63,10 +80,17 @@ export function SatelliteSearch() {
   // Nearest-overhead scan result (the object physically closest to you right now).
   const [nearest, setNearest] = useState<NearestSat | null>(null)
   const [scanning, setScanning] = useState(false)
+  // Baked conjunction list — to surface THIS object's upcoming close approaches
+  // in its risk card (the same data the Conjunction watch panel uses).
+  const [conjunctions, setConjunctions] = useState<ObjConjunction[] | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     loadSatelliteCatalog().then(setCatalog)
+    fetch("/data/conjunctions.json")
+      .then((r) => r.json())
+      .then((d: { conjunctions?: ObjConjunction[] }) => setConjunctions(d.conjunctions ?? []))
+      .catch(() => setConjunctions([]))
   }, [])
 
   // If the site already has location permission (e.g. the "ISS over you" panel
@@ -128,6 +152,20 @@ export function SatelliteSearch() {
     }, 200)
     return () => clearInterval(id)
   }, [selected])
+
+  // This object's upcoming close approaches, pulled from the baked screen.
+  const objApproaches = useMemo(() => {
+    if (!selected || !conjunctions) return []
+    const now = Date.now()
+    return conjunctions
+      .filter((c) => (c.aId === selected.id || c.bId === selected.id) && c.tcaMs > now - 60_000)
+      .map((c) => ({
+        other: c.aId === selected.id ? c.bName : c.aName,
+        missKm: c.missKm, tcaMs: c.tcaMs, relSpeedKms: c.relSpeedKms,
+      }))
+      .sort((a, b) => a.missKm - b.missKm)
+      .slice(0, 3)
+  }, [selected, conjunctions])
 
   const isDebris = (s: SatMeta) => s.type === "DEB" || s.type === "R/B"
   const counts = useMemo(() => {
@@ -389,6 +427,57 @@ export function SatelliteSearch() {
                 <dd className="text-foreground text-right">recognizable scale</dd>
               </div>
             </dl>
+
+            {/* Decay & risk — the "what's going to happen to this object" read,
+                from its perigee (drag) + any screened close approaches. Public
+                space-tech research, made legible: seeing is believing. */}
+            {orbit && (() => {
+              const status = statusFromPerigee(orbit.perigeeKm)
+              const life = lifetimeFromPerigee(orbit.perigeeKm)
+              return (
+                <div className="mt-3 rounded-lg border border-border/70 bg-background/50 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-mono text-[9px] tracking-[0.2em] uppercase text-muted-foreground">Decay outlook</span>
+                    <span className={`font-mono text-[10px] tracking-wider ${DECAY_TONE[status]}`}>{DECAY_LABEL[status]}</span>
+                  </div>
+                  <div className="mt-1.5 flex items-baseline justify-between gap-2">
+                    <span className="text-[11px] text-foreground/75">Est. orbital lifetime</span>
+                    <span className="font-mono text-[12px] tabular-nums text-foreground/90">{lifetimeLabel(life)}</span>
+                  </div>
+                  {/* perigee-height bar — lower perigee = deeper into drag = the
+                      visual "how close to falling" read. 150-800 km mapped to 0-100%. */}
+                  <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-border/60" aria-hidden>
+                    <div
+                      className={`h-full rounded-full ${status === "imminent" ? "bg-[#ff7a6b]" : status === "decaying" ? "bg-[#ffd166]" : "bg-[#9fe0ff]"}`}
+                      style={{ width: `${Math.max(4, Math.min(100, ((orbit.perigeeKm - 150) / (800 - 150)) * 100))}%` }}
+                    />
+                  </div>
+                  <p className="mt-1 font-mono text-[8px] tracking-wider text-muted-foreground">
+                    perigee {Math.round(orbit.perigeeKm)} km — lower sinks faster
+                  </p>
+
+                  {objApproaches.length > 0 && (
+                    <div className="mt-3 border-t border-border/60 pt-2">
+                      <span className="font-mono text-[9px] tracking-[0.2em] uppercase text-[#ff9d6b]">Close approaches (24h)</span>
+                      <ul className="mt-1.5 space-y-1">
+                        {objApproaches.map((a, i) => (
+                          <li key={i} className="flex items-baseline justify-between gap-2 text-[11px]">
+                            <span className="text-foreground/80 truncate">{a.other}</span>
+                            <span className="font-mono tabular-nums shrink-0">
+                              <span className={a.missKm < 0.5 ? "text-[#ff7a6b]" : a.missKm < 2 ? "text-[#ffd166]" : "text-foreground/70"}>
+                                {a.missKm.toFixed(2)} km
+                              </span>
+                              <span className="ml-1 text-[9px] text-muted-foreground">{a.relSpeedKms.toFixed(1)} km/s</span>
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
+
             {isDebris(selected) && debrisOrigin(selected.name) && (
               <p className="mt-3 rounded-lg border border-red-400/25 bg-red-400/[0.06] px-3 py-2 font-sans text-[11px] text-foreground/80 leading-relaxed">
                 ⚠ {debrisOrigin(selected.name)}
