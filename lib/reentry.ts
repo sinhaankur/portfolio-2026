@@ -155,6 +155,22 @@ export function estimateDecay(l1: string, l2: string): DecayEstimate | null {
   return { perigeeKm: alt.perigeeKm, apogeeKm: alt.apogeeKm, bstar, lifetimeDays, reentryMs, status }
 }
 
+/** Does this orbit ever pass over a given latitude? A satellite reaches
+ *  latitudes up to ±inclination (for inclinations ≤ 90°; retrograde orbits
+ *  inc > 90° reach up to ±(180−inc)). So an observer at latitude φ can have the
+ *  object pass overhead iff |φ| ≤ that reach. This is the honest "could it come
+ *  down near me" filter — ground-track coverage, not a specific reentry point
+ *  (which no one can predict from a TLE). */
+export function orbitReachesLatitude(inclinationDeg: number, latDeg: number): boolean {
+  const reach = inclinationDeg <= 90 ? inclinationDeg : 180 - inclinationDeg
+  return Math.abs(latDeg) <= reach + 0.5
+}
+
+/** Inclination (deg) straight from TLE line 2 (cols 8-16). */
+export function tleInclination(l2: string): number {
+  return parseFloat(l2.substring(8, 16))
+}
+
 /** Human label for a lifetime in days. */
 export function lifetimeLabel(days: number): string {
   if (days < 1) return "< 1 day"

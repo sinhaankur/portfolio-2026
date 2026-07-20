@@ -21,11 +21,11 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { motion } from "framer-motion"
-import { X, Flame, Search } from "lucide-react"
-import { loadFullCatalog, selectedSatRef, type SatRecord } from "@/components/universe-engine/satellite-field"
-import { estimateDecay, lifetimeLabel, type DecayEstimate } from "@/lib/reentry"
+import { X, Flame, Search, MapPin } from "lucide-react"
+import { loadFullCatalog, selectedSatRef, observerRef, type SatRecord } from "@/components/universe-engine/satellite-field"
+import { estimateDecay, lifetimeLabel, orbitReachesLatitude, tleInclination, type DecayEstimate } from "@/lib/reentry"
 
-type Row = SatRecord & { decay: DecayEstimate }
+type Row = SatRecord & { decay: DecayEstimate; overYou?: boolean }
 
 const STATUS_TONE: Record<DecayEstimate["status"], string> = {
   imminent: "text-[#ff7a6b]",
@@ -56,10 +56,35 @@ export function ReentryPanel({
   const [catalog, setCatalog] = useState<SatRecord[] | null>(null)
   const [query, setQuery] = useState("")
   const [picked, setPicked] = useState<number | null>(null)
+  // "Over me" — the human-facing filter: show only decaying objects whose orbit
+  // passes over the user's latitude ("could this come down near me"). null until
+  // they share location.
+  const [userLat, setUserLat] = useState<number | null>(null)
+  const [overMe, setOverMe] = useState(false)
 
   useEffect(() => {
     loadFullCatalog().then(setCatalog)
+    // Reuse a location already granted elsewhere (the search card's slant range).
+    const o = observerRef.current
+    if (o) setUserLat((o.latitude * 180) / Math.PI)
   }, [])
+
+  const requestLocation = () => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) return
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserLat(pos.coords.latitude)
+        setOverMe(true)
+        observerRef.current = {
+          latitude: (pos.coords.latitude * Math.PI) / 180,
+          longitude: (pos.coords.longitude * Math.PI) / 180,
+          height: (pos.coords.altitude ?? 0) / 1000,
+        }
+      },
+      () => {},
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 600000 },
+    )
+  }
 
   // Scan the whole catalogue once, estimate decay, keep the soonest-to-reenter.
   // This is ~18k cheap parses — fine once on mount (useMemo keeps it off render).
@@ -73,19 +98,20 @@ export function ReentryPanel({
       if (decay.status === "imminent") imminent++
       // keep only things actually coming down within ~decades (drop the stable shell)
       if (decay.status === "stable" || decay.status === "leo-longterm") continue
-      scored.push({ ...s, decay })
+      const overYou = userLat != null ? orbitReachesLatitude(tleInclination(s.l2), userLat) : undefined
+      scored.push({ ...s, decay, overYou })
     }
     scored.sort((a, b) => a.decay.reentryMs - b.decay.reentryMs)
     return { rows: scored, imminentCount: imminent }
-  }, [catalog])
+  }, [catalog, userLat])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    const base = q
-      ? rows.filter((r) => `${r.name} ${r.owner}`.toLowerCase().includes(q))
-      : rows
+    let base = rows
+    if (overMe && userLat != null) base = base.filter((r) => r.overYou)
+    if (q) base = base.filter((r) => `${r.name} ${r.owner}`.toLowerCase().includes(q))
     return base.slice(0, 60)
-  }, [rows, query])
+  }, [rows, query, overMe, userLat])
 
   const jump = (r: Row) => {
     selectedSatRef.current = r.id
@@ -139,6 +165,36 @@ export function ReentryPanel({
               />
             </div>
 
+            {/* "Over me" — the human-facing filter: decaying objects whose orbit
+                passes over YOUR latitude. Could one come down near you? */}
+            <div className="mt-2">
+              {userLat == null ? (
+                <button
+                  type="button"
+                  onClick={requestLocation}
+                  data-cursor-hover
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[#ff7a6b]/40 bg-[#ff7a6b]/[0.07] px-3 py-1.5 font-mono text-[9px] tracking-[0.15em] uppercase text-[#ff7a6b] hover:bg-[#ff7a6b]/15 transition-colors"
+                >
+                  <MapPin className="h-3 w-3" /> Could one pass over me?
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setOverMe((v) => !v)}
+                  aria-pressed={overMe}
+                  data-cursor-hover
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 font-mono text-[9px] tracking-[0.15em] uppercase transition-colors ${
+                    overMe
+                      ? "border-[#ff7a6b]/60 bg-[#ff7a6b]/15 text-[#ff7a6b]"
+                      : "border-border bg-background/60 text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <MapPin className="h-3 w-3" />
+                  {overMe ? `Passing over you (${userLat.toFixed(0)}°)` : "Show only over-you"}
+                </button>
+              )}
+            </div>
+
             <ul className="mt-3 flex flex-col gap-1">
               {filtered.length === 0 && (
                 <li className="py-4 text-center font-mono text-[10px] tracking-wider text-muted-foreground">
@@ -158,7 +214,8 @@ export function ReentryPanel({
                     }`}
                   >
                     <div className="flex items-baseline justify-between gap-2">
-                      <span className={`font-mono text-[10px] tracking-[0.15em] ${STATUS_TONE[r.decay.status]}`}>
+                      <span className={`inline-flex items-center gap-1 font-mono text-[10px] tracking-[0.15em] ${STATUS_TONE[r.decay.status]}`}>
+                        {r.overYou && <MapPin className="h-2.5 w-2.5" aria-label="passes over your latitude" />}
                         {STATUS_LABEL[r.decay.status]}
                       </span>
                       <span className="font-mono text-[12px] tabular-nums text-foreground/90">
