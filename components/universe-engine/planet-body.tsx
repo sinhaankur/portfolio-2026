@@ -417,20 +417,26 @@ export function PlanetBody({
 
   // Optional night-side texture (city lights). Currently only Earth ships
   // this — drives the day/night shader below. Loaded with a small delay
-  // so it lands after the day texture (which is the primary surface).
+  // so it lands after the day texture (which is the primary surface). On the
+  // desktop deep-zoom explorer it swaps to the 8K Black Marble (city lights
+  // resolve into individual cities) just like the day map's hiRes tier.
   const nightTextureUrl = planet.raw.nightTextureUrl
+  const nightUrlToLoad =
+    hiResTexturesRef.current && deviceTierRef.current === "desktop" && planet.raw.hiResNightTextureUrl
+      ? planet.raw.hiResNightTextureUrl
+      : nightTextureUrl
   useEffect(() => {
-    if (!nightTextureUrl || nightTexture) return
+    if (!nightUrlToLoad || nightTexture) return
     const timer = setTimeout(() => {
       const loader = new TextureLoader()
-      loader.load(nightTextureUrl, (tex) => {
+      loader.load(nightUrlToLoad, (tex) => {
         tex.colorSpace = SRGBColorSpace
         tex.anisotropy = 8
         setNightTexture(tex)
       })
     }, 300)
     return () => clearTimeout(timer)
-  }, [nightTextureUrl, nightTexture])
+  }, [nightUrlToLoad, nightTexture])
 
   // Optional elevation/height map (Mars MOLA) for real terrain relief. Loaded
   // last (after day + night) since it's a deep-zoom nicety, not the primary

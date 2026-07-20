@@ -151,6 +151,10 @@ export type Planet = {
    *  shadow side, with a smoothed terminator. Currently only Earth uses
    *  this (Black Marble night-lights composite). */
   nightTextureUrl?: string
+  /** Higher-res night-lights map, swapped in on the desktop deep-zoom explorer
+   *  (same perf-budget gating as hiResTextureUrl) so city lights resolve into
+   *  individual cities up close. Earth = 8K Black Marble. */
+  hiResNightTextureUrl?: string
   /** When true, the planet uses the day/night shader even without a
    *  night texture — the shadow side falls to ambient dark. Lets
    *  airless / thin-atmosphere bodies (Mercury, Mars) show a real
