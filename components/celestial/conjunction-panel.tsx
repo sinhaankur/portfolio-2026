@@ -5,23 +5,27 @@
  * Part of the Universe Engine. Others may reference this work.
  * https://github.com/sinhaankur/portfolio-2026
  *
- * ConjunctionPanel — close-approach screening over the live catalog.
+ * ConjunctionPanel — a LeoLabs-style close-approach OPERATIONS dashboard over
+ * the live catalog.
  *
  * The SSA read commercial shops sell, open: the next 24 hours of close
  * approaches among the same 18,000+ tracked objects the explorer renders,
  * screened by lib/conjunction.ts (sieve → SGP4 grid → refined TCA) and baked
- * at data-refresh time. Every row is FLYABLE: picking one selects the object
- * in the swarm and scrubs the sim clock to 90 seconds before closest
- * approach at real-time rate — you watch the two dots actually converge.
+ * at data-refresh time. This is the operator's triage view:
+ *   - a severity summary (critical < 0.5 km · warning < 2 km)
+ *   - a SORTABLE table — by miss distance, time-to-TCA, or relative velocity
+ *   - a text filter (object name / operator) + a "payload involved" toggle
+ *   - every row FLYABLE: pick one → select the object + scrub the clock to 90 s
+ *     before closest approach at real-time rate, and watch the two dots converge.
  *
- * Honesty, stated in the panel itself: geometry-only screening on public
- * TLEs. TLEs carry no covariance, so no collision probability is shown —
- * this is situational awareness, not operational collision avoidance.
+ * Honesty, stated in the panel itself: geometry-only screening on public TLEs.
+ * TLEs carry no covariance, so no collision probability is shown — this is
+ * situational awareness, not operational collision avoidance.
  */
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { motion } from "framer-motion"
-import { X, Crosshair } from "lucide-react"
+import { X, Crosshair, ArrowUpDown, Search } from "lucide-react"
 import { setSimMs, timeScaleRef, REALTIME_TIME_SCALE } from "@/components/universe-engine/astronomy"
 import { selectedSatRef } from "@/components/universe-engine/satellite-field"
 
@@ -49,6 +53,8 @@ type BakedFile = {
   conjunctions: BakedConjunction[]
 }
 
+type SortKey = "miss" | "tca" | "speed"
+
 function tcaLabel(tcaMs: number, nowMs: number): string {
   const d = new Date(tcaMs)
   const t = d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", hour12: false })
@@ -71,6 +77,8 @@ function typeBadge(type?: string): string {
   return "PAY"
 }
 
+const isPayload = (t?: string) => t !== "DEB" && t !== "R/B"
+
 export function ConjunctionPanel({
   onClose,
   onJump,
@@ -81,7 +89,10 @@ export function ConjunctionPanel({
 }) {
   const [data, setData] = useState<BakedFile | null>(null)
   const [failed, setFailed] = useState(false)
-  const [picked, setPicked] = useState<number | null>(null)
+  const [picked, setPicked] = useState<string | null>(null)
+  const [sortKey, setSortKey] = useState<SortKey>("miss")
+  const [query, setQuery] = useState("")
+  const [payloadOnly, setPayloadOnly] = useState(false)
   const nowMs = Date.now()
 
   useEffect(() => {
@@ -93,27 +104,74 @@ export function ConjunctionPanel({
     return () => { alive = false }
   }, [])
 
-  const jump = (c: BakedConjunction, idx: number) => {
+  // Severity counts over the FULL served set (the triage summary).
+  const severity = useMemo(() => {
+    if (!data) return { critical: 0, warning: 0 }
+    let critical = 0, warning = 0
+    for (const c of data.conjunctions) {
+      if (c.missKm < 0.5) critical++
+      else if (c.missKm < 2) warning++
+    }
+    return { critical, warning }
+  }, [data])
+
+  // Filter + sort — the operator's working set.
+  const rows = useMemo(() => {
+    if (!data) return []
+    const q = query.trim().toLowerCase()
+    let out = data.conjunctions.filter((c) => {
+      if (payloadOnly && !isPayload(c.aType) && !isPayload(c.bType)) return false
+      if (q) {
+        const hay = `${c.aName} ${c.bName} ${c.aOwner ?? ""} ${c.bOwner ?? ""}`.toLowerCase()
+        if (!hay.includes(q)) return false
+      }
+      return true
+    })
+    out = out.slice().sort((x, y) => {
+      if (sortKey === "miss") return x.missKm - y.missKm
+      if (sortKey === "tca") return x.tcaMs - y.tcaMs
+      return y.relSpeedKms - x.relSpeedKms // speed: fastest first
+    })
+    return out.slice(0, 60)
+  }, [data, query, payloadOnly, sortKey])
+
+  const jump = (c: BakedConjunction) => {
     // Watch the approach happen: land 90 s before TCA at real-time rate,
     // with the (payload-preferred) object selected so its orbit lights up.
-    const highlightId = c.aType === "DEB" || c.aType === "R/B" ? c.bId : c.aId
+    const highlightId = isPayload(c.aType) ? c.aId : c.bId
     selectedSatRef.current = highlightId
     setSimMs(c.tcaMs - 90_000)
     timeScaleRef.current = REALTIME_TIME_SCALE
-    setPicked(idx)
+    setPicked(`${c.aId}-${c.bId}-${c.tcaMs}`)
     onJump?.()
   }
+
+  const SortBtn = ({ k, label }: { k: SortKey; label: string }) => (
+    <button
+      type="button"
+      onClick={() => setSortKey(k)}
+      data-cursor-hover
+      aria-pressed={sortKey === k}
+      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 font-mono text-[9px] tracking-[0.15em] uppercase transition-colors ${
+        sortKey === k
+          ? "border-[#ff9d6b]/60 bg-[#ff9d6b]/15 text-[#ff9d6b]"
+          : "border-border bg-background/60 text-muted-foreground hover:text-foreground"
+      }`}
+    >
+      <ArrowUpDown className="h-2.5 w-2.5" /> {label}
+    </button>
+  )
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 12 }}
-      className="w-[min(26rem,calc(100vw-2rem))] max-h-[80vh] overflow-y-auto rounded-xl border border-[#ff9d6b]/40 bg-background/90 backdrop-blur-md shadow-[0_16px_48px_-20px_rgba(0,0,0,0.7)]"
+      className="w-[min(28rem,calc(100vw-2rem))] max-h-[82vh] overflow-y-auto rounded-xl border border-[#ff9d6b]/40 bg-background/90 backdrop-blur-md shadow-[0_16px_48px_-20px_rgba(0,0,0,0.7)]"
     >
       <div className="sticky top-0 z-10 flex items-center justify-between gap-3 px-4 py-2.5 border-b border-border bg-background/90 backdrop-blur">
         <p className="flex items-center gap-2 font-mono text-[10px] tracking-[0.2em] uppercase text-[#ff9d6b]">
-          <Crosshair className="h-3.5 w-3.5" /> Conjunction screening
+          <Crosshair className="h-3.5 w-3.5" /> Conjunction watch
         </p>
         {onClose && (
           <button type="button" onClick={onClose} aria-label="Close"
@@ -132,45 +190,94 @@ export function ConjunctionPanel({
         )}
         {data && (
           <>
-            <p className="text-[12px] leading-relaxed text-muted-foreground">
+            {/* Severity summary — the triage read at a glance. */}
+            <div className="grid grid-cols-3 gap-px overflow-hidden rounded-lg border border-border bg-border">
+              <Stat label="Critical" sub="< 0.5 km" value={severity.critical} tone="text-[#ff7a6b]" />
+              <Stat label="Warning" sub="< 2 km" value={severity.warning} tone="text-[#ffd166]" />
+              <Stat label="Screened" sub="objects" value={data.screenedObjects} tone="text-foreground/80" compact />
+            </div>
+
+            <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
               <span className="text-foreground/85 font-medium">{data.totalFound.toLocaleString()}</span>{" "}
-              close approaches ≤ {data.reportKm} km predicted among{" "}
-              {data.screenedObjects.toLocaleString()} tracked objects in the{" "}
-              {data.windowHours} h after screening. Tap one — the clock jumps to
-              90 s before closest approach so you can watch it happen.
+              close approaches ≤ {data.reportKm} km predicted in the next {data.windowHours} h.
+              Sort + filter the closest {Math.min(150, data.conjunctions.length)}; tap a row to
+              fly to it 90 s before closest approach and watch it converge.
             </p>
 
+            {/* Controls: search + sort + payload toggle. */}
+            <div className="mt-3 space-y-2">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" aria-hidden />
+                <input
+                  type="search"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Filter by object or operator…"
+                  aria-label="Filter conjunctions"
+                  className="w-full rounded-full border border-border bg-background/70 pl-8 pr-3 py-1.5 font-mono text-[10px] tracking-wider text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff9d6b]"
+                />
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="font-mono text-[8px] tracking-[0.2em] uppercase text-muted-foreground mr-0.5">Sort</span>
+                <SortBtn k="miss" label="Miss" />
+                <SortBtn k="tca" label="Soonest" />
+                <SortBtn k="speed" label="Speed" />
+                <button
+                  type="button"
+                  onClick={() => setPayloadOnly((v) => !v)}
+                  aria-pressed={payloadOnly}
+                  data-cursor-hover
+                  className={`ml-auto rounded-full border px-2.5 py-1 font-mono text-[9px] tracking-[0.15em] uppercase transition-colors ${
+                    payloadOnly
+                      ? "border-[#5affc0]/60 bg-[#5affc0]/15 text-[#5affc0]"
+                      : "border-border bg-background/60 text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Payload involved
+                </button>
+              </div>
+            </div>
+
+            {/* The risk table. */}
             <ul className="mt-3 flex flex-col gap-1">
-              {data.conjunctions.slice(0, 25).map((c, idx) => (
-                <li key={`${c.aId}-${c.bId}-${c.tcaMs}`}>
-                  <button
-                    type="button"
-                    onClick={() => jump(c, idx)}
-                    data-cursor-hover
-                    className={`w-full rounded-lg border px-3 py-2 text-left transition-colors ${
-                      picked === idx
-                        ? "border-[#ff9d6b]/60 bg-[#ff9d6b]/10"
-                        : "border-border/60 bg-background/40 hover:border-foreground/30"
-                    }`}
-                  >
-                    <div className="flex items-baseline justify-between gap-2">
-                      <span className={`font-mono text-[13px] tabular-nums ${missTone(c.missKm)}`}>
-                        {c.missKm.toFixed(2)} km
-                      </span>
-                      <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
-                        {tcaLabel(c.tcaMs, nowMs)} · {c.relSpeedKms.toFixed(1)} km/s
-                      </span>
-                    </div>
-                    <div className="mt-1 text-[11px] leading-snug text-foreground/80">
-                      <span className="font-medium">{c.aName}</span>
-                      <span className="ml-1 font-mono text-[8px] tracking-wider text-muted-foreground">{typeBadge(c.aType)}</span>
-                      <span className="mx-1.5 text-muted-foreground">×</span>
-                      <span className="font-medium">{c.bName}</span>
-                      <span className="ml-1 font-mono text-[8px] tracking-wider text-muted-foreground">{typeBadge(c.bType)}</span>
-                    </div>
-                  </button>
+              {rows.length === 0 && (
+                <li className="py-4 text-center font-mono text-[10px] tracking-wider text-muted-foreground">
+                  No approaches match.
                 </li>
-              ))}
+              )}
+              {rows.map((c) => {
+                const key = `${c.aId}-${c.bId}-${c.tcaMs}`
+                return (
+                  <li key={key}>
+                    <button
+                      type="button"
+                      onClick={() => jump(c)}
+                      data-cursor-hover
+                      className={`w-full rounded-lg border px-3 py-2 text-left transition-colors ${
+                        picked === key
+                          ? "border-[#ff9d6b]/60 bg-[#ff9d6b]/10"
+                          : "border-border/60 bg-background/40 hover:border-foreground/30"
+                      }`}
+                    >
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className={`font-mono text-[13px] tabular-nums ${missTone(c.missKm)}`}>
+                          {c.missKm.toFixed(2)} km
+                        </span>
+                        <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
+                          {tcaLabel(c.tcaMs, nowMs)} · {c.relSpeedKms.toFixed(1)} km/s
+                        </span>
+                      </div>
+                      <div className="mt-1 text-[11px] leading-snug text-foreground/80">
+                        <span className="font-medium">{c.aName}</span>
+                        <span className="ml-1 font-mono text-[8px] tracking-wider text-muted-foreground">{typeBadge(c.aType)}</span>
+                        <span className="mx-1.5 text-muted-foreground">×</span>
+                        <span className="font-medium">{c.bName}</span>
+                        <span className="ml-1 font-mono text-[8px] tracking-wider text-muted-foreground">{typeBadge(c.bType)}</span>
+                      </div>
+                    </button>
+                  </li>
+                )
+              })}
             </ul>
 
             <p className="mt-3 border-t border-border/60 pt-2.5 text-[10px] leading-relaxed text-muted-foreground">
@@ -183,5 +290,19 @@ export function ConjunctionPanel({
         )}
       </div>
     </motion.div>
+  )
+}
+
+function Stat({
+  label, sub, value, tone, compact,
+}: { label: string; sub: string; value: number; tone: string; compact?: boolean }) {
+  return (
+    <div className="bg-background/80 px-3 py-2">
+      <div className="font-mono text-[8px] tracking-[0.2em] uppercase text-muted-foreground">{label}</div>
+      <div className={`mt-0.5 font-mono tabular-nums ${tone} ${compact ? "text-[13px]" : "text-[18px]"}`}>
+        {value.toLocaleString()}
+      </div>
+      <div className="font-mono text-[8px] tracking-wider text-muted-foreground">{sub}</div>
+    </div>
   )
 }
