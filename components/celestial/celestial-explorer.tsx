@@ -12,7 +12,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import dynamic from "next/dynamic"
 import { motion, AnimatePresence } from "framer-motion"
-import { ArrowLeft, X, Rotate3d, Globe, Satellite, Sparkles, Rocket, Route, Orbit, Layers, Radio, Crosshair, Flame, Trash2 } from "lucide-react"
+import { ArrowLeft, X, Rotate3d, Globe, Satellite, Sparkles, Rocket, Route, Orbit, Layers, Radio, Crosshair, Flame, Trash2, HelpCircle } from "lucide-react"
 import { CustomCursor } from "@/components/custom-cursor"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { StaticStarfield } from "@/components/universe-engine/static-starfield"
@@ -77,6 +77,11 @@ const ReentryPanel = dynamic(
 // Debris clouds — isolate real fragmentation-event families in the swarm.
 const DebrisPanel = dynamic(
   () => import("./debris-panel").then((m) => m.DebrisPanel),
+  { ssr: false },
+)
+// First-run guided tour — makes the toolkit discoverable for newcomers.
+const GuidedTour = dynamic(
+  () => import("./guided-tour").then((m) => m.GuidedTour),
   { ssr: false },
 )
 const PassPlanner = dynamic(
@@ -147,6 +152,27 @@ export function CelestialExplorer() {
     const t = setTimeout(() => setTitleVisible(false), 7000)
     return () => clearTimeout(t)
   }, [])
+  // First-run guided tour — open once (after the intro settles) if never seen.
+  useEffect(() => {
+    let cancelled = false
+    import("./guided-tour").then(({ tourSeen }) => {
+      if (!cancelled && !tourSeen()) {
+        const t = setTimeout(() => setTourOpen(true), 2600)
+        return () => clearTimeout(t)
+      }
+    })
+    return () => { cancelled = true }
+  }, [])
+
+  // Map a tour step's action to opening the right panel.
+  const runTourAction = (key: string) => {
+    closePanels()
+    setTitleVisible(false)
+    if (key === "overhead") viewSatellites() // frames Earth; the search card (top-right) has the "what's overhead" scan
+    else if (key === "reentry") setReentryOpen(true)
+    else if (key === "debris") setDebrisOpen(true)
+    else if (key === "conjunctions") setConjOpen(true)
+  }
   // Photoreal-Earth (Google 3D Tiles) overlay — opt-in only, key-gated.
   const [earthView, setEarthView] = useState(false)
   // Mars coverage map overlay — opt-in, no key/cost (all local NASA data).
@@ -167,6 +193,8 @@ export function CelestialExplorer() {
   const [reentryOpen, setReentryOpen] = useState(false)
   // Debris clouds — isolate real fragmentation-event families.
   const [debrisOpen, setDebrisOpen] = useState(false)
+  // First-run guided tour — opens once for newcomers, re-openable via the "?" chip.
+  const [tourOpen, setTourOpen] = useState(false)
   // Live ISS position (sub-point, altitude, speed — ticks each second).
   const [issLiveOpen, setIssLiveOpen] = useState(false)
   // Earth→Mars porkchop plot (launch windows from a Lambert C3 grid).
@@ -353,6 +381,16 @@ export function CelestialExplorer() {
             The Lab
           </Link>
           <ThemeToggle className="w-9 h-9" />
+          <button
+            type="button"
+            onClick={() => setTourOpen(true)}
+            data-cursor-hover
+            aria-label="Guided tour"
+            title="Guided tour"
+            className="grid h-9 w-9 place-items-center rounded-full border border-border bg-background/60 backdrop-blur-sm text-foreground/75 hover:text-accent hover:border-accent/60 transition-colors"
+          >
+            <HelpCircle className="h-4 w-4" />
+          </button>
         </div>
 
         {/* Satellite search — find + follow any of the ~18,600 real satellites.
@@ -600,6 +638,9 @@ export function CelestialExplorer() {
             </div>
           )}
         </AnimatePresence>
+
+        {/* First-run guided tour (own layer — centered, above the HUD). */}
+        <GuidedTour open={tourOpen} onClose={() => setTourOpen(false)} onAction={runTourAction} />
 
         {/* ── MOBILE controls ──────────────────────────────────────────────
             One slim bar + drag-dismissable sheets replace the desktop rail +
