@@ -26,9 +26,21 @@ export type InventoryRow = {
   total: number
 }
 
+/** One 100-km altitude bin in the LEO density histogram — where the crowding
+ *  actually is (the Starlink shell, the sun-sync belt), payload vs debris split. */
+export type AltBin = {
+  lowKm: number
+  highKm: number
+  payload: number
+  debris: number // includes rocket bodies — all uncontrolled hazard
+  total: number
+}
+
 export type Inventory = {
   rows: InventoryRow[]
   totals: { payload: number; rocket: number; debris: number; total: number }
+  /** LEO altitude density, 0–2000 km in 100-km bins — the congestion picture. */
+  leoDensity: AltBin[]
 }
 
 /** Altitude (km) of the orbit's semi-major axis from TLE line 2 mean motion. */
@@ -70,12 +82,25 @@ export function buildInventory(sats: { l2: string; type?: string }[]): Inventory
     GEO: { payload: 0, rocket: 0, debris: 0 },
     HEO: { payload: 0, rocket: 0, debris: 0 },
   }
+  // LEO density histogram: 0–2000 km in 100-km bins (20 bins).
+  const BIN = 100, N_BINS = 20
+  const bins: AltBin[] = Array.from({ length: N_BINS }, (_, i) => ({
+    lowKm: i * BIN, highKm: (i + 1) * BIN, payload: 0, debris: 0, total: 0,
+  }))
   for (const s of sats) {
     const reg = classifyRegime(s.l2)
     if (!reg) continue
     if (s.type === "DEB") acc[reg].debris++
     else if (s.type === "R/B") acc[reg].rocket++
     else acc[reg].payload++
+    // altitude-bin only LEO objects (the crowded band)
+    const alt = altKm(s.l2)
+    if (alt != null && alt >= 0 && alt < N_BINS * BIN) {
+      const b = bins[Math.floor(alt / BIN)]
+      if (s.type === "DEB" || s.type === "R/B") b.debris++
+      else b.payload++
+      b.total++
+    }
   }
   const order: Regime[] = ["LEO", "MEO", "GEO", "HEO"]
   const rows: InventoryRow[] = order.map((regime) => {
@@ -94,7 +119,7 @@ export function buildInventory(sats: { l2: string; type?: string }[]): Inventory
     (t, r) => ({ payload: t.payload + r.payload, rocket: t.rocket + r.rocket, debris: t.debris + r.debris, total: t.total + r.total }),
     { payload: 0, rocket: 0, debris: 0, total: 0 },
   )
-  return { rows, totals }
+  return { rows, totals, leoDensity: bins }
 }
 
 // Known real sizes (longest dimension, metres) for recognizable craft — sourced

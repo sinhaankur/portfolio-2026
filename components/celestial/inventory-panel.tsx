@@ -111,6 +111,52 @@ export function InventoryPanel({ onClose }: { onClose: () => void }) {
                 })}
               </div>
 
+              {/* LEO altitude density — WHERE the crowding is. The ~500 km spike
+                  is the modern mega-constellation shell (mostly payload); the
+                  ~800 km band is the debris graveyard (mostly junk). Seeing is
+                  believing: the orbital environment, drawn as a histogram. */}
+              {(() => {
+                const bins = state.inv.leoDensity.filter((b) => b.total > 0)
+                const maxBin = Math.max(1, ...bins.map((b) => b.total))
+                return (
+                  <div className="mt-4">
+                    <p className="font-mono text-[9px] tracking-widest uppercase text-muted-foreground mb-2">
+                      Where LEO is crowded (per 100 km)
+                    </p>
+                    <div className="flex items-end gap-[2px] h-24" aria-hidden>
+                      {state.inv.leoDensity.map((b) => {
+                        const h = (b.total / maxBin) * 100
+                        const debFrac = b.total > 0 ? b.debris / b.total : 0
+                        return (
+                          <div
+                            key={b.lowKm}
+                            className="flex-1 flex flex-col justify-end min-w-0"
+                            title={`${b.lowKm}–${b.highKm} km · ${b.total} objects (${b.payload} payload / ${b.debris} debris+RB)`}
+                          >
+                            {/* debris portion on top (red), payload below (blue) */}
+                            <div className="w-full rounded-t-[1px] bg-[#ff7a6b]" style={{ height: `${h * debFrac}%` }} />
+                            <div className="w-full bg-[#9fe0ff]" style={{ height: `${h * (1 - debFrac)}%` }} />
+                          </div>
+                        )
+                      })}
+                    </div>
+                    <div className="mt-1 flex justify-between font-mono text-[8px] tabular-nums text-muted-foreground/70">
+                      <span>0</span><span>500</span><span>1000</span><span>1500</span><span>2000 km</span>
+                    </div>
+                    <div className="mt-1.5 flex items-center gap-3 font-mono text-[8px] tracking-wider text-muted-foreground">
+                      <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-sm bg-[#9fe0ff]" /> payload</span>
+                      <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-sm bg-[#ff7a6b]" /> debris + rocket bodies</span>
+                    </div>
+                    <p className="mt-2 font-sans text-[11px] text-foreground/75 leading-relaxed">
+                      The tall spike near <span className="text-[#9fe0ff]">500 km</span> is the modern
+                      mega-constellation shell (Starlink + friends). The <span className="text-[#ff7a6b]">700–900 km</span>{" "}
+                      band is the debris graveyard — where past collisions + anti-satellite tests left
+                      clouds that now outnumber working craft.
+                    </p>
+                  </div>
+                )
+              })()}
+
               <div className="mt-4 rounded-lg border border-border bg-background/60 p-3">
                 <p className="font-mono text-[9px] tracking-widest uppercase text-muted-foreground mb-1">The debris problem</p>
                 <p className="font-sans text-[12px] text-foreground/80 leading-relaxed">
