@@ -12,7 +12,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import dynamic from "next/dynamic"
 import { motion, AnimatePresence } from "framer-motion"
-import { ArrowLeft, X, Rotate3d, Globe, Satellite, Sparkles, Rocket, Route, Orbit, Layers, Radio, Crosshair } from "lucide-react"
+import { ArrowLeft, X, Rotate3d, Globe, Satellite, Sparkles, Rocket, Route, Orbit, Layers, Radio, Crosshair, Flame } from "lucide-react"
 import { CustomCursor } from "@/components/custom-cursor"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { StaticStarfield } from "@/components/universe-engine/static-starfield"
@@ -67,6 +67,11 @@ const TransferTool = dynamic(
 // (the operator counterpart to "ISS over you").
 const ConjunctionPanel = dynamic(
   () => import("./conjunction-panel").then((m) => m.ConjunctionPanel),
+  { ssr: false },
+)
+// Re-entry / decay watchlist — objects sinking out of orbit (perigee + B* drag).
+const ReentryPanel = dynamic(
+  () => import("./reentry-panel").then((m) => m.ReentryPanel),
   { ssr: false },
 )
 const PassPlanner = dynamic(
@@ -153,6 +158,8 @@ export function CelestialExplorer() {
   const [stationOpen, setStationOpen] = useState(false)
   // Conjunction screening — baked close-approach list over the same catalog.
   const [conjOpen, setConjOpen] = useState(false)
+  // Re-entry watch — decaying objects, estimated from perigee + B* drag.
+  const [reentryOpen, setReentryOpen] = useState(false)
   // Live ISS position (sub-point, altitude, speed — ticks each second).
   const [issLiveOpen, setIssLiveOpen] = useState(false)
   // Earth→Mars porkchop plot (launch windows from a Lambert C3 grid).
@@ -171,7 +178,7 @@ export function CelestialExplorer() {
   const [bodiesSheet, setBodiesSheet] = useState(false)
   const [toolsSheet, setToolsSheet] = useState(false)
   const [timeSheet, setTimeSheet] = useState(false)
-  const closePanels = () => { setPassesOpen(false); setWeatherOpen(false); setLaunchesOpen(false); setTransferOpen(false); setStationOpen(false); setIssLiveOpen(false); setPorkchopOpen(false); setNeoOpen(false); setInventoryOpen(false); setConjOpen(false) }
+  const closePanels = () => { setPassesOpen(false); setWeatherOpen(false); setLaunchesOpen(false); setTransferOpen(false); setStationOpen(false); setIssLiveOpen(false); setPorkchopOpen(false); setNeoOpen(false); setInventoryOpen(false); setConjOpen(false); setReentryOpen(false) }
   // `?earth=1` auto-opens the photoreal view — for capture/testing + deep-links.
   useEffect(() => {
     try {
@@ -286,6 +293,8 @@ export function CelestialExplorer() {
           label="Orbital census" onClick={go(() => setInventoryOpen(true))} />
         <MenuItem color="#ff9d6b" icon={<Crosshair className="h-3.5 w-3.5" />}
           label="Conjunction screening" onClick={go(() => setConjOpen(true))} />
+        <MenuItem color="#ff7a6b" icon={<Flame className="h-3.5 w-3.5" />}
+          label="Re-entry watch" onClick={go(() => setReentryOpen(true))} />
 
         <MenuHeading>Trajectories</MenuHeading>
         <MenuItem color="#7affd0" icon={<Route className="h-3.5 w-3.5" />}
@@ -562,6 +571,14 @@ export function CelestialExplorer() {
                   // follow. Panel stays open for browsing more rows.
                   setTitleVisible(false)
                 }}
+              />
+            </div>
+          )}
+          {reentryOpen && (
+            <div className="absolute bottom-24 left-4 md:left-6 z-40">
+              <ReentryPanel
+                onClose={() => setReentryOpen(false)}
+                onJump={() => setTitleVisible(false)}
               />
             </div>
           )}
