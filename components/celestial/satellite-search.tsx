@@ -212,7 +212,7 @@ export function SatelliteSearch() {
   }
 
   return (
-    <div className="w-[min(20rem,calc(100vw-2rem))]">
+    <div className="w-full md:w-[min(20rem,calc(100vw-2rem))]">
       {/* Search input */}
       <div className="relative">
         <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" aria-hidden />
@@ -227,8 +227,9 @@ export function SatelliteSearch() {
         />
       </div>
 
-      {/* Active / debris filter — isolate the real junk cloud (LeoLabs-style). */}
-      <div className="mt-2 flex gap-1.5">
+      {/* Active / debris filter — isolate the real junk cloud (LeoLabs-style).
+          flex-wrap so the chips never run off a narrow phone. */}
+      <div className="mt-2 flex flex-wrap gap-1.5">
         {([
           { k: "all", label: "All" },
           { k: "active", label: `Active · ${counts.active.toLocaleString()}` },

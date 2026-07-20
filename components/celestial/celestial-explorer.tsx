@@ -394,17 +394,21 @@ export function CelestialExplorer() {
         </div>
 
         {/* Satellite search — find + follow any of the ~18,600 real satellites.
-            Top-right, clear of the back link (top-left), rail (right-middle), and
-            the engine's bottom HUD. */}
-        <div className="absolute top-4 right-4 md:top-6 md:right-6 z-40">
+            MOBILE: its own row BELOW the top-left cluster, spanning left-4→right-4
+            (explicit insets so it can't overflow the viewport — a fixed-width card
+            anchored right was clipping off-screen at 390px). DESKTOP: top-right,
+            fixed width, room for the top cluster beside it. */}
+        <div className="absolute top-16 left-4 right-4 md:top-6 md:left-auto md:right-6 z-40">
           <SatelliteSearch />
         </div>
 
         {/* Title tile — the landing framing. Tells a cold visitor (often arriving
             from a "satellites orbiting Earth" search) what this is before they dive
-            in. pointer-events-none except the tour link; auto-hides after 7s. */}
+            in. DESKTOP ONLY — at phone width it collided with the search + filter
+            chips; mobile leads scene-first (the "?" tour chip + search carry it).
+            pointer-events-none except the tour link; auto-hides after 7s. */}
         <div
-          className={`absolute top-16 left-4 md:top-20 md:left-6 z-20 max-w-[19rem] transition-opacity duration-700 ${titleVisible ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+          className={`hidden md:block absolute top-16 left-4 md:top-20 md:left-6 z-20 max-w-[19rem] transition-opacity duration-700 ${titleVisible ? "opacity-100" : "opacity-0 pointer-events-none"}`}
           aria-hidden={!titleVisible}
         >
           <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-accent mb-2 pointer-events-none">
