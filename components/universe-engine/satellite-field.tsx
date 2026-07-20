@@ -29,7 +29,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { useFrame, useThree } from "@react-three/fiber"
 import { useGLTF, Line, Html } from "@react-three/drei"
 import * as THREE from "three"
-import { simTimeRef, requestFollow, focusDepthRef, daysSinceJ2000, timeScaleRef, REALTIME_TIME_SCALE } from "./astronomy"
+import { simTimeRef, requestFollow, focusDepthRef, daysSinceJ2000, earthRotationAngle, timeScaleRef, REALTIME_TIME_SCALE } from "./astronomy"
 
 /**
  * Satellite archetypes — a small library of real-design Blender models picked by
@@ -393,6 +393,7 @@ const _sfQ = new THREE.Quaternion()
 const _sfT = new THREE.Vector3()
 const _sfUp = new THREE.Vector3()
 const _sfE = new THREE.Vector3()
+const UP_Y = new THREE.Vector3(0, 1, 0) // Earth's spin axis in scene space
 
 // Never thin the swarm below this many visible LEO dots: in the sparse eras
 // (scrub to 1965 — a few hundred objects total) or a small filtered group,
@@ -704,6 +705,10 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
   // link; the actual launch ascent isn't in TLE data, so we draw geometry that
   // IS true: where it is over Earth, and how far above the surface it flies).
   const [groundTrack, setGroundTrack] = useState<THREE.Vector3[] | null>(null)
+  // The ground track is stored in the Earth-FIXED frame; this group re-applies
+  // Earth's current spin each frame so the swath stays glued to the continents.
+  const groundTrackGroupRef = useRef<THREE.Group>(null)
+  const subPointRef = useRef<THREE.Mesh>(null)
   // Two-point line geometry for the surface→craft tether; its endpoints are
   // rewritten each frame (craft moves), so create it once and mutate in place.
   const tetherGeom = useMemo(() => {
@@ -764,32 +769,39 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     return out
   }
 
-  // Ground track: the sub-satellite curve on Earth's surface, one point per orbit
-  // sample, projected RADIALLY from each orbital position down to the surface.
-  // The orbit points live in the inertial (ECI) scene frame, so a radial project
-  // of the same ECI position lands the sub-point EXACTLY beneath the orbit line
-  // (verified: alignment dot = 1.0). Going via geodetic lat/lon instead would put
-  // it in the Earth-fixed frame and slip off the orbit by the GMST rotation. This
-  // is the honest "path over the ground" that stays visually locked under the arc.
+  // Ground track: the sub-satellite curve ON Earth's surface over one orbit,
+  // computed in the EARTH-FIXED (ECEF) frame so it shows the real swath drifting
+  // westward as the planet turns under the craft (the classic sine-wave track),
+  // glued to the continents. Each ECI sample is un-rotated by that sample's GMST
+  // (earthRotationAngle at time t) into the Earth-fixed frame, then projected to
+  // the surface. Rendered inside a group that RE-APPLIES earthRotationAngle at the
+  // current sim time — the SAME angle the Earth mesh uses — so the track spins in
+  // exact lockstep with the globe regardless of the texture-offset calibration.
   function computeGroundTrack(rec: unknown): THREE.Vector3[] {
     const lib = sgp4.current
     if (!lib || !rec) return []
     const no = (rec as { no?: number }).no ?? 0
     const periodMin = no > 0 ? (2 * Math.PI) / no : 95
     const start = simTimeRef.current.simMs
-    const steps = 128
+    const steps = 160
     const surfR = earthVisualRadius * 1.002 // hug the surface, avoid z-fight
     const out: THREE.Vector3[] = []
     for (let i = 0; i <= steps; i++) {
-      const t = new Date(start + (periodMin * 60000 * i) / steps)
+      const tMs = start + (periodMin * 60000 * i) / steps
       let r: { position?: Vec3 } | false = false
-      try { r = lib.propagate(rec, t) } catch { r = false }
+      try { r = lib.propagate(rec, new Date(tMs)) } catch { r = false }
       const p = r && r.position
       if (!p) continue
-      // ECI → scene (x, z, -y), then normalize to the surface radius.
+      // ECI → scene (x, z, -y), project to surface, then un-rotate about Y by the
+      // Earth angle AT THIS SAMPLE TIME → Earth-fixed. The render group re-applies
+      // the current angle, so a point sampled 90 min ago lands where the ground was
+      // then, and the whole swath drifts west across the continents over the orbit.
       const v = new THREE.Vector3(p.x * kmToScene, p.z * kmToScene, -p.y * kmToScene)
       const len = v.length()
-      if (len > 1e-9) out.push(v.multiplyScalar(surfR / len))
+      if (len <= 1e-9) continue
+      v.multiplyScalar(surfR / len)
+      v.applyAxisAngle(UP_Y, -earthRotationAngle(tMs))
+      out.push(v)
     }
     return out
   }
@@ -1106,10 +1118,17 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
           {
             const posAttr = tetherGeom.getAttribute("position") as THREE.BufferAttribute
             const dir = cur.clone().normalize()
-            const surf = dir.multiplyScalar(earthVisualRadius * 1.002)
+            const surf = dir.clone().multiplyScalar(earthVisualRadius * 1.002)
             posAttr.setXYZ(0, surf.x, surf.y, surf.z)
             posAttr.setXYZ(1, cur.x, cur.y, cur.z)
             posAttr.needsUpdate = true
+            // Live sub-point dot sits where the tether meets the surface (current
+            // inertial radial) — the moving head of the ground track.
+            if (subPointRef.current) subPointRef.current.position.copy(surf)
+          }
+          // Spin the Earth-fixed ground-track group in lockstep with the globe.
+          if (groundTrackGroupRef.current) {
+            groundTrackGroupRef.current.rotation.y = earthRotationAngle(simTimeRef.current.simMs)
           }
           if (p2) {
             const ahead = new THREE.Vector3(p2.x * kmToScene, p2.z * kmToScene, -p2.y * kmToScene)
@@ -1401,12 +1420,23 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
         <Line points={orbitPts} color="#ffd24a" transparent opacity={0.4} lineWidth={1} />
       )}
 
-      {/* Ground track — the sub-satellite curve ON Earth's surface, directly
-          beneath the orbit. The honest "path over the ground": for LEO it sweeps
-          a swath as Earth turns; for GEO it collapses to a point. Cyan to read as
-          "on the surface", distinct from the amber orbit above it. */}
+      {/* Ground track — the sub-satellite curve ON Earth's surface. Stored in the
+          Earth-FIXED frame and rendered inside a group that spins with the globe
+          (groundTrackGroupRef, angle set each frame), so it shows the real swath
+          drifting westward over the continents as Earth turns — the classic
+          sine-wave ground track. Cyan, distinct from the amber orbit above. */}
+      <group ref={groundTrackGroupRef}>
+        {groundTrack && groundTrack.length > 1 && (
+          <Line points={groundTrack} color="#5affc0" transparent opacity={0.5} lineWidth={1.5} />
+        )}
+      </group>
+      {/* Live sub-point marker — a small dot where the craft is DIRECTLY overhead
+          right now (current inertial radial), the moving head of the ground track. */}
       {groundTrack && groundTrack.length > 1 && (
-        <Line points={groundTrack} color="#5affc0" transparent opacity={0.5} lineWidth={1.5} />
+        <mesh ref={subPointRef}>
+          <sphereGeometry args={[earthVisualRadius * 0.012, 12, 12]} />
+          <meshBasicMaterial color="#5affc0" toneMapped={false} />
+        </mesh>
       )}
 
       {/* Live tether — the radial link from the current sub-point up to the craft,
