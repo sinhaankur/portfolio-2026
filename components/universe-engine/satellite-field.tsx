@@ -301,6 +301,26 @@ export const SAT_GROUPS = [
 ] as const
 export const satGroupFilterRef: { current: number } = { current: -1 }
 
+/** Real fragmentation-event families — the collisions + ASAT tests that created
+ *  the biggest tracked debris clouds. name-prefix → a family id, so the swarm can
+ *  isolate one cloud (e.g. all ~1,900 Fengyun-1C fragments) to make the scale of
+ *  a single event VISIBLE. Order fixed = the id. */
+export const DEBRIS_FAMILIES = [
+  { id: 0, prefix: "FENGYUN 1C", label: "Fengyun-1C", event: "China ASAT test", year: 2007 },
+  { id: 1, prefix: "COSMOS 2251", label: "Cosmos-2251", event: "Iridium collision", year: 2009 },
+  { id: 2, prefix: "IRIDIUM 33", label: "Iridium-33", event: "Cosmos collision", year: 2009 },
+  { id: 3, prefix: "COSMOS 1408", label: "Cosmos-1408", event: "Russia ASAT test", year: 2021 },
+] as const
+/** Family filter for the swarm: -1 = no family isolated, else a DEBRIS_FAMILIES id. */
+export const debrisFamilyFilterRef: { current: number } = { current: -1 }
+
+/** Classify a debris object into a fragmentation family id, or -1 if none. */
+export function classifyDebrisFamily(name: string): number {
+  const n = name.toUpperCase()
+  for (const f of DEBRIS_FAMILIES) if (n.startsWith(f.prefix)) return f.id
+  return -1
+}
+
 /** Orbit-REGIME filter (set by the census panel): -1 = all, else 0=LEO 1=MEO
  *  2=GEO 3=HEO. Parallel to the group filter; both AND together in the shader. */
 export const satRegimeFilterRef: { current: number } = { current: -1 }
@@ -502,6 +522,7 @@ const VERT = /* glsl */ `
   attribute vec3 aColor;
   attribute float aDebris;      // 1 = debris / rocket body → render smaller
   attribute float aGroup;       // constellation group id (see SAT_GROUPS)
+  attribute float aFamily;      // debris fragmentation-family id (see DEBRIS_FAMILIES), -1 = none
   attribute float aRegime;      // orbit regime id (0=LEO 1=MEO 2=GEO 3=HEO)
   attribute float aRand;        // stable per-sat random [0,1) → stratified LOD cull
   uniform float uTimeDay;       // current sim time, days since J2000
@@ -509,6 +530,7 @@ const VERT = /* glsl */ `
   uniform float uPixelRatio;
   uniform float uIsolate;   // 1.0 = a satellite is selected → hide the whole swarm
   uniform float uGroupSel;  // -1 = all groups; else show only this group id
+  uniform float uFamilySel; // -1 = no family isolate; else show ONLY this debris family
   uniform float uRegimeSel; // -1 = all regimes; else show only this regime id
   uniform float uLod;       // 0 = Earth fills the frame (full catalogue) → 1 = Earth
                             // small on screen (LEO thinned to a calm haze)
@@ -534,7 +556,7 @@ const VERT = /* glsl */ `
     // sparse and ARE the structure (nav shell, GEO belt), so they never cull.
     // Any explicit filter or isolate means the user asked for a specific
     // subset — show it in full.
-    float lodEff = (uGroupSel >= 0.0 || uRegimeSel >= 0.0 || uIsolate > 0.5) ? 0.0 : uLod;
+    float lodEff = (uGroupSel >= 0.0 || uRegimeSel >= 0.0 || uFamilySel >= 0.0 || uIsolate > 0.5) ? 0.0 : uLod;
     float keep = max(mix(1.0, 0.55, lodEff) * uKeepScale, uKeepFloor);
     // Soft cull edge: each dot fades over a small aRand band around the moving
     // threshold instead of popping, so zooming reads as the haze *resolving*
@@ -551,7 +573,8 @@ const VERT = /* glsl */ `
     // Group + regime filters AND together (both must pass if set).
     vHidden = (aLaunchDay > uTimeDay || decayed > 0.5 || cullFade < 0.01 ||
                (uGroupSel >= 0.0 && abs(aGroup - uGroupSel) > 0.5) ||
-               (uRegimeSel >= 0.0 && abs(aRegime - uRegimeSel) > 0.5)) ? 1.0 : 0.0;
+               (uRegimeSel >= 0.0 && abs(aRegime - uRegimeSel) > 0.5) ||
+               (uFamilySel >= 0.0 && abs(aFamily - uFamilySel) > 0.5)) ? 1.0 : 0.0;
     // Surviving LEO dots soften at overview so the band reads as a luminous
     // haze around the globe, resolving into crisp dots as you zoom in.
     vFade = ((aRegime < 0.5) ? mix(1.0, 0.6, lodEff) : 1.0) * cullFade * max(decayFade, 0.0);
@@ -830,11 +853,13 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     g.setAttribute("aDebris", new THREE.BufferAttribute(isDeb, 1))
     const groups = new Float32Array(n)
     const regimes = new Float32Array(n)
+    const families = new Float32Array(n)
     const rands = new Float32Array(n)
     const decays = new Float32Array(n)
     sats.forEach((sv, gi) => {
       groups[gi] = classifyGroup(sv.name, sv.type)
       regimes[gi] = classifyRegimeId(sv.l2)
+      families[gi] = sv.type === "DEB" ? classifyDebrisFamily(sv.name) : -1
       // Stable per-satellite random for the overview LOD cull — hashed from the
       // NORAD id (not the index) so the visible sample never reshuffles when
       // the catalogue refreshes.
@@ -859,6 +884,7 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     })
     g.setAttribute("aGroup", new THREE.BufferAttribute(groups, 1))
     g.setAttribute("aRegime", new THREE.BufferAttribute(regimes, 1))
+    g.setAttribute("aFamily", new THREE.BufferAttribute(families, 1))
     g.setAttribute("aRand", new THREE.BufferAttribute(rands, 1))
     g.setAttribute("aDecayDay", new THREE.BufferAttribute(decays, 1))
     g.boundingSphere = new THREE.Sphere(new THREE.Vector3(), earthVisualRadius * 12)
@@ -870,6 +896,7 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
       matRef.current.uniforms.uTimeDay.value = msToJ2000Day(simTimeRef.current.simMs)
       matRef.current.uniforms.uGroupSel.value = satGroupFilterRef.current
       matRef.current.uniforms.uRegimeSel.value = satRegimeFilterRef.current
+      matRef.current.uniforms.uFamilySel.value = debrisFamilyFilterRef.current
       matRef.current.uniforms.uKeepScale.value = areaScale
       matRef.current.uniforms.uMaxPx.value = maxPx
       // Overview LOD from Earth's APPARENT size on screen (not raw camera
@@ -1368,6 +1395,7 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
             uPixelRatio: { value: typeof window !== "undefined" ? Math.min(window.devicePixelRatio, 2) : 1 },
             uIsolate: { value: 0 },
             uGroupSel: { value: -1 },
+            uFamilySel: { value: -1 },
             uRegimeSel: { value: -1 },
             uLod: { value: 1 },
             uKeepScale: { value: 1 },
