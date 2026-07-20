@@ -21,14 +21,20 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from "react"
-import { useFrame } from "@react-three/fiber"
+import { useFrame, useThree } from "@react-three/fiber"
 import * as THREE from "three"
 import { earthRotationAngle, simTimeRef } from "./astronomy"
 
 const EARTH_RADIUS_KM = 6371
 
-type Flight = { icao: string; call: string | null; lon: number; lat: number; altM: number; velMs: number | null; hdg: number | null; country: string | null }
+export type Flight = { icao: string; call: string | null; lon: number; lat: number; altM: number; velMs: number | null; hdg: number | null; country: string | null }
 type FlightsFile = { snapshot: string; count: number; source: string; flights: Flight[] }
+
+/** Selection bridge — the field writes the clicked flight here; the HUD reads it
+ *  to show the callsign/altitude/speed card. Module-scoped like selectedSatRef. */
+export const selectedFlightRef: { current: Flight | null } = { current: null }
+/** Snapshot time of the baked flight data (for the honest "as of" label). */
+export const flightSnapshotRef: { current: string | null } = { current: null }
 
 export function FlightField({ earthVisualRadius }: { earthVisualRadius: number }) {
   const [flights, setFlights] = useState<Flight[] | null>(null)
@@ -39,10 +45,20 @@ export function FlightField({ earthVisualRadius }: { earthVisualRadius: number }
     let alive = true
     fetch("/data/flights.json")
       .then((r) => r.json())
-      .then((d: FlightsFile) => { if (alive) setFlights(d.flights ?? []) })
+      .then((d: FlightsFile) => {
+        if (!alive) return
+        setFlights(d.flights ?? [])
+        flightSnapshotRef.current = d.snapshot ?? null
+      })
       .catch(() => { if (alive) setFlights([]) })
-    return () => { alive = false }
+    return () => { alive = false; selectedFlightRef.current = null }
   }, [])
+
+  // Give the raycaster a hit radius so the point-planes are clickable.
+  const { raycaster } = useThree()
+  useEffect(() => {
+    if (raycaster.params.Points) raycaster.params.Points.threshold = earthVisualRadius * 0.012
+  }, [raycaster, earthVisualRadius])
 
   // Build the point cloud once: each plane at its geodetic lat/lon, lifted by its
   // real altitude (to scale). Earth-FIXED coords — the wrapping group applies the
@@ -75,10 +91,25 @@ export function FlightField({ earthVisualRadius }: { earthVisualRadius: number }
     if (groupRef.current) groupRef.current.rotation.y = earthRotationAngle(simTimeRef.current.simMs)
   })
 
+  const onPlaneClick = (e: { index?: number; intersections?: { index?: number }[]; stopPropagation: () => void }) => {
+    const idx = e.index ?? e.intersections?.[0]?.index
+    if (idx == null || !flights || !flights[idx]) return
+    e.stopPropagation()
+    selectedFlightRef.current = flights[idx]
+    window.dispatchEvent(new CustomEvent("universe:flight-selected", { detail: flights[idx] }))
+  }
+
   if (!geometry) return null
   return (
     <group ref={groupRef}>
-      <points ref={pointsRef} geometry={geometry}>
+      <points
+        ref={pointsRef}
+        geometry={geometry}
+        frustumCulled={false}
+        onClick={onPlaneClick}
+        onPointerOver={() => { document.body.style.cursor = "pointer" }}
+        onPointerOut={() => { document.body.style.cursor = "" }}
+      >
         {/* Warm amber pinpoints — aircraft, distinct from the cool satellite
             shell. A hair above the surface, so they only resolve at deep zoom. */}
         <pointsMaterial

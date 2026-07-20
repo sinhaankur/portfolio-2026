@@ -84,6 +84,11 @@ const GuidedTour = dynamic(
   () => import("./guided-tour").then((m) => m.GuidedTour),
   { ssr: false },
 )
+// Flight detail card — appears when a plane is clicked in the deep-zoom view.
+const FlightCard = dynamic(
+  () => import("./flight-card").then((m) => m.FlightCard),
+  { ssr: false },
+)
 const PassPlanner = dynamic(
   () => import("./pass-planner").then((m) => m.PassPlanner),
   { ssr: false },
@@ -651,6 +656,11 @@ export function CelestialExplorer() {
             </div>
           )}
         </AnimatePresence>
+
+        {/* Flight detail — appears bottom-left when a plane is clicked. */}
+        <div className="absolute bottom-24 left-4 md:left-6 z-40 pointer-events-none [&>*]:pointer-events-auto">
+          <FlightCard />
+        </div>
 
         {/* First-run guided tour (own layer — centered, above the HUD). */}
         <GuidedTour open={tourOpen} onClose={() => setTourOpen(false)} onAction={runTourAction} />
