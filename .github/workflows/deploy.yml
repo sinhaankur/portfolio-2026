@@ -71,6 +71,13 @@ jobs:
         run: |
           (node scripts/fetch-satellites.mjs && node scripts/bake-conjunctions.ts) || echo "::warning::orbital data refresh failed — deploying with committed snapshot"
 
+      - name: Refresh flight snapshot (OpenSky ADS-B)
+        # The "planes" layer: OpenSky blocks browser CORS, so we bake a real
+        # snapshot server-side each deploy. Fetch failure keeps the committed
+        # flights.json (the script self-exits 0), never breaking the deploy.
+        run: |
+          node scripts/bake-flights.mjs || echo "::warning::flight snapshot refresh failed — deploying with committed snapshot"
+
       - name: Build (Next.js static export)
         # NEXT_PUBLIC_GOOGLE_MAPS_KEY is inlined into the client bundle at build
         # time (Map Tiles API — photoreal Earth). Sourced from a repo secret so

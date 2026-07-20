@@ -88,6 +88,7 @@ import {
 } from "./scene-satellites"
 import { MoonBody } from "./moon-body"
 import { SatelliteField } from "./satellite-field"
+import { FlightField } from "./flight-field"
 
 /**
  * Build a ring geometry with proper radial UVs — `u` runs from 0 (inner
@@ -1048,6 +1049,15 @@ export function PlanetBody({
           {isEarth && solarOnly && satsOn && (
             <Suspense fallback={null}>
               <SatelliteField earthVisualRadius={planet.visualRadius} />
+            </Suspense>
+          )}
+
+          {/* Real aircraft (baked OpenSky snapshot) — the "planes" layer of the
+              descent. Only when satellites are on (same explore intent); they ride
+              ~10 km up so they only separate from the surface at deep zoom. */}
+          {isEarth && solarOnly && satsOn && (
+            <Suspense fallback={null}>
+              <FlightField earthVisualRadius={planet.visualRadius} />
             </Suspense>
           )}
 
