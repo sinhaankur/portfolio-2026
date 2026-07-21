@@ -79,8 +79,14 @@ export const CORONA_FRAGMENT_SHADER = `
   uniform float uIntensity;
   uniform float uPower;
   void main() {
-    float fres = pow(1.0 - clamp(abs(dot(vWorldNormal, vViewDir)), 0.0, 1.0), uPower);
-    gl_FragColor = vec4(uColor, fres * uIntensity);
+    // FILLED soft glow (not a rim ring): facing = abs(dot(normal, view)) is ~1 at
+    // the centre of the disc (surface faces camera) and ~0 at the silhouette.
+    // Using facing directly makes the glow BRIGHTEST in the middle and fade at the
+    // edge — a soft halo. The old code used (1-facing) = bright at the rim = a hard
+    // grey ring around the Sun. pow shapes the softness.
+    float facing = clamp(abs(dot(vWorldNormal, vViewDir)), 0.0, 1.0);
+    float glow = pow(facing, uPower);
+    gl_FragColor = vec4(uColor, glow * uIntensity);
   }
 `
 
