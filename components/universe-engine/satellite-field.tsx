@@ -301,6 +301,12 @@ export const SAT_GROUPS = [
 ] as const
 export const satGroupFilterRef: { current: number } = { current: -1 }
 
+/** "Show all" override: when true, the overview LOD cull stands down entirely so
+ *  the FULL ~18.6k catalogue is visible at once, even from far out (Ankur: "I wish
+ *  we could see all the satellites at once"). Off by default — the cull keeps the
+ *  far view from becoming a solid crust that hides Earth. Toggled from the HUD. */
+export const showAllSatsRef: { current: boolean } = { current: false }
+
 /** Real fragmentation-event families — the collisions + ASAT tests that created
  *  the biggest tracked debris clouds. name-prefix → a family id, so the swarm can
  *  isolate one cloud (e.g. all ~1,900 Fengyun-1C fragments) to make the scale of
@@ -906,12 +912,14 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
       // distance — screen-relative, so it holds across viewports + FOVs).
       // Earth ≥ ~380px radius → 0 (full catalogue); ≤ ~180px → 1 (LEO haze).
       // Smoothed so crossing the band never pops.
+      const showAll = showAllSatsRef.current
       if (pointsRef.current) {
         pointsRef.current.getWorldPosition(_fieldWorld)
         const dist = camera.position.distanceTo(_fieldWorld)
         const halfFovTan = Math.tan(((camera as THREE.PerspectiveCamera).fov * Math.PI) / 360)
         const apparentPx = (earthVisualRadius / Math.max(dist * halfFovTan, 1e-6)) * (viewportH / 2)
-        const targetLod = THREE.MathUtils.clamp((380 - apparentPx) / (380 - 180), 0, 1)
+        // "Show all" forces LOD 0 (no thinning) — the whole catalogue, always.
+        const targetLod = showAll ? 0 : THREE.MathUtils.clamp((380 - apparentPx) / (380 - 180), 0, 1)
         lodRef.current += (targetLod - lodRef.current) * (1 - Math.exp(-delta * 5))
         matRef.current.uniforms.uLod.value = lodRef.current
       }
@@ -929,7 +937,8 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
           else hi = mid
         }
         const leoCount = filterLeoCountRef.current ?? lo
-        keepFloorRef.current = Math.min(1, MIN_VISIBLE_DOTS / Math.max(leoCount, 1))
+        // Show-all pins the floor to 1 → every object kept, no stratified cull.
+        keepFloorRef.current = showAll ? 1 : Math.min(1, MIN_VISIBLE_DOTS / Math.max(leoCount, 1))
         matRef.current.uniforms.uKeepFloor.value = keepFloorRef.current
       }
       // GEO belt guide follows the LOD: a faint arc at overview (when the belt

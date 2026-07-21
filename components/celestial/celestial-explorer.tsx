@@ -21,7 +21,7 @@ import { TimelineControl } from "@/components/universe-engine/hud"
 import { BODIES } from "@/lib/celestial-data"
 import { SatelliteSearch } from "./satellite-search"
 import { useIsMobile, MobileBar, BodiesSheet, Sheet } from "./mobile-controls"
-import { selectedSatRef, satGroupFilterRef } from "@/components/universe-engine/satellite-field"
+import { selectedSatRef, satGroupFilterRef, showAllSatsRef } from "@/components/universe-engine/satellite-field"
 import { setSimMs, timeScaleRef, hiResTexturesRef } from "@/components/universe-engine/astronomy"
 import { hasGoogleEarthKey } from "@/components/universe-engine/google-earth-tiles"
 
@@ -201,6 +201,9 @@ export function CelestialExplorer() {
   const [debrisOpen, setDebrisOpen] = useState(false)
   // First-run guided tour — opens once for newcomers, re-openable via the "?" chip.
   const [tourOpen, setTourOpen] = useState(false)
+  // "Show all satellites" — force the full ~18.6k catalogue visible (bypass the
+  // overview LOD cull). Off by default (the cull keeps the far view legible).
+  const [showAllSats, setShowAllSats] = useState(false)
   // Live ISS position (sub-point, altitude, speed — ticks each second).
   const [issLiveOpen, setIssLiveOpen] = useState(false)
   // Earth→Mars porkchop plot (launch windows from a Lambert C3 grid).
@@ -263,9 +266,20 @@ export function CelestialExplorer() {
     setTitleVisible(false)
     closePanels()
     setMenuOpen(false)
+    // "View all satellites" = actually show ALL of them: turn on show-all so the
+    // LOD cull stands down, and frame Earth.
+    showAllSatsRef.current = true
+    setShowAllSats(true)
     window.dispatchEvent(
       new CustomEvent("universe:sky-focus", { detail: { pointId: "planet:Earth" } }),
     )
+  }
+
+  // Toggle the "show every object at once" override on its own.
+  function toggleShowAll() {
+    const next = !showAllSats
+    setShowAllSats(next)
+    showAllSatsRef.current = next
   }
 
   // "Earth, its satellites & the Moon" — frames Earth wide enough that the
@@ -322,6 +336,9 @@ export function CelestialExplorer() {
         <MenuHeading>Satellites &amp; ISS</MenuHeading>
         <MenuItem color="#5affc0" icon={<Satellite className="h-3.5 w-3.5" />}
           label="View all 18,600+ satellites" onClick={() => { viewSatellites(); afterPick?.() }} />
+        <MenuItem color={showAllSats ? "#5affc0" : "#9fe0ff"} icon={<Satellite className="h-3.5 w-3.5" />}
+          label={showAllSats ? "Showing every object · tap to thin" : "Show every object at once"}
+          onClick={() => { toggleShowAll(); afterPick?.() }} />
         <MenuItem color="#9fe0ff" icon={<Globe className="h-3.5 w-3.5" />}
           label="Earth, satellites & the Moon" onClick={() => { viewEarthMoon(); afterPick?.() }} />
         <MenuItem color="#7affd0" icon={<Satellite className="h-3.5 w-3.5" />}
