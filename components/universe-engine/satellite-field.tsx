@@ -552,9 +552,11 @@ const VERT = /* glsl */ `
   varying float vHidden;
   varying float vDebris;   // passed to frag → debris drawn dimmer (active stand out)
   varying float vFade;     // LOD alpha multiplier (LEO haze at overview zoom)
+  varying float vRand;     // stable per-dot random → gentle twinkle phase in frag
   void main() {
     vColor = aColor;
     vDebris = aDebris;
+    vRand = aRand;
     // Overview declutter, LEO only. ~85% of the catalogue lives in a band just
     // 6–30% above the surface; at overview zoom 18k min-px dots in that thin
     // annulus fuse into a solid crust over Earth. Thin LEO to a stratified
@@ -607,10 +609,12 @@ const FRAG = /* glsl */ `
   uniform highp float uIsolate;  // 1 = selected → dim (not hide) the swarm; highp to
                                  // match the vertex declaration or the program fails
                                  // validation (precision mismatch)
+  uniform highp float uTimeDay;  // sim time (days since J2000) → gentle twinkle phase
   varying vec3 vColor;
   varying float vHidden;
   varying float vDebris;
   varying float vFade;
+  varying float vRand;
   void main() {
     if (vHidden > 0.5) discard;
     // Crisp catalogued dot: a bright tight core + a small soft rim. Denser than
@@ -632,6 +636,10 @@ const FRAG = /* glsl */ `
     vec3 col = mix(CALM, vColor, 0.18);             // 82% unified, 18% type-tint
     a *= vDebris > 0.5 ? 0.7 : 0.9;                 // dots sit UNDER Earth's presence
     a *= vFade;   // overview LOD: LEO softens into haze when Earth is small
+    // Gentle life: a very subtle per-dot twinkle (each phased by its stable random)
+    // so the shell shimmers softly instead of sitting frozen — alive, not noisy.
+    float tw = 0.88 + 0.12 * sin(uTimeDay * 40000.0 + vRand * 6.2831853);
+    a *= tw;
     // Selection dims the rest to quiet context so the pick stands out.
     a *= mix(1.0, 0.5, uIsolate);
     gl_FragColor = vec4(col, a);

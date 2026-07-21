@@ -487,7 +487,10 @@ export function CelestialExplorer() {
                         <img src={b.img} alt="" aria-hidden loading="lazy"
                              className="w-full h-full object-cover" style={{ background: b.accent }} />
                       </span>
-                      <span className={`font-mono text-[9px] md:text-[10px] tracking-widest uppercase transition-colors ${on ? "text-accent" : "text-foreground/80 group-hover:text-foreground"}`}>
+                      {/* Name reveals on hover/active only — by default just the
+                          elegant planet dots, so the rail reads as a clean strip of
+                          worlds, not a utilitarian labelled list. */}
+                      <span className={`font-mono text-[9px] md:text-[10px] tracking-widest uppercase transition-all duration-200 md:opacity-0 md:group-hover:opacity-100 ${on ? "text-accent md:!opacity-100" : "text-foreground/80 group-hover:text-foreground"}`}>
                         {b.name}
                       </span>
                     </button>
