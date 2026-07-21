@@ -1126,27 +1126,24 @@ export function PlanetBody({
               Venus's flipped pole. Hover only — mobile uses the bottom
               sheet (which already shows the name) so no double-up there. */}
           {isHovered && (
+            // Fixed SMALL screen-size tag — no distanceFactor, which scaled the
+            // label huge on close zoom (the giant "EARTH" pill filling the view).
+            // A delicate dot + label, matching the satellite-tag style, not a boxy
+            // pill covering the planet.
             <Html
               position={[0, Math.max(planet.visualRadius * 2.4, 0.28), 0]}
               center
-              distanceFactor={8}
               zIndexRange={[10, 0]}
               style={{ pointerEvents: "none" }}
             >
               <div
-                className={`
-                  whitespace-nowrap select-none pointer-events-none
-                  font-mono text-[10px] tracking-[0.3em] uppercase
-                  px-2 py-1 rounded-full backdrop-blur-sm
-                  ${
-                    invert
-                      ? "bg-white/85 border border-foreground/25 text-foreground"
-                      : "bg-black/55 border border-white/20 text-white"
-                  }
-                `}
+                className="flex items-center gap-1.5 whitespace-nowrap select-none pointer-events-none"
                 style={{ animation: "ue-label-in 220ms ease-out both" }}
               >
-                {planet.raw.name}
+                <span className={`h-1 w-1 rounded-full ${invert ? "bg-foreground/70" : "bg-white/80"}`} />
+                <span className={`font-mono text-[10px] tracking-[0.25em] uppercase ${invert ? "text-foreground/80" : "text-white/85"} [text-shadow:0_1px_3px_rgba(0,0,0,0.9)]`}>
+                  {planet.raw.name}
+                </span>
               </div>
             </Html>
           )}

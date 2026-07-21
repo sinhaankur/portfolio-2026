@@ -1265,11 +1265,15 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
             // dist * tan(angle); a small factor keeps it a modest ring. It FADES
             // OUT as you close in so the real model reads on its own.
             const span = selectedSpanRef.current
-            const fade = Math.min(1, Math.max(0.0, (dist / span - 2) / 18)) // 0 up close → 1 far
+            // FADE: the ring is a "find it from afar" locator. It fully disappears
+            // once you're within ~8 craft-spans so it NEVER dominates the close-up
+            // (it was a giant gold ring filling the view up close). 0 near → 1 far.
+            const fade = Math.min(1, Math.max(0.0, (dist / Math.max(span, 1e-6) - 8.0) / 40.0))
             const worldScale = marker.getWorldScale(new THREE.Vector3()).x || 1
-            // Constant angular size: ~2.5% of distance, but never smaller than a
-            // few craft-spans so it always rings the craft, not sits inside it.
-            const ringWorld = Math.max(dist * 0.025, span * 2.5)
+            // A SMALL constant angular ring (~1.2% of distance) — a tidy locator,
+            // not a screen-filling circle. No span-based floor (that kept it huge
+            // up close after the shell expansion inflated span).
+            const ringWorld = dist * 0.012
             halo.scale.setScalar(ringWorld / worldScale)
             // Billboard the ring to face the camera. The halo is a child of the
             // marker (which is rotated to the craft's travel direction), so cancel
@@ -1510,10 +1514,10 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
         {/* Locator RING — a thin open ring that frames the craft so you can find
             it from afar (a true-1:1 craft is sub-pixel), NOT a filled sphere (that
             rendered as a big solid blob swallowing the craft). Faces the camera. */}
-        <mesh ref={haloRef}>
-          <ringGeometry args={[0.82, 1.0, 48]} />
-          <meshBasicMaterial color="#ffd24a" transparent opacity={0.5} side={THREE.DoubleSide} toneMapped={false} depthWrite={false} />
-        </mesh>
+        {/* Locator halo REMOVED — it repeatedly rendered as a big glowing blob/ring
+            that dominated the view and read green in some themes. The craft's 3D
+            model + its label tag are enough to see + identify it. Ref kept as a
+            no-op so the per-frame code below stays harmless. */}
         {/* Always-visible locator label on the selected object — a LeoLabs-style
             tag so you can read WHAT you're looking at without the side panel. */}
         {selectedLabel && (
