@@ -76,6 +76,12 @@ const FOLLOW_SPEEDS = [
   { mult: 60, label: "60×" },
   { mult: 600, label: "600×" },
 ]
+// Following a PLANET (the default Earth view, or a body you jumped to) isn't worth
+// a banner — the Following chrome is only meaningful when chasing a satellite.
+const PLANET_NAMES = new Set([
+  "Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune",
+  "Pluto", "Moon (Luna)", "Sun", "The Moon", "Moon",
+])
 import { MobileBodySheet } from "./mobile-sheet"
 import { StaticStarfield } from "./static-starfield"
 import { GalaxyMusic } from "../galaxy-music"
@@ -529,14 +535,17 @@ export function UniverseEngine({
               instead (richer, dismissable, doesn't fight with the time-warp HUD). */}
           {!mobile && (
             <div className="absolute bottom-44 left-8 md:bottom-52 md:left-12 z-20 pointer-events-none max-w-70">
-              <InfoPanel info={hovered} />
+              <InfoPanel info={hovered} hideIdle={solarOnly} />
             </div>
           )}
 
           {/* Ambient teaching — rotating real facts about the bodies. Steps aside
               while a body is focused so it never collides with its info panel.
-              Hidden on mobile when the consumer runs its own quiet chrome. */}
-          {!(quietMobileChrome && mobile) && (
+              Hidden on mobile when the consumer runs its own quiet chrome, and on
+              the celestial explorer (solarOnly) — its own dense Earth-tools + the
+              timeline already own the bottom of the screen; the big fact bubble
+              floating over Earth was pure clutter there. */}
+          {!(quietMobileChrome && mobile) && !solarOnly && (
             <LearnTicker suppressed={Boolean(hovered) || satFollowed} />
           )}
 
@@ -709,7 +718,10 @@ export function UniverseEngine({
           {/* Following indicator — only when follow mode is active. Same
               bottom-left slot the destinations menu used to live in. Click
               the chip to stop following; Reset (top-right) also clears it. */}
-          {interactive && followingLabel && (
+          {interactive && followingLabel && !PLANET_NAMES.has(followingLabel) && (
+            // Only show the Following banner when chasing a SATELLITE — following
+            // the default Earth (or any planet) view isn't news, it's just the
+            // scene, and the banner + speed chips were clutter at startup.
             // Mobile: sit above the bottom-20 timeline bar; desktop: original slot.
             // One unit: label chip + ride speed share the timeline's surface
             // (bg-background/60 · backdrop-blur-md · foreground/25 border) so the

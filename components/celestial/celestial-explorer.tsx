@@ -435,25 +435,18 @@ export function CelestialExplorer() {
           className={`hidden md:block absolute top-16 left-4 md:top-20 md:left-6 z-20 max-w-[19rem] transition-opacity duration-700 ${titleVisible ? "opacity-100" : "opacity-0 pointer-events-none"}`}
           aria-hidden={!titleVisible}
         >
-          <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-accent mb-2 pointer-events-none">
+          {/* Trimmed to a compact eyebrow + headline + one line — the big
+              paragraph + tour button were crowding the scene (the "?" chip in the
+              top cluster already offers the tour). Auto-hides. */}
+          <p className="font-mono text-[9px] tracking-[0.3em] uppercase text-accent mb-1.5 pointer-events-none">
             Celestial · Satellite Engine
           </p>
-          <h1 className="font-display text-2xl md:text-4xl font-light tracking-[-0.02em] leading-[1.05] pointer-events-none">
+          <h1 className="font-display text-2xl md:text-[2rem] font-light tracking-[-0.02em] leading-[1.05] pointer-events-none">
             Everything orbiting <span className="italic">Earth</span>, live.
           </h1>
-          <p className="mt-2 font-sans text-xs md:text-sm text-foreground/70 leading-relaxed pointer-events-none">
-            <span className="text-accent">18,600+</span> tracked satellites and debris on
-            their real orbits — see what&apos;s overhead, what&apos;s falling back, and the
-            debris clouds up there. Real public data, computed live in your browser.
+          <p className="mt-1.5 font-sans text-xs text-foreground/60 leading-relaxed pointer-events-none">
+            <span className="text-accent">18,600+</span> tracked objects on real orbits — computed live.
           </p>
-          <button
-            type="button"
-            onClick={() => setTourOpen(true)}
-            data-cursor-hover
-            className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-accent/50 bg-accent/10 px-3 py-1.5 font-mono text-[10px] tracking-wider uppercase text-accent hover:bg-accent/20 transition-colors"
-          >
-            <HelpCircle className="h-3 w-3" /> Take the 60-second tour
-          </button>
         </div>
 
         {/* Body rail — DESKTOP ONLY now. Vertical strip on the RIGHT edge,

@@ -256,8 +256,12 @@ export function DeepFactsDisclosure({
   )
 }
 
-export function InfoPanel({ info }: { info: BodyInfo | null }) {
+export function InfoPanel({ info, hideIdle = false }: { info: BodyInfo | null; hideIdle?: boolean }) {
   if (!info) {
+    // On the celestial explorer the idle prompt is pure clutter (you explore via
+    // search + the body rail, not a hover hint) and it overlapped the Following
+    // banner — suppress it there, but still show real data on hover.
+    if (hideIdle) return null
     return (
       <div className="font-mono text-[10px] tracking-[0.25em] uppercase text-foreground/45 pointer-events-none space-y-2">
         <div>Hover any body for data</div>
