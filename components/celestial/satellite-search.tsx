@@ -14,7 +14,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Search, X, Crosshair, Locate } from "lucide-react"
-import { loadSatelliteCatalog, selectedSatRef, selectedArchetypeRef, selectedOrbitRef, observerRef, findNearestOverhead, type SatMeta, type SatOrbit, type NearestSat } from "@/components/universe-engine/satellite-field"
+import { loadSatelliteCatalog, selectedSatRef, selectedArchetypeRef, selectedOrbitRef, observerRef, findNearestOverhead, satTypeFilterRef, type SatMeta, type SatOrbit, type NearestSat } from "@/components/universe-engine/satellite-field"
 import { statusFromPerigee, lifetimeFromPerigee, lifetimeLabel } from "@/lib/reentry"
 
 const OWNER_LABEL: Record<string, string> = {
@@ -198,6 +198,15 @@ export function SatelliteSearch() {
     window.dispatchEvent(new CustomEvent("universe:sky-focus", { detail: { pointId: "planet:Earth" } }))
   }
 
+  // Pick a type filter — drive BOTH the results list AND the 3D swarm so the choice
+  // is VISIBLE: "Active" isolates the working payloads in the scene (debris hidden),
+  // "Debris" isolates the junk, "All" restores everything. Frames Earth so you see it.
+  function pickFilter(k: "all" | "active" | "debris") {
+    setFilter(k)
+    satTypeFilterRef.current = k === "all" ? -1 : k === "active" ? 0 : 1
+    window.dispatchEvent(new CustomEvent("universe:sky-focus", { detail: { pointId: "planet:Earth" } }))
+  }
+
   function clearSel() {
     setSelected(null)
     selectedSatRef.current = null
@@ -238,7 +247,7 @@ export function SatelliteSearch() {
           <button
             key={opt.k}
             type="button"
-            onClick={() => setFilter(opt.k)}
+            onClick={() => pickFilter(opt.k)}
             data-cursor-hover
             className={`rounded-full border px-2.5 py-1 font-mono text-[9px] tracking-wider uppercase transition-colors ${
               filter === opt.k

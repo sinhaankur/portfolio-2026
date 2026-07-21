@@ -320,6 +320,11 @@ export const DEBRIS_FAMILIES = [
 /** Family filter for the swarm: -1 = no family isolated, else a DEBRIS_FAMILIES id. */
 export const debrisFamilyFilterRef: { current: number } = { current: -1 }
 
+/** Object-type filter for the swarm, driven by the search card's ALL/ACTIVE/DEBRIS
+ *  chips so the choice is VISIBLE in the 3D scene (not just the results list):
+ *  -1 = all · 0 = active payloads only (debris hidden) · 1 = debris/rocket only. */
+export const satTypeFilterRef: { current: number } = { current: -1 }
+
 /** Classify a debris object into a fragmentation family id, or -1 if none. */
 export function classifyDebrisFamily(name: string): number {
   const n = name.toUpperCase()
@@ -560,6 +565,7 @@ const VERT = /* glsl */ `
   uniform float uIsolate;   // 1.0 = a satellite is selected → hide the whole swarm
   uniform float uGroupSel;  // -1 = all groups; else show only this group id
   uniform float uFamilySel; // -1 = no family isolate; else show ONLY this debris family
+  uniform float uTypeSel;   // -1 = all · 0 = active only (hide debris) · 1 = debris only
   uniform float uRegimeSel; // -1 = all regimes; else show only this regime id
   uniform float uLod;       // 0 = Earth fills the frame (full catalogue) → 1 = Earth
                             // small on screen (LEO thinned to a calm haze)
@@ -587,7 +593,7 @@ const VERT = /* glsl */ `
     // sparse and ARE the structure (nav shell, GEO belt), so they never cull.
     // Any explicit filter or isolate means the user asked for a specific
     // subset — show it in full.
-    float lodEff = (uGroupSel >= 0.0 || uRegimeSel >= 0.0 || uFamilySel >= 0.0 || uIsolate > 0.5) ? 0.0 : uLod;
+    float lodEff = (uGroupSel >= 0.0 || uRegimeSel >= 0.0 || uFamilySel >= 0.0 || uTypeSel >= 0.0 || uIsolate > 0.5) ? 0.0 : uLod;
     float keep = max(mix(1.0, 0.55, lodEff) * uKeepScale, uKeepFloor);
     // Soft cull edge: each dot fades over a small aRand band around the moving
     // threshold instead of popping, so zooming reads as the haze *resolving*
@@ -602,7 +608,13 @@ const VERT = /* glsl */ `
     // Selection no longer hides the swarm (LeoLabs read: the field stays alive,
     // dimmed via uIsolate in the fragment shader, with the pick highlighted).
     // Group + regime filters AND together (both must pass if set).
+    // Type filter (ALL/ACTIVE/DEBRIS chips): 0 = active only → hide debris;
+    // 1 = debris only → hide active. aDebris is 1 for debris/rocket bodies.
+    float typeHide = (uTypeSel < -0.5) ? 0.0
+                   : (uTypeSel < 0.5) ? aDebris          // active-only: hide debris
+                   : (1.0 - aDebris);                    // debris-only: hide active
     vHidden = (aLaunchDay > uTimeDay || decayed > 0.5 || cullFade < 0.01 ||
+               typeHide > 0.5 ||
                (uGroupSel >= 0.0 && abs(aGroup - uGroupSel) > 0.5) ||
                (uRegimeSel >= 0.0 && abs(aRegime - uRegimeSel) > 0.5) ||
                (uFamilySel >= 0.0 && abs(aFamily - uFamilySel) > 0.5)) ? 1.0 : 0.0;
@@ -939,6 +951,7 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
       matRef.current.uniforms.uGroupSel.value = satGroupFilterRef.current
       matRef.current.uniforms.uRegimeSel.value = satRegimeFilterRef.current
       matRef.current.uniforms.uFamilySel.value = debrisFamilyFilterRef.current
+      matRef.current.uniforms.uTypeSel.value = satTypeFilterRef.current
       matRef.current.uniforms.uKeepScale.value = areaScale
       matRef.current.uniforms.uMaxPx.value = maxPx
       // Overview LOD from Earth's APPARENT size on screen (not raw camera
@@ -1461,6 +1474,7 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
             uIsolate: { value: 0 },
             uGroupSel: { value: -1 },
             uFamilySel: { value: -1 },
+            uTypeSel: { value: -1 },
             uRegimeSel: { value: -1 },
             uLod: { value: 1 },
             uKeepScale: { value: 1 },
