@@ -1624,6 +1624,9 @@ function SatModel({ url, scale }: { url: string; scale: number }) {
     const c = scene.clone()
     c.traverse((o) => {
       const mesh = o as THREE.Mesh
+      // Don't let the selected craft's model intercept clicks meant for OTHER
+      // swarm dots behind it (Ankur: "not allowing to click on other satellites").
+      ;(mesh as unknown as { raycast: () => null }).raycast = () => null
       const mat = mesh.material as THREE.MeshStandardMaterial | undefined
       if (mat && "emissive" in mat) {
         const m = mat.clone()
