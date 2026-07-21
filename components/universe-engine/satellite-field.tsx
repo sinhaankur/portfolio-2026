@@ -594,7 +594,10 @@ const VERT = /* glsl */ `
     // Any explicit filter or isolate means the user asked for a specific
     // subset — show it in full.
     float lodEff = (uGroupSel >= 0.0 || uRegimeSel >= 0.0 || uFamilySel >= 0.0 || uTypeSel >= 0.0 || uIsolate > 0.5) ? 0.0 : uLod;
-    float keep = max(mix(1.0, 0.55, lodEff) * uKeepScale, uKeepFloor);
+    // Now the shell is EXPANDED (SHELL_EXPAND), LEO no longer piles into a crust —
+    // so keep FAR more dots at overview (0.55 → 0.85) so the swarm is clearly
+    // visible even before you click, not a faint scatter.
+    float keep = max(mix(1.0, 0.85, lodEff) * uKeepScale, uKeepFloor);
     // Soft cull edge: each dot fades over a small aRand band around the moving
     // threshold instead of popping, so zooming reads as the haze *resolving*
     // into satellites, not dots switching on.
@@ -620,7 +623,9 @@ const VERT = /* glsl */ `
                (uFamilySel >= 0.0 && abs(aFamily - uFamilySel) > 0.5)) ? 1.0 : 0.0;
     // Surviving LEO dots soften at overview so the band reads as a luminous
     // haze around the globe, resolving into crisp dots as you zoom in.
-    vFade = ((aRegime < 0.5) ? mix(1.0, 0.6, lodEff) : 1.0) * cullFade * max(decayFade, 0.0);
+    // Keep LEO nearly full-brightness at overview (0.6 → 0.9) so the swarm reads
+    // clearly zoomed-out, not just after you click a craft.
+    vFade = ((aRegime < 0.5) ? mix(1.0, 0.9, lodEff) : 1.0) * cullFade * max(decayFade, 0.0);
     vec4 mv = modelViewMatrix * vec4(position, 1.0);
     gl_Position = projectionMatrix * mv;
     // Perspective size with distance falloff, BUT clamped to a visible floor so
@@ -629,11 +634,11 @@ const VERT = /* glsl */ `
     // smaller so active payloads stand out.
     float sizeMul = aDebris > 0.5 ? 0.7 : 1.0;
     float persp = uSize * sizeMul * uPixelRatio * (1.0 / -mv.z);
-    // floor ~1.1 device px keeps every satellite legible without blooming; a
-    // tighter ceiling (4.5px) keeps dots CRISP like LeoLabs instead of fat blobs
-    // that wash over Earth. At overview zoom the floor eases to ~0.7px so the
-    // thinned LEO band stays a haze instead of re-fusing into a crust.
-    float minPx = mix(1.1, 0.7, lodEff) * uPixelRatio * sizeMul;
+    // Floor keeps every satellite legible without blooming. With the expanded
+    // shell the overview no longer risks a crust, so hold a stronger floor
+    // zoomed-out (0.7 → 1.15) so the swarm reads as crisp visible dots, not a
+    // faint scatter you only see after clicking.
+    float minPx = mix(1.3, 1.15, lodEff) * uPixelRatio * sizeMul;
     float s = vHidden > 0.5 ? 0.0 : clamp(persp, minPx, uMaxPx * uPixelRatio);
     gl_PointSize = s;
   }
