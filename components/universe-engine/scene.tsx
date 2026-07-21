@@ -53,6 +53,7 @@ import {
   TIME_WARP_DAYS_PER_SEC,
   blackHoleHorizonGravityMetersPerSec2,
   buildScenePlanets,
+  cancelFollow,
   flyToRef,
   followRef,
   raDecToScenePos,
@@ -155,12 +156,35 @@ function FlyToController({ interactive }: { interactive: boolean }) {
     const el = gl.domElement
     const grab = () => { _userGrabbing = true }
     const release = () => { _userGrabbing = false; _grabReleaseAt = performance.now() }
+    // SNAP OUT ON PINCH/ZOOM OUT: while following a satellite, a decisive zoom-OUT
+    // gesture releases the chase and reframes Earth — so pinching out cleanly
+    // returns you to the overview instead of drifting into empty space.
+    let zoomOutAccum = 0
+    const onWheel = (e: WheelEvent) => {
+      _userGrabbing = true; _grabReleaseAt = performance.now()
+      const follow = followRef.current
+      if (follow && follow.frame) {                 // only for a satellite chase
+        if (e.deltaY > 0) {                          // zoom OUT
+          zoomOutAccum += e.deltaY
+          if (zoomOutAccum > 240) {                  // decisive, not a nudge
+            zoomOutAccum = 0
+            cancelFollow()
+            window.dispatchEvent(new CustomEvent("universe:sky-focus", { detail: { pointId: "planet:Earth" } }))
+          }
+        } else {
+          zoomOutAccum = 0                            // zoom-in resets the accumulator
+        }
+      } else {
+        zoomOutAccum = 0
+      }
+    }
     el.addEventListener("pointerdown", grab)
     window.addEventListener("pointerup", release)
-    el.addEventListener("wheel", () => { _userGrabbing = true; _grabReleaseAt = performance.now() }, { passive: true })
+    el.addEventListener("wheel", onWheel, { passive: true })
     return () => {
       el.removeEventListener("pointerdown", grab)
       window.removeEventListener("pointerup", release)
+      el.removeEventListener("wheel", onWheel)
     }
   }, [gl])
 
