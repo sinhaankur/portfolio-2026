@@ -422,6 +422,28 @@ const _sfE = new THREE.Vector3()
 const UP_Y = new THREE.Vector3(0, 1, 0) // Earth's spin axis in scene space
 const _haloTmpQ = new THREE.Quaternion() // scratch for billboarding the locator ring
 
+// SHELL EXPANSION (Ankur: "spacing can be expanded... like actual spacing"): at
+// true scale, LEO sits only 6–30% above the surface, so 18k objects pile into a
+// thin crust and overlap. We keep Earth's surface fixed but EXAGGERATE altitude —
+// each object's height above the surface is multiplied — so the shell spreads out
+// and satellites get real breathing room, individually legible. Honest + reversible:
+// the surface stays true, only the empty gap to orbit is stretched (a MODE, like the
+// engine's compressRadius for the solar system). scaledR maps a geocentric radius
+// (km) → an expanded geocentric radius (km) still anchored at the surface.
+const SHELL_EXPAND = 4.0
+function expandR(rKm: number): number {
+  const alt = rKm - EARTH_RADIUS_KM
+  return EARTH_RADIUS_KM + Math.max(0, alt) * SHELL_EXPAND
+}
+/** Scale an ECI position (km) radially by the shell expansion, returning the new
+ *  x/y/z (km). Direction preserved; only the radius is stretched above the surface. */
+function expandEci(x: number, y: number, z: number): [number, number, number] {
+  const r = Math.sqrt(x * x + y * y + z * z)
+  if (r < 1e-6) return [x, y, z]
+  const s = expandR(r) / r
+  return [x * s, y * s, z * s]
+}
+
 // Never thin the swarm below this many visible LEO dots: in the sparse eras
 // (scrub to 1965 — a few hundred objects total) or a small filtered group,
 // the pixel-budget cull would misrepresent an almost-empty sky as emptier.
@@ -623,18 +645,18 @@ const FRAG = /* glsl */ `
     vec2 c = gl_PointCoord - 0.5;
     float d = length(c);
     if (d > 0.5) discard;
-    // CLEAN & MINIMAL (Ankur: 'clean & minimal, LeoLabs-like' — the loud rainbow
-    // dots read as tacky visual noise muddying Earth). A soft round dot with a
-    // gentle falloff — no hard rim — so the 18k points form a DELICATE luminous
-    // veil that complements Earth instead of a garish crust over it.
-    float dot = 1.0 - smoothstep(0.0, 0.5, d);      // soft, feathered
-    float a = pow(dot, 1.6);
-    // ONE calm tint: pull every dot most of the way to a cool blue-white, so the
-    // shell reads as a single refined colour, not a rainbow. The object-type
-    // colour survives only as a faint undertone (a whisper of meaning, not noise).
-    vec3 CALM = vec3(0.80, 0.90, 1.0);              // soft cool white
-    vec3 col = mix(CALM, vColor, 0.18);             // 82% unified, 18% type-tint
-    a *= vDebris > 0.5 ? 0.7 : 0.9;                 // dots sit UNDER Earth's presence
+    // CLEAN but VISIBLE (Ankur: 'make it better that satellites are visible' — the
+    // ultra-subtle veil read too faint). A bright, crisp core with a soft halo so
+    // each dot is a clear luminous point, while staying ONE calm tint (not the old
+    // tacky rainbow). Sweet spot: legible + elegant.
+    float coreDot = 1.0 - smoothstep(0.0, 0.32, d);  // tight bright centre
+    float halo    = (1.0 - smoothstep(0.0, 0.5, d)) * 0.35; // soft surround
+    float a = clamp(coreDot + halo, 0.0, 1.0);
+    // One calm tint — a bright cool-white, with the core whitened to a hot point so
+    // the dot reads clearly against Earth. Type colour survives as a faint undertone.
+    vec3 CALM = vec3(0.86, 0.93, 1.0);
+    vec3 col = mix(mix(CALM, vColor, 0.16), vec3(1.0), coreDot * 0.4);
+    a *= vDebris > 0.5 ? 0.85 : 1.0;                // clearly visible now
     a *= vFade;   // overview LOD: LEO softens into haze when Earth is small
     // Gentle life: a very subtle per-dot twinkle (each phased by its stable random)
     // so the shell shimmers softly instead of sitting frozen — alive, not noisy.
@@ -804,7 +826,10 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
       let r: { position?: { x: number; y: number; z: number } } | false = false
       try { r = lib.propagate(rec, t) } catch { r = false }
       const p = r && r.position
-      if (p) out.push(new THREE.Vector3(p.x * kmToScene, p.z * kmToScene, -p.y * kmToScene))
+      if (p) {
+        const [ex, ey, ez] = expandEci(p.x, p.y, p.z) // match the swarm's expanded shell
+        out.push(new THREE.Vector3(ex * kmToScene, ez * kmToScene, -ey * kmToScene))
+      }
     }
     return out
   }
@@ -1009,13 +1034,17 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
         const p = r && r.position
         if (!p) { g.visible = false; continue }
         g.visible = true
-        g.position.set(p.x * kmToScene, p.z * kmToScene, -p.y * kmToScene)
+        {
+          const [nx, ny, nz] = expandEci(p.x, p.y, p.z)
+          g.position.set(nx * kmToScene, nz * kmToScene, -ny * kmToScene)
+        }
         // orient along velocity (sample a moment ahead)
         let r2: { position?: Vec3 } | false = false
         try { r2 = lib.propagate(recsN[idx], new Date(dateN.getTime() + 30000)) } catch { r2 = false }
         const p2 = r2 && r2.position
         if (p2) {
-          const ahead = new THREE.Vector3(p2.x * kmToScene, p2.z * kmToScene, -p2.y * kmToScene)
+          const [ax, ay, az] = expandEci(p2.x, p2.y, p2.z)
+          const ahead = new THREE.Vector3(ax * kmToScene, az * kmToScene, -ay * kmToScene)
           if (ahead.distanceToSquared(g.position) > 1e-9) g.lookAt(ahead)
         }
       }
@@ -1075,11 +1104,13 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
         try { r = lib.propagate(rec, date) } catch { r = false }
         const p = r && r.position
         if (!p) { buf[j] = 0; buf[j + 1] = 0; buf[j + 2] = 0; return }
-        // ECI km → scene units. Map ECI (x,y,z) to scene (x, z, -y) so the orbital
-        // plane sits around Earth's equator in scene space.
-        buf[j] = p.x * kmToScene
-        buf[j + 1] = p.z * kmToScene
-        buf[j + 2] = -p.y * kmToScene
+        // ECI km → scene units, with the shell EXPANDED (altitude exaggerated) so
+        // the swarm spreads out and dots separate. Map ECI (x,y,z) to scene
+        // (x, z, -y) so the orbital plane sits around Earth's equator.
+        const [ex, ey, ez] = expandEci(p.x, p.y, p.z)
+        buf[j] = ex * kmToScene
+        buf[j + 1] = ez * kmToScene
+        buf[j + 2] = -ey * kmToScene
       }
 
       const firstFill = !nextPos.current || nextPos.current.length !== n
@@ -1152,7 +1183,10 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
               }
             } catch { /* keep last */ }
           }
-          const cur = new THREE.Vector3(p.x * kmToScene, p.z * kmToScene, -p.y * kmToScene)
+          // Position on the EXPANDED shell (matches the swarm); the altitude
+          // READOUT above stays true km — only the visual position is stretched.
+          const [cex, cey, cez] = expandEci(p.x, p.y, p.z)
+          const cur = new THREE.Vector3(cex * kmToScene, cez * kmToScene, -cey * kmToScene)
           // orient the model along its direction of travel (sample a moment ahead)
           let r2: { position?: { x: number; y: number; z: number } } | false = false
           try { r2 = lib.propagate(rec, new Date(date.getTime() + 30000)) } catch { r2 = false }
@@ -1178,7 +1212,8 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
             groundTrackGroupRef.current.rotation.y = earthRotationAngle(simTimeRef.current.simMs)
           }
           if (p2) {
-            const ahead = new THREE.Vector3(p2.x * kmToScene, p2.z * kmToScene, -p2.y * kmToScene)
+            const [ax, ay, az] = expandEci(p2.x, p2.y, p2.z)
+            const ahead = new THREE.Vector3(ax * kmToScene, az * kmToScene, -ay * kmToScene)
             if (ahead.distanceToSquared(cur) > 1e-9) marker.lookAt(ahead)
           }
           marker.visible = true
@@ -1420,10 +1455,8 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
           blending={THREE.NormalBlending}
           uniforms={{
             uTimeDay: { value: msToJ2000Day(simTimeRef.current.simMs) },
-            // Smaller pinpoints for the clean/minimal look — fat dots read as
-            // tacky blobs; a delicate veil complements Earth. (min-pixel floor in
-            // the vertex shader keeps distant sats visible.)
-            uSize: { value: 78 },
+            // Balanced: visible crisp pinpoints without fat tacky blobs.
+            uSize: { value: 90 },
             uPixelRatio: { value: typeof window !== "undefined" ? Math.min(window.devicePixelRatio, 2) : 1 },
             uIsolate: { value: 0 },
             uGroupSel: { value: -1 },
@@ -1432,7 +1465,7 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
             uLod: { value: 1 },
             uKeepScale: { value: 1 },
             uKeepFloor: { value: 0 },
-            uMaxPx: { value: 3.2 },
+            uMaxPx: { value: 3.8 },
           }}
         />
       </points>
