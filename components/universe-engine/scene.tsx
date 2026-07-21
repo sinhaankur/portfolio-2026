@@ -695,7 +695,11 @@ function SolarSystem({
           much further from the limb, giving the diffuse atmospheric
           halo you see in real solar imagery. */}
       <mesh>
-        <sphereGeometry args={[1.3, 48, 48]} />
+        {/* Outer corona trimmed 1.3 → 1.05: at the compressed inner-system scale
+            (Earth only ~3 units out) the wide glow crowded Mercury/Venus and read
+            as bodies "colliding" with the Sun on zoom-out. Tighter halo = the inner
+            planets breathe. */}
+        <sphereGeometry args={[1.05, 48, 48]} />
         <shaderMaterial
           ref={coronaOuterMatRef as React.Ref<ShaderMaterial>}
           vertexShader={CORONA_VERTEX_SHADER}
