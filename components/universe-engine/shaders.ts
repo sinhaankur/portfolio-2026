@@ -219,10 +219,13 @@ export const DAY_NIGHT_FRAGMENT_SHADER = `
     vec3 nightColor;
     if (uHasNight > 0.5) {
       vec3 cityLights = texture2D(tNight, vUv).rgb * uNightStrength;
-      vec3 nightBase = dayColor * 0.055 + vec3(0.008, 0.014, 0.028); // dim earth + blue floor
+      // Lifted night base so the shadowed globe reads as a DEFINED dim sphere
+      // (faint continents/oceans, like ISS night photos) instead of a near-black
+      // ball that looks like a dark hole — especially on the light/cream theme.
+      vec3 nightBase = dayColor * 0.14 + vec3(0.02, 0.03, 0.055);
       nightColor = nightBase + cityLights;
     } else {
-      nightColor = dayColor * 0.04;
+      nightColor = dayColor * 0.10;
     }
     vec3 color = mix(nightColor, dayColor, dayMix);
     gl_FragColor = vec4(color, uOpacity);
