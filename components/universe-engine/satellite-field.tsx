@@ -1461,10 +1461,15 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
             center
             distanceFactor={undefined}
             zIndexRange={[30, 0]}
-            style={{ pointerEvents: "none", userSelect: "none", transform: "translateY(-22px)" }}
+            style={{ pointerEvents: "none", userSelect: "none", transform: "translate(16px, -14px)" }}
           >
-            <div className="whitespace-nowrap rounded-sm border border-accent/50 bg-background/80 px-1.5 py-0.5 font-mono text-[9px] tracking-wider text-accent backdrop-blur-sm">
-              {selectedLabel}
+            {/* Selected craft: same delicate tag style, in accent — a thin dot +
+                label, not a boxy chip, so it annotates without cluttering. */}
+            <div className="flex items-center gap-1.5 whitespace-nowrap">
+              <span className="h-1 w-1 rounded-full bg-accent" />
+              <span className="font-mono text-[9px] tracking-[0.15em] uppercase text-accent [text-shadow:0_1px_3px_rgba(0,0,0,0.9)]">
+                {selectedLabel}
+              </span>
             </div>
           </Html>
         )}
@@ -1523,9 +1528,14 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
             visible={false}
           >
             <SatModel url={a.url} scale={scale} />
-            <Html center zIndexRange={[20, 0]} style={{ pointerEvents: "none", userSelect: "none", transform: "translateY(-18px)" }}>
-              <div className="whitespace-nowrap rounded-sm border border-white/30 bg-background/70 px-1.5 py-0.5 font-mono text-[9px] tracking-wider text-white/85 backdrop-blur-sm">
-                {c.label}
+            {/* Refined tag: a hairline dot + thin label, no chunky box — reads as
+                a delicate annotation floating beside the craft, not a UI chip. */}
+            <Html center zIndexRange={[20, 0]} style={{ pointerEvents: "none", userSelect: "none", transform: "translate(14px, -12px)" }}>
+              <div className="flex items-center gap-1.5 whitespace-nowrap">
+                <span className="h-1 w-1 rounded-full bg-white/70" />
+                <span className="font-mono text-[9px] tracking-[0.15em] uppercase text-white/70 [text-shadow:0_1px_3px_rgba(0,0,0,0.9)]">
+                  {c.label}
+                </span>
               </div>
             </Html>
           </group>
