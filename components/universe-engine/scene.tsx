@@ -190,18 +190,13 @@ function FlyToController({ interactive }: { interactive: boolean }) {
       _flyTargetVec.set(pos.x, pos.y, pos.z)
 
       if (!follow.arrived) {
-        // Fly-in phase. Two important details:
-        //
-        // 1. Target JUMPS to the body each frame (no lerp). Earlier
-        //    versions lerped the target and the body would drift out
-        //    from under it for fast inner planets — Mercury orbits in
-        //    ~6 seconds of real time at default warp, faster than a
-        //    13%/frame lerp can chase. With the jump, look-at is
-        //    locked on the body from frame 1 and the camera can
-        //    dolly in cinematically.
-        //
-        // 2. Camera position is the only thing lerped here — it
-        //    glides toward `follow.distance` from the body.
+        // CINEMATIC fly-in. The target JUMPS to the body each frame (no lerp) so
+        // look-at is locked from frame 1 even for a fast inner planet; only the
+        // camera DISTANCE + view DIRECTION are animated — with an ease-IN-OUT so
+        // the move accelerates smoothly from rest, cruises, then decelerates into
+        // the frame, instead of the old exp() ease-out that lurched fast then
+        // crawled. Progress is time-based (≈1.15 s) so every craft arrives with the
+        // same designed pacing regardless of how far the camera started.
         controls.target.copy(_flyTargetVec)
         _flyCamDir.copy(camera.position).sub(controls.target)
         const currentDist = _flyCamDir.length()
@@ -210,31 +205,39 @@ function FlyToController({ interactive }: { interactive: boolean }) {
         } else {
           _flyCamDir.normalize()
         }
-        // Vantage swing: when the follow chose an approach direction (e.g.
-        // Earth arriving on its sunlit limb), ease the view direction toward
-        // it during the fly-in. Slightly faster than the dolly so the swing
-        // completes before arrival hands control back to the user.
+
+        // Capture the starting distance once, at the first fly-in frame.
+        if (follow.flyStartDist == null) {
+          follow.flyStartDist = currentDist
+          follow.flyElapsed = 0
+        }
+        follow.flyElapsed = (follow.flyElapsed ?? 0) + delta
+        const FLY_DURATION = 1.15 // seconds — the cinematic arrival pacing
+        const t = Math.min(1, follow.flyElapsed / FLY_DURATION)
+        // smootherstep (6t⁵−15t⁴+10t³): zero velocity AND acceleration at both
+        // ends — the signature "eased" camera move.
+        const s = t * t * t * (t * (t * 6 - 15) + 10)
+
+        // Vantage swing: ease the view direction toward the chosen approach dir on
+        // the SAME eased curve (slightly ahead so it settles before arrival).
         let dirErr = 0
         if (follow.approachDir) {
           _flyApproachDir.set(follow.approachDir.x, follow.approachDir.y, follow.approachDir.z).normalize()
-          const kDir = 1 - Math.exp(-delta * 6.0)
-          _flyCamDir.lerp(_flyApproachDir, kDir).normalize()
+          const sDir = Math.min(1, s * 1.25)
+          _flyCamDir.copy(camera.position).sub(controls.target).normalize()
+          _flyCamDir.lerp(_flyApproachDir, sDir).normalize()
           dirErr = _flyCamDir.angleTo(_flyApproachDir)
         }
-        const nextDist = currentDist + (follow.distance - currentDist) * k
+
+        // Distance eases from the captured start to the target along the curve.
+        const nextDist = follow.flyStartDist + (follow.distance - follow.flyStartDist) * s
         _flyDesiredCamPos.copy(controls.target).addScaledVector(_flyCamDir, nextDist)
         camera.position.copy(_flyDesiredCamPos)
 
-        // Arrival = camera-to-body distance within ~8% of target. This
-        // is independent of how fast the body is moving, so Mercury
-        // (whirling around the Sun at 88-day period) arrives as
-        // reliably as Pluto. Once arrived, the controller stops
-        // overriding camera position entirely — pinch/scroll zooms
-        // and drag-rotate respond normally. (With a vantage swing, the
-        // direction must also have settled, or the lit-side arc would
-        // cut off mid-swing.)
-        const distErr = Math.abs(currentDist - follow.distance) / Math.max(follow.distance, 0.001)
-        if (distErr < 0.08 && dirErr < 0.06) {
+        // Arrival: the eased progress has essentially completed AND (if a vantage
+        // swing was requested) the direction has settled. Time-based completion
+        // means it always lands cleanly, no lingering micro-settle.
+        if (t >= 0.999 && dirErr < 0.06) {
           follow.arrived = true
         }
       } else {

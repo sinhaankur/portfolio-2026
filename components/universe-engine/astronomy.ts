@@ -646,6 +646,11 @@ export const followRef: {
     /** Controller state: camera offset expressed in the travel frame
      *  (s = t×up sideways, up, t forward). Updated after user input. */
     chaseLocal?: { x: number; y: number; z: number }
+    /** Cinematic fly-in state — the camera distance at the first fly-in frame and
+     *  the elapsed time, so the ease-in-out runs over a fixed duration regardless
+     *  of how far the camera started. Set by the controller, reset per new follow. */
+    flyStartDist?: number | null
+    flyElapsed?: number
   } | null
 } = { current: null }
 
@@ -658,7 +663,7 @@ export function requestFollow(
   frame?: FollowFrameGetter,
 ) {
   flyToRef.current.active = false
-  followRef.current = { getter, distance, label, approachDir, arrived: false, frame }
+  followRef.current = { getter, distance, label, approachDir, arrived: false, frame, flyStartDist: null, flyElapsed: 0 }
 }
 
 /** Cancel follow mode (called by reset, by a new fly, by Esc / explore toggle). */
