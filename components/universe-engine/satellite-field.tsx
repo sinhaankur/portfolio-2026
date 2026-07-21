@@ -615,16 +615,19 @@ const FRAG = /* glsl */ `
     // TIGHT crisp dot (LeoLabs read): a sharp small core + a very thin rim, so
     // 18k points read as precise pinpoints — not fat additive blobs that bloom
     // over Earth. Narrower core + lower alpha keeps the shell legible but calm.
-    float core = 1.0 - smoothstep(0.0, 0.22, d);   // crisp bright core
-    float rim  = pow(1.0 - smoothstep(0.18, 0.46, d), 1.5) * 0.28;
-    float a = clamp(core + rim, 0.0, 1.0) * 0.92;   // solid dots (LeoLabs density)
-    // slight whiten at the very centre keeps each dot a hot point
-    vec3 col = mix(vColor, vec3(1.0), core * 0.35);
-    a *= vDebris > 0.5 ? 0.45 : 1.0;
+    float core = 1.0 - smoothstep(0.0, 0.26, d);   // crisp bright core
+    float rim  = pow(1.0 - smoothstep(0.20, 0.50, d), 1.5) * 0.35;
+    float a = clamp(core + rim, 0.0, 1.0);          // full-strength dots — every object clearly visible
+    // Whiten the core more so each dot reads as a hot, self-lit point against the
+    // void — satellites don't depend on sunlight, they're always visible.
+    vec3 col = mix(vColor, vec3(1.0), core * 0.5);
+    // Debris was dimmed to 45% and got lost as a dark speck on zoom — keep it
+    // clearly visible (it's the whole point of a debris tracker).
+    a *= vDebris > 0.5 ? 0.8 : 1.0;
     a *= vFade;   // overview LOD: LEO softens into haze when Earth is small
-    // Selection dims the swarm to context instead of hiding it — the LeoLabs
-    // read keeps the whole field alive with the pick + its orbit highlighted.
-    a *= mix(1.0, 0.22, uIsolate);
+    // Selection keeps the swarm BRIGHT for context (was 0.22 = nearly invisible;
+    // Ankur: "light all the satellites so it's clearly visible").
+    a *= mix(1.0, 0.6, uIsolate);
     gl_FragColor = vec4(col, a);
   }
 `
@@ -1509,9 +1512,32 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
 }
 
 /** The chosen archetype GLB, cloned for the selected satellite. Cloning keys on
- *  the url so switching archetypes swaps the mesh. */
+ *  the url so switching archetypes swaps the mesh.
+ *
+ *  SELF-LIT: a real satellite orbiting into Earth's shadow goes dark, but for
+ *  TRACKING that's useless — you must always see the craft you flew to (Ankur:
+ *  "dark vs light because of sun isn't required for satellites"). So each cloned
+ *  material gets an emissive floor from its own base colour: the craft stays
+ *  clearly visible on the night side instead of collapsing to a dark speck, while
+ *  still catching the sun on the lit side. */
 function SatModel({ url, scale }: { url: string; scale: number }) {
   const { scene } = useGLTF(url)
-  const cloned = useMemo(() => scene.clone(), [scene, url])
+  const cloned = useMemo(() => {
+    const c = scene.clone()
+    c.traverse((o) => {
+      const mesh = o as THREE.Mesh
+      const mat = mesh.material as THREE.MeshStandardMaterial | undefined
+      if (mat && "emissive" in mat) {
+        const m = mat.clone()
+        // Emissive = the material's own colour at a low floor, so the craft
+        // self-illuminates without washing out its shading.
+        m.emissive = (m.color ? m.color.clone() : new THREE.Color(0xffffff))
+        m.emissiveIntensity = 0.55
+        m.toneMapped = false
+        mesh.material = m
+      }
+    })
+    return c
+  }, [scene, url])
   return <primitive object={cloned} scale={scale} />
 }
