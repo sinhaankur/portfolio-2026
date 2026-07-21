@@ -23,10 +23,35 @@
 import { useRef, useMemo } from "react"
 import { useFrame } from "@react-three/fiber"
 import { Clone, useGLTF } from "@react-three/drei"
-import { BufferAttribute, BufferGeometry, Object3D, Points } from "three"
+import { AdditiveBlending, BufferAttribute, BufferGeometry, Color, NormalBlending, Object3D, Points, ShaderMaterial } from "three"
 
 import { _tmpAxis } from "./scene-shared"
 import type { HoverHandler } from "./types"
+
+// Round, feathered belt dust — the default pointsMaterial draws HARD SQUARES
+// (the "square/blob" specks). This shader discards to a soft circle so the belt
+// reads as clean dust, not a scatter of squares.
+const BELT_VERT = /* glsl */ `
+  uniform float uSize;
+  uniform float uPixelRatio;
+  void main() {
+    vec4 mv = modelViewMatrix * vec4(position, 1.0);
+    gl_Position = projectionMatrix * mv;
+    gl_PointSize = clamp(uSize * uPixelRatio * (1.0 / -mv.z), 0.6 * uPixelRatio, 3.0 * uPixelRatio);
+  }
+`
+const BELT_FRAG = /* glsl */ `
+  precision mediump float;
+  uniform vec3 uColor;
+  uniform float uOpacity;
+  void main() {
+    vec2 c = gl_PointCoord - 0.5;
+    float d = length(c);
+    if (d > 0.5) discard;                       // round, never square
+    float a = (1.0 - smoothstep(0.15, 0.5, d)) * uOpacity; // soft feathered edge
+    gl_FragColor = vec4(uColor, a);
+  }
+`
 
 /* ============================================================
  * Belts (asteroid + Kuiper)
@@ -60,9 +85,13 @@ export function Belt({
   const geometry = useMemo(() => {
     const positions = new Float32Array(count * 3)
     for (let i = 0; i < count; i++) {
-      const r = innerRadius + Math.random() * (outerRadius - innerRadius)
+      // sqrt radial sampling → uniform AREAL density (pure random clumps at the
+      // inner edge). A subtle gaussian-ish vertical falloff so the belt has a soft
+      // dense mid-plane fading to thin edges, not a hard-sided slab.
+      const t = Math.random()
+      const r = Math.sqrt(innerRadius * innerRadius + t * (outerRadius * outerRadius - innerRadius * innerRadius))
       const angle = Math.random() * Math.PI * 2
-      const y = (Math.random() - 0.5) * thickness
+      const y = ((Math.random() + Math.random() + Math.random()) / 3 - 0.5) * thickness
       positions[i * 3] = Math.cos(angle) * r
       positions[i * 3 + 1] = y
       positions[i * 3 + 2] = Math.sin(angle) * r
@@ -71,6 +100,21 @@ export function Belt({
     geo.setAttribute("position", new BufferAttribute(positions, 3))
     return geo
   }, [innerRadius, outerRadius, count, thickness])
+
+  // Round, feathered dust material (replaces the square pointsMaterial).
+  const material = useMemo(() => new ShaderMaterial({
+    vertexShader: BELT_VERT,
+    fragmentShader: BELT_FRAG,
+    uniforms: {
+      uSize: { value: Math.max(60, pointSize * 900) },
+      uPixelRatio: { value: typeof window !== "undefined" ? Math.min(window.devicePixelRatio, 2) : 1 },
+      uColor: { value: new Color(invert ? "#3a2c14" : "#cfcabf") },
+      uOpacity: { value: opacity },
+    },
+    transparent: true,
+    depthWrite: false,
+    blending: invert ? NormalBlending : AdditiveBlending,
+  }), [pointSize, opacity, invert])
 
   useFrame((_, delta) => {
     if (ref.current) ref.current.rotation.y += delta * rotationSpeed
@@ -81,17 +125,7 @@ export function Belt({
 
   return (
     <group>
-      <points ref={ref} geometry={geometry}>
-        <pointsMaterial
-          size={pointSize}
-          sizeAttenuation
-          // Ink dust on cream; pale grey on ink — same role, opposite end of the value scale.
-          color={invert ? "#1a1208" : "#bcbcbc"}
-          depthWrite={false}
-          transparent
-          opacity={opacity}
-        />
-      </points>
+      <points ref={ref} geometry={geometry} material={material} />
       <mesh
         rotation={[Math.PI / 2, 0, 0]}
         onPointerOver={(e) => {
