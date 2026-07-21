@@ -232,16 +232,18 @@ export function CelestialExplorer() {
     } catch { /* no window */ }
   }, [])
 
-  // AUTO-DESCEND: when you zoom the engine Earth right down to its surface, the
-  // engine fires `universe:earth-descend` — hand off to the Google photoreal
-  // 3D-tiles Earth for the real high-res streets view (the static texture goes soft
-  // this close). Only if the key is present; guarded so it doesn't re-fire.
+  // DEEP-ZOOM PROMPT: when you zoom the engine Earth down to its surface, the engine
+  // fires `universe:earth-descend`. We DON'T auto-launch the Google view (that
+  // streams PAID 3D tiles — Ankur: "make sure google credit isn't used up much").
+  // Instead we show a one-tap prompt, so the paid session only starts on explicit
+  // intent. Dismissible; re-shows only after you pull back and dive again.
+  const [descendPrompt, setDescendPrompt] = useState(false)
   useEffect(() => {
     if (!hasGoogleEarthKey) return
-    const onDescend = () => setEarthView((v) => (v ? v : true))
+    const onDescend = () => setDescendPrompt((p) => (earthView ? p : true))
     window.addEventListener("universe:earth-descend", onDescend)
     return () => window.removeEventListener("universe:earth-descend", onDescend)
-  }, [])
+  }, [earthView])
 
   // `?simyear=YYYY` jumps the sim clock to that year — testing the launch-gating
   // of satellites (they should vanish before their real launch date).
@@ -734,6 +736,30 @@ export function CelestialExplorer() {
           </>
         )}
       </main>
+
+      {/* Deep-zoom prompt — one tap to launch the (paid) Google photoreal Earth.
+          Shown only when you dive to the surface; no silent auto-launch, so credit
+          is spent only on intent. */}
+      {descendPrompt && !earthView && (
+        <div className="absolute bottom-28 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 rounded-full border border-accent/50 bg-background/90 backdrop-blur-md px-2 py-1.5 shadow-[0_16px_48px_-20px_rgba(0,0,0,0.7)]">
+          <button
+            type="button"
+            onClick={() => { setDescendPrompt(false); setEarthView(true) }}
+            data-cursor-hover
+            className="inline-flex items-center gap-1.5 rounded-full bg-accent px-3 py-1.5 font-mono text-[10px] tracking-wider uppercase text-background hover:bg-accent/90 transition-colors"
+          >
+            <Globe className="h-3 w-3" /> Descend to street level
+          </button>
+          <button
+            type="button"
+            onClick={() => setDescendPrompt(false)}
+            aria-label="Dismiss"
+            className="grid h-6 w-6 place-items-center rounded-full text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <X className="h-3 w-3" />
+          </button>
+        </div>
+      )}
 
       {/* Photoreal Earth overlay — mounts (and starts streaming tiles) only after
           the click above; unmounts fully on exit so tiles stop. */}

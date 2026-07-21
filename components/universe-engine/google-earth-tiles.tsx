@@ -48,7 +48,7 @@ const MIN_ZOOM_METERS = 600
 const MAX_ZOOM_METERS = 25_000_000
 // Auto-close the photoreal view after this long, so an idle open tab can't keep
 // streaming tiles (and billing) indefinitely.
-const SESSION_LIMIT_MS = 3 * 60 * 1000 // 3 minutes
+const SESSION_LIMIT_MS = 90 * 1000 // 90s — shorter cap to protect Google 3D-Tiles credit
 
 type Props = {
   /** Close the photoreal view + return to the GLSL space engine. */
@@ -77,6 +77,20 @@ export function GoogleEarthView({ onClose }: Props) {
       }
     }, 1000)
     return () => window.clearInterval(id)
+  }, [onClose])
+
+  // Close the view the moment the tab is hidden — a backgrounded tab must NOT keep
+  // streaming paid tiles (protects Google credit if you switch away or lock the
+  // screen without closing it).
+  useEffect(() => {
+    const onHidden = () => {
+      if (document.visibilityState === "hidden" && !closedRef.current) {
+        closedRef.current = true
+        onClose()
+      }
+    }
+    document.addEventListener("visibilitychange", onHidden)
+    return () => document.removeEventListener("visibilitychange", onHidden)
   }, [onClose])
 
   if (!hasGoogleEarthKey) return null
