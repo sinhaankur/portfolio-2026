@@ -419,9 +419,9 @@ export function surfaceTextureUrl(planet: { textureUrl?: string; hiResTextureUrl
  * restore the defaults on deselect. The Canvas/OrbitControls boot with these
  * DEFAULT_* values (index.tsx), and FlyToController reads focusDepthRef each
  * frame to apply/restore. Same module-ref pattern as scaleModeRef. */
-export const DEFAULT_CAMERA_NEAR = 0.012
+export const DEFAULT_CAMERA_NEAR = 0.004
 export const DEFAULT_CAMERA_FAR = 3000
-export const DEFAULT_MIN_DISTANCE = 0.02
+export const DEFAULT_MIN_DISTANCE = 0.006
 // `far` is optional: when a tiny craft is close-followed, pulling the FAR plane in
 // from 3000 to a few units concentrates the entire (linear) depth buffer on the
 // craft — the shader-safe way to kill z-fighting on close approaches without a

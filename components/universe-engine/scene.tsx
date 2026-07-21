@@ -135,15 +135,40 @@ const _chOff = new Vector3()
 // Remembers that WE turned auto-rotate off for a follow (vs it being off
 // by prop), so it's restored exactly when the chase ends.
 let _autoRotateSuspended = false
+// Gentle-drift scratch + a "the user is grabbing the camera" flag so the drift
+// yields to interaction and never fights a drag/zoom.
+const _driftOff = new Vector3()
+const _driftAxis = new Vector3(0, 1, 0)
+let _userGrabbing = false
+let _grabReleaseAt = 0
 
 function FlyToController({ interactive }: { interactive: boolean }) {
-  const { camera, controls } = useThree() as unknown as {
+  const { camera, controls, gl } = useThree() as unknown as {
     camera: import("three").PerspectiveCamera
     controls: OrbitControlsImpl | null
+    gl: import("three").WebGLRenderer
   }
+
+  // Track when the user is actively driving the camera, so the gentle drift
+  // yields to them and resumes a beat after they let go (no jarring snap-back).
+  useEffect(() => {
+    const el = gl.domElement
+    const grab = () => { _userGrabbing = true }
+    const release = () => { _userGrabbing = false; _grabReleaseAt = performance.now() }
+    el.addEventListener("pointerdown", grab)
+    window.addEventListener("pointerup", release)
+    el.addEventListener("wheel", () => { _userGrabbing = true; _grabReleaseAt = performance.now() }, { passive: true })
+    return () => {
+      el.removeEventListener("pointerdown", grab)
+      window.removeEventListener("pointerup", release)
+    }
+  }, [gl])
 
   useFrame((_, delta) => {
     if (!controls) return
+    // Drift is allowed only when the user isn't driving AND a ~2.5 s cool-down
+    // after their last input has elapsed (so it never snaps back on release).
+    const driftAllowed = !_userGrabbing && (!_grabReleaseAt || performance.now() - _grabReleaseAt > 2500)
 
     // Per-focus deep-zoom: tighten the near-plane + zoom floor while a tiny body
     // (a satellite) is focused so the camera can dolly up to a true-1:1 craft;
@@ -289,6 +314,14 @@ function FlyToController({ interactive }: { interactive: boolean }) {
         const targetDelta = _flyTargetVec.clone().sub(controls.target)
         controls.target.copy(_flyTargetVec)
         camera.position.add(targetDelta)
+        // Gentle life: a very slow contemplative orbit around the body so the view
+        // BREATHES instead of sitting dead-still (the celestial Earth-follow had no
+        // auto-rotate). Paused while the user drives + a cool-down after.
+        if (interactive && driftAllowed) {
+          _driftOff.copy(camera.position).sub(controls.target)
+          _driftOff.applyAxisAngle(_driftAxis, delta * 0.02) // ~0.02 rad/s = a slow drift
+          camera.position.copy(controls.target).add(_driftOff)
+        }
       }
 
       controls.update()

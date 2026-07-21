@@ -447,7 +447,7 @@ export function UniverseEngine({
         // far raised so you can pull the camera out toward the true-3D
         // solar-neighbourhood stars (NearbyStars3D, LY_SCALE 20: Alpha Cen ≈ 86,
         // Sirius ≈ 172 scene units). maxDistance (below) keeps the everyday feel.
-        camera={{ position: [SUN_OFFSET_SCENE + 4, 6, 13], fov: 50, near: 0.012, far: 3000 }}
+        camera={{ position: [SUN_OFFSET_SCENE + 4, 6, 13], fov: 50, near: 0.004, far: 3000 }}
         // Cap device-pixel-ratio: on a Retina/high-DPR display, rendering this
         // full-screen scene at 2× means ~78% more shaded pixels than 1.5× for a
         // starfield where the visual gain is negligible — a real frame-rate cost
@@ -513,7 +513,7 @@ export function UniverseEngine({
           // LEO, the Moon's surface, a comet nucleus — without near-plane
           // clipping. "Zoom till possible." far stays 1000 so the depth-buffer
           // ratio is still safe enough to avoid z-fighting on distant bodies.
-          minDistance={0.02}
+          minDistance={0.006}
           maxDistance={600}
           // Pause autoRotate while in follow mode — otherwise the
           // contemplative spin fights the user's drag and the camera
