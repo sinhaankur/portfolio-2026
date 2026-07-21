@@ -232,6 +232,17 @@ export function CelestialExplorer() {
     } catch { /* no window */ }
   }, [])
 
+  // AUTO-DESCEND: when you zoom the engine Earth right down to its surface, the
+  // engine fires `universe:earth-descend` — hand off to the Google photoreal
+  // 3D-tiles Earth for the real high-res streets view (the static texture goes soft
+  // this close). Only if the key is present; guarded so it doesn't re-fire.
+  useEffect(() => {
+    if (!hasGoogleEarthKey) return
+    const onDescend = () => setEarthView((v) => (v ? v : true))
+    window.addEventListener("universe:earth-descend", onDescend)
+    return () => window.removeEventListener("universe:earth-descend", onDescend)
+  }, [])
+
   // `?simyear=YYYY` jumps the sim clock to that year — testing the launch-gating
   // of satellites (they should vanish before their real launch date).
   // `?mars=1` auto-opens the Mars coverage map (testing + deep-link).

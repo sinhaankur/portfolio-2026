@@ -90,6 +90,10 @@ import { MoonBody } from "./moon-body"
 import { SatelliteField } from "./satellite-field"
 import { FlightField } from "./flight-field"
 
+// One-shot latch so the Google-Earth auto-descend fires once per approach (not
+// every frame while you sit at the surface); re-armed when the camera pulls back.
+let _earthDescendArmed = false
+
 /**
  * Build a ring geometry with proper radial UVs — `u` runs from 0 (inner
  * radius) to 1 (outer radius), `v` wraps 0→1 around the circumference.
@@ -809,6 +813,19 @@ export function PlanetBody({
         const dist = state.camera.position.distanceTo(_earthWorldPos)
         // Earth visualRadius ~0.05: full glow within ~0.6 units, gone by ~2.5.
         proximity = Math.max(0, Math.min(1, (2.5 - dist) / (2.5 - 0.6)))
+        // AUTO-DESCEND: when the camera drops right down to Earth's surface (the
+        // static texture goes soft this close), signal the consumer to hand off to
+        // the Google photoreal 3D-tiles Earth — the seamless satellites→planes→
+        // cities→streets descent. Fire ONCE per approach (reset when you pull back).
+        const DESCEND_DIST = 0.085          // ~just above the 0.05-radius surface
+        if (dist < DESCEND_DIST) {
+          if (!_earthDescendArmed) {
+            _earthDescendArmed = true
+            window.dispatchEvent(new CustomEvent("universe:earth-descend"))
+          }
+        } else if (dist > DESCEND_DIST * 1.6) {
+          _earthDescendArmed = false        // re-arm after pulling back out
+        }
       }
       const baseline = solarOnly && isEarth && !invert ? peakOpacity * 0.8 * proximity : 0
       const target = detailActive ? peakOpacity * Math.max(proximity, 0.35) : baseline
