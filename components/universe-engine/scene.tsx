@@ -631,7 +631,10 @@ function SolarSystem({
   // Bumped from the pre-Fresnel values because most of the sphere now
   // contributes near-zero alpha; only the silhouette edge glows.
   const coronaInnerOpacity = invert ? 0.55 : 0.50
-  const coronaOuterOpacity = invert ? 0.30 : 0.22
+  // Outer corona softened: the Fresnel rim at radius 1.05 was reading as a hard
+  // grey/tan RING around the Sun on zoom-out. Lower intensity so it's a faint
+  // diffuse halo, not a visible circle. (uPower raised below tightens it too.)
+  const coronaOuterOpacity = invert ? 0.16 : 0.13
   const pointLightIntensity = invert ? 0.5 : 3.5
 
   const coronaInnerUniforms = useMemo(
@@ -647,7 +650,7 @@ function SolarSystem({
     () => ({
       uColor: { value: new Color(invert ? "#e5a878" : "#ffffff") },
       uIntensity: { value: coronaOuterOpacity },
-      uPower: { value: 1.5 },
+      uPower: { value: 2.4 },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
