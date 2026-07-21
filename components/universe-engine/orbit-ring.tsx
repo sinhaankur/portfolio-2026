@@ -88,7 +88,10 @@ export function OrbitRing({
   // circular orbits (Pluto / Neptune most notably), and a fainter stroke
   // keeps the crossing from reading as a render collision.
   const isEccentric = eccentricity > 0.15
-  const baseOpacity = invert ? 0.42 : 0.08
+  // Whisper-faint: at 0.42 the light-theme orbit rings read as hard lines slicing
+  // across the whole view (visual noise over Earth). A much lighter stroke keeps
+  // them as delicate scaffolding you notice only when you look for it.
+  const baseOpacity = invert ? 0.16 : 0.07
   const opacity = isEccentric ? baseOpacity * 0.55 : baseOpacity
 
   return (

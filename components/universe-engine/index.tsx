@@ -596,31 +596,20 @@ export function UniverseEngine({
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-              className="absolute bottom-6 right-8 md:right-12 z-30 pointer-events-none max-w-64"
+              className="absolute bottom-6 right-8 md:right-12 z-30 pointer-events-none max-w-56"
             >
-              <div className="rounded-2xl border border-foreground/12 bg-background/70 backdrop-blur-xl px-4 py-3.5">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="font-mono text-[9px] tracking-[0.3em] uppercase text-foreground/45">Satellites</span>
-                  <span className="font-mono text-[8px] tracking-[0.24em] uppercase text-cyan-300/70">Real orbits</span>
-                </div>
-                <ul className="space-y-1.5 font-mono text-[10px] text-foreground/70">
-                  {[
-                    ["#73ff8c", "Payload · working spacecraft"],
-                    ["#ffd94d", "Rocket body · spent upper stage"],
-                    ["#ff5952", "Debris · tracked fragment"],
-                    ["#b2c7f5", "Unknown · unclassified object"],
-                  ].map(([c, label]) => (
-                    <li key={label} className="flex items-center gap-2.5">
-                      <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: c as string }} />
-                      {label}
-                    </li>
-                  ))}
-                </ul>
-                <p className="mt-3 pt-2.5 border-t border-foreground/10 font-sans text-[10px] leading-4 text-foreground/45">
-                  Click any dot to chase it. Scrub the timeline and debris
-                  slowly de-orbits — a modelled forecast, not tracking data.
-                </p>
+              {/* Minimal, lightweight note — the swarm is now a single unified
+                  veil, so a 4-colour key would be false. Just the essentials, on a
+                  near-invisible surface so it doesn't read as a boxy panel. */}
+              <div className="flex items-center gap-2.5">
+                <span className="inline-flex h-1.5 w-1.5 rounded-full" style={{ background: "#cfe0ff" }} />
+                <span className="font-mono text-[9px] tracking-[0.22em] uppercase text-foreground/55">
+                  18,600+ tracked objects · real orbits
+                </span>
               </div>
+              <p className="mt-1.5 font-sans text-[10px] leading-4 text-foreground/40 max-w-60">
+                Click any point to chase it live.
+              </p>
             </motion.div>
           )}
 
