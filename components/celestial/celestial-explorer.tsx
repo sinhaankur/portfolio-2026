@@ -15,6 +15,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { ArrowLeft, X, Rotate3d, Globe, Satellite, Sparkles, Rocket, Route, Orbit, Layers, Radio, Crosshair, Flame, Trash2, HelpCircle } from "lucide-react"
 import { CustomCursor } from "@/components/custom-cursor"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { ClearCacheButton } from "@/components/clear-cache-button"
 import { StaticStarfield } from "@/components/universe-engine/static-starfield"
 import { TimelineControl } from "@/components/universe-engine/hud"
 import { BODIES } from "@/lib/celestial-data"
@@ -396,6 +397,7 @@ export function CelestialExplorer() {
           >
             <HelpCircle className="h-4 w-4" />
           </button>
+          <ClearCacheButton />
         </div>
 
         {/* Satellite search — find + follow any of the ~18,600 real satellites.
