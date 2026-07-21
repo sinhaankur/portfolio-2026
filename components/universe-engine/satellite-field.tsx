@@ -420,6 +420,7 @@ const _sfT = new THREE.Vector3()
 const _sfUp = new THREE.Vector3()
 const _sfE = new THREE.Vector3()
 const UP_Y = new THREE.Vector3(0, 1, 0) // Earth's spin axis in scene space
+const _haloTmpQ = new THREE.Quaternion() // scratch for billboarding the locator ring
 
 // Never thin the swarm below this many visible LEO dots: in the sparse eras
 // (scrub to 1965 — a few hundred objects total) or a small filtered group,
@@ -1199,19 +1200,30 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
             const world = new THREE.Vector3()
             marker.getWorldPosition(world)
             const dist = camera.position.distanceTo(world)
-            // Keep a soft locator ring around the craft at ALL distances so you
-            // always see WHERE it is — a true-1:1 craft is sub-pixel from afar,
-            // so the ring is the reliable "here it is" cue. Fades near the end
-            // of a close approach so the real model reads on its own.
+            // The ring subtends a ~CONSTANT small angle on screen (so it's a tidy
+            // locator at any distance, never a growing blob). ring screen-size ≈
+            // dist * tan(angle); a small factor keeps it a modest ring. It FADES
+            // OUT as you close in so the real model reads on its own.
             const span = selectedSpanRef.current
-            const fade = Math.min(1, Math.max(0.35, (dist / span - 1) / 20))
-            // local scale ÷ marker's world scale so the screen size is distance-stable
+            const fade = Math.min(1, Math.max(0.0, (dist / span - 2) / 18)) // 0 up close → 1 far
             const worldScale = marker.getWorldScale(new THREE.Vector3()).x || 1
-            const haloLocal = (dist * 0.02 * fade) / worldScale
-            halo.scale.setScalar(haloLocal)
+            // Constant angular size: ~2.5% of distance, but never smaller than a
+            // few craft-spans so it always rings the craft, not sits inside it.
+            const ringWorld = Math.max(dist * 0.025, span * 2.5)
+            halo.scale.setScalar(ringWorld / worldScale)
+            // Billboard the ring to face the camera. The halo is a child of the
+            // marker (which is rotated to the craft's travel direction), so cancel
+            // the parent's world rotation, then apply the camera's — net world
+            // orientation = camera-facing, a clean circle from any angle.
+            if (marker.parent) {
+              marker.getWorldQuaternion(_haloTmpQ)
+              halo.quaternion.copy(_haloTmpQ).invert().multiply(camera.quaternion)
+            } else {
+              halo.quaternion.copy(camera.quaternion)
+            }
             const mat = halo.material as THREE.MeshBasicMaterial
-            mat.opacity = 0.55 * fade
-            halo.visible = true
+            mat.opacity = 0.5 * fade
+            halo.visible = fade > 0.02
           }
         }
         // On a NEW selection: pick the archetype, follow, recompute the orbit, and
@@ -1435,9 +1447,12 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
           locator halo marks the spot from afar and fades as the model reads. */}
       <group ref={markerRef} visible={false}>
         <SatModel url={arch.url} scale={arch.k * earthVisualRadius * SELECTED_SCALE_BOOST * selectedLift} />
+        {/* Locator RING — a thin open ring that frames the craft so you can find
+            it from afar (a true-1:1 craft is sub-pixel), NOT a filled sphere (that
+            rendered as a big solid blob swallowing the craft). Faces the camera. */}
         <mesh ref={haloRef}>
-          <sphereGeometry args={[1, 16, 16]} />
-          <meshBasicMaterial color="#ffd24a" transparent opacity={0.85} toneMapped={false} depthWrite={false} />
+          <ringGeometry args={[0.82, 1.0, 48]} />
+          <meshBasicMaterial color="#ffd24a" transparent opacity={0.5} side={THREE.DoubleSide} toneMapped={false} depthWrite={false} />
         </mesh>
         {/* Always-visible locator label on the selected object — a LeoLabs-style
             tag so you can read WHAT you're looking at without the side panel. */}
