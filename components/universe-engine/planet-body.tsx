@@ -651,7 +651,7 @@ export function PlanetBody({
   const eccentricity = planet.raw.deep?.eccentricity ?? 0
   const useEllipticalOrbit = eccentricity > 0.01
 
-  useFrame((_, delta) => {
+  useFrame((state, delta) => {
     const tw = timeWarpRef.current
     // Earth's spin is DATE-ANCHORED (GMST): its rotation is an absolute function
     // of the sim time, not a free-running increment, so the visible globe shows
@@ -798,12 +798,20 @@ export function PlanetBody({
         planet.raw.name === "Earth" ? (invert ? 0.28 : 0.48) :
         planet.raw.name === "Mars"  ? (invert ? 0.14 : 0.24) :
         0.38
-      // In the solar explorer, Earth is the permanent anchor of the view, so
-      // keep a baseline atmosphere rim always on (the thin blue limb every real
-      // Earth-from-space shot has) — not gated on hover. Elsewhere it's a
-      // deep-engagement reward.
-      const baseline = solarOnly && isEarth && !invert ? peakOpacity * 0.8 : 0
-      const target = detailActive ? peakOpacity : baseline
+      // In the solar explorer, Earth keeps a baseline atmosphere rim (the thin
+      // blue limb every real Earth-from-space shot has) — BUT it must fade out when
+      // Earth is small on screen, or the rim glow overwhelms the tiny disc and Earth
+      // reads as a fuzzy blob at the solar-overview zoom (Ankur's screenshot). Scale
+      // the baseline by Earth's camera proximity: full when close, ~0 when far.
+      let proximity = 1
+      if (solarOnly && isEarth && meshRef.current) {
+        meshRef.current.getWorldPosition(_earthWorldPos)
+        const dist = state.camera.position.distanceTo(_earthWorldPos)
+        // Earth visualRadius ~0.05: full glow within ~0.6 units, gone by ~2.5.
+        proximity = Math.max(0, Math.min(1, (2.5 - dist) / (2.5 - 0.6)))
+      }
+      const baseline = solarOnly && isEarth && !invert ? peakOpacity * 0.8 * proximity : 0
+      const target = detailActive ? peakOpacity * Math.max(proximity, 0.35) : baseline
       atmosUniforms.uOpacity.value += (target - atmosUniforms.uOpacity.value) * k
       meshRef.current?.getWorldPosition(_earthWorldPos)
       _sunWorldPos.set(SUN_OFFSET_SCENE, 0, 0)
