@@ -214,7 +214,7 @@ export function BeltAsteroids({
         model: Math.floor(rand() * BELT_ROCK_MODELS.length),
         pos: [Math.cos(a) * r, (rand() - 0.5) * thickness, Math.sin(a) * r],
         rot: [rand() * Math.PI * 2, rand() * Math.PI * 2, rand() * Math.PI * 2],
-        scale: baseScale * (0.4 + rand() * 1.3),
+        scale: baseScale * (0.5 + rand() * 0.8),
         spinAxis: [ax / len, ay / len, az / len],
         spinRate: 0.08 + rand() * 0.35,
       })

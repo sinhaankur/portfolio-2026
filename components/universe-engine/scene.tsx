@@ -777,7 +777,7 @@ function SolarSystem({
             count={mobile ? 26 : 48}
             thickness={0.12}
             rotationSpeed={0.05}
-            baseScale={0.05}
+            baseScale={0.012}
             seed={7}
           />
         </Suspense>
@@ -806,7 +806,7 @@ function SolarSystem({
             count={mobile ? 16 : 30}
             thickness={0.35}
             rotationSpeed={0.012}
-            baseScale={0.09}
+            baseScale={0.02}
             seed={42}
           />
         </Suspense>
