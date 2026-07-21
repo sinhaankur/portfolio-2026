@@ -413,7 +413,15 @@ export function PlanetBody({
     const isOuterPlanet = planet.raw.aAU > 4
     const delay = isOuterPlanet ? 500 : 0
     const baseUrl = planet.raw.textureUrl
-    const hiResUrl = surfaceTextureUrl(planet.raw) // may be the hi-res tier
+    // Decide the hi-res tier from the DATA + device tier directly — NOT from
+    // hiResTexturesRef, because that ref can flip true after this effect runs
+    // (celestial sets it on its own mount), leaving Earth stuck on the blurry 2K
+    // with no re-run to upgrade. If a planet HAS a hiResTextureUrl and we're on a
+    // desktop-tier GPU, always chase it in the background.
+    const hiResUrl =
+      deviceTierRef.current === "desktop" && planet.raw.hiResTextureUrl
+        ? planet.raw.hiResTextureUrl
+        : undefined
     if (!baseUrl && !hiResUrl) return
     let cancelled = false
     const timer = setTimeout(() => {
@@ -436,7 +444,7 @@ export function PlanetBody({
       })
     }, delay)
     return () => { cancelled = true; clearTimeout(timer) }
-  }, [texture, planet.raw.aAU, planet.raw.textureUrl])
+  }, [texture, planet.raw.aAU, planet.raw.textureUrl, planet.raw.hiResTextureUrl])
 
   // Optional night-side texture (city lights). Currently only Earth ships
   // this — drives the day/night shader below. Loaded with a small delay
@@ -444,8 +452,10 @@ export function PlanetBody({
   // desktop deep-zoom explorer it swaps to the 8K Black Marble (city lights
   // resolve into individual cities) just like the day map's hiRes tier.
   const nightTextureUrl = planet.raw.nightTextureUrl
+  // Same ref-race fix as the day map: decide from device tier + data, not the
+  // hiResTexturesRef (which can flip after this runs).
   const hiResNightUrl =
-    hiResTexturesRef.current && deviceTierRef.current === "desktop" && planet.raw.hiResNightTextureUrl
+    deviceTierRef.current === "desktop" && planet.raw.hiResNightTextureUrl
       ? planet.raw.hiResNightTextureUrl
       : undefined
   // Progressive, like the day map: load the light base night texture first (so the

@@ -245,31 +245,39 @@ function FlyToController({ interactive }: { interactive: boolean }) {
         // distance.
         const fr = follow.frame ? follow.frame() : null
         if (fr) {
-          // ORBITAL-FRAME chase (satellites): hold the camera's offset in the
-          // body's travel frame (s = sideways, up = radial out, t = forward),
-          // so "behind the craft" STAYS behind as it sweeps its orbit — a
-          // world-fixed offset drifts to a side view within seconds on a
-          // 90-minute LEO orbit. Drag/zoom still work: OrbitControls applies
-          // user input in update(), and we re-record the offset afterward.
+          // ORBITAL-FRAME chase (satellites): the camera should ride in the
+          // craft's travel frame so "behind" stays behind as it sweeps its orbit —
+          // BUT the user must still be able to zoom + drag freely. So we DON'T
+          // hard-set the camera from a stored offset (that overwrote the user's
+          // scroll each frame → "can't zoom"). Instead:
+          //   1. shift the camera by the SAME delta the target moved (preserves
+          //      the exact offset OrbitControls manages — user zoom/drag intact),
+          //   2. then re-orient that offset into the craft's rotating travel frame
+          //      so the chase framing holds around the orbit.
           _chT.set(fr.t.x, fr.t.y, fr.t.z).normalize()
           _chUp.set(fr.up.x, fr.up.y, fr.up.z)
           _chUp.addScaledVector(_chT, -_chT.dot(_chUp)).normalize()
           _chS.crossVectors(_chT, _chUp)
-          const local = follow.chaseLocal
-          if (local) {
-            camera.position
-              .copy(_flyTargetVec)
-              .addScaledVector(_chS, local.x)
-              .addScaledVector(_chUp, local.y)
-              .addScaledVector(_chT, local.z)
-          } else {
-            _chOff.copy(_flyTargetVec).sub(controls.target)
-            camera.position.add(_chOff)
-          }
-          controls.target.copy(_flyTargetVec)
-          controls.update()
+
+          // Current camera offset from the (old) target, decomposed into the
+          // PREVIOUS travel frame — its magnitude is the user's chosen distance.
           _chOff.copy(camera.position).sub(controls.target)
-          follow.chaseLocal = { x: _chOff.dot(_chS), y: _chOff.dot(_chUp), z: _chOff.dot(_chT) }
+          const prev = follow.chaseFrame
+          const lx = prev ? (_chOff.x * prev.s.x + _chOff.y * prev.s.y + _chOff.z * prev.s.z) : _chOff.dot(_chS)
+          const ly = prev ? (_chOff.x * prev.up.x + _chOff.y * prev.up.y + _chOff.z * prev.up.z) : _chOff.dot(_chUp)
+          const lz = prev ? (_chOff.x * prev.t.x + _chOff.y * prev.t.y + _chOff.z * prev.t.z) : _chOff.dot(_chT)
+
+          // Rebuild the offset in the NEW travel frame (same local components →
+          // "behind" stays behind), preserving the user's zoom distance + angle.
+          controls.target.copy(_flyTargetVec)
+          camera.position.copy(_flyTargetVec)
+            .addScaledVector(_chS, lx)
+            .addScaledVector(_chUp, ly)
+            .addScaledVector(_chT, lz)
+          // Remember this frame's basis so next frame's decompose is consistent,
+          // and let OrbitControls apply the user's zoom/drag on top.
+          follow.chaseFrame = { s: _chS.clone(), up: _chUp.clone(), t: _chT.clone() }
+          controls.update()
           return
         }
         // Planets/comets: OrbitControls preserves the user's spherical
