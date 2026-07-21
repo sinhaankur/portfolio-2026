@@ -619,22 +619,21 @@ const FRAG = /* glsl */ `
     vec2 c = gl_PointCoord - 0.5;
     float d = length(c);
     if (d > 0.5) discard;
-    // TIGHT crisp dot (LeoLabs read): a sharp small core + a very thin rim, so
-    // 18k points read as precise pinpoints — not fat additive blobs that bloom
-    // over Earth. Narrower core + lower alpha keeps the shell legible but calm.
-    float core = 1.0 - smoothstep(0.0, 0.26, d);   // crisp bright core
-    float rim  = pow(1.0 - smoothstep(0.20, 0.50, d), 1.5) * 0.35;
-    float a = clamp(core + rim, 0.0, 1.0);          // full-strength dots — every object clearly visible
-    // Whiten the core more so each dot reads as a hot, self-lit point against the
-    // void — satellites don't depend on sunlight, they're always visible.
-    vec3 col = mix(vColor, vec3(1.0), core * 0.5);
-    // Debris was dimmed to 45% and got lost as a dark speck on zoom — keep it
-    // clearly visible (it's the whole point of a debris tracker).
-    a *= vDebris > 0.5 ? 0.8 : 1.0;
+    // CLEAN & MINIMAL (Ankur: 'clean & minimal, LeoLabs-like' — the loud rainbow
+    // dots read as tacky visual noise muddying Earth). A soft round dot with a
+    // gentle falloff — no hard rim — so the 18k points form a DELICATE luminous
+    // veil that complements Earth instead of a garish crust over it.
+    float dot = 1.0 - smoothstep(0.0, 0.5, d);      // soft, feathered
+    float a = pow(dot, 1.6);
+    // ONE calm tint: pull every dot most of the way to a cool blue-white, so the
+    // shell reads as a single refined colour, not a rainbow. The object-type
+    // colour survives only as a faint undertone (a whisper of meaning, not noise).
+    vec3 CALM = vec3(0.80, 0.90, 1.0);              // soft cool white
+    vec3 col = mix(CALM, vColor, 0.18);             // 82% unified, 18% type-tint
+    a *= vDebris > 0.5 ? 0.7 : 0.9;                 // dots sit UNDER Earth's presence
     a *= vFade;   // overview LOD: LEO softens into haze when Earth is small
-    // Selection keeps the swarm BRIGHT for context (was 0.22 = nearly invisible;
-    // Ankur: "light all the satellites so it's clearly visible").
-    a *= mix(1.0, 0.6, uIsolate);
+    // Selection dims the rest to quiet context so the pick stands out.
+    a *= mix(1.0, 0.5, uIsolate);
     gl_FragColor = vec4(col, a);
   }
 `
@@ -1413,9 +1412,10 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
           blending={THREE.NormalBlending}
           uniforms={{
             uTimeDay: { value: msToJ2000Day(simTimeRef.current.simMs) },
-            // Calmer base size — crisp pinpoints, not fat blobs. (min-pixel floor
-            // in the vertex shader keeps distant sats visible.)
-            uSize: { value: 95 },
+            // Smaller pinpoints for the clean/minimal look — fat dots read as
+            // tacky blobs; a delicate veil complements Earth. (min-pixel floor in
+            // the vertex shader keeps distant sats visible.)
+            uSize: { value: 78 },
             uPixelRatio: { value: typeof window !== "undefined" ? Math.min(window.devicePixelRatio, 2) : 1 },
             uIsolate: { value: 0 },
             uGroupSel: { value: -1 },
@@ -1424,7 +1424,7 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
             uLod: { value: 1 },
             uKeepScale: { value: 1 },
             uKeepFloor: { value: 0 },
-            uMaxPx: { value: 4.5 },
+            uMaxPx: { value: 3.2 },
           }}
         />
       </points>
