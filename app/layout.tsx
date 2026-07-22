@@ -20,6 +20,13 @@ import "./globals.css"
 // Tags themselves (GA4 config, custom events) are configured in the GTM UI.
 const GTM_ID = "GTM-N6T2NFT3"
 
+// Cloudflare Web Analytics — edge-measured, cookie-free page views + Core Web
+// Vitals (real load-speed = SEO ranking data). Complements the GTM/GA4 setup:
+// it counts visitors even if they block GTM, and captures Web Vitals GTM doesn't.
+// Token comes from Cloudflare → Web Analytics (a public site-token, safe to
+// ship). Set NEXT_PUBLIC_CF_ANALYTICS_TOKEN to enable; empty = beacon omitted.
+const CF_ANALYTICS_TOKEN = process.env.NEXT_PUBLIC_CF_ANALYTICS_TOKEN ?? ""
+
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
@@ -242,6 +249,16 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
 })(window,document,'script','dataLayer','${GTM_ID}');`}
         </Script>
+        {/* Cloudflare Web Analytics beacon — loads after interactive so it
+            never blocks paint. Only emitted when the site-token is provided. */}
+        {CF_ANALYTICS_TOKEN && (
+          <Script
+            id="cf-web-analytics"
+            strategy="afterInteractive"
+            src="https://static.cloudflareinsights.com/beacon.min.js"
+            data-cf-beacon={`{"token": "${CF_ANALYTICS_TOKEN}"}`}
+          />
+        )}
         <Script id="pwa-sw-register" strategy="afterInteractive">
           {`if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {

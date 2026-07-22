@@ -103,6 +103,10 @@ jobs:
           # NASA API key (NeoWs asteroids + DONKI). Free/read-only/rate-limited;
           # ships in the bundle. Falls back to DEMO_KEY in code if the secret is unset.
           NEXT_PUBLIC_NASA_KEY: ${{ secrets.NEXT_PUBLIC_NASA_KEY }}
+          # Cloudflare Web Analytics site-token (public, safe in the bundle).
+          # Enables edge-measured page views + Core Web Vitals. If unset, the
+          # beacon is simply omitted — no error.
+          NEXT_PUBLIC_CF_ANALYTICS_TOKEN: ${{ secrets.NEXT_PUBLIC_CF_ANALYTICS_TOKEN }}
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
