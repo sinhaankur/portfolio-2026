@@ -54,6 +54,7 @@ import {
   surfaceTextureUrl,
   hiResTexturesRef,
   deviceTierRef,
+  focusDepthRef,
   meanAnomalyAt,
   earthRotationAngle,
   requestFollow,
@@ -371,6 +372,15 @@ export function PlanetBody({
           const sunward = new Vector3(SUN_OFFSET_SCENE, 0, 0).sub(earthW).normalize()
           const side = new Vector3().crossVectors(sunward, new Vector3(0, 1, 0)).normalize()
           approachDir = sunward.addScaledVector(side, 0.55).add(new Vector3(0, 0.28, 0)).normalize()
+        }
+        // Let the camera actually DOLLY UP to the planet's surface: without a
+        // per-focus depth override the global minDistance (0.006) + near-plane
+        // frame the planet but zoom-IN stalls / clips before you reach the surface.
+        // Set near + minDistance relative to THIS planet's radius so you can
+        // approach it (like the satellite deep-zoom does). Cleared on Reset.
+        focusDepthRef.current = {
+          near: Math.max(planet.visualRadius * 0.02, 0.002),
+          minDistance: planet.visualRadius * 1.05, // just above the surface
         }
         requestFollow(
           () => {

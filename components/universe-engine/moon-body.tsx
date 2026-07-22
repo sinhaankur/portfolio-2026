@@ -42,6 +42,7 @@ import {
   SUN_OFFSET_SCENE,
   meanAnomalyAt,
   requestFollow,
+  focusDepthRef,
   simTimeRef,
   satellitesVisibleRef,
   surfaceTextureUrl,
@@ -221,7 +222,10 @@ export function MoonBody({
         />
       </mesh>
       <mesh ref={bodyRef} position={[moon.orbitRadius, 0, 0]}>
-        <sphereGeometry args={[moon.visualRadius, 24, 24]} />
+        {/* 64 segments (was 24): at close zoom the low-poly base read as a faceted
+            white BALL before/without the texture — the "ISS looks wrong" ball was
+            actually the Moon rendering low-poly. Smooth now at any zoom. */}
+        <sphereGeometry args={[moon.visualRadius, 64, 64]} />
         <meshStandardMaterial color={moon.shade} roughness={0.95} />
         {/* Textured-globe overlay — currently only Luna ships a real surface
             map. Uses the day/night shader so the moon shows real lunar
@@ -303,6 +307,11 @@ export function MoonBody({
                 e.stopPropagation()
                 const followDistance = Math.max(moon.visualRadius * 3.2, 0.09)
                 const obj = e.object
+                // Let the camera dolly to the moon's surface (same as planets).
+                focusDepthRef.current = {
+                  near: Math.max(moon.visualRadius * 0.02, 0.002),
+                  minDistance: moon.visualRadius * 1.05,
+                }
                 requestFollow(
                   () => {
                     const v = new Vector3()
@@ -321,6 +330,11 @@ export function MoonBody({
                 e.stopPropagation()
                 const followDistance = Math.max(moon.visualRadius * 3.2, 0.09)
                 const obj = e.object
+                // Let the camera dolly to the moon's surface (same as planets).
+                focusDepthRef.current = {
+                  near: Math.max(moon.visualRadius * 0.02, 0.002),
+                  minDistance: moon.visualRadius * 1.05,
+                }
                 requestFollow(
                   () => {
                     const v = new Vector3()
