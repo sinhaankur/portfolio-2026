@@ -534,7 +534,11 @@ export function UniverseEngine({
           {/* Corner info panel — desktop only. Mobile gets the bottom sheet
               instead (richer, dismissable, doesn't fight with the time-warp HUD). */}
           {!mobile && (
-            <div className="absolute bottom-44 left-8 md:bottom-52 md:left-12 z-20 pointer-events-none max-w-70">
+            // max-h + overflow so a long body description (Pluto, Earth) can
+            // never grow tall enough to reach the timeline bar / bottom chrome —
+            // overlapping panels were the recurring complaint. It scrolls inside
+            // its own bounds instead of bleeding over neighbours.
+            <div className="absolute bottom-32 left-4 md:bottom-32 md:left-6 z-20 pointer-events-none max-w-70 max-h-[min(46vh,22rem)] overflow-y-auto overscroll-contain">
               <InfoPanel info={hovered} hideIdle={solarOnly} />
             </div>
           )}
@@ -555,7 +559,7 @@ export function UniverseEngine({
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-              className="absolute bottom-6 left-8 md:left-12 z-30 pointer-events-none max-w-72"
+              className="absolute bottom-6 left-4 md:left-6 z-30 pointer-events-none max-w-72"
             >
               <div className="rounded-2xl border border-foreground/12 bg-background/70 backdrop-blur-xl px-4 py-3.5">
                 <div className="flex items-center justify-between mb-3">
@@ -596,7 +600,7 @@ export function UniverseEngine({
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-              className="absolute bottom-6 right-8 md:right-12 z-30 pointer-events-none max-w-56"
+              className="absolute bottom-6 right-4 md:right-6 z-30 pointer-events-none max-w-56"
             >
               {/* Minimal, lightweight note — the swarm is now a single unified
                   veil, so a 4-colour key would be false. Just the essentials, on a
@@ -614,8 +618,8 @@ export function UniverseEngine({
           )}
 
           {showDeepDive && mobile && (
-            // bottom-44 keeps it clear of the bottom-20 timeline bar on phones.
-            <div className="absolute bottom-44 left-4 right-4 z-30 pointer-events-none">
+            // bottom-32 (Level-1 ladder) keeps it clear of the timeline bar.
+            <div className="absolute bottom-32 left-4 right-4 z-30 pointer-events-none">
               <div className="mx-auto max-w-md rounded-full border border-foreground/12 bg-background/78 px-4 py-2.5 backdrop-blur-xl shadow-[0_10px_30px_rgba(0,0,0,0.18)]">
                 <div className="flex items-center gap-2.5">
                   <span className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-cyan-300/40 bg-cyan-300/10 text-[8px] text-cyan-200">
@@ -716,7 +720,7 @@ export function UniverseEngine({
             // (bg-background/60 · backdrop-blur-md · foreground/25 border) so the
             // Following banner reads as part of the same control system, not a
             // second, differently-styled widget.
-            <div className="absolute bottom-44 left-6 md:bottom-32 md:left-12 z-30 pointer-events-auto flex flex-col items-start gap-1">
+            <div className="absolute bottom-32 left-4 md:bottom-32 md:left-6 z-30 pointer-events-auto flex flex-col items-start gap-1">
               <button
                 type="button"
                 onClick={stopFollowing}
