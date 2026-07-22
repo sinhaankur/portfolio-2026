@@ -1,15 +1,14 @@
 import type { Metadata } from "next"
-import { canonicalPath } from "@/lib/seo"
 
-// Legacy route — the game now lives at /lab/helion-drift (this page re-exports
-// the same experience), so the canonical points there to avoid a duplicate.
+// Legacy alias — the game now lives at /lab/helion-drift. This route is kept
+// only as a redirect so old links/bookmarks don't 404; noindex + canonical so
+// search engines don't treat it as a duplicate and consolidate on the real URL.
 export const metadata: Metadata = {
-  ...canonicalPath("/lab/helion-drift"),
-  title: "Helion Drift — a space defender game in the browser",
-  description:
-    "A playable space defender built on a hand-rolled R3F game engine: procedural enemy ships, Blender-modelled asteroids, and the Universe Engine's real solar system as the battlefield. Runs entirely in the browser.",
+  title: "Helion Drift",
+  robots: { index: false, follow: true },
+  alternates: { canonical: "/lab/helion-drift/" },
 }
 
-export default function StarCleaverLayout({ children }: { children: React.ReactNode }) {
+export default function StarCleaverRedirectLayout({ children }: { children: React.ReactNode }) {
   return children
 }
