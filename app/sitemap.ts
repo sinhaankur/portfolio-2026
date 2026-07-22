@@ -28,6 +28,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/works/rage",        priority: 0.8, changeFrequency: "monthly" },
     { path: "/lab/celestial",     priority: 0.7, changeFrequency: "monthly" },
     { path: "/lab/big-bang",      priority: 0.7, changeFrequency: "monthly" },
+    { path: "/lab/brainrot",      priority: 0.6, changeFrequency: "monthly" },
     { path: "/lab/usability-engine", priority: 0.7, changeFrequency: "monthly" },
     { path: "/lab/optical-flow",  priority: 0.7, changeFrequency: "monthly" },
     { path: "/lab/helion-drift",  priority: 0.6, changeFrequency: "monthly" },
