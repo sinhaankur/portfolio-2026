@@ -44,9 +44,9 @@ export function TvShell() {
         kind: "route",
       },
       {
-        label: "Open Universe Assistant",
-        description: "Use natural language to steer the engine.",
-        href: "/lab/universe-assistant",
+        label: "Open the Satellite Engine",
+        description: "Explore the sky — with a built-in AI copilot to steer it in plain language.",
+        href: "/lab/celestial",
         kind: "route",
       },
     ],
