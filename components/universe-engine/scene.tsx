@@ -959,6 +959,10 @@ function SkyPointMesh({
   interactive?: boolean
 }) {
   const [hovered, setHovered] = useState(false)
+  // Clusters also RESOLVE when the camera gets close — so their member stars
+  // "directly show up" as you approach, not only on hover. Proximity-driven,
+  // updated in the useFrame below; combined into detailActive.
+  const [near, setNear] = useState(false)
   const camera = useThree((s) => s.camera)
   const starHaloMatRef = useRef<import("three").MeshBasicMaterial>(null)
   const starCoreMatRef = useRef<import("three").MeshBasicMaterial>(null)
@@ -1012,7 +1016,9 @@ function SkyPointMesh({
     window.addEventListener("universe:sky-focus", onSkyFocus)
     return () => window.removeEventListener("universe:sky-focus", onSkyFocus)
   }, [point.id, point.raHours, point.decDeg, point.distance, point.kind, point.visualSize, point.name])
-  const detailActive = hovered || focused
+  // Resolve the cluster on hover, on focus, OR when the camera is near enough —
+  // so member stars show up directly as you fly toward them.
+  const detailActive = hovered || focused || near
   // Real DEPTH: place each deep-sky object at a radius that grows with its true
   // distance (log-compressed), instead of pinning everything to the flat shell —
   // so nearer nebulae sit in front of farther galaxies and the whole field
@@ -1070,6 +1076,21 @@ function SkyPointMesh({
     // underneath its own resolved stars. Eased, not switched.
     if (point.kind === "cluster" || galaxyResolves) {
       if (invert) return
+      // Proximity resolve: when the camera comes within a few object-sizes of a
+      // cluster, flip `near` on so its member stars resolve without a hover.
+      // Hysteresis (enter closer than it exits) so it doesn't flicker at the
+      // boundary. Threshold scales with the object's own size + depth.
+      if (point.kind === "cluster") {
+        // position is a [x,y,z] tuple — manual distance (no Vector3 alloc).
+        const cx = camera.position.x - position[0]
+        const cy = camera.position.y - position[1]
+        const cz = camera.position.z - position[2]
+        const dist = Math.sqrt(cx * cx + cy * cy + cz * cz)
+        const enter = Math.max(visualSize * 9, 26)
+        const exit = enter * 1.5
+        if (!near && dist < enter) setNear(true)
+        else if (near && dist > exit) setNear(false)
+      }
       const k = 1 - Math.exp(-delta * 5)
       const coreMat = starCoreMatRef.current
       if (coreMat) {
