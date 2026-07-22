@@ -702,10 +702,13 @@ function NamedBodyMesh({
           //   9. Anti-tail — for Tsuchinshan–ATLAS only — short sunward
           //      spike, fades in near perihelion.
           <>
-            {/* 1. Nucleus — irregular, dark, tumbling. */}
+            {/* 1. Nucleus — irregular, dark, tumbling. Subdiv 1 (was 0): a subdiv-0
+                icosahedron is only 8 faces = a chunky angular block at close zoom;
+                subdiv 1 keeps the irregular "lump of rock" read but reads as a real
+                nucleus, not a low-poly shard. */}
             <mesh ref={nucleusRef}>
-              <icosahedronGeometry args={[config.visualRadius * 0.42, 0]} />
-              <meshBasicMaterial color={invert ? "#0a0a14" : "#6a6258"} />
+              <icosahedronGeometry args={[config.visualRadius * 0.42, 1]} />
+              <meshStandardMaterial color={invert ? "#0a0a14" : "#5a534a"} roughness={0.95} flatShading />
             </mesh>
 
             {/* 2. Inner coma — C2/CN green close to the nucleus.
@@ -889,7 +892,10 @@ function NamedBodyMesh({
           </>
         ) : (
           <mesh>
-            <sphereGeometry args={[config.visualRadius, 16, 16]} />
+            {/* 48 segments (was 16): dwarf planets + asteroids are CLICKABLE and
+                zoomable, so a 16-seg sphere read as a faceted ball at close zoom.
+                Smooth now. */}
+            <sphereGeometry args={[config.visualRadius, 48, 48]} />
             <meshStandardMaterial
               color={config.shade}
               emissive={config.shade}

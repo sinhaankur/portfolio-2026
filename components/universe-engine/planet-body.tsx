@@ -884,7 +884,10 @@ export function PlanetBody({
         <group ref={positionRef} position={[planet.orbitRadius, 0, 0]}>
           <group rotation={[planet.axialTilt, 0, 0]}>
             <mesh ref={meshRef}>
-              <sphereGeometry args={[planet.visualRadius, 48, 48]} />
+              {/* 64 segs (was 48): the base grey sphere shows under/before the
+                  texture; now that you can dolly to the surface, 48 faceted on the
+                  limb before the texture landed. */}
+              <sphereGeometry args={[planet.visualRadius, 64, 64]} />
               <meshStandardMaterial
                 // Planet shades read fine on either theme — pale greys catch
                 // both ink-and-cream and white-on-black light without changes.
