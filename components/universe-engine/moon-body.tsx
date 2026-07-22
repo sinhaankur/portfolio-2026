@@ -155,6 +155,35 @@ export function MoonBody({
     })
   }, [textureUrl, texture])
 
+  // Make the moon addressable on the sky-focus channel (moon:<name>), so the
+  // "Jump to" menu + assistant can FLY here — the "travel anywhere in a pinch"
+  // goal. Mirrors the click handler: follow the live world position so it stays
+  // framed as it orbits its planet (which is itself orbiting the Sun).
+  useEffect(() => {
+    if (!interactive) return
+    const onFocus = (e: Event) => {
+      const id = (e as CustomEvent<{ pointId?: string | null }>).detail?.pointId
+      if (id !== `moon:${moon.name}`) return
+      const obj = bodyRef.current
+      if (!obj) return
+      focusDepthRef.current = {
+        near: Math.max(moon.visualRadius * 0.02, 0.002),
+        minDistance: moon.visualRadius * 1.05,
+      }
+      requestFollow(
+        () => {
+          const v = new Vector3()
+          obj.getWorldPosition(v)
+          return { x: v.x, y: v.y, z: v.z }
+        },
+        Math.max(moon.visualRadius * 3.2, 0.09),
+        moon.name,
+      )
+    }
+    window.addEventListener("universe:sky-focus", onFocus)
+    return () => window.removeEventListener("universe:sky-focus", onFocus)
+  }, [interactive, moon.name, moon.visualRadius])
+
   useFrame((_, delta) => {
     // Date-driven so moons stay in lockstep with the scrubbable clock.
     if (orbitRef.current) {

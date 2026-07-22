@@ -1071,6 +1071,18 @@ const JUMP_DESTINATIONS: { section: string; items: { label: string; pointId: str
     ],
   },
   {
+    section: "Moons",
+    items: [
+      { label: "Luna", pointId: "moon:Moon (Luna)" },
+      { label: "Io", pointId: "moon:Io" },
+      { label: "Europa", pointId: "moon:Europa" },
+      { label: "Ganymede", pointId: "moon:Ganymede" },
+      { label: "Titan", pointId: "moon:Titan" },
+      { label: "Enceladus", pointId: "moon:Enceladus" },
+      { label: "Triton", pointId: "moon:Triton" },
+    ],
+  },
+  {
     section: "Comets & small bodies",
     items: [
       { label: "Halley's Comet", pointId: "named:Halley's Comet" },
