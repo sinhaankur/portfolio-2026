@@ -73,7 +73,10 @@ App-router routes under [`app/`](./app):
   "Usability" navbar tab was removed 2026-07 (it duplicated the Lab's presence);
   the live engine is still reachable from `/lab/usability-engine`.
 - `/upcoming` — roadmap.
-- (`/universe-engine/math` was **removed** 2026-07 as an orphan — don't re-create it.)
+- `/universe-engine/math` — **"The Math Behind the Universe Engine"**: the real
+  formulas that drive the engine (J2000 epoch, mean anomaly, Kepler's equation,
+  SGP4, ECI→topocentric). A public teaching page — keep it; linked from the
+  footer ("The Math").
 - `/games/Gamelist.html` — retro neobrutalism mini-games index, served from
   `public/games/` (preserved from the previous build as a separate visual language).
 
