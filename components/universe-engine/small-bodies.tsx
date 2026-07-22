@@ -715,7 +715,7 @@ function NamedBodyMesh({
                 Real Halley and Hale-Bopp comae show this clearly through
                 a small telescope: a green core fading to cyan further out. */}
             <mesh>
-              <sphereGeometry args={[config.visualRadius * 0.85, 18, 14]} />
+              <sphereGeometry args={[config.visualRadius * 0.85, 40, 32]} />
               <meshBasicMaterial
                 ref={comaInnerMatRef as React.Ref<import("three").MeshBasicMaterial>}
                 color={invert ? "#4d8478" : "#b8ffd4"}
@@ -728,7 +728,7 @@ function NamedBodyMesh({
 
             {/* 3. Mid coma — cyan halo, the layer the eye reads as "the comet". */}
             <mesh>
-              <sphereGeometry args={[config.visualRadius * 1.55, 20, 16]} />
+              <sphereGeometry args={[config.visualRadius * 1.55, 40, 32]} />
               <meshBasicMaterial
                 ref={comaMidMatRef as React.Ref<import("three").MeshBasicMaterial>}
                 color={config.shade}
@@ -743,7 +743,7 @@ function NamedBodyMesh({
                 Suggests the immense hydrogen envelope without making
                 the comet look bloated. */}
             <mesh>
-              <sphereGeometry args={[config.visualRadius * 2.5, 20, 16]} />
+              <sphereGeometry args={[config.visualRadius * 2.5, 40, 32]} />
               <meshBasicMaterial
                 ref={comaOuterMatRef as React.Ref<import("three").MeshBasicMaterial>}
                 color={config.shade}
@@ -798,7 +798,7 @@ function NamedBodyMesh({
                     <coneGeometry args={[
                       config.visualRadius * 0.10,
                       config.visualRadius * 1.7,
-                      10, 1, true,
+                      20, 1, true,
                     ]} />
                     <shaderMaterial
                       ref={i === 0 ? jetMatRef : undefined}
@@ -823,7 +823,7 @@ function NamedBodyMesh({
                 <coneGeometry args={[
                   config.visualRadius * 0.55,
                   config.visualRadius * 14 * config.tailLengthFactor,
-                  16, 1, true,
+                  32, 1, true,
                 ]} />
                 <shaderMaterial
                   ref={tailMatRef}
@@ -848,7 +848,7 @@ function NamedBodyMesh({
                 <coneGeometry args={[
                   config.visualRadius * 0.95,
                   config.visualRadius * 16 * config.tailLengthFactor,
-                  16, 1, true,
+                  32, 1, true,
                 ]} />
                 <shaderMaterial
                   ref={dustTailMatRef}
