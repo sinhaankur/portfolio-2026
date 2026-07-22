@@ -143,6 +143,36 @@ export async function runText(opts: RunTextOptions): Promise<RunTextResult> {
       error: "No LLM provider configured. Open the LLM settings to set one up.",
     }
   }
+  if (cfg.provider === "webllm") return runViaWebLLM(cfg, opts)
   if (cfg.provider === "anthropic") return runViaAnthropic(cfg, opts)
   return runViaOpenAICompat(cfg, opts)
+}
+
+/* ------------------------------------------------------------------
+ * WebLLM path — one-shot text against the in-browser model. Falls back
+ * to an error result if WebGPU is unavailable (the caller can degrade).
+ * ------------------------------------------------------------------ */
+async function runViaWebLLM(
+  cfg: Extract<ProviderConfig, { provider: "webllm" }>,
+  opts: RunTextOptions,
+): Promise<RunTextResult> {
+  const { getWebLLMEngine, isWebGPUAvailable } = await import("@/lib/webllm-engine")
+  if (!isWebGPUAvailable()) {
+    return { ok: false, error: "WebGPU unavailable — the on-device model can't run in this browser." }
+  }
+  try {
+    const engine = await getWebLLMEngine(cfg.model)
+    const res = await engine.chat.completions.create({
+      messages: [
+        { role: "system", content: opts.system },
+        { role: "user", content: opts.prompt },
+      ],
+      temperature: opts.temperature ?? 0.3,
+      max_tokens: opts.maxTokens ?? 512,
+    })
+    const text = res.choices?.[0]?.message?.content ?? ""
+    return { ok: true, text, tokensIn: 0, tokensOut: 0 }
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) }
+  }
 }

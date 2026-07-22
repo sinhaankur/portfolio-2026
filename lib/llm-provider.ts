@@ -28,15 +28,18 @@
  * trip them to any server we control.
  */
 
-export type LLMProviderId = "anthropic" | "lmstudio" | "ollama"
+export type LLMProviderId = "webllm" | "anthropic" | "lmstudio" | "ollama"
 
 export const PROVIDER_LABELS: Record<LLMProviderId, string> = {
+  webllm: "On-device (in-browser)",
   anthropic: "Anthropic (cloud)",
   lmstudio: "LM Studio (local)",
   ollama: "Ollama (local)",
 }
 
 export const PROVIDER_DEFAULTS: Record<LLMProviderId, { baseUrl: string; model: string }> = {
+  // In-browser tiny model — no server, so baseUrl is unused; model is an MLC id.
+  webllm: { baseUrl: "", model: "Qwen2.5-0.5B-Instruct-q4f16_1-MLC" },
   anthropic: { baseUrl: "https://api.anthropic.com", model: "claude-sonnet-4-6" },
   lmstudio: { baseUrl: "http://localhost:1234/v1", model: "" },
   ollama: { baseUrl: "http://localhost:11434/v1", model: "" },
@@ -45,9 +48,13 @@ export const PROVIDER_DEFAULTS: Record<LLMProviderId, { baseUrl: string; model: 
 /**
  * Per-provider configuration the runtime needs to actually fire a
  * request. For Anthropic, the key + model. For local providers, the
- * base URL + model.
+ * base URL + model. For webllm, just the on-device model id (no network).
  */
 export type ProviderConfig =
+  | {
+      provider: "webllm"
+      model: string
+    }
   | {
       provider: "anthropic"
       apiKey: string
@@ -68,6 +75,7 @@ export type ProviderConfig =
 
 const STORAGE_KEYS = {
   provider: "assistant.provider",
+  webllmModel: "assistant.webllm-model",
   anthropicKey: "assistant.anthropic-key",
   anthropicModel: "assistant.model",
   lmstudioBaseUrl: "assistant.lmstudio-base-url",
@@ -101,8 +109,14 @@ function write(key: string, value: string | null): void {
 
 export function readActiveProvider(): LLMProviderId {
   const v = read(STORAGE_KEYS.provider)
-  if (v === "anthropic" || v === "lmstudio" || v === "ollama") return v
-  return "anthropic"
+  if (v === "webllm" || v === "anthropic" || v === "lmstudio" || v === "ollama") return v
+  // Default to the on-device model so the assistant works for everyone with no
+  // key + no setup. (Falls back to deterministic tools if WebGPU is absent.)
+  return "webllm"
+}
+
+export function readWebLLMModel(): string {
+  return read(STORAGE_KEYS.webllmModel) ?? PROVIDER_DEFAULTS.webllm.model
 }
 
 export function readAnthropicKey(): string | null {
@@ -146,6 +160,11 @@ export function readOllamaConfig(): { baseUrl: string; model: string } {
  */
 export function readActiveConfig(): ProviderConfig | null {
   const provider = readActiveProvider()
+  if (provider === "webllm") {
+    // No key/URL to validate — the model runs in the browser. WebGPU support is
+    // checked at call time (the runtime falls back to deterministic tools).
+    return { provider, model: readWebLLMModel() }
+  }
   if (provider === "anthropic") {
     const apiKey = readAnthropicKey()
     if (!apiKey) return null
@@ -162,6 +181,10 @@ export function readActiveConfig(): ProviderConfig | null {
 
 export function writeActiveProvider(p: LLMProviderId): void {
   write(STORAGE_KEYS.provider, p)
+}
+
+export function writeWebLLMModel(model: string): void {
+  write(STORAGE_KEYS.webllmModel, model)
 }
 
 export function writeAnthropicKey(key: string | null): void {
@@ -302,6 +325,14 @@ export async function detectLocalLLMProviders(): Promise<LocalProviderDetection>
 export async function validateProviderConfig(
   cfg: ProviderConfig,
 ): Promise<ValidationResult> {
+  if (cfg.provider === "webllm") {
+    // No server + no key to validate; the model runs in the browser. Just
+    // report whether the device can run it (WebGPU).
+    const { isWebGPUAvailable } = await import("@/lib/webllm-engine")
+    return isWebGPUAvailable()
+      ? { ok: true, models: [cfg.model] }
+      : { ok: false, error: "This browser has no WebGPU — the on-device model can't run here. The assistant will still answer from the catalog." }
+  }
   if (cfg.provider === "anthropic") {
     // Imported lazily so we don't pull the Anthropic SDK into pages
     // that don't need it.

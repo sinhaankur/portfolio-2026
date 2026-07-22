@@ -55,6 +55,18 @@ export async function runAssistantConversationTurn(
   options: AssistantTurnOptions,
 ): Promise<AssistantTurnResult> {
   const { config } = options
+  if (config.provider === "webllm") {
+    // In-browser tiny model — grounded + deterministic navigation, LLM phrasing.
+    const { runWebLLMTurn } = await import("@/lib/webllm-runtime")
+    return runWebLLMTurn({
+      model: config.model,
+      history: options.history,
+      signal: options.signal,
+      onTextDelta: options.onTextDelta,
+      onToolStart: options.onToolStart,
+      onToolEnd: options.onToolEnd,
+    })
+  }
   if (config.provider === "anthropic") {
     return runAssistantTurn({
       apiKey: config.apiKey,
