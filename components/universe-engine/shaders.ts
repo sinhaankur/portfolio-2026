@@ -684,3 +684,91 @@ export const ZODIACAL_FRAGMENT_SHADER = `
     gl_FragColor = vec4(col, clamp(intensity, 0.0, 1.0) * uOpacity);
   }
 `
+
+/* ============================================================
+ * Procedural dwarf-planet surface — for the far Kuiper-Belt worlds we have
+ * NO real image of (Eris, Makemake, Haumea). We do NOT invent detail and
+ * present it as fact; instead we render a plausible ICE/ROCK surface driven
+ * ONLY by each body's real, published properties (albedo, colour, ice vs
+ * tholin, a known feature spot), so the look is grounded inference — the
+ * InfoPanel labels it "surface inferred". Lit by the real Sun direction.
+ *
+ * Uniforms per body:
+ *   uBase      base surface colour (real albedo/colour)
+ *   uHi/uLo    bright ice / darker rock-tholin colours for the mottle
+ *   uSunDir    normalized world-space direction to the Sun (for Lambert)
+ *   uRough     0 = glassy ice specular, 1 = matte
+ *   uSpotCol   feature-spot colour (e.g. Haumea's Dark Red Spot)
+ *   uSpotDir   direction of the spot centre on the sphere (0 = none)
+ *   uSpotSize  angular size of the spot
+ * ============================================================ */
+export const DWARF_SURFACE_VERTEX_SHADER = `
+  varying vec3 vNormalW;
+  varying vec3 vPosL;
+  void main() {
+    vNormalW = normalize(mat3(modelMatrix) * normal);
+    vPosL = normalize(position);
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`
+export const DWARF_SURFACE_FRAGMENT_SHADER = `
+  precision highp float;
+  varying vec3 vNormalW;
+  varying vec3 vPosL;
+  uniform vec3 uBase;
+  uniform vec3 uHi;
+  uniform vec3 uLo;
+  uniform vec3 uSunDir;
+  uniform float uRough;
+  uniform vec3 uSpotCol;
+  uniform vec3 uSpotDir;
+  uniform float uSpotSize;
+  uniform float uAmbient;
+
+  // Cheap 3D value noise (same family as the Sun's shimmer) for surface mottle.
+  float hash(vec3 p){ p = fract(p*0.3183099+0.1); p*=17.0; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
+  float vnoise(vec3 p){
+    vec3 i=floor(p), f=fract(p);
+    f=f*f*(3.0-2.0*f);
+    return mix(mix(mix(hash(i+vec3(0,0,0)),hash(i+vec3(1,0,0)),f.x),
+                   mix(hash(i+vec3(0,1,0)),hash(i+vec3(1,1,0)),f.x),f.y),
+               mix(mix(hash(i+vec3(0,0,1)),hash(i+vec3(1,0,1)),f.x),
+                   mix(hash(i+vec3(0,1,1)),hash(i+vec3(1,1,1)),f.x),f.y),f.z);
+  }
+  float fbm(vec3 p){
+    float a=0.5, s=0.0;
+    for(int i=0;i<4;i++){ s+=a*vnoise(p); p*=2.03; a*=0.5; }
+    return s;
+  }
+
+  void main() {
+    vec3 n = normalize(vNormalW);
+    // Ice/rock mottle — larger swells + finer grain. Kept subtle: these worlds
+    // are near-uniform frost, not busy like a rocky moon.
+    float m = fbm(vPosL * 3.5);
+    m = m * 0.7 + fbm(vPosL * 9.0) * 0.3;
+    vec3 surf = mix(uLo, uHi, smoothstep(0.35, 0.72, m));
+    surf = mix(surf, uBase, 0.45);
+
+    // Optional feature spot (Haumea's Dark Red Spot). uSpotDir == 0 disables.
+    if (dot(uSpotDir, uSpotDir) > 0.001) {
+      float d = distance(normalize(vPosL), normalize(uSpotDir));
+      float spot = 1.0 - smoothstep(uSpotSize * 0.4, uSpotSize, d);
+      // break the rim with noise so it isn't a perfect circle
+      spot *= 0.7 + 0.3 * fbm(vPosL * 6.0);
+      surf = mix(surf, uSpotCol, spot * 0.85);
+    }
+
+    // Lambert from the real Sun direction + a little ambient so the night side
+    // isn't pure black (these are dim, distant worlds).
+    float lambert = max(0.0, dot(n, normalize(uSunDir)));
+    float lit = uAmbient + (1.0 - uAmbient) * lambert;
+
+    // Glassy specular glint for high-albedo ice (low uRough).
+    vec3 viewDir = normalize(cameraPosition - (n * 0.0)); // approx; camera-facing
+    float spec = pow(max(0.0, lambert), mix(60.0, 4.0, uRough)) * (1.0 - uRough) * 0.5;
+
+    vec3 col = surf * lit + vec3(spec);
+    gl_FragColor = vec4(col, 1.0);
+  }
+`

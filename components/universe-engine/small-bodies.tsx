@@ -61,6 +61,8 @@ import {
   COMET_TAIL_FRAGMENT_SHADER,
   COMET_ENVELOPE_VERTEX_SHADER,
   COMET_ENVELOPE_FRAGMENT_SHADER,
+  DWARF_SURFACE_VERTEX_SHADER,
+  DWARF_SURFACE_FRAGMENT_SHADER,
 } from "./shaders"
 import { SPACECRAFT_SHAPES } from "./spacecraft-shapes"
 import { getCometAffordance, getCometDynamicProfile } from "./celestial-sub-engine"
@@ -143,6 +145,35 @@ function irregularRockGeometry(
   geo.computeVertexNormals()
   _rockCache.set(key, geo)
   return geo
+}
+
+/**
+ * Procedural-surface profiles for the far Kuiper-Belt dwarfs we have NO real
+ * image of. Every value is grounded in each body's real, published properties
+ * (albedo, colour, ice vs tholin chemistry, a known feature) — this is honest
+ * inference, not invention, and the InfoPanel labels it "surface inferred".
+ *   base : real overall colour/albedo
+ *   hi/lo: bright fresh-ice / darker rock-tholin extremes for the mottle
+ *   rough: 0 = glassy high-albedo ice, 1 = matte
+ *   spot : optional feature (Haumea's Dark Red Spot), dir in body-local space
+ */
+type DwarfSurfaceProfile = {
+  base: string; hi: string; lo: string; rough: number
+  spot?: { col: string; dir: [number, number, number]; size: number }
+}
+const DWARF_SURFACES: Record<string, DwarfSurfaceProfile> = {
+  // Eris — the brightest solid body after Enceladus (albedo ~0.96): a nearly
+  // uniform pale grey-white methane-ice frost. Almost no colour, very glassy.
+  Eris: { base: "#e8ebef", hi: "#f6f8fb", lo: "#c8ccd4", rough: 0.15 },
+  // Makemake — reddish-brown: large methane-ice grains reddened by tholins.
+  // Darker + redder than Eris, matte where organics have accumulated.
+  Makemake: { base: "#b57a56", hi: "#d8b48c", lo: "#7d4a32", rough: 0.55 },
+  // Haumea — bright crystalline WATER ice (unusual for a TNO), plus the real
+  // "Dark Red Spot" (a mineral/organic-rich region) confirmed by photometry.
+  Haumea: {
+    base: "#e6e8ec", hi: "#f4f6fa", lo: "#b8bcc6", rough: 0.28,
+    spot: { col: "#7a4636", dir: [1, 0.15, 0.35], size: 0.9 },
+  },
 }
 
 /**
@@ -416,6 +447,34 @@ function NamedBodyMesh({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config.shade, invert])
 
+  // Procedural surface for the un-imaged Kuiper dwarfs (Eris/Makemake/Haumea).
+  // Grounded in each body's REAL published properties — honest inference, not
+  // invention (the InfoPanel flags it "surface inferred"). uSunDir is refreshed
+  // each frame from the body's world position (Sun is at scene origin).
+  const dwarfSurfMatRef = useRef<ShaderMaterial>(null)
+  const dwarfSurfaceMaterial = useMemo(() => {
+    if (surfaceTexture) return null  // real map wins
+    const p = DWARF_SURFACES[body.name]
+    if (!p) return null
+    const spot = p.spot
+    return new ShaderMaterial({
+      vertexShader: DWARF_SURFACE_VERTEX_SHADER,
+      fragmentShader: DWARF_SURFACE_FRAGMENT_SHADER,
+      uniforms: {
+        uBase: { value: new Color(p.base) },
+        uHi: { value: new Color(p.hi) },
+        uLo: { value: new Color(p.lo) },
+        uSunDir: { value: new Vector3(0, 0, 1) },
+        uRough: { value: p.rough },
+        uAmbient: { value: invert ? 0.6 : 0.14 },
+        uSpotCol: { value: new Color(spot?.col ?? "#000000") },
+        uSpotDir: { value: spot ? new Vector3(...spot.dir).normalize() : new Vector3(0, 0, 0) },
+        uSpotSize: { value: spot?.size ?? 0 },
+      },
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [body.name, surfaceTexture, invert])
+
   // Initialise the motion-trail ring buffer for comets / interstellars /
   // dwarfs — bodies whose motion is the headline detail. Built lazily so
   // bodies without a trail (asteroids, spacecraft using custom shapes)
@@ -627,6 +686,15 @@ function NamedBodyMesh({
       // size so the glint is a subtle halo up close, a visible point far away.
       const s = Math.max(config.visualRadius * 1.1, dist * 0.014)
       glintRef.current.scale.setScalar(s)
+    }
+
+    // Procedural dwarf surface — light it from the real Sun (scene origin), so
+    // the terminator points the right way as the body orbits. uSunDir = the
+    // body→Sun direction in world space (= -normalize(worldPos)).
+    if (dwarfSurfMatRef.current) {
+      groupRef.current.getWorldPosition(_glintPos)
+      dwarfSurfMatRef.current.uniforms.uSunDir.value
+        .copy(_glintPos).multiplyScalar(-1).normalize()
     }
 
     // Comet tail orientation — the tail group's local +y axis is rotated
@@ -1087,11 +1155,21 @@ function NamedBodyMesh({
               flatShading={false}
             />
           </mesh>
+        ) : body.kind === "dwarf" && dwarfSurfaceMaterial ? (
+          // Un-imaged Kuiper dwarf (Eris/Makemake/Haumea) — a PROCEDURAL ice/rock
+          // surface driven only by real published properties (albedo, colour,
+          // ice vs tholin, Haumea's Dark Red Spot). Honest inference, flagged
+          // "surface inferred" in the InfoPanel. Triaxially scaled so Haumea
+          // keeps its extreme 3.9-hour-spin football shape; tumbles via nucleusRef.
+          <group ref={nucleusRef as React.Ref<Group>} scale={body.triaxial ?? [1, 1, 1]}>
+            <mesh>
+              <sphereGeometry args={[config.visualRadius, 64, 64]} />
+              <primitive object={dwarfSurfaceMaterial} attach="material" ref={dwarfSurfMatRef} />
+            </mesh>
+          </group>
         ) : body.kind === "dwarf" ? (
-          // Dwarf planet with NO real map (Eris, Makemake, Haumea) — a shaded
-          // rocky world tinted to its real albedo/colour. Honest inference: we
-          // don't have a surface image, so we don't invent detail, just a
-          // properly-lit body. 64 seg so it stays smooth on close zoom.
+          // Dwarf planet with NO map + no profile — a shaded world tinted to its
+          // real albedo/colour. We don't invent detail we don't have.
           <mesh>
             <sphereGeometry args={[config.visualRadius, 64, 64]} />
             <meshStandardMaterial

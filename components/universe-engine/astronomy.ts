@@ -1633,7 +1633,7 @@ export const namedBodies: NamedBody[] = [
     argPeriDeg: 151.6,
     periodYears: 558,
     startPhase: 0.21,
-    fact: "Slightly larger than Pluto and 27% more massive — its discovery in 2005 triggered the great planetary redefinition of 2006. Its highly inclined orbit takes it from 38 AU at perihelion to 97 AU at aphelion. Largest known dwarf planet.",
+    fact: "Slightly larger than Pluto and 27% more massive — its discovery in 2005 triggered the great planetary redefinition of 2006. Its highly inclined orbit takes it from 38 AU at perihelion to 97 AU at aphelion. Largest known dwarf planet. Its near-mirror-bright methane-ice surface (albedo ~0.96) is shown here inferred from albedo + spectra — no spacecraft has ever imaged Eris.",
     visualRadius: 0.08,
   },
   {
@@ -1661,13 +1661,14 @@ export const namedBodies: NamedBody[] = [
     argPeriDeg: 295.7,
     periodYears: 309,
     startPhase: 0.62,
-    fact: "Third-largest dwarf planet, in the classical Kuiper Belt. Named for the creator god of Rapa Nui (Easter Island). Discovered Easter 2005. Surface coated in frozen methane and ethane.",
+    fact: "Third-largest dwarf planet, in the classical Kuiper Belt. Named for the creator god of Rapa Nui (Easter Island). Discovered Easter 2005. Surface coated in frozen methane and ethane. The reddish-brown tholin colour shown here is inferred from its spectrum — no spacecraft has imaged Makemake.",
     visualRadius: 0.06,
   },
   {
     name: "Haumea",
     designation: "136108 Haumea",
     kind: "dwarf",
+    triaxial: [1.95, 1.56, 1.0],  // ~2100×1680×1074 km — extreme 3.9h-spin football
     aAU: 43.13,
     eccentricity: 0.196,
     inclDeg: 28.21,
@@ -1675,7 +1676,7 @@ export const namedBodies: NamedBody[] = [
     argPeriDeg: 239.1,
     periodYears: 283,
     startPhase: 0.39,
-    fact: "Spins so fast (one rotation every 3.9 hours) that it's been pulled into an elongated football shape — roughly 2,300 km long by 1,000 km wide. The first known TNO with confirmed rings, discovered 2017. Has two small moons, Hi'iaka and Namaka.",
+    fact: "Spins so fast (one rotation every 3.9 hours) that it's been pulled into an elongated football shape — roughly 2,300 km long by 1,000 km wide. The first known TNO with confirmed rings, discovered 2017. Has two small moons, Hi'iaka and Namaka. Shown with its bright crystalline water-ice surface and the real 'Dark Red Spot' — the surface look is inferred from photometry; no spacecraft has imaged Haumea.",
     visualRadius: 0.06,
   },
   {
