@@ -46,7 +46,9 @@ import { DEG } from "./astronomy"
 // distances (sizeAttenuation × close camera) the LMC turned into white
 // blocks. One 64px canvas gradient fixes every model at once.
 let _pointSprite: Texture | null = null
-function pointSprite(): Texture {
+// Exported so any point field (comet/asteroid trails, etc.) can render ROUND dots
+// instead of raw squares — one shared 64px radial-gradient sprite for the engine.
+export function pointSprite(): Texture {
   if (_pointSprite) return _pointSprite
   const c = document.createElement("canvas")
   c.width = c.height = 64

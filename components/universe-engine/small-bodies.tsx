@@ -60,6 +60,11 @@ import {
 } from "./shaders"
 import { SPACECRAFT_SHAPES } from "./spacecraft-shapes"
 import { getCometAffordance, getCometDynamicProfile } from "./celestial-sub-engine"
+import { pointSprite } from "./galaxy"
+
+// Round sprite for the trail dots (shared with the galaxy points) — so comet /
+// asteroid trails render as soft circles, not raw squares, when you zoom in near.
+const TRAIL_SPRITE = typeof document !== "undefined" ? pointSprite() : null
 
 // Scratch vectors for orienting a comet's tail away from the Sun each frame
 // (reused, never allocated in the render loop). Comet-tail only, so they live
@@ -645,6 +650,8 @@ function NamedBodyMesh({
           size={invert ? 0.024 : 0.020}
           sizeAttenuation
           color={invert ? "#1a1208" : config.shade}
+          map={TRAIL_SPRITE ?? undefined}
+          alphaTest={0.01}
           transparent
           opacity={cometAffordance.trailIdle}
           depthWrite={false}
@@ -663,6 +670,8 @@ function NamedBodyMesh({
             size={invert ? 0.05 : 0.045}
             sizeAttenuation
             vertexColors
+            map={TRAIL_SPRITE ?? undefined}
+            alphaTest={0.01}
             transparent
             opacity={0.95}
             blending={invert ? NormalBlending : AdditiveBlending}
