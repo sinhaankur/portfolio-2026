@@ -786,10 +786,10 @@ export const DEFAULT_JOURNEY: JourneyWaypoint[] = [
     linger: 6500,
   },
   // 2. Pull in to the solar system — re-establish "we are here" after
-  // the wide galactic shot.
+  // the wide galactic shot. Focus the Sun so the framing is scale-proof
+  // (a raw target broke when SCENE_SCALE doubled — it flew to empty space).
   {
-    target: { x: SUN_OFFSET_SCENE, y: 4, z: 9 },
-    distance: 14,
+    focusPointId: "planet:Sun",
     label: "Our solar system",
     linger: 5500,
   },
@@ -800,20 +800,23 @@ export const DEFAULT_JOURNEY: JourneyWaypoint[] = [
   // fixed camera position makes the *vantage* the story — Earth
   // shows up as a single sub-pixel speck against the void.
   {
-    target: { x: SUN_OFFSET_SCENE - 0.63, y: 0, z: 2.93 },
-    cameraPos: { x: SUN_OFFSET_SCENE - 28, y: 22, z: 30 },
-    distance: 46,
+    // Earth's scene position + the distant vantage scale with SCENE_SCALE (÷3
+    // was the calibration scale). Keeps Earth a sub-pixel speck against the void
+    // — the whole point of the shot — at whatever spacing the engine is set to.
+    target: { x: SUN_OFFSET_SCENE - 0.63 * (SCENE_SCALE / 3), y: 0, z: 2.93 * (SCENE_SCALE / 3) },
+    cameraPos: { x: SUN_OFFSET_SCENE - 28 * (SCENE_SCALE / 3), y: 22 * (SCENE_SCALE / 3), z: 30 * (SCENE_SCALE / 3) },
+    distance: 46 * (SCENE_SCALE / 3),
     label: "Pale Blue Dot",
     caption:
       "Look again at that dot. That's here. That's home. That's us. On it, everyone you love, everyone you know, everyone you ever heard of, every human being who ever was, lived out their lives.",
     captionSource: "Carl Sagan · Pale Blue Dot · 1994",
     linger: 11000,
   },
-  // 4. Saturn — ~9.27 scene units from the Sun, slightly above the
-  // ecliptic so the rings catch the camera at an interesting angle.
+  // 4. Saturn — the ringed jewel. Focus-driven so it frames the planet at
+  // its real live position (scale-proof; the old hardcoded offset landed in
+  // empty space after the scale doubled).
   {
-    target: { x: SUN_OFFSET_SCENE + 9.27, y: 0.35, z: 0 },
-    distance: 2.2,
+    focusPointId: "planet:Saturn",
     label: "Saturn",
     linger: 6500,
   },
