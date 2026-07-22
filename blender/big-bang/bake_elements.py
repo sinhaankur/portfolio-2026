@@ -223,6 +223,112 @@ def render_cmb():
     render("cmb.webp", 2048, 1024)
 
 
+# ---------- 4. forming-world planet stages ----------
+# The late timeline chapters (Earth forms → oceans → life) leave the abstract
+# particle field behind and show a real WORLD taking shape. Three lit spheres,
+# each a distinct surface, rendered with a soft rim so they read as a globe
+# floating in the dark: molten proto-Earth, an ocean world, a living blue marble.
+
+def _planet_scene(build_surface, sun_dir=(-0.6, 0.4, 0.8)):
+    """A lit sphere on a transparent film, key-lit from one side so it reads as a
+    globe with a terminator. build_surface(nt, coord) returns an emission-ish
+    Principled colour for the planet skin."""
+    reset_scene()
+    # smooth high-poly sphere
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=96, ring_count=64, radius=1.0)
+    obj = bpy.context.active_object
+    bpy.ops.object.shade_smooth()
+    mat = bpy.data.materials.new("planet_mat")
+    mat.use_nodes = True
+    nt = mat.node_tree
+    nt.nodes.clear()
+    out = nt.nodes.new("ShaderNodeOutputMaterial")
+    coord = nt.nodes.new("ShaderNodeTexCoord")
+    build_surface(nt, coord, out)
+    obj.data.materials.append(mat)
+    # key light (the young Sun) — a sharp sun lamp for a clean terminator
+    lamp_data = bpy.data.lights.new("Sun", type="SUN")
+    lamp_data.energy = 4.0
+    lamp = bpy.data.objects.new("Sun", lamp_data)
+    bpy.context.collection.objects.link(lamp)
+    d = mathutils.Vector(sun_dir).normalized()
+    lamp.rotation_euler = d.to_track_quat("-Z", "Y").to_euler()
+    # a dim fill so the night side isn't pure black
+    fill = bpy.data.lights.new("Fill", type="SUN"); fill.energy = 0.25
+    fo = bpy.data.objects.new("Fill", fill); bpy.context.collection.objects.link(fo)
+    fo.rotation_euler = mathutils.Vector((0.6, -0.3, -0.8)).to_track_quat("-Z", "Y").to_euler()
+    cam_ortho(2.4)
+    return obj
+
+
+def _principled(nt, out):
+    p = nt.nodes.new("ShaderNodeBsdfPrincipled")
+    nt.links.new(p.outputs["BSDF"], out.inputs["Surface"])
+    return p
+
+
+def build_molten(nt, coord, out):
+    """Proto-Earth: a magma ocean — dark crust cracked with glowing lava veins."""
+    p = _principled(nt, out)
+    noise = nt.nodes.new("ShaderNodeTexNoise")
+    noise.inputs["Scale"].default_value = 6.0
+    noise.inputs["Detail"].default_value = 12.0
+    noise.inputs["Roughness"].default_value = 0.7
+    nt.links.new(coord.outputs["Object"], noise.inputs["Vector"])
+    # sharp veins: high-contrast the noise
+    veins = nt.nodes.new("ShaderNodeMath"); veins.operation = "POWER"; veins.inputs[1].default_value = 5.0
+    nt.links.new(noise.outputs["Fac"], veins.inputs[0])
+    ramp = nt.nodes.new("ShaderNodeValToRGB")
+    e = ramp.color_ramp.elements
+    e[0].position = 0.0; e[0].color = (0.05, 0.015, 0.01, 1)     # dark basalt crust
+    e[1].position = 1.0; e[1].color = (1.0, 0.75, 0.2, 1)        # bright molten
+    mid = ramp.color_ramp.elements.new(0.55); mid.color = (0.9, 0.2, 0.03, 1)  # red-hot lava
+    nt.links.new(veins.outputs["Value"], ramp.inputs["Fac"])
+    nt.links.new(ramp.outputs["Color"], p.inputs["Base Color"])
+    # emission so the lava actually glows
+    nt.links.new(ramp.outputs["Color"], p.inputs["Emission Color"])
+    emstr = nt.nodes.new("ShaderNodeMath"); emstr.operation = "MULTIPLY"; emstr.inputs[1].default_value = 2.6
+    nt.links.new(veins.outputs["Value"], emstr.inputs[0])
+    nt.links.new(emstr.outputs["Value"], p.inputs["Emission Strength"])
+    p.inputs["Roughness"].default_value = 0.85
+
+
+def build_ocean_world(nt, coord, out):
+    """The oceans arrive: a mostly-water world, thick storm clouds, little land."""
+    p = _principled(nt, out)
+    noise = nt.nodes.new("ShaderNodeTexNoise")
+    noise.inputs["Scale"].default_value = 3.2
+    noise.inputs["Detail"].default_value = 10.0
+    nt.links.new(coord.outputs["Object"], noise.inputs["Vector"])
+    ramp = nt.nodes.new("ShaderNodeValToRGB")
+    e = ramp.color_ramp.elements
+    e[0].position = 0.30; e[0].color = (0.02, 0.09, 0.25, 1)     # deep ocean
+    e[1].position = 0.70; e[1].color = (0.85, 0.9, 0.95, 1)      # storm cloud white
+    mid = ramp.color_ramp.elements.new(0.52); mid.color = (0.15, 0.45, 0.6, 1)  # shallow teal
+    nt.links.new(noise.outputs["Fac"], ramp.inputs["Fac"])
+    nt.links.new(ramp.outputs["Color"], p.inputs["Base Color"])
+    p.inputs["Roughness"].default_value = 0.35   # wet sheen
+
+
+def build_living_earth(nt, coord, out):
+    """The blue marble: blue oceans, green/brown continents, white clouds."""
+    p = _principled(nt, out)
+    land = nt.nodes.new("ShaderNodeTexNoise")
+    land.inputs["Scale"].default_value = 2.4
+    land.inputs["Detail"].default_value = 12.0
+    land.inputs["Roughness"].default_value = 0.6
+    nt.links.new(coord.outputs["Object"], land.inputs["Vector"])
+    ramp = nt.nodes.new("ShaderNodeValToRGB")
+    e = ramp.color_ramp.elements
+    e[0].position = 0.40; e[0].color = (0.03, 0.14, 0.38, 1)     # ocean blue
+    e[1].position = 0.66; e[1].color = (0.85, 0.88, 0.85, 1)     # cloud/ice white
+    g = ramp.color_ramp.elements.new(0.52); g.color = (0.18, 0.4, 0.13, 1)   # green land
+    b = ramp.color_ramp.elements.new(0.6); b.color = (0.45, 0.38, 0.2, 1)    # tan desert
+    nt.links.new(land.outputs["Fac"], ramp.inputs["Fac"])
+    nt.links.new(ramp.outputs["Color"], p.inputs["Base Color"])
+    p.inputs["Roughness"].default_value = 0.5
+
+
 # ---------- main ----------
 def main():
     # star
@@ -231,6 +337,10 @@ def main():
     reset_scene(); cam_ortho(2.2); emission_plane("nebula", build_nebula); render("nebula.webp", 1024, 1024)
     # cmb sky
     render_cmb()
+    # forming-world planet stages
+    _planet_scene(build_molten);       render("world-molten.webp", 768, 768)
+    _planet_scene(build_ocean_world);  render("world-ocean.webp", 768, 768)
+    _planet_scene(build_living_earth); render("world-life.webp", 768, 768)
     print("ALL BIG-BANG ELEMENTS RENDERED →", OUT)
 
 
