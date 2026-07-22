@@ -54,6 +54,7 @@ import {
   blackHoleHorizonGravityMetersPerSec2,
   buildScenePlanets,
   compressRadius,
+  SCENE_SCALE,
   cancelFollow,
   flyToRef,
   followRef,
@@ -270,7 +271,12 @@ function FlyToController({ interactive }: { interactive: boolean }) {
           follow.flyElapsed = 0
         }
         follow.flyElapsed = (follow.flyElapsed ?? 0) + delta
-        const FLY_DURATION = 1.15 // seconds — the cinematic arrival pacing
+        // Distance-aware pacing: short hops stay snappy (~1.15 s floor), but a
+        // long crossing of the (now 2× larger) system stretches so it reads as
+        // a RIDE across real distance, not a teleport — capped at 2.6 s so it
+        // never drags. Span = how far the camera actually travels this fly.
+        const flySpan = Math.abs((follow.flyStartDist ?? currentDist) - follow.distance)
+        const FLY_DURATION = Math.min(2.6, 1.15 + flySpan * 0.02)
         const t = Math.min(1, follow.flyElapsed / FLY_DURATION)
         // smootherstep (6t⁵−15t⁴+10t³): zero velocity AND acceleration at both
         // ends — the signature "eased" camera move.
@@ -490,7 +496,10 @@ function SceneClock() {
 function ZodiacalLight({ invert }: { invert: boolean }) {
   const meshRef = useRef<Mesh>(null)
   const matRef = useRef<ShaderMaterial>(null)
-  const RADIUS = 13 // scene units — covers the inner + giant planets
+  // Scales with SCENE_SCALE so the dust disc always reaches the giant planets
+  // (was a fixed 13, calibrated at scale 3 — after the 2× space bump Jupiter/
+  // Saturn fell OUTSIDE it). 4.3×scale ≈ out to Saturn's orbit at any scale.
+  const RADIUS = SCENE_SCALE * 4.3 // scene units — covers the inner + giant planets
   const _localCam = useMemo(() => new Vector3(), [])
   const uniforms = useMemo(
     () => ({
@@ -744,7 +753,11 @@ function SolarSystem({
         <sphereGeometry args={[0.9, 32, 32]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
-      <pointLight position={[0, 0, 0]} intensity={pointLightIntensity} distance={60} color="#ffffff" decay={1.3} />
+      {/* Sunlight reach scales with SCENE_SCALE so every planet stays lit no
+          matter the spacing — distance 20×scale reaches past the Kuiper belt
+          (was a fixed 60 that went dark on the outer planets after the 2× space
+          bump). Keeps the engine consistent when the scale changes. */}
+      <pointLight position={[0, 0, 0]} intensity={pointLightIntensity} distance={SCENE_SCALE * 20} color="#ffffff" decay={1.3} />
 
       {/* Zodiacal light — faint sunlit-dust glow in the ecliptic plane, so the
           space between the planets reads as a real dust disc, not black void.
