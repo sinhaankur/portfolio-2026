@@ -19,8 +19,9 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { constellations, planetsData } from "./astronomy"
+import { constellations, planetsData, namedBodies } from "./astronomy"
 import type { Constellation, ConstellationId, Planet } from "./types"
+import { cometSighting } from "@/lib/comet-visibility"
 import {
   altitudeBand,
   centroidRaDec,
@@ -39,7 +40,7 @@ import {
   type TwilightPhase,
 } from "@/lib/sky-position"
 
-type SkyKind = "moon" | "planet" | "constellation"
+type SkyKind = "moon" | "planet" | "constellation" | "comet"
 
 interface SkyRow {
   id: string
@@ -54,6 +55,14 @@ interface SkyRow {
   band: ReturnType<typeof altitudeBand>
   /** Present only on the Moon row — its live phase. */
   moon?: MoonPhase
+  /** Present only on comet rows — the pass/visibility detail. */
+  comet?: {
+    daysToPerihelion: number | null
+    nextPerihelion: Date | null
+    estMag: number
+    brightEnough: boolean
+    visibleNow: boolean
+  }
 }
 
 /** Earth's elements — the observer's own orbit, differenced against each
@@ -205,7 +214,43 @@ export function TonightSky() {
       toRow(`const:${c.id}`, "constellation", c.name, c.designation, c.fact, coord),
     )
 
-    const out = [moonRow, ...planetRows, ...constRows]
+    // Comets — the "which comet passes, when, from here" layer. Each periodic
+    // comet gets its live geocentric RA/Dec + next-perihelion date + a bright/
+    // faint estimate. We keep a comet row if it's UP NOW or its next pass is
+    // within ~3 years (the "coming attractions"); the rest are perpetually
+    // faint + far, not worth a line. Real geometry, estimate flagged as such.
+    const cometRows: SkyRow[] = []
+    for (const b of namedBodies) {
+      const s = cometSighting(b, observer, now)
+      if (!s) continue
+      const soon = s.daysToPerihelion != null && s.daysToPerihelion >= 0 && s.daysToPerihelion <= 365 * 3
+      if (!s.visibleNow && !soon) continue
+      const perilbl = s.daysToPerihelion == null ? "" :
+        s.daysToPerihelion === 0 ? "at perihelion now" :
+        s.daysToPerihelion < 365 ? `perihelion in ${s.daysToPerihelion} days` :
+        `perihelion in ${(s.daysToPerihelion / 365).toFixed(1)} yr`
+      const desc = s.visibleNow
+        ? `Up now · ${perilbl}`
+        : `${perilbl} · faint until then`
+      const row = toRow(`named:${b.name}`, "comet", b.name, desc, b.fact, {
+        raHours: 0, decDeg: 0,
+      })
+      // Overwrite the placeholder horizontal with the real sighting values.
+      row.altitudeDeg = s.altitudeDeg
+      row.azimuthDeg = s.azimuthDeg
+      row.compass = s.compass
+      row.band = s.band
+      row.comet = {
+        daysToPerihelion: s.daysToPerihelion,
+        nextPerihelion: s.nextPerihelion,
+        estMag: s.estMag,
+        brightEnough: s.brightEnough,
+        visibleNow: s.visibleNow,
+      }
+      cometRows.push(row)
+    }
+
+    const out = [moonRow, ...planetRows, ...constRows, ...cometRows]
     out.sort((a, b) => b.altitudeDeg - a.altitudeDeg)
     return out
     // `tick` is the recompute trigger: the 20s interval bumps it so the live
@@ -249,6 +294,13 @@ export function TonightSky() {
     } else {
       // Planets have no asterism to highlight — clear any lit constellation.
       highlightConstellation(null)
+    }
+    // Comets fly the camera to the body so "seeing is believing" — the row
+    // says where to look in the real sky, the scene takes you there.
+    if (r.kind === "comet" && next && typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("universe:sky-focus", { detail: { pointId: r.id } }),
+      )
     }
   }
 
@@ -372,6 +424,11 @@ export function TonightSky() {
                               className="inline-block h-1.5 w-1.5 rounded-full bg-accent shrink-0 translate-y-[-1px]"
                             />
                           )}
+                          {r.kind === "comet" && (
+                            <span aria-hidden className="shrink-0 translate-y-[-1px] text-[12px] leading-none text-accent">
+                              ☄
+                            </span>
+                          )}
                           <span className="font-sans text-[13px] text-foreground/90 truncate">
                             {r.name}
                           </span>
@@ -383,6 +440,7 @@ export function TonightSky() {
                       <div className="mt-0.5 font-mono text-[9px] tracking-[0.14em] uppercase text-foreground/40">
                         {r.kind === "planet" ? "Planet · " : ""}
                         {r.kind === "moon" && r.moon ? `${r.moon.name} · ${Math.round(r.moon.illumination * 100)}% · ` : ""}
+                        {r.kind === "comet" ? `Comet · ${r.designation} · ` : ""}
                         {isUp ? BAND_LABEL[r.band] : "not up right now"}
                       </div>
 
@@ -521,6 +579,22 @@ function RowDetail({ row, observer }: { row: SkyRow; observer: Observer }) {
         </div>
       )}
 
+      {/* Comet pass strip — next perihelion date + a bright/faint estimate. */}
+      {row.kind === "comet" && row.comet && (
+        <div className="mt-2.5 grid grid-cols-2 gap-x-3 gap-y-1.5 font-mono text-[9px] tracking-[0.12em] uppercase">
+          <TimeCell
+            label="Next perihelion"
+            value={row.comet.nextPerihelion
+              ? row.comet.nextPerihelion.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })
+              : "—"}
+          />
+          <TimeCell
+            label="Brightness (est.)"
+            value={row.comet.brightEnough ? `mag ~${row.comet.estMag.toFixed(1)} · visible` : `mag ~${row.comet.estMag.toFixed(1)} · faint`}
+          />
+        </div>
+      )}
+
       {row.fact && (
         <p className="mt-2 font-sans text-[11px] leading-snug text-foreground/60">{row.fact}</p>
       )}
@@ -531,6 +605,10 @@ function RowDetail({ row, observer }: { row: SkyRow; observer: Observer }) {
       ) : row.kind === "moon" ? (
         <p className="mt-1.5 font-mono text-[8px] tracking-[0.14em] uppercase text-foreground/40">
           Position + phase computed live (lunar theory)
+        </p>
+      ) : row.kind === "comet" ? (
+        <p className="mt-1.5 font-mono text-[8px] tracking-[0.14em] uppercase text-accent/70">
+          Sky position live; brightness is an estimate · tap to fly there
         </p>
       ) : (
         <p className="mt-1.5 font-mono text-[8px] tracking-[0.14em] uppercase text-accent/70">
