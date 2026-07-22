@@ -266,65 +266,6 @@ export function Lab() {
         </div>
         <div className="grid gap-4 md:gap-5 md:grid-cols-2 mb-14 md:mb-16">
 
-        {/* Universe Engine Assistant — AI lab entry. Frames the engine
-            as a canvas and the assistant as the new piece. The engine
-            itself is already the hero, so this card is about the LLM
-            front-end, not the renderer. */}
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-60px" }}
-          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
-          className="h-full"
-        >
-          <Link
-            href="/lab/celestial"
-            data-cursor-hover
-            aria-label="Talk to the sky — the AI assistant inside the Satellite Engine"
-            className="
-              group relative flex h-full flex-col
-              border border-border rounded-2xl
-              bg-card hover:border-accent/60 transition-colors duration-300
-              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
-              focus-visible:ring-offset-4 focus-visible:ring-offset-background
-              p-6 md:p-8
-            "
-          >
-            <div className="flex flex-wrap items-center gap-2 mb-6">
-              <span className="font-mono text-[10px] tracking-[0.25em] uppercase px-2.5 py-1 border border-border text-foreground/85 rounded-full">
-                AI · On-device
-              </span>
-              <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 border border-border text-foreground/75 rounded-full">
-                No key · Private
-              </span>
-            </div>
-
-            <h3 className="font-display text-2xl md:text-3xl font-light tracking-[-0.02em] leading-[1.1] text-foreground">
-              Talk to the sky — <span className="italic">an AI that flies the camera.</span>
-            </h3>
-
-            <p className="mt-4 flex-1 font-sans text-sm md:text-base text-foreground/80 leading-relaxed">
-              Ask in plain language and it navigates the real 3D scene —
-              &ldquo;fly me to Europa&rdquo;, &ldquo;what&rsquo;s the biggest moon?&rdquo; Now
-              built into the Satellite Engine and running on a tiny model
-              <em>in your browser</em>: no API key, no server, nothing leaves your
-              device. Navigation + facts are deterministic; the model just phrases.
-            </p>
-
-            <div className="mt-7 inline-flex items-center gap-2 font-mono text-[10px] tracking-[0.25em] uppercase text-foreground/85 group-hover:text-accent transition-colors">
-              Open the engine + ask
-              <motion.span
-                aria-hidden="true"
-                whileHover={prefersReducedMotion ? undefined : { rotate: 45 }}
-                transition={{ duration: 0.3 }}
-                className="inline-flex"
-              >
-                <ArrowUpRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-              </motion.span>
-            </div>
-          </Link>
-        </motion.div>
-
         {/* Cognitive Twin Agent — architecture-first lab case study. */}
         <motion.div
           initial={{ opacity: 0, y: 24 }}
@@ -480,6 +421,9 @@ export function Lab() {
                 <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 border border-border text-foreground/75 rounded-full">
                   Open data
                 </span>
+                <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 border border-border text-foreground/75 rounded-full">
+                  AI copilot
+                </span>
               </div>
 
               <h3 className="font-display text-2xl md:text-3xl font-light tracking-[-0.02em] leading-[1.1] text-foreground">
@@ -488,8 +432,10 @@ export function Lab() {
 
               <p className="mt-4 flex-1 font-sans text-sm md:text-base text-foreground/80 leading-relaxed">
                 The Sun and every planet, modelled in Blender from real NASA/USGS
-                data — photoreal and interactive. Rotate each world in your browser;
-                editable scenes and renders, open for anyone.
+                data — photoreal and interactive, with real satellite orbits and live
+                space data. A built-in AI copilot flies the camera in plain language
+                (&ldquo;take me to Europa&rdquo;) — keyless, running on a tiny model right
+                in your browser.
               </p>
 
               <div className="mt-7 inline-flex items-center gap-2 font-mono text-[10px] tracking-[0.25em] uppercase text-foreground/85 group-hover:text-accent transition-colors">
