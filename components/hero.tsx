@@ -176,7 +176,7 @@ export function Hero() {
                       same band as the hero's own typography + CTAs — the ticker
                       sat directly on the "02 — DOMAIN" block. Same scene-first
                       trade as /lab/celestial; desktop keeps everything. */}
-                  <UniverseEngine interactive={interactive} scrollDriveRef={scrollDriveRef} showMusic={true} minimalControls quietMobileChrome />
+                  <UniverseEngine interactive={interactive} scrollDriveRef={scrollDriveRef} showMusic={true} minimalControls quietMobileChrome realtime />
                 </div>
               )}
             </>

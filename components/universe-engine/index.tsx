@@ -129,6 +129,15 @@ export type UniverseEngineProps = {
    * (which surface the timeline on demand). Defaults to false.
    */
   quietMobileChrome?: boolean
+  /**
+   * Open at REAL Earth-observed time — 1 real second = 1 real second, so the
+   * planets creep at their true pace and the stars sit fixed like the actual
+   * night sky, instead of the lively 24-second-orbit default. The solar-only
+   * explorer already forces this; setting `realtime` gives the same anchored-to-
+   * now behaviour on the home hero. Users can still fast-forward via the
+   * timeline. Defaults to false.
+   */
+  realtime?: boolean
 }
 
 export function UniverseEngine({
@@ -141,6 +150,7 @@ export function UniverseEngine({
   solarOnly = false,
   minimalControls = false,
   quietMobileChrome = false,
+  realtime = false,
 }: UniverseEngineProps) {
   // Set the module-scoped scale ref synchronously on first render so the very
   // first scene mount already lays bodies out at true ratios (the effect below
@@ -155,13 +165,13 @@ export function UniverseEngine({
   // 24-second-orbit feel. The TimelineControl scrubber still lets users
   // fast-forward whenever they want.
   useEffect(() => {
-    if (!solarOnly) return
+    if (!solarOnly && !realtime) return
     setSimMs(Date.now())               // anchor to the user's actual current instant
     timeScaleRef.current = REALTIME_TIME_SCALE
     return () => {
       timeScaleRef.current = 1.0
     }
-  }, [solarOnly])
+  }, [solarOnly, realtime])
   const [mounted, setMounted] = useState(false)
   const [reducedMotion, setReducedMotion] = useState(false)
   const [mobile, setMobile] = useState(false)

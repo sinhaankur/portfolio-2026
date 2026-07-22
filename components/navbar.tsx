@@ -14,7 +14,9 @@ const navLinks = [
   { label: "Works", href: "#works" },
   { label: "Lab", href: "/lab" },
   { label: "Skills", href: "/skills" },
-  { label: "Usability", href: "/usability" },
+  // "Usability" removed — it duplicated the Lab's usability presence. The live
+  // engine still lives at /usability, reachable from /lab/usability-engine's
+  // "Open the live engine" button.
   { label: "Games", href: "/games/Gamelist.html" },
   { label: "Contact", href: "#contact" },
 ]
