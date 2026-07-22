@@ -53,6 +53,7 @@ import {
   TIME_WARP_DAYS_PER_SEC,
   blackHoleHorizonGravityMetersPerSec2,
   buildScenePlanets,
+  compressRadius,
   cancelFollow,
   flyToRef,
   followRef,
@@ -105,6 +106,14 @@ import type {
   HoverHandler,
   SkyPoint,
 } from "./types"
+
+/* Belt radii, DERIVED from real AU via compressRadius so they track SCENE_SCALE
+ * automatically (was hardcoded to SCENE_SCALE=3 values, which drifted out of the
+ * planets when the scale changed). Asteroid belt 2.1–3.3 AU, Kuiper 30–50 AU. */
+const AST_BELT_INNER = compressRadius(2.1)
+const AST_BELT_OUTER = compressRadius(3.3)
+const KUIPER_BELT_INNER = compressRadius(30)
+const KUIPER_BELT_OUTER = compressRadius(50)
 
 /* ============================================================
  * Fly-to controller
@@ -765,10 +774,10 @@ function SolarSystem({
         />
       ))}
 
-      {/* Asteroid Belt — 2.2–3.2 AU → sqrt × 3 → 4.45–5.37 scene units */}
+      {/* Asteroid Belt — 2.1–3.3 AU, radii derived from compressRadius. */}
       <Belt
-        innerRadius={4.74}
-        outerRadius={5.89}
+        innerRadius={AST_BELT_INNER}
+        outerRadius={AST_BELT_OUTER}
         count={900}
         thickness={0.12}
         rotationSpeed={0.05}
@@ -784,8 +793,8 @@ function SolarSystem({
       {!invert && rocksWanted && (
         <Suspense fallback={null}>
           <BeltAsteroids
-            innerRadius={4.74}
-            outerRadius={5.89}
+            innerRadius={AST_BELT_INNER}
+            outerRadius={AST_BELT_OUTER}
             count={mobile ? 26 : 48}
             thickness={0.12}
             rotationSpeed={0.05}
@@ -795,10 +804,10 @@ function SolarSystem({
         </Suspense>
       )}
 
-      {/* Kuiper Belt — 30–50 AU → 16.43–21.21 scene units */}
+      {/* Kuiper Belt — 30–50 AU, radii derived from compressRadius. */}
       <Belt
-        innerRadius={21.57}
-        outerRadius={29.01}
+        innerRadius={KUIPER_BELT_INNER}
+        outerRadius={KUIPER_BELT_OUTER}
         count={1400}
         thickness={0.35}
         rotationSpeed={0.012}
@@ -813,8 +822,8 @@ function SolarSystem({
       {!invert && rocksWanted && (
         <Suspense fallback={null}>
           <BeltAsteroids
-            innerRadius={21.57}
-            outerRadius={29.01}
+            innerRadius={KUIPER_BELT_INNER}
+            outerRadius={KUIPER_BELT_OUTER}
             count={mobile ? 16 : 30}
             thickness={0.35}
             rotationSpeed={0.012}
