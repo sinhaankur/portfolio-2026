@@ -332,6 +332,17 @@ export type NamedBody = {
   visualRadius?: number
   /** Optional hex colour override. Defaults derived from `kind`. */
   shade?: string
+  /** Optional equirectangular surface map (in /public/textures). When present
+   *  the body renders a properly-lit textured sphere instead of a plain glowing
+   *  ball — used for dwarf planets we have real maps for (Pluto = New Horizons).
+   *  Absent = procedural surface. */
+  textureUrl?: string
+  /** Triaxial shape (a:b:c relative radii) for irregular bodies. Real asteroids
+   *  are rarely round — Eros is a 34×11×11 km peanut, Apophis is elongated, Ida
+   *  is a lumpy 60×25×19 shard. When set, the rock is scaled non-uniformly so
+   *  its silhouette matches the real body instead of a generic ball. Default
+   *  [1,1,1] (round). Values are normalised, only the ratio matters. */
+  triaxial?: [number, number, number]
   /** Real physical data (NASA) — composition/atmosphere surfaced in the
    *  InfoPanel "Made of" section, same as planets + moons. */
   deep?: BodyDeepFacts

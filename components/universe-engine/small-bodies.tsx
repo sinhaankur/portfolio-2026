@@ -33,9 +33,13 @@ import {
   Color,
   DoubleSide,
   Group,
+  IcosahedronGeometry,
   Mesh,
   NormalBlending,
   ShaderMaterial,
+  SRGBColorSpace,
+  SpriteMaterial,
+  TextureLoader,
   Vector3,
 } from "three"
 import {
@@ -71,6 +75,75 @@ const TRAIL_SPRITE = typeof document !== "undefined" ? pointSprite() : null
 // here rather than in the shared pool.
 const _tailFrom = new Vector3()
 const _tailTo = new Vector3()
+const _glintPos = new Vector3()
+
+/** Round additive glint sprite — one shared texture for every named-body
+ *  marker (built once). Same radial-gradient look as the trail sprite. */
+const GLINT_SPRITE = typeof document !== "undefined" ? (() => {
+  const c = document.createElement("canvas")
+  c.width = c.height = 64
+  const ctx = c.getContext("2d")!
+  const g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32)
+  g.addColorStop(0, "rgba(255,255,255,1)")
+  g.addColorStop(0.35, "rgba(255,255,255,0.55)")
+  g.addColorStop(1, "rgba(255,255,255,0)")
+  ctx.fillStyle = g
+  ctx.fillRect(0, 0, 64, 64)
+  const { CanvasTexture } = require("three") as typeof import("three")
+  return new CanvasTexture(c)
+})() : null
+
+/**
+ * Build an irregular asteroid/rock geometry — real minor bodies are lumpy
+ * shards, not spheres. We start from a smooth icosahedron and push each vertex
+ * in/out along its normal by layered value-noise (seeded per body so every rock
+ * has its own distinct silhouette), then apply the triaxial a:b:c scale so
+ * elongated bodies (Eros the peanut, Apophis, Ida) read as their real shape.
+ * Cached by a string key so we don't rebuild per frame.
+ */
+const _rockCache = new Map<string, BufferGeometry>()
+function irregularRockGeometry(
+  radius: number,
+  seed: number,
+  triaxial: [number, number, number],
+  detail = 3,
+): BufferGeometry {
+  const key = `${radius.toFixed(4)}|${seed}|${triaxial.join(",")}|${detail}`
+  const cached = _rockCache.get(key)
+  if (cached) return cached
+  const geo = new IcosahedronGeometry(radius, detail)
+  const pos = geo.attributes.position as BufferAttribute
+  // Deterministic pseudo-random from the seed — no Math.random, so a body's
+  // shape is stable across reloads.
+  const rand = (n: number) => {
+    const x = Math.sin(n * 127.1 + seed * 311.7) * 43758.5453
+    return x - Math.floor(x)
+  }
+  // Three offset noise centres give the surface large lumps + medium bumps.
+  const centres = [0, 1, 2].map((i) => new Vector3(
+    rand(i * 3 + 1) * 2 - 1, rand(i * 3 + 2) * 2 - 1, rand(i * 3 + 3) * 2 - 1,
+  ).normalize())
+  const v = new Vector3()
+  for (let i = 0; i < pos.count; i++) {
+    v.fromBufferAttribute(pos, i)
+    const dir = v.clone().normalize()
+    // Layered lobes: dot with each centre → big smooth swells; a high-freq
+    // term adds craters/ridges. Kept in [~0.72, ~1.18] so the rock stays a
+    // recognisable body, just deeply irregular.
+    let d = 1
+    d += 0.16 * Math.cos(dir.dot(centres[0]) * 2.3 + seed)
+    d += 0.11 * Math.cos(dir.dot(centres[1]) * 3.7 + seed * 1.7)
+    d += 0.07 * Math.sin(dir.dot(centres[2]) * 6.1 + seed * 2.3)
+    d += 0.05 * Math.sin(dir.x * 11 + dir.y * 13 + dir.z * 7 + seed)
+    v.multiplyScalar(Math.max(0.7, d))
+    // Triaxial elongation (normalised so the mean radius is preserved-ish).
+    v.x *= triaxial[0]; v.y *= triaxial[1]; v.z *= triaxial[2]
+    pos.setXYZ(i, v.x, v.y, v.z)
+  }
+  geo.computeVertexNormals()
+  _rockCache.set(key, geo)
+  return geo
+}
 
 /**
  * Scene-scale compression curve.
@@ -115,6 +188,13 @@ function NamedBodyMesh({
   interactive?: boolean
 }) {
   const groupRef = useRef<Group>(null)
+  /** Always-visible glint — a small additive round sprite pinned to the body
+   *  so distant bodies (Voyagers at ~57 scene-units, faint comets, sub-km NEOs)
+   *  never vanish to a sub-pixel speck. Scaled each frame to hold a minimum
+   *  apparent size on screen (a findable point of light), the same "min-px
+   *  floor" idea the satellite swarm uses. Without it, "a lot of items are not
+   *  visible by default" and Voyager reads as empty space. */
+  const glintRef = useRef<import("three").Sprite>(null)
   /** Comet nucleus mesh — rotated slowly each frame so the surface
    *  appears to spin like a real cometary nucleus (67P rotates every
    *  ~12.4 hours; jets pulse on and off as active areas swing into the
@@ -286,6 +366,42 @@ function NamedBodyMesh({
     [body.name],
   )
 
+  // Irregular-rock geometry for asteroids (Eros, Apophis, Ida, Gaspra…). Real
+  // asteroids are lumpy shards, not glowing balls — this displaces an
+  // icosahedron with per-body noise + the triaxial a:b:c shape so each rock has
+  // a distinct, real silhouette. Seed from the name so it's stable + unique.
+  const rockGeometry = useMemo(() => {
+    if (body.kind !== "asteroid") return null
+    const seed = body.name.split("").reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) % 100000, 7)
+    const tri = body.triaxial ?? [1, 1, 1]
+    return irregularRockGeometry(config.visualRadius, seed, tri, 3)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [body.kind, body.name, config.visualRadius])
+
+  // Dwarf-planet surface map (Pluto = New Horizons). Round, textured, properly
+  // lit — a real world, not an emissive blob. Bodies without a map fall back to
+  // a shaded rocky sphere.
+  const dwarfTexture = useMemo(() => {
+    if (body.kind !== "dwarf" || !body.textureUrl) return null
+    const tex = new TextureLoader().load(body.textureUrl)
+    tex.colorSpace = SRGBColorSpace
+    return tex
+  }, [body.kind, body.textureUrl])
+
+  const glintMaterial = useMemo(() => {
+    if (!GLINT_SPRITE) return null
+    return new SpriteMaterial({
+      map: GLINT_SPRITE,
+      color: new Color(config.shade),
+      transparent: true,
+      opacity: invert ? 0.5 : 0.85,
+      blending: invert ? NormalBlending : AdditiveBlending,
+      depthWrite: false,
+      depthTest: true,
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [config.shade, invert])
+
   // Initialise the motion-trail ring buffer for comets / interstellars /
   // dwarfs — bodies whose motion is the headline detail. Built lazily so
   // bodies without a trail (asteroids, spacecraft using custom shapes)
@@ -424,7 +540,7 @@ function NamedBodyMesh({
     uKnotStrength: { value: 0.0 },
   }), [invert, config.visualRadius])
 
-  useFrame((_, delta) => {
+  useFrame((state, delta) => {
     const tw = timeWarpRef.current
     if (!groupRef.current) return
 
@@ -483,6 +599,21 @@ function NamedBodyMesh({
       )
     }
     groupRef.current.position.set(px, py, pz)
+
+    // Glint scale-hold — keep the marker a findable point of light at any
+    // distance. A Sprite is billboarded + world-scaled, so at 57 scene-units
+    // (Voyager) a fixed local size becomes a sub-pixel dot. We scale it with
+    // camera distance so it holds a roughly constant apparent size, then never
+    // let it shrink below the body's own visual radius (so up close the real
+    // mesh takes over and the glint tucks inside it rather than bloating).
+    if (glintRef.current) {
+      const cam = state.camera
+      const dist = cam.position.distanceTo(groupRef.current.getWorldPosition(_glintPos))
+      // ~1.4% of distance ≈ a small constant on-screen dot; clamp to the body
+      // size so the glint is a subtle halo up close, a visible point far away.
+      const s = Math.max(config.visualRadius * 1.1, dist * 0.014)
+      glintRef.current.scale.setScalar(s)
+    }
 
     // Comet tail orientation — the tail group's local +y axis is rotated
     // each frame to point away from the Sun (origin). Solar wind blows
@@ -899,19 +1030,53 @@ function NamedBodyMesh({
               )}
             </group>
           </>
-        ) : (
+        ) : body.kind === "asteroid" && rockGeometry ? (
+          // Real asteroid — a lumpy, tumbling shard with the body's true triaxial
+          // shape (Eros peanut, Apophis elongated, Ida a shattered fragment), not
+          // a glowing ball. Rough, sunlit rock; reuses nucleusRef so it tumbles.
+          <mesh ref={nucleusRef} geometry={rockGeometry}>
+            <meshStandardMaterial
+              color={config.shade}
+              roughness={0.96}
+              metalness={0.0}
+              emissive={config.shade}
+              emissiveIntensity={invert ? 0.0 : 0.14}
+              flatShading={false}
+            />
+          </mesh>
+        ) : body.kind === "dwarf" ? (
+          // Dwarf planet — a real, properly-lit world. Textured where we have a
+          // map (Pluto = New Horizons), otherwise a shaded rocky sphere. 64 seg
+          // so it stays smooth on close zoom. Not emissive: it's lit, not a lamp.
           <mesh>
-            {/* 48 segments (was 16): dwarf planets + asteroids are CLICKABLE and
-                zoomable, so a 16-seg sphere read as a faceted ball at close zoom.
-                Smooth now. */}
+            <sphereGeometry args={[config.visualRadius, 64, 64]} />
+            <meshStandardMaterial
+              map={dwarfTexture ?? undefined}
+              color={dwarfTexture ? "#ffffff" : config.shade}
+              roughness={0.85}
+              metalness={0.0}
+              emissive={config.shade}
+              emissiveIntensity={invert ? 0.0 : 0.08}
+            />
+          </mesh>
+        ) : (
+          // Interstellars / anything else — smooth shaded body.
+          <mesh>
             <sphereGeometry args={[config.visualRadius, 48, 48]} />
             <meshStandardMaterial
               color={config.shade}
               emissive={config.shade}
-              emissiveIntensity={invert ? 0.0 : 0.6}
+              emissiveIntensity={invert ? 0.0 : 0.5}
               roughness={0.7}
             />
           </mesh>
+        )}
+        {/* Always-visible glint — a findable point of light so NOTHING needs to
+            be selected first to be seen (Voyager at 57 units, faint NEOs, distant
+            comets). Scaled each frame to hold a min apparent size; tucks inside
+            the real body up close. Non-raycasting so it never blocks a click. */}
+        {glintMaterial && (
+          <sprite ref={glintRef} material={glintMaterial} raycast={() => null} />
         )}
         <mesh
           onPointerOver={(e) => {

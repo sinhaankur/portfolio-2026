@@ -634,12 +634,17 @@ function SolarSystem({
   // Outer corona softened: the Fresnel rim at radius 1.05 was reading as a hard
   // grey/tan RING around the Sun on zoom-out. Lower intensity so it's a faint
   // diffuse halo, not a visible circle. (uPower raised below tightens it too.)
-  const coronaOuterOpacity = invert ? 0.16 : 0.13
+  const coronaOuterOpacity = invert ? 0.16 : 0.19
   const pointLightIntensity = invert ? 0.5 : 3.5
 
+  // Corona colour: WARM in both themes. The dark-space Sun read too white/cold
+  // after the ring-softening pass ("Sun was good earlier orange"); a stellar
+  // corona is not white — the inner glow is a hot amber-gold and the outer halo
+  // fades to a soft orange. This restores the fiery look without bringing back
+  // the hard grey ring (that was a falloff-shape problem, fixed via uPower).
   const coronaInnerUniforms = useMemo(
     () => ({
-      uColor: { value: new Color(invert ? "#c95824" : "#ffffff") },
+      uColor: { value: new Color(invert ? "#c95824" : "#ffb24d") },
       uIntensity: { value: coronaInnerOpacity },
       uPower: { value: 3.0 },
     }),
@@ -648,7 +653,7 @@ function SolarSystem({
   )
   const coronaOuterUniforms = useMemo(
     () => ({
-      uColor: { value: new Color(invert ? "#e5a878" : "#ffffff") },
+      uColor: { value: new Color(invert ? "#e5a878" : "#ff7a2e") },
       uIntensity: { value: coronaOuterOpacity },
       uPower: { value: 2.4 },
     }),
@@ -658,8 +663,8 @@ function SolarSystem({
   // Keep uniform colour in sync with theme changes without recreating the
   // uniforms object (which would break the animated intensity lerp).
   useEffect(() => {
-    coronaInnerUniforms.uColor.value.set(invert ? "#c95824" : "#ffffff")
-    coronaOuterUniforms.uColor.value.set(invert ? "#e5a878" : "#ffffff")
+    coronaInnerUniforms.uColor.value.set(invert ? "#c95824" : "#ffb24d")
+    coronaOuterUniforms.uColor.value.set(invert ? "#e5a878" : "#ff7a2e")
   }, [invert, coronaInnerUniforms, coronaOuterUniforms])
 
   return (

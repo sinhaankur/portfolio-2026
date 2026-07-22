@@ -1175,9 +1175,9 @@ export const namedBodies: NamedBody[] = [
     longNodeDeg: 334.6,
     argPeriDeg: 186.5,
     periodYears: 3.3,
-    perihelionTT: "2017-03-10T00:00:00Z",
+    perihelionTT: "2027-02-09T00:00:00Z",
     startPhase: 0.71,
-    fact: "Shortest-period known comet — completes an orbit in just 3.3 years, the second comet ever found to be periodic. Parent of the Taurid meteor shower in October/November.",
+    fact: "Shortest-period known comet — completes an orbit in just 3.3 years, the second comet ever found to be periodic. Parent of the Taurid meteor shower in October/November. Next perihelion February 2027.",
     visualRadius: 0.05,
   },
   {
@@ -1325,6 +1325,7 @@ export const namedBodies: NamedBody[] = [
     name: "Apophis",
     designation: "99942 Apophis",
     kind: "asteroid",
+    triaxial: [2.2, 1.0, 0.92],  // radar: elongated ~450×170 m peanut
     diameterKm: 0.34,
     aAU: 0.922,
     eccentricity: 0.191,
@@ -1340,6 +1341,7 @@ export const namedBodies: NamedBody[] = [
     name: "Eros",
     designation: "433 Eros",
     kind: "asteroid",
+    triaxial: [3.05, 1.0, 1.0],  // NEAR: 34.4×11.2×11.2 km — the classic peanut
     diameterKm: 16.8,
     aAU: 1.458,
     eccentricity: 0.223,
@@ -1386,6 +1388,7 @@ export const namedBodies: NamedBody[] = [
     name: "Itokawa",
     designation: "25143 Itokawa · Hayabusa target",
     kind: "asteroid",
+    triaxial: [2.56, 1.4, 1.0],  // Hayabusa: 535×294×209 m sea-otter shape
     diameterKm: 0.33,
     aAU: 1.324,
     eccentricity: 0.280,
@@ -1431,6 +1434,7 @@ export const namedBodies: NamedBody[] = [
     name: "Vesta",
     designation: "4 Vesta",
     kind: "asteroid",
+    triaxial: [1.13, 1.13, 1.0],  // Dawn: 573×557×446 km — oblate, huge south-pole crater
     diameterKm: 525.4,
     aAU: 2.362,
     eccentricity: 0.089,
@@ -2018,6 +2022,7 @@ export const namedBodies: NamedBody[] = [
     name: "Ida",
     designation: "243 Ida",
     kind: "asteroid",
+    triaxial: [3.2, 1.37, 1.0],  // Galileo: 59.8×25.4×18.6 km shattered shard
     diameterKm: 31.4,
     aAU: 2.862,
     eccentricity: 0.0453,
@@ -2033,6 +2038,7 @@ export const namedBodies: NamedBody[] = [
     name: "Gaspra",
     designation: "951 Gaspra",
     kind: "asteroid",
+    triaxial: [2.05, 1.18, 1.0],  // Galileo: 18.2×10.5×8.9 km irregular wedge
     diameterKm: 12.2,
     aAU: 2.209,
     eccentricity: 0.174,
@@ -2048,6 +2054,7 @@ export const namedBodies: NamedBody[] = [
     name: "Lutetia",
     designation: "21 Lutetia",
     kind: "asteroid",
+    triaxial: [1.61, 1.35, 1.0],  // Rosetta: 121×101×75 km battered block
     diameterKm: 98,
     aAU: 2.435,
     eccentricity: 0.164,
@@ -2063,6 +2070,7 @@ export const namedBodies: NamedBody[] = [
     name: "Dinkinesh",
     designation: "152830 Dinkinesh",
     kind: "asteroid",
+    triaxial: [1.6, 1.0, 0.9],  // Lucy 2023: elongated ~790 m, has a contact-binary moon
     diameterKm: 0.79,
     aAU: 2.190,
     eccentricity: 0.112,
