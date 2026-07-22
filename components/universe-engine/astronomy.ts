@@ -1110,6 +1110,47 @@ export const moons: MoonData[] = [
   { name: "Hydra",           parent: "Pluto",   visualRadius: 0.026, orbitRadius: 2.30,  periodDays: 38.20,  shade: "#c9bcab", fact: "Discovered 2005 alongside Nix. ~50 km × 30 km, the outermost confirmed Pluto moon. Bright water-ice surface — most reflective body in the system after Charon." },
 ]
 
+/**
+ * De-crowd each planet's moon system so the moons read as SEPARATE bodies, not
+ * a packed clump. The hand-authored orbitRadii kept real *order* + rough real
+ * *ratios*, but the moons are visually inflated (so they're findable), so at
+ * Saturn the gaps (~0.10 units) were smaller than the moon discs (~0.04 radius)
+ * and they overlapped/collided on screen.
+ *
+ * This pushes consecutive orbits apart until there's a clear visible gap —
+ * `gap ≥ (rInner + rOuter) × SEP + PAD` — walking outward from the innermost
+ * moon (which stays put). It only ever EXPANDS spacing, never compresses, and
+ * preserves the real ordering, so the systems still read truthfully — just with
+ * room to breathe. Runs once at module load, so every consumer (the solar
+ * explorer AND the home-hero galaxy) gets the identical, consistent layout.
+ */
+function decrowdMoons(list: MoonData[]): MoonData[] {
+  const SEP = 2.4  // orbit gap ≥ this × the two moons' summed visual radii
+  const PAD = 0.06 // a small absolute floor so even tiny moons clear each other
+  const byParent = new Map<string, MoonData[]>()
+  for (const m of list) {
+    const arr = byParent.get(m.parent) ?? []
+    arr.push(m)
+    byParent.set(m.parent, arr)
+  }
+  for (const arr of byParent.values()) {
+    // Earth has a single moon — nothing to de-crowd (and its shell framing is
+    // tuned around 0.42, so leave it exactly as-is).
+    if (arr.length < 2) continue
+    arr.sort((a, b) => a.orbitRadius - b.orbitRadius)
+    for (let i = 1; i < arr.length; i++) {
+      const prev = arr[i - 1]
+      const cur = arr[i]
+      const minGap = (prev.visualRadius + cur.visualRadius) * SEP + PAD
+      if (cur.orbitRadius - prev.orbitRadius < minGap) {
+        cur.orbitRadius = prev.orbitRadius + minGap
+      }
+    }
+  }
+  return list
+}
+decrowdMoons(moons)
+
 /* --------------------------------------------------------------------------
  * Named small bodies — comets, asteroids, interstellars
  *
