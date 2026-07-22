@@ -437,12 +437,17 @@ export const focusDepthRef: {
  *  is the whole point — true spacing, mostly void between bodies. */
 export const TRUE_SCALE_AU = 3
 
-/** Compress a real heliocentric radius (AU) into scene units. In explore mode
- *  this is sqrt-compressed; in true-scale mode it's linear AU (real ratios). */
+/** Compress a real heliocentric radius (AU) into scene units. In explore mode this
+ *  uses a gentle power curve; in true-scale mode it's linear AU (real ratios).
+ *
+ *  SPACING (Ankur "better spacing"): sqrt(r) squeezed the INNER planets together
+ *  (Mercury→Mars all bunched 1.9–3.7 units). r^0.58 spreads the inner system more
+ *  evenly (bigger Mercury/Venus/Earth/Mars gaps) while keeping the outer planets in
+ *  frame — a more legible, breathing layout. Earth still lands ~3 units. */
 export function compressRadius(rAU: number): number {
   const r = Math.max(rAU, 0)
   if (scaleModeRef.current === "true") return r * TRUE_SCALE_AU
-  return Math.sqrt(r) * SCENE_SCALE
+  return Math.pow(r, 0.58) * SCENE_SCALE
 }
 
 /** Small-body visual radius (scene units) from a REAL mean diameter (km).

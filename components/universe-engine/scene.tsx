@@ -762,8 +762,8 @@ function SolarSystem({
 
       {/* Asteroid Belt — 2.2–3.2 AU → sqrt × 3 → 4.45–5.37 scene units */}
       <Belt
-        innerRadius={4.45}
-        outerRadius={5.37}
+        innerRadius={4.74}
+        outerRadius={5.89}
         count={900}
         thickness={0.12}
         rotationSpeed={0.05}
@@ -779,8 +779,8 @@ function SolarSystem({
       {!invert && rocksWanted && (
         <Suspense fallback={null}>
           <BeltAsteroids
-            innerRadius={4.45}
-            outerRadius={5.37}
+            innerRadius={4.74}
+            outerRadius={5.89}
             count={mobile ? 26 : 48}
             thickness={0.12}
             rotationSpeed={0.05}
@@ -792,8 +792,8 @@ function SolarSystem({
 
       {/* Kuiper Belt — 30–50 AU → 16.43–21.21 scene units */}
       <Belt
-        innerRadius={16.43}
-        outerRadius={21.21}
+        innerRadius={21.57}
+        outerRadius={29.01}
         count={1400}
         thickness={0.35}
         rotationSpeed={0.012}
@@ -808,8 +808,8 @@ function SolarSystem({
       {!invert && rocksWanted && (
         <Suspense fallback={null}>
           <BeltAsteroids
-            innerRadius={16.43}
-            outerRadius={21.21}
+            innerRadius={21.57}
+            outerRadius={29.01}
             count={mobile ? 16 : 30}
             thickness={0.35}
             rotationSpeed={0.012}
