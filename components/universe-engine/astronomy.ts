@@ -1455,6 +1455,7 @@ export const namedBodies: NamedBody[] = [
     periodYears: 3.63,
     startPhase: 0.55,
     fact: "Brightest asteroid as seen from Earth — visible to the naked eye at opposition. Second-largest object in the asteroid belt after Ceres; visited by NASA's Dawn spacecraft 2011–2012.",
+    textureUrl: "/textures/vesta.webp",  // real Dawn FC HAMO global mosaic (USGS/DLR, public domain)
     visualRadius: 0.05,
     deep: { atmosphere: "None", composition: "Differentiated protoplanet: iron-nickel core, olivine mantle, basaltic crust — the source of the HED meteorites" },
   },
@@ -1471,6 +1472,7 @@ export const namedBodies: NamedBody[] = [
     periodYears: 4.60,
     startPhase: 0.12,
     fact: "Largest object in the asteroid belt and the only dwarf planet in the inner solar system. Round enough to be in hydrostatic equilibrium. NASA's Dawn mission orbited it 2015–2018.",
+    textureUrl: "/textures/ceres.webp",  // real Dawn FC global mosaic (USGS/DLR, public domain)
     visualRadius: 0.06,
     deep: { atmosphere: "Trace water vapour (transient outgassing)", composition: "~25% water ice by mass over a rocky core; salt deposits (Occator's bright spots) hint at a briny subsurface layer" },
   },

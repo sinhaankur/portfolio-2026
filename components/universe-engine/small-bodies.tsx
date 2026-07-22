@@ -366,27 +366,29 @@ function NamedBodyMesh({
     [body.name],
   )
 
-  // Irregular-rock geometry for asteroids (Eros, Apophis, Ida, Gaspra…). Real
-  // asteroids are lumpy shards, not glowing balls — this displaces an
+  // Real surface map (Dawn/New Horizons mosaics) for any body that has one —
+  // Ceres, Vesta, Pluto. A UV-mapped texture needs a clean sphere, so a textured
+  // body renders as a lightly-shaped sphere (not the noise-displaced rock, which
+  // would smear the map). Absent = procedural surface.
+  const surfaceTexture = useMemo(() => {
+    if (!body.textureUrl) return null
+    const tex = new TextureLoader().load(body.textureUrl)
+    tex.colorSpace = SRGBColorSpace
+    return tex
+  }, [body.textureUrl])
+
+  // Irregular-rock geometry for UN-textured asteroids (Eros, Apophis, Ida…).
+  // Real asteroids are lumpy shards, not glowing balls — this displaces an
   // icosahedron with per-body noise + the triaxial a:b:c shape so each rock has
   // a distinct, real silhouette. Seed from the name so it's stable + unique.
+  // Textured asteroids (Vesta) skip this and use the mapped sphere below.
   const rockGeometry = useMemo(() => {
-    if (body.kind !== "asteroid") return null
+    if (body.kind !== "asteroid" || body.textureUrl) return null
     const seed = body.name.split("").reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) % 100000, 7)
     const tri = body.triaxial ?? [1, 1, 1]
     return irregularRockGeometry(config.visualRadius, seed, tri, 3)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [body.kind, body.name, config.visualRadius])
-
-  // Dwarf-planet surface map (Pluto = New Horizons). Round, textured, properly
-  // lit — a real world, not an emissive blob. Bodies without a map fall back to
-  // a shaded rocky sphere.
-  const dwarfTexture = useMemo(() => {
-    if (body.kind !== "dwarf" || !body.textureUrl) return null
-    const tex = new TextureLoader().load(body.textureUrl)
-    tex.colorSpace = SRGBColorSpace
-    return tex
-  }, [body.kind, body.textureUrl])
+  }, [body.kind, body.name, body.textureUrl, config.visualRadius])
 
   // Always-visible glint — must read in BOTH themes. In dark mode an additive
   // bright glow works; in light (invert) mode an additive glint is invisible on
@@ -1049,6 +1051,28 @@ function NamedBodyMesh({
               )}
             </group>
           </>
+        ) : surfaceTexture ? (
+          // Real mapped world — Ceres, Vesta, and any body with a mission mosaic
+          // (Dawn / New Horizons). A clean 64-seg sphere so the map wraps without
+          // seams, lightly triaxially-scaled so large irregular bodies (Vesta's
+          // oblateness) still read their true shape. Lit, not emissive: a real
+          // sunlit surface, not a lamp. The scale group tumbles via nucleusRef.
+          <group
+            ref={nucleusRef as React.Ref<Group>}
+            scale={body.triaxial ?? [1, 1, 1]}
+          >
+            <mesh>
+              <sphereGeometry args={[config.visualRadius, 64, 64]} />
+              <meshStandardMaterial
+                map={surfaceTexture}
+                color="#ffffff"
+                roughness={0.9}
+                metalness={0.0}
+                emissive={config.shade}
+                emissiveIntensity={invert ? 0.0 : 0.05}
+              />
+            </mesh>
+          </group>
         ) : body.kind === "asteroid" && rockGeometry ? (
           // Real asteroid — a lumpy, tumbling shard with the body's true triaxial
           // shape (Eros peanut, Apophis elongated, Ida a shattered fragment), not
@@ -1064,14 +1088,14 @@ function NamedBodyMesh({
             />
           </mesh>
         ) : body.kind === "dwarf" ? (
-          // Dwarf planet — a real, properly-lit world. Textured where we have a
-          // map (Pluto = New Horizons), otherwise a shaded rocky sphere. 64 seg
-          // so it stays smooth on close zoom. Not emissive: it's lit, not a lamp.
+          // Dwarf planet with NO real map (Eris, Makemake, Haumea) — a shaded
+          // rocky world tinted to its real albedo/colour. Honest inference: we
+          // don't have a surface image, so we don't invent detail, just a
+          // properly-lit body. 64 seg so it stays smooth on close zoom.
           <mesh>
             <sphereGeometry args={[config.visualRadius, 64, 64]} />
             <meshStandardMaterial
-              map={dwarfTexture ?? undefined}
-              color={dwarfTexture ? "#ffffff" : config.shade}
+              color={config.shade}
               roughness={0.85}
               metalness={0.0}
               emissive={config.shade}
