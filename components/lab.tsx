@@ -278,9 +278,9 @@ export function Lab() {
           className="h-full"
         >
           <Link
-            href="/lab/universe-assistant"
+            href="/lab/celestial"
             data-cursor-hover
-            aria-label="Universe Engine Assistant — read the case study"
+            aria-label="Talk to the sky — the AI assistant inside the Satellite Engine"
             className="
               group relative flex h-full flex-col
               border border-border rounded-2xl
@@ -292,27 +292,27 @@ export function Lab() {
           >
             <div className="flex flex-wrap items-center gap-2 mb-6">
               <span className="font-mono text-[10px] tracking-[0.25em] uppercase px-2.5 py-1 border border-border text-foreground/85 rounded-full">
-                AI · Live demo
+                AI · On-device
               </span>
               <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 border border-border text-foreground/75 rounded-full">
-                Claude · Tool use
+                No key · Private
               </span>
             </div>
 
             <h3 className="font-display text-2xl md:text-3xl font-light tracking-[-0.02em] leading-[1.1] text-foreground">
-              Universe Engine Assistant — <span className="italic">talk to the sky.</span>
+              Talk to the sky — <span className="italic">an AI that flies the camera.</span>
             </h3>
 
             <p className="mt-4 flex-1 font-sans text-sm md:text-base text-foreground/80 leading-relaxed">
-              Natural-language queries against the same 3D scene from the
-              hero. Thirteen tools — eight read the dataset, five steer the
-              camera and time. Browser-direct Anthropic streaming, prompt
-              caching on a 30&nbsp;KB injected dataset, BYO-key static-site
-              setup. No backend.
+              Ask in plain language and it navigates the real 3D scene —
+              &ldquo;fly me to Europa&rdquo;, &ldquo;what&rsquo;s the biggest moon?&rdquo; Now
+              built into the Satellite Engine and running on a tiny model
+              <em>in your browser</em>: no API key, no server, nothing leaves your
+              device. Navigation + facts are deterministic; the model just phrases.
             </p>
 
             <div className="mt-7 inline-flex items-center gap-2 font-mono text-[10px] tracking-[0.25em] uppercase text-foreground/85 group-hover:text-accent transition-colors">
-              Try it + read the case study
+              Open the engine + ask
               <motion.span
                 aria-hidden="true"
                 whileHover={prefersReducedMotion ? undefined : { rotate: 45 }}

@@ -33,6 +33,14 @@ const GoogleEarthView = dynamic(
   { ssr: false },
 )
 
+// The AI copilot — folded in here from its old standalone page. Keyless: it runs
+// on an in-browser tiny model by default (no setup), so anyone can just ask.
+// Lazy-loaded so the assistant deps only download when the user opens it.
+const AssistantPanel = dynamic(
+  () => import("@/components/assistant").then((m) => m.AssistantPanel),
+  { ssr: false },
+)
+
 // Mars coverage map (real MOLA globe + rover-site photos) — lazy so its R3F
 // canvas + the elevation maps only load when the user opens it.
 const MarsCoverage = dynamic(
@@ -201,6 +209,8 @@ export function CelestialExplorer() {
   const [debrisOpen, setDebrisOpen] = useState(false)
   // First-run guided tour — opens once for newcomers, re-openable via the "?" chip.
   const [tourOpen, setTourOpen] = useState(false)
+  // AI copilot panel — folded in from /lab/universe-assistant. Keyless on-device.
+  const [assistantOpen, setAssistantOpen] = useState(false)
   // "Show all satellites" — force the full ~18.6k catalogue visible (bypass the
   // overview LOD cull). Off by default (the cull keeps the far view legible).
   const [showAllSats, setShowAllSats] = useState(false)
@@ -426,6 +436,23 @@ export function CelestialExplorer() {
             className="grid h-9 w-9 place-items-center rounded-full border border-border bg-background/60 backdrop-blur-sm text-foreground/75 hover:text-accent hover:border-accent/60 transition-colors"
           >
             <HelpCircle className="h-4 w-4" />
+          </button>
+          {/* AI copilot — keyless, on-device. Ask it to fly you somewhere or
+              explain a body. Folded in from the old standalone page. */}
+          <button
+            type="button"
+            onClick={() => setAssistantOpen((v) => !v)}
+            data-cursor-hover
+            aria-label="AI assistant"
+            title="Ask the universe assistant"
+            aria-pressed={assistantOpen}
+            className={`grid h-9 w-9 place-items-center rounded-full border backdrop-blur-sm transition-colors ${
+              assistantOpen
+                ? "border-accent/60 bg-accent/10 text-accent"
+                : "border-border bg-background/60 text-foreground/75 hover:text-accent hover:border-accent/60"
+            }`}
+          >
+            <Sparkles className="h-4 w-4" />
           </button>
           <ClearCacheButton />
         </div>
@@ -767,6 +794,15 @@ export function CelestialExplorer() {
 
       {/* Mars coverage map — real MOLA globe + rover-site panoramas. */}
       {marsView && <MarsCoverage onClose={() => setMarsView(false)} />}
+
+      {/* AI copilot — folded in from the old /lab/universe-assistant page. Keyless
+          on-device model; asks fly the real camera via the sky-focus tools. A
+          right-side panel so it doesn't cover the scene. */}
+      {assistantOpen && (
+        <div className="fixed inset-y-0 right-0 z-50 w-full sm:w-[26rem] max-w-full border-l border-border bg-background/95 backdrop-blur-md shadow-[0_0_80px_-20px_rgba(0,0,0,0.8)] flex flex-col">
+          <AssistantPanel onClose={() => setAssistantOpen(false)} />
+        </div>
+      )}
     </>
   )
 }
