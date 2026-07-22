@@ -39,6 +39,10 @@ const BASE = "/img/space/bigbang"
 const STAR_TEX = `${BASE}/star.webp`
 const NEBULA_TEX = `${BASE}/nebula.webp`
 const CMB_TEX = `${BASE}/cmb.webp`
+// Blender-baked forming-world stages for the late chapters (Earth → life).
+const WORLD_MOLTEN_TEX = `${BASE}/world-molten.webp`
+const WORLD_OCEAN_TEX = `${BASE}/world-ocean.webp`
+const WORLD_LIFE_TEX = `${BASE}/world-life.webp`
 
 // the universe's log-time span, mirrored from timeline.ts for the 0..1 remap
 const T_MIN = -43
@@ -181,6 +185,9 @@ export function BigBangScene({ tLogRef }: { tLogRef: React.MutableRefObject<numb
       <CoreGlow tLogRef={tLogRef} starTex={starTex} />
       {/* the payoff: our Solar System condensing out of the cooled universe */}
       <SolarSystemFormation starTex={starTex} tLogRef={tLogRef} />
+      {/* the back half — a real world cooling + coming alive (Blender-baked
+          molten → ocean → living-Earth, cross-fading through the late chapters) */}
+      <FormingWorld tLogRef={tLogRef} />
       {/* gentle dolly-in to frame the forming system on the last beat */}
       <CameraRig tLogRef={tLogRef} />
     </>
@@ -356,5 +363,80 @@ function CoreGlow({
         blending={THREE.AdditiveBlending}
       />
     </sprite>
+  )
+}
+
+/**
+ * FormingWorld — the Blender-baked planet stages for the timeline's back half
+ * (Earth Forms → Oceans → Life). As the scrubber crosses into the late epochs
+ * the abstract particle field gives way to a real WORLD taking shape: a molten
+ * proto-Earth cross-fades to an ocean world, then to the living blue marble.
+ *
+ * Log-time anchors (see timeline.ts): earthforms 17.463, water 17.467,
+ * life 17.486, humans 17.638. We show it from ~17.455 onward and cross-fade the
+ * three stages across that span, so the planet literally cools + comes alive as
+ * you scrub toward "today". Billboard sprites, matching the CmbDome/NebulaField
+ * fade-in pattern.
+ */
+function FormingWorld({ tLogRef }: { tLogRef: React.MutableRefObject<number> }) {
+  const molten = useRef<THREE.Sprite>(null)
+  const ocean = useRef<THREE.Sprite>(null)
+  const life = useRef<THREE.Sprite>(null)
+  const [moltenTex, oceanTex, lifeTex] = useLoader(THREE.TextureLoader, [
+    WORLD_MOLTEN_TEX,
+    WORLD_OCEAN_TEX,
+    WORLD_LIFE_TEX,
+  ])
+
+  // Stage centres in log-time (where each world is fully shown).
+  const L_MOLTEN = 17.463 // Earth forms / molten
+  const L_OCEAN = 17.472 // oceans arrive
+  const L_LIFE = 17.52 // life → blue marble (held through to "today")
+  const START = 17.454 // world begins to appear (just after solar-system)
+
+  useFrame(() => {
+    const tLog = tLogRef.current
+    // Overall presence: fade the world IN as we enter the late chapters, and
+    // OUT if the user scrubs back before Earth forms.
+    const appear = THREE.MathUtils.clamp((tLog - START) / 0.006, 0, 1)
+
+    // Triangular weights per stage so they cross-fade smoothly along the axis.
+    const tri = (c: number, half: number) =>
+      THREE.MathUtils.clamp(1 - Math.abs(tLog - c) / half, 0, 1)
+    const wMolten = tri(L_MOLTEN, 0.012)
+    const wOcean = tri(L_OCEAN, 0.03)
+    // Life holds: full from L_LIFE onward (it's the final, lasting state).
+    const wLife = tLog >= L_LIFE ? 1 : tri(L_LIFE, 0.05)
+
+    const set = (r: React.RefObject<THREE.Sprite | null>, w: number) => {
+      if (!r.current) return
+      const o = appear * w
+      const m = r.current.material as THREE.SpriteMaterial
+      m.opacity = o
+      r.current.visible = o > 0.004
+      // gentle scale-up as the world "settles" into frame
+      const s = 5.5 + appear * 1.0
+      r.current.scale.set(s, s, s)
+    }
+    set(molten, wMolten)
+    set(ocean, wOcean)
+    set(life, wLife)
+  })
+
+  // Sit the world a little below the origin, ahead of the camera's late dolly.
+  const pos: [number, number, number] = [0, -1.5, 6]
+  const common = { transparent: true, depthWrite: false as const }
+  return (
+    <group position={pos}>
+      <sprite ref={molten} scale={[5.5, 5.5, 5.5]}>
+        <spriteMaterial map={moltenTex} opacity={0} toneMapped={false} {...common} />
+      </sprite>
+      <sprite ref={ocean} scale={[5.5, 5.5, 5.5]}>
+        <spriteMaterial map={oceanTex} opacity={0} toneMapped={false} {...common} />
+      </sprite>
+      <sprite ref={life} scale={[5.5, 5.5, 5.5]}>
+        <spriteMaterial map={lifeTex} opacity={0} toneMapped={false} {...common} />
+      </sprite>
+    </group>
   )
 }
