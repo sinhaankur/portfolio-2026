@@ -376,12 +376,11 @@ export function eccentricToTrue(E: number, e: number): number {
  * ------------------------------------------------------------------------ */
 
 /** Scene units per sqrt(AU). Distances are sqrt-compressed so the inner
- *  and outer solar system both stay legible in one frame. Raised 3 → 4.2 to
- *  give the whole system ~40% more breathing room ("increase the space for
- *  good") — a uniform scale, so every relative ratio is untouched (still pure
- *  pow(realAU, 0.58)); the belts derive their radii from compressRadius so they
- *  move out with it. */
-export const SCENE_SCALE = 4.2
+ *  and outer solar system both stay legible in one frame. Raised 3 → 6.0 to
+ *  give the whole system 100% more breathing room ("make it 100%") — a uniform
+ *  scale, so every relative ratio is untouched (still pure pow(realAU, 0.58));
+ *  the belts derive their radii from compressRadius so they move out with it. */
+export const SCENE_SCALE = 6.0
 
 /* Scale mode — "explore" (default, sqrt-compressed so the whole solar system
  * is legible in one frame) vs "true" (linear AU, real ratios — honest about the
