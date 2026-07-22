@@ -307,6 +307,48 @@ export function Hero() {
       </div>
       )}
 
+      {/* Auto-tour hint — while the cinematic default is flying itself (engine
+          ready, not yet in explore mode), tell visitors it's live AND that they
+          can take over. Mobile-first: it's a real BUTTON (44px min touch target,
+          tap = enter explore) centred low so it never collides with the hero
+          typography or the bottom nav; verbs flip by modality (Tap vs Click). */}
+      {engineReady && !interactive && !tvBrowserFallback && (
+        <button
+          type="button"
+          onClick={() => {
+            setEngineWanted(true)
+            setInteractive(true)
+          }}
+          data-cursor-hover
+          aria-label="Auto-touring the universe — tap to take control and explore"
+          className="
+            group absolute bottom-40 md:bottom-44 left-1/2 -translate-x-1/2 z-20
+            inline-flex items-center gap-2 px-4 py-2.5 rounded-full
+            border border-foreground/20 bg-background/55 backdrop-blur-sm
+            font-mono text-[10px] tracking-[0.22em] uppercase
+            text-foreground/70 hover:text-foreground hover:border-accent/50
+            transition-colors duration-300 min-h-11 touch-manipulation
+            max-w-[calc(100vw-2rem)]
+            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+            focus-visible:ring-offset-2 focus-visible:ring-offset-background
+            motion-safe:animate-[ue-label-in_600ms_ease-out_both]
+          "
+        >
+          <span
+            aria-hidden="true"
+            className="text-accent text-[13px] leading-none motion-safe:animate-spin"
+            style={{ animationDuration: "6s" }}
+          >
+            ◐
+          </span>
+          <span className="whitespace-nowrap">
+            <span className="text-foreground/55">Auto-touring · </span>
+            <span className="md:hidden">tap to explore</span>
+            <span className="hidden md:inline">tap to take control</span>
+          </span>
+        </button>
+      )}
+
       {/* Explore-mode hint — phrasing flips by input modality so the verbs
           match what the user actually does (pinch on touch, scroll on a
           trackpad / mouse wheel). Click-to-focus + Destinations menu give
