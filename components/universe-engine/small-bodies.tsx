@@ -388,13 +388,25 @@ function NamedBodyMesh({
     return tex
   }, [body.kind, body.textureUrl])
 
+  // Always-visible glint — must read in BOTH themes. In dark mode an additive
+  // bright glow works; in light (invert) mode an additive glint is invisible on
+  // white, so we flip to a DARKER, saturated dot with normal blending so it
+  // shows as a solid point on the pale background. Either way, nothing needs to
+  // be selected to be seen.
   const glintMaterial = useMemo(() => {
     if (!GLINT_SPRITE) return null
+    const col = new Color(config.shade)
+    if (invert) {
+      // Deepen + saturate so it's a visible dark point on white.
+      const hsl = { h: 0, s: 0, l: 0 }
+      col.getHSL(hsl)
+      col.setHSL(hsl.h, Math.min(1, hsl.s * 1.3 + 0.2), Math.min(hsl.l, 0.42))
+    }
     return new SpriteMaterial({
       map: GLINT_SPRITE,
-      color: new Color(config.shade),
+      color: col,
       transparent: true,
-      opacity: invert ? 0.5 : 0.85,
+      opacity: invert ? 0.9 : 0.9,
       blending: invert ? NormalBlending : AdditiveBlending,
       depthWrite: false,
       depthTest: true,
@@ -818,7 +830,14 @@ function NamedBodyMesh({
           interstellars) stays as the standard glowing sphere. */}
       <group ref={groupRef}>
         {body.kind === "spacecraft" && SPACECRAFT_SHAPES[body.name] ? (
-          <group scale={config.visualRadius * SPACECRAFT_SHAPES[body.name].scale}>
+          // Spacecraft are metres-to-tens-of-metres — truly invisible at
+          // solar-system scale (Parker is ~3 m vs Earth's 12,742 km). They must
+          // be inflated to read at all, but the old size (visualRadius×scale ≈
+          // 0.18) drew Parker/Voyager nearly Earth-sized. Cap the rendered
+          // silhouette small so it's a legible craft when you fly to it without
+          // dwarfing planets from afar; the always-visible glint carries
+          // findability at distance (a point of light, as it really appears).
+          <group scale={Math.min(0.05, config.visualRadius * SPACECRAFT_SHAPES[body.name].scale)}>
             {SPACECRAFT_SHAPES[body.name].render({ invert })}
           </group>
         ) : config.hasTail ? (

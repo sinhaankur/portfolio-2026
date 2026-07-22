@@ -451,14 +451,25 @@ export function compressRadius(rAU: number): number {
 }
 
 /** Small-body visual radius (scene units) from a REAL mean diameter (km).
- *  Compressed-but-truthful: a log curve maps the huge real range (sub-km NEOs
- *  up to ~940 km Ceres — a ~3,000× span) into a legible, ORDERED visual range,
- *  so relative sizes reflect reality (Ceres visibly dwarfs a tiny NEO) while
- *  the smallest bodies stay above a clickable floor. Same honest philosophy as
- *  compressRadius does for distances — real ratios, gently squeezed, never flat. */
+ *
+ *  Anchored to Earth's on-screen size (0.20 units) and driven by the TRUE
+ *  diameter ratio, sqrt-compressed — the same honest curve compressRadius uses
+ *  for distances. So a 939 km dwarf (Ceres) renders ~0.27× Earth while a 17 km
+ *  rock (Eros) is a genuine speck at ~0.04× Earth, matching reality instead of
+ *  the old log curve that saturated and drew Eros nearly as big as Ceres (a
+ *  ~190× over-inflation the user rightly flagged). The tiny bodies are floored
+ *  at 0.006 so they never vanish — but findability is carried by the
+ *  always-visible glint (a point of light, exactly how you'd really see an
+ *  asteroid: a dot until you're right on top of it), NOT by faking the size.
+ *
+ *  EARTH_VIS / EARTH_KM must track the planet-size formula in buildScenePlanets
+ *  (max(0.13, sqrt(radiusEarth)*0.2) → 0.20 for Earth). */
+const _EARTH_VIS = 0.20
+const _EARTH_KM = 12742
 export function smallBodyVisualRadius(diameterKm: number): number {
   const d = Math.max(diameterKm, 0)
-  return Math.max(0.018, Math.min(0.11, 0.012 * Math.log(1 + d) + 0.016))
+  const v = _EARTH_VIS * Math.sqrt(d / _EARTH_KM)
+  return Math.max(0.006, Math.min(0.16, v))
 }
 
 /**
@@ -1450,7 +1461,7 @@ export const namedBodies: NamedBody[] = [
   {
     name: "Ceres",
     designation: "1 Ceres",
-    kind: "asteroid",
+    kind: "dwarf",  // round dwarf planet (hydrostatic equilibrium) — renders as a world, not a rock
     diameterKm: 939.4,
     aAU: 2.77,
     eccentricity: 0.0758,
