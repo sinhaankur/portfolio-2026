@@ -60,28 +60,30 @@ export function ModeSelect({ onSelect }: { onSelect: (mode: GameMode) => void })
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
           {MODES.map((mode) => (
             <button
               key={mode.id}
               onClick={() => onSelect(mode.id)}
-              className="group text-left rounded-xl border border-white/10 bg-white/[0.03] p-6 transition-colors hover:border-white/30 hover:bg-white/[0.06] focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
-              style={{ minHeight: 240 }}
+              className="group flex flex-col text-left rounded-xl border border-white/15 bg-white/[0.04] p-5 md:p-6 transition-colors active:border-white/40 active:bg-white/[0.08] hover:border-white/30 hover:bg-white/[0.06] focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 md:min-h-[240px]"
             >
               <div
-                className="font-mono text-[10px] tracking-[0.22em] uppercase mb-3"
+                className="font-mono text-[10px] tracking-[0.22em] uppercase mb-2.5"
                 style={{ color: mode.accent }}
               >
                 {mode.eyebrow}
               </div>
-              <div className="font-serif text-2xl text-foreground mb-3">{mode.name}</div>
+              <div className="font-serif text-2xl text-foreground mb-2">{mode.name}</div>
               <p className="text-sm leading-relaxed text-foreground/70">{mode.description}</p>
-              <div
-                className="mt-5 inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.18em] opacity-70 group-hover:opacity-100 transition-opacity"
-                style={{ color: mode.accent }}
+              {/* LAUNCH affordance — a full-strength pill (was hover-only opacity,
+                  which read as disabled on touch). Now a visible tappable-looking
+                  chip at every input; mt-auto pins it to the card's bottom. */}
+              <span
+                className="mt-4 md:mt-auto inline-flex items-center gap-2 self-start rounded-full border px-3.5 py-2 font-mono text-[11px] uppercase tracking-[0.18em] min-h-11"
+                style={{ color: mode.accent, borderColor: `${mode.accent}66`, backgroundColor: `${mode.accent}14` }}
               >
                 Launch →
-              </div>
+              </span>
             </button>
           ))}
         </div>

@@ -3102,6 +3102,15 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
   const [tutorialIndex, setTutorialIndex] = useState(0);
   const [showControlsHelp, setShowControlsHelp] = useState(false);
   const [showSettings, setShowSettings] = useState(false); // gear-collapsed settings sheet
+  // Touch-capability, resolved after mount (SSR-safe + catches iPads, which
+  // report as "Mac" but have maxTouchPoints > 1). Gates the on-screen controls.
+  const [isTouch, setIsTouch] = useState(false);
+  useEffect(() => {
+    const ua = navigator.userAgent;
+    const uaTouch = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+    const capTouch = (navigator.maxTouchPoints ?? 0) > 1 || 'ontouchstart' in window;
+    setIsTouch(uaTouch || capTouch);
+  }, []);
   const [stationExploreMode, setStationExploreMode] = useState(false);
   const [dataCores, setDataCores] = useState<DataCore[]>(() =>
     createDataCores(ROUTE_DEFINITIONS.flatMap((r) => r.waypoints))
@@ -3116,6 +3125,9 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
   const mouseRotationRef = useRef({ pitch: 0, yaw: 0 });
   const deviceOrientationRef = useRef({ alpha: 0, beta: 0, gamma: 0 });
   const joystickRef = useRef({ active: false, originX: 0, originY: 0, dx: 0, dy: 0 });
+  // DOM handle to the joystick knob so it can follow the thumb live (a ref
+  // change doesn't re-render, so the knob used to sit dead-centre — no feedback).
+  const joystickKnobRef = useRef<HTMLDivElement | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const engineAudioRef = useRef<{
     ctx: AudioContext;
@@ -3831,8 +3843,9 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
       </Canvas>
         </div>
 
-        {/* Mobile touch controls — only visible on touch devices */}
-        {typeof navigator !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) && (
+        {/* Mobile touch controls — only visible on touch devices (resolved
+            post-mount so it's SSR-safe and catches iPads). */}
+        {isTouch && (
           <>
             {/* Virtual joystick — bottom-left */}
             <div
@@ -3863,18 +3876,26 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
                 }
                 joystickRef.current.dx = dx;
                 joystickRef.current.dy = dy;
+                // Move the knob live (DOM-direct, no React re-render) so the
+                // control has real tactile feedback.
+                if (joystickKnobRef.current) {
+                  joystickKnobRef.current.style.transform =
+                    `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+                }
               }}
               onTouchEnd={(e) => {
                 e.preventDefault();
                 joystickRef.current = { active: false, originX: 0, originY: 0, dx: 0, dy: 0 };
+                if (joystickKnobRef.current) {
+                  joystickKnobRef.current.style.transform = 'translate(-50%, -50%)';
+                }
               }}
             >
               <div className="relative w-28 h-28 rounded-full border border-white/15 bg-black/30 backdrop-blur-sm">
                 <div
-                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-cyan-400/20 border border-cyan-300/40 transition-transform duration-75"
-                  style={{
-                    transform: `translate(calc(-50% + ${joystickRef.current.dx * 0.6}px), calc(-50% + ${joystickRef.current.dy * 0.6}px))`,
-                  }}
+                  ref={joystickKnobRef}
+                  className="absolute top-1/2 left-1/2 w-12 h-12 rounded-full bg-cyan-400/25 border border-cyan-300/50"
+                  style={{ transform: 'translate(-50%, -50%)' }}
                 />
               </div>
               <div className="mt-1 text-center font-mono text-[7px] tracking-widest uppercase text-white/40">
