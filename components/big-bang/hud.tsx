@@ -10,7 +10,7 @@
  */
 
 import { useEffect, useRef, useState } from "react"
-import { EPOCHS, epochAtLog, progressToLog, T_LOG_MIN, T_LOG_MAX } from "./timeline"
+import { EPOCHS, epochAtLog, epochToProgress, progressToLog } from "./timeline"
 
 // Optional deep-link: `#t=0.97` opens the timeline parked at that 0..1 progress
 // (and skips the auto-play sweep), so a specific moment — e.g. the Solar System
@@ -112,8 +112,8 @@ export function BigBangHud({ tLogRef }: { tLogRef: React.MutableRefObject<number
                   the scrub affordance, reliable on touch), and reliable epoch
                   JUMPING is offered through the dedicated chip row below. */}
               <div className="relative mt-1 h-2" aria-hidden="true">
-                {EPOCHS.map((e) => {
-                  const t = (Math.log10(e.timeSeconds) - T_LOG_MIN) / (T_LOG_MAX - T_LOG_MIN)
+                {EPOCHS.map((e, i) => {
+                  const t = epochToProgress(i)
                   const active = e.id === epoch.id
                   return (
                     <span key={e.id}
@@ -128,8 +128,8 @@ export function BigBangHud({ tLogRef }: { tLogRef: React.MutableRefObject<number
               {/* Jump chips — horizontally scrollable on phones so every epoch
                   has a real ≥44px tap target regardless of log-axis crowding. */}
               <div className="mt-2 -mx-1 flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                {EPOCHS.map((e) => {
-                  const t = (Math.log10(e.timeSeconds) - T_LOG_MIN) / (T_LOG_MAX - T_LOG_MIN)
+                {EPOCHS.map((e, i) => {
+                  const t = epochToProgress(i)
                   const active = e.id === epoch.id
                   return (
                     <button key={e.id}
