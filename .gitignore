@@ -70,8 +70,12 @@ blender/space-assets/reference/
 # Blender backup saves
 *.blend1
 
-# Python bytecode from Blender build scripts
+# Python bytecode + virtualenvs from Blender/data build scripts. The venv is a
+# local convenience (deps only) — never part of the repo.
 __pycache__/
+.venv/
+venv/
+*.pyc
 
 # Blender master + backups now live in the dedicated assets repo
 # (sinhaankur/star-cleaver-assets). Don't re-commit the heavy sources here.

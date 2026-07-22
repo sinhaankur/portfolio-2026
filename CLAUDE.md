@@ -56,11 +56,24 @@ App-router routes under [`app/`](./app):
   case studies link back to `/lab` (not `/#lab`). Renders `components/lab.tsx`.
 - `/works/oracle`, `/works/deloitte`, `/works/snowtint`, `/works/rage` — company case studies.
 - `/lab/unhosted` — Unhosted (flagship open-source project case study).
+- `/lab/celestial` — the **Satellite Engine**: live real-time solar system + real
+  satellite orbits + Mars/Moon imaging + live space data. Hosts the **AI copilot**
+  (✦ button) — folded in here 2026-07 from the retired `/lab/universe-assistant`
+  (that route now redirects here). The copilot is **keyless + on-device by default**
+  (in-browser tiny LLM via `@mlc-ai/web-llm`; see `lib/webllm-*`), falling back to
+  deterministic search/fly-to tools where WebGPU is absent.
+- `/lab/helion-drift` — the **canonical game URL** (Helion Drift / Star Cleaver).
+  `/lab/star-cleaver` is a legacy redirect → here; don't re-add it as a real page.
+- `/lab/big-bang` — real-time cosmic timeline (Planck → today → Earth forms →
+  oceans → life → us); every element Blender-baked (`blender/big-bang/bake_elements.py`).
 - `/lab/usability-engine` — Usability Engine case study (design rationale +
   checkability framework; the live engine itself remains at `/usability`).
 - `/skills` — skills matrix with category + project filters.
-- `/usability` — long-form usability guide (hosts the interactive engine).
+- `/usability` — long-form usability guide (hosts the interactive engine). The
+  "Usability" navbar tab was removed 2026-07 (it duplicated the Lab's presence);
+  the live engine is still reachable from `/lab/usability-engine`.
 - `/upcoming` — roadmap.
+- (`/universe-engine/math` was **removed** 2026-07 as an orphan — don't re-create it.)
 - `/games/Gamelist.html` — retro neobrutalism mini-games index, served from
   `public/games/` (preserved from the previous build as a separate visual language).
 
