@@ -266,3 +266,145 @@ export const MANIPULATION_LABELS: Record<Manipulation, string> = {
   "us-vs-them": "Us-vs-them",
   "envy-bait": "Envy-bait",
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+ * ARTICLE MODE — news-portal editorial bias.
+ *
+ * A social FEED and a news ARTICLE are different bias problems. A feed's bias is
+ * the ALGORITHM (what it picks to feed you); an article's bias is the EDITORIAL
+ * (framing, loaded words, who's cast as hero vs villain, sensational headline vs
+ * body). BrainRot auto-detects which it's looking at and applies the right lens.
+ * ══════════════════════════════════════════════════════════════════════════ */
+
+export type PageMode = "feed" | "article"
+
+/** Decide whether we're looking at a personalised FEED (many short repeated
+ *  items) or a single long ARTICLE. Heuristic: one dominant long body = article;
+ *  several similar-length short items = feed. */
+export function detectMode(items: FeedItem[]): PageMode {
+  if (items.length <= 2) {
+    // A single sustained body over ~280 chars reads as an article, not a caption.
+    const longest = Math.max(0, ...items.map((i) => i.text.length))
+    return longest > 280 ? "article" : "feed"
+  }
+  const lengths = items.map((i) => i.text.length)
+  const total = lengths.reduce((a, b) => a + b, 0)
+  const max = Math.max(...lengths)
+  // If one block dominates (>55% of all text) and is long, it's an article.
+  if (max > 500 && max / total > 0.55) return "article"
+  return "feed"
+}
+
+// Loaded / emotive language that editorializes rather than reports. Neutral
+// reporting states facts; loaded language tells you how to feel about them.
+const LOADED_WORDS = [
+  "slammed", "blasted", "shocking", "outrageous", "disgraceful", "radical", "extremist",
+  "regime", "so-called", "claims", "admits", "refuses", "controversial", "bombshell",
+  "chaos", "crisis", "disaster", "failed", "botched", "desperate", "stunning", "brazen",
+  "unprecedented", "damning", "explosive", "meltdown", "scathing", "furious", "backlash",
+  "allegedly", "reportedly", "insiders say", "critics say", "sparked outrage", "erupted",
+]
+
+// Sensational headline cues — a headline should inform; these are engagement bait.
+const SENSATIONAL_HEADLINE = [
+  /\byou won'?t believe\b/i, /\bhere'?s (why|what|how)\b/i, /\bshocking\b/i,
+  /\bthis is (what|why|how)\b/i, /\bgoes viral\b/i, /\bbreaks? (the )?internet\b/i,
+  /\b(destroys?|slams?|blasts?|owns?)\b/i, /[!?]{2,}/, /\bwhat happened next\b/i,
+]
+
+// Simple partisan lexicons — presence of BOTH sides = balanced; heavy one-side
+// framing signals slant. (Direction, not truth — we flag lean, not correctness.)
+const LEFT_FRAME = ["progressive", "social justice", "climate crisis", "gun control", "reproductive rights", "systemic", "marginalized", "far-right", "misinformation"]
+const RIGHT_FRAME = ["woke", "radical left", "illegal aliens", "law and order", "traditional values", "second amendment", "big government", "far-left", "mainstream media"]
+
+export type ArticleAnalysis = {
+  mode: "article"
+  /** Loaded/emotive words found (editorializing language). */
+  loadedWords: string[]
+  /** 0..1 — density of loaded language (higher = more editorial, less neutral). */
+  loadedDensity: number
+  /** Overall sentiment of the piece (−1..+1). */
+  sentiment: number
+  /** Is the headline sensational (bait), based on the first line? */
+  sensationalHeadline: boolean
+  /** Framing lean from partisan cue words: −1 (one side) … +1 (the other), 0 balanced. */
+  frameLean: number
+  frameLabel: "left-leaning frame" | "right-leaning frame" | "mixed / balanced framing"
+  /** Named-ish entities and the sentiment of the sentences that mention them. */
+  entities: { name: string; sentiment: number; mentions: number }[]
+  /** Plain-language read of the article's editorial bias. */
+  mirror: string
+}
+
+/** Pull crude "entities" — capitalised multi-word or single proper nouns — and
+ *  the mean sentiment of sentences that mention them. Deterministic, no NER. */
+function entitySentiment(text: string): { name: string; sentiment: number; mentions: number }[] {
+  const sentences = text.split(/(?<=[.!?])\s+/)
+  const scores = new Map<string, { s: number; n: number }>()
+  // Match sequences of Capitalised Words (2+ chars), skipping sentence starts is
+  // imperfect but fine for a lightweight signal.
+  const re = /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2})\b/g
+  for (const sent of sentences) {
+    const { sentiment } = scoreSentiment(sent)
+    const seen = new Set<string>()
+    let m: RegExpExecArray | null
+    while ((m = re.exec(sent))) {
+      const name = m[1]
+      // filter common non-entities
+      if (name.length < 4 || /^(The|This|That|These|Those|And|But|Here|There|When|While|After|Before)\b/.test(name)) continue
+      if (seen.has(name)) continue
+      seen.add(name)
+      const cur = scores.get(name) ?? { s: 0, n: 0 }
+      cur.s += sentiment; cur.n += 1
+      scores.set(name, cur)
+    }
+  }
+  return [...scores.entries()]
+    .filter(([, v]) => v.n >= 1) // any named entity with a sentiment-bearing mention
+    .map(([name, v]) => ({ name, sentiment: v.s / v.n, mentions: v.n }))
+    .sort((a, b) => b.mentions - a.mentions)
+    .slice(0, 6)
+}
+
+export function analyzeArticle(text: string): ArticleAnalysis {
+  const lower = text.toLowerCase()
+  const ws = words(text)
+  const loadedWords = LOADED_WORDS.filter((w) => lower.includes(w))
+  const loadedDensity = Math.min(1, loadedWords.length / Math.max(30, ws.length / 25))
+  const { sentiment } = scoreSentiment(text)
+  const headline = (text.split(/\n/)[0] || text.slice(0, 120)).trim()
+  const sensationalHeadline = SENSATIONAL_HEADLINE.some((re) => re.test(headline))
+  const leftHits = LEFT_FRAME.filter((w) => lower.includes(w)).length
+  const rightHits = RIGHT_FRAME.filter((w) => lower.includes(w)).length
+  const denom = leftHits + rightHits
+  const frameLean = denom === 0 ? 0 : (rightHits - leftHits) / denom
+  const frameLabel =
+    denom === 0 || Math.abs(frameLean) < 0.34 ? "mixed / balanced framing"
+    : frameLean < 0 ? "left-leaning frame" : "right-leaning frame"
+  const entities = entitySentiment(text)
+
+  return {
+    mode: "article",
+    loadedWords, loadedDensity, sentiment, sensationalHeadline,
+    frameLean, frameLabel, entities,
+    mirror: buildArticleMirror(loadedWords, loadedDensity, sensationalHeadline, frameLabel, entities),
+  }
+}
+
+function buildArticleMirror(
+  loaded: string[], density: number, sensational: boolean,
+  frameLabel: string, entities: { name: string; sentiment: number; mentions: number }[],
+): string {
+  const parts: string[] = []
+  if (density > 0.5) parts.push(`This reads as **opinion dressed as news** — heavy loaded language (${loaded.slice(0, 4).join(", ")}…)`)
+  else if (density > 0.2) parts.push(`Mostly reporting, but it editorialises in places (${loaded.slice(0, 3).join(", ")})`)
+  else parts.push(`Fairly neutral wording`)
+  if (sensational) parts.push(`the headline is engineered for clicks, not clarity`)
+  if (frameLabel !== "mixed / balanced framing") parts.push(`and it's written from a **${frameLabel}**`)
+  const hero = entities.find((e) => e.sentiment > 0.2)
+  const villain = entities.find((e) => e.sentiment < -0.2)
+  if (hero && villain) parts.push(`— it casts **${hero.name}** favourably and **${villain.name}** negatively`)
+  else if (villain) parts.push(`— it frames **${villain.name}** negatively`)
+  else if (hero) parts.push(`— it frames **${hero.name}** favourably`)
+  return parts.join(", ").replace(/, —/g, " —") + "."
+}
