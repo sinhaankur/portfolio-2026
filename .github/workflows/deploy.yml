@@ -78,6 +78,12 @@ jobs:
         run: |
           node scripts/bake-flights.mjs || echo "::warning::flight snapshot refresh failed — deploying with committed snapshot"
 
+      - name: Check asset budget
+        # Guard the free-tier ceiling (Git LFS ~1 GB): fails the build with a
+        # clear message if the GLB models / textures blow past their budget, so
+        # bloat is caught here instead of via a surprise LFS-quota email.
+        run: node scripts/check-asset-budget.mjs
+
       - name: Build (Next.js static export)
         # NEXT_PUBLIC_GOOGLE_MAPS_KEY is inlined into the client bundle at build
         # time (Map Tiles API — photoreal Earth). Sourced from a repo secret so
