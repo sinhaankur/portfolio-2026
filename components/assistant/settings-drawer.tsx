@@ -29,13 +29,16 @@ import {
   readAnthropicModel,
   readLmStudioConfig,
   readOllamaConfig,
+  readWebLLMModel,
   validateProviderConfig,
   writeActiveProvider,
   writeAnthropicKey,
   writeAnthropicModel,
   writeLmStudioConfig,
   writeOllamaConfig,
+  writeWebLLMModel,
 } from "@/lib/llm-provider"
+import { WEBLLM_MODEL_LABELS, isWebGPUAvailable } from "@/lib/webllm-engine"
 
 const ANTHROPIC_MODELS: Array<{
   value: AnthropicModelId
@@ -101,6 +104,9 @@ export function SettingsDrawer({
   const [lmstudioModel, setLmstudioModel] = useState("")
   const [ollamaBase, setOllamaBase] = useState(PROVIDER_DEFAULTS.ollama.baseUrl)
   const [ollamaModel, setOllamaModel] = useState("")
+  const [webllmModel, setWebllmModel] = useState(PROVIDER_DEFAULTS.webllm.model)
+  const [webllmProgress, setWebllmProgress] = useState<{ progress: number; text: string } | null>(null)
+  const [webgpuOk, setWebgpuOk] = useState<boolean | null>(null)
   const [showKey, setShowKey] = useState(false)
   const [status, setStatus] = useState<"idle" | "validating" | "saved" | "error">("idle")
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
@@ -154,6 +160,8 @@ export function SettingsDrawer({
     const ol = readOllamaConfig()
     setOllamaBase(ol.baseUrl)
     setOllamaModel(ol.model)
+    setWebllmModel(readWebLLMModel())
+    setWebgpuOk(isWebGPUAvailable())
     setStatus("idle")
     setErrorMsg(null)
     setAvailableModels([])
@@ -166,6 +174,33 @@ export function SettingsDrawer({
   /* ------------------------------------------------------------ */
   /* Save handlers — one per provider so each has its own validate */
   /* ------------------------------------------------------------ */
+
+  // On-device model — save the choice, and (if WebGPU is present) pre-download
+  // the model now so the first question isn't a cold ~380 MB wait. Progress
+  // streams into webllmProgress; failure degrades to the deterministic path.
+  const handleSaveWebLLM = async () => {
+    writeWebLLMModel(webllmModel)
+    writeActiveProvider("webllm")
+    onConfigChange()
+    if (!isWebGPUAvailable()) {
+      setStatus("saved")
+      setErrorMsg("Saved. This browser has no WebGPU, so answers come straight from the catalog (still works — no model download).")
+      return
+    }
+    setStatus("validating")
+    setErrorMsg(null)
+    setWebllmProgress({ progress: 0, text: "Starting…" })
+    try {
+      const { getWebLLMEngine } = await import("@/lib/webllm-engine")
+      await getWebLLMEngine(webllmModel, (p) => setWebllmProgress(p))
+      setStatus("saved")
+      setWebllmProgress({ progress: 1, text: "Ready — running on your device." })
+    } catch (err) {
+      setStatus("error")
+      setErrorMsg(err instanceof Error ? err.message : "Model failed to load.")
+      setWebllmProgress(null)
+    }
+  }
 
   const handleSaveAnthropic = async () => {
     const trimmed = anthropicKey.trim()
@@ -292,7 +327,7 @@ export function SettingsDrawer({
                   requires the model server running on this machine.
                 </p>
                 <div className="space-y-2">
-                  {(["anthropic", "lmstudio", "ollama"] as LLMProviderId[]).map((p) => (
+                  {(["webllm", "anthropic", "lmstudio", "ollama"] as LLMProviderId[]).map((p) => (
                     <label
                       key={p}
                       className={`
@@ -311,11 +346,13 @@ export function SettingsDrawer({
                         <div>
                           <div className="font-medium text-foreground">{PROVIDER_LABELS[p]}</div>
                           <div className="text-xs text-muted-foreground mt-0.5">
-                            {p === "anthropic"
-                              ? "Most capable. BYO Claude API key."
-                              : p === "lmstudio"
-                                ? "OpenAI-compatible endpoint on localhost:1234."
-                                : "OpenAI-compatible endpoint on localhost:11434. Needs OLLAMA_ORIGINS=*."}
+                            {p === "webllm"
+                              ? "Runs in your browser — no key, no server, nothing leaves your device. One-time model download."
+                              : p === "anthropic"
+                                ? "Most capable. BYO Claude API key."
+                                : p === "lmstudio"
+                                  ? "OpenAI-compatible endpoint on localhost:1234."
+                                  : "OpenAI-compatible endpoint on localhost:11434. Needs OLLAMA_ORIGINS=*."}
                           </div>
                         </div>
                       </div>
@@ -396,6 +433,17 @@ export function SettingsDrawer({
               </section>
 
               {/* Per-provider config */}
+              {provider === "webllm" && (
+                <WebLLMConfig
+                  model={webllmModel}
+                  onModelChange={setWebllmModel}
+                  onSave={handleSaveWebLLM}
+                  status={status}
+                  errorMsg={errorMsg}
+                  progress={webllmProgress}
+                  webgpuOk={webgpuOk}
+                />
+              )}
               {provider === "anthropic" && (
                 <AnthropicConfig
                   apiKey={anthropicKey}
@@ -536,6 +584,94 @@ function DetectionRow({
 /* ----------------------------------------------------------------
  * Sub-blocks — kept inline for readability over splitting per-file
  * ---------------------------------------------------------------- */
+
+function WebLLMConfig({
+  model,
+  onModelChange,
+  onSave,
+  status,
+  errorMsg,
+  progress,
+  webgpuOk,
+}: {
+  model: string
+  onModelChange: (v: string) => void
+  onSave: () => Promise<void>
+  status: "idle" | "validating" | "saved" | "error"
+  errorMsg: string | null
+  progress: { progress: number; text: string } | null
+  webgpuOk: boolean | null
+}) {
+  const pct = progress ? Math.round(progress.progress * 100) : 0
+  return (
+    <section>
+      <h3 className="font-display text-lg font-light mb-1.5">On-device model</h3>
+      <p className="text-sm text-muted-foreground leading-relaxed mb-4">
+        A small language model runs entirely in your browser — no API key, no
+        server, nothing leaves your device. The model downloads once (then it&apos;s
+        cached). Navigation and facts always work; the model just phrases answers.
+      </p>
+
+      {webgpuOk === false && (
+        <div className="mb-4 rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-xs leading-relaxed text-muted-foreground">
+          <strong className="text-foreground font-medium">No WebGPU here.</strong>
+          <p className="mt-1.5">
+            This browser can&apos;t run the on-device model (try Chrome or Edge). The
+            assistant still answers from the real catalogue — just without free-form
+            phrasing. No download happens.
+          </p>
+        </div>
+      )}
+
+      <label className="block">
+        <span className="font-mono text-[10px] tracking-[0.25em] uppercase text-muted-foreground mb-1.5 block">
+          Model
+        </span>
+        <div className="flex flex-wrap gap-1.5">
+          {Object.entries(WEBLLM_MODEL_LABELS).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => onModelChange(id)}
+              className={`
+                font-mono text-[10px] px-2.5 py-1.5 rounded border transition-colors
+                ${model === id ? "border-accent bg-accent/5 text-foreground" : "border-border/70 hover:border-accent text-muted-foreground hover:text-foreground"}
+              `}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </label>
+
+      {progress && (
+        <div className="mt-4">
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary/40">
+            <div
+              className="h-full rounded-full bg-accent transition-[width] duration-300"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+          <p className="mt-1.5 font-mono text-[10px] text-muted-foreground truncate">
+            {pct}% · {progress.text}
+          </p>
+        </div>
+      )}
+
+      <div className="mt-4">
+        <SaveButton
+          onClick={onSave}
+          disabled={status === "validating"}
+          status={status}
+        />
+        {status === "validating" && (
+          <span className="ml-3 text-xs text-muted-foreground">Downloading + loading the model…</span>
+        )}
+      </div>
+      <StatusLine status={status} errorMsg={errorMsg} />
+    </section>
+  )
+}
 
 function AnthropicConfig({
   apiKey,
