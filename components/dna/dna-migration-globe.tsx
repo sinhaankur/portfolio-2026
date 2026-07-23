@@ -83,12 +83,18 @@ function Arc({ from, to, color = "#f5b942" }: { from: LatLng; to: LatLng; color?
 export function DnaMigrationGlobe({
   root,
   chapters,
+  showcase = false,
+  className,
 }: {
   root: LatLng
   chapters: { origin: LatLng; spreadTo: LatLng }[]
+  /** teaser mode: gentle auto-rotate + a "the human story" legend. */
+  showcase?: boolean
+  /** override the container size/classes (defaults to the full-height panel). */
+  className?: string
 }) {
   return (
-    <div className="relative h-[52vh] min-h-[360px] w-full rounded-2xl border border-border bg-[#05070d] overflow-hidden">
+    <div className={className ?? "relative h-[52vh] min-h-[360px] w-full rounded-2xl border border-border bg-[#05070d] overflow-hidden"}>
       <Canvas camera={{ position: [0, 0.6, 3.1], fov: 42 }} dpr={[1, 1.5]}>
         <ambientLight intensity={0.55} />
         <directionalLight position={[3, 2, 4]} intensity={1.1} />
@@ -109,18 +115,22 @@ export function DnaMigrationGlobe({
 
         <OrbitControls
           enablePan={false}
-          enableZoom
+          enableZoom={!showcase}
           minDistance={1.7}
           maxDistance={4.5}
           rotateSpeed={0.5}
-          autoRotate={false}
+          autoRotate={showcase}
+          autoRotateSpeed={0.4}
         />
       </Canvas>
 
       {/* Legend */}
       <div className="pointer-events-none absolute left-3 bottom-3 flex flex-col gap-1 font-mono text-[10px] tracking-wider text-white/80">
         <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: "#4ad6c4" }} /> shared root · out of Africa</span>
-        <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: "#f5b942" }} /> where your variants arose + spread</span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full" style={{ background: "#f5b942" }} />
+          {showcase ? "where human variants arose + spread" : "where your variants arose + spread"}
+        </span>
       </div>
     </div>
   )
