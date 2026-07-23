@@ -31,6 +31,8 @@ export type DnaPlan = {
   supplements: Recommendation[]
   diet: Recommendation[]
   habits: Recommendation[]
+  /** What your genome suggests you steer clear of — the honest avoid-list. */
+  avoid: Recommendation[]
   /** The long-game arc — what compounds over years for this genome. */
   overTime: string[]
 }
@@ -40,7 +42,7 @@ type Rule = {
   gene: string
   /** genotypes (normalized) this rule fires for. */
   when: string[]
-  bucket: "supplements" | "diet" | "habits"
+  bucket: "supplements" | "diet" | "habits" | "avoid"
   what: string
   why: string
   tone: PlanTone
@@ -179,12 +181,51 @@ const RULES: Rule[] = [
     why: "A fast-metaboliser CYP1A2 variant clears caffeine quickly; the risk is over-relying on it.",
     tone: "consider",
   },
+
+  // ── Things to steer clear of ────────────────────────────────────────────
+  {
+    markerId: "alcohol-flush", gene: "ALDH2", when: ["AG", "GG"], bucket: "avoid",
+    what: "Heavy or regular alcohol",
+    why: "Your ALDH2 variant lets toxic acetaldehyde build up — the flush is a real warning, linked to higher cancer risk with drinking (a possibility, not a certainty).",
+    tone: "watch",
+  },
+  {
+    markerId: "lactose", gene: "MCM6", when: ["GG"], bucket: "avoid",
+    what: "Large amounts of fresh milk / soft dairy",
+    why: "Without the lactase-persistence variant, big doses of lactose commonly mean bloating and discomfort — though tolerance varies and fermented dairy is usually fine.",
+    tone: "watch",
+  },
+  {
+    markerId: "caffeine", gene: "CYP1A2", when: ["CA", "CC"], bucket: "avoid",
+    what: "Late-afternoon caffeine (incl. strong tea)",
+    why: "As a slow metaboliser, caffeine lingers for hours and can quietly wreck sleep — worth avoiding after early afternoon.",
+    tone: "watch",
+  },
+  {
+    markerId: "fat-response", gene: "APOA2", when: ["CC"], bucket: "avoid",
+    what: "A consistently high saturated-fat diet",
+    why: "Your APOA2 variant is associated with a stronger weight response to saturated fat — moderating it tends to help more than it does for most people.",
+    tone: "watch",
+  },
+  {
+    markerId: "blood-sugar", gene: "TCF7L2", when: ["CT", "TT"], bucket: "avoid",
+    what: "Large refined-carb meals eaten alone",
+    why: "A TCF7L2 variant is linked to less efficient blood-sugar handling — big sugar/white-carb hits spike then crash, and over time nudge toward belly fat.",
+    tone: "watch",
+  },
+  {
+    markerId: "iron", gene: "HFE (H63D)", when: ["CG", "GG"], bucket: "avoid",
+    what: "Blind iron supplementation",
+    why: "Your HFE variant can raise iron absorption; piling on more without a blood test risks accumulation rather than benefit.",
+    tone: "watch",
+  },
 ]
 
 export function buildDnaPlan(traits: Record<string, string>): DnaPlan {
   const supplements: Recommendation[] = []
   const diet: Recommendation[] = []
   const habits: Recommendation[] = []
+  const avoid: Recommendation[] = []
   const overTime: string[] = []
 
   for (const rule of RULES) {
@@ -200,9 +241,10 @@ export function buildDnaPlan(traits: Record<string, string>): DnaPlan {
     }
     if (rule.bucket === "supplements") supplements.push(rec)
     else if (rule.bucket === "diet") diet.push(rec)
+    else if (rule.bucket === "avoid") avoid.push(rec)
     else habits.push(rec)
     if (rule.overTime && !overTime.includes(rule.overTime)) overTime.push(rule.overTime)
   }
 
-  return { supplements, diet, habits, overTime }
+  return { supplements, diet, habits, avoid, overTime }
 }

@@ -7,7 +7,7 @@
 
 import { useMemo } from "react"
 import { buildDnaPlan, type Recommendation } from "@/lib/dna-plan"
-import { Pill, Salad, Activity, TrendingUp } from "lucide-react"
+import { Pill, Salad, Activity, TrendingUp, Ban } from "lucide-react"
 
 const TONE_STYLE: Record<Recommendation["tone"], string> = {
   "lean-in": "border-emerald-500/40 bg-emerald-500/[0.06]",
@@ -100,6 +100,12 @@ export function DnaPlan({ traits }: { traits: Record<string, string> }) {
           title="Habits & movement"
           subtitle="what fits your biology"
           recs={plan.habits}
+        />
+        <Bucket
+          icon={<Ban className="h-5 w-5" />}
+          title="Things to steer clear of"
+          subtitle="where your genome raises the cost"
+          recs={plan.avoid}
         />
 
         {/* The long game */}

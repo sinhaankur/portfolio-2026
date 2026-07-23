@@ -218,15 +218,35 @@ export function DnaTraits({ traits }: { traits: Record<string, string> }) {
         generation.
       </p>
 
-      {/* General disclaimer */}
-      <div className="mb-4 flex gap-3 rounded-md border border-accent/30 bg-accent/5 p-4">
-        <AlertCircle className="h-4 w-4 text-accent shrink-0 mt-0.5" aria-hidden />
-        <p className="font-sans text-xs md:text-sm text-foreground/75 leading-relaxed">
-          <strong>Not medical advice.</strong> A genotyping array is not a
-          clinical test. These are informational common variants — genes are one
-          input among many, and lifestyle usually matters more. For anything
-          health-related, talk to a clinician.
-        </p>
+      {/* How certain is this? — the honest framing. Genes set a predisposition,
+          not a verdict; lifestyle modulates it; some traits are far more knowable
+          than others. */}
+      <div className="mb-4 rounded-lg border border-accent/30 bg-accent/5 p-4 md:p-5">
+        <div className="flex gap-3">
+          <AlertCircle className="h-4 w-4 text-accent shrink-0 mt-0.5" aria-hidden />
+          <div className="space-y-2.5 font-sans text-xs md:text-sm text-foreground/75 leading-relaxed">
+            <p>
+              <strong>These are possibilities, not verdicts.</strong> A genotyping
+              array reads a predisposition — a <em>percentage of possibility</em>,
+              not a certainty. Genes are one input; diet, sleep, stress, and daily
+              habits often matter more, and can amplify or completely offset what a
+              variant nudges toward.
+            </p>
+            <p>
+              Some traits are more knowable than others. <strong>Build type,
+              pigment, taste, caffeine handling</strong> are well-characterised and
+              show up reliably. <strong>Complex risks like cancer are far less
+              certain</strong> — a common variant shifts the odds slightly at most,
+              never decides the outcome. Treat those as gentle signals, not calls.
+            </p>
+            <p>
+              And a trait can have many causes at once. <strong>Bloating</strong>,
+              say, might be lactose, a specific food, tea/caffeine, gut microbiome,
+              or something else entirely — your genes explain one strand, not the
+              whole knot. For anything health-related, talk to a clinician.
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Methodology link — every claim here is traceable; this is where the

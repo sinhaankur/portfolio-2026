@@ -7,6 +7,7 @@ import { CustomCursor } from "@/components/custom-cursor"
 import { Container } from "@/components/container"
 import { canonicalPath } from "@/lib/seo"
 import { DNA_DATABASES, DNA_PRINCIPLES } from "@/lib/dna-databases"
+import { DnaStudy } from "@/components/dna/dna-study"
 
 // Public — this is methodology + references only, no personal genome. Making it
 // indexable shows the rigour and lets anyone verify the science.
@@ -92,6 +93,24 @@ export default function DnaDatabasesPage() {
               </div>
             </div>
           )}
+
+          {/* Study materials + documentation — go deeper */}
+          <div className="mt-20 max-w-4xl">
+            <div className="flex items-baseline gap-4 mb-3">
+              <span aria-hidden className="block w-12 h-px bg-accent" />
+              <h2 className="font-display text-2xl md:text-3xl font-light tracking-[-0.01em]">
+                Study materials &amp; documentation
+              </h2>
+            </div>
+            <p className="font-sans text-sm md:text-base text-foreground/70 leading-relaxed max-w-2xl mb-10">
+              Want to learn it properly? A curated path from &ldquo;what is a
+              gene&rdquo; to the machine-learning methods reading genomes today —
+              how DNA works, the databases + published studies, human origins, the
+              types of genome study, and the ML/pattern-recognition frontier. All
+              free, all authoritative.
+            </p>
+            <DnaStudy />
+          </div>
 
           <p className="mt-16 max-w-3xl font-sans text-sm text-muted-foreground leading-relaxed">
             This page carries no personal genetic data. The genome itself is never
