@@ -24,7 +24,7 @@ const SECTIONS = [
   { id: "dna-helix", label: "Helix" },
 ]
 
-export function DnaHero({ data }: { data: DnaSummary }) {
+export function DnaHero({ data, showNav = true }: { data: DnaSummary; showNav?: boolean }) {
   const { homozygous, heterozygous, noCall } = data.genotypeClasses
   const totalCalls = homozygous + heterozygous + noCall || 1
   const hetPct = (heterozygous / totalCalls) * 100
@@ -82,20 +82,22 @@ export function DnaHero({ data }: { data: DnaSummary }) {
           <HeroStat n={`${stats.standout}`} label="stand out" accent />
         </div>
 
-        {/* Section jump-nav */}
-        <nav className="mt-8 flex flex-wrap gap-2" aria-label="Genome sections">
-          {SECTIONS.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              onClick={() => scrollTo(s.id)}
-              data-cursor-hover
-              className="rounded-full border border-border bg-background/40 px-3.5 py-1.5 font-mono text-[10px] tracking-widest uppercase text-muted-foreground hover:text-foreground hover:border-accent/60 transition-colors"
-            >
-              {s.label}
-            </button>
-          ))}
-        </nav>
+        {/* Section jump-nav — only when the tabs aren't already providing nav. */}
+        {showNav && (
+          <nav className="mt-8 flex flex-wrap gap-2" aria-label="Genome sections">
+            {SECTIONS.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => scrollTo(s.id)}
+                data-cursor-hover
+                className="rounded-full border border-border bg-background/40 px-3.5 py-1.5 font-mono text-[10px] tracking-widest uppercase text-muted-foreground hover:text-foreground hover:border-accent/60 transition-colors"
+              >
+                {s.label}
+              </button>
+            ))}
+          </nav>
+        )}
       </div>
     </motion.section>
   )

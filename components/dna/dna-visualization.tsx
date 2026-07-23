@@ -16,6 +16,8 @@ import { DnaPlan } from "./dna-plan"
 import { DnaOrigins } from "./dna-origins"
 import { DnaCompare } from "./dna-compare"
 import { DnaHero } from "./dna-hero"
+import { DnaTabs } from "./dna-tabs"
+import { DnaStudy } from "./dna-study"
 import { DnaInheritance } from "./dna-inheritance"
 import { DnaLegacyNote } from "./dna-legacy-note"
 import { DnaRadar } from "./dna-radar"
@@ -32,6 +34,11 @@ function fmt(n: number) {
 
 export function DnaVisualization({ data }: { data: DnaSummary }) {
   const [helixView, setHelixView] = useState<"3d" | "illustrated">("3d")
+  // Active L2 section id — the tabs pick one at a time so the page reads as a
+  // focused view, not an endless scroll. Defaults to the at-a-glance hero.
+  const [active, setActive] = useState<string>("hero")
+  // Show helper: a section is visible only when it's the active tab.
+  const show = (id: string) => (active === id ? "" : "hidden")
   const maxSnps = Math.max(...data.chromosomes.map((c) => c.snps))
   const { homozygous, heterozygous, noCall } = data.genotypeClasses
   const totalCalls = homozygous + heterozygous + noCall || 1
@@ -45,13 +52,20 @@ export function DnaVisualization({ data }: { data: DnaSummary }) {
     { base: "T", name: "Thymine", color: "#f06c8d", pair: "A" },
   ]
 
+  const hasTraits = Boolean(data.traits && Object.keys(data.traits).length > 0)
+
   return (
-    <div className="space-y-16">
-      {/* Hero — the genome at a glance + jump-nav */}
-      <DnaHero data={data} />
+    <div>
+      {/* L1 / L2 tabbed navigation — one focused view at a time. */}
+      <DnaTabs active={active} onChange={setActive} />
+
+      {/* Hero / At-a-glance */}
+      <div className={show("hero")}>
+        <DnaHero data={data} showNav={false} />
+      </div>
 
       {/* How to read it — Blender diagram + legend */}
-      <section id="how-dna-works">
+      <section id="how-dna-works" className={show("how-dna-works")}>
         <div className="flex items-baseline gap-4 mb-6">
           <span aria-hidden className="block w-12 h-px bg-accent" />
           <h2 className="font-display text-2xl md:text-3xl font-light tracking-[-0.01em]">
@@ -102,53 +116,47 @@ export function DnaVisualization({ data }: { data: DnaSummary }) {
         </div>
       </section>
 
-      {/* How DNA works + human evolution — teach the mechanism under the data.
-          (The evolution sub-section carries the #dna-evolution anchor internally.) */}
-      <div id="dna-evolution" className="scroll-mt-24">
+      {/* How DNA works + human evolution — teach the mechanism under the data. */}
+      <div id="dna-evolution" className={show("dna-evolution")}>
         <DnaExplainer />
       </div>
 
       {/* Origins — the ancestry / migration story your variants trace. */}
-      {data.traits && Object.keys(data.traits).length > 0 && (
-        <div id="dna-origins" className="scroll-mt-24">
-          <DnaOrigins traits={data.traits} />
+      {hasTraits && (
+        <div id="dna-origins" className={show("dna-origins")}>
+          <DnaOrigins traits={data.traits!} />
         </div>
       )}
 
-      {/* Personalized plan — supplements, diet, and habits derived from YOUR
-          genotypes. Turns the markers from trivia into a course of action. */}
-      {data.traits && Object.keys(data.traits).length > 0 && (
-        <div id="dna-plan" className="scroll-mt-24">
-          <DnaPlan traits={data.traits} />
+      {/* Personalized plan — supplements, diet, habits, and things to avoid. */}
+      {hasTraits && (
+        <div id="dna-plan" className={show("dna-plan")}>
+          <DnaPlan traits={data.traits!} />
         </div>
       )}
 
       {/* You vs. the average — put the numbers in human context */}
-      <div id="dna-compare" className="scroll-mt-24">
+      <div id="dna-compare" className={show("dna-compare")}>
         <DnaCompare data={data} />
       </div>
 
-      {/* Radar — category profile at a glance */}
-      {data.traits && Object.keys(data.traits).length > 0 && (
-        <DnaRadar traits={data.traits} />
-      )}
-
-      {/* Trait panel — diet / wellness insights */}
-      {data.traits && Object.keys(data.traits).length > 0 && (
-        <div id="dna-traits" className="scroll-mt-24">
-          <DnaTraits traits={data.traits} />
+      {/* Traits — radar + the full panel together under one tab */}
+      {hasTraits && (
+        <div id="dna-traits" className={`space-y-16 ${show("dna-traits")}`}>
+          <DnaRadar traits={data.traits!} />
+          <DnaTraits traits={data.traits!} />
         </div>
       )}
 
       {/* Inheritance — what passes to the next generation */}
-      {data.traits && Object.keys(data.traits).length > 0 && (
-        <div id="dna-inheritance" className="scroll-mt-24">
-          <DnaInheritance traits={data.traits} />
+      {hasTraits && (
+        <div id="dna-inheritance" className={show("dna-inheritance")}>
+          <DnaInheritance traits={data.traits!} />
         </div>
       )}
 
       {/* Helix — switchable between the live 3D render and the illustration */}
-      <section id="dna-helix" className="scroll-mt-24">
+      <section id="dna-helix" className={show("dna-helix")}>
         <div className="flex flex-wrap items-baseline justify-between gap-4 mb-6">
           <div className="flex items-baseline gap-4">
             <span aria-hidden className="block w-12 h-px bg-accent" />
@@ -238,7 +246,7 @@ export function DnaVisualization({ data }: { data: DnaSummary }) {
       </section>
 
       {/* Stat strip */}
-      <section className="grid grid-cols-2 md:grid-cols-4 gap-px bg-border border border-border rounded-md overflow-hidden">
+      <section className={`mt-16 grid grid-cols-2 md:grid-cols-4 gap-px bg-border border border-border rounded-md overflow-hidden ${show("dna-helix")}`}>
         {[
           { label: "Total SNPs", value: fmt(data.meta.totalSnps) },
           { label: "Chromosomes", value: String(data.chromosomes.length) },
@@ -257,7 +265,7 @@ export function DnaVisualization({ data }: { data: DnaSummary }) {
       </section>
 
       {/* Chromosome map */}
-      <section>
+      <section className={`mt-16 ${show("dna-helix")}`}>
         <div className="flex items-baseline gap-4 mb-6">
           <span aria-hidden className="block w-12 h-px bg-accent" />
           <h2 className="font-display text-2xl md:text-3xl font-light tracking-[-0.01em]">
@@ -301,11 +309,37 @@ export function DnaVisualization({ data }: { data: DnaSummary }) {
         </ul>
       </section>
 
-      {/* A note, forward — legacy framing (author-written) */}
-      <DnaLegacyNote />
+      {/* Sources & study material — the science, references, and learn-more. */}
+      <section id="dna-sources" className={show("dna-sources")}>
+        <div className="flex items-baseline gap-4 mb-3">
+          <span aria-hidden className="block w-12 h-px bg-accent" />
+          <h2 className="font-display text-2xl md:text-3xl font-light tracking-[-0.01em]">
+            Sources &amp; study material
+          </h2>
+        </div>
+        <p className="max-w-2xl mb-6 font-sans text-sm md:text-base text-foreground/75 leading-relaxed">
+          Every claim here traces to a public dataset, and every trait card links
+          to its dbSNP record + the published paper. Want to go deeper? A curated
+          learn-more path — from &ldquo;what is a gene&rdquo; to the machine-learning
+          methods reading genomes today.
+        </p>
+        <a
+          href="/dna/databases"
+          className="mb-10 inline-flex items-center gap-2 rounded-full border border-accent/40 bg-accent/10 px-4 py-2 font-mono text-[10px] tracking-widest uppercase text-accent hover:bg-accent hover:text-white transition-colors"
+        >
+          Open the full sources &amp; databases page ↗
+        </a>
+        <DnaStudy />
+      </section>
+
+      {/* A note, forward — legacy framing (author-written). Always shown; it's
+          the emotional close regardless of tab. */}
+      <div className="mt-16">
+        <DnaLegacyNote />
+      </div>
 
       {/* Provenance */}
-      <section className="rounded-md border border-border bg-secondary/20 p-6 md:p-8">
+      <section className="mt-16 rounded-md border border-border bg-secondary/20 p-6 md:p-8">
         <p className="font-mono text-[10px] tracking-widest uppercase text-accent mb-3">
           Provenance
         </p>
