@@ -14,8 +14,9 @@
  */
 
 import { useMemo, useState } from "react"
+import Link from "next/link"
 import { motion } from "framer-motion"
-import { AlertCircle, Search, Baby } from "lucide-react"
+import { AlertCircle, Search, Baby, Database } from "lucide-react"
 import {
   TRAIT_MARKERS,
   normalizeGenotype,
@@ -202,7 +203,7 @@ export function DnaTraits({ traits }: { traits: Record<string, string> }) {
       </p>
 
       {/* General disclaimer */}
-      <div className="mb-6 flex gap-3 rounded-md border border-accent/30 bg-accent/5 p-4">
+      <div className="mb-4 flex gap-3 rounded-md border border-accent/30 bg-accent/5 p-4">
         <AlertCircle className="h-4 w-4 text-accent shrink-0 mt-0.5" aria-hidden />
         <p className="font-sans text-xs md:text-sm text-foreground/75 leading-relaxed">
           <strong>Not medical advice.</strong> A genotyping array is not a
@@ -211,6 +212,17 @@ export function DnaTraits({ traits }: { traits: Record<string, string> }) {
           health-related, talk to a clinician.
         </p>
       </div>
+
+      {/* Methodology link — every claim here is traceable; this is where the
+          science comes from. */}
+      <Link
+        href="/dna/databases"
+        data-cursor-hover
+        className="mb-6 inline-flex items-center gap-2 font-mono text-[10px] tracking-widest uppercase text-muted-foreground hover:text-accent transition-colors"
+      >
+        <Database className="h-3.5 w-3.5" />
+        The data behind this — sources &amp; databases
+      </Link>
 
       {/* Controls — category tabs + search */}
       <div className="mb-8 flex flex-col sm:flex-row gap-3 sm:items-center">

@@ -44,6 +44,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/academic/p2p-streaming", priority: 0.4, changeFrequency: "monthly" },
     { path: "/academic/rubik-cube", priority: 0.4, changeFrequency: "monthly" },
     { path: "/references",        priority: 0.5, changeFrequency: "monthly" },
+    { path: "/dna/databases",     priority: 0.4, changeFrequency: "monthly" },
   ]
 
   // Emit trailing slashes to match `trailingSlash: true` (and the per-page
