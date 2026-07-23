@@ -103,11 +103,12 @@ const socials: Array<{ label: string; href: string; download?: boolean }> = [
   { label: "GitHub", href: "https://github.com/sinhaankur" },
   { label: "Writing", href: "/writing" },
   { label: "The Math", href: "/universe-engine/math" },
+  { label: "Read your DNA", href: "/dna" },
   { label: "Academic", href: "/academic/p2p-streaming" },
   { label: "Resume", href: "/ankur-sinha-resume.pdf", download: true },
 ]
 
-export function Footer() {
+export function Footer({ hideContact = false }: { hideContact?: boolean } = {}) {
   const [time, setTime] = useState("")
 
   useEffect(() => {
@@ -127,11 +128,9 @@ export function Footer() {
 
   return (
     <footer className="relative">
-      {/* Contact section — split row on desktop, stacked on mobile.
-          Left: eyebrow + headline + intro copy.
-          Right: the SignalTuner panel (the new primary action).
-          Below: a quieter Résumé download for visitors who'd rather
-          read the PDF than open a mail client. */}
+      {/* Contact section — hidden on pages that opt out (e.g. the DNA tool,
+          where a 'let's collaborate' CTA is off-tone). */}
+      {!hideContact && (
       <section
         aria-labelledby="contact-heading"
         className="relative overflow-hidden px-6 md:px-12 py-20 md:py-28 border-t border-border"
@@ -201,6 +200,7 @@ export function Footer() {
           </div>
         </div>
       </section>
+      )}
 
       {/* ── Bottom bar — two quiet rows on a shared grid ──────────────────
           Row 1: identity (left) + the link set (right).

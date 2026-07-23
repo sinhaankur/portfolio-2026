@@ -264,6 +264,13 @@
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+/* DNA illustrated helix — a gentle vertical float + micro-sway so the static
+   illustration reads as alive, not a flat PNG parked in a box. */
+@keyframes dna-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50%      { transform: translateY(-10px) rotate(0.6deg); }
+}
+
 /* Universe engine — engine fade-in on mount. Smooths the handoff from the
    StaticStarfield loading fallback to the live R3F scene so the engine
    appears intentional rather than "the heavy thing finally loaded." */

@@ -233,14 +233,24 @@ export function DnaVisualization({ data }: { data: DnaSummary }) {
             <DnaHelix sample={data.sample} />
           </div>
         ) : (
-          <div className="relative w-full rounded-lg border border-border bg-secondary/20 overflow-hidden grid place-items-center py-6">
+          <div className="relative w-full overflow-hidden rounded-lg border border-border bg-secondary/20 grid place-items-center py-10 md:py-14">
+            {/* soft glow behind the helix so it reads as luminous, not a flat PNG */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute left-1/2 top-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl opacity-40"
+              style={{ background: "radial-gradient(circle, color-mix(in oklch, var(--accent) 35%, transparent), transparent 70%)" }}
+            />
+            {/* gentle float so the illustration has life without the 3D cost */}
             <img
               src="/img/dna/helix-illustrated.png"
               alt="Illustrated double helix: two backbones with colour-coded base-pair rungs (A amber, C teal, G violet, T rose)"
               loading="lazy"
               decoding="async"
-              className="max-h-[60vh] w-auto"
+              className="relative max-h-[54vh] w-auto motion-safe:animate-[dna-float_6s_ease-in-out_infinite] drop-shadow-[0_10px_40px_rgba(0,0,0,0.25)]"
             />
+            <p className="relative mt-6 max-w-md text-center font-sans text-xs text-muted-foreground/70 leading-relaxed">
+              Prefer it live? Switch to <button type="button" onClick={() => setHelixView("3d")} className="text-accent underline underline-offset-2 hover:text-foreground transition-colors">3D interactive</button> to rotate + explore your actual sampled base pairs.
+            </p>
           </div>
         )}
       </section>

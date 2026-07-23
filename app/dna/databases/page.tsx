@@ -120,7 +120,7 @@ export default function DnaDatabasesPage() {
           </p>
         </Container>
       </main>
-      <Footer />
+      <Footer hideContact />
     </>
   )
 }
