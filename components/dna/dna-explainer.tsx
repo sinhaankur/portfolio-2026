@@ -15,6 +15,34 @@ const SCALE = [
   { label: "Genome", value: "~3.2 billion bp", detail: "Your complete code. It would fill ~1.5 GB — and it's in every cell." },
 ]
 
+// How a cell actually runs the code — the central dogma, in plain machine terms.
+const CENTRAL_DOGMA = [
+  {
+    step: "1 · Store",
+    title: "DNA is the master copy",
+    body:
+      "The genome sits in the nucleus like a reference library that never leaves the building. It's too precious to hand out — so the cell copies just the page it needs.",
+  },
+  {
+    step: "2 · Transcribe",
+    title: "DNA → RNA",
+    body:
+      "An enzyme (RNA polymerase) unzips the relevant gene and transcribes it into a mobile working copy — messenger RNA. Same letters, but a portable single strand that can leave the nucleus.",
+  },
+  {
+    step: "3 · Translate",
+    title: "RNA → protein",
+    body:
+      "A ribosome — the cell's assembly machine — reads the mRNA three letters at a time. Each triplet (a 'codon') names one amino acid. String the amino acids together and they fold into a protein: an enzyme, a receptor, a pigment. Proteins are what actually do the work.",
+  },
+  {
+    step: "4 · Change one letter",
+    title: "Why a SNP matters",
+    body:
+      "Swap a single letter and the codon can name a different amino acid — so the protein folds a little differently and works a little differently. That's the whole mechanism behind the variants on this page: rs671 changes one amino acid in the ALDH2 enzyme, and that enzyme can no longer clear alcohol's toxic by-product. One letter → one changed machine → a trait you can feel.",
+  },
+]
+
 const EVOLUTION = [
   {
     title: "Variation is the raw material",
@@ -84,6 +112,43 @@ export function DnaExplainer() {
             says &ldquo;associated with,&rdquo; never &ldquo;you will.&rdquo;
           </p>
         </div>
+      </section>
+
+      {/* How a cell reads DNA — the central dogma as a machine. */}
+      <section>
+        <div className="flex items-baseline gap-4 mb-6">
+          <span aria-hidden className="block w-12 h-px bg-accent" />
+          <h2 className="font-display text-2xl md:text-3xl font-light tracking-[-0.01em]">
+            How a cell reads DNA
+          </h2>
+        </div>
+        <p className="font-sans text-sm md:text-base text-foreground/75 leading-relaxed max-w-2xl mb-8">
+          DNA doesn&apos;t <em>do</em> anything by itself — it&apos;s a blueprint.
+          The mechanism that turns letters into you is the same in every living
+          cell, and it&apos;s genuinely beautiful: a tiny, reliable machine
+          reading code and building proteins. Once you see it, every variant on
+          this page makes sense.
+        </p>
+        <div className="relative">
+          {/* flow line */}
+          <div aria-hidden className="absolute left-[15px] top-2 bottom-2 w-px bg-gradient-to-b from-accent/60 via-accent/30 to-transparent md:hidden" />
+          <ol className="grid gap-4 md:grid-cols-2">
+            {CENTRAL_DOGMA.map((d) => (
+              <li key={d.step} className="rounded-xl border border-border bg-card/40 p-5">
+                <span className="font-mono text-[10px] tracking-[0.18em] uppercase text-accent">{d.step}</span>
+                <h3 className="mt-1.5 font-display text-lg font-light text-foreground">{d.title}</h3>
+                <p className="mt-1.5 font-sans text-sm text-foreground/75 leading-relaxed">{d.body}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+        <p className="mt-6 rounded-lg border border-accent/25 bg-accent/[0.04] px-4 py-3 font-sans text-sm text-foreground/75 leading-relaxed max-w-2xl">
+          <strong className="text-foreground">The one-line version:</strong>{" "}
+          <span className="font-mono text-xs text-accent">DNA → RNA → protein → trait</span>.
+          The deep dive on each trait names the exact protein change (like{" "}
+          <span className="font-mono text-xs">p.Glu504Lys</span>) — now you can
+          read it: which amino acid changed, in which machine, and what that machine does.
+        </p>
       </section>
 
       {/* DNA & human evolution */}

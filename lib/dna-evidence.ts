@@ -162,6 +162,38 @@ export const DNA_EVIDENCE: Record<string, Evidence[]> = {
     },
   ],
 
+  // ── BDNF · mood / memory / exercise ───────────────────────────────────────
+  "bdnf-memory": [
+    {
+      kind: "lifestyle",
+      factor: "Exercise is a mood + memory lever",
+      finding:
+        "BDNF is the brain's 'growth fertilizer', and exercise raises it — which is why movement so reliably lifts mood and sharpens memory. Aerobic exercise measurably increases BDNF and is as effective as medication for mild-to-moderate depression in trials. This is one of the strongest gene × lifestyle stories there is: the daily habit changes the biology.",
+      source: "Szuhany et al., meta-analysis of exercise & BDNF, J Psychiatr Res 2015",
+      pmid: "25455510",
+    },
+    {
+      kind: "lifestyle",
+      factor: "Sleep, mood swings & 'low testosterone'",
+      finding:
+        "Mood swings and low testosterone are heavily driven by day-to-day activity, not just genes. One week of 5-hour nights cut healthy young men's testosterone 10–15% — and poor sleep, chronic stress, and refined-carb blood-sugar crashes all worsen mood. Resistance training and enough sleep raise testosterone and steady mood. Genes set the baseline; sleep, training, and stress turn the dial.",
+      source: "Leproult & Van Cauter, sleep restriction & testosterone, JAMA 2011",
+      pmid: "21632481",
+    },
+  ],
+
+  // ── COMT · dopamine / stress ──────────────────────────────────────────────
+  dopamine: [
+    {
+      kind: "lifestyle",
+      factor: "Stress load meets the 'warrior/worrier' gene",
+      finding:
+        "COMT sets how fast your prefrontal cortex clears dopamine — the 'warrior' (fast) vs 'worrier' (slow) trade-off: slow clearers think sharply when calm but are more stress-sensitive under pressure. It's a tendency, not a fate — sleep, aerobic exercise, and stress-management (the same levers that steady mood) shift how much it shows up day to day.",
+      source: "COMT Val158Met (rs4680) — SNPedia",
+      url: "https://www.snpedia.com/index.php/Rs4680",
+    },
+  ],
+
   // ── Caffeine metabolism ───────────────────────────────────────────────────
   caffeine: [
     {
