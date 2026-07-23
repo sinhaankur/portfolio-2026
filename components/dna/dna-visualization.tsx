@@ -14,6 +14,7 @@ import { DnaTraits } from "./dna-traits"
 import { DnaExplainer } from "./dna-explainer"
 import { DnaPlan } from "./dna-plan"
 import { DnaOrigins } from "./dna-origins"
+import { DnaBodyType } from "./dna-body-type"
 import { DnaCompare } from "./dna-compare"
 import { DnaHero } from "./dna-hero"
 import { DnaTabs } from "./dna-tabs"
@@ -140,6 +141,13 @@ export function DnaVisualization({ data }: { data: DnaSummary }) {
       {hasTraits && (
         <div id="dna-plan" className={show("dna-plan")}>
           <DnaPlan traits={data.traits!} />
+        </div>
+      )}
+
+      {/* Build type — the body-type lean, with the full spectrum per axis. */}
+      {hasTraits && (
+        <div id="dna-body-type" className={show("dna-body-type")}>
+          <DnaBodyType traits={data.traits!} />
         </div>
       )}
 

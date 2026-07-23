@@ -28,6 +28,7 @@ export const DNA_TABS: TabConfig[] = [
       // and ancestry. The more educational views live in the second tab.
       { id: "hero", label: "At a glance" },
       { id: "dna-plan", label: "Your plan" },
+      { id: "dna-body-type", label: "Build type" },
       { id: "dna-traits", label: "Traits" },
       { id: "dna-compare", label: "You vs. average" },
       { id: "dna-origins", label: "Origins" },

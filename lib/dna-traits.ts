@@ -89,6 +89,12 @@ export type TraitMarker = {
    * "inherited for certain" portrait.
    */
   certainPass?: string
+  /**
+   * Plain-language "why is that true?" for the certainPass claim — the actual
+   * genetics reasoning, surfaced in a tooltip so the conclusion isn't a black
+   * box. Only the mechanism; still honest, never a promise about the child.
+   */
+  certainPassWhy?: string
 }
 
 /** Sort the two alleles so "GA" and "AG" both match the "AG" key. */
@@ -113,6 +119,7 @@ export const TRAIT_MARKERS: TraitMarker[] = [
       GG: { label: "Likely lactose intolerant", detail: "No persistence variant — lactase production often declines after childhood, so dairy may cause discomfort. Common across much of the world.", tone: "notable", feels: "This is a leading reason for bloating, gas, cramps, or loose stools an hour or two after milk, soft cheese, or ice cream. Hard/aged cheeses and yogurt are usually easier (less lactose).", tip: "Try a 2-week dairy swap (lactose-free milk, hard cheese, yogurt) and see if bloating settles. A lactase enzyme tablet before dairy can help when you do indulge." },
     },
     certainPass: "You always pass the non-persistence allele — so a child needs the tolerance copy from their other parent to comfortably digest dairy as an adult.",
+    certainPassWhy: "Both of your copies at this marker are the ancestral 'lactase switches off after weaning' version. You hand exactly one copy to each child, and since both of yours are the same, that's the only one you can pass. Adult lactose tolerance is dominant — one tolerance copy is enough — but that copy can only come from the other parent, because you don't carry it to give.",
   },
   {
     id: "caffeine",
@@ -128,6 +135,7 @@ export const TRAIT_MARKERS: TraitMarker[] = [
       CC: { label: "Slow metabolizer", detail: "Caffeine stays in your system noticeably longer — sensitivity and sleep disruption are more likely.", tone: "notable" },
     },
     certainPass: "You always pass a fast-metabolizer copy — your children will lean toward clearing caffeine quickly.",
+    certainPassWhy: "Both of your copies here are the fast-metabolizer version of CYP1A2 (the liver enzyme that breaks down caffeine). You can only pass a copy you actually carry — and both of yours are the fast kind — so every child gets a fast copy from your side. Whether they're fully fast or intermediate depends on what the other parent passes.",
   },
   {
     id: "alcohol-flush",
@@ -144,6 +152,7 @@ export const TRAIT_MARKERS: TraitMarker[] = [
       AA: { label: "Strong flush response", detail: "Very low ALDH2 activity — alcohol causes pronounced flushing and discomfort, and tolerance is typically low.", tone: "notable" },
     },
     certainPass: "You always pass the normal-activity allele — your children won't get the alcohol-flush variant from your side.",
+    certainPassWhy: "The flush comes from a broken copy of ALDH2 — the enzyme that clears acetaldehyde, the harsh by-product of alcohol. Both of your copies are the working, normal-activity version, so the only copy you can hand down is a working one. A child only flushes if they inherit a broken copy from BOTH parents (it's recessive), and they can't get one from you — so from your side, they're covered. If the other parent carries the variant, a child could still be a silent carrier, just not a flusher because of your contribution.",
   },
   {
     id: "alcohol-metab",
@@ -186,6 +195,7 @@ export const TRAIT_MARKERS: TraitMarker[] = [
       TT: { label: "Higher sensitivity", detail: "Two copies linked to less efficient blood-sugar regulation — pairing carbs with protein/fibre and staying active is especially worthwhile.", tone: "notable", feels: "Big refined-carb meals (white rice, bread, sweets) may hit you with an energy spike then a crash, hunger again soon after, and — over time — easier belly/visceral fat gain than the average person. This is one of the more relevant 'why tummy fat' variants you carry.", tip: "Eat carbs alongside protein, fat, or fibre rather than alone; favour whole over refined; a short walk after meals blunts the sugar spike noticeably." },
     },
     certainPass: "You always pass the carb-sensitivity allele — each child inherits one copy from you, so balanced, whole-carb habits are worth teaching early.",
+    certainPassWhy: "Both of your copies of TCF7L2 are the carb-sensitivity version (the strongest common type-2-diabetes-risk variant known). Since both are the same, that's the only copy you can pass — so every child gets at least one from you. One copy is a modest nudge, not a sentence; it's exactly the kind of lean that whole-carb, protein-paired eating habits offset well, which is why teaching those habits early is worth it.",
   },
   {
     id: "bitter-taste",

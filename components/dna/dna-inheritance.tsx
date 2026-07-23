@@ -22,6 +22,7 @@ import {
   normalizeGenotype,
   type TraitMarker,
 } from "@/lib/dna-traits"
+import { DnaTooltip } from "./dna-tooltip"
 
 type Row = {
   marker: TraitMarker
@@ -89,6 +90,12 @@ export function DnaInheritance({ traits }: { traits: Record<string, string> }) {
                   <p className="font-sans text-sm md:text-base text-foreground/85 leading-relaxed">
                     <span className="text-foreground">{r.marker.title}.</span>{" "}
                     {r.marker.certainPass}
+                    {r.marker.certainPassWhy && (
+                      <>
+                        {" "}
+                        <DnaTooltip label="Why?">{r.marker.certainPassWhy}</DnaTooltip>
+                      </>
+                    )}
                   </p>
                 </li>
               ))}
