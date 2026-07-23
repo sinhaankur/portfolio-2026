@@ -19,6 +19,7 @@ import { Loader2, Upload, ShieldCheck, Dna } from "lucide-react"
 import { type DnaSummary } from "@/lib/dna-crypto"
 import { parseDnaFile } from "@/lib/dna-parse"
 import { DnaVisualization } from "./dna-visualization"
+import { ClearCacheButton } from "@/components/clear-cache-button"
 
 export function DnaGate() {
   const [data, setData] = useState<DnaSummary | null>(null)
@@ -54,14 +55,19 @@ export function DnaGate() {
             Analyzing <strong>your file</strong> — processed in your browser,
             never uploaded or stored. Close the tab and it&apos;s gone.
           </p>
-          <button
-            type="button"
-            onClick={() => setData(null)}
-            data-cursor-hover
-            className="font-mono text-[10px] tracking-widest uppercase text-accent hover:text-foreground border-b border-accent hover:border-foreground pb-0.5 transition-colors"
-          >
-            Clear
-          </button>
+          <div className="flex items-center gap-3 shrink-0">
+            <button
+              type="button"
+              onClick={() => setData(null)}
+              data-cursor-hover
+              className="font-mono text-[10px] tracking-widest uppercase text-accent hover:text-foreground border-b border-accent hover:border-foreground pb-0.5 transition-colors"
+            >
+              Clear genome
+            </button>
+            {/* Wipe all cached site state + hard-reload — handy if the page ever
+                shows stale data. Small icon button so it doesn't crowd the row. */}
+            <ClearCacheButton />
+          </div>
         </div>
         <DnaVisualization data={data} />
       </motion.div>
