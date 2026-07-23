@@ -19,7 +19,6 @@ import { DnaHero } from "./dna-hero"
 import { DnaTabs } from "./dna-tabs"
 import { DnaStudy } from "./dna-study"
 import { DnaInheritance } from "./dna-inheritance"
-import { DnaLegacyNote } from "./dna-legacy-note"
 import { DnaRadar } from "./dna-radar"
 
 // Helix is R3F (~Three.js) — lazy-load so the gate + panels paint first.
@@ -351,11 +350,6 @@ export function DnaVisualization({ data }: { data: DnaSummary }) {
         <DnaStudy />
       </section>
 
-      {/* A note, forward — legacy framing (author-written). Always shown; it's
-          the emotional close regardless of tab. */}
-      <div className="mt-16">
-        <DnaLegacyNote />
-      </div>
 
       {/* Provenance */}
       <section className="mt-16 rounded-md border border-border bg-secondary/20 p-6 md:p-8">
