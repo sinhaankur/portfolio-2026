@@ -62,6 +62,44 @@ export default function DnaDatabasesPage() {
             ))}
           </div>
 
+          {/* Open dataset — the repo others can use. The whole read is extracted
+              into a public, cited dataset + pipeline anyone can build on. */}
+          <a
+            href="https://github.com/sinhaankur/open-genome-atlas"
+            target="_blank"
+            rel="noopener noreferrer"
+            data-cursor-hover
+            className="group mt-16 block max-w-4xl rounded-2xl border border-accent/40 bg-accent/[0.06] p-6 md:p-8 hover:bg-accent/10 transition-colors"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="font-mono text-[10px] tracking-[0.25em] uppercase text-accent">
+                Open dataset · use it yourself
+              </p>
+              <span className="inline-flex items-center gap-1.5 font-mono text-[10px] tracking-widest uppercase text-accent group-hover:text-foreground transition-colors">
+                github.com/sinhaankur/open-genome-atlas
+                <ExternalLink className="w-3 h-3" />
+              </span>
+            </div>
+            <h2 className="mt-3 font-display text-2xl md:text-3xl font-light text-foreground">
+              open-genome-atlas
+            </h2>
+            <p className="mt-3 font-sans text-sm md:text-base text-foreground/75 leading-relaxed max-w-2xl">
+              Every read on this page is extracted into a public, cited dataset —
+              per-variant genetics (gene, molecular consequence, ClinVar,
+              population frequency) plus curated diet/lifestyle/region evidence,
+              each linking its primary source. Plain JSON + a zero-dependency
+              pipeline, so anyone building genomics tools can reference or extend
+              it. MIT (code) · CC0 (data). Grows over time.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {["dbSNP", "ClinVar", "gnomAD", "Ensembl", "PubMed"].map((s) => (
+                <span key={s} className="rounded-full border border-border bg-background/40 px-2.5 py-1 font-mono text-[10px] tracking-wider text-foreground/70">
+                  {s}
+                </span>
+              ))}
+            </div>
+          </a>
+
           {/* Used databases */}
           <div className="mt-16 max-w-4xl">
             <div className="flex items-baseline gap-4 mb-8">
