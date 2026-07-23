@@ -24,20 +24,22 @@ export const DNA_TABS: TabConfig[] = [
     // L1 #1 — everything about YOUR genome.
     id: "analysis", label: "Your DNA analysis",
     children: [
+      // Insight-first: lead with the actionable + personal reads, then context
+      // and ancestry. The more educational views live in the second tab.
       { id: "hero", label: "At a glance" },
       { id: "dna-plan", label: "Your plan" },
-      { id: "dna-compare", label: "You vs. average" },
       { id: "dna-traits", label: "Traits" },
+      { id: "dna-compare", label: "You vs. average" },
       { id: "dna-origins", label: "Origins" },
-      { id: "dna-inheritance", label: "Inheritance" },
     ],
   },
   {
-    // L1 #2 — the science, resources, and sources behind it.
+    // L1 #2 — the science, how it passes on, resources, and sources.
     id: "learn", label: "How DNA works & sources",
     children: [
       { id: "how-dna-works", label: "How DNA works" },
       { id: "dna-evolution", label: "Evolution" },
+      { id: "dna-inheritance", label: "Inheritance" },
       { id: "dna-helix", label: "The helix" },
       { id: "dna-sources", label: "Sources & study material" },
     ],

@@ -129,7 +129,7 @@ const RULES: Rule[] = [
     tone: "watch",
   },
   {
-    markerId: "alcohol-flush", gene: "ALDH2", when: ["AG", "GG"], bucket: "diet",
+    markerId: "alcohol-flush", gene: "ALDH2", when: ["AG", "AA"], bucket: "diet",
     what: "Keep alcohol low — flushing signals a real metabolic limit",
     why: "An ALDH2 variant slows clearance of acetaldehyde; the flush is a genuine warning, linked to higher risk with heavy drinking.",
     tone: "watch",
@@ -184,9 +184,9 @@ const RULES: Rule[] = [
 
   // ── Things to steer clear of ────────────────────────────────────────────
   {
-    markerId: "alcohol-flush", gene: "ALDH2", when: ["AG", "GG"], bucket: "avoid",
-    what: "Heavy or regular alcohol",
-    why: "Your ALDH2 variant lets toxic acetaldehyde build up — the flush is a real warning, linked to higher cancer risk with drinking (a possibility, not a certainty).",
+    markerId: "alcohol-flush", gene: "ALDH2", when: ["AG", "AA"], bucket: "avoid",
+    what: "Heavy or regular alcohol — of any kind",
+    why: "Your ALDH2 variant lets toxic acetaldehyde build up. Beer, wine, and spirits all count the same — it's the total ethanol, not the drink type, so a beer isn't 'safer' than a shot. The flush is a real warning, linked to higher cancer risk with regular drinking (a raised possibility, not a certainty).",
     tone: "watch",
   },
   {
