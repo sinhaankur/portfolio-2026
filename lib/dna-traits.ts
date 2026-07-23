@@ -68,6 +68,13 @@ export type TraitMarker = {
   /** How strong the evidence is, in plain words ("well-established",
    *  "reported"). Shown next to the source. */
   evidence?: string
+  /**
+   * The key PUBLISHED PAPER behind this interpretation — a short citation + its
+   * PubMed ID. Rendered as a link to the open PubMed record so anyone can read
+   * the actual research (people ask for the source; this is it). Open-access /
+   * public where possible.
+   */
+  paper?: { cite: string; pmid: string }
   /** genotype (alleles sorted A→T) -> outcome. */
   outcomes: Record<string, TraitOutcome>
   /**
@@ -93,6 +100,7 @@ export const TRAIT_MARKERS: TraitMarker[] = [
   // ---------------------------------------------------------------- diet -----
   {
     id: "lactose",
+    paper: { cite: "Enattah et al., Nature Genetics — identifies the MCM6 variant behind lactase persistence", pmid: "11788828" },
     rsid: "rs4988235",
     category: "diet",
     title: "Lactose tolerance",
@@ -108,6 +116,7 @@ export const TRAIT_MARKERS: TraitMarker[] = [
   },
   {
     id: "caffeine",
+    paper: { cite: "Cornelis et al., JAMA — CYP1A2 genotype, coffee intake & heart-attack risk", pmid: "16522833" },
     rsid: "rs762551",
     category: "diet",
     title: "Caffeine metabolism",
@@ -122,6 +131,7 @@ export const TRAIT_MARKERS: TraitMarker[] = [
   },
   {
     id: "alcohol-flush",
+    paper: { cite: "Brooks et al., PLoS Medicine — ALDH2 deficiency, alcohol & oesophageal-cancer risk", pmid: "19320537" },
     rsid: "rs671",
     category: "diet",
     title: "Alcohol flush response",
@@ -150,6 +160,7 @@ export const TRAIT_MARKERS: TraitMarker[] = [
   },
   {
     id: "carb-weight",
+    paper: { cite: "Frayling et al., Science — the FTO variant linked to BMI & obesity risk", pmid: "17434869" },
     rsid: "rs9939609",
     category: "diet",
     title: "Appetite & weight response",
@@ -208,6 +219,7 @@ export const TRAIT_MARKERS: TraitMarker[] = [
   // ------------------------------------------------------------- wellness ----
   {
     id: "folate",
+    paper: { cite: "Frosst et al., Nature Genetics — the MTHFR C677T thermolabile variant", pmid: "7647779" },
     rsid: "rs1801133",
     category: "wellness",
     title: "Folate processing (MTHFR C677T)",
@@ -222,6 +234,7 @@ export const TRAIT_MARKERS: TraitMarker[] = [
   },
   {
     id: "vitamin-d",
+    paper: { cite: "Wang et al., The Lancet — genome-wide study of vitamin-D insufficiency (CYP2R1/GC)", pmid: "20541252" },
     rsid: "rs10741657",
     category: "wellness",
     title: "Vitamin D levels",
@@ -292,6 +305,7 @@ export const TRAIT_MARKERS: TraitMarker[] = [
   // ------------------------------------------------------------- physical ----
   {
     id: "eye-color",
+    paper: { cite: "Eiberg et al., Human Genetics — a single HERC2/OCA2 founder for blue eyes", pmid: "18172690" },
     rsid: "rs12913832",
     category: "physical",
     title: "Eye colour",
@@ -333,6 +347,7 @@ export const TRAIT_MARKERS: TraitMarker[] = [
   },
   {
     id: "endurance",
+    paper: { cite: "Lucia et al., J. Applied Physiology — PPARGC1A (PGC-1α) & endurance performance", pmid: "15980245" },
     rsid: "rs8192678",
     category: "physical",
     title: "Endurance vs. power",
@@ -347,6 +362,7 @@ export const TRAIT_MARKERS: TraitMarker[] = [
   },
   {
     id: "bdnf-memory",
+    paper: { cite: "Egan et al., Cell — the BDNF Val66Met variant & human memory", pmid: "12553913" },
     rsid: "rs6265",
     category: "physical",
     title: "BDNF — learning & mood",
@@ -365,6 +381,7 @@ export const TRAIT_MARKERS: TraitMarker[] = [
   // NEVER risk scores or diagnoses. See the section disclaimer in the UI.
   {
     id: "apoe-lipid",
+    paper: { cite: "Corder et al., Science — APOE ε4 gene dose & Alzheimer's risk", pmid: "8346443" },
     rsid: "rs7412",
     category: "health",
     title: "Cholesterol handling (APOE)",

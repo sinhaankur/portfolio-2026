@@ -16,7 +16,7 @@
 import { useMemo, useState } from "react"
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { AlertCircle, Search, Baby, Database } from "lucide-react"
+import { AlertCircle, Search, Baby, Database, FileText } from "lucide-react"
 import {
   TRAIT_MARKERS,
   normalizeGenotype,
@@ -122,6 +122,22 @@ function TraitCard({ r, i }: { r: Resolved; i: number }) {
             SNPedia ↗
           </a>
         </div>
+        {/* The actual published paper — what people ask for. Links to the open
+            PubMed record so the research itself is one click away. */}
+        {r.marker.paper && (
+          <a
+            href={`https://pubmed.ncbi.nlm.nih.gov/${r.marker.paper.pmid}/`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-start gap-2 rounded-md border border-border/70 bg-background/40 px-3 py-2 font-sans text-[11px] leading-relaxed text-foreground/70 hover:border-accent/50 hover:text-foreground transition-colors"
+          >
+            <FileText className="h-3.5 w-3.5 shrink-0 mt-0.5 text-accent/70" aria-hidden />
+            <span>
+              <span className="text-foreground/85">{r.marker.paper.cite}</span>
+              <span className="text-muted-foreground"> · PubMed {r.marker.paper.pmid} ↗</span>
+            </span>
+          </a>
+        )}
         <p className="font-sans text-sm md:text-base text-foreground/85 leading-relaxed">
           {r.outcome?.detail ??
             "Your genotype at this marker isn't one of the well-characterised forms, so no interpretation is shown."}
