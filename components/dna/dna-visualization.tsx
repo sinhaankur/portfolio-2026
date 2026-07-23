@@ -14,6 +14,7 @@ import { DnaTraits } from "./dna-traits"
 import { DnaExplainer } from "./dna-explainer"
 import { DnaPlan } from "./dna-plan"
 import { DnaOrigins } from "./dna-origins"
+import { DnaCompare } from "./dna-compare"
 import { DnaInheritance } from "./dna-inheritance"
 import { DnaLegacyNote } from "./dna-legacy-note"
 import { DnaRadar } from "./dna-radar"
@@ -110,6 +111,9 @@ export function DnaVisualization({ data }: { data: DnaSummary }) {
       {data.traits && Object.keys(data.traits).length > 0 && (
         <DnaPlan traits={data.traits} />
       )}
+
+      {/* You vs. the average — put the numbers in human context */}
+      <DnaCompare data={data} />
 
       {/* Radar — category profile at a glance */}
       {data.traits && Object.keys(data.traits).length > 0 && (
