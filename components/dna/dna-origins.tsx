@@ -10,8 +10,29 @@
  * heritage, never as a precise "you are X%" claim.
  */
 
-import { useMemo } from "react"
+"use client"
+
+import { useMemo, useState } from "react"
+import dynamic from "next/dynamic"
+import { Globe } from "lucide-react"
 import { normalizeGenotype } from "@/lib/dna-traits"
+
+// R3F globe is lazy — never blocks the section's first paint, and only the
+// bytes load if the visitor actually opens it.
+const DnaMigrationGlobe = dynamic(
+  () => import("./dna-migration-globe").then((m) => ({ default: m.DnaMigrationGlobe })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="grid h-[52vh] min-h-[360px] w-full place-items-center rounded-2xl border border-border bg-[#05070d] font-mono text-[10px] tracking-widest uppercase text-white/50">
+        Loading globe…
+      </div>
+    ),
+  },
+)
+
+/** [lat, lng] in degrees. */
+export type LatLng = [number, number]
 
 type OriginChapter = {
   markerId: string
@@ -22,13 +43,21 @@ type OriginChapter = {
   /** the migration/adaptation story this variant traces. */
   story: string
   when: string
+  /** where the variant is thought to have arisen. */
+  origin: LatLng
+  /** a short label for that place. */
+  originPlace: string
+  /** the rough direction it spread (for a great-circle arc on the globe). */
+  spreadTo: LatLng
 }
 
-const CHAPTERS: OriginChapter[] = [
+export const CHAPTERS: OriginChapter[] = [
   {
     markerId: "lactose", gene: "MCM6", carries: ["AA", "AG"],
     title: "The milk revolution",
     when: "~7,500 years ago",
+    origin: [50, 20], originPlace: "Central Europe / Near East",
+    spreadTo: [60, 10],
     story:
       "The variant that lets adults digest milk arose in dairy-herding populations of the Near East and Europe and spread astonishingly fast — one of the strongest signals of natural selection in the human genome. Carrying it places a branch of your ancestry among early herders.",
   },
@@ -36,6 +65,8 @@ const CHAPTERS: OriginChapter[] = [
     markerId: "pigment", gene: "IRF4", carries: ["TT", "GT"],
     title: "Lighter skin, northern light",
     when: "~10,000–20,000 years ago",
+    origin: [55, 15], originPlace: "Northern Europe",
+    spreadTo: [62, 25],
     story:
       "Lighter-pigment variants rose in frequency as humans moved into high latitudes with weak sun — a trade-off that let skin make enough vitamin D. These are hallmarks of northern-European and related ancestry.",
   },
@@ -43,13 +74,17 @@ const CHAPTERS: OriginChapter[] = [
     markerId: "eye-color", gene: "HERC2", carries: ["AA", "AG"],
     title: "The blue-eyed founder",
     when: "~6,000–10,000 years ago",
+    origin: [44, 34], originPlace: "Black Sea region",
+    spreadTo: [56, 20],
     story:
       "Every blue-eyed person alive traces to a single ancestor near the Black Sea in whom this mutation first switched down brown-pigment production. Carrying it links you to that one shared founder.",
   },
   {
-    markerId: "alcohol-flush", gene: "ALDH2", carries: ["AG", "GG"],
+    markerId: "alcohol-flush", gene: "ALDH2", carries: ["AG", "AA"],
     title: "The rice-and-alcohol story",
     when: "~2,000–3,000 years ago",
+    origin: [30, 110], originPlace: "Southern China",
+    spreadTo: [36, 138],
     story:
       "The 'flush' variant is common in East Asian populations, where it may have spread partly as protection during the rise of rice agriculture and fermentation. Carrying it points to East-Asian ancestry.",
   },
@@ -57,10 +92,15 @@ const CHAPTERS: OriginChapter[] = [
     markerId: "endurance", gene: "PPARGC1A", carries: ["GG", "GA"],
     title: "Built to move",
     when: "deep ancestral",
+    origin: [2, 37], originPlace: "East Africa",
+    spreadTo: [20, 45],
     story:
       "Endurance-favouring metabolism is an ancient human signature — the persistence-hunting adaptation that let our ancestors run prey to exhaustion across the savannah. A thread every human shares, dialled by this variant.",
   },
 ]
+
+/** The shared out-of-Africa root, drawn for everyone. */
+export const HUMAN_ROOT: LatLng = [2, 37] // East Africa (Rift Valley)
 
 export function DnaOrigins({ traits }: { traits: Record<string, string> }) {
   const chapters = useMemo(
@@ -72,6 +112,7 @@ export function DnaOrigins({ traits }: { traits: Record<string, string> }) {
       }),
     [traits],
   )
+  const [showGlobe, setShowGlobe] = useState(false)
 
   return (
     <section>
@@ -99,6 +140,48 @@ export function DnaOrigins({ traits }: { traits: Record<string, string> }) {
           — and interbreeding with — Neanderthals and Denisovans along the way.
           If you have ancestry outside Africa, you carry ~1–2% Neanderthal DNA
           from those encounters. This root is in everyone reading this.
+        </p>
+      </div>
+
+      {/* The globe — plot the story your variants trace. Toggle-gated + lazy. */}
+      {chapters.length > 0 && (
+        <div className="mb-6">
+          {showGlobe ? (
+            <DnaMigrationGlobe
+              root={HUMAN_ROOT}
+              chapters={chapters.map((c) => ({ origin: c.origin, spreadTo: c.spreadTo }))}
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowGlobe(true)}
+              data-cursor-hover
+              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-accent/40 bg-accent/[0.06] py-5 font-mono text-[11px] tracking-widest uppercase text-accent hover:bg-accent/10 transition-colors"
+            >
+              <Globe className="h-4 w-4" aria-hidden />
+              Show the migration globe
+            </button>
+          )}
+          <p className="mt-2 font-mono text-[10px] tracking-wider text-muted-foreground/70">
+            The story your variants trace — where each arose and spread. Heritage, not a location verdict.
+          </p>
+        </div>
+      )}
+
+      {/* Region vs. genetics — the honest reconciliation the user asked for. */}
+      <div className="mb-8 rounded-2xl border border-border bg-secondary/20 p-5 md:p-6">
+        <div className="font-mono text-[10px] tracking-[0.2em] uppercase text-accent mb-2">Region vs. genetics</div>
+        <p className="font-sans text-sm text-foreground/75 leading-relaxed">
+          Region and genetics are tangled, and both matter — but not equally.
+          <strong className="text-foreground"> Human movement changed diet</strong>{" "}
+          (herding brought milk; farming brought rice and grain), and diet, in
+          turn, selected for the variants that handled it — that&apos;s why lactose
+          tolerance and the alcohol-flush variant map onto specific regions.{" "}
+          <strong className="text-foreground">Interbreeding mixed the lines</strong>{" "}
+          — migrations met and merged, and you carry Neanderthal and Denisovan
+          fragments to prove it, so &ldquo;pure&rdquo; ancestry is a myth. Where a
+          variant is <em>common</em> is real history. But it is context, not a
+          verdict: your genotype is the truth, and it&apos;s yours whatever the map says.
         </p>
       </div>
 
