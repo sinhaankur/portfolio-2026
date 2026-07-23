@@ -72,25 +72,23 @@ export function DnaGate() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
       >
-        <div className="mb-8 flex flex-wrap items-center gap-3 rounded-md border border-accent/30 bg-accent/5 px-4 py-3">
-          <ShieldCheck className="h-4 w-4 text-accent shrink-0" aria-hidden />
-          <p className="flex-1 min-w-0 font-sans text-xs md:text-sm text-foreground/80">
-            Analyzing <strong>your file</strong> — processed in your browser,
-            never uploaded or stored. Close the tab and it&apos;s gone.
-          </p>
-          <div className="flex items-center gap-3 shrink-0">
-            <button
-              type="button"
-              onClick={() => setData(null)}
-              data-cursor-hover
-              className="font-mono text-[10px] tracking-widest uppercase text-accent hover:text-foreground border-b border-accent hover:border-foreground pb-0.5 transition-colors"
-            >
-              Clear genome
-            </button>
-            {/* Wipe all cached site state + hard-reload — handy if the page ever
-                shows stale data. Small icon button so it doesn't crowd the row. */}
-            <ClearCacheButton />
-          </div>
+        {/* Results view stays clean — the privacy explainer lives on the upload
+            screen only. Here we keep just the essential reset controls, right-
+            aligned + quiet, with a tiny on-device reassurance icon. */}
+        <div className="mb-8 flex items-center justify-end gap-3">
+          <span className="mr-auto inline-flex items-center gap-1.5 font-mono text-[10px] tracking-widest uppercase text-muted-foreground/70">
+            <ShieldCheck className="h-3.5 w-3.5 text-accent/70" aria-hidden />
+            On-device
+          </span>
+          <button
+            type="button"
+            onClick={() => setData(null)}
+            data-cursor-hover
+            className="font-mono text-[10px] tracking-widest uppercase text-accent hover:text-foreground border-b border-accent hover:border-foreground pb-0.5 transition-colors"
+          >
+            Clear genome
+          </button>
+          <ClearCacheButton />
         </div>
         <DnaVisualization data={data} />
       </motion.div>

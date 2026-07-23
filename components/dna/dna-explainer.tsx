@@ -66,7 +66,7 @@ export function DnaExplainer() {
                 <span className="font-sans text-base md:text-lg text-foreground">{s.label}</span>
                 <span className="font-mono text-[11px] tracking-wider text-accent/80">{s.value}</span>
                 {i === SCALE.length - 1 && (
-                  <span className="font-mono text-[9px] tracking-[0.2em] uppercase text-muted-foreground">you are here, ×37 trillion cells</span>
+                  <span className="font-mono text-[11px] tracking-[0.2em] uppercase text-muted-foreground">you are here, ×37 trillion cells</span>
                 )}
               </div>
               <p className="mt-1 font-sans text-sm text-muted-foreground leading-relaxed">{s.detail}</p>

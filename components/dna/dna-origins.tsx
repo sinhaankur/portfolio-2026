@@ -116,7 +116,7 @@ export function DnaOrigins({ traits }: { traits: Record<string, string> }) {
               </div>
               <h3 className="mt-1 font-display text-lg font-light text-foreground">{c.title}</h3>
               <p className="mt-1.5 font-sans text-sm text-foreground/75 leading-relaxed">{c.story}</p>
-              <p className="mt-2 font-mono text-[10px] tracking-wider text-foreground/45">
+              <p className="mt-2 font-mono text-[10px] tracking-wider text-foreground/60">
                 traced from your <span className="text-accent/80">{c.gene}</span> variant
               </p>
             </li>
@@ -130,7 +130,7 @@ export function DnaOrigins({ traits }: { traits: Record<string, string> }) {
         </p>
       )}
 
-      <p className="mt-6 font-mono text-[10px] tracking-wider text-muted-foreground/60">
+      <p className="mt-6 font-mono text-[10px] tracking-wider text-muted-foreground/80">
         Heritage narrative from ancestry-informative variants · not a substitute for a dedicated ancestry test
       </p>
     </section>

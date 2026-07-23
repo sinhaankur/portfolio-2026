@@ -126,11 +126,11 @@ export function DnaCompare({ data }: { data: DnaSummary }) {
           <div className="flex items-end gap-4">
             <div className="text-center">
               <div className="text-3xl font-semibold text-foreground leading-none">{traitCompare.common}</div>
-              <div className="mt-1 font-mono text-[9px] tracking-widest uppercase text-muted-foreground">common form</div>
+              <div className="mt-1 font-mono text-[11px] tracking-widest uppercase text-muted-foreground">common form</div>
             </div>
             <div className="text-center">
               <div className="text-3xl font-semibold text-accent leading-none">{traitCompare.lessCommon}</div>
-              <div className="mt-1 font-mono text-[9px] tracking-widest uppercase text-muted-foreground">less common</div>
+              <div className="mt-1 font-mono text-[11px] tracking-widest uppercase text-muted-foreground">less common</div>
             </div>
           </div>
           <p className="mt-4 font-sans text-xs text-foreground/60 leading-relaxed">

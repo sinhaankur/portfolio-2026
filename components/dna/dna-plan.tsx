@@ -25,12 +25,12 @@ function RecCard({ rec }: { rec: Recommendation }) {
     <div className={`rounded-xl border p-4 ${TONE_STYLE[rec.tone]}`}>
       <div className="flex items-start justify-between gap-3">
         <p className="font-sans text-sm md:text-base text-foreground leading-snug">{rec.what}</p>
-        <span className="shrink-0 font-mono text-[9px] tracking-[0.16em] uppercase px-2 py-1 rounded-full border border-current/30 text-foreground/60">
+        <span className="shrink-0 font-mono text-[11px] tracking-[0.16em] uppercase px-2 py-1 rounded-full border border-current/30 text-foreground/60">
           {TONE_LABEL[rec.tone]}
         </span>
       </div>
-      <p className="mt-2 font-sans text-xs text-muted-foreground leading-relaxed">{rec.why}</p>
-      <p className="mt-2.5 font-mono text-[10px] tracking-wider text-foreground/45">
+      <p className="mt-2 font-sans text-sm text-foreground/70 leading-relaxed">{rec.why}</p>
+      <p className="mt-2.5 font-mono text-[10px] tracking-wider text-foreground/60">
         because your <span className="text-accent/80">{rec.because.gene}</span> is{" "}
         <span className="text-foreground/70">{rec.because.genotype}</span>
       </p>
@@ -131,7 +131,7 @@ export function DnaPlan({ traits }: { traits: Record<string, string> }) {
         )}
       </div>
 
-      <p className="mt-6 font-mono text-[10px] tracking-wider text-muted-foreground/60">
+      <p className="mt-6 font-mono text-[10px] tracking-wider text-muted-foreground/80">
         Informational only · not medical advice · discuss supplements + big diet changes with a professional
       </p>
     </section>

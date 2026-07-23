@@ -117,7 +117,7 @@ function TraitCard({ r, i }: { r: Resolved; i: number }) {
             href={`https://www.snpedia.com/index.php/${r.marker.rsid}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-muted-foreground/70 hover:text-foreground underline underline-offset-2 decoration-dotted"
+            className="text-muted-foreground/85 hover:text-foreground underline underline-offset-2 decoration-dotted"
           >
             SNPedia ↗
           </a>

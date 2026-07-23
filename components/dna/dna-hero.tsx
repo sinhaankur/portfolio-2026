@@ -107,7 +107,7 @@ function HeroStat({ n, label, accent }: { n: string; label: string; accent?: boo
   return (
     <div className="rounded-2xl border border-border bg-background/40 p-4 md:p-5 text-center">
       <div className={`text-2xl md:text-4xl font-semibold leading-none ${accent ? "text-accent" : "text-foreground"}`}>{n}</div>
-      <div className="mt-2 font-mono text-[8px] md:text-[9px] tracking-[0.14em] uppercase text-muted-foreground">{label}</div>
+      <div className="mt-2 font-mono text-[10px] md:text-[11px] tracking-[0.14em] uppercase text-muted-foreground">{label}</div>
     </div>
   )
 }

@@ -35,12 +35,12 @@ export function DnaStudy() {
                   <h3 className="font-sans text-sm md:text-base text-foreground leading-snug group-hover:text-accent transition-colors">
                     {r.title}
                   </h3>
-                  <span className={`shrink-0 font-mono text-[8px] tracking-[0.14em] uppercase px-2 py-1 rounded-full border ${LEVEL_STYLE[r.level]}`}>
+                  <span className={`shrink-0 font-mono text-[10px] tracking-[0.14em] uppercase px-2 py-1 rounded-full border ${LEVEL_STYLE[r.level]}`}>
                     {r.level}
                   </span>
                 </div>
-                <p className="mt-2 font-sans text-xs text-muted-foreground leading-relaxed">{r.what}</p>
-                <div className="mt-3 inline-flex items-center gap-1.5 font-mono text-[10px] tracking-wider text-foreground/50 group-hover:text-accent transition-colors">
+                <p className="mt-2 font-sans text-sm text-foreground/70 leading-relaxed">{r.what}</p>
+                <div className="mt-3 inline-flex items-center gap-1.5 font-mono text-[10px] tracking-wider text-foreground/65 group-hover:text-accent transition-colors">
                   {r.by}
                   <ExternalLink className="w-3 h-3" />
                 </div>
