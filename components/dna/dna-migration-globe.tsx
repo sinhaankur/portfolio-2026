@@ -16,8 +16,8 @@
  * the Origins section behind a "show the globe" toggle so it never blocks paint.
  */
 
-import { useMemo, useRef } from "react"
-import { Canvas, useFrame, useLoader } from "@react-three/fiber"
+import { useMemo } from "react"
+import { Canvas, useLoader } from "@react-three/fiber"
 import { OrbitControls } from "@react-three/drei"
 import * as THREE from "three"
 import type { LatLng } from "./dna-origins"
@@ -48,36 +48,56 @@ function arcCurve(a: LatLng, b: LatLng): THREE.Vector3[] {
 
 function EarthMesh() {
   const tex = useLoader(THREE.TextureLoader, "/textures/earth-4k.webp")
-  const ref = useRef<THREE.Mesh>(null)
-  useFrame((_, dt) => {
-    if (ref.current) ref.current.rotation.y += dt * 0.05
-  })
   return (
-    <mesh ref={ref}>
+    <mesh>
       <sphereGeometry args={[R, 64, 64]} />
       <meshStandardMaterial map={tex} roughness={1} metalness={0} />
     </mesh>
   )
 }
 
-function Marker({ at, color = "#f5b942" }: { at: LatLng; color?: string }) {
+/**
+ * The shared out-of-Africa journey EVERY human traces — drawn on every globe so
+ * it's never just a couple of points. Waypoints follow the accepted broad route
+ * (~60,000 years ago onward): E. Africa → Arabia → South Asia → SE Asia →
+ * Australia, plus the branch up into Europe and across to the Americas.
+ */
+const OUT_OF_AFRICA: { at: LatLng; label: string }[] = [
+  { at: [2, 37], label: "East Africa · ~200 kya" },
+  { at: [15, 43], label: "Arabia · ~60 kya" },
+  { at: [27, 66], label: "South Asia · ~50 kya" },
+  { at: [15, 100], label: "SE Asia · ~50 kya" },
+  { at: [-25, 133], label: "Australia · ~50 kya" },
+  { at: [45, 20], label: "Europe · ~45 kya" },
+  { at: [62, 105], label: "Siberia · ~30 kya" },
+  { at: [64, -153], label: "Beringia → Americas · ~20 kya" },
+  { at: [-15, -60], label: "South America · ~14 kya" },
+]
+
+/** The connected great-circle route through the waypoints, in order. */
+const OOA_ROUTE: [number, number][] = [
+  [0, 1], [1, 2], [2, 3], [3, 4], // south route to Australia
+  [1, 5], // branch to Europe
+  [2, 6], [6, 7], [7, 8], // north route to the Americas
+]
+
+function Marker({ at, color = "#f5b942", size = 0.018 }: { at: LatLng; color?: string; size?: number }) {
   const p = toVec3(at, R * 1.005)
   return (
     <mesh position={p}>
-      <sphereGeometry args={[0.018, 12, 12]} />
+      <sphereGeometry args={[size, 14, 14]} />
       <meshBasicMaterial color={color} toneMapped={false} />
     </mesh>
   )
 }
 
-function Arc({ from, to, color = "#f5b942" }: { from: LatLng; to: LatLng; color?: string }) {
-  const geom = useMemo(() => {
-    const pts = arcCurve(from, to)
-    return new THREE.BufferGeometry().setFromPoints(pts)
-  }, [from, to])
-  return (
-    <primitive object={new THREE.Line(geom, new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.8, toneMapped: false }))} />
-  )
+function Arc({ from, to, color = "#f5b942", opacity = 0.8 }: { from: LatLng; to: LatLng; color?: string; opacity?: number }) {
+  const line = useMemo(() => {
+    const geom = new THREE.BufferGeometry().setFromPoints(arcCurve(from, to))
+    const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity, toneMapped: false })
+    return new THREE.Line(geom, mat)
+  }, [from, to, color, opacity])
+  return <primitive object={line} />
 }
 
 export function DnaMigrationGlobe({
@@ -98,20 +118,31 @@ export function DnaMigrationGlobe({
       <Canvas camera={{ position: [0, 0.6, 3.1], fov: 42 }} dpr={[1, 1.5]}>
         <ambientLight intensity={0.55} />
         <directionalLight position={[3, 2, 4]} intensity={1.1} />
-        <EarthMesh />
 
-        {/* Shared root — East Africa, drawn for everyone. */}
-        <Marker at={root} color="#4ad6c4" />
+        {/* Earth AND every marker/arc live in ONE group, so the points are
+            fixed to the globe — they rotate with it and never drift off. */}
+        <group>
+          <EarthMesh />
 
-        {/* Each variant: arc from root → origin (the journey there), then
-            origin → spread. Origin dot amber. */}
-        {chapters.map((c, i) => (
-          <group key={i}>
-            <Arc from={root} to={c.origin} color="#4ad6c4" />
-            <Arc from={c.origin} to={c.spreadTo} color="#f5b942" />
-            <Marker at={c.origin} color="#f5b942" />
-          </group>
-        ))}
+          {/* The shared out-of-Africa journey every human traces — always drawn,
+              so the globe shows the full ~60,000-year history, not just a couple
+              of points. */}
+          {OOA_ROUTE.map(([a, b], i) => (
+            <Arc key={`ooa-${i}`} from={OUT_OF_AFRICA[a].at} to={OUT_OF_AFRICA[b].at} color="#4ad6c4" opacity={0.55} />
+          ))}
+          {OUT_OF_AFRICA.map((w, i) => (
+            <Marker key={`ooaw-${i}`} at={w.at} color="#4ad6c4" size={i === 0 ? 0.026 : 0.016} />
+          ))}
+
+          {/* Your carried variants layered on top — where each arose + spread. */}
+          {chapters.map((c, i) => (
+            <group key={i}>
+              <Arc from={root} to={c.origin} color="#f5b942" opacity={0.9} />
+              <Arc from={c.origin} to={c.spreadTo} color="#f5b942" opacity={0.9} />
+              <Marker at={c.origin} color="#f5b942" size={0.022} />
+            </group>
+          ))}
+        </group>
 
         <OrbitControls
           enablePan={false}
@@ -119,18 +150,20 @@ export function DnaMigrationGlobe({
           minDistance={1.7}
           maxDistance={4.5}
           rotateSpeed={0.5}
-          autoRotate={showcase}
-          autoRotateSpeed={0.4}
+          autoRotate={false}
         />
       </Canvas>
 
       {/* Legend */}
       <div className="pointer-events-none absolute left-3 bottom-3 flex flex-col gap-1 font-mono text-[10px] tracking-wider text-white/80">
-        <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: "#4ad6c4" }} /> shared root · out of Africa</span>
+        <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: "#4ad6c4" }} /> out of Africa · the shared ~60,000-yr journey</span>
         <span className="flex items-center gap-1.5">
           <span className="h-2 w-2 rounded-full" style={{ background: "#f5b942" }} />
           {showcase ? "where human variants arose + spread" : "where your variants arose + spread"}
         </span>
+      </div>
+      <div className="pointer-events-none absolute right-3 top-3 font-mono text-[9px] tracking-wider uppercase text-white/40">
+        drag to rotate
       </div>
     </div>
   )

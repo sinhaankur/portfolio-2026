@@ -112,7 +112,7 @@ export function DnaOrigins({ traits }: { traits: Record<string, string> }) {
       }),
     [traits],
   )
-  const [showGlobe, setShowGlobe] = useState(false)
+  const [showGlobe, setShowGlobe] = useState(true)
 
   return (
     <section>
