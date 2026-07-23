@@ -94,12 +94,33 @@ function TraitCard({ r, i }: { r: Resolved; i: number }) {
       </summary>
       <div className="px-5 pb-5 pt-1 border-t border-border/60 space-y-4">
         <p className="font-sans text-xs text-muted-foreground mt-3">{r.marker.about}</p>
-        {r.marker.source && (
-          <p className="font-mono text-[10px] tracking-wider text-muted-foreground/80">
-            Source: <span className="text-foreground/70">{r.marker.source}</span>
-            {r.marker.evidence ? ` · ${r.marker.evidence}` : ""} · {r.marker.rsid}
-          </p>
-        )}
+        {/* Verifiable provenance — every marker links out to the public dbSNP
+            record for its rsID (and SNPedia's write-up) so any claim here can be
+            checked against the primary source. Honest by construction. */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] tracking-wider text-muted-foreground/80">
+          {r.marker.source && (
+            <span>
+              Source: <span className="text-foreground/70">{r.marker.source}</span>
+              {r.marker.evidence ? ` · ${r.marker.evidence}` : ""}
+            </span>
+          )}
+          <a
+            href={`https://www.ncbi.nlm.nih.gov/snp/${r.marker.rsid}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-accent/80 hover:text-accent underline underline-offset-2 decoration-dotted"
+          >
+            {r.marker.rsid} · dbSNP ↗
+          </a>
+          <a
+            href={`https://www.snpedia.com/index.php/${r.marker.rsid}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-muted-foreground/70 hover:text-foreground underline underline-offset-2 decoration-dotted"
+          >
+            SNPedia ↗
+          </a>
+        </div>
         <p className="font-sans text-sm md:text-base text-foreground/85 leading-relaxed">
           {r.outcome?.detail ??
             "Your genotype at this marker isn't one of the well-characterised forms, so no interpretation is shown."}

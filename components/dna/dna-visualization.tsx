@@ -11,6 +11,9 @@ import dynamic from "next/dynamic"
 import { motion } from "framer-motion"
 import type { DnaSummary } from "@/lib/dna-crypto"
 import { DnaTraits } from "./dna-traits"
+import { DnaExplainer } from "./dna-explainer"
+import { DnaPlan } from "./dna-plan"
+import { DnaOrigins } from "./dna-origins"
 import { DnaInheritance } from "./dna-inheritance"
 import { DnaLegacyNote } from "./dna-legacy-note"
 import { DnaRadar } from "./dna-radar"
@@ -93,6 +96,20 @@ export function DnaVisualization({ data }: { data: DnaSummary }) {
           </div>
         </div>
       </section>
+
+      {/* How DNA works + human evolution — teach the mechanism under the data */}
+      <DnaExplainer />
+
+      {/* Origins — the ancestry / migration story your variants trace. */}
+      {data.traits && Object.keys(data.traits).length > 0 && (
+        <DnaOrigins traits={data.traits} />
+      )}
+
+      {/* Personalized plan — supplements, diet, and habits derived from YOUR
+          genotypes. Turns the markers from trivia into a course of action. */}
+      {data.traits && Object.keys(data.traits).length > 0 && (
+        <DnaPlan traits={data.traits} />
+      )}
 
       {/* Radar — category profile at a glance */}
       {data.traits && Object.keys(data.traits).length > 0 && (
