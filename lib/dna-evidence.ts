@@ -194,6 +194,78 @@ export const DNA_EVIDENCE: Record<string, Evidence[]> = {
     },
   ],
 
+  // ── FADS1 · omega fatty-acid processing ───────────────────────────────────
+  "fatty-acids": [
+    {
+      kind: "diet",
+      factor: "Some people convert plant omega-3s poorly",
+      finding:
+        "FADS1 controls how well you turn plant-based omega-3 (ALA, from flax/walnuts/chia) into the active EPA/DHA your brain and heart use. Lower-efficiency genotypes get less benefit from plant sources — oily fish (or an algae/fish-oil supplement) delivers EPA/DHA directly and matters more for you.",
+      source: "Lemaitre et al., FADS & plasma n-3 fatty acids, PLoS Genet 2011",
+      pmid: "21829377",
+    },
+    {
+      kind: "lifestyle",
+      factor: "Omega-3 index responds to intake",
+      finding:
+        "Your blood omega-3 level rises steadily with consistent intake regardless of genotype — genes set the conversion rate, but eating the fatty acids directly bypasses that bottleneck.",
+      source: "Köhler et al., long-term n-3 supplementation, Eur J Clin Nutr 2011",
+      pmid: "21063431",
+    },
+  ],
+
+  // ── Iron absorption (HFE) ─────────────────────────────────────────────────
+  iron: [
+    {
+      kind: "diet",
+      factor: "Vitamin C boosts iron; tea/coffee blocks it",
+      finding:
+        "How much iron you absorb from a meal swings hugely with what you eat alongside it: vitamin C (citrus, peppers) can multiply plant-iron absorption several-fold, while tea, coffee, and calcium taken with the meal sharply cut it. This dietary effect is often larger than the genetic one — timing your tea away from iron-rich meals is a real lever.",
+      source: "Hallberg & Hulthén, dietary iron absorption algorithm, Am J Clin Nutr 2000",
+      pmid: "10799377",
+    },
+    {
+      kind: "note",
+      factor: "High-absorber genotypes: don't over-supplement",
+      finding:
+        "Some HFE genotypes absorb iron more readily (the haemochromatosis-risk direction). If that's you, avoid routine high-dose iron supplements unless a blood test shows you're low — more isn't better, and excess iron is harmful. Confirm iron status with ferritin, not guesswork.",
+      source: "NIH Office of Dietary Supplements — Iron",
+      url: "https://ods.od.nih.gov/factsheets/Iron-HealthProfessional/",
+    },
+  ],
+
+  // ── APOE · cholesterol / fat handling ─────────────────────────────────────
+  "apoe-lipid": [
+    {
+      kind: "diet",
+      factor: "Saturated fat hits some genotypes harder",
+      finding:
+        "APOE shapes how your blood cholesterol responds to dietary fat. Certain genotypes (notably E4 carriers) tend to raise LDL more on high saturated fat — so swapping butter/fatty meat for unsaturated fats (olive oil, nuts, fish) is especially worthwhile. The AHA advisory found replacing saturated with unsaturated fat lowers cardiovascular risk.",
+      source: "Sacks et al., AHA Presidential Advisory on Dietary Fats, Circulation 2017",
+      pmid: "28620111",
+    },
+    {
+      kind: "lifestyle",
+      factor: "The brain-health levers matter more for E4",
+      finding:
+        "APOE is also the biggest common genetic factor in Alzheimer's risk — but risk, not fate. The modifiable levers (exercise, sleep, blood-pressure and blood-sugar control, not smoking) matter more for E4 carriers, not less. It's a reason to act on the basics, never a reason to give up.",
+      source: "Liu et al., APOE & Alzheimer disease: risk, mechanisms & therapy, Nat Rev Neurol 2013",
+      pmid: "23296339",
+    },
+  ],
+
+  // ── TAS2R38 · bitter taste ────────────────────────────────────────────────
+  "bitter-taste": [
+    {
+      kind: "diet",
+      factor: "If greens taste bitter, cook them smarter",
+      finding:
+        "Strong-taster genotypes perceive bitterness in cruciferous veg (broccoli, kale, Brussels sprouts) intensely, which can make them eat fewer — a small real link to veg intake. Roasting, a little fat/acid (olive oil, lemon), or pairing with something sweet tames the bitterness so you still get the nutrition.",
+      source: "TAS2R38 (rs1726866) — SNPedia",
+      url: "https://www.snpedia.com/index.php/Rs1726866",
+    },
+  ],
+
   // ── Caffeine metabolism ───────────────────────────────────────────────────
   caffeine: [
     {
