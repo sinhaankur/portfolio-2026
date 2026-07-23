@@ -15,6 +15,7 @@ import { DnaExplainer } from "./dna-explainer"
 import { DnaPlan } from "./dna-plan"
 import { DnaOrigins } from "./dna-origins"
 import { DnaCompare } from "./dna-compare"
+import { DnaHero } from "./dna-hero"
 import { DnaInheritance } from "./dna-inheritance"
 import { DnaLegacyNote } from "./dna-legacy-note"
 import { DnaRadar } from "./dna-radar"
@@ -46,8 +47,11 @@ export function DnaVisualization({ data }: { data: DnaSummary }) {
 
   return (
     <div className="space-y-16">
+      {/* Hero — the genome at a glance + jump-nav */}
+      <DnaHero data={data} />
+
       {/* How to read it — Blender diagram + legend */}
-      <section>
+      <section id="how-dna-works">
         <div className="flex items-baseline gap-4 mb-6">
           <span aria-hidden className="block w-12 h-px bg-accent" />
           <h2 className="font-display text-2xl md:text-3xl font-light tracking-[-0.01em]">
@@ -98,22 +102,31 @@ export function DnaVisualization({ data }: { data: DnaSummary }) {
         </div>
       </section>
 
-      {/* How DNA works + human evolution — teach the mechanism under the data */}
-      <DnaExplainer />
+      {/* How DNA works + human evolution — teach the mechanism under the data.
+          (The evolution sub-section carries the #dna-evolution anchor internally.) */}
+      <div id="dna-evolution" className="scroll-mt-24">
+        <DnaExplainer />
+      </div>
 
       {/* Origins — the ancestry / migration story your variants trace. */}
       {data.traits && Object.keys(data.traits).length > 0 && (
-        <DnaOrigins traits={data.traits} />
+        <div id="dna-origins" className="scroll-mt-24">
+          <DnaOrigins traits={data.traits} />
+        </div>
       )}
 
       {/* Personalized plan — supplements, diet, and habits derived from YOUR
           genotypes. Turns the markers from trivia into a course of action. */}
       {data.traits && Object.keys(data.traits).length > 0 && (
-        <DnaPlan traits={data.traits} />
+        <div id="dna-plan" className="scroll-mt-24">
+          <DnaPlan traits={data.traits} />
+        </div>
       )}
 
       {/* You vs. the average — put the numbers in human context */}
-      <DnaCompare data={data} />
+      <div id="dna-compare" className="scroll-mt-24">
+        <DnaCompare data={data} />
+      </div>
 
       {/* Radar — category profile at a glance */}
       {data.traits && Object.keys(data.traits).length > 0 && (
@@ -122,16 +135,20 @@ export function DnaVisualization({ data }: { data: DnaSummary }) {
 
       {/* Trait panel — diet / wellness insights */}
       {data.traits && Object.keys(data.traits).length > 0 && (
-        <DnaTraits traits={data.traits} />
+        <div id="dna-traits" className="scroll-mt-24">
+          <DnaTraits traits={data.traits} />
+        </div>
       )}
 
       {/* Inheritance — what passes to the next generation */}
       {data.traits && Object.keys(data.traits).length > 0 && (
-        <DnaInheritance traits={data.traits} />
+        <div id="dna-inheritance" className="scroll-mt-24">
+          <DnaInheritance traits={data.traits} />
+        </div>
       )}
 
       {/* Helix — switchable between the live 3D render and the illustration */}
-      <section>
+      <section id="dna-helix" className="scroll-mt-24">
         <div className="flex flex-wrap items-baseline justify-between gap-4 mb-6">
           <div className="flex items-baseline gap-4">
             <span aria-hidden className="block w-12 h-px bg-accent" />
