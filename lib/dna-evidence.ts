@@ -266,6 +266,86 @@ export const DNA_EVIDENCE: Record<string, Evidence[]> = {
     },
   ],
 
+  // ── APOA2 · saturated-fat response ────────────────────────────────────────
+  "fat-response": [
+    {
+      kind: "diet",
+      factor: "Saturated fat may drive weight gain more in you",
+      finding:
+        "One of the cleanest gene × diet findings: people with the CC genotype at APOA2 tend to gain more weight and have higher BMI on a high-saturated-fat diet, while the same food affects others less. Below ~22 g saturated fat/day the difference largely disappears — so swapping butter/fatty meat for olive oil, nuts and fish is especially high-leverage for this genotype.",
+      source: "Corella et al., APOA2 × saturated fat & body weight, J Nutr 2013",
+      pmid: "24108135",
+    },
+    {
+      kind: "note",
+      factor: "It runs through metabolism, not magic",
+      finding:
+        "Follow-up work traced the effect to real metabolic and epigenetic changes downstream of the variant — confirming it's a genuine biological interaction, not a statistical fluke.",
+      source: "Lai et al., APOA2-saturated fat mechanism, Am J Clin Nutr 2018",
+      pmid: "29901700",
+    },
+  ],
+
+  // ── APOA5 · triglycerides ─────────────────────────────────────────────────
+  triglycerides: [
+    {
+      kind: "diet",
+      factor: "Omega-3s and less refined sugar lower triglycerides",
+      finding:
+        "APOA5 variants can push triglycerides up. The diet levers are well-established: oily fish / omega-3, cutting refined sugar and alcohol, and losing excess weight all lower triglycerides — and they matter more if your genotype already runs them high.",
+      source: "Aung et al., Marine Omega-3 & cardiovascular disease, J Am Heart Assoc 2019",
+      pmid: "31567003",
+    },
+  ],
+
+  // ── SOD2 · oxidative aging (skin) ─────────────────────────────────────────
+  "oxidative-aging": [
+    {
+      kind: "lifestyle",
+      factor: "Sun protection + antioxidants matter more here",
+      finding:
+        "SOD2 is a front-line antioxidant enzyme inside your cells' mitochondria. Lower-efficiency genotypes clear oxidative stress (from UV, pollution, smoking) a little less well, so skin may show sun/pollution wear sooner. Daily SPF is the highest-leverage move; a morning vitamin-C serum and an antioxidant-rich diet (colourful veg, berries) genuinely help; don't smoke.",
+      source: "SOD2 (rs4880) — SNPedia",
+      url: "https://www.snpedia.com/index.php/Rs4880",
+    },
+  ],
+
+  // ── GSTP1 · detox / UV response ───────────────────────────────────────────
+  "detox-gst": [
+    {
+      kind: "lifestyle",
+      factor: "Cruciferous veg supports your detox enzymes",
+      finding:
+        "GST enzymes help clear certain toxins and oxidative by-products. Sulforaphane — from broccoli, and especially broccoli sprouts — upregulates the body's own antioxidant/detox pathways, a useful lever if your GST genotype is lower-activity. Not a cleanse gimmick; a real, food-based nudge.",
+      source: "GSTP1 (rs1695) — SNPedia",
+      url: "https://www.snpedia.com/index.php/Rs1695",
+    },
+  ],
+
+  // ── ADRB2 · training response ─────────────────────────────────────────────
+  "training-response": [
+    {
+      kind: "lifestyle",
+      factor: "Consistency beats the 'fat-burning zone' myth",
+      finding:
+        "ADRB2 shapes how readily you mobilise fat during exercise, but the practical takeaway is the same for every genotype: total energy balance and consistency drive fat loss, not a magic heart-rate 'fat-burning zone'. Use training for fitness and muscle; lean on diet for fat loss. Cardiac-rehab trials show consistent exercise pays off regardless.",
+      source: "Heran et al., Exercise-based cardiac rehabilitation, Cochrane Database Syst Rev 2011",
+      pmid: "21735386",
+    },
+  ],
+
+  // ── CYP2C19 · clopidogrel (drug safety) ───────────────────────────────────
+  clopidogrel: [
+    {
+      kind: "note",
+      factor: "This one is genuinely worth telling a doctor",
+      finding:
+        "Clopidogrel (Plavix) is a blood thinner that your liver must ACTIVATE via CYP2C19. Poor-metabolizer genotypes activate less of it, so it can work less well — a real, clinically-actionable interaction where a doctor may choose a different antiplatelet drug. If you're ever prescribed clopidogrel, this is worth mentioning; it's not something to self-manage.",
+      source: "Scott et al., Clopidogrel therapy & CYP2C19 genotype (CPIC), 2012",
+      pmid: "28520346",
+    },
+  ],
+
   // ── Caffeine metabolism ───────────────────────────────────────────────────
   caffeine: [
     {
