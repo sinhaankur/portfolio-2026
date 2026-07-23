@@ -17,6 +17,7 @@ import { useMemo, useState } from "react"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { AlertCircle, Search, Baby, Database, FileText } from "lucide-react"
+import { DnaDeepDive } from "./dna-deep-dive"
 import {
   TRAIT_MARKERS,
   normalizeGenotype,
@@ -167,6 +168,9 @@ function TraitCard({ r, i }: { r: Resolved; i: number }) {
             </p>
           </div>
         )}
+        {/* Validated, cited deep dive — the genetics itself (consequence,
+            ClinVar, population frequency), each field linking to its source. */}
+        <DnaDeepDive rsid={r.marker.rsid} />
       </div>
     </motion.details>
   )
