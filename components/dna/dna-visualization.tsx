@@ -37,8 +37,17 @@ export function DnaVisualization({ data }: { data: DnaSummary }) {
   // Active L2 section id — the tabs pick one at a time so the page reads as a
   // focused view, not an endless scroll. Defaults to the at-a-glance hero.
   const [active, setActive] = useState<string>("hero")
-  // Show helper: a section is visible only when it's the active tab.
-  const show = (id: string) => (active === id ? "" : "hidden")
+  // Switching tabs also scrolls back to the top of the panel, so a long previous
+  // tab doesn't leave you mid-page on the next one.
+  const pick = (id: string) => {
+    setActive(id)
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" })
+  }
+  // Show helper: a section is visible only when it's the active tab, and when it
+  // IS active it plays a soft fade-in so switching tabs feels alive (fixes the
+  // 'monotonous' read) rather than a hard swap.
+  const show = (id: string) =>
+    active === id ? "motion-safe:animate-[dna-tab-in_0.5s_cubic-bezier(0.16,1,0.3,1)_both]" : "hidden"
   const maxSnps = Math.max(...data.chromosomes.map((c) => c.snps))
   const { homozygous, heterozygous, noCall } = data.genotypeClasses
   const totalCalls = homozygous + heterozygous + noCall || 1
@@ -57,7 +66,7 @@ export function DnaVisualization({ data }: { data: DnaSummary }) {
   return (
     <div>
       {/* L1 / L2 tabbed navigation — one focused view at a time. */}
-      <DnaTabs active={active} onChange={setActive} />
+      <DnaTabs active={active} onChange={pick} />
 
       {/* Hero / At-a-glance */}
       <div className={show("hero")}>
