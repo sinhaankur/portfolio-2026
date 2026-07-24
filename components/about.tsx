@@ -116,6 +116,46 @@ export function About() {
           </p>
         </motion.div>
 
+        {/* Origin — the through-line from that kid at the CRT to the work now.
+            Photo dated 2004; caption is Ankur's to refine. */}
+        <motion.figure
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          className="mb-16 md:mb-24 grid md:grid-cols-[minmax(0,20rem)_1fr] gap-6 md:gap-10 items-center"
+        >
+          <div className="relative overflow-hidden rounded-xl border border-border bg-secondary/20">
+            <img
+              src="/img/about/journey-2004.webp"
+              alt="Ankur as a boy at a CRT computer, 2004"
+              loading="lazy"
+              decoding="async"
+              width={1400}
+              height={980}
+              className="w-full h-auto object-cover [filter:saturate(0.92)]"
+            />
+            <figcaption className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-3 py-2 bg-linear-to-t from-black/70 to-transparent font-mono text-[9px] tracking-[0.18em] uppercase text-white/80">
+              <span>Where it started</span>
+              <span className="tabular-nums">&apos;04</span>
+            </figcaption>
+          </div>
+          <div>
+            <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-accent mb-3">
+              The through-line
+            </p>
+            <p className="font-display text-xl md:text-2xl font-light italic leading-[1.3] text-foreground/90 max-w-xl">
+              Same kid, same instinct — sit at the machine, poke at it until it
+              does something, then make it better.
+            </p>
+            <p className="mt-4 font-sans text-sm md:text-base text-foreground/70 leading-relaxed max-w-xl">
+              Two decades later the machine is bigger and the questions are
+              harder, but the loop hasn&apos;t changed: build the thing, learn
+              from it, ship it. Everything below grew out of that.
+            </p>
+          </div>
+        </motion.figure>
+
         {/* Principles — single column, generously spaced. Each is a row with
             number on the left, claim + warrant + "applied in" on the right. */}
         <ol className="space-y-12 md:space-y-16">
