@@ -38,19 +38,19 @@ export function UpcomingBadge({
       onFocus={() => setIsHovered(true)}
       onBlur={() => setIsHovered(false)}
       className="
-        group fixed bottom-6 right-6 z-30
-        inline-flex items-center gap-3
+        group fixed bottom-4 right-4 md:bottom-6 md:right-6 z-30
+        inline-flex items-center gap-2 md:gap-3
         rounded-full border border-border
         bg-background/70 backdrop-blur-md
-        px-4 py-3 md:px-5 md:py-3
-        font-mono text-[11px] tracking-[0.25em] uppercase
+        px-3.5 py-2.5 md:px-5 md:py-3
+        font-mono text-[10px] md:text-[11px] tracking-[0.14em] md:tracking-[0.25em] uppercase
         text-foreground/90 hover:text-foreground
         shadow-[0_10px_30px_-12px_rgba(0,0,0,0.6)]
         transition-colors duration-300
         focus-visible:outline-none
         focus-visible:ring-2 focus-visible:ring-accent
         focus-visible:ring-offset-2 focus-visible:ring-offset-background
-        min-h-11
+        min-h-11 max-w-[calc(100vw-2rem)]
       "
     >
       {/* Pulse dot — motion-safe only */}

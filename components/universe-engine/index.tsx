@@ -478,7 +478,17 @@ export function UniverseEngine({
           // Tell the intro preloader the universe is actually live, so it can
           // hand off without a snap. Wait two RAFs + a beat so the first real
           // frames (and texture decodes) have painted under the curtain.
-          gl.domElement.addEventListener("webglcontextlost", () => {}, { once: true })
+          // iOS Safari can drop the WebGL context under memory pressure. If that
+          // happens the canvas goes permanently black — so signal a fallback so
+          // the hero can reveal the static starfield instead of a dead screen.
+          gl.domElement.addEventListener(
+            "webglcontextlost",
+            (e) => {
+              e.preventDefault() // allow a potential restore
+              window.dispatchEvent(new CustomEvent("universe-context-lost"))
+            },
+            { once: true },
+          )
           requestAnimationFrame(() =>
             requestAnimationFrame(() => {
               window.setTimeout(() => {

@@ -38,6 +38,9 @@ export function Hero() {
   const [engineWanted, setEngineWanted] = useState(false)
   const [dataSaver, setDataSaver] = useState(false)
   const [engineReady, setEngineReady] = useState(false)
+  // If iOS Safari drops the WebGL context, fall back to the static starfield
+  // rather than a dead black canvas.
+  const [contextLost, setContextLost] = useState(false)
 
   useEffect(() => {
     const conn = (navigator as { connection?: { saveData?: boolean } }).connection
@@ -47,8 +50,13 @@ export function Hero() {
 
   useEffect(() => {
     const onReady = () => setEngineReady(true)
+    const onLost = () => setContextLost(true)
     window.addEventListener("universe-ready", onReady)
-    return () => window.removeEventListener("universe-ready", onReady)
+    window.addEventListener("universe-context-lost", onLost)
+    return () => {
+      window.removeEventListener("universe-ready", onReady)
+      window.removeEventListener("universe-context-lost", onLost)
+    }
   }, [])
 
   // Dismiss the "⋯" info popover on outside click / Escape.
@@ -149,7 +157,7 @@ export function Hero() {
           so the handoff is a bloom, not a swap. */}
       <div className="absolute inset-0" aria-hidden="true">
         <UniverseRuntimeFallback>
-          {tvBrowserFallback ? (
+          {tvBrowserFallback || contextLost ? (
             <StaticStarfield />
           ) : (
             <>
@@ -401,13 +409,32 @@ export function Hero() {
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, delay: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
+          className="relative"
         >
+          {/* Mobile-only legibility scrim: the hero copy sits over the densest
+              part of the galaxy on a phone, so a soft gradient behind the text
+              keeps it readable without hiding the scene. Desktop has room, so
+              no scrim there. */}
+          <div
+            aria-hidden
+            className="md:hidden pointer-events-none absolute -inset-x-6 -inset-y-4 z-[-1]"
+            style={{ background: "radial-gradient(120% 90% at 20% 40%, var(--background) 30%, color-mix(in oklch, var(--background) 55%, transparent) 60%, transparent 100%)" }}
+          />
           <p className="font-mono text-xs tracking-[0.3em] text-muted-foreground mb-2">
             ANKUR SINHA
           </p>
+          {/* Mobile: three stacked lines at a size that fits ~360px, so
+              "ENGINEERING" never runs off-screen. */}
           <p
             aria-hidden="true"
-            className="font-display text-4xl md:text-6xl lg:text-7xl font-light tracking-[-0.02em] leading-[1.02] text-balance"
+            className="md:hidden font-display text-[2rem] leading-[1.06] font-light tracking-[-0.01em]"
+          >
+            DESIGN ×<br />ENGINEERING<br /><span className="italic">× AI</span>
+          </p>
+          {/* md+: the original two-line composition. */}
+          <p
+            aria-hidden="true"
+            className="hidden md:block font-display md:text-6xl lg:text-7xl font-light tracking-[-0.02em] leading-[1.02] text-balance"
           >
             DESIGN × ENGINEERING
             <br />
