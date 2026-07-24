@@ -41,6 +41,10 @@ export function Hero() {
   // If iOS Safari drops the WebGL context, fall back to the static starfield
   // rather than a dead black canvas.
   const [contextLost, setContextLost] = useState(false)
+  // Cinematic chrome: once the journey is underway the hero text/CTAs fade so
+  // the universe fills the screen; any interaction (scroll, pointer, tap, or
+  // entering explore) brings them right back. `chromeDimmed` drives the fade.
+  const [chromeDimmed, setChromeDimmed] = useState(false)
 
   useEffect(() => {
     const conn = (navigator as { connection?: { saveData?: boolean } }).connection
@@ -58,6 +62,38 @@ export function Hero() {
       window.removeEventListener("universe-context-lost", onLost)
     }
   }, [])
+
+  // Cinematic chrome fade. Once the engine is ready and we're not in explore
+  // mode, let the hero text sit for a beat, then dim it so the journey fills
+  // the screen. ANY interaction wakes it and resets the idle timer, so it never
+  // hides while the visitor is engaged. Disabled for reduced-motion + on the
+  // very first view where the intro already held the screen.
+  useEffect(() => {
+    if (prefersReducedMotion || interactive || !engineReady) {
+      setChromeDimmed(false)
+      return
+    }
+    let idle: ReturnType<typeof setTimeout>
+    const DIM_AFTER = 4200 // let the name/headline read first
+    const arm = () => {
+      clearTimeout(idle)
+      setChromeDimmed(false)
+      idle = setTimeout(() => setChromeDimmed(true), DIM_AFTER)
+    }
+    arm()
+    const wake = () => arm()
+    window.addEventListener("pointermove", wake, { passive: true })
+    window.addEventListener("pointerdown", wake, { passive: true })
+    window.addEventListener("scroll", wake, { passive: true })
+    window.addEventListener("keydown", wake)
+    return () => {
+      clearTimeout(idle)
+      window.removeEventListener("pointermove", wake)
+      window.removeEventListener("pointerdown", wake)
+      window.removeEventListener("scroll", wake)
+      window.removeEventListener("keydown", wake)
+    }
+  }, [prefersReducedMotion, interactive, engineReady])
 
   // Dismiss the "⋯" info popover on outside click / Escape.
   useEffect(() => {
@@ -402,6 +438,11 @@ export function Hero() {
           collides with "ANKUR SINHA" in the navbar at the same Y. */}
       <motion.div
         style={prefersReducedMotion ? undefined : { opacity, scale }}
+        // Cinematic fade: when the journey is breathing (chromeDimmed), drop the
+        // hero chrome to a whisper so the universe fills the screen; interaction
+        // brings it back. The scroll-driven `opacity` above still applies on top.
+        animate={{ opacity: chromeDimmed ? 0.12 : 1 }}
+        transition={{ duration: chromeDimmed ? 1.6 : 0.5, ease: [0.16, 1, 0.3, 1] }}
         className="relative z-10 h-full flex flex-col justify-between px-6 pt-24 pb-44 md:p-12 md:px-12 md:py-20 pointer-events-none"
       >
         {/* Top Left */}
@@ -420,32 +461,32 @@ export function Hero() {
             className="md:hidden pointer-events-none absolute -inset-x-6 -inset-y-4 z-[-1]"
             style={{ background: "radial-gradient(120% 90% at 20% 40%, var(--background) 30%, color-mix(in oklch, var(--background) 55%, transparent) 60%, transparent 100%)" }}
           />
-          <p className="font-mono text-xs tracking-[0.3em] text-muted-foreground mb-2">
+          <p className="font-mono text-xs tracking-[0.3em] text-foreground/75 mb-2 [text-shadow:0_1px_8px_var(--background)]">
             ANKUR SINHA
           </p>
           {/* Mobile: three stacked lines at a size that fits ~360px, so
               "ENGINEERING" never runs off-screen. */}
           <p
             aria-hidden="true"
-            className="md:hidden font-display text-[2rem] leading-[1.06] font-light tracking-[-0.01em]"
+            className="md:hidden font-display text-[2rem] leading-[1.06] font-light tracking-[-0.01em] [text-shadow:0_2px_16px_var(--background)]"
           >
             DESIGN ×<br />ENGINEERING<br /><span className="italic">× AI</span>
           </p>
           {/* md+: the original two-line composition. */}
           <p
             aria-hidden="true"
-            className="hidden md:block font-display md:text-6xl lg:text-7xl font-light tracking-[-0.02em] leading-[1.02] text-balance"
+            className="hidden md:block font-display md:text-6xl lg:text-7xl font-light tracking-[-0.02em] leading-[1.02] text-balance [text-shadow:0_2px_20px_var(--background)]"
           >
             DESIGN × ENGINEERING
             <br />
             <span className="italic">× AI</span>
           </p>
-          <p className="mt-4 max-w-md font-sans text-sm md:text-base leading-relaxed text-foreground/80">
-            <span className="text-foreground">Principal UX Designer at Oracle,</span>{" "}
+          <p className="mt-4 max-w-md font-sans text-sm md:text-base leading-relaxed text-foreground/90 [text-shadow:0_1px_10px_var(--background)]">
+            <span className="text-foreground font-medium">Principal UX Designer at Oracle,</span>{" "}
             working at the human–AI seam. 12+ years designing enterprise
             products — and I build my own working prototypes, not just Figma.
           </p>
-          <p className="mt-1.5 font-mono text-[11px] tracking-[0.15em] uppercase text-muted-foreground">
+          <p className="mt-1.5 font-mono text-[11px] tracking-[0.15em] uppercase text-foreground/70 [text-shadow:0_1px_8px_var(--background)]">
             Toronto, ON
           </p>
         </motion.div>
