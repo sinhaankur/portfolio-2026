@@ -1,6 +1,7 @@
 "use client"
 
-import { motion, useReducedMotion } from "framer-motion"
+import { useState } from "react"
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
 import {
   DialGlyph,
   PrototypeGlyph,
@@ -73,6 +74,9 @@ const principles: Principle[] = [
 
 export function About() {
   const prefersReducedMotion = useReducedMotion()
+  // The childhood photo is hidden until the visitor chooses to peek — it's not
+  // in the DOM (so it never loads or shows as a first image) until `revealed`.
+  const [revealed, setRevealed] = useState(false)
 
   const fadeUp = (i: number) => ({
     initial: prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 24 },
@@ -117,7 +121,8 @@ export function About() {
         </motion.div>
 
         {/* Origin — the through-line from that kid at the CRT to the work now.
-            Photo dated 2004; caption is Ankur's to refine. */}
+            The photo is HIDDEN by default (never loads / never a first image);
+            the visitor peeks at it deliberately. Caption is Ankur's to refine. */}
         <motion.figure
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -125,20 +130,54 @@ export function About() {
           transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
           className="mb-16 md:mb-24 grid md:grid-cols-[minmax(0,20rem)_1fr] gap-6 md:gap-10 items-center"
         >
-          <div className="relative overflow-hidden rounded-xl border border-border bg-secondary/20">
-            <img
-              src="/img/about/journey-2004.webp"
-              alt="Ankur as a boy at a CRT computer, 2004"
-              loading="lazy"
-              decoding="async"
-              width={1400}
-              height={980}
-              className="w-full h-auto object-cover [filter:saturate(0.92)]"
-            />
-            <figcaption className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-3 py-2 bg-linear-to-t from-black/70 to-transparent font-mono text-[9px] tracking-[0.18em] uppercase text-white/80">
-              <span>Where it started</span>
-              <span className="tabular-nums">&apos;04</span>
-            </figcaption>
+          {/* Left: the reveal slot — a prompt until clicked, then the photo. */}
+          <div className="relative aspect-[1400/980] overflow-hidden rounded-xl border border-border bg-secondary/20">
+            {!revealed ? (
+              <button
+                type="button"
+                onClick={() => setRevealed(true)}
+                data-cursor-hover
+                aria-label="Reveal the childhood photo — where it started, 2004"
+                className="group absolute inset-0 grid place-items-center text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              >
+                {/* faint blurred stand-in so the slot isn't empty, but no photo loads */}
+                <span aria-hidden className="pointer-events-none absolute inset-0 opacity-40 [background:radial-gradient(circle_at_30%_35%,color-mix(in_oklch,var(--accent)_18%,transparent),transparent_60%)]" />
+                <span className="relative flex flex-col items-center gap-2">
+                  <span className="grid h-11 w-11 place-items-center rounded-full border border-accent/50 text-accent transition-colors group-hover:bg-accent group-hover:text-white">
+                    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" stroke="currentColor" strokeWidth="1.5"/><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.5"/></svg>
+                  </span>
+                  <span className="font-mono text-[10px] tracking-[0.22em] uppercase text-foreground/70 group-hover:text-foreground transition-colors">
+                    Peek at where it started
+                  </span>
+                  <span className="font-mono text-[9px] tracking-[0.18em] uppercase text-muted-foreground/70">&apos;04</span>
+                </span>
+              </button>
+            ) : (
+              <AnimatePresence>
+                <motion.div
+                  key="photo"
+                  initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 1.04 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+                  className="absolute inset-0"
+                >
+                  {/* Only mounted after the click, so it never loads first. */}
+                  <img
+                    src="/img/about/journey-2004.webp"
+                    alt="Ankur as a boy at a CRT computer, 2004"
+                    loading="lazy"
+                    decoding="async"
+                    width={1400}
+                    height={980}
+                    className="h-full w-full object-cover [filter:saturate(0.92)]"
+                  />
+                  <figcaption className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-3 py-2 bg-linear-to-t from-black/70 to-transparent font-mono text-[9px] tracking-[0.18em] uppercase text-white/80">
+                    <span>Where it started</span>
+                    <span className="tabular-nums">&apos;04</span>
+                  </figcaption>
+                </motion.div>
+              </AnimatePresence>
+            )}
           </div>
           <div>
             <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-accent mb-3">
