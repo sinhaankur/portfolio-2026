@@ -469,7 +469,18 @@ export function UniverseEngine({
         dpr={dprForCanvas(qualityForTier(tier).dpr)}
         // Stop drawing entirely while scrolled past the hero (see onScreen).
         frameloop={onScreen ? "always" : "never"}
-        gl={{ antialias: true, alpha: true, toneMappingExposure: 1.05 }}
+        // Antialias is a real GPU-memory cost on mobile GPUs — and MSAA is a
+        // documented trigger for iOS Safari dropping the WebGL context on
+        // memory-constrained iPhones. Disable it on phones (the DPR cap already
+        // keeps edges crisp enough); keep it on desktop. `powerPreference` +
+        // not failing on a perf caveat give the best chance of a live context.
+        gl={{
+          antialias: !mobile,
+          alpha: true,
+          toneMappingExposure: 1.05,
+          powerPreference: "high-performance",
+          failIfMajorPerformanceCaveat: false,
+        }}
         className="w-full h-full"
         // pointerEvents stays auto so hover hit-tests work in both passive and
         // explore modes; OrbitControls.enabled gates drag/zoom independently.
