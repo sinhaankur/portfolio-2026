@@ -55,67 +55,34 @@ export default async function OGImage() {
           <span style={{ display: "flex" }}>Ankur Sinha</span>
         </div>
 
-        {/* Centre — the headline. Big Inter-Light type. */}
+        {/* Centre — just the headline. Big Inter-Light type, nothing else
+            competing with it. */}
         <div
           style={{
             display: "flex",
-            flexDirection: "column",
-            gap: "20px",
-            maxWidth: "920px",
+            fontSize: "96px",
+            lineHeight: 1.02,
+            letterSpacing: "-0.02em",
+            fontWeight: 300,
+            color: "#fafafa",
+            maxWidth: "980px",
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              fontSize: "84px",
-              lineHeight: 1.02,
-              letterSpacing: "-0.02em",
-              fontWeight: 300,
-              color: "#fafafa",
-            }}
-          >
-            Design × Engineering × AI
-          </div>
-          <div
-            style={{
-              display: "flex",
-              fontSize: "44px",
-              lineHeight: 1.1,
-              letterSpacing: "-0.01em",
-              fontWeight: 300,
-              fontStyle: "italic",
-              color: "rgba(250,250,250,0.85)",
-            }}
-          >
-            UX by craft — exploring AI by building it.
-          </div>
+          Design × Engineering × AI
         </div>
 
-        {/* Bottom row — sub-line + URL */}
+        {/* Bottom row — just the URL. Clean. */}
         <div
           style={{
             display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-end",
             fontFamily: "monospace",
-            fontSize: "20px",
-            color: "rgba(250,250,250,0.6)",
+            fontSize: "22px",
+            letterSpacing: "0.25em",
+            textTransform: "uppercase",
+            color: "rgba(250,250,250,0.75)",
           }}
         >
-          <div style={{ display: "flex", maxWidth: "780px", lineHeight: 1.5 }}>
-            Code prototypes for keeping humans in command of agentic AI —
-            Unhosted, the Universe Engine, and more.
-          </div>
-          <div
-            style={{
-              display: "flex",
-              letterSpacing: "0.25em",
-              textTransform: "uppercase",
-              color: "rgba(250,250,250,0.85)",
-            }}
-          >
-            sinhaankur.com
-          </div>
+          sinhaankur.com
         </div>
       </div>
     ),
