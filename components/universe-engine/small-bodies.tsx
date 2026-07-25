@@ -23,9 +23,9 @@
  * Composed by <SceneContents> in scene.tsx. Comet shaders come from ./shaders.
  */
 
-import { useRef, useMemo, useState, useEffect } from "react"
+import { useRef, useMemo, useState, useEffect, Suspense } from "react"
 import { useFrame } from "@react-three/fiber"
-import { Billboard, Html } from "@react-three/drei"
+import { Billboard, Clone, Html, useGLTF } from "@react-three/drei"
 import {
   AdditiveBlending,
   BufferAttribute,
@@ -207,6 +207,23 @@ const DWARF_SURFACES: Record<string, DwarfSurfaceProfile> = {
  * named-body distances all live in the same sqrt(AU)·3 frame).
  */
 
+/**
+ * GLB comet nucleus — the first asset of the Blender-GLB pipeline. Swaps the
+ * plain procedural icosahedron for a detailed irregular Blender rock. Isolated
+ * so useGLTF suspends only this piece; the caller wraps it in <Suspense> with
+ * the icosahedron as the fallback, so a slow/failed load never blanks the comet.
+ * The parent still spins it via the forwarded nucleusRef.
+ */
+function CometNucleusGlb({ scale, nucleusRef }: { scale: number; nucleusRef: React.RefObject<Group | null> }) {
+  const { scene } = useGLTF("/models/comet-nucleus-hi.glb")
+  return (
+    <group ref={nucleusRef as React.Ref<Group>} scale={scale}>
+      <Clone object={scene} />
+    </group>
+  )
+}
+useGLTF.preload("/models/comet-nucleus-hi.glb")
+
 function NamedBodyMesh({
   body,
   onHover,
@@ -230,7 +247,8 @@ function NamedBodyMesh({
    *  appears to spin like a real cometary nucleus (67P rotates every
    *  ~12.4 hours; jets pulse on and off as active areas swing into the
    *  sunlight). The rotation here is decorative, not period-accurate. */
-  const nucleusRef = useRef<Mesh>(null)
+  // Mesh (procedural fallback) OR Group (GLB nucleus) — both have .rotation.
+  const nucleusRef = useRef<Mesh | Group | null>(null)
   /** Comet-tail orientation — quaternion-rotated each frame so the tail
    *  always streams away from the Sun (origin), matching real solar-wind
    *  physics. Only used when body.kind === "comet" (or Comet Borisov). */
@@ -931,14 +949,20 @@ function NamedBodyMesh({
           //   9. Anti-tail — for Tsuchinshan–ATLAS only — short sunward
           //      spike, fades in near perihelion.
           <>
-            {/* 1. Nucleus — irregular, dark, tumbling. Subdiv 1 (was 0): a subdiv-0
-                icosahedron is only 8 faces = a chunky angular block at close zoom;
-                subdiv 1 keeps the irregular "lump of rock" read but reads as a real
-                nucleus, not a low-poly shard. */}
-            <mesh ref={nucleusRef}>
-              <icosahedronGeometry args={[config.visualRadius * 0.42, 1]} />
-              <meshStandardMaterial color={invert ? "#0a0a14" : "#5a534a"} roughness={0.95} flatShading />
-            </mesh>
+            {/* 1. Nucleus — a detailed Blender GLB rock (the first asset of the
+                GLB pipeline), with the procedural icosahedron as the Suspense
+                fallback so a slow/failed load never blanks the comet. Both spin
+                via nucleusRef. */}
+            <Suspense
+              fallback={
+                <mesh ref={nucleusRef as React.Ref<Mesh>}>
+                  <icosahedronGeometry args={[config.visualRadius * 0.42, 1]} />
+                  <meshStandardMaterial color={invert ? "#0a0a14" : "#5a534a"} roughness={0.95} flatShading />
+                </mesh>
+              }
+            >
+              <CometNucleusGlb scale={config.visualRadius * 0.42} nucleusRef={nucleusRef as React.RefObject<Group | null>} />
+            </Suspense>
 
             {/* 2. Inner coma — C2/CN green close to the nucleus.
                 Real Halley and Hale-Bopp comae show this clearly through

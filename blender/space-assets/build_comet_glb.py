@@ -112,6 +112,19 @@ def build():
     for p in ion.data.polygons:
         p.use_smooth = True
 
+    # --- Also export a NUCLEUS-ONLY GLB — the engine keeps its (good) procedural
+    #     coma + tail shaders and just swaps the plain icosahedron nucleus for
+    #     this detailed irregular rock. Lowest-risk wire-in. ---
+    bpy.ops.object.select_all(action="DESELECT")
+    nucleus.select_set(True)
+    # strip the emissive slot for the standalone nucleus (engine lights it)
+    nuc_path = os.path.join(OUT, "comet-nucleus-hi.glb")
+    bpy.ops.export_scene.gltf(
+        filepath=nuc_path, export_format="GLB", use_selection=True,
+        export_apply=True, export_yup=True,
+    )
+    print("WROTE", nuc_path)
+
     # --- Export the whole comet as one GLB ---
     for ob in bpy.data.objects:
         ob.select_set(True)
