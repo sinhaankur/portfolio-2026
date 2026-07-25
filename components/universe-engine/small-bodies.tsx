@@ -25,7 +25,7 @@
 
 import { useRef, useMemo, useState, useEffect } from "react"
 import { useFrame } from "@react-three/fiber"
-import { Html } from "@react-three/drei"
+import { Billboard, Html } from "@react-three/drei"
 import {
   AdditiveBlending,
   BufferAttribute,
@@ -1285,6 +1285,26 @@ function NamedBodyMesh({
           <sphereGeometry args={[hitRadius, 12, 12]} />
           <meshBasicMaterial transparent opacity={0} depthWrite={false} />
         </mesh>
+        {/* Target ring — the AFFORDANCE. On hover, a thin billboarded ring
+            around the body signals "this is a real object you can click + fly
+            to", so comets/spacecraft don't read as inert smudges. Sized to the
+            body's visual radius; faces the camera. */}
+        {isHovered && (
+          <Billboard>
+            <mesh>
+              <ringGeometry args={[config.visualRadius * 1.6, config.visualRadius * 1.78, 48]} />
+              <meshBasicMaterial
+                color={invert ? "#1a1a1a" : "#ffffff"}
+                transparent
+                opacity={0.7}
+                side={DoubleSide}
+                depthWrite={false}
+                toneMapped={false}
+              />
+            </mesh>
+          </Billboard>
+        )}
+
         {/* Hover label — matches the planet hover-label pattern so comets,
             asteroids, spacecraft, and dwarfs all get the same floating-name
             affordance. Desktop only; mobile uses the bottom sheet. */}
