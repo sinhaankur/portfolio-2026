@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation"
 import { StaticStarfield } from "@/components/universe-engine/static-starfield"
 import { UniverseRuntimeFallback } from "@/components/universe-engine/runtime-fallback"
 
+// StaticStarfield is used as the engine's loading fallback below.
+
 const UniverseEngine = dynamic(
   () => import("@/components/universe-engine").then((mod) => mod.UniverseEngine),
   {
@@ -53,8 +55,32 @@ export function TvShell() {
     [engineLive],
   )
 
+  // Cinematic chrome: the menu overlays a full-bleed living engine, then fades
+  // so the universe fills the TV like a screensaver. Any remote key wakes it.
+  const [chromeVisible, setChromeVisible] = useState(true)
+
   useEffect(() => {
     actionRefs.current[0]?.focus()
+  }, [])
+
+  // Auto-hide the menu after idle so the engine breathes full-screen; any key
+  // press (remote nav) brings it back and resets the timer.
+  useEffect(() => {
+    let idle: ReturnType<typeof setTimeout>
+    const arm = () => {
+      clearTimeout(idle)
+      setChromeVisible(true)
+      idle = setTimeout(() => setChromeVisible(false), 7000)
+    }
+    arm()
+    const wake = () => arm()
+    window.addEventListener("keydown", wake)
+    window.addEventListener("pointermove", wake)
+    return () => {
+      clearTimeout(idle)
+      window.removeEventListener("keydown", wake)
+      window.removeEventListener("pointermove", wake)
+    }
   }, [])
 
   useEffect(() => {
@@ -96,104 +122,73 @@ export function TvShell() {
   }
 
   return (
-    <main className="min-h-screen bg-[#050505] text-[#f5f5f0] overflow-hidden">
-      <div className="relative min-h-screen px-4 py-4 sm:px-6 lg:px-8">
-        <div className="pointer-events-none absolute inset-0">
-          <StaticStarfield />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.08),transparent_35%),radial-gradient(circle_at_bottom_right,rgba(90,161,255,0.08),transparent_28%)]" />
+    <main className="fixed inset-0 bg-black text-[#f5f5f0] overflow-hidden">
+      {/* FULL-BLEED living engine — the whole TV is the universe, like a
+          cinematic screensaver. Auto-tours canonical sights until the viewer
+          takes control. */}
+      <div className="absolute inset-0">
+        <UniverseRuntimeFallback>
+          <UniverseEngine interactive={engineLive} showHud={false} showMusic={false} realtime />
+        </UniverseRuntimeFallback>
+      </div>
+
+      {/* Cinematic vignette so overlaid text stays legible over any scene. */}
+      <div
+        aria-hidden
+        className={`pointer-events-none absolute inset-0 transition-opacity duration-1000 ${chromeVisible ? "opacity-100" : "opacity-0"}`}
+        style={{ background: "radial-gradient(120% 90% at 15% 50%, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.35) 42%, transparent 72%)" }}
+      />
+
+      {/* Overlaid nav — a slim elegant column on the left that fades after idle,
+          so the universe fills the screen. Any remote key brings it back. */}
+      <div
+        className={`absolute inset-y-0 left-0 z-20 flex flex-col justify-center px-8 sm:px-12 lg:px-16 transition-all duration-700 ${
+          chromeVisible ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-6 pointer-events-none"
+        }`}
+      >
+        <p className="font-mono text-[11px] tracking-[0.3em] uppercase text-[#90c4ff]/80 mb-3">
+          Ankur Sinha · Universe Engine
+        </p>
+        <h1 className="font-serif text-5xl leading-[1.02] sm:text-6xl lg:text-7xl max-w-[12ch] mb-2">
+          A real-time <span className="italic">galaxy</span>, on your TV.
+        </h1>
+        <p className="max-w-[42ch] text-base leading-relaxed text-white/70 mb-8">
+          Real planets, real orbits, real satellites — rendered live. Sit back, or
+          steer it with your remote.
+        </p>
+
+        <div className="space-y-2.5 max-w-md">
+          {actions.map((action, index) => (
+            <button
+              key={action.label}
+              ref={(node) => {
+                actionRefs.current[index] = node
+              }}
+              type="button"
+              onClick={() => activateAction(action)}
+              className="group w-full rounded-2xl border border-white/12 bg-black/40 px-6 py-4 text-left backdrop-blur-md transition-all duration-200 hover:border-white/30 hover:bg-black/60 focus-visible:outline-none focus-visible:border-[#90c4ff] focus-visible:bg-black/70 focus-visible:ring-4 focus-visible:ring-[#90c4ff]/40"
+            >
+              <div className="flex items-center justify-between gap-4">
+                <span className="font-medium text-lg sm:text-xl">{action.label}</span>
+                <span aria-hidden className="text-[#90c4ff]/60 transition-transform duration-200 group-focus-visible:translate-x-1 group-hover:translate-x-1">→</span>
+              </div>
+              <p className="mt-1 text-sm leading-relaxed text-white/55">{action.description}</p>
+            </button>
+          ))}
         </div>
 
-        <div className="relative grid min-h-[calc(100vh-2rem)] gap-4 lg:grid-cols-[minmax(260px,0.9fr)_minmax(0,1.5fr)] lg:gap-6">
-          <section className="flex h-full flex-col justify-between rounded-[28px] border border-white/10 bg-black/55 p-6 backdrop-blur-md sm:p-8 lg:p-10">
-            <div className="space-y-5">
-              <p className="font-mono text-[10px] tracking-[0.28em] uppercase text-white/45">
-                LG webOS · Smart TV shell
-              </p>
-              <div className="space-y-4">
-                <h1 className="max-w-[10ch] font-serif text-4xl leading-none sm:text-5xl lg:text-6xl">
-                  Universe Engine TV
-                </h1>
-                <p className="max-w-prose text-sm leading-relaxed text-white/72 sm:text-base">
-                  A remote-friendly launch surface for the Universe Engine,
-                  tuned for LG webOS and other smart TV browsers. Large focus
-                  targets, shallow navigation, and a single-step path into the
-                  live experience.
-                </p>
-              </div>
+        <p className="mt-8 font-mono text-[10px] tracking-[0.22em] uppercase text-white/40">
+          ▲▼ move · OK select · Back exits
+        </p>
+      </div>
 
-              <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm leading-relaxed text-white/75">
-                <p className="font-mono text-[10px] tracking-[0.24em] uppercase text-white/50">
-                  Remote controls
-                </p>
-                <p className="mt-2">
-                  Arrow keys move focus. OK/Enter activates. Back or Escape
-                  returns home.
-                </p>
-              </div>
-
-              <div className="space-y-3">
-                {actions.map((action, index) => (
-                  <button
-                    key={action.label}
-                    ref={(node) => {
-                      actionRefs.current[index] = node
-                    }}
-                    type="button"
-                    onClick={() => activateAction(action)}
-                    className="group w-full rounded-2xl border border-white/12 bg-white/6 px-5 py-4 text-left transition-all duration-200 hover:border-white/28 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#90c4ff] focus-visible:ring-offset-2 focus-visible:ring-offset-black"
-                  >
-                    <div className="flex items-center justify-between gap-4">
-                      <span className="font-medium text-base sm:text-lg">
-                        {action.label}
-                      </span>
-                      <span className="font-mono text-[10px] tracking-[0.2em] uppercase text-white/35">
-                        {index === 0 ? "Primary" : "Open"}
-                      </span>
-                    </div>
-                    <p className="mt-2 max-w-[34ch] text-sm leading-relaxed text-white/65">
-                      {action.description}
-                    </p>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="mt-6 border-t border-white/10 pt-5 text-xs leading-relaxed text-white/50">
-              Publishing target: one static TV-friendly route now, then a
-              packaged webOS shell that can point at this experience or ship it
-              locally.
-            </div>
-          </section>
-
-          <section className="relative min-h-[60vh] overflow-hidden rounded-[28px] border border-white/10 bg-black/70 shadow-2xl shadow-black/40 lg:min-h-full">
-            <UniverseRuntimeFallback>
-              <div className="absolute inset-0">
-                <UniverseEngine interactive={engineLive} showHud={false} showMusic={false} />
-              </div>
-            </UniverseRuntimeFallback>
-
-            <div className="pointer-events-none absolute inset-x-4 top-4 z-20 rounded-2xl border border-white/10 bg-black/55 px-4 py-3 backdrop-blur-md sm:left-4 sm:right-auto sm:max-w-md">
-              <p className="font-mono text-[10px] tracking-[0.22em] uppercase text-white/50">
-                TV preview
-              </p>
-              <p className="mt-1 text-sm leading-relaxed text-white/78">
-                {engineLive
-                  ? "Interactive mode is live. Use a pointer, mouse, or touch-capable TV to explore the engine in-place."
-                  : "Preview mode is active. The engine auto-cycles canonical sights while the menu stays remote-friendly."}
-              </p>
-            </div>
-
-            <div className="pointer-events-none absolute inset-x-4 bottom-4 z-20 rounded-2xl border border-white/10 bg-black/50 px-4 py-3 backdrop-blur-md sm:left-4 sm:right-auto sm:max-w-lg">
-              <p className="font-mono text-[10px] tracking-[0.22em] uppercase text-white/45">
-                Next step
-              </p>
-              <p className="mt-1 text-sm leading-relaxed text-white/72">
-                Build the webOS package around this route, then test on the LG
-                simulator and a physical TV.
-              </p>
-            </div>
-          </section>
-        </div>
+      {/* A tiny persistent hint when chrome is hidden, so a viewer knows it's live. */}
+      <div
+        className={`pointer-events-none absolute bottom-6 right-8 z-20 font-mono text-[10px] tracking-[0.22em] uppercase text-white/35 transition-opacity duration-700 ${
+          chromeVisible ? "opacity-0" : "opacity-100"
+        }`}
+      >
+        Press any key for menu
       </div>
     </main>
   )
