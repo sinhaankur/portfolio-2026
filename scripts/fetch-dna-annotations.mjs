@@ -54,6 +54,11 @@ const FIELDS = [
   "snpeff.ann.genename",
   "snpeff.ann.putative_impact",
   "snpeff.ann.hgvs_p",
+  // Functional-impact predictions for coding variants (does the amino-acid
+  // change likely break the protein?). SIFT: D=deleterious/T=tolerated;
+  // PolyPhen: D=probably-damaging/P=possibly/B=benign.
+  "dbnsfp.sift.pred",
+  "dbnsfp.polyphen2.hdiv.pred",
 ].join(",")
 
 async function fetchOne(rsid) {
@@ -89,6 +94,22 @@ async function fetchOne(rsid) {
       ? `${ann.putative_impact} impact`
       : null
   const proteinChange = ann?.hgvs_p ?? null
+
+  // Functional-impact prediction for coding variants — does the amino-acid
+  // change likely damage the protein? Collapse the array of transcript-level
+  // calls to a single most-severe verdict.
+  const dbnsfp = hit.dbnsfp ?? {}
+  const flat1 = (x) => (Array.isArray(x) ? x[0] : x)
+  const siftRaw = flat1(dbnsfp?.sift?.pred)
+  const ppRaw = flat1(dbnsfp?.polyphen2?.hdiv?.pred)
+  const impact =
+    siftRaw || ppRaw
+      ? {
+          // D=deleterious/damaging, T=tolerated, P=possibly, B=benign
+          sift: siftRaw === "D" ? "deleterious" : siftRaw === "T" ? "tolerated" : null,
+          polyphen: ppRaw === "D" ? "probably damaging" : ppRaw === "P" ? "possibly damaging" : ppRaw === "B" ? "benign" : null,
+        }
+      : null
 
   // ClinVar — keep only established (non-"uncertain") entries, de-duped.
   const rcv = clinvar.rcv ? (Array.isArray(clinvar.rcv) ? clinvar.rcv : [clinvar.rcv]) : []
@@ -127,6 +148,7 @@ async function fetchOne(rsid) {
     geneName,
     vartype: dbsnp.vartype ?? null,
     chrom: dbsnp.chrom ? String(dbsnp.chrom) : null,
+    impact,
     consequence,
     proteinChange,
     clinvar: clinvarEntries.slice(0, 6),
@@ -179,6 +201,7 @@ export type DnaAnnotation = {
   chrom: string | null
   consequence: string | null
   proteinChange: string | null
+  impact: { sift: string | null; polyphen: string | null } | null
   clinvar: { significance: string; condition: string }[]
   freqs: { cohort: string; allele: string; freq: number }[]
   sources: { dbsnp: string; clinvar: string; gnomad: string; ensembl: string; myvariant: string }

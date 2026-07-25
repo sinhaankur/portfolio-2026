@@ -89,6 +89,43 @@ export function DnaDeepDive({ rsid }: { rsid: string }) {
         </div>
       )}
 
+      {/* Functional-impact prediction — for coding variants, do the algorithms
+          think the amino-acid change harms the protein? Honest: these are
+          computational predictions (SIFT, PolyPhen), not verdicts. */}
+      {a.impact && (a.impact.sift || a.impact.polyphen) && (
+        <div>
+          <p className="font-mono text-[10px] tracking-widest uppercase text-foreground/60 mb-2">
+            Predicted effect on the protein
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {a.impact.sift && (
+              <span className={`rounded-full border px-2.5 py-1 font-mono text-[10px] tracking-wider ${
+                a.impact.sift === "deleterious"
+                  ? "text-[#f06c8d] border-[#f06c8d]/40 bg-[#f06c8d]/[0.07]"
+                  : "text-emerald-300 border-emerald-500/30 bg-emerald-500/[0.06]"
+              }`}>
+                SIFT · {a.impact.sift}
+              </span>
+            )}
+            {a.impact.polyphen && (
+              <span className={`rounded-full border px-2.5 py-1 font-mono text-[10px] tracking-wider ${
+                /damaging/.test(a.impact.polyphen) && !/possibly/.test(a.impact.polyphen)
+                  ? "text-[#f06c8d] border-[#f06c8d]/40 bg-[#f06c8d]/[0.07]"
+                  : /possibly/.test(a.impact.polyphen)
+                    ? "text-accent border-accent/40 bg-accent/[0.07]"
+                    : "text-emerald-300 border-emerald-500/30 bg-emerald-500/[0.06]"
+              }`}>
+                PolyPhen · {a.impact.polyphen}
+              </span>
+            )}
+          </div>
+          <p className="mt-1.5 font-sans text-[11px] text-foreground/55 leading-relaxed">
+            Computational predictions of whether the amino-acid change disrupts the
+            protein — a signal, not a diagnosis.
+          </p>
+        </div>
+      )}
+
       {/* Established clinical associations — known types only. */}
       {a.clinvar.length > 0 && (
         <div>

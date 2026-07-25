@@ -7,7 +7,7 @@
  * record carries source URLs as proof. Population frequencies are "how common
  * in a reference cohort", NOT an ancestry claim about you.
  *
- * Generated: 2026-07-23
+ * Generated: 2026-07-25
  */
 
 export type DnaAnnotation = {
@@ -18,6 +18,7 @@ export type DnaAnnotation = {
   chrom: string | null
   consequence: string | null
   proteinChange: string | null
+  impact: { sift: string | null; polyphen: string | null } | null
   clinvar: { significance: string; condition: string }[]
   freqs: { cohort: string; allele: string; freq: number }[]
   sources: { dbsnp: string; clinvar: string; gnomad: string; ensembl: string; myvariant: string }
@@ -32,6 +33,7 @@ export const DNA_ANNOTATIONS: Record<string, DnaAnnotation> = {
     "geneName": "minichromosome maintenance complex component 6",
     "vartype": "snv",
     "chrom": "2",
+    "impact": null,
     "consequence": "INTRONIC",
     "proteinChange": null,
     "clinvar": [
@@ -71,6 +73,7 @@ export const DNA_ANNOTATIONS: Record<string, DnaAnnotation> = {
     "geneName": "cytochrome P450 family 1 subfamily A member 2",
     "vartype": "snv",
     "chrom": "15",
+    "impact": null,
     "consequence": "MODIFIER impact",
     "proteinChange": null,
     "clinvar": [],
@@ -125,6 +128,10 @@ export const DNA_ANNOTATIONS: Record<string, DnaAnnotation> = {
     "geneName": "aldehyde dehydrogenase 2 family member",
     "vartype": "snv",
     "chrom": "12",
+    "impact": {
+      "sift": "deleterious",
+      "polyphen": "probably damaging"
+    },
     "consequence": "NON_SYNONYMOUS",
     "proteinChange": "p.Glu504Lys",
     "clinvar": [
@@ -204,6 +211,10 @@ export const DNA_ANNOTATIONS: Record<string, DnaAnnotation> = {
     "geneName": "alcohol dehydrogenase 1B (class I), beta polypeptide",
     "vartype": "snv",
     "chrom": "4",
+    "impact": {
+      "sift": "tolerated",
+      "polyphen": null
+    },
     "consequence": "NON_SYNONYMOUS",
     "proteinChange": "p.His48Pro",
     "clinvar": [],
@@ -253,6 +264,7 @@ export const DNA_ANNOTATIONS: Record<string, DnaAnnotation> = {
     "geneName": "FTO alpha-ketoglutarate dependent dioxygenase",
     "vartype": "snv",
     "chrom": "16",
+    "impact": null,
     "consequence": "INTRONIC",
     "proteinChange": null,
     "clinvar": [],
@@ -307,6 +319,7 @@ export const DNA_ANNOTATIONS: Record<string, DnaAnnotation> = {
     "geneName": "transcription factor 7 like 2",
     "vartype": "snv",
     "chrom": "10",
+    "impact": null,
     "consequence": "MODIFIER impact",
     "proteinChange": null,
     "clinvar": [
@@ -366,6 +379,10 @@ export const DNA_ANNOTATIONS: Record<string, DnaAnnotation> = {
     "geneName": "taste 2 receptor member 38",
     "vartype": "snv",
     "chrom": "7",
+    "impact": {
+      "sift": "deleterious",
+      "polyphen": "benign"
+    },
     "consequence": "NON_SYNONYMOUS",
     "proteinChange": "p.Ala262Val",
     "clinvar": [],
@@ -420,6 +437,7 @@ export const DNA_ANNOTATIONS: Record<string, DnaAnnotation> = {
     "geneName": "fatty acid desaturase 1",
     "vartype": "snv",
     "chrom": "11",
+    "impact": null,
     "consequence": "INTRONIC",
     "proteinChange": null,
     "clinvar": [],
@@ -474,6 +492,10 @@ export const DNA_ANNOTATIONS: Record<string, DnaAnnotation> = {
     "geneName": "methylenetetrahydrofolate reductase",
     "vartype": "snv",
     "chrom": "1",
+    "impact": {
+      "sift": "tolerated",
+      "polyphen": "possibly damaging"
+    },
     "consequence": "NON_SYNONYMOUS",
     "proteinChange": "p.Ala222Gly",
     "clinvar": [],
@@ -528,6 +550,7 @@ export const DNA_ANNOTATIONS: Record<string, DnaAnnotation> = {
     "geneName": "cytochrome P450 family 2 subfamily R member 1",
     "vartype": "snv",
     "chrom": "11",
+    "impact": null,
     "consequence": "MODIFIER impact",
     "proteinChange": null,
     "clinvar": [],
@@ -582,6 +605,7 @@ export const DNA_ANNOTATIONS: Record<string, DnaAnnotation> = {
     "geneName": "GC vitamin D binding protein",
     "vartype": "snv",
     "chrom": "4",
+    "impact": null,
     "consequence": "INTRONIC",
     "proteinChange": null,
     "clinvar": [],
@@ -636,6 +660,10 @@ export const DNA_ANNOTATIONS: Record<string, DnaAnnotation> = {
     "geneName": "homeostatic iron regulator",
     "vartype": "snv",
     "chrom": "6",
+    "impact": {
+      "sift": "deleterious",
+      "polyphen": "benign"
+    },
     "consequence": "NON_SYNONYMOUS",
     "proteinChange": "p.His63Asp",
     "clinvar": [
@@ -715,6 +743,10 @@ export const DNA_ANNOTATIONS: Record<string, DnaAnnotation> = {
     "geneName": "catechol-O-methyltransferase",
     "vartype": "snv",
     "chrom": "22",
+    "impact": {
+      "sift": "tolerated",
+      "polyphen": "benign"
+    },
     "consequence": "NON_SYNONYMOUS",
     "proteinChange": null,
     "clinvar": [
@@ -790,6 +822,10 @@ export const DNA_ANNOTATIONS: Record<string, DnaAnnotation> = {
     "geneName": "ATP binding cassette subfamily C member 11",
     "vartype": "snv",
     "chrom": "16",
+    "impact": {
+      "sift": "deleterious",
+      "polyphen": "probably damaging"
+    },
     "consequence": "NON_SYNONYMOUS",
     "proteinChange": "p.Gly180Arg",
     "clinvar": [
@@ -861,6 +897,7 @@ export const DNA_ANNOTATIONS: Record<string, DnaAnnotation> = {
     "geneName": "HECT and RLD domain containing E3 ubiquitin protein ligase 2",
     "vartype": "snv",
     "chrom": "15",
+    "impact": null,
     "consequence": "INTRONIC",
     "proteinChange": null,
     "clinvar": [
@@ -915,6 +952,7 @@ export const DNA_ANNOTATIONS: Record<string, DnaAnnotation> = {
     "geneName": "tyrosinase",
     "vartype": "snv",
     "chrom": "11",
+    "impact": null,
     "consequence": "INTRONIC",
     "proteinChange": null,
     "clinvar": [],
@@ -969,6 +1007,7 @@ export const DNA_ANNOTATIONS: Record<string, DnaAnnotation> = {
     "geneName": "interferon regulatory factor 4",
     "vartype": "snv",
     "chrom": "6",
+    "impact": null,
     "consequence": "REGULATORY",
     "proteinChange": null,
     "clinvar": [
@@ -1013,6 +1052,10 @@ export const DNA_ANNOTATIONS: Record<string, DnaAnnotation> = {
     "geneName": "PPARG coactivator 1 alpha",
     "vartype": "snv",
     "chrom": "4",
+    "impact": {
+      "sift": "tolerated",
+      "polyphen": "benign"
+    },
     "consequence": "NON_SYNONYMOUS",
     "proteinChange": "p.Gly482Ser",
     "clinvar": [
@@ -1072,6 +1115,10 @@ export const DNA_ANNOTATIONS: Record<string, DnaAnnotation> = {
     "geneName": "brain derived neurotrophic factor",
     "vartype": "snv",
     "chrom": "11",
+    "impact": {
+      "sift": "deleterious",
+      "polyphen": "probably damaging"
+    },
     "consequence": "NON_SYNONYMOUS",
     "proteinChange": "p.Val148Met",
     "clinvar": [
@@ -1139,6 +1186,10 @@ export const DNA_ANNOTATIONS: Record<string, DnaAnnotation> = {
     "geneName": "apolipoprotein E",
     "vartype": "snv",
     "chrom": "19",
+    "impact": {
+      "sift": "deleterious",
+      "polyphen": "probably damaging"
+    },
     "consequence": "NON_SYNONYMOUS",
     "proteinChange": "p.Arg202Cys",
     "clinvar": [
@@ -1213,6 +1264,7 @@ export const DNA_ANNOTATIONS: Record<string, DnaAnnotation> = {
     "geneName": "apolipoprotein A5",
     "vartype": "snv",
     "chrom": "11",
+    "impact": null,
     "consequence": "UPSTREAM",
     "proteinChange": null,
     "clinvar": [],
@@ -1267,6 +1319,10 @@ export const DNA_ANNOTATIONS: Record<string, DnaAnnotation> = {
     "geneName": "peroxisome proliferator activated receptor gamma",
     "vartype": "snv",
     "chrom": "3",
+    "impact": {
+      "sift": "tolerated",
+      "polyphen": "benign"
+    },
     "consequence": "NON_SYNONYMOUS",
     "proteinChange": "p.Pro12Ser",
     "clinvar": [],
@@ -1321,6 +1377,7 @@ export const DNA_ANNOTATIONS: Record<string, DnaAnnotation> = {
     "geneName": "coagulation factor V",
     "vartype": "snv",
     "chrom": "1",
+    "impact": null,
     "consequence": "NON_SYNONYMOUS",
     "proteinChange": "p.Gln534Leu",
     "clinvar": [],
@@ -1360,6 +1417,7 @@ export const DNA_ANNOTATIONS: Record<string, DnaAnnotation> = {
     "geneName": "peroxisome proliferator activated receptor alpha",
     "vartype": "snv",
     "chrom": "22",
+    "impact": null,
     "consequence": "MODIFIER impact",
     "proteinChange": null,
     "clinvar": [],
@@ -1399,6 +1457,10 @@ export const DNA_ANNOTATIONS: Record<string, DnaAnnotation> = {
     "geneName": "adrenoceptor beta 2",
     "vartype": "snv",
     "chrom": "5",
+    "impact": {
+      "sift": "tolerated",
+      "polyphen": "benign"
+    },
     "consequence": "NON_SYNONYMOUS",
     "proteinChange": "p.Gly16Arg",
     "clinvar": [],
@@ -1453,6 +1515,7 @@ export const DNA_ANNOTATIONS: Record<string, DnaAnnotation> = {
     "geneName": "collagen type I alpha 1 chain",
     "vartype": "snv",
     "chrom": "17",
+    "impact": null,
     "consequence": "REGULATORY",
     "proteinChange": null,
     "clinvar": [
@@ -1510,6 +1573,7 @@ export const DNA_ANNOTATIONS: Record<string, DnaAnnotation> = {
     "geneName": "solute carrier family 16 member 1",
     "vartype": "snv",
     "chrom": "1",
+    "impact": null,
     "consequence": "SYNONYMOUS",
     "proteinChange": "p.Asp490Asp",
     "clinvar": [],
@@ -1564,6 +1628,10 @@ export const DNA_ANNOTATIONS: Record<string, DnaAnnotation> = {
     "geneName": "angiotensinogen",
     "vartype": "snv",
     "chrom": "1",
+    "impact": {
+      "sift": "tolerated",
+      "polyphen": "benign"
+    },
     "consequence": "NON_SYNONYMOUS",
     "proteinChange": "p.Met268Thr",
     "clinvar": [
@@ -1639,6 +1707,10 @@ export const DNA_ANNOTATIONS: Record<string, DnaAnnotation> = {
     "geneName": "superoxide dismutase 2",
     "vartype": "snv",
     "chrom": "6",
+    "impact": {
+      "sift": "tolerated",
+      "polyphen": "benign"
+    },
     "consequence": "NON_SYNONYMOUS",
     "proteinChange": "p.Val16Ala",
     "clinvar": [
@@ -1702,6 +1774,7 @@ export const DNA_ANNOTATIONS: Record<string, DnaAnnotation> = {
     "geneName": "catalase",
     "vartype": "snv",
     "chrom": "11",
+    "impact": null,
     "consequence": "MODIFIER impact",
     "proteinChange": null,
     "clinvar": [],
@@ -1756,6 +1829,10 @@ export const DNA_ANNOTATIONS: Record<string, DnaAnnotation> = {
     "geneName": "glutathione S-transferase pi 1",
     "vartype": "snv",
     "chrom": "11",
+    "impact": {
+      "sift": "tolerated",
+      "polyphen": "benign"
+    },
     "consequence": "NON_SYNONYMOUS",
     "proteinChange": "p.Ile105Val",
     "clinvar": [
@@ -1827,6 +1904,7 @@ export const DNA_ANNOTATIONS: Record<string, DnaAnnotation> = {
     "geneName": "cytochrome P450 family 1 subfamily B member 1",
     "vartype": "snv",
     "chrom": "2",
+    "impact": null,
     "consequence": "NON_SYNONYMOUS",
     "proteinChange": "p.Asn453Thr",
     "clinvar": [],
@@ -1871,6 +1949,10 @@ export const DNA_ANNOTATIONS: Record<string, DnaAnnotation> = {
     "geneName": "tumor protein p53",
     "vartype": "snv",
     "chrom": "17",
+    "impact": {
+      "sift": "deleterious",
+      "polyphen": "probably damaging"
+    },
     "consequence": "NON_SYNONYMOUS",
     "proteinChange": "p.Pro72His",
     "clinvar": [
@@ -1938,6 +2020,7 @@ export const DNA_ANNOTATIONS: Record<string, DnaAnnotation> = {
     "geneName": "FTO alpha-ketoglutarate dependent dioxygenase",
     "vartype": "snv",
     "chrom": "16",
+    "impact": null,
     "consequence": "REGULATORY",
     "proteinChange": null,
     "clinvar": [
@@ -1997,6 +2080,7 @@ export const DNA_ANNOTATIONS: Record<string, DnaAnnotation> = {
     "geneName": null,
     "vartype": "snv",
     "chrom": "18",
+    "impact": null,
     "consequence": "INTERGENIC",
     "proteinChange": null,
     "clinvar": [],
@@ -2051,6 +2135,7 @@ export const DNA_ANNOTATIONS: Record<string, DnaAnnotation> = {
     "geneName": "apolipoprotein A2",
     "vartype": "snv",
     "chrom": "1",
+    "impact": null,
     "consequence": "MODIFIER impact",
     "proteinChange": null,
     "clinvar": [],
@@ -2105,6 +2190,7 @@ export const DNA_ANNOTATIONS: Record<string, DnaAnnotation> = {
     "geneName": "lipase C, hepatic type",
     "vartype": "snv",
     "chrom": "15",
+    "impact": null,
     "consequence": "MODIFIER impact",
     "proteinChange": null,
     "clinvar": [],
@@ -2159,6 +2245,7 @@ export const DNA_ANNOTATIONS: Record<string, DnaAnnotation> = {
     "geneName": "vitamin K epoxide reductase complex subunit 1",
     "vartype": "snv",
     "chrom": "16",
+    "impact": null,
     "consequence": "MODIFIER impact",
     "proteinChange": null,
     "clinvar": [],
@@ -2213,6 +2300,7 @@ export const DNA_ANNOTATIONS: Record<string, DnaAnnotation> = {
     "geneName": "cytochrome P450 family 2 subfamily C member 19",
     "vartype": "snv",
     "chrom": "10",
+    "impact": null,
     "consequence": "SYNONYMOUS",
     "proteinChange": "p.Pro227Pro",
     "clinvar": [],
@@ -2267,6 +2355,10 @@ export const DNA_ANNOTATIONS: Record<string, DnaAnnotation> = {
     "geneName": "ryanodine receptor 1",
     "vartype": "snv",
     "chrom": "19",
+    "impact": {
+      "sift": "deleterious",
+      "polyphen": "probably damaging"
+    },
     "consequence": "NON_SYNONYMOUS",
     "proteinChange": "p.Gly248Arg",
     "clinvar": [
