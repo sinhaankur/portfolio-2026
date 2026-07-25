@@ -951,6 +951,16 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
   }, [sats, earthVisualRadius])
 
   useFrame((_, delta) => {
+    // Adaptive pick radius: a dot renders at a fixed on-screen size, but the
+    // raycaster hit-test is in WORLD units — so a fixed threshold missed dots
+    // when zoomed in (they're far apart in world space) and grabbed nothing.
+    // Scale the threshold with camera distance so a click that visually lands on
+    // a dot registers at ANY zoom. This is what made even Hubble unselectable.
+    if (raycaster.params.Points) {
+      const camDist = camera.position.length() // Earth is near the origin
+      // ~2.2% of the viewing distance = a comfortable few-px pick halo.
+      raycaster.params.Points.threshold = Math.max(earthVisualRadius * 0.02, camDist * 0.022)
+    }
     if (matRef.current) {
       matRef.current.uniforms.uTimeDay.value = msToJ2000Day(simTimeRef.current.simMs)
       matRef.current.uniforms.uGroupSel.value = satGroupFilterRef.current
