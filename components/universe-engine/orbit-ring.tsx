@@ -88,11 +88,13 @@ export function OrbitRing({
   // circular orbits (Pluto / Neptune most notably), and a fainter stroke
   // keeps the crossing from reading as a render collision.
   const isEccentric = eccentricity > 0.15
-  // Whisper-faint: at 0.42 the light-theme orbit rings read as hard lines slicing
-  // across the whole view (visual noise over Earth). A much lighter stroke keeps
-  // them as delicate scaffolding you notice only when you look for it.
-  const baseOpacity = invert ? 0.16 : 0.07
-  const opacity = isEccentric ? baseOpacity * 0.55 : baseOpacity
+  // Delicate but VISIBLE scaffolding. 0.07 was so faint the orbit lines read as
+  // "missing" — the solar system had no visible paths. Lifted so the rings are
+  // present as thin lines you can actually see, without becoming hard slices
+  // across the view. Eccentric orbits still get a softer stroke so Pluto/Neptune
+  // crossings don't read as a render collision.
+  const baseOpacity = invert ? 0.22 : 0.16
+  const opacity = isEccentric ? baseOpacity * 0.6 : baseOpacity
 
   return (
     <group ref={scaleRef}>
