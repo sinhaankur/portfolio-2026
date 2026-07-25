@@ -60,6 +60,7 @@ import {
   followRef,
   raDecToScenePos,
   requestFlyTo,
+  requestFollow,
   simTimeRef,
   skyPoints,
   timeWarpRef,
@@ -1379,12 +1380,25 @@ function SkyPointMesh({
                         // Frame from the physics — shadow + lensed disk fit.
                         ? Math.max(computeBlackHoleProportions(point.massSolar ?? 1e8, point.spin ?? 0, visualSize).shadowR * 5, 8)
                         : Math.max(visualSize * 3.5, 9)
-                requestFlyTo(
-                  clickTarget,
+                // FOLLOW (not just fly): the camera flies in AND locks on, so the
+                // object stays framed as you drag/orbit — same gesture planets +
+                // moons use. The getter reads this mesh's live world position, so
+                // it keeps up if the point ever moves; for fixed deep-sky objects
+                // it simply keeps them centred while you look around.
+                const meshObj = e.object
+                requestFollow(
+                  () => {
+                    const v = new Vector3()
+                    meshObj.getWorldPosition(v)
+                    return v
+                  },
                   clickDist,
                   point.name,
                   point.kind === "black-hole"
-                    ? { cameraPos: blackHoleVantage(camera.position, clickTarget, clickDist) }
+                    ? (() => {
+                        const cp = blackHoleVantage(camera.position, clickTarget, clickDist)
+                        return { x: cp.x - clickTarget.x, y: cp.y - clickTarget.y, z: cp.z - clickTarget.z }
+                      })()
                     : undefined,
                 )
               }

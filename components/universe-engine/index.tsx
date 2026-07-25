@@ -300,11 +300,19 @@ export function UniverseEngine({
     return () => io.disconnect()
   }, [mounted])
 
+  // Latch of the body currently under the pointer — used by the long-press
+  // detector on touch so we know WHAT to open when the hold completes.
+  const hoverLatchRef = useRef<BodyInfo | null>(null)
   const onHover = useCallback<HoverHandler>((info) => {
     setHovered(info)
+    hoverLatchRef.current = info
     // Latch the most-recent body so the mobile sheet has something to show
-    // after pointerout fires (touch always pairs over/out per tap).
-    if (info) setSelectedBody(info)
+    // after pointerout fires (touch always pairs over/out per tap). On TOUCH
+    // devices we do NOT auto-open on a plain tap — the long-press handler below
+    // opens the sheet on tap-and-hold, so scrolling/panning doesn't keep
+    // popping the drawer. On mouse (hover), the old behaviour stays.
+    const coarse = typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches
+    if (info && !coarse) setSelectedBody(info)
     // Broadcast the hover state so the custom cursor can adapt — e.g. switch
     // into target-ring + body-label mode without coupling the cursor to the
     // engine via props. detail.body is null when the pointer leaves a body.
@@ -316,6 +324,51 @@ export function UniverseEngine({
       )
     }
   }, [])
+  // Long-press → open the mobile info sheet. On touch, a plain tap must not
+  // pop the drawer (that made scrolling/panning constantly open it); instead the
+  // visitor taps AND HOLDS ~500 ms on a body to open its details. A move beyond
+  // a small slop cancels the press (so it's a hold, not a drag).
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const coarse = window.matchMedia?.("(pointer: coarse)").matches
+    if (!coarse) return
+    let timer: ReturnType<typeof setTimeout> | null = null
+    let startX = 0
+    let startY = 0
+    const HOLD_MS = 500
+    const SLOP = 12
+    const clear = () => { if (timer) { clearTimeout(timer); timer = null } }
+    const onDown = (e: PointerEvent) => {
+      if (e.pointerType !== "touch") return
+      startX = e.clientX
+      startY = e.clientY
+      clear()
+      timer = setTimeout(() => {
+        // Only open if the hold ended on a real body (the hover latch tracks it).
+        const body = hoverLatchRef.current
+        if (body) {
+          setSelectedBody(body)
+          // subtle haptic confirmation where supported
+          try { navigator.vibrate?.(15) } catch { /* ignore */ }
+        }
+      }, HOLD_MS)
+    }
+    const onMove = (e: PointerEvent) => {
+      if (timer && (Math.abs(e.clientX - startX) > SLOP || Math.abs(e.clientY - startY) > SLOP)) clear()
+    }
+    window.addEventListener("pointerdown", onDown, { passive: true })
+    window.addEventListener("pointermove", onMove, { passive: true })
+    window.addEventListener("pointerup", clear, { passive: true })
+    window.addEventListener("pointercancel", clear, { passive: true })
+    return () => {
+      clear()
+      window.removeEventListener("pointerdown", onDown)
+      window.removeEventListener("pointermove", onMove)
+      window.removeEventListener("pointerup", clear)
+      window.removeEventListener("pointercancel", clear)
+    }
+  }, [])
+
   const handleReset = useCallback(() => {
     // Cancel any sustained follow first; otherwise the controller would
     // immediately re-target the followed body and undo the reset.
