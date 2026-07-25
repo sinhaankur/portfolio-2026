@@ -493,6 +493,57 @@ function BepiColomboShape({ invert }: ShapeProps) {
   )
 }
 
+/**
+ * Classic orbiter/flyby probe — a central bus with a high-gain dish on top and
+ * (optionally) two solar-panel wings. Covers the many 1970s–2010s craft that
+ * share this silhouette (Mariner, Cassini, Galileo, Rosetta, Europa Clipper,
+ * JUICE, Solar Orbiter…). `variant` tweaks the dominant feature so they don't
+ * all look identical: 'dish' = big antenna forward (Mariner/Cassini), 'wings' =
+ * huge solar arrays (Rosetta/Clipper/JUICE), 'spinner' = drum body (Galileo).
+ */
+function ClassicOrbiterShape({
+  invert,
+  variant = "dish",
+}: ShapeProps & { variant?: "dish" | "wings" | "spinner" }) {
+  const c = palette(invert)
+  const bigWings = variant === "wings"
+  const wingLen = bigWings ? 0.85 : 0.42
+  return (
+    <group>
+      {/* Central bus */}
+      {variant === "spinner" ? (
+        <mesh>
+          <cylinderGeometry args={[0.16, 0.16, 0.2, 12]} />
+          <meshStandardMaterial color={c.body} metalness={0.5} roughness={0.5} />
+        </mesh>
+      ) : (
+        <mesh>
+          <boxGeometry args={[0.2, 0.16, 0.2]} />
+          <meshStandardMaterial color={c.body} metalness={0.45} roughness={0.5} />
+        </mesh>
+      )}
+      {/* High-gain dish — the identifying feature, forward-facing */}
+      <mesh position={[0, 0.2, 0]} rotation={[0, 0, 0]}>
+        <coneGeometry args={[variant === "dish" ? 0.22 : 0.13, 0.08, 20, 1, true]} />
+        <meshStandardMaterial color={c.dish} side={DoubleSide} roughness={0.35} metalness={0.2} />
+      </mesh>
+      {/* Solar-panel wings (skip on spinner — Galileo used RTGs) */}
+      {variant !== "spinner" &&
+        [-1, 1].map((side) => (
+          <mesh key={side} position={[side * (wingLen / 2 + 0.12), 0, 0]}>
+            <boxGeometry args={[wingLen, 0.006, bigWings ? 0.26 : 0.18]} />
+            <meshStandardMaterial color={c.panel} metalness={0.55} roughness={0.3} />
+          </mesh>
+        ))}
+      {/* A short instrument boom so it reads as engineered, not a box */}
+      <mesh position={[0, -0.18, 0.02]} rotation={[0.3, 0, 0]}>
+        <cylinderGeometry args={[0.008, 0.008, 0.34, 6]} />
+        <meshStandardMaterial color={c.body} metalness={0.4} roughness={0.6} />
+      </mesh>
+    </group>
+  )
+}
+
 type ShapeEntry = {
   render: (props: ShapeProps) => React.ReactNode
   scale: number
@@ -515,4 +566,16 @@ export const SPACECRAFT_SHAPES: Record<string, ShapeEntry> = {
   "Hayabusa2":                    { render: (p) => <AsteroidProbeShape {...p} variant="hayabusa" />, scale: 4.0 },
   "OSIRIS-APEX":                  { render: (p) => <AsteroidProbeShape {...p} variant="osiris" />,   scale: 4.0 },
   "BepiColombo":                  { render: (p) => <BepiColomboShape {...p} />,  scale: 4.2 },
+  // Classic orbiter/flyby craft — each got a plain grey sphere before (no shape),
+  // so they read as anonymous blobs. Now they carry a recognizable silhouette,
+  // keyed to their dominant feature.
+  "Mariner 10":                   { render: (p) => <ClassicOrbiterShape {...p} variant="dish" />,    scale: 4.5 }, // big forward dish + panels
+  "Cassini":                      { render: (p) => <ClassicOrbiterShape {...p} variant="dish" />,    scale: 4.5 }, // iconic high-gain dish
+  "Galileo":                      { render: (p) => <ClassicOrbiterShape {...p} variant="spinner" />, scale: 4.2 }, // dual-spin drum, RTGs (no wings)
+  "Rosetta":                      { render: (p) => <ClassicOrbiterShape {...p} variant="wings" />,    scale: 5.0 }, // enormous 14 m solar wings
+  "Europa Clipper":               { render: (p) => <ClassicOrbiterShape {...p} variant="wings" />,    scale: 5.5 }, // largest NASA planetary solar arrays
+  "JUICE":                        { render: (p) => <ClassicOrbiterShape {...p} variant="wings" />,    scale: 5.0 }, // 85 m² cross-shaped arrays
+  "Solar Orbiter":                { render: (p) => <ClassicOrbiterShape {...p} variant="dish" />,     scale: 4.0 },
+  "Psyche":                       { render: (p) => <ClassicOrbiterShape {...p} variant="wings" />,    scale: 4.8 }, // big five-panel cross arrays
+  "DART":                         { render: (p) => <ClassicOrbiterShape {...p} variant="wings" />,    scale: 3.5 }, // ROSA roll-out arrays, small bus
 }
