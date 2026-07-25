@@ -155,12 +155,31 @@ def build_spinner():
     export("craft-spinner.glb")
 
 
+def build_cassini():
+    # Cassini's signature: a big 4 m high-gain dish on top of a tall stacked bus,
+    # RTGs (no solar wings — it was too far from the Sun), and a VERY long
+    # magnetometer boom out one side + the Huygens probe disk.
+    clear_scene()
+    cyl("bus", 0.34, 0.9, (0, 0, 0), GOLD, verts=12)   # foil-wrapped stacked bus
+    dish("hga", 0.62, (0, 0, 0.7), HULL, rot=(0, 0, 0))  # big dish on top (+Z)
+    # 11 m magnetometer boom out +X
+    cyl("magboom", 0.015, 1.8, (1.0, 0, -0.1), HULL, rot=(0, 0, math.radians(90)))
+    box("magtip", (0.05, 0.05, 0.05), (1.9, 0, -0.1), LENS)
+    # RTGs on struts
+    for s in (-1, 1):
+        box("rtg" + str(s), (0.1, 0.1, 0.4), (s * 0.42, 0.28, -0.25), HULL, rot=(math.radians(20), 0, 0))
+    # Huygens probe disk on the side
+    cyl("huygens", 0.22, 0.12, (-0.42, -0.28, 0), GOLD, verts=16, rot=(math.radians(90), 0, 0))
+    export("craft-cassini.glb")
+
+
 def main():
     reset()
     mats()
     build_dish()
     build_wings()
     build_spinner()
+    build_cassini()
 
 
 main()

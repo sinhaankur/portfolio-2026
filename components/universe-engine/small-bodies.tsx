@@ -232,7 +232,7 @@ useGLTF.preload("/models/comet-nucleus-hi.glb")
  */
 const CRAFT_GLB: Record<string, string> = {
   "Mariner 10": "/models/craft-dish.glb",
-  "Cassini": "/models/craft-dish.glb",
+  "Cassini": "/models/craft-cassini.glb", // distinct: big dish + long mag boom + Huygens
   "Solar Orbiter": "/models/craft-dish.glb",
   "Galileo": "/models/craft-spinner.glb",
   "Rosetta": "/models/craft-wings.glb",
@@ -243,7 +243,20 @@ const CRAFT_GLB: Record<string, string> = {
 }
 function SpacecraftGlb({ url }: { url: string }) {
   const { scene } = useGLTF(url)
-  return <Clone object={scene} />
+  const spin = useRef<Group>(null)
+  // Gentle slow tumble so the craft feels alive (real probes spin/precess) AND
+  // so any slight authored-orientation offset never reads as "stuck sideways".
+  useFrame((_, dt) => {
+    if (spin.current) {
+      spin.current.rotation.y += dt * 0.25
+      spin.current.rotation.x += dt * 0.06
+    }
+  })
+  return (
+    <group ref={spin}>
+      <Clone object={scene} />
+    </group>
+  )
 }
 for (const u of new Set(Object.values(CRAFT_GLB))) useGLTF.preload(u)
 
