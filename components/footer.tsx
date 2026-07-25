@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { Download } from "lucide-react"
 import { SignalTuner } from "./signal-tuner"
+import { LiveStatus } from "./live-status"
 
 // Baked at build time via next.config (NEXT_PUBLIC_BUILD_TIME). Falls back to
 // now in dev. Reflects each deploy, not the visitor's clock.
@@ -286,8 +287,10 @@ export function Footer({ hideContact = false }: { hideContact?: boolean } = {}) 
               </a>
             </p>
 
-            {/* Place + live local time + deploy date, one quiet line. */}
-            <p className="tabular-nums">
+            {/* Place + live local time + deploy date + live status, one quiet line. */}
+            <p className="tabular-nums flex flex-wrap items-center gap-x-2">
+              <LiveStatus />
+              <span aria-hidden className="text-border">·</span>
               Toronto ·{" "}
               <time aria-live="off">{time}</time> local · Updated{" "}
               <time dateTime={BUILD_TIME}>
