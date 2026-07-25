@@ -357,6 +357,42 @@ export const DNA_EVIDENCE: Record<string, Evidence[]> = {
       pmid: "16522833",
     },
   ],
+
+  // ── GC · vitamin-D binding protein ────────────────────────────────────────
+  "vitamin-d-binding": [
+    {
+      kind: "diet",
+      factor: "Some genotypes need more to raise their vitamin D",
+      finding:
+        "GC codes for the protein that carries vitamin D in your blood. Certain variants are linked to lower circulating vitamin D and a blunted rise from the same dose — so if yours is a lower-carrier type, you may need more sun or a higher supplemental dose to reach the same blood level. Retest after supplementing rather than assuming a standard dose worked.",
+      source: "Wang et al., GWAS of circulating vitamin D levels, Hum Mol Genet 2010",
+      pmid: "20418485",
+    },
+  ],
+
+  // ── F5 · Factor V Leiden (clotting) ───────────────────────────────────────
+  "clotting-fvl": [
+    {
+      kind: "note",
+      factor: "The lifestyle levers that matter most for clot risk",
+      finding:
+        "Factor V Leiden raises the risk of dangerous blood clots (DVT/PE). The variant is fixed, but the situational triggers are very modifiable: on long flights or drives, move + hydrate; be aware around surgery, immobility, and pregnancy; and — importantly — combined (estrogen) oral contraceptives multiply the risk sharply for carriers, so this is a genuine 'tell your doctor' variant when choosing contraception or HRT. Smoking adds to it.",
+      source: "Kujovich, Factor V Leiden thrombophilia — NIH GeneReviews",
+      url: "https://www.ncbi.nlm.nih.gov/books/NBK1368/",
+    },
+  ],
+
+  // ── MCT1 · lactate transport (fitness) ────────────────────────────────────
+  lactate: [
+    {
+      kind: "lifestyle",
+      factor: "Build the aerobic base if you clear lactate slower",
+      finding:
+        "MCT1 moves lactate in and out of muscle. Slower-clearing genotypes may feel high-intensity intervals burn and fatigue faster and need more recovery. The training answer is well-established regardless of genotype: build an aerobic base first, then add intervals gradually with full recovery between hard sessions — everyone's lactate threshold rises with consistent training.",
+      source: "MCT1 (rs1049434) — SNPedia",
+      url: "https://www.snpedia.com/index.php/Rs1049434",
+    },
+  ],
 }
 
 /** Convenience: the evidence entries for a marker, or an empty array. */
