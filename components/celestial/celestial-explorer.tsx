@@ -12,7 +12,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import dynamic from "next/dynamic"
 import { motion, AnimatePresence } from "framer-motion"
-import { ArrowLeft, X, Rotate3d, Globe, Satellite, Sparkles, Rocket, Route, Orbit, Layers, Radio, Crosshair, Flame, Trash2, HelpCircle } from "lucide-react"
+import { ArrowLeft, X, Rotate3d, Globe, Satellite, Sparkles, Rocket, Route, Orbit, Layers, Radio, Crosshair, Flame, Trash2, HelpCircle, MoreHorizontal } from "lucide-react"
 import { CustomCursor } from "@/components/custom-cursor"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { ClearCacheButton } from "@/components/clear-cache-button"
@@ -209,6 +209,9 @@ export function CelestialExplorer() {
   const [debrisOpen, setDebrisOpen] = useState(false)
   // First-run guided tour — opens once for newcomers, re-openable via the "?" chip.
   const [tourOpen, setTourOpen] = useState(false)
+  // Overflow menu for the secondary top-left controls (theme, tour, cache reset)
+  // so the cluster isn't an icon-soup row — Back + AI assistant stay primary.
+  const [moreOpen, setMoreOpen] = useState(false)
   // AI copilot panel — folded in from /lab/universe-assistant. Keyless on-device.
   const [assistantOpen, setAssistantOpen] = useState(false)
   // "Show all satellites" — force the full ~18.6k catalogue visible (bypass the
@@ -415,8 +418,10 @@ export function CelestialExplorer() {
           <UniverseEngine interactive showHud showMusic={false} defaultTrueScale solarOnly quietMobileChrome />
         </div>
 
-        {/* Top-left cluster — back link + theme toggle (dark/light). The engine
-            reads the theme (invert) so the whole scene flips with it. */}
+        {/* Top-left cluster — decluttered: only the two PRIMARY actions stay
+            always-visible (Back to Lab + the AI copilot, the signature feature);
+            the secondary controls (theme, guided tour, cache reset) collapse into
+            a "⋯" overflow so the row isn't an icon-soup, especially on phones. */}
         <div className="absolute top-4 left-4 md:top-6 md:left-6 z-30 flex items-center gap-2">
           <Link
             href="/lab"
@@ -426,19 +431,8 @@ export function CelestialExplorer() {
             <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-1" />
             The Lab
           </Link>
-          <ThemeToggle className="w-9 h-9" />
-          <button
-            type="button"
-            onClick={() => setTourOpen(true)}
-            data-cursor-hover
-            aria-label="Guided tour"
-            title="Guided tour"
-            className="grid h-9 w-9 place-items-center rounded-full border border-border bg-background/60 backdrop-blur-sm text-foreground/75 hover:text-accent hover:border-accent/60 transition-colors"
-          >
-            <HelpCircle className="h-4 w-4" />
-          </button>
-          {/* AI copilot — keyless, on-device. Ask it to fly you somewhere or
-              explain a body. Folded in from the old standalone page. */}
+          {/* AI copilot — keyless, on-device. The headline capability, so it's
+              primary. Ask it to fly you somewhere or explain a body. */}
           <button
             type="button"
             onClick={() => setAssistantOpen((v) => !v)}
@@ -446,15 +440,53 @@ export function CelestialExplorer() {
             aria-label="AI assistant"
             title="Ask the universe assistant"
             aria-pressed={assistantOpen}
-            className={`grid h-9 w-9 place-items-center rounded-full border backdrop-blur-sm transition-colors ${
+            className={`inline-flex items-center gap-1.5 rounded-full border backdrop-blur-sm px-3 py-2 font-mono text-[10px] tracking-widest uppercase transition-colors ${
               assistantOpen
                 ? "border-accent/60 bg-accent/10 text-accent"
                 : "border-border bg-background/60 text-foreground/75 hover:text-accent hover:border-accent/60"
             }`}
           >
             <Sparkles className="h-4 w-4" />
+            <span className="hidden sm:inline">Ask AI</span>
           </button>
-          <ClearCacheButton />
+          {/* Overflow — theme, tour, cache reset. */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setMoreOpen((v) => !v)}
+              data-cursor-hover
+              aria-label="More controls"
+              aria-expanded={moreOpen}
+              className={`grid h-9 w-9 place-items-center rounded-full border backdrop-blur-sm transition-colors ${
+                moreOpen ? "border-accent/60 bg-accent/10 text-accent" : "border-border bg-background/60 text-foreground/75 hover:text-foreground"
+              }`}
+            >
+              <MoreHorizontal className="h-4 w-4" />
+            </button>
+            {moreOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setMoreOpen(false)} aria-hidden />
+                <div className="absolute left-0 top-11 z-20 flex flex-col gap-1 rounded-xl border border-border bg-background/95 backdrop-blur-md p-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.4)] min-w-[9rem]">
+                  <button
+                    type="button"
+                    onClick={() => { setTourOpen(true); setMoreOpen(false) }}
+                    data-cursor-hover
+                    className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 font-mono text-[10px] tracking-widest uppercase text-foreground/80 hover:bg-accent/10 hover:text-accent transition-colors"
+                  >
+                    <HelpCircle className="h-4 w-4" /> Guided tour
+                  </button>
+                  <div className="flex items-center gap-2.5 rounded-lg px-2.5 py-1.5">
+                    <ThemeToggle className="w-8 h-8" />
+                    <span className="font-mono text-[10px] tracking-widest uppercase text-foreground/60">Theme</span>
+                  </div>
+                  <div className="flex items-center gap-2.5 rounded-lg px-2.5 py-1.5">
+                    <ClearCacheButton />
+                    <span className="font-mono text-[10px] tracking-widest uppercase text-foreground/60">Reset cache</span>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Satellite search — find + follow any of the ~18,600 real satellites.
