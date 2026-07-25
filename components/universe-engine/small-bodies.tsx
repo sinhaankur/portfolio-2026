@@ -224,6 +224,29 @@ function CometNucleusGlb({ scale, nucleusRef }: { scale: number; nucleusRef: Rea
 }
 useGLTF.preload("/models/comet-nucleus-hi.glb")
 
+/**
+ * GLB spacecraft — real Blender craft models for the 9 that had no procedural
+ * shape (rendered as featureless spheres). Keyed to each craft's dominant
+ * feature. The other craft (Voyager/JWST/Parker/…) keep their hand-built
+ * procedural shapes. Isolated + Suspense-wrapped so a load hiccup never blanks.
+ */
+const CRAFT_GLB: Record<string, string> = {
+  "Mariner 10": "/models/craft-dish.glb",
+  "Cassini": "/models/craft-dish.glb",
+  "Solar Orbiter": "/models/craft-dish.glb",
+  "Galileo": "/models/craft-spinner.glb",
+  "Rosetta": "/models/craft-wings.glb",
+  "Europa Clipper": "/models/craft-wings.glb",
+  "JUICE": "/models/craft-wings.glb",
+  "Psyche": "/models/craft-wings.glb",
+  "DART": "/models/craft-wings.glb",
+}
+function SpacecraftGlb({ url }: { url: string }) {
+  const { scene } = useGLTF(url)
+  return <Clone object={scene} />
+}
+for (const u of new Set(Object.values(CRAFT_GLB))) useGLTF.preload(u)
+
 function NamedBodyMesh({
   body,
   onHover,
@@ -917,7 +940,19 @@ function NamedBodyMesh({
           generic sphere. Everything else (comets, asteroids, dwarf planets,
           interstellars) stays as the standard glowing sphere. */}
       <group ref={groupRef}>
-        {body.kind === "spacecraft" && SPACECRAFT_SHAPES[body.name] ? (
+        {body.kind === "spacecraft" && CRAFT_GLB[body.name] ? (
+          // Real Blender GLB craft (the 9 that had no procedural shape). Same
+          // small silhouette cap as the procedural path; Suspense falls back to
+          // the standard sphere while it loads so nothing blanks.
+          <Suspense fallback={
+            <mesh><sphereGeometry args={[config.visualRadius * 0.6, 16, 16]} />
+              <meshStandardMaterial color="#e8eef5" roughness={0.5} /></mesh>
+          }>
+            <group scale={Math.min(0.06, config.visualRadius * 4.5)}>
+              <SpacecraftGlb url={CRAFT_GLB[body.name]} />
+            </group>
+          </Suspense>
+        ) : body.kind === "spacecraft" && SPACECRAFT_SHAPES[body.name] ? (
           // Spacecraft are metres-to-tens-of-metres — truly invisible at
           // solar-system scale (Parker is ~3 m vs Earth's 12,742 km). They must
           // be inflated to read at all, but the old size (visualRadius×scale ≈
