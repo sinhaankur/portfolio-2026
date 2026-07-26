@@ -16,8 +16,14 @@ import { Canvas, useFrame } from "@react-three/fiber"
 import { useGLTF, OrbitControls } from "@react-three/drei"
 import * as THREE from "three"
 
+// Self-hosted Draco decoder — the globe GLBs are Draco-compressed, and drei's
+// default fetches the decoder from a gstatic CDN. Pointing useGLTF at our own
+// copy (public/draco/) keeps the 3D globes working with no external dependency:
+// fully offline-capable and not reliant on a third-party service staying up.
+const DRACO_PATH = "/draco/"
+
 function Globe({ src }: { src: string }) {
-  const { scene } = useGLTF(src)
+  const { scene } = useGLTF(src, DRACO_PATH)
   const ref = useRef<THREE.Group>(null)
   useFrame((_, delta) => {
     if (ref.current) ref.current.rotation.y += delta * 0.08
