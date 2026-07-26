@@ -88,6 +88,7 @@ import {
   HERO_CRAFT,
 } from "./scene-satellites"
 import { MoonBody } from "./moon-body"
+import { perfTierRef, qualityForTier } from "@/lib/device-tier"
 import { SatelliteField } from "./satellite-field"
 import { FlightField } from "./flight-field"
 
@@ -430,10 +431,15 @@ export function PlanetBody({
     // Decide the hi-res tier from the DATA + device tier directly — NOT from
     // hiResTexturesRef, because that ref can flip true after this effect runs
     // (celestial sets it on its own mount), leaving Earth stuck on the blurry 2K
-    // with no re-run to upgrade. If a planet HAS a hiResTextureUrl and we're on a
-    // desktop-tier GPU, always chase it in the background.
+    // with no re-run to upgrade. Chase the 4K only when (a) it's a big screen
+    // (deviceTierRef desktop — 4K on a phone-sized globe is wasted bandwidth +
+    // VRAM) AND (b) the fine device tier can AFFORD it (allowHiResTextures — false
+    // on low-end + webOS, and on any device the adaptive controller has throttled
+    // down to low). So a weak desktop no longer force-pulls megabytes of texture.
     const hiResUrl =
-      deviceTierRef.current === "desktop" && planet.raw.hiResTextureUrl
+      deviceTierRef.current === "desktop" &&
+      qualityForTier(perfTierRef.current).allowHiResTextures &&
+      planet.raw.hiResTextureUrl
         ? planet.raw.hiResTextureUrl
         : undefined
     if (!baseUrl && !hiResUrl) return

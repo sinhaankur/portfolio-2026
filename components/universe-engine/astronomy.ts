@@ -25,6 +25,7 @@ import type {
   SkyPoint,
 } from "./types"
 import { IAU_CONSTELLATIONS_GENERATED } from "@/lib/data/constellations-iau"
+import { perfTierRef, qualityForTier } from "@/lib/device-tier"
 import { DEEP_SKY_CATALOG, DEEP_SKY_COUNT } from "@/lib/data/deep-sky"
 
 /* --------------------------------------------------------------------------
@@ -418,7 +419,17 @@ export const hiResTexturesRef: { current: boolean } = { current: false }
 export const heavyEffectsRef: { current: boolean } = { current: true }
 
 export function surfaceTextureUrl(planet: { textureUrl?: string; hiResTextureUrl?: string }): string | undefined {
-  if (hiResTexturesRef.current && deviceTierRef.current === "desktop" && planet.hiResTextureUrl) {
+  // Hi-res (4K) surface only when: the deep-zoom explorer asked for it
+  // (hiResTexturesRef), it's a big screen (deviceTierRef desktop), AND the fine
+  // device tier can afford it (allowHiResTextures — false on low/webOS + any
+  // device the adaptive controller throttled to low). So a weak machine, or one
+  // struggling under load, stays on the 2K map instead of pulling megabytes.
+  if (
+    hiResTexturesRef.current &&
+    deviceTierRef.current === "desktop" &&
+    qualityForTier(perfTierRef.current).allowHiResTextures &&
+    planet.hiResTextureUrl
+  ) {
     return planet.hiResTextureUrl
   }
   return planet.textureUrl
