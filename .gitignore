@@ -6,6 +6,12 @@
 *raw_dna*.csv
 *MyHeritage*.csv
 public/data/dna.enc.json
+# Personal ANCESTRY / DNA-match data (MyHeritage Ancient Origins %s, shared
+# segments) is personal + not reproducible from a raw CSV. The overlay files
+# `lib/dna-ancestry.local.ts` and `lib/dna-matches.local.ts` are COMMITTED as
+# null stubs and then `git update-index --skip-worktree`'d, so real local edits
+# are never staged. The public build ships the generic/educational fallback.
+public/data/ancestry.local.json
 
 # Private interview prep (personal docs — never ship to the public repo).
 /interview-prep

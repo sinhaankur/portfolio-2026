@@ -16,6 +16,7 @@ import { useMemo, useState } from "react"
 import dynamic from "next/dynamic"
 import { Globe } from "lucide-react"
 import { normalizeGenotype } from "@/lib/dna-traits"
+import { DnaJourney } from "./dna-journey"
 
 // R3F globe is lazy — never blocks the section's first paint, and only the
 // bytes load if the visitor actually opens it.
@@ -129,6 +130,13 @@ export function DnaOrigins({ traits }: { traits: Record<string, string> }) {
         specific journeys. These are the ones <em>your</em> markers happen to
         trace — heritage, not a precise percentage.
       </p>
+
+      {/* Deep-time journey — the whole arc on one log-scaled axis (origins →
+          today), plus the real ancestry-composition overlay when a local file
+          supplies it. Sits above the per-variant chapters below. */}
+      <DnaJourney
+        chapters={chapters.map((c) => ({ markerId: c.markerId, title: c.title, when: c.when, gene: c.gene }))}
+      />
 
       {/* The shared human root */}
       <div className="rounded-2xl border border-border bg-card/40 p-5 md:p-6 mb-6">
