@@ -213,6 +213,13 @@ export function UniverseEngine({
   useEffect(() => {
     satellitesVisibleRef.current = showSatellites
   }, [showSatellites])
+  // Flip the whole view between the deep-space UNIVERSE and the EARTH-ORBIT /
+  // solar explorer. Entering solar mode turns the satellite shells ON (that mode
+  // is all about them); leaving it turns them back off so the galaxy reads clean.
+  const setSolarView = useCallback((on: boolean) => {
+    setSolarMode(on)
+    setShowSatellites(on)
+  }, [])
   // Scale mode: "explore" (compressed, default) vs "true" (real ratios). Writes
   // the module ref AND bumps a key so the scene subtree remounts and re-lays
   // every body at the new scale.
@@ -220,6 +227,13 @@ export function UniverseEngine({
   useEffect(() => {
     scaleModeRef.current = trueScale ? "true" : "explore"
   }, [trueScale])
+  // View scale: the whole engine is ONE view that flips between the deep-space
+  // UNIVERSE (galaxy, stars, constellations, deep-sky) and the EARTH-ORBIT /
+  // solar explorer (solarOnly: hides deep space, shows the satellite tools +
+  // solar backdrop). `solarOnly` is the INITIAL mode; `solarMode` state lets a
+  // HUD toggle flip it in place — "one common view with such split". Bumps the
+  // same remount key so the scene re-lays cleanly (same pattern as trueScale).
+  const [solarMode, setSolarMode] = useState(solarOnly)
   const orbitRef = useRef<OrbitControlsImpl | null>(null)
   const { resolvedTheme } = useTheme()
   // Prop override wins; otherwise the engine flips to chart mode automatically
@@ -563,9 +577,10 @@ export function UniverseEngine({
         }}
       >
         <SceneContents
-          // Remount when the scale mode flips so every body re-lays at the new
-          // scale (orbit radii are computed at build time via compressRadius).
-          key={trueScale ? "scale-true" : "scale-explore"}
+          // Remount when the scale mode OR the universe/solar view flips, so
+          // every body re-lays and the deep-space vs solar layers rebuild cleanly
+          // (orbit radii are computed at build time via compressRadius).
+          key={`${trueScale ? "true" : "explore"}-${solarMode ? "solar" : "universe"}`}
           enableMotion={!reducedMotion}
           onHover={onHover}
           onResetView={handleReset}
@@ -574,7 +589,7 @@ export function UniverseEngine({
           interactive={interactive}
           showGravityOverlay={showGravityOverlay}
           showDeepDive={showDeepDive}
-          solarOnly={solarOnly}
+          solarOnly={solarMode}
           // Decorative density from the device tier: ultra machines get a
           // richer Milky Way / nebula field, low/mid a lighter one. Recomputes
           // if the live FPS probe steps the tier down.
@@ -627,7 +642,7 @@ export function UniverseEngine({
             // overlapping panels were the recurring complaint. It scrolls inside
             // its own bounds instead of bleeding over neighbours.
             <div className="absolute bottom-32 left-4 md:bottom-32 md:left-6 z-20 pointer-events-none max-w-70 max-h-[min(46vh,22rem)] overflow-y-auto overscroll-contain">
-              <InfoPanel info={hovered} hideIdle={solarOnly} />
+              <InfoPanel info={hovered} hideIdle={solarMode} />
             </div>
           )}
 
@@ -637,7 +652,7 @@ export function UniverseEngine({
               the celestial explorer (solarOnly) — its own dense Earth-tools + the
               timeline already own the bottom of the screen; the big fact bubble
               floating over Earth was pure clutter there. */}
-          {!(quietMobileChrome && mobile) && !solarOnly && (
+          {!(quietMobileChrome && mobile) && !solarMode && (
             <LearnTicker suppressed={Boolean(hovered) || satFollowed} />
           )}
 
@@ -751,11 +766,13 @@ export function UniverseEngine({
               <div className="hidden md:flex items-center gap-2">
                 <TonightSky />
                 <LayersMenu
+                  solarView={solarMode}
+                  onToggleSolarView={() => setSolarView(!solarMode)}
                   showClouds={showClouds}
                   onToggleClouds={() => setShowClouds(v => !v)}
                   showSatellites={showSatellites}
                   onToggleSatellites={() => setShowSatellites(v => !v)}
-                  showSatGroups={Boolean(solarOnly && showSatellites)}
+                  showSatGroups={Boolean(solarMode && showSatellites)}
                   trueScale={trueScale}
                   onToggleScale={() => setTrueScale(v => !v)}
                   showGravity={showGravityOverlay}

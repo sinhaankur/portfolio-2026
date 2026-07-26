@@ -1234,6 +1234,8 @@ function LayerToggleRow({
  *  chips plus a wrapping filter row. Only mounted in the solar explorer
  *  (the home hero passes minimalControls, so it never sees this). */
 export function LayersMenu({
+  solarView,
+  onToggleSolarView,
   showClouds,
   onToggleClouds,
   showSatellites,
@@ -1246,6 +1248,10 @@ export function LayersMenu({
   showDeepDive,
   onToggleDeepDive,
 }: {
+  /** The unified view's scale: solar/Earth-orbit explorer vs deep-space universe.
+   *  Optional — only wired where a view switch makes sense. */
+  solarView?: boolean
+  onToggleSolarView?: () => void
   showClouds: boolean
   onToggleClouds: () => void
   showSatellites: boolean
@@ -1305,6 +1311,22 @@ export function LayersMenu({
 
       {open && (
         <div className="absolute bottom-full mb-2 right-0 w-60 max-h-[62vh] overflow-y-auto rounded-xl border border-foreground/15 bg-background/90 backdrop-blur-xl p-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.3)]">
+          {/* View — the "split": flip the ONE engine between the deep-space
+              universe and the Earth-orbit / solar explorer. Shown first because
+              it's the biggest change; only where a view switch is wired. */}
+          {onToggleSolarView && (
+            <>
+              <div className="px-3 pt-1.5 pb-1 font-mono text-[8px] tracking-[0.24em] uppercase text-foreground/40">
+                View
+              </div>
+              <LayerToggleRow
+                label={solarView ? "Earth orbit ↔ Universe" : "Universe ↔ Earth orbit"}
+                active={!!solarView}
+                onToggle={onToggleSolarView}
+              />
+              <div className="mt-1 mb-1 border-t border-foreground/10" />
+            </>
+          )}
           <div className="px-3 pt-1.5 pb-1 font-mono text-[8px] tracking-[0.24em] uppercase text-foreground/40">
             Overlays
           </div>
