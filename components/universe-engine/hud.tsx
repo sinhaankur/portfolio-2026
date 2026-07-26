@@ -1236,6 +1236,8 @@ function LayerToggleRow({
 export function LayersMenu({
   solarView,
   onToggleSolarView,
+  superClear,
+  onToggleSuperClear,
   showClouds,
   onToggleClouds,
   showSatellites,
@@ -1252,6 +1254,10 @@ export function LayersMenu({
    *  Optional — only wired where a view switch makes sense. */
   solarView?: boolean
   onToggleSolarView?: () => void
+  /** Super Clear (max-fidelity) override. Optional — undefined hides the row on
+   *  devices that can't plausibly sustain it. */
+  superClear?: boolean
+  onToggleSuperClear?: () => void
   showClouds: boolean
   onToggleClouds: () => void
   showSatellites: boolean
@@ -1323,6 +1329,23 @@ export function LayersMenu({
                 label={solarView ? "Earth orbit ↔ Universe" : "Universe ↔ Earth orbit"}
                 active={!!solarView}
                 onToggle={onToggleSolarView}
+              />
+              <div className="mt-1 mb-1 border-t border-foreground/10" />
+            </>
+          )}
+          {/* Super Clear — user opt-in to MAX fidelity (8K textures, full effects,
+              native-res). Pins the engine to ultra + stops the auto-downgrade, for
+              a capable machine that wants the highest-resolution view. Only shown
+              where the device could plausibly handle it (gated in index.tsx). */}
+          {onToggleSuperClear && (
+            <>
+              <div className="px-3 pt-1.5 pb-1 font-mono text-[8px] tracking-[0.24em] uppercase text-foreground/40">
+                Quality
+              </div>
+              <LayerToggleRow
+                label={superClear ? "Super Clear · on" : "Super Clear · highest res"}
+                active={!!superClear}
+                onToggle={onToggleSuperClear}
               />
               <div className="mt-1 mb-1 border-t border-foreground/10" />
             </>

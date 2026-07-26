@@ -201,6 +201,15 @@ export type QualitySettings = {
 export const deviceProfileRef: { current: DeviceProfile | null } = { current: null }
 export const perfTierRef: { current: DeviceTier } = { current: "mid" }
 
+/**
+ * SUPER CLEAR — a user override that pins the engine to maximum fidelity
+ * (ultra tier + all heavy effects + hi-res 8K/4K textures + max DPR) and tells
+ * the adaptive controller to STOP auto-downgrading. The user explicitly asked
+ * for the highest-resolution view, so we honor it for the session even if frames
+ * dip — they can turn it back off. Off by default; the auto system runs normally
+ * until the user opts in. */
+export const superClearRef: { current: boolean } = { current: false }
+
 /** Run detection once and latch it into the shared refs. Returns the profile. */
 export function initDeviceTier(): DeviceProfile {
   const p = detectDeviceProfile()
