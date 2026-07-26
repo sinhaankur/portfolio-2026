@@ -1628,6 +1628,23 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
             visible={false}
           >
             <SatModel url={a.url} scale={scale} />
+            {/* Clickable hit target — SatModel disables raycasting on the mesh (so
+                it doesn't block clicks on OTHER swarm dots), which also made the
+                notable riders themselves unselectable (Ankur: "unable to click on
+                Hubble or ISS"). This invisible sphere, sized to the boosted render
+                span, restores the click → selects the craft the same way clicking
+                its swarm dot does. */}
+            <mesh
+              onClick={(e) => {
+                e.stopPropagation()
+                if (selectedSatRef.current !== c.id) selectedSatRef.current = c.id
+              }}
+              onPointerOver={(e) => { e.stopPropagation(); document.body.style.cursor = "pointer" }}
+              onPointerOut={() => { document.body.style.cursor = "" }}
+            >
+              <sphereGeometry args={[NOTABLE_VISIBLE_SPAN * 0.7, 12, 12]} />
+              <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+            </mesh>
             {/* Refined tag: a hairline dot + thin label, no chunky box — reads as
                 a delicate annotation floating beside the craft, not a UI chip. */}
             <Html center zIndexRange={[20, 0]} style={{ pointerEvents: "none", userSelect: "none", transform: "translate(14px, -12px)" }}>
