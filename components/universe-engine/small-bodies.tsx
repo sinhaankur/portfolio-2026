@@ -273,6 +273,10 @@ const CRAFT_GLB: Record<string, string> = {
   "JUICE": "/models/craft-wings.glb",
   "Psyche": "/models/craft-wings.glb",
   "DART": "/models/craft-wings.glb",
+  // JWST gets its REAL silhouette: the 18-segment gold honeycomb mirror + the
+  // five-layer diamond sunshield (build_jwst_glb.py) — the single-hex procedural
+  // shape never did Webb's identity justice.
+  "James Webb Space Telescope": "/models/craft-jwst.glb",
 }
 function SpacecraftGlb({ url }: { url: string }) {
   const { scene } = useGLTF(url)

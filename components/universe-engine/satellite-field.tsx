@@ -43,7 +43,7 @@ import { perfTierRef } from "@/lib/device-tier"
  *  nativeSpan  the GLB's native width in model units (measured at export)
  *  k           scale coefficient: trueScale = k * earthVisualRadius
  */
-type ArchetypeId = "cubesat" | "starlink" | "starlink2" | "gps" | "comsat" | "debris" | "rocketbody" | "telescope" | "station" | "weather" | "smallsat" | "iss" | "oneweb" | "kuiper" | "iridium" | "eobus"
+type ArchetypeId = "cubesat" | "starlink" | "starlink2" | "gps" | "comsat" | "debris" | "rocketbody" | "telescope" | "hubble" | "station" | "weather" | "smallsat" | "iss" | "oneweb" | "kuiper" | "iridium" | "eobus"
 type Archetype = { url: string; label: string; realSpanM: number; nativeSpan: number; k: number }
 function mkArch(url: string, label: string, realSpanM: number, nativeSpan: number): Archetype {
   return { url, label, realSpanM, nativeSpan, k: realSpanM / 1000 / 6371 / nativeSpan }
@@ -60,6 +60,10 @@ const ARCHETYPES: Record<ArchetypeId, Archetype> = {
   debris:     mkArch("/models/satellite-debris.glb",   "Debris fragment",     1.5, 1.09),
   rocketbody: mkArch("/models/satellite-rocketbody.glb","Spent upper stage (Falcon 9-class)", 13.8, 13.6),
   telescope:  mkArch("/models/satellite-telescope.glb","Space telescope",     13, 7.5),
+  // Hubble gets its own faithful model (silver foil body, forward aperture door,
+  // two long solar-array wings, high-gain antenna dishes) — build_hubble_glb.py.
+  // Real span ~13.2 m (body) but the wings dominate the silhouette (~2.88 native).
+  hubble:     mkArch("/models/craft-hubble.glb",       "Hubble Space Telescope", 13.2, 2.88),
   station:    mkArch("/models/satellite-station.glb",  "Space station",      109, 6.75),
   weather:    mkArch("/models/satellite-weather.glb",  "Weather / GEO sat",   24, 4.5),
   smallsat:   mkArch("/models/satellite-smallsat.glb", "Smallsat",             2.0, 4.3),
@@ -81,7 +85,7 @@ const ARCHETYPES: Record<ArchetypeId, Archetype> = {
 type NotableCraft = { id: number; label: string; arch: ArchetypeId }
 const NOTABLE_CRAFT: NotableCraft[] = [
   { id: 25544, label: "ISS",      arch: "iss" },
-  { id: 20580, label: "Hubble",   arch: "telescope" },
+  { id: 20580, label: "Hubble",   arch: "hubble" },
   { id: 48274, label: "Tiangong", arch: "station" },
 ]
 // The always-on notable riders (ISS/Hubble/Tiangong) are shown at a legible
