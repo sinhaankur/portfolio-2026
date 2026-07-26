@@ -494,7 +494,12 @@ export function CelestialExplorer() {
             (explicit insets so it can't overflow the viewport — a fixed-width card
             anchored right was clipping off-screen at 390px). DESKTOP: top-right,
             fixed width, room for the top cluster beside it. */}
-        <div className="absolute top-16 left-4 right-4 md:top-6 md:left-auto md:right-6 z-40">
+        {/* top-20 on mobile (not top-16): the top-left cluster's bottom is ~52px;
+            a 64px start left only ~12px and the expanded 'what's overhead' result
+            could ride up into it. 80px gives a clean, collision-proof gutter
+            below the cluster on every state (Ankur: overlapping is always a
+            problem). Desktop keeps the top-right slot. */}
+        <div className="absolute top-20 left-4 right-4 md:top-6 md:left-auto md:right-6 z-40">
           <SatelliteSearch />
         </div>
 
