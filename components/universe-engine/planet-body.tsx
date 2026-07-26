@@ -44,6 +44,7 @@ import {
   ShaderMaterial,
   SRGBColorSpace,
   TextureLoader,
+  Vector2,
   Vector3,
   type Texture,
 } from "three"
@@ -587,6 +588,13 @@ export function PlanetBody({
       // without an elevationUrl), so displacement is off by default.
       tElevation:           { value: null as Texture | null },
       uElevation:           { value: 0 },
+      // Per-pixel relief (bump/normal mapping) derived from the SAME height map.
+      // uNormalStrength 0 = off; when a height map loads it lights every crater
+      // rim + canyon wall at pixel resolution so depth reads dramatically at any
+      // angle/zoom — not just the gentle vertex displacement. uElevationTexel is
+      // one texel step for the central-difference gradient (set from the map size).
+      uNormalStrength:      { value: 0 },
+      uElevationTexel:      { value: new Vector2(1 / 4096, 1 / 2048) },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
@@ -608,6 +616,17 @@ export function PlanetBody({
       // the 384-segment mesh above that can actually resolve it.
       dayNightUniforms.uElevation.value =
         (planet.raw.elevationScale ?? 0.03) * planet.visualRadius * (superClearRef.current ? 2.2 : 1)
+      // Per-pixel relief: light every crater/canyon from the real height
+      // gradient. This is what makes depth POP at any angle (vertex displacement
+      // alone is physically subtle). Stronger in Super Clear; a texel step sized
+      // to the actual map so the gradient samples true neighbouring heights.
+      const img = elevationTexture.image as { width?: number; height?: number } | undefined
+      const w = img?.width ?? 4096
+      const h = img?.height ?? 2048
+      dayNightUniforms.uElevationTexel.value.set(1 / w, 1 / h)
+      dayNightUniforms.uNormalStrength.value = superClearRef.current ? 6.0 : 3.0
+    } else {
+      dayNightUniforms.uNormalStrength.value = 0
     }
   }, [texture, nightTexture, elevationTexture, dayNightUniforms, planet.raw.elevationScale, planet.visualRadius])
 

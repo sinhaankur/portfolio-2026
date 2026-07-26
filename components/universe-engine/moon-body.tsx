@@ -34,6 +34,7 @@ import {
   ShaderMaterial,
   SRGBColorSpace,
   TextureLoader,
+  Vector2,
   Vector3,
   type Texture,
 } from "three"
@@ -101,6 +102,11 @@ export function MoonBody({
       // Real terrain relief (e.g. lunar LOLA) — off until a height map loads.
       tElevation:           { value: null as Texture | null },
       uElevation:           { value: 0 },
+      // Per-pixel relief (bump/normal mapping) from the SAME LOLA height map —
+      // lights every crater rim at pixel resolution so lunar depth reads
+      // dramatically at any sun angle, not just the gentle vertex displacement.
+      uNormalStrength:      { value: 0 },
+      uElevationTexel:      { value: new Vector2(1 / 4096, 1 / 2048) },
     }),
     [],
   )
@@ -112,6 +118,14 @@ export function MoonBody({
       // denser mesh below, so craters read as genuine 3D on deep zoom.
       dayNightUniforms.uElevation.value =
         (moon.elevationScale ?? 0.03) * moon.visualRadius * (superClearRef.current ? 2.2 : 1)
+      // Per-pixel relief: light every crater from the real LOLA gradient.
+      const img = elevationTexture.image as { width?: number; height?: number } | undefined
+      const w = img?.width ?? 4096
+      const h = img?.height ?? 2048
+      dayNightUniforms.uElevationTexel.value.set(1 / w, 1 / h)
+      dayNightUniforms.uNormalStrength.value = superClearRef.current ? 6.0 : 3.0
+    } else {
+      dayNightUniforms.uNormalStrength.value = 0
     }
   }, [texture, elevationTexture, dayNightUniforms, moon.elevationScale, moon.visualRadius])
 

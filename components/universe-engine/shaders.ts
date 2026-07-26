@@ -168,6 +168,7 @@ export const DAY_NIGHT_VERTEX_SHADER = `
   uniform float uElevation;      // displacement scale; 0 = flat (no relief)
   varying vec2 vUv;
   varying vec3 vWorldNormal;
+  varying vec3 vWorldPos;
   void main() {
     vUv = uv;
     vWorldNormal = normalize(mat3(modelMatrix) * normal);
@@ -179,12 +180,14 @@ export const DAY_NIGHT_VERTEX_SHADER = `
       float h = texture2D(tElevation, uv).r;
       displaced += normal * (h * uElevation);
     }
+    vWorldPos = (modelMatrix * vec4(displaced, 1.0)).xyz;
     gl_Position = projectionMatrix * modelViewMatrix * vec4(displaced, 1.0);
   }
 `
 export const DAY_NIGHT_FRAGMENT_SHADER = `
   uniform sampler2D tDay;
   uniform sampler2D tNight;
+  uniform sampler2D tElevation; // grayscale height map — reused for per-pixel relief
   uniform vec3 uSunDir;
   uniform float uOpacity;
   uniform float uNightStrength;
@@ -192,10 +195,37 @@ export const DAY_NIGHT_FRAGMENT_SHADER = `
   uniform float uTerminatorSoftness; // 0.18 for Earth, ~0.04 for airless bodies
   uniform float uPolarFix;        // >0 = fade the top/bottom texture rows (fixes
   uniform vec3  uPolarTint;       //   equirectangular polar smear, e.g. Mars caps)
+  uniform float uNormalStrength;  // 0 = off; >0 = perturb lighting normal from the
+  uniform vec2  uElevationTexel;  //   height gradient so craters/canyons catch light
   varying vec2 vUv;
   varying vec3 vWorldNormal;
+  varying vec3 vWorldPos;
   void main() {
-    float NdotL = dot(normalize(vWorldNormal), normalize(uSunDir));
+    // --- Per-pixel relief (bump mapping from the real elevation map) --------
+    // Derive the surface normal perturbation from the SAME MOLA/LOLA height
+    // data used for vertex displacement, but sampled per-fragment so every
+    // crater rim and canyon wall shades even where the mesh is smooth. This is
+    // the AAA "normal mapping" trick — honest, because the slopes are the real
+    // measured terrain, just lit at pixel resolution instead of vertex resolution.
+    vec3 shadingNormal = normalize(vWorldNormal);
+    if (uNormalStrength > 0.0) {
+      // Central-difference gradient of height across neighbouring texels.
+      float hL = texture2D(tElevation, vUv - vec2(uElevationTexel.x, 0.0)).r;
+      float hR = texture2D(tElevation, vUv + vec2(uElevationTexel.x, 0.0)).r;
+      float hD = texture2D(tElevation, vUv - vec2(0.0, uElevationTexel.y)).r;
+      float hU = texture2D(tElevation, vUv + vec2(0.0, uElevationTexel.y)).r;
+      // Build a tangent basis on the sphere (dPos/dUv) so the gradient maps
+      // into world space and the light responds correctly as the globe turns.
+      vec3 dpdx = dFdx(vWorldPos);
+      vec3 dpdy = dFdy(vWorldPos);
+      vec3 T = normalize(dpdx);
+      vec3 B = normalize(cross(shadingNormal, T));
+      T = normalize(cross(B, shadingNormal));
+      float dHx = (hR - hL) * uNormalStrength;
+      float dHy = (hU - hD) * uNormalStrength;
+      shadingNormal = normalize(shadingNormal - dHx * T - dHy * B);
+    }
+    float NdotL = dot(shadingNormal, normalize(uSunDir));
     // Smoothstep across the terminator — atmospheric scattering on Earth
     // softens the day/night boundary over ~5°. Airless bodies (Moon,
     // Mercury) have a razor-sharp terminator instead; uTerminatorSoftness
