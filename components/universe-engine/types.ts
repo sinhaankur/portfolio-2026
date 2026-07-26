@@ -155,6 +155,8 @@ export type Planet = {
    *  (same perf-budget gating as hiResTextureUrl) so city lights resolve into
    *  individual cities up close. Earth = 8K Black Marble. */
   hiResNightTextureUrl?: string
+  /** Max-res night map on the CDN, Super Clear only (Earth = full Black Marble). */
+  superClearNightTextureUrl?: string
   /** When true, the planet uses the day/night shader even without a
    *  night texture — the shadow side falls to ambient dark. Lets
    *  airless / thin-atmosphere bodies (Mercury, Mars) show a real
@@ -222,6 +224,8 @@ export type MoonData = {
   /** Optional 4K surface map, desktop-only (mobile keeps the 2K textureUrl).
    *  Same perf-budget gating as planets — see Planet.hiResTextureUrl. */
   hiResTextureUrl?: string
+  /** Max-res (16K) CDN map, Super Clear only — see Planet.superClearTextureUrl. */
+  superClearTextureUrl?: string
   /** Grayscale elevation/height map (e.g. lunar LOLA) that displaces the moon's
    *  surface mesh for real terrain relief on deep-zoom. Absent = smooth sphere. */
   elevationUrl?: string

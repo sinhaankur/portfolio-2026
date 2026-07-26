@@ -88,7 +88,8 @@ import {
   HERO_CRAFT,
 } from "./scene-satellites"
 import { MoonBody } from "./moon-body"
-import { perfTierRef, qualityForTier } from "@/lib/device-tier"
+import { perfTierRef, qualityForTier, superClearRef } from "@/lib/device-tier"
+import { cdnAsset } from "@/lib/asset-cdn"
 import { SatelliteField } from "./satellite-field"
 import { FlightField } from "./flight-field"
 
@@ -452,14 +453,32 @@ export function PlanetBody({
         tex.colorSpace = SRGBColorSpace
         tex.anisotropy = 8
         setTexture(tex)
-        // 2) upgrade to hi-res in the background, if different, then swap.
+        // 2) upgrade to hi-res in the background, if different, then swap. If the
+        //    hi-res fails (e.g. a Super Clear CDN asset not uploaded yet, or a
+        //    slow/offline CDN), fall back to the shipped hiResTextureUrl so the
+        //    globe stays crisp instead of stuck on the base — the graceful
+        //    degrade that makes the CDN safe to enable before every asset exists.
         if (hiResUrl && hiResUrl !== baseUrl) {
-          loader.load(hiResUrl, (hi) => {
-            if (cancelled) return
-            hi.colorSpace = SRGBColorSpace
-            hi.anisotropy = 8
-            setTexture(hi)
-          })
+          loader.load(
+            hiResUrl,
+            (hi) => {
+              if (cancelled) return
+              hi.colorSpace = SRGBColorSpace
+              hi.anisotropy = 8
+              setTexture(hi)
+            },
+            undefined,
+            () => {
+              const localHi = planet.raw.hiResTextureUrl
+              if (cancelled || !localHi || localHi === hiResUrl || localHi === baseUrl) return
+              loader.load(localHi, (hi) => {
+                if (cancelled) return
+                hi.colorSpace = SRGBColorSpace
+                hi.anisotropy = 8
+                setTexture(hi)
+              })
+            },
+          )
         }
       })
     }, delay)
@@ -473,11 +492,15 @@ export function PlanetBody({
   // resolve into individual cities) just like the day map's hiRes tier.
   const nightTextureUrl = planet.raw.nightTextureUrl
   // Same ref-race fix as the day map: decide from device tier + data, not the
-  // hiResTexturesRef (which can flip after this runs).
+  // hiResTexturesRef (which can flip after this runs). Super Clear pulls the
+  // full-res Black Marble from the CDN (with the 8K as local fallback); otherwise
+  // the shipped 8K on desktop.
   const hiResNightUrl =
-    deviceTierRef.current === "desktop" && planet.raw.hiResNightTextureUrl
-      ? planet.raw.hiResNightTextureUrl
-      : undefined
+    superClearRef.current && deviceTierRef.current === "desktop" && planet.raw.superClearNightTextureUrl
+      ? cdnAsset(planet.raw.superClearNightTextureUrl, planet.raw.hiResNightTextureUrl)
+      : deviceTierRef.current === "desktop" && planet.raw.hiResNightTextureUrl
+        ? planet.raw.hiResNightTextureUrl
+        : undefined
   // Progressive, like the day map: load the light base night texture first (so the
   // day/night globe can show), then swap the 8K city-lights in behind it.
   useEffect(() => {
@@ -491,12 +514,27 @@ export function PlanetBody({
         tex.anisotropy = 8
         setNightTexture(tex)
         if (hiResNightUrl && hiResNightUrl !== nightTextureUrl) {
-          loader.load(hiResNightUrl, (hi) => {
-            if (cancelled) return
-            hi.colorSpace = SRGBColorSpace
-            hi.anisotropy = 8
-            setNightTexture(hi)
-          })
+          loader.load(
+            hiResNightUrl,
+            (hi) => {
+              if (cancelled) return
+              hi.colorSpace = SRGBColorSpace
+              hi.anisotropy = 8
+              setNightTexture(hi)
+            },
+            undefined,
+            () => {
+              // CDN night map missing/slow → fall back to the shipped 8K.
+              const localHi = planet.raw.hiResNightTextureUrl
+              if (cancelled || !localHi || localHi === hiResNightUrl || localHi === nightTextureUrl) return
+              loader.load(localHi, (hi) => {
+                if (cancelled) return
+                hi.colorSpace = SRGBColorSpace
+                hi.anisotropy = 8
+                setNightTexture(hi)
+              })
+            },
+          )
         }
       })
     }, 300)
