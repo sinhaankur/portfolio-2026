@@ -50,6 +50,8 @@ export const DNA_TABS: TabConfig[] = [
     // L1 #2 — the science, how it passes on, resources, and sources.
     id: "learn", label: "How DNA works & sources",
     children: [
+      // Links out to the standalone public "what the engine does" explainer.
+      { id: "dna-how-it-works", label: "How the engine works ↗", href: "/dna/how-it-works" },
       { id: "how-dna-works", label: "How DNA works" },
       { id: "dna-evolution", label: "Evolution" },
       { id: "dna-inheritance", label: "Inheritance" },

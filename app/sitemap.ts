@@ -48,6 +48,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/dna",               priority: 0.6, changeFrequency: "monthly" },
     { path: "/dna/databases",     priority: 0.4, changeFrequency: "monthly" },
     { path: "/dna/tools",         priority: 0.4, changeFrequency: "monthly" },
+    { path: "/dna/how-it-works",  priority: 0.5, changeFrequency: "monthly" },
     // Short posts are generated from lib/writing-posts.ts — kept in sync here.
     ...SHORT_POSTS.map((p) => ({
       path: `/writing/${p.slug}`,

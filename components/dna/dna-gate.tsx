@@ -321,10 +321,12 @@ export function DnaGate() {
           <div className="rounded-lg border border-accent/25 bg-accent/[0.04] px-4 py-3">
             <p className="font-mono text-[9px] tracking-[0.2em] uppercase text-accent/80 mb-1">Don&apos;t have one?</p>
             <p className="font-sans text-[13px] text-foreground/70 leading-relaxed">
-              You can still explore the science — the{" "}
-              <a href="/dna/databases" className="text-accent underline underline-offset-2 hover:text-foreground transition-colors">sources &amp; how DNA works</a>{" "}
-              pages are open, and the whole read is an{" "}
-              <a href="https://github.com/sinhaankur/open-genome-atlas" target="_blank" rel="noopener noreferrer" className="text-accent underline underline-offset-2 hover:text-foreground transition-colors">open dataset</a>.
+              You can still explore how it works — see{" "}
+              <a href="/dna/how-it-works" className="text-accent underline underline-offset-2 hover:text-foreground transition-colors">what the engine does</a>,{" "}
+              the{" "}
+              <a href="/dna/databases" className="text-accent underline underline-offset-2 hover:text-foreground transition-colors">sources</a>, and the{" "}
+              <a href="/dna/tools" className="text-accent underline underline-offset-2 hover:text-foreground transition-colors">DNA tools</a>{" "}
+              — all open, no file needed.
             </p>
           </div>
         </div>
