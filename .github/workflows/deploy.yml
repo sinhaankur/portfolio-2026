@@ -94,6 +94,11 @@ jobs:
         run: pnpm build
         env:
           NEXT_PUBLIC_GOOGLE_MAPS_KEY: ${{ secrets.NEXT_PUBLIC_GOOGLE_MAPS_KEY }}
+          # Asset CDN (Cloudflare R2). Public URL, not a secret. Enables the
+          # heavy/optional assets (e.g. the 16K "Super Clear" Earth) to load from
+          # assets.sinhaankur.com; the site still self-hosts everything critical
+          # and falls back locally if this is unset. See lib/asset-cdn.ts.
+          NEXT_PUBLIC_ASSET_CDN_BASE: "https://assets.sinhaankur.com"
           # Google 3D Tiles need ACTIVE billing on the Cloud project even while
           # free credits remain. Billing is currently disabled, so the photoreal
           # "Descend to Earth" feature can't load — set this to "false" to hide
