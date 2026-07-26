@@ -30,6 +30,7 @@ import { useFrame, useThree } from "@react-three/fiber"
 import { useGLTF, Line, Html } from "@react-three/drei"
 import * as THREE from "three"
 import { simTimeRef, requestFollow, focusDepthRef, daysSinceJ2000, earthRotationAngle, timeScaleRef, REALTIME_TIME_SCALE } from "./astronomy"
+import { perfTierRef } from "@/lib/device-tier"
 
 /**
  * Satellite archetypes — a small library of real-design Blender models picked by
@@ -415,7 +416,28 @@ type Sgp4 = {
 type SatRec = { inclo?: number; alta?: number; altp?: number; no?: number; ecco?: number }
 
 const EARTH_RADIUS_KM = 6371
-const RECOMPUTE_MS = 250 // SGP4 refresh cadence (4 Hz)
+
+/**
+ * SGP4 cost budget by device tier. Propagating ~18,600 satellites is a constant
+ * main-thread tax; a fixed budget that's fine on a desktop drops a mid laptop or
+ * phone below 60fps and reads as "lag". So scale BOTH the refresh cadence and the
+ * per-frame batch to the tier:
+ *   - recomputeMs — how often positions refresh (higher = fewer SGP4 calls/sec).
+ *     The LERP keeps the swarm gliding between refreshes, so a slower cadence is
+ *     nearly invisible but much cheaper.
+ *   - sweepFrames — how many frames a full catalogue pass is spread across (more
+ *     frames = less work per frame = no single-frame stall).
+ * High/ultra get the crisp 4 Hz; low/mid trade a little freshness for smoothness.
+ */
+function satBudget(): { recomputeMs: number; sweepFrames: number } {
+  switch (perfTierRef.current) {
+    case "ultra": return { recomputeMs: 250, sweepFrames: 12 }
+    case "high":  return { recomputeMs: 300, sweepFrames: 16 }
+    case "low":   return { recomputeMs: 600, sweepFrames: 30 }
+    case "mid":
+    default:      return { recomputeMs: 450, sweepFrames: 22 }
+  }
+}
 
 // Scratch vector for the per-frame overview-LOD measurement (no allocation).
 const _fieldWorld = new THREE.Vector3()
@@ -1025,17 +1047,20 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     if (matRef.current) matRef.current.uniforms.uIsolate.value = isolated ? 1 : 0
 
     const now = performance.now()
+    // Device-tier SGP4 budget: cadence + how many frames a full sweep spreads
+    // over. Read once per frame so a live tier downgrade takes effect immediately.
+    const { recomputeMs, sweepFrames } = satBudget()
 
-    // SAT-2: per-frame interpolation. Every frame (not just on the 4 Hz SGP4
-    // step) we lerp the live positions from prevPos→nextPos by how far we are
-    // through the current 250 ms window, so the swarm moves continuously.
+    // SAT-2: per-frame interpolation. Every frame (not just on the SGP4 step) we
+    // lerp the live positions from prevPos→nextPos by how far we are through the
+    // current refresh window, so the swarm moves continuously.
     if (prevPos.current && nextPos.current) {
       const pos = geometry.getAttribute("position") as THREE.BufferAttribute
       const arr = pos.array as Float32Array
       // Interpolate prev→next across the current sweep window. The window lasts
-      // RECOMPUTE_MS; a completed sweep resets sweepStartMs (below), so `t` glides
+      // recomputeMs; a completed sweep resets sweepStartMs (below), so `t` glides
       // 0→1 over the window regardless of how many frames the slices took.
-      const t = Math.min(1, (now - sweepStartMs.current) / RECOMPUTE_MS)
+      const t = Math.min(1, (now - sweepStartMs.current) / recomputeMs)
       const a = prevPos.current, b = nextPos.current
       for (let i = 0; i < arr.length; i++) arr[i] = a[i] + (b[i] - a[i]) * t
       pos.needsUpdate = true
@@ -1155,15 +1180,16 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
         // Start a NEW sweep once the window elapsed and the previous sweep finished
         // (cursor parked at end). Rolling prev←next HERE keeps a clean double buffer:
         // prev = last complete positions, next = being filled this window.
-        if (sweepCursor.current >= n && now - sweepStartMs.current >= RECOMPUTE_MS) {
+        if (sweepCursor.current >= n && now - sweepStartMs.current >= recomputeMs) {
           prevPos.current!.set(nx)
           sweepCursor.current = 0
           sweepStartMs.current = now
           lastCompute.current = now
         }
-        // Propagate a BUDGET of sats this frame (spread across ~a dozen frames so no
-        // single frame stalls on the whole catalogue).
-        const budget = Math.max(1500, Math.ceil(recs.length / 12)) * 3 // *3: floats
+        // Propagate a BUDGET of sats this frame, spread across `sweepFrames` frames
+        // so no single frame stalls on the whole catalogue. Lower tiers use more
+        // frames (smaller per-frame batch = smoother) at the cost of freshness.
+        const budget = Math.ceil(recs.length / sweepFrames) * 3 // *3: floats
         let done = 0
         let j = sweepCursor.current
         while (done < budget && j < n) { propagateInto(nx, j); j += 3; done += 3 }
