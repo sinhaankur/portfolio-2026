@@ -19,7 +19,7 @@
 
 import { useRef, useMemo, useEffect, useState } from "react"
 import { useFrame, useThree } from "@react-three/fiber"
-import { useGLTF, Clone } from "@react-three/drei"
+import { useGLTF, Clone, Billboard } from "@react-three/drei"
 import {
   AdditiveBlending,
   BackSide,
@@ -42,8 +42,6 @@ import { Vector3 } from "three"
 
 // Scratch for the close-approach hand-off distance check (no per-frame alloc).
 const _nebulaWorldPos = new Vector3()
-// Scratch for the GLB-nebula billboard: camera position in the node's parent space.
-const _localTarget = new Vector3()
 
 /* ============================================================
  * NebulaClouds — background gas haze + dark dust lanes.
@@ -548,9 +546,7 @@ export function NebulaGlb({ url, size, active, invert }: {
   invert: boolean
 }) {
   const { scene } = useGLTF(url)
-  const root = useRef<Group>(null)   // billboards toward the camera
   const roll = useRef<Group>(null)   // slow roll about the ring axis
-  const { camera } = useThree()
   const opacityRef = useRef(0)
 
   // Clone once, then force every material to additive glow + no depth-write, and
@@ -578,16 +574,7 @@ export function NebulaGlb({ url, size, active, invert }: {
     // fade toward active
     const k = 1 - Math.exp(-delta * 3)
     opacityRef.current += ((active ? 1 : 0) - opacityRef.current) * k
-    // Billboard toward the camera. lookAt() expects a target in the node's
-    // PARENT space; converting the camera's world position into that space makes
-    // the eye face the camera regardless of how the parent sky-point is rotated
-    // (a plain lookAt(camera.position) tilts edge-on when the parent is rotated).
-    if (root.current && root.current.parent) {
-      _localTarget.copy(camera.position)
-      root.current.parent.worldToLocal(_localTarget)
-      root.current.lookAt(_localTarget)
-    }
-    // very slow roll about the ring's own axis (child, so lookAt doesn't fight it)
+    // very slow roll about the ring's own normal (Billboard handles facing)
     if (roll.current) roll.current.rotation.z += delta * 0.03
     // apply fade to every material
     cloned.traverse((o) => {
@@ -596,25 +583,27 @@ export function NebulaGlb({ url, size, active, invert }: {
       const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
       for (const m of mats as Array<{ opacity: number; userData: { baseOpacity?: number } }>) {
         if (m.userData.baseOpacity == null) m.userData.baseOpacity = m.opacity
-        // Cap contribution so overlapping additive shells can't sum to a white
-        // blow-out; ~0.7 keeps it reading as luminous gas, not a lamp.
-        m.opacity = (m.userData.baseOpacity ?? 1) * opacityRef.current * 0.7
+        // Cap contribution hard so overlapping additive shells read as faint
+        // luminous gas, never a solid plate. Verified in-engine.
+        m.opacity = (m.userData.baseOpacity ?? 1) * opacityRef.current * 0.5
       }
     })
   })
 
-    return (
-    <group ref={root} scale={size} visible={!invert || active}>
-      {/* Rings authored flat in Blender XY (normal +Z) become normal +Y after the
-          glTF y-up import. The +90°X tilt maps that face (+Y) onto the group's
-          +Z, which the outer lookAt(camera) then aims at the viewer → the "Eye of
-          God" reads FACE-ON. The roll group spins the rings about their own
-          normal so the knot fringe turns slowly in-plane. */}
-      <group rotation={[Math.PI / 2, 0, 0]}>
-        <group ref={roll}>
-          <primitive object={cloned} />
+  // Billboard keeps the ring plane facing the camera every frame — robust where
+  // the manual lookAt fought the parent's rotation and showed the eye edge-on.
+  // The rings' face-normal after the glTF y-up import is +Y, so the -90°X tilt
+  // lays that face into the Billboard's screen plane (its local XY), and the
+  // roll group spins the knot fringe in-plane.
+  return (
+    <group scale={size} visible={!invert || active}>
+      <Billboard>
+        <group rotation={[-Math.PI / 2, 0, 0]}>
+          <group ref={roll}>
+            <primitive object={cloned} />
+          </group>
         </group>
-      </group>
+      </Billboard>
     </group>
   )
 }

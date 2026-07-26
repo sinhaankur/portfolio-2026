@@ -105,26 +105,24 @@ def build():
     # NOTE strengths are LOW: the engine renders these ADDITIVELY, where emission
     # stacks fast — values that look right in Blender's BLEND preview blow out to
     # white additively. Tuned for the additive composite (glowing gas, not a lamp).
-    m_oiii   = emissive("Helix_OIII",  (0.30, 0.85, 0.80), 0.85, alpha=0.55)  # inner teal ring
-    m_ha     = emissive("Helix_Halpha",(0.95, 0.26, 0.30), 0.55, alpha=0.32)  # outer red ring
-    m_haze   = emissive("Helix_Haze",  (0.45, 0.55, 0.95), 0.20, alpha=0.05)  # faint blue disc fill (whisper)
-    m_knot   = emissive("Helix_Knot",  (0.72, 0.98, 0.80), 0.9,  alpha=0.75)  # cometary knots
-    m_core   = emissive("Helix_Core",  (0.85, 0.92, 1.0),  1.6,  alpha=1.0)   # white dwarf (small + modest)
-    m_halo   = emissive("Helix_Halo",  (0.90, 0.40, 0.45), 0.14, alpha=0.05)  # faint outer halo
+    # Additive in-engine, so keep strengths LOW and rings THIN — the real Helix
+    # is a delicate annulus, not a fat donut. Teal O III leads; red Hα is a faint
+    # outer wash, not a solid tube. (Tuned against the in-engine additive look.)
+    m_oiii   = emissive("Helix_OIII",  (0.34, 0.90, 0.82), 0.75, alpha=0.5)   # inner teal ring (the iris)
+    m_ha     = emissive("Helix_Halpha",(0.95, 0.34, 0.40), 0.30, alpha=0.18)  # outer red ring — faint wash
+    m_haze   = emissive("Helix_Haze",  (0.45, 0.55, 0.95), 0.14, alpha=0.04)  # faint blue pupil fill (whisper)
+    m_knot   = emissive("Helix_Knot",  (0.75, 0.98, 0.82), 0.8,  alpha=0.65)  # cometary knots
 
-    # --- Inner O III ring — the bright teal annulus (the "iris") ---
-    torus("Helix_InnerRing", major=1.0, minor=0.20, mat=m_oiii, squash_z=0.42)
+    # --- Inner O III ring — the bright teal annulus (the "iris"). Thin. ---
+    torus("Helix_InnerRing", major=1.0, minor=0.11, mat=m_oiii, squash_z=0.5)
 
-    # --- Outer Hα ring — larger, thinner, tilted a touch off the inner one (the
+    # --- Outer Hα ring — larger, THIN, tilted a touch off the inner one (the
     #     two-disk geometry that gives the Helix its layered "eye" look) ---
-    torus("Helix_OuterRing", major=1.55, minor=0.22, mat=m_ha,
-          rot=(math.radians(14), math.radians(6), 0), squash_z=0.5)
+    torus("Helix_OuterRing", major=1.5, minor=0.13, mat=m_ha,
+          rot=(math.radians(12), math.radians(5), 0), squash_z=0.5)
 
     # --- Faint blue haze disc filling the pupil so the centre isn't a hole ---
-    disc("Helix_Haze", radius=0.72, mat=m_haze, squash_z=0.05)
-
-    # --- Faint outer red halo (very soft, whisper alpha) ---
-    disc("Helix_Halo", radius=2.2, mat=m_halo, squash_z=0.04)
+    disc("Helix_Haze", radius=0.66, mat=m_haze, squash_z=0.04)
 
     # --- Cometary knots — a ring of small radially-oriented droplets on the inner
     #     rim. Heads toward the star, tails stream outward: we model each as a tiny
@@ -168,14 +166,9 @@ def build():
     for p in knots.data.polygons:
         p.use_smooth = True
 
-    # --- Central white dwarf point (tiny, modest — a pinprick, not a beam).
-    #     Kept small + low strength so it never throws an additive column. ---
-    bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=1, radius=0.03)
-    core = bpy.context.active_object
-    core.name = "Helix_WhiteDwarf"
-    core.data.materials.append(m_core)
-    for p in core.data.polygons:
-        p.use_smooth = True
+    # NOTE: no standalone white-dwarf core mesh — under additive blending it
+    # summed into a blown-out white column ("the streak"). The faint pupil haze
+    # carries the centre; the real central star is a sub-pixel point anyway.
 
     # Rings were authored flat in the XY plane (normal +Z). We DON'T pre-rotate:
     # the engine orients the nebula at runtime (billboard toward camera), and the

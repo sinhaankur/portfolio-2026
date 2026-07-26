@@ -1130,8 +1130,15 @@ const JUMP_DESTINATIONS: { section: string; items: { label: string; pointId: str
       { label: "M37 · open cluster", pointId: "m37" },
       { label: "Ring Nebula", pointId: "m57" },
       { label: "Dumbbell Nebula", pointId: "m27" },
+      { label: "Helix Nebula · Eye of God", pointId: "helix" },
       { label: "Whirlpool Galaxy", pointId: "m51" },
       { label: "Sombrero Galaxy", pointId: "m104" },
+    ],
+  },
+  {
+    section: "Exoplanets",
+    items: [
+      { label: "TRAPPIST-1 · seven worlds", pointId: "trappist-1" },
     ],
   },
 ]
