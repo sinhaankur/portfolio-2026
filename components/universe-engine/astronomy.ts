@@ -1636,7 +1636,7 @@ export const namedBodies: NamedBody[] = [
     argPeriDeg: 241.8,
     periodYears: Infinity,
     startPhase: 0.5,
-    fact: "First confirmed interstellar object ever observed (October 2017). Cigar-shaped, ~100 m long, accelerating in ways comets don't quite explain. Now leaving the solar system forever at 26 km/s.",
+    fact: "First confirmed interstellar object ever observed (October 2017). It was never resolved as a disk — the elongated cigar shape shown here is inferred from its light curve (it brightened ~10× every 3.6 h, implying a very long body); a flat pancake also fits. ~100–400 m long, accelerating in ways comets don't quite explain. Now leaving the solar system forever at 26 km/s.",
     visualRadius: 0.04,
   },
   {

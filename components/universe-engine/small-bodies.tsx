@@ -241,6 +241,23 @@ const COMET_NUCLEUS_GLB: Record<string, string> = {
 useGLTF.preload("/models/comet-67p.glb")
 
 /**
+ * 'Oumuamua — the first interstellar object. It was never resolved as a disk;
+ * its extreme ~10× brightness swing every ~3.6 h implies a very elongated body.
+ * This cigar GLB is an INFERENCE from that light curve, NOT a picture — flagged
+ * as such in the InfoPanel (same honesty as the un-imaged Kuiper dwarfs). It
+ * tumbles end-over-end via nucleusRef, the way 'Oumuamua really rotated.
+ */
+function OumuamuaGlb({ scale, spinRef }: { scale: number; spinRef: React.RefObject<Group | null> }) {
+  const { scene } = useGLTF("/models/oumuamua.glb")
+  return (
+    <group ref={spinRef as React.Ref<Group>} scale={scale}>
+      <Clone object={scene} />
+    </group>
+  )
+}
+useGLTF.preload("/models/oumuamua.glb")
+
+/**
  * GLB spacecraft — real Blender craft models for the 9 that had no procedural
  * shape (rendered as featureless spheres). Keyed to each craft's dominant
  * feature. The other craft (Voyager/JWST/Parker/…) keep their hand-built
@@ -1273,6 +1290,23 @@ function NamedBodyMesh({
               emissiveIntensity={invert ? 0.0 : 0.08}
             />
           </mesh>
+        ) : body.name === "'Oumuamua" ? (
+          // 'Oumuamua — the first interstellar object, never resolved as a disk.
+          // Its ~10× light-curve swing implies an extreme elongation, so we show
+          // the iconic cigar as a Blender GLB. This is an INFERENCE from the
+          // light curve, not a photo (flagged "shape inferred" in the InfoPanel);
+          // tumbles end-over-end via nucleusRef the way it really rotated.
+          <Suspense fallback={
+            <mesh scale={[3, 0.5, 0.45]}>
+              <sphereGeometry args={[config.visualRadius, 24, 16]} />
+              <meshStandardMaterial color={config.shade} roughness={0.9} />
+            </mesh>
+          }>
+            <OumuamuaGlb
+              scale={config.visualRadius}
+              spinRef={nucleusRef as React.RefObject<Group | null>}
+            />
+          </Suspense>
         ) : (
           // Interstellars / anything else — smooth shaded body.
           <mesh>
