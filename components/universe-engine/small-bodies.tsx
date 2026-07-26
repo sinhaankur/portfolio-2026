@@ -214,8 +214,16 @@ const DWARF_SURFACES: Record<string, DwarfSurfaceProfile> = {
  * the icosahedron as the fallback, so a slow/failed load never blanks the comet.
  * The parent still spins it via the forwarded nucleusRef.
  */
-function CometNucleusGlb({ scale, nucleusRef }: { scale: number; nucleusRef: React.RefObject<Group | null> }) {
-  const { scene } = useGLTF("/models/comet-nucleus-hi.glb")
+function CometNucleusGlb({
+  scale,
+  nucleusRef,
+  url = "/models/comet-nucleus-hi.glb",
+}: {
+  scale: number
+  nucleusRef: React.RefObject<Group | null>
+  url?: string
+}) {
+  const { scene } = useGLTF(url)
   return (
     <group ref={nucleusRef as React.Ref<Group>} scale={scale}>
       <Clone object={scene} />
@@ -223,6 +231,14 @@ function CometNucleusGlb({ scale, nucleusRef }: { scale: number; nucleusRef: Rea
   )
 }
 useGLTF.preload("/models/comet-nucleus-hi.glb")
+// 67P/Churyumov–Gerasimenko is the ONLY comet with a real, mission-mapped shape
+// (ESA Rosetta, 2014–16), so it gets a dedicated Rosetta-faithful bilobed
+// "rubber duck" nucleus. Every other comet keeps the generic irregular rock
+// above — inventing a bespoke shape for a never-imaged nucleus would be a guess.
+const COMET_NUCLEUS_GLB: Record<string, string> = {
+  "Comet 67P": "/models/comet-67p.glb",
+}
+useGLTF.preload("/models/comet-67p.glb")
 
 /**
  * GLB spacecraft — real Blender craft models for the 9 that had no procedural
@@ -1000,7 +1016,8 @@ function NamedBodyMesh({
             {/* 1. Nucleus — a detailed Blender GLB rock (the first asset of the
                 GLB pipeline), with the procedural icosahedron as the Suspense
                 fallback so a slow/failed load never blanks the comet. Both spin
-                via nucleusRef. */}
+                via nucleusRef. 67P swaps in its Rosetta-accurate bilobed GLB;
+                every other comet shares the generic irregular nucleus. */}
             <Suspense
               fallback={
                 <mesh ref={nucleusRef as React.Ref<Mesh>}>
@@ -1009,7 +1026,11 @@ function NamedBodyMesh({
                 </mesh>
               }
             >
-              <CometNucleusGlb scale={config.visualRadius * 0.42} nucleusRef={nucleusRef as React.RefObject<Group | null>} />
+              <CometNucleusGlb
+                scale={config.visualRadius * 0.42}
+                nucleusRef={nucleusRef as React.RefObject<Group | null>}
+                url={COMET_NUCLEUS_GLB[body.name]}
+              />
             </Suspense>
 
             {/* 2. Inner coma — C2/CN green close to the nucleus.
