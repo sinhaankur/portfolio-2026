@@ -221,11 +221,56 @@ export function dprForCanvas(clamp: [number, number]): number | [number, number]
   return clamp
 }
 
-/** Order tiers so a live probe can only ever step DOWN (never optimistically up). */
-const TIER_ORDER: DeviceTier[] = ["low", "mid", "high", "ultra"]
+/** Tier ladder, weakest → richest. The adaptive controller walks it both ways. */
+export const TIER_ORDER: DeviceTier[] = ["low", "mid", "high", "ultra"]
 export function downgradeTier(t: DeviceTier): DeviceTier {
   const i = TIER_ORDER.indexOf(t)
   return TIER_ORDER[Math.max(0, i - 1)]
+}
+export function upgradeTier(t: DeviceTier): DeviceTier {
+  const i = TIER_ORDER.indexOf(t)
+  return TIER_ORDER[Math.min(TIER_ORDER.length - 1, i + 1)]
+}
+
+/**
+ * The adaptive-quality DECISION — the heart of "best experience on any device".
+ *
+ * Given the current tier and a recent median frame time (ms), decide whether to
+ * step DOWN (protect smoothness), UP (spend spare headroom), or hold. Pure +
+ * testable; the engine drives it from a rolling FPS window.
+ *
+ * Asymmetric on purpose:
+ *  - DOWN fast & eagerly: a slow median (>~28 ms ≈ <36 fps) means the current
+ *    tier is too heavy HERE — drop immediately so the scene stays smooth.
+ *  - UP slowly & cautiously: only when frames are comfortably fast (<~14 ms ≈
+ *    >70 fps), leaving margin so a step up doesn't instantly push us back under
+ *    60. `ceiling` caps the climb: once a tier proved too heavy (a down-step),
+ *    the controller won't try to exceed the tier below it again — so it
+ *    CONVERGES on each device's best sustainable tier instead of oscillating.
+ */
+export function adaptTier(
+  tier: DeviceTier,
+  medianMs: number,
+  ceiling: DeviceTier | null,
+): { tier: DeviceTier; direction: "down" | "up" | "hold" } {
+  const DOWN_MS = 28 // ~36 fps — below this the tier is too heavy
+  const UP_MS = 14   // ~71 fps — only climb with real headroom to spare
+  if (medianMs > DOWN_MS) {
+    const next = downgradeTier(tier)
+    return { tier: next, direction: next === tier ? "hold" : "down" }
+  }
+  if (medianMs < UP_MS) {
+    const next = upgradeTier(tier)
+    // Never climb TO OR ABOVE a tier that already proved too heavy here. The
+    // ceiling is the tier that janked; the best sustainable tier is the one just
+    // below it, so an up-step must stay strictly under the ceiling. This is what
+    // stops the mid-device high↔mid oscillation and makes the loop converge.
+    if (ceiling && TIER_ORDER.indexOf(next) >= TIER_ORDER.indexOf(ceiling)) {
+      return { tier, direction: "hold" }
+    }
+    return { tier: next, direction: next === tier ? "hold" : "up" }
+  }
+  return { tier, direction: "hold" }
 }
 
 export function qualityForTier(tier: DeviceTier): QualitySettings {

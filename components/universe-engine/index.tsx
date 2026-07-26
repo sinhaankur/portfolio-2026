@@ -61,7 +61,7 @@ import {
 } from "./astronomy"
 import { SceneContents } from "./scene"
 import {
-  initDeviceTier, qualityForTier, perfTierRef, downgradeTier, dprForCanvas, type DeviceTier,
+  initDeviceTier, qualityForTier, perfTierRef, adaptTier, TIER_ORDER, dprForCanvas, type DeviceTier,
 } from "@/lib/device-tier"
 import { DestinationsMenu, InfoPanel, LayersMenu, ResetViewButton, TimelineControl } from "./hud"
 import { TonightSky } from "./tonight-sky"
@@ -269,32 +269,55 @@ export function UniverseEngine({
     }
   }, [])
 
-  // Live-FPS safety net — the static tier is a GUESS; actual frames are truth.
-  // Sample once the scene has settled; if the median frame is slow, step the tier
-  // DOWN one level (which lowers DPR). Only ever downgrades, never up, and runs
-  // once — so it can't oscillate.
+  // Continuous adaptive quality — "best experience on any device". The static
+  // tier is a GUESS; real frames are truth, so we keep watching them and converge
+  // each device on its best SUSTAINABLE tier:
+  //   • rolling ~2 s window of frame times → a median each window;
+  //   • too slow  → step the tier DOWN immediately (protect smoothness), and
+  //     remember it as a CEILING so we never try that heavy again here;
+  //   • comfortably fast for a window → step UP one, spending spare headroom,
+  //     but never past the ceiling — so it settles instead of oscillating.
+  // A cooldown after each change lets the new tier's cost settle before judging
+  // again. This is the method: measure → adapt → converge, forever, per device.
   useEffect(() => {
     if (!mounted) return
     let raf = 0
-    const frames: number[] = []
     let last = performance.now()
-    const startAt = last + 2500 // let textures + init settle before judging
+    let windowStart = last + 2500 // let init/textures settle before the first judge
+    const gaps: number[] = []
+    let cooldownUntil = windowStart
+    let ceiling: DeviceTier | null = null
+    const WINDOW_MS = 2000
+    const COOLDOWN_MS = 2500
+
     const tick = () => {
       const now = performance.now()
-      if (now >= startAt) frames.push(now - last)
+      const dt = now - last
       last = now
-      if (frames.length < 90) { raf = requestAnimationFrame(tick); return }
-      frames.sort((a, b) => a - b)
-      const median = frames[frames.length >> 1]
-      // >~28 ms median ≈ under ~36 fps → the current tier is too heavy here.
-      if (median > 28) {
-        const next = downgradeTier(perfTierRef.current)
-        if (next !== perfTierRef.current) {
-          perfTierRef.current = next
-          setTier(next)
-          if (process.env.NODE_ENV !== "production") console.info("[universe-engine] fps downgrade →", next, `(median ${Math.round(median)}ms)`)
+      if (now < windowStart) { raf = requestAnimationFrame(tick); return }
+      gaps.push(dt)
+      // Judge once per window, but only when the cooldown has elapsed.
+      if (now - windowStart >= WINDOW_MS) {
+        if (gaps.length >= 30 && now >= cooldownUntil) {
+          const sorted = gaps.slice().sort((a, b) => a - b)
+          const median = sorted[sorted.length >> 1]
+          const { tier: next, direction } = adaptTier(perfTierRef.current, median, ceiling)
+          if (direction !== "hold" && next !== perfTierRef.current) {
+            // A downgrade sets the ceiling: the tier we just left proved too heavy,
+            // so don't climb back above the one below it. This converges the loop.
+            if (direction === "down") ceiling = perfTierRef.current
+            perfTierRef.current = next
+            setTier(next)
+            cooldownUntil = now + COOLDOWN_MS
+            if (process.env.NODE_ENV !== "production") {
+              console.info(`[universe-engine] adapt ${direction} → ${next} (median ${Math.round(median)}ms, ceiling ${ceiling ?? "none"})`)
+            }
+          }
         }
+        gaps.length = 0
+        windowStart = now
       }
+      raf = requestAnimationFrame(tick)
     }
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
