@@ -138,21 +138,27 @@ function NamedBodyTrail({
     const segments = e >= 1 ? COMET_TRAIL_SEGMENTS : PLANET_TRAIL_SEGMENTS
     const positions: number[] = []
 
-    for (let s = 0; s <= segments; s++) {
-      const M = (s / segments) * Math.PI * 2
-      // Hyperbolic guard mirrors the body: e≥1 bodies are pinned by the
-      // renderer, so their "trail" is just the elements at e=0.
-      const eForTransform = e >= 1 ? 0 : e
-      const trueAnom = e >= 1 ? M : eccentricToTrue(solveKepler(M, e), e)
-      const [x, y, z] = orbitalElementsToCartesian(
-        body.aAU,
-        eForTransform,
-        trueAnom,
-        i,
-        node,
-        peri,
-      )
-      positions.push(x, y, z)
+    if (e >= 1) {
+      // ESCAPE TRAJECTORY (Voyagers, Pioneers, New Horizons, interstellars).
+      // These bodies are PINNED by the renderer at r = aAU along their escape
+      // direction (their aAU is a positioning value, not a true hyperbola semi-
+      // major axis), and the polar-form r blows up for e>1. So — matching the
+      // proven small-bodies escape trail — draw a STRAIGHT outbound ray from the
+      // Sun out to ~1.2× the body's escape position, using the SAME transform
+      // that pins the body (e=0, θ=0). This is the "path out from Earth/Sun into
+      // the universe" the craft actually rode, and it provably meets the body.
+      const [ex, ey, ez] = orbitalElementsToCartesian(body.aAU * 1.2, 0, 0, i, node, peri)
+      for (let s = 0; s <= segments; s++) {
+        const f = s / segments
+        positions.push(ex * f, ey * f, ez * f)
+      }
+    } else {
+      for (let s = 0; s <= segments; s++) {
+        const M = (s / segments) * Math.PI * 2
+        const trueAnom = eccentricToTrue(solveKepler(M, e), e)
+        const [x, y, z] = orbitalElementsToCartesian(body.aAU, e, trueAnom, i, node, peri)
+        positions.push(x, y, z)
+      }
     }
 
     const geo = new BufferGeometry()
