@@ -52,11 +52,14 @@ const _localTarget = new Vector3()
  * haze glows where stars form and the dust threads the dark side
  * of each arm. Parallaxes against the star field for real depth.
  * ============================================================ */
-export function NebulaClouds({ mobile = false }: { mobile?: boolean }) {
+export function NebulaClouds({ mobile = false, densityScale = 1 }: { mobile?: boolean; densityScale?: number }) {
   const pointsRef = useRef<Points>(null)
   const matRef = useRef<ShaderMaterial>(null)
   const dustRef = useRef<Points>(null)
   const { gl } = useThree()
+  // Device-tier density multiplier, clamped so ultra lifts and low trims without
+  // exploding the draw. Composes with the mobile halving in each count below.
+  const ds = Math.max(0.3, Math.min(1.5, densityScale))
 
   // Blender-baked nebula sprite (wispy filaments + soft radial fade) — richer
   // than the procedural radial falloff. Loaded async; the shader falls back to
@@ -75,7 +78,7 @@ export function NebulaClouds({ mobile = false }: { mobile?: boolean }) {
     const radius = GALAXY_RADIUS_SCENE
     const branches = 4
     const spin = 7
-    const count = mobile ? 22 : 44
+    const count = Math.round((mobile ? 22 : 44) * ds)
     const positions = new Float32Array(count * 3)
     const sizes = new Float32Array(count)
     const alphas = new Float32Array(count)
@@ -120,7 +123,7 @@ export function NebulaClouds({ mobile = false }: { mobile?: boolean }) {
     geo.setAttribute("aAlpha", new BufferAttribute(alphas, 1))
     geo.setAttribute("aColor", new BufferAttribute(colors, 3))
     return geo
-  }, [mobile])
+  }, [mobile, ds])
 
   // Dark dust lanes — light-absorbing interstellar dust threading the spiral
   // arms, tightly hugging the galactic plane (the dark veins in real Milky Way
@@ -132,7 +135,7 @@ export function NebulaClouds({ mobile = false }: { mobile?: boolean }) {
     const spin = 7
     // Denser dust → the lanes read as continuous dark veins threading the arms,
     // and parallax against the stars as the camera moves (the 3D depth cue).
-    const count = mobile ? 130 : 320
+    const count = Math.round((mobile ? 130 : 320) * ds)
     const positions = new Float32Array(count * 3)
     const sizes = new Float32Array(count)
     const alphas = new Float32Array(count)
@@ -165,7 +168,7 @@ export function NebulaClouds({ mobile = false }: { mobile?: boolean }) {
     geo.setAttribute("aAlpha", new BufferAttribute(alphas, 1))
     geo.setAttribute("aColor", new BufferAttribute(colors, 3))
     return geo
-  }, [mobile])
+  }, [mobile, ds])
 
   const uniforms = useMemo(
     () => ({

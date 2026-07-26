@@ -45,11 +45,15 @@ export function MilkyWay({
   mobile = false,
   invert = false,
   interactive = false,
+  densityScale = 1,
 }: {
   onHover: HoverHandler
   mobile?: boolean
   invert?: boolean
   interactive?: boolean
+  /** Device-tier density multiplier (ultra 1.4 → richer arms, low 0.4 →
+   *  lighter). Composes with the mobile halving below. */
+  densityScale?: number
 }) {
   const pointsRef = useRef<Points>(null)
   const matRef = useRef<ShaderMaterial>(null)
@@ -57,17 +61,20 @@ export function MilkyWay({
 
   const geometry = useMemo(() => {
     // Mobile counts run ~40% of desktop to keep the GPU breathing. The
-    // shader is single-draw, so per-star count is the dominant cost.
-    const armCount    = mobile ? 9000  : 30000
-    const bulgeCount  = mobile ? 2800  : 7000
-    const barCount    = mobile ? 900   : 2200
+    // shader is single-draw, so per-star count is the dominant cost. The
+    // device-tier densityScale then lifts (ultra) or trims (low/mid) on top,
+    // clamped so a mislabelled "ultra" can't balloon the arm draw unboundedly.
+    const ds = Math.max(0.3, Math.min(1.5, densityScale))
+    const armCount    = Math.round((mobile ? 9000  : 30000) * ds)
+    const bulgeCount  = Math.round((mobile ? 2800  : 7000)  * ds)
+    const barCount    = Math.round((mobile ? 900   : 2200)  * ds)
     // HII regions are distributed across a number of anchor clumps so they
     // read as discrete pink star-forming knots tracing the arms, not a haze.
-    const hiiClumps   = mobile ? 16    : 38
+    const hiiClumps   = Math.round((mobile ? 16    : 38)    * ds)
     const hiiPerClump = 22
     const hiiCount    = hiiClumps * hiiPerClump
     // Globular cluster halo — sparse bright dots in a sphere around the disc.
-    const haloCount   = mobile ? 50    : 110
+    const haloCount   = Math.round((mobile ? 50    : 110)   * ds)
 
     const total = armCount + bulgeCount + barCount + hiiCount + haloCount
     const positions = new Float32Array(total * 3)
@@ -255,7 +262,7 @@ export function MilkyWay({
     geo.setAttribute("aAlpha", new BufferAttribute(alphas, 1))
     geo.setAttribute("aColor", new BufferAttribute(colors, 3))
     return geo
-  }, [mobile, invert])
+  }, [mobile, invert, densityScale])
 
   const uniforms = useMemo(
     () => ({
@@ -303,7 +310,7 @@ export function MilkyWay({
 
       {/* Diffuse nebula / dust haze — soft glowing gas clouds tracing the
           arms (Hα-pink, dusty blue, amber). Skipped in chart mode. */}
-      {!invert && <NebulaClouds mobile={mobile} />}
+      {!invert && <NebulaClouds mobile={mobile} densityScale={densityScale} />}
 
       {/* Sgr A* — the Milky Way's 4.15 million-M☉ supermassive black hole.
           Visible mark sized to be a small accent inside the bulge, not a

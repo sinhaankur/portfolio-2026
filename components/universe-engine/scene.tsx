@@ -1535,6 +1535,7 @@ export function SceneContents({
   showGravityOverlay = false,
   showDeepDive = false,
   solarOnly = false,
+  densityScale = 1,
 }: {
   enableMotion: boolean
   onHover: HoverHandler
@@ -1550,6 +1551,11 @@ export function SceneContents({
   /** Focus on our solar system only — hide constellations, named stars, the
    *  Milky Way, deep-sky/exoplanet points. Used by /lab/celestial. */
   solarOnly?: boolean
+  /** Decorative-density multiplier from the device tier (ultra 1.4 → richer,
+   *  low 0.4 → lighter). Scales the DECORATIVE point fields (Milky Way haze,
+   *  nebula clouds, shooting stars) — NOT the real HYG star catalog, whose
+   *  count is fixed data. Defaults to 1 (the historic desktop density). */
+  densityScale?: number
 }) {
   const { scene } = useThree()
   useEffect(() => {
@@ -1601,7 +1607,7 @@ export function SceneContents({
       {!solarOnly && !mobile && <NearbyStars3D onHover={onHover} invert={invert} />}
       {!solarOnly && (
         <group rotation={[GALACTIC_PLANE_TILT_RAD, 0, 0]}>
-          <MilkyWay onHover={onHover} mobile={mobile} invert={invert} interactive={interactive} />
+          <MilkyWay onHover={onHover} mobile={mobile} invert={invert} interactive={interactive} densityScale={densityScale} />
         </group>
       )}
       {/* Calm, faint backdrop so solar-only space still has depth without the
@@ -1619,7 +1625,7 @@ export function SceneContents({
       {!solarOnly && <Constellations onHover={onHover} onResetView={onResetView} invert={invert} />}
       {/* Deep-sky targets + exoplanet hosts — share the sky-shell with constellations. */}
       {!solarOnly && <SkyPoints onHover={onHover} invert={invert} interactive={interactive} />}
-      {enableMotion && <ShootingStars count={mobile ? 3 : 6} invert={invert} />}
+      {enableMotion && <ShootingStars count={Math.round((mobile ? 3 : 6) * densityScale)} invert={invert} />}
       <ambientLight intensity={invert ? 0.55 : 0.18} />
     </>
   )

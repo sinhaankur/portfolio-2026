@@ -575,6 +575,10 @@ export function UniverseEngine({
           showGravityOverlay={showGravityOverlay}
           showDeepDive={showDeepDive}
           solarOnly={solarOnly}
+          // Decorative density from the device tier: ultra machines get a
+          // richer Milky Way / nebula field, low/mid a lighter one. Recomputes
+          // if the live FPS probe steps the tier down.
+          densityScale={qualityForTier(tier).densityScale}
         />
 
         {/* Scroll-scrubbed camera dolly — passive mode only. Explore mode
