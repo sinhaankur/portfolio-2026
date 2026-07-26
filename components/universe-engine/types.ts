@@ -173,6 +173,10 @@ export type Planet = {
    *  phones can't resolve 4K and shouldn't pay to download it. Absent = the
    *  base textureUrl is used everywhere. */
   hiResTextureUrl?: string
+  /** Path (within the asset CDN) to a MAX-res map (e.g. 16K), used ONLY in Super
+   *  Clear mode. Resolved via cdnAsset() with hiResTextureUrl as the local
+   *  fallback, so the site never depends on the CDN to render. */
+  superClearTextureUrl?: string
   /** Grayscale elevation/height map (e.g. Mars MOLA) that displaces the surface
    *  mesh for real terrain relief on deep-zoom. Absent = flat sphere. */
   elevationUrl?: string

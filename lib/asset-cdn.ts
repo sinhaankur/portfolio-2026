@@ -14,9 +14,13 @@
  * gracefully if the CDN is ever unreachable or the env base isn't set.
  */
 
-/** The CDN base. Overridable via env for the r2.dev URL before the custom domain
- *  is live, or empty to force everything to local fallbacks (e.g. offline dev). */
-const CDN_BASE = (process.env.NEXT_PUBLIC_ASSET_CDN_BASE ?? "https://assets.sinhaankur.com").replace(/\/+$/, "")
+/** The CDN base. OFF by default (empty) so nothing requests a dead URL before the
+ *  R2 bucket + custom domain are actually live — every cdnAsset() call safely
+ *  resolves to its local fallback until then. Turn the CDN ON by setting
+ *  NEXT_PUBLIC_ASSET_CDN_BASE (to https://assets.sinhaankur.com once R2 is up, or
+ *  the r2.dev URL in the interim). One env change flips the whole site to the CDN;
+ *  no code change. */
+const CDN_BASE = (process.env.NEXT_PUBLIC_ASSET_CDN_BASE ?? "").replace(/\/+$/, "")
 
 /**
  * Resolve a CDN asset path → full URL.

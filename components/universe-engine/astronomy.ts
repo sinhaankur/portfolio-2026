@@ -25,7 +25,8 @@ import type {
   SkyPoint,
 } from "./types"
 import { IAU_CONSTELLATIONS_GENERATED } from "@/lib/data/constellations-iau"
-import { perfTierRef, qualityForTier } from "@/lib/device-tier"
+import { perfTierRef, qualityForTier, superClearRef } from "@/lib/device-tier"
+import { cdnAsset } from "@/lib/asset-cdn"
 import { DEEP_SKY_CATALOG, DEEP_SKY_COUNT } from "@/lib/data/deep-sky"
 
 /* --------------------------------------------------------------------------
@@ -418,8 +419,21 @@ export const hiResTexturesRef: { current: boolean } = { current: false }
  * true so a strong device shows everything before detection resolves. */
 export const heavyEffectsRef: { current: boolean } = { current: true }
 
-export function surfaceTextureUrl(planet: { textureUrl?: string; hiResTextureUrl?: string }): string | undefined {
-  // Hi-res (4K) surface only when: the deep-zoom explorer asked for it
+export function surfaceTextureUrl(planet: {
+  textureUrl?: string
+  hiResTextureUrl?: string
+  /** Path within the asset CDN to a MAX-res (16K) map, shown only in Super Clear.
+   *  Resolved via cdnAsset() with hiResTextureUrl (the shipped 8K) as the local
+   *  fallback, so it degrades gracefully if the CDN base is unset/unreachable. */
+  superClearTextureUrl?: string
+}): string | undefined {
+  // SUPER CLEAR — the user opted into the highest-resolution view, so pull the
+  // CDN's 16K map when this body has one. Falls back to the shipped hi-res (8K),
+  // so the site never depends on the CDN to render (the hard rule).
+  if (superClearRef.current && deviceTierRef.current === "desktop" && planet.superClearTextureUrl) {
+    return cdnAsset(planet.superClearTextureUrl, planet.hiResTextureUrl ?? planet.textureUrl)
+  }
+  // Hi-res (4K/8K) surface only when: the deep-zoom explorer asked for it
   // (hiResTexturesRef), it's a big screen (deviceTierRef desktop), AND the fine
   // device tier can afford it (allowHiResTextures — false on low/webOS + any
   // device the adaptive controller throttled to low). So a weak machine, or one
@@ -978,7 +992,7 @@ export const KUIPER_BELT_INFO: BodyInfo = {
 export const planetsData: Planet[] = [
   { name: "Mercury", aAU: 0.387, radiusEarth: 0.383, periodDays: 87.97,   tiltDeg: 0.03,   rotHours: 1407.6, inclDeg: 7.005, startPhase: 0.0, m0Deg: 174.794, periDeg: 77.456, longNodeDeg: 48.331, shade: "#7a7a7a", surfaceTempK: { min: 100, mean: 440, max: 700 }, classification: "Terrestrial planet", moons: 0, fact: "No atmosphere. Day side 700 K, night side 100 K — biggest swing in the solar system. A year on Mercury is just 88 Earth days; a single day is 176 Earth days. Two years pass for every day.", textureUrl: "/textures/mercury.webp", useDayNight: true, terminatorSoftness: 0.04, deep: { massEarth: 0.0553, densityGcc: 5.43, gravity: 3.70, escapeVelocityKms: 4.30, eccentricity: 0.206, atmosphere: "None — a trace exosphere of O, Na, H, He, K", composition: "Huge iron core (~85% of the radius), thin silicate mantle + crust" } },
   { name: "Venus",   aAU: 0.723, radiusEarth: 0.949, periodDays: 224.70,  tiltDeg: 177.4,  rotHours: -5832.5, inclDeg: 3.395, startPhase: 2.1, m0Deg: 50.377, periDeg: 131.602, longNodeDeg: 76.680, shade: "#bdbdbd", surfaceTempK: { mean: 737 }, classification: "Terrestrial planet (retrograde)", moons: 0, fact: "Hottest surface — 737 K — runaway CO₂ greenhouse. Rotates backwards on a 243-day day. The 177° axial tilt means Venus is technically upside-down relative to the rest of the planets.", textureUrl: "/textures/venus.webp", deep: { massEarth: 0.815, densityGcc: 5.24, gravity: 8.87, escapeVelocityKms: 10.36, eccentricity: 0.007, atmosphere: "96.5% CO₂, 3.5% N₂ — crushing 92-bar surface pressure, sulfuric-acid clouds", composition: "Iron core, silicate rock mantle; basaltic volcanic surface" } },
-  { name: "Earth",   aAU: 1.000, radiusEarth: 1.000, periodDays: 365.25,  tiltDeg: 23.44,  rotHours: 23.93,  inclDeg: 0.000, startPhase: 4.5, m0Deg: 357.517, periDeg: 102.947, longNodeDeg: 0.0, shade: "#dcdcdc", surfaceTempK: { min: 184, mean: 288, max: 330 }, classification: "Terrestrial planet — life", moons: 1, fact: "The only known world with liquid water and life. Mean surface 288 K (15 °C), held in that narrow band by an atmosphere and a 71%-ocean surface. 4.54 billion years old. A liquid iron-nickel outer core generates a magnetic field that shields the surface from the solar wind — without it, the atmosphere would have been stripped away like Mars's. The 23.4° axial tilt drives the seasons; a single large Moon, born from a giant impact ~4.5 Gya, stabilises that tilt and raises the tides. From here it's a pale blue dot; up close, the only blue marble we know.", textureUrl: "/textures/earth.webp", hiResTextureUrl: "/textures/earth-8k.webp", nightTextureUrl: "/textures/earth-night.webp", hiResNightTextureUrl: "/textures/earth-night-8k.webp", deep: { massEarth: 1.000, densityGcc: 5.51, gravity: 9.81, escapeVelocityKms: 11.19, eccentricity: 0.017, atmosphere: "78% N₂, 21% O₂, 1% Ar + trace CO₂/H₂O — the only known oxygen-rich air", composition: "Iron-nickel core, silicate mantle, liquid-water oceans + a biosphere" } },
+  { name: "Earth",   aAU: 1.000, radiusEarth: 1.000, periodDays: 365.25,  tiltDeg: 23.44,  rotHours: 23.93,  inclDeg: 0.000, startPhase: 4.5, m0Deg: 357.517, periDeg: 102.947, longNodeDeg: 0.0, shade: "#dcdcdc", surfaceTempK: { min: 184, mean: 288, max: 330 }, classification: "Terrestrial planet — life", moons: 1, fact: "The only known world with liquid water and life. Mean surface 288 K (15 °C), held in that narrow band by an atmosphere and a 71%-ocean surface. 4.54 billion years old. A liquid iron-nickel outer core generates a magnetic field that shields the surface from the solar wind — without it, the atmosphere would have been stripped away like Mars's. The 23.4° axial tilt drives the seasons; a single large Moon, born from a giant impact ~4.5 Gya, stabilises that tilt and raises the tides. From here it's a pale blue dot; up close, the only blue marble we know.", textureUrl: "/textures/earth.webp", hiResTextureUrl: "/textures/earth-8k.webp", superClearTextureUrl: "hd/textures/earth-16k.webp", nightTextureUrl: "/textures/earth-night.webp", hiResNightTextureUrl: "/textures/earth-night-8k.webp", deep: { massEarth: 1.000, densityGcc: 5.51, gravity: 9.81, escapeVelocityKms: 11.19, eccentricity: 0.017, atmosphere: "78% N₂, 21% O₂, 1% Ar + trace CO₂/H₂O — the only known oxygen-rich air", composition: "Iron-nickel core, silicate mantle, liquid-water oceans + a biosphere" } },
   { name: "Mars",    aAU: 1.524, radiusEarth: 0.532, periodDays: 686.97,  tiltDeg: 25.19,  rotHours: 24.62,  inclDeg: 1.850, startPhase: 1.3, m0Deg: 19.412, periDeg: 336.041, longNodeDeg: 49.558, shade: "#c1623a", surfaceTempK: { min: 130, mean: 210, max: 308 }, classification: "Terrestrial planet", moons: 2, fact: "Thin CO₂ atmosphere, polar ice caps, evidence of ancient liquid water. Hosts the solar system's tallest mountain (Olympus Mons, 22 km) and longest canyon (Valles Marineris, 4,000 km). The 25° axial tilt gives Mars Earth-like seasons.", textureUrl: "/textures/mars.webp", hiResTextureUrl: "/textures/mars-4k.webp", elevationUrl: "/textures/mars-mola.webp", elevationScale: 0.03, useDayNight: true, terminatorSoftness: 0.10, polarTint: "#e8ded5", deep: { massEarth: 0.107, densityGcc: 3.93, gravity: 3.71, escapeVelocityKms: 5.03, eccentricity: 0.094, atmosphere: "95% CO₂, 2.8% N₂, 2% Ar — thin (~0.6% of Earth's pressure)", composition: "Iron-sulfur core, basaltic mantle; iron-oxide (rust) dust gives the red colour" }, surfaceFeatures: [
     { name: "Perseverance", lat: 18.44, lon: 77.45, date: "2021-02-18", status: "active", agency: "NASA", fact: "Mars 2020 mission — exploring Jezero Crater, an ancient river delta. Caching samples for future return to Earth. Carries the Ingenuity helicopter, first powered flight on another world." },
     { name: "Curiosity", lat: -4.59, lon: 137.44, date: "2012-08-06", status: "active", agency: "NASA", fact: "Mars Science Laboratory rover. Climbing Mount Sharp inside Gale Crater since 2014, drilling layered sedimentary rocks that recorded Mars's transition from wet to dry." },
