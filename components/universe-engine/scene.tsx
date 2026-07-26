@@ -66,6 +66,7 @@ import {
   timeWarpRef,
   timeScaleRef,
   focusDepthRef,
+  heavyEffectsRef,
   DEFAULT_CAMERA_NEAR,
   DEFAULT_CAMERA_FAR,
   DEFAULT_MIN_DISTANCE,
@@ -1220,8 +1221,13 @@ function SkyPointMesh({
         />
       )}
       {/* True 3D raymarched gas volume — real depth/parallax you can move through,
-          mounted only for listed nebulae and only while focused (perf). */}
-      {point.kind === "nebula" && !invert && VOLUMETRIC_NEBULAE[point.id] && (
+          mounted only for listed nebulae and only while focused (perf). GATED on
+          the device tier's heavy-effects budget: the fragment-marching loop is the
+          single most GPU-expensive optional effect, so low/mid (or a device the
+          adaptive controller has throttled) skip it and keep the procedural shells,
+          while high/ultra get the real volume. Read at render time; the subtree
+          re-renders on tier change (densityScale prop), so this stays current. */}
+      {point.kind === "nebula" && !invert && heavyEffectsRef.current && VOLUMETRIC_NEBULAE[point.id] && (
         <VolumetricNebula
           size={visualSize * 2.2}
           active={detailActive}

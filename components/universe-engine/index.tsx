@@ -55,6 +55,7 @@ import {
   satellitesVisibleRef,
   scaleModeRef,
   deviceTierRef,
+  heavyEffectsRef,
   timeScaleRef,
   REALTIME_TIME_SCALE,
   setSimMs,
@@ -227,6 +228,13 @@ export function UniverseEngine({
   useEffect(() => {
     scaleModeRef.current = trueScale ? "true" : "explore"
   }, [trueScale])
+  // Sync the heavy-effects gate to the current tier so the most expensive optional
+  // effect (the raymarched volumetric nebula) is dropped on low/mid and kept on
+  // high/ultra. Re-runs when the adaptive controller changes the tier, so a device
+  // that downgrades under load also sheds the volume, and one that climbs regains it.
+  useEffect(() => {
+    heavyEffectsRef.current = qualityForTier(tier).allowHeavyEffects
+  }, [tier])
   // View scale: the whole engine is ONE view that flips between the deep-space
   // UNIVERSE (galaxy, stars, constellations, deep-sky) and the EARTH-ORBIT /
   // solar explorer (solarOnly: hides deep space, shows the satellite tools +

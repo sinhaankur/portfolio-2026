@@ -409,6 +409,14 @@ export const deviceTierRef: { current: "mobile" | "desktop" } = { current: "desk
  */
 export const hiResTexturesRef: { current: boolean } = { current: false }
 
+/**
+ * Heavy-effects gate — driven by the device tier's `allowHeavyEffects` (set in
+ * index.tsx, updated live by the adaptive-quality controller). When false, the
+ * most GPU-expensive OPTIONAL effects (the raymarched volumetric nebula) are
+ * skipped so weak / throttling devices stay smooth; high/ultra keep them. Starts
+ * true so a strong device shows everything before detection resolves. */
+export const heavyEffectsRef: { current: boolean } = { current: true }
+
 export function surfaceTextureUrl(planet: { textureUrl?: string; hiResTextureUrl?: string }): string | undefined {
   if (hiResTexturesRef.current && deviceTierRef.current === "desktop" && planet.hiResTextureUrl) {
     return planet.hiResTextureUrl
