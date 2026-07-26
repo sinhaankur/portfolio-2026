@@ -51,7 +51,7 @@ import {
 } from "./astronomy"
 import type { HoverHandler, MoonData } from "./types"
 import { DAY_NIGHT_VERTEX_SHADER, DAY_NIGHT_FRAGMENT_SHADER } from "./shaders"
-import { RoverPin, SatelliteShells } from "./scene-satellites"
+import { RoverPin, SatelliteShells, HERO_CRAFT } from "./scene-satellites"
 import { _earthWorldPos, _sunWorldPos, _sunDirTmp } from "./scene-shared"
 
 export function MoonBody({
@@ -301,6 +301,7 @@ export function MoonBody({
               { label: "Low lunar orbit (LRO …)", launchMs: Date.UTC(2009, 5, 18), altRatio: 1.05, count: 40, color: "#dfe8ff", incl: 1.4, speed: 0.22 },
               { label: "Lunar relay / frozen orbit", launchMs: Date.UTC(1966, 7, 10), altRatio: 1.35, count: 14, color: "#ffd9a0", incl: 1.1, speed: 0.12 },
             ]}
+            heroCraft={HERO_CRAFT["Moon (Luna)"]}
             bodyRadius={moon.visualRadius}
           />
         </group>

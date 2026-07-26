@@ -309,9 +309,22 @@ export const HERO_CRAFT: Record<string, HeroCraft[]> = {
       fact: "The largest satellite constellation ever — thousands of flat-pack satellites delivering broadband, now the majority of all active satellites." },
   ],
   Mars: [
-    { label: "MRO", model: "/models/sat-hubble.glb", altRatio: 1.084, incl: 0.95, speed: 0.16, sizeRatio: 0.1, phase: 1.0,
+    { label: "MRO", model: "/models/craft-mro.glb", altRatio: 1.084, incl: 0.95, speed: 0.16, sizeRatio: 0.1, phase: 1.0,
       agency: "🇺🇸 NASA", orbit: "Mars orbit · ~250–320 km", launched: "2005", size: "~6.5 m span", launchMs: Date.UTC(2005, 7, 12),
       fact: "Mars Reconnaissance Orbiter — its HiRISE camera returns the sharpest images of the Martian surface." },
+    { label: "MAVEN", model: "/models/craft-mro.glb", altRatio: 1.22, incl: 1.2, speed: 0.11, sizeRatio: 0.09, phase: 3.4,
+      agency: "🇺🇸 NASA", orbit: "Mars · 150–6,200 km elliptical", launched: "2013", size: "~11 m span", launchMs: Date.UTC(2013, 10, 18),
+      fact: "Mars Atmosphere and Volatile EvolutioN — measures how Mars lost its atmosphere to space over billions of years." },
+  ],
+  Jupiter: [
+    { label: "Juno", model: "/models/craft-juno.glb", altRatio: 1.5, incl: 1.4, speed: 0.06, sizeRatio: 0.16, phase: 0.8,
+      agency: "🇺🇸 NASA", orbit: "Jupiter polar orbit · 53-day", launched: "2011 · arrived 2016", size: "~20 m solar span", launchMs: Date.UTC(2016, 6, 5),
+      fact: "Juno — a polar orbiter with three huge solar wings (Jupiter gets ~4% of Earth's sunlight), probing the giant's deep structure, gravity, and aurorae." },
+  ],
+  "Moon (Luna)": [
+    { label: "LRO", model: "/models/craft-lro.glb", altRatio: 1.11, incl: 1.55, speed: 0.14, sizeRatio: 0.12, phase: 0.4,
+      agency: "🇺🇸 NASA", orbit: "Lunar polar orbit · ~50 km", launched: "2009", size: "~4.3 m span", launchMs: Date.UTC(2009, 5, 18),
+      fact: "Lunar Reconnaissance Orbiter — mapping the Moon in fine detail since 2009, including the Apollo landing sites and permanently-shadowed polar craters." },
   ],
 }
 Object.values(HERO_CRAFT).flat().forEach((c) => useGLTF.preload(c.model))
