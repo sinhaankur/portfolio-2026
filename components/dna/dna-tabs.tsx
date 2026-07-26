@@ -12,11 +12,20 @@
  */
 
 import { useState } from "react"
+import Link from "next/link"
+
+export type TabChild = {
+  id: string
+  label: string
+  /** When set, this L2 tab is a LINK to another route (e.g. the tools page)
+   *  instead of an in-page section toggle. */
+  href?: string
+}
 
 export type TabConfig = {
   id: string
   label: string
-  children: { id: string; label: string }[]
+  children: TabChild[]
 }
 
 export const DNA_TABS: TabConfig[] = [
@@ -32,6 +41,9 @@ export const DNA_TABS: TabConfig[] = [
       { id: "dna-traits", label: "Traits" },
       { id: "dna-compare", label: "You vs. average" },
       { id: "dna-origins", label: "Origins" },
+      // Links out to the standalone interactive tools page (cM Explainer,
+      // Ethnicities Map, Chromosome Browser, AutoClusters).
+      { id: "dna-tools", label: "DNA tools ↗", href: "/dna/tools" },
     ],
   },
   {
@@ -92,6 +104,17 @@ export function DnaTabs({
       <div className="mt-2 flex flex-wrap gap-1.5" role="tablist" aria-label={`${openTab.label} views`}>
         {openTab.children.map((c) => {
           const on = c.id === active
+          const cls = `rounded-md px-3 py-1.5 font-mono text-[10px] tracking-[0.12em] uppercase transition-colors border ${
+            on ? "border-accent/60 text-accent bg-accent/10" : "border-border text-muted-foreground/70 hover:text-foreground"
+          }`
+          // Link-style tab (navigates to another route) vs. section-toggle tab.
+          if (c.href) {
+            return (
+              <Link key={c.id} href={c.href} data-cursor-hover className={cls}>
+                {c.label}
+              </Link>
+            )
+          }
           return (
             <button
               key={c.id}
@@ -100,9 +123,7 @@ export function DnaTabs({
               aria-selected={on}
               onClick={() => onChange(c.id)}
               data-cursor-hover
-              className={`rounded-md px-3 py-1.5 font-mono text-[10px] tracking-[0.12em] uppercase transition-colors border ${
-                on ? "border-accent/60 text-accent bg-accent/10" : "border-border text-muted-foreground/70 hover:text-foreground"
-              }`}
+              className={cls}
             >
               {c.label}
             </button>
