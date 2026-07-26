@@ -222,7 +222,7 @@ export function SignalTuner({
   // Operator callsign placeholder — rotates per render to feel alive
   // without a database (e.g. a real ham radio shack would have a fixed
   // callsign; this site is open to anyone, so we cycle suggestive ones).
-  const operatorPlaceholder = "Your name or shop"
+  const operatorPlaceholder = "Your name"
 
   return (
     <div
