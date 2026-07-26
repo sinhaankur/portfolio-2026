@@ -352,6 +352,38 @@ export function Hero() {
           )}
         </button>
 
+        {/* Satellite Engine jump — once a visitor is exploring, offer the way OUT
+            of the compressed home galaxy into the real Earth-orbit explorer
+            (/lab/celestial): live SGP4 satellite paths, LEO swarm, real space
+            data. Appears only in explore mode, when the intent to explore is
+            already shown. Icon-only on mobile; labelled on desktop. */}
+        {interactive && (
+          <motion.a
+            href="/lab/celestial"
+            data-cursor-hover
+            initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            aria-label="Open the Satellite Engine — explore real lower-orbit satellites"
+            title="Satellite Engine — real lower-orbit satellites"
+            className="
+              inline-flex items-center justify-center gap-2
+              h-11 w-11 md:h-auto md:w-auto md:px-4 md:py-2.5
+              border border-foreground/25 rounded-full
+              bg-background/40 backdrop-blur-sm
+              font-mono text-[10px] tracking-[0.25em] uppercase
+              text-foreground/85 hover:text-foreground hover:border-accent/60
+              transition-colors duration-300
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+              focus-visible:ring-offset-2 focus-visible:ring-offset-background
+              touch-manipulation
+            "
+          >
+            <span aria-hidden="true" className="text-accent text-sm leading-none">🛰</span>
+            <span className="hidden md:inline">Satellite Engine ↗</span>
+          </motion.a>
+        )}
+
         {/* "⋯" info button — collapses the scale explainer so it doesn't crowd
             the navbar. Tap to reveal; dismisses on outside-click / Esc. */}
         <button
