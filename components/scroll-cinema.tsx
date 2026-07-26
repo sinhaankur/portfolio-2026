@@ -60,7 +60,12 @@ export function ScrollCinema({
     <section
       ref={ref}
       aria-hidden="true"
-      className="relative"
+      // z-10 so the principle lines render ABOVE the hero's fixed galaxy
+      // backdrop (z-0), which persists behind this act break as part of the
+      // cinematic descent. The stage stays transparent so the stars show
+      // through; the sky dissolves to background partway through (driven in
+      // hero.tsx) so the lines finish over calm space, not a busy field.
+      className="relative z-10"
       style={{ height: `${heightVh}vh` }}
     >
       <div className="sticky top-0 flex h-screen items-center justify-center overflow-hidden">

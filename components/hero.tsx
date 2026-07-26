@@ -128,6 +128,41 @@ export function Hero() {
     scrollDriveRef.current = prefersReducedMotion ? 0 : v
   })
 
+  // ── Cinematic descent ─────────────────────────────────────────────────────
+  // The galaxy is a FIXED backdrop that persists behind the hero AND the
+  // scroll-cinema act break, then dissolves to `background` as the readable
+  // sections arrive — so the whole opening scrolls as one continuous descent
+  // through space, not a hero that snaps off into flat sections. Driven by raw
+  // window scroll (in viewport units) because it must outlive the hero's own
+  // one-viewport scroll range. Full sky for the first ~1.7 screens (hero + the
+  // first principle lines), then fade out by ~3.0 screens, before <About>.
+  const [skyOpacity, setSkyOpacity] = useState(1)
+  useEffect(() => {
+    if (prefersReducedMotion) return
+    let raf = 0
+    const compute = () => {
+      raf = 0
+      const vh = window.innerHeight || 1
+      const screens = window.scrollY / vh
+      // hold 1 until 1.7 screens, ramp to 0 by 3.0 screens
+      const t = (screens - 1.7) / (3.0 - 1.7)
+      setSkyOpacity(Math.max(0, Math.min(1, 1 - t)))
+    }
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(compute)
+    }
+    compute()
+    window.addEventListener("scroll", onScroll, { passive: true })
+    window.addEventListener("resize", onScroll, { passive: true })
+    return () => {
+      if (raf) cancelAnimationFrame(raf)
+      window.removeEventListener("scroll", onScroll)
+      window.removeEventListener("resize", onScroll)
+    }
+  }, [prefersReducedMotion])
+  // In explore mode the sky must be fully present regardless of scroll.
+  const effectiveSkyOpacity = interactive ? 1 : skyOpacity
+
   // Esc exits explore mode
   useEffect(() => {
     if (!interactive) return
@@ -179,7 +214,12 @@ export function Hero() {
       // planetarium; in light mode the universe engine flips itself into
       // chart mode (ink stars on cream paper, warm-amber sun, hairline orbits)
       // via its internal theme detection.
-      className="relative h-screen w-full overflow-hidden bg-background text-foreground"
+      // No overflow-hidden + no z-index: the section must NOT create a stacking
+      // context, so the fixed galaxy backdrop (z-0) participates in the root
+      // stack and can persist visually behind the sections that follow. bg is
+      // transparent so the fixed sky shows through the hero; the body's
+      // bg-background is what the sky dissolves into.
+      className="relative h-screen w-full text-foreground"
     >
       {/* Visually-hidden semantic H1 — gives screen readers a clean page title */}
       <h1 id="hero-name" className="sr-only">
@@ -190,8 +230,20 @@ export function Hero() {
           Passive backdrop by default so page scroll works; explore mode flips it interactive.
           Layering: the living CSS starfield sits underneath the whole time; the
           engine layer fades + settles in over it once `universe-ready` fires,
-          so the handoff is a bloom, not a swap. */}
-      <div className="absolute inset-0" aria-hidden="true">
+          so the handoff is a bloom, not a swap.
+
+          FIXED backdrop (not absolute): the galaxy stays pinned to the viewport
+          so it persists behind the scroll-cinema act break — the opening reads
+          as one continuous descent through space. `effectiveSkyOpacity` (scroll-
+          driven) dissolves it to `background` before the readable sections, so
+          text never fights the stars. z-0 keeps it below the hero's z-10 chrome;
+          the chrome wrapper is pointer-events-none so drags still reach the
+          canvas (explore mode). */}
+      <div
+        className="fixed inset-0 z-0 transition-opacity duration-500 ease-out"
+        aria-hidden="true"
+        style={{ opacity: effectiveSkyOpacity }}
+      >
         <UniverseRuntimeFallback>
           {tvBrowserFallback || contextLost ? (
             <StaticStarfield />
