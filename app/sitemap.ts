@@ -46,6 +46,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/references",        priority: 0.5, changeFrequency: "monthly" },
     { path: "/dna",               priority: 0.6, changeFrequency: "monthly" },
     { path: "/dna/databases",     priority: 0.4, changeFrequency: "monthly" },
+    { path: "/dna/tools",         priority: 0.4, changeFrequency: "monthly" },
   ]
 
   // Emit trailing slashes to match `trailingSlash: true` (and the per-page

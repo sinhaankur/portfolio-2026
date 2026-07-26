@@ -349,12 +349,20 @@ export function DnaVisualization({ data }: { data: DnaSummary }) {
           learn-more path — from &ldquo;what is a gene&rdquo; to the machine-learning
           methods reading genomes today.
         </p>
-        <a
-          href="/dna/databases"
-          className="mb-10 inline-flex items-center gap-2 rounded-full border border-accent/40 bg-accent/10 px-4 py-2 font-mono text-[10px] tracking-widest uppercase text-accent hover:bg-accent hover:text-white transition-colors"
-        >
-          Open the full sources &amp; databases page ↗
-        </a>
+        <div className="mb-10 flex flex-wrap gap-3">
+          <a
+            href="/dna/databases"
+            className="inline-flex items-center gap-2 rounded-full border border-accent/40 bg-accent/10 px-4 py-2 font-mono text-[10px] tracking-widest uppercase text-accent hover:bg-accent hover:text-white transition-colors"
+          >
+            Open the full sources &amp; databases page ↗
+          </a>
+          <a
+            href="/dna/tools"
+            className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 font-mono text-[10px] tracking-widest uppercase text-foreground/80 hover:border-accent/50 hover:text-foreground transition-colors"
+          >
+            DNA tools — cM · ethnicities · segments · clusters ↗
+          </a>
+        </div>
         <DnaStudy />
       </section>
 
