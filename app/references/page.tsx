@@ -102,6 +102,12 @@ const GROUPS: { heading: string; blurb: string; sources: Source[] }[] = [
         href: "https://www.solarsystemscope.com/textures/",
       },
       {
+        name: "Björn Jónsson — planetary maps",
+        detail: "The high-resolution Io map, assembled from real Galileo/Voyager imagery, used in the Super Clear view.",
+        license: "Free use with attribution",
+        href: "https://bjj.mmedia.is/",
+      },
+      {
         name: "NASA Visible Earth / Blue Marble",
         detail: "Reference imagery for Earth's day + night (city lights) appearance.",
         license: "Public domain (NASA)",
