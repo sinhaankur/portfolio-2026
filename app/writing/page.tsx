@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { canonicalPath } from "@/lib/seo"
+import { SHORT_POSTS } from "@/lib/writing-posts"
 
 export const metadata: Metadata = {
   ...canonicalPath("/writing"),
@@ -11,8 +12,9 @@ export const metadata: Metadata = {
     "Notes on building things: the Universe Engine, real-data 3D, design-in-code, and the reasoning behind the work.",
 }
 
-// The index of posts. Each links to its own route. Newest first.
-const posts = [
+// Hand-built long-form essays (their own routes) + the data-driven short posts,
+// merged and sorted newest-first.
+const longForm = [
   {
     slug: "universe-engine",
     title: "How I built a real-data universe engine",
@@ -21,6 +23,10 @@ const posts = [
       "18,500 satellites on real SGP4 orbits, a true-scale solar system, Mars rover coverage, and validated Earth→Mars transfer math — all in the browser, all from real data. The how and the why.",
   },
 ]
+const posts = [
+  ...longForm,
+  ...SHORT_POSTS.map((p) => ({ slug: p.slug, title: p.title, date: p.date, blurb: p.blurb })),
+].sort((a, b) => (a.date < b.date ? 1 : -1))
 
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })

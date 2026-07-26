@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next"
+import { SHORT_POSTS } from "@/lib/writing-posts"
 
 // Required for `output: "export"` — tells Next.js to render this at build time.
 export const dynamic = "force-static"
@@ -47,6 +48,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/dna",               priority: 0.6, changeFrequency: "monthly" },
     { path: "/dna/databases",     priority: 0.4, changeFrequency: "monthly" },
     { path: "/dna/tools",         priority: 0.4, changeFrequency: "monthly" },
+    // Short posts are generated from lib/writing-posts.ts — kept in sync here.
+    ...SHORT_POSTS.map((p) => ({
+      path: `/writing/${p.slug}`,
+      priority: 0.6,
+      changeFrequency: "monthly" as const,
+    })),
   ]
 
   // Emit trailing slashes to match `trailingSlash: true` (and the per-page
