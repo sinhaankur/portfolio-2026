@@ -602,9 +602,12 @@ export function PlanetBody({
     if (elevationTexture) {
       dayNightUniforms.tElevation.value = elevationTexture
       // Scale is in visual-radius units; small so relief reads without
-      // shattering the mesh (matches the coverage view's ~0.035 feel).
+      // shattering the mesh (matches the coverage view's ~0.035 feel). SUPER
+      // CLEAR exaggerates it ~2.2× so the real terrain (Olympus Mons, Valles
+      // Marineris, crater walls) reads as dramatic 3D on deep zoom, paired with
+      // the 384-segment mesh above that can actually resolve it.
       dayNightUniforms.uElevation.value =
-        (planet.raw.elevationScale ?? 0.03) * planet.visualRadius
+        (planet.raw.elevationScale ?? 0.03) * planet.visualRadius * (superClearRef.current ? 2.2 : 1)
     }
   }, [texture, nightTexture, elevationTexture, dayNightUniforms, planet.raw.elevationScale, planet.visualRadius])
 
@@ -950,7 +953,17 @@ export function PlanetBody({
                 else uses the standard PBR sphere lit by the Sun point light. */}
             {hasTexture && useDayNightShader && texture && (
               <mesh ref={texMeshRef}>
-                <sphereGeometry args={[planet.visualRadius * 1.005, (planet.raw.name === "Earth" || planet.raw.elevationUrl) ? 96 : 64, (planet.raw.name === "Earth" || planet.raw.elevationUrl) ? 96 : 64]} />
+                {/* Subdivision drives how finely the elevation map can displace the
+                    mesh — real geometric terrain, not a flat paint. Bodies with an
+                    elevation map get a denser sphere; SUPER CLEAR pushes it far
+                    higher (384) so craters/canyons deform the actual surface for a
+                    genuine 3D read on deep zoom. Only Super Clear pays the vertex
+                    cost. Non-elevation bodies stay lean. */}
+                <sphereGeometry args={[
+                  planet.visualRadius * 1.005,
+                  (planet.raw.name === "Earth" || planet.raw.elevationUrl) ? (superClearRef.current ? 384 : 96) : 64,
+                  (planet.raw.name === "Earth" || planet.raw.elevationUrl) ? (superClearRef.current ? 384 : 96) : 64,
+                ]} />
                 <shaderMaterial
                   ref={dayNightMatRef as React.Ref<ShaderMaterial>}
                   vertexShader={DAY_NIGHT_VERTEX_SHADER}

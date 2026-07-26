@@ -49,6 +49,7 @@ import {
   hiResTexturesRef,
   deviceTierRef,
 } from "./astronomy"
+import { superClearRef } from "@/lib/device-tier"
 import type { HoverHandler, MoonData } from "./types"
 import { DAY_NIGHT_VERTEX_SHADER, DAY_NIGHT_FRAGMENT_SHADER } from "./shaders"
 import { RoverPin, SatelliteShells, HERO_CRAFT } from "./scene-satellites"
@@ -107,8 +108,10 @@ export function MoonBody({
     if (texture) dayNightUniforms.tDay.value = texture
     if (elevationTexture) {
       dayNightUniforms.tElevation.value = elevationTexture
+      // Super Clear exaggerates lunar relief ~2.2× (real LOLA), paired with the
+      // denser mesh below, so craters read as genuine 3D on deep zoom.
       dayNightUniforms.uElevation.value =
-        (moon.elevationScale ?? 0.03) * moon.visualRadius
+        (moon.elevationScale ?? 0.03) * moon.visualRadius * (superClearRef.current ? 2.2 : 1)
     }
   }, [texture, elevationTexture, dayNightUniforms, moon.elevationScale, moon.visualRadius])
 
@@ -120,7 +123,9 @@ export function MoonBody({
   useEffect(() => {
     if (!elevationUrl || elevationTexture) return
     const timer = setTimeout(() => {
-      if (!hiResTexturesRef.current || deviceTierRef.current !== "desktop") return
+      // Load the relief on the deep-zoom explorer OR in Super Clear (the user
+      // opted into max fidelity), desktop only.
+      if ((!hiResTexturesRef.current && !superClearRef.current) || deviceTierRef.current !== "desktop") return
       new TextureLoader().load(elevationUrl, (tex) => {
         tex.anisotropy = 4
         setElevationTexture(tex)
@@ -263,7 +268,13 @@ export function MoonBody({
             because the Moon has no atmosphere. */}
         {textureUrl && texture && (
           <mesh ref={texMeshRef}>
-            <sphereGeometry args={[moon.visualRadius * 1.01, moon.elevationUrl ? 128 : 48, moon.elevationUrl ? 128 : 48]} />
+            {/* Super Clear pushes the displaced mesh to 384 segments so the LOLA
+                relief resolves as real 3D crater terrain on deep zoom. */}
+            <sphereGeometry args={[
+              moon.visualRadius * 1.01,
+              moon.elevationUrl ? (superClearRef.current ? 384 : 128) : 48,
+              moon.elevationUrl ? (superClearRef.current ? 384 : 128) : 48,
+            ]} />
             <shaderMaterial
               ref={dayNightMatRef as React.Ref<ShaderMaterial>}
               vertexShader={DAY_NIGHT_VERTEX_SHADER}
