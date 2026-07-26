@@ -19,8 +19,9 @@
  * caller and passed in as props, so this file stays data-free.
  */
 
-import { useRef } from "react"
+import { Suspense, useRef } from "react"
 import { useFrame } from "@react-three/fiber"
+import { useGLTF, Clone } from "@react-three/drei"
 import {
   AdditiveBlending,
   DoubleSide,
@@ -30,6 +31,33 @@ import {
 
 import { timeWarpRef } from "./astronomy"
 import type { SkyPoint } from "./types"
+
+/** TRAPPIST-1's seven worlds have real per-planet Blender GLBs — honest surfaces
+ *  inferred by TYPE from measured radius/insolation/JWST constraints (hot bare
+ *  basalt → temperate rock → icy snowball), never invented detail. Unit spheres;
+ *  the mount scales each by its real radiusEarth. */
+const TRAPPIST_GLB: Record<string, string> = {
+  "TRAPPIST-1 b": "/models/trappist-b.glb",
+  "TRAPPIST-1 c": "/models/trappist-c.glb",
+  "TRAPPIST-1 d": "/models/trappist-d.glb",
+  "TRAPPIST-1 e": "/models/trappist-e.glb",
+  "TRAPPIST-1 f": "/models/trappist-f.glb",
+  "TRAPPIST-1 g": "/models/trappist-g.glb",
+  "TRAPPIST-1 h": "/models/trappist-h.glb",
+}
+for (const u of Object.values(TRAPPIST_GLB)) useGLTF.preload(u)
+
+/** A single TRAPPIST world GLB, slowly rotating so its relief + ice caps read. */
+function TrappistGlb({ url, radius }: { url: string; radius: number }) {
+  const { scene } = useGLTF(url)
+  const spin = useRef<Group>(null)
+  useFrame((_, dt) => { if (spin.current) spin.current.rotation.y += dt * 0.4 })
+  return (
+    <group ref={spin} scale={radius}>
+      <Clone object={scene} />
+    </group>
+  )
+}
 
 /**
  * Exoplanet system — child worlds rendered orbiting an exoplanet-host
@@ -106,10 +134,27 @@ export function ExoplanetSystem({
               <meshBasicMaterial color={invert ? "#1a1208" : "#ffffff"} transparent opacity={0.20} side={DoubleSide} depthWrite={false} />
             </mesh>
             <group ref={(g) => { groupRefs.current[i] = g }} rotation={[0, (i / planets.length) * Math.PI * 2, 0]}>
-              <mesh position={[orbitRadius, 0, 0]}>
-                <sphereGeometry args={[planetVisualRadius, 14, 14]} />
-                <meshBasicMaterial color={dotColor} />
-              </mesh>
+              {/* Real per-planet GLB (TRAPPIST-1 b–h) — inflated ~2.6× the dot so
+                  the inferred rocky surface + ice caps actually read at this
+                  compressed scale. Suspense falls back to the flat dot while it
+                  loads. Non-TRAPPIST hosts keep the plain dot. */}
+              {TRAPPIST_GLB[p.name] ? (
+                <group position={[orbitRadius, 0, 0]}>
+                  <Suspense fallback={
+                    <mesh>
+                      <sphereGeometry args={[planetVisualRadius, 14, 14]} />
+                      <meshBasicMaterial color={dotColor} />
+                    </mesh>
+                  }>
+                    <TrappistGlb url={TRAPPIST_GLB[p.name]} radius={planetVisualRadius * 2.6} />
+                  </Suspense>
+                </group>
+              ) : (
+                <mesh position={[orbitRadius, 0, 0]}>
+                  <sphereGeometry args={[planetVisualRadius, 14, 14]} />
+                  <meshBasicMaterial color={dotColor} />
+                </mesh>
+              )}
               {p.habitableZone && (
                 <mesh position={[orbitRadius, 0, 0]}>
                   <sphereGeometry args={[planetVisualRadius * 1.8, 14, 14]} />
