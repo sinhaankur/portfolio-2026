@@ -88,7 +88,9 @@ import { NamedBodies } from "./small-bodies"
 import {
   NebulaDetail,
   VolumetricNebula,
+  NebulaGlb,
   NEBULA_SPRITES,
+  NEBULA_GLB,
   VOLUMETRIC_NEBULAE,
 } from "./nebula"
 import { BlackHoleDetail, computeBlackHoleProportions } from "./black-hole"
@@ -1190,10 +1192,25 @@ function SkyPointMesh({
           />
         </mesh>
       )}
+      {/* Blender-baked nebula GLB — real 3D structure the procedural shell can't
+          capture (the Helix's double ring + cometary-knot fringe). Blooms in on
+          focus/near via detailActive; the distant halo/core above stays as the
+          findable point of light. Lazy-loaded per object. */}
+      {point.kind === "nebula" && NEBULA_GLB[point.id] && (
+        <Suspense fallback={null}>
+          <NebulaGlb
+            url={NEBULA_GLB[point.id]}
+            size={visualSize * 1.6}
+            active={detailActive}
+            invert={invert}
+          />
+        </Suspense>
+      )}
       {/* Nebula hover detail — layered emission cloudlets that bloom in on hover,
           plus the Trapezium for Orion. Idle cost is ~3 inert meshes at scale 0.
-          Uses `detailActive` so the bloom persists after a click → fly-to lands. */}
-      {point.kind === "nebula" && (
+          Uses `detailActive` so the bloom persists after a click → fly-to lands.
+          Skipped for nebulae that have a bespoke GLB (the GLB is the detail). */}
+      {point.kind === "nebula" && !NEBULA_GLB[point.id] && (
         <NebulaDetail
           pointId={point.id}
           size={visualSize}

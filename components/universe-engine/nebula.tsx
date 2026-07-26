@@ -19,6 +19,7 @@
 
 import { useRef, useMemo, useEffect, useState } from "react"
 import { useFrame, useThree } from "@react-three/fiber"
+import { useGLTF, Clone } from "@react-three/drei"
 import {
   AdditiveBlending,
   BackSide,
@@ -41,6 +42,8 @@ import { Vector3 } from "three"
 
 // Scratch for the close-approach hand-off distance check (no per-frame alloc).
 const _nebulaWorldPos = new Vector3()
+// Scratch for the GLB-nebula billboard: camera position in the node's parent space.
+const _localTarget = new Vector3()
 
 /* ============================================================
  * NebulaClouds — background gas haze + dark dust lanes.
@@ -518,6 +521,101 @@ export function NebulaDetail({
 export const NEBULA_SPRITES: Record<string, string> = {
   m42: "/textures/nebulae/orion.webp",
 }
+
+/** Nebulae that have a real Blender-baked 3D GLB (translucent emissive shells),
+ *  shown instead of the generic procedural shell/halo. The Helix ("Eye of God")
+ *  has a structure the generic planetary shell can't capture: a face-on double
+ *  ring + a fringe of radial cometary knots. */
+export const NEBULA_GLB: Record<string, string> = {
+  helix: "/models/nebula-helix.glb",
+}
+
+/**
+ * NebulaGlb — mounts a Blender-baked nebula GLB (the Helix) as a soft, glowing,
+ * slowly-turning object. The GLB's emissive shells are re-blended ADDITIVELY at
+ * runtime so overlapping gas layers composite into light (a glow), never into
+ * opaque plates — the same way the procedural nebula shells read. Billboarded
+ * loosely toward the camera so the "Eye of God" face-on structure stays legible
+ * from any approach, with a very slow roll so it feels alive, not a decal.
+ */
+export function NebulaGlb({ url, size, active, invert }: {
+  url: string
+  size: number
+  active: boolean
+  invert: boolean
+}) {
+  const { scene } = useGLTF(url)
+  const root = useRef<Group>(null)   // billboards toward the camera
+  const roll = useRef<Group>(null)   // slow roll about the ring axis
+  const { camera } = useThree()
+  const opacityRef = useRef(0)
+
+  // Clone once, then force every material to additive glow + no depth-write, and
+  // capture a base opacity per material so we can fade the whole nebula in/out.
+  const cloned = useMemo(() => {
+    const c = scene.clone(true)
+    c.traverse((o) => {
+      const mesh = o as unknown as { isMesh?: boolean; material?: unknown; renderOrder?: number }
+      if (!mesh.isMesh || !mesh.material) return
+      const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+      for (const m of mats as Array<Record<string, unknown>>) {
+        m.transparent = true
+        m.depthWrite = false
+        // Additive in dark theme (glow); normal-blend in light theme so it
+        // reads as ink on paper instead of blowing out to white.
+        m.blending = invert ? NormalBlending : AdditiveBlending
+        m.toneMapped = false
+      }
+      mesh.renderOrder = 3
+    })
+    return c
+  }, [scene, invert])
+
+  useFrame((_, delta) => {
+    // fade toward active
+    const k = 1 - Math.exp(-delta * 3)
+    opacityRef.current += ((active ? 1 : 0) - opacityRef.current) * k
+    // Billboard toward the camera. lookAt() expects a target in the node's
+    // PARENT space; converting the camera's world position into that space makes
+    // the eye face the camera regardless of how the parent sky-point is rotated
+    // (a plain lookAt(camera.position) tilts edge-on when the parent is rotated).
+    if (root.current && root.current.parent) {
+      _localTarget.copy(camera.position)
+      root.current.parent.worldToLocal(_localTarget)
+      root.current.lookAt(_localTarget)
+    }
+    // very slow roll about the ring's own axis (child, so lookAt doesn't fight it)
+    if (roll.current) roll.current.rotation.z += delta * 0.03
+    // apply fade to every material
+    cloned.traverse((o) => {
+      const mesh = o as unknown as { isMesh?: boolean; material?: unknown }
+      if (!mesh.isMesh || !mesh.material) return
+      const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+      for (const m of mats as Array<{ opacity: number; userData: { baseOpacity?: number } }>) {
+        if (m.userData.baseOpacity == null) m.userData.baseOpacity = m.opacity
+        // Cap contribution so overlapping additive shells can't sum to a white
+        // blow-out; ~0.7 keeps it reading as luminous gas, not a lamp.
+        m.opacity = (m.userData.baseOpacity ?? 1) * opacityRef.current * 0.7
+      }
+    })
+  })
+
+    return (
+    <group ref={root} scale={size} visible={!invert || active}>
+      {/* Rings authored flat in Blender XY (normal +Z) become normal +Y after the
+          glTF y-up import. The +90°X tilt maps that face (+Y) onto the group's
+          +Z, which the outer lookAt(camera) then aims at the viewer → the "Eye of
+          God" reads FACE-ON. The roll group spins the rings about their own
+          normal so the knot fringe turns slowly in-plane. */}
+      <group rotation={[Math.PI / 2, 0, 0]}>
+        <group ref={roll}>
+          <primitive object={cloned} />
+        </group>
+      </group>
+    </group>
+  )
+}
+for (const u of Object.values(NEBULA_GLB)) useGLTF.preload(u)
 
 /** Per-nebula volumetric config (real Hα/O-III look). Only listed nebulae get
  *  the raymarched 3D volume on close approach. mode: 0 = emission cloud,

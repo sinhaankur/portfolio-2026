@@ -19,7 +19,7 @@
  * wrong "mid" just looks slightly plainer).
  */
 
-export type DeviceTier = "low" | "mid" | "high"
+export type DeviceTier = "low" | "mid" | "high" | "ultra"
 
 export type OS = "macos" | "ios" | "ipados" | "windows" | "android" | "linux" | "webos" | "unknown"
 
@@ -84,10 +84,15 @@ function readGpu(): string | null {
 function gpuTierHint(gpu: string | null): DeviceTier | null {
   if (!gpu) return null
   const g = gpu.toLowerCase()
-  // Discrete / high-end desktop GPUs.
+  // Top-end enthusiast GPUs → ULTRA (render the richest scene at native DPR).
+  //   NVIDIA RTX 30/40/50-series, high Radeon RX 6000/7000/9000, Apple Max/Ultra.
+  if (/rtx\s?(30|40|50)[0-9]{2}|rtx\s?(3080|3090|4070|4080|4090|5080|5090)/.test(g)) return "ultra"
+  if (/radeon rx\s?(6[89]|7[89]|9[07])[0-9]{2}/.test(g)) return "ultra"
+  if (/apple m[0-9]+ (max|ultra)/.test(g)) return "ultra"
+  // Discrete / high-end desktop GPUs → high.
   if (/rtx|radeon rx|geforce (gtx|rtx)|quadro|arc a[0-9]/.test(g)) return "high"
-  // Apple Silicon: Pro/Max/Ultra are clearly high; base M-series is solidly mid-high.
-  if (/apple m[0-9]+ (pro|max|ultra)/.test(g)) return "high"
+  // Apple Silicon Pro → high; base M-series is solidly mid-high.
+  if (/apple m[0-9]+ pro/.test(g)) return "high"
   if (/apple m[0-9]/.test(g)) return "mid" // base M1/M2/M3 → mid (safe; live probe can lift)
   // Integrated / mobile GPUs that struggle with a heavy full-screen scene.
   if (/intel.*(hd|uhd) graphics|intel.*iris|mali|adreno|powervr|swiftshader|llvmpipe/.test(g)) return "low"
@@ -120,7 +125,8 @@ export function detectDeviceProfile(): DeviceProfile {
   let score = 0 // negative → low, ~0 → mid, positive → high
   const notes: string[] = []
 
-  if (gpuHint === "high") { score += 2; notes.push(`GPU:${gpu}`) }
+  if (gpuHint === "ultra") { score += 3; notes.push(`top GPU:${gpu}`) }
+  else if (gpuHint === "high") { score += 2; notes.push(`GPU:${gpu}`) }
   else if (gpuHint === "low") { score -= 2; notes.push(`weak GPU:${gpu}`) }
   else if (gpuHint === "mid") { score += 0; notes.push(`GPU:${gpu ?? "mid"}`) }
 
@@ -149,13 +155,17 @@ export function detectDeviceProfile(): DeviceProfile {
   }
 
   let tier: DeviceTier
-  if (score >= 2) tier = "high"
+  // ULTRA requires a clear top-end GPU AND corroborating cores/RAM — never on the
+  // GPU string alone, so a mislabelled renderer can't over-promise. The live FPS
+  // probe still steps it down if the machine can't actually hold the frames.
+  if (score >= 4 && gpuHint === "ultra") tier = "ultra"
+  else if (score >= 2) tier = "high"
   else if (score <= -1) tier = "low"
   else tier = "mid"
 
-  // Hard floor: a phone never gets the "high" heavy scene.
-  if ((os === "ios" || os === "android") && tier === "high") tier = "mid"
-  if (touch && smallViewport && tier === "high") tier = "mid"
+  // Hard floor: a phone/tablet never gets the heavy desktop scene.
+  if ((os === "ios" || os === "android") && (tier === "high" || tier === "ultra")) tier = "mid"
+  if (touch && smallViewport && (tier === "high" || tier === "ultra")) tier = "mid"
   // TVs: always the TV profile — webOS panels are fill-rate-bound; the engine
   // gives them an absolute pixel budget + their own quality knobs below.
   if (os === "webos") { tier = "low"; notes.push("webOS TV") }
@@ -212,7 +222,7 @@ export function dprForCanvas(clamp: [number, number]): number | [number, number]
 }
 
 /** Order tiers so a live probe can only ever step DOWN (never optimistically up). */
-const TIER_ORDER: DeviceTier[] = ["low", "mid", "high"]
+const TIER_ORDER: DeviceTier[] = ["low", "mid", "high", "ultra"]
 export function downgradeTier(t: DeviceTier): DeviceTier {
   const i = TIER_ORDER.indexOf(t)
   return TIER_ORDER[Math.max(0, i - 1)]
@@ -228,6 +238,12 @@ export function qualityForTier(tier: DeviceTier): QualitySettings {
     return { dpr: [0.5, 1], densityScale: 0.6, allowHiResTextures: false, allowHeavyEffects: false }
   }
   switch (tier) {
+    case "ultra":
+      // A clearly high-end PC: render the richest scene. Native-res canvas (DPR
+      // up to 3 for HiDPI displays) and MORE decorative density than "high" —
+      // this is the "use the power for a good experience" tier. The live FPS
+      // probe steps it back to "high" if the machine can't hold ~36fps.
+      return { dpr: [1, 3], densityScale: 1.4, allowHiResTextures: true, allowHeavyEffects: true }
     case "high":
       return { dpr: [1, 2], densityScale: 1.0, allowHiResTextures: true, allowHeavyEffects: true }
     case "mid":
