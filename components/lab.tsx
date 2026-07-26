@@ -553,7 +553,7 @@ export function Lab() {
               transition={{
                 duration: 0.55,
                 delay: index * 0.07,
-                ease: [0.25, 0.46, 0.45, 0.94],
+                ease: [0.16, 1, 0.3, 1],
               }}
               whileHover={prefersReducedMotion ? undefined : { y: -3 }}
               whileTap={prefersReducedMotion ? undefined : { scale: 0.985 }}

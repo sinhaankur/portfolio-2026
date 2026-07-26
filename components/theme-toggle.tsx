@@ -89,7 +89,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
               ? { opacity: 0 }
               : { opacity: 0, rotate: 90, scale: 0.6 }
           }
-          transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
+          transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
           className="absolute inset-0 flex items-center justify-center"
         >
           {isDark ? (

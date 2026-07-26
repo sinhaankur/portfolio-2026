@@ -32,7 +32,7 @@ export function UpcomingBadge({
         opacity: isMounted ? 1 : 0,
         y: isMounted ? 0 : 20,
       }}
-      transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
+      transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onFocus={() => setIsHovered(true)}
@@ -70,7 +70,7 @@ export function UpcomingBadge({
             ? undefined
             : { rotate: isHovered ? 45 : 0, x: isHovered ? 2 : 0 }
         }
-        transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+        transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
         className="inline-flex"
       >
         <ArrowUpRight className="h-4 w-4" />

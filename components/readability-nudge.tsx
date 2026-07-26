@@ -88,7 +88,7 @@ export function ReadabilityNudge() {
           initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 16 }}
           animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
           exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 16 }}
-          transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
+          transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
           className="
             fixed z-30
             bottom-24 left-4 right-4

@@ -533,7 +533,7 @@ export function Hero() {
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
+          transition={{ duration: 1, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
           className="relative"
         >
           {/* Mobile-only legibility scrim: the hero copy sits over the densest
@@ -583,7 +583,7 @@ export function Hero() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
+          transition={{ duration: 0.8, delay: 0.6, ease: [0.16, 1, 0.3, 1] }}
           className="absolute bottom-12 left-8 md:bottom-20 md:left-12 z-20 pointer-events-auto flex flex-col items-start gap-3 sm:flex-row sm:flex-wrap sm:items-center"
         >
           {/* Primary — high-contrast, obvious. The one thing to do next. */}
@@ -642,7 +642,7 @@ export function Hero() {
         <motion.div
           initial={{ opacity: 0, y: -40 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+          transition={{ duration: 1, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
           className="self-end text-right max-w-[20rem] md:max-w-[24rem]"
         >
           <p className="font-mono text-xs tracking-[0.3em] text-muted-foreground mb-2">

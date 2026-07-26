@@ -192,7 +192,7 @@ export function UpcomingLanes() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-80px" }}
-            transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
+            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
             className="grid gap-6 md:grid-cols-[1fr_2fr] mb-12 md:mb-16"
           >
             <div>
@@ -229,7 +229,7 @@ export function UpcomingLanes() {
                 transition={{
                   duration: 0.6,
                   delay: itemIndex * 0.08,
-                  ease: [0.25, 0.46, 0.45, 0.94],
+                  ease: [0.16, 1, 0.3, 1],
                 }}
                 className="border-b border-border"
               >
