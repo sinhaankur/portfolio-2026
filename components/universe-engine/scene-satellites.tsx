@@ -282,7 +282,7 @@ export const HERO_CRAFT: Record<string, HeroCraft[]> = {
     { label: "JWST", model: "/models/sat-jwst.glb", altRatio: 9.0, incl: 0.2, speed: 0.04, sizeRatio: 0.2, phase: 3.5,
       agency: "🇺🇸 NASA · 🇪🇺 ESA · 🇨🇦 CSA", orbit: "Sun–Earth L2 · ~1.5M km", launched: "2021 (Ariane 5)", size: "21 × 14 m sunshield", launchMs: Date.UTC(2021, 11, 25),
       fact: "The largest space telescope ever flown — its gold mirror sees the first galaxies in infrared, shaded by a tennis-court sunshield." },
-    { label: "Sputnik 1", model: "/models/sat-sputnik.glb", altRatio: 1.09, incl: 1.1, speed: 0.24, sizeRatio: 0.09, phase: 4.4,
+    { label: "Sputnik 1", model: "/models/craft-sputnik.glb", altRatio: 1.09, incl: 1.1, speed: 0.24, sizeRatio: 0.09, phase: 4.4,
       agency: "🇷🇺 USSR", orbit: "LEO · 215–939 km · 65.1° · ~96 min", launched: "4 Oct 1957", size: "0.58 m sphere", launchMs: Date.UTC(1957, 9, 4),
       fact: "The first artificial satellite — a polished sphere with four antennas that beeped for 21 days and began the Space Age." },
     // ----- more of the space age, in launch order (reuse models by silhouette) -----
