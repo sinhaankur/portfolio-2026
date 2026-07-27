@@ -19,6 +19,7 @@
     "test:dave": "node scripts/stress-dave.mjs",
     "test:perf": "node scripts/perf-test.mjs",
     "test:perf:gpu": "node scripts/perf-test.mjs --gpu",
+    "assets:ktx2": "node scripts/encode-ktx2.mjs",
     "data:textures": "node scripts/fetch-planet-textures.mjs"
   },
   "dependencies": {

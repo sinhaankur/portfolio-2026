@@ -19,9 +19,36 @@ import {
   TextureLoader,
   Vector3,
   type ColorSpace,
+  type WebGLRenderer,
 } from "three"
+import { KTX2Loader } from "three/examples/jsm/loaders/KTX2Loader.js"
 
 import { requestFlyTo, SKY_SHELL_DISTANCE } from "./astronomy"
+
+/* ============================================================
+ * KTX2 — GPU-compressed textures (Basis Universal).
+ *
+ * KTX2 stores textures ALREADY in a GPU-native compressed format, so they
+ * upload straight to the GPU with NO CPU decode step — killing the 100–600ms
+ * main-thread decode stall an 8K/16K WebP causes — AND stay compressed in VRAM
+ * (~1/4–1/6 the memory, which is what keeps mobile from dropping the WebGL
+ * context). The Basis transcoder is SELF-HOSTED (public/basis/, like the Draco
+ * decoder) so there's no third-party CDN dependency.
+ *
+ * The loader needs the WebGLRenderer to detect which compressed formats this GPU
+ * supports; a scene component calls setKtx2Renderer(gl) once on mount. Until then
+ * (and where KTX2 is unsupported) callers fall back to the WebP path.
+ * ============================================================ */
+let _ktx2: KTX2Loader | null = null
+let _ktx2Renderer: WebGLRenderer | null = null
+
+/** Wire the KTX2 loader to the live renderer (called once from a scene component
+ *  with useThree().gl). Required before any .ktx2 can transcode. */
+export function setKtx2Renderer(gl: WebGLRenderer): void {
+  if (_ktx2Renderer === gl && _ktx2) return
+  _ktx2Renderer = gl
+  _ktx2 = new KTX2Loader().setTranscoderPath("/basis/").detectSupport(gl)
+}
 
 /**
  * Load a texture with OFF-THREAD image decoding.
@@ -53,6 +80,22 @@ export function loadTextureAsync(
     loader.setCrossOrigin("anonymous")
     loader.load(url, (tex) => { tex.colorSpace = colorSpace; onLoad(tex) }, undefined, () => onError?.())
   }
+
+  // KTX2 (GPU-compressed) — no CPU decode at all, uploads straight to the GPU.
+  // Only when the renderer's been wired (setKtx2Renderer) and this is a .ktx2.
+  // On any failure we fall through to the WebP sibling if the caller passed one
+  // via the url swap upstream — here we just report the error so the caller can
+  // retry the .webp rung.
+  if (/\.ktx2($|\?)/i.test(url) && _ktx2) {
+    _ktx2.setCrossOrigin("anonymous").load(
+      url,
+      (tex) => { tex.colorSpace = colorSpace; onLoad(tex) },
+      undefined,
+      () => onError?.(),
+    )
+    return
+  }
+
   if (typeof createImageBitmap === "undefined") { viaImg(); return }
 
   const loader = new ImageBitmapLoader()

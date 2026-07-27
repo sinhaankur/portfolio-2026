@@ -80,7 +80,7 @@ import {
   ZODIACAL_VERTEX_SHADER,
   ZODIACAL_FRAGMENT_SHADER,
 } from "./shaders"
-import { makeFocusHandler, parseDistanceLy, skyDepthRadius } from "./scene-shared"
+import { makeFocusHandler, parseDistanceLy, skyDepthRadius, setKtx2Renderer } from "./scene-shared"
 import { ClusterDetail, ClusterStarField, isGlobular } from "./cluster-detail"
 import { SkyPanorama } from "./sky-panorama"
 import { OrbitRing } from "./orbit-ring"
@@ -1595,13 +1595,16 @@ export function SceneContents({
    *  count is fixed data. Defaults to 1 (the historic desktop density). */
   densityScale?: number
 }) {
-  const { scene } = useThree()
+  const { scene, gl } = useThree()
   useEffect(() => {
     scene.fog = new FogExp2(invert ? "#efece3" : "#050505", 0.0035)
     return () => {
       scene.fog = null
     }
   }, [scene, invert])
+  // Wire the KTX2 loader to this renderer once so GPU-compressed textures can
+  // detect the device's supported format + transcode. No-op until a .ktx2 loads.
+  useEffect(() => { setKtx2Renderer(gl) }, [gl])
 
   // Progressive warmup — richer layers stream in over the first ~2.5s so the
   // first frame is light (no 195ms build hitch) and quality blooms with time.

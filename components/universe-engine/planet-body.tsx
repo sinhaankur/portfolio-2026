@@ -879,7 +879,10 @@ export function PlanetBody({
           loadTextureAsync(
             url,
             (hi) => { hi.anisotropy = 8; setTexture(hi); g.done = true; g.pending = false },
-            () => { g.pending = false }, // CDN miss → keep the shipped hi-res; retry on next close pass
+            // CDN miss (e.g. CORS not yet applied) → keep the shipped hi-res and
+            // mark done so we DON'T re-request every frame (that hammered the
+            // network + spammed the console). One attempt per body per session.
+            () => { g.done = true; g.pending = false },
           )
         }
       }

@@ -42,6 +42,12 @@ const stack: StackGroup[] = [
     Glyph: FrontendGlyph,
   },
   {
+    label: "Graphics & 3D",
+    description: "What the Universe Engine actually runs on.",
+    items: ["WebGL", "GLSL", "React Three Fiber", "KTX2 / Basis", "Draco", "Cloudflare R2"],
+    Glyph: FrontendGlyph,
+  },
+  {
     label: "Native",
     description: "When the surface needs to feel native.",
     items: ["SwiftUI", "Jetpack Compose", "Tauri", "Electron"],

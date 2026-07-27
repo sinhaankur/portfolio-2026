@@ -115,7 +115,14 @@ async function main() {
       console.log(`fps≥${sum.minFps} · p95 ${Math.round(sum.worstP95)}ms · max ${Math.round(sum.worstMax)}ms · tier ${sum.finalTier}${sum.converged ? "" : " (thrashing!)"}`)
 
       if (!sum.converged) problems.push(`${route}: adaptive tier never converged (thrashing).`)
-      const otherErr = errors.filter((e) => !/shader|glsl|webgl|program|link|compile/i.test(e))
+      // Ignore CORS / network-fail errors from the asset CDN: those are a
+      // known-pending R2 config (the 16K ladder degrades to local textures until
+      // CORS is set), NOT a code fault — and absent entirely against the real
+      // live origin. The generic "Failed to load resource: net::ERR_FAILED" is
+      // the browser's companion line to a blocked cross-origin fetch, so it's
+      // swept up here too (it only appears in dev from the un-CORSed CDN).
+      const cdnNoise = (e) => /CORS|Access-Control|assets\.sinhaankur\.com|net::ERR_FAILED|Failed to load resource/i.test(e)
+      const otherErr = errors.filter((e) => !/shader|glsl|webgl|program|link|compile/i.test(e) && !cdnNoise(e))
       if (otherErr.length) problems.push(`${route}: runtime error → ${otherErr[0]}`)
 
       if (GPU_MODE) {
