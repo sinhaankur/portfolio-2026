@@ -176,6 +176,12 @@ export function UniverseEngine({
   const [mounted, setMounted] = useState(false)
   const [reducedMotion, setReducedMotion] = useState(false)
   const [mobile, setMobile] = useState(false)
+  // ?perf overlay — a tiny live FPS / p95-frametime / tier readout so real
+  // choppiness can be MEASURED on the actual device (headless can't). Off unless
+  // the URL has ?perf. Updated by the adaptive controller's frame-time window,
+  // written straight to a DOM node (no React churn).
+  const [perfOverlay, setPerfOverlay] = useState(false)
+  const perfNodeRef = useRef<HTMLDivElement | null>(null)
   // Adaptive quality: detected device tier (low/mid/high) → per-tier DPR + density.
   const [tier, setTier] = useState<DeviceTier>("mid")
   // Gates the render loop: the hero is h-screen, so once the user scrolls past
@@ -281,6 +287,7 @@ export function UniverseEngine({
     const mobileMq = window.matchMedia("(max-width: 768px)")
     setReducedMotion(motionMq.matches)
     setMobile(mobileMq.matches)
+    try { if (new URLSearchParams(window.location.search).has("perf")) setPerfOverlay(true) } catch { /* ignore */ }
     // Adaptive quality — detect the real device tier (GPU / cores / RAM / OS) and
     // scale DPR + scene density to fit, so strong machines get the full scene and
     // weak ones stay smooth. Keeps deviceTierRef (mobile/desktop) for the texture
@@ -334,10 +341,24 @@ export function UniverseEngine({
       // Clear pins fidelity to max: the user chose the highest-resolution view,
       // so the adaptive controller stands down entirely (no auto-downgrade).
       if (now - windowStart >= WINDOW_MS) {
+        // Live perf readout (?perf overlay) — FPS + p95/max frame time + tier.
+        if (perfNodeRef.current && gaps.length > 0) {
+          const s = gaps.slice().sort((a, b) => a - b)
+          const p50 = s[s.length >> 1]
+          const p95v = s[Math.min(s.length - 1, Math.floor(s.length * 0.95))]
+          const max = s[s.length - 1]
+          const fps = Math.round(1000 / p50)
+          perfNodeRef.current.textContent =
+            `${fps} fps · p50 ${Math.round(p50)}ms · p95 ${Math.round(p95v)}ms · max ${Math.round(max)}ms · ${perfTierRef.current}${superClearRef.current ? " · SUPER" : ""}`
+        }
         if (!superClearRef.current && gaps.length >= 30 && now >= cooldownUntil) {
           const sorted = gaps.slice().sort((a, b) => a - b)
-          const median = sorted[sorted.length >> 1]
-          const { tier: next, direction } = adaptTier(perfTierRef.current, median, ceiling)
+          // Judge on the p95 (near-worst frame), NOT the median: perceived
+          // choppiness is the stutter, not the typical frame. A device can post
+          // a smooth median while 1-in-10 frames spike — that spike is what
+          // reads as "laggy", so the p95 is what must drive the downgrade.
+          const p95 = sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.95))]
+          const { tier: next, direction } = adaptTier(perfTierRef.current, p95, ceiling)
           if (direction !== "hold" && next !== perfTierRef.current) {
             // A downgrade sets the ceiling: the tier we just left proved too heavy,
             // so don't climb back above the one below it. This converges the loop.
@@ -346,7 +367,7 @@ export function UniverseEngine({
             setTier(next)
             cooldownUntil = now + COOLDOWN_MS
             if (process.env.NODE_ENV !== "production") {
-              console.info(`[universe-engine] adapt ${direction} → ${next} (median ${Math.round(median)}ms, ceiling ${ceiling ?? "none"})`)
+              console.info(`[universe-engine] adapt ${direction} → ${next} (p95 ${Math.round(p95)}ms, ceiling ${ceiling ?? "none"})`)
             }
           }
         }
@@ -733,6 +754,17 @@ export function UniverseEngine({
           makeDefault
         />
       </Canvas>
+
+      {/* ?perf overlay — live FPS / frame-time / tier readout for diagnosing
+          real choppiness on-device. Written directly by the adaptive tick. */}
+      {perfOverlay && (
+        <div
+          ref={perfNodeRef}
+          className="absolute top-2 left-1/2 -translate-x-1/2 z-50 pointer-events-none rounded-full bg-black/70 px-3 py-1 font-mono text-[11px] tracking-tight text-emerald-300 tabular-nums"
+        >
+          measuring…
+        </div>
+      )}
 
       {showHud && (
         <>
