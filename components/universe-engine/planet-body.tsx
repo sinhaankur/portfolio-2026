@@ -81,7 +81,7 @@ import {
   ATMOS_VERTEX_SHADER,
   ATMOS_FRAGMENT_SHADER,
 } from "./shaders"
-import { _earthWorldPos, _sunWorldPos, _sunDirTmp } from "./scene-shared"
+import { _earthWorldPos, _sunWorldPos, _sunDirTmp, loadTextureAsync } from "./scene-shared"
 import {
   RoverPin,
   SatelliteShells,
@@ -447,11 +447,12 @@ export function PlanetBody({
     if (!baseUrl && !hiResUrl) return
     let cancelled = false
     const timer = setTimeout(() => {
-      const loader = new TextureLoader()
+      // OFF-THREAD decode (loadTextureAsync → ImageBitmapLoader) so an 8K/16K
+      // map never freezes the frame while it decodes — this was the source of
+      // the 100–600ms main-thread spikes the perf probe caught on the hero.
       // 1) base first — the globe appears the moment this lands.
-      loader.load(baseUrl ?? hiResUrl!, (tex) => {
+      loadTextureAsync(baseUrl ?? hiResUrl!, (tex) => {
         if (cancelled) return
-        tex.colorSpace = SRGBColorSpace
         tex.anisotropy = 8
         setTexture(tex)
         // 2) upgrade to hi-res in the background, if different, then swap. If the
@@ -460,21 +461,18 @@ export function PlanetBody({
         //    globe stays crisp instead of stuck on the base — the graceful
         //    degrade that makes the CDN safe to enable before every asset exists.
         if (hiResUrl && hiResUrl !== baseUrl) {
-          loader.load(
+          loadTextureAsync(
             hiResUrl,
             (hi) => {
               if (cancelled) return
-              hi.colorSpace = SRGBColorSpace
               hi.anisotropy = 8
               setTexture(hi)
             },
-            undefined,
             () => {
               const localHi = planet.raw.hiResTextureUrl
               if (cancelled || !localHi || localHi === hiResUrl || localHi === baseUrl) return
-              loader.load(localHi, (hi) => {
+              loadTextureAsync(localHi, (hi) => {
                 if (cancelled) return
-                hi.colorSpace = SRGBColorSpace
                 hi.anisotropy = 8
                 setTexture(hi)
               })

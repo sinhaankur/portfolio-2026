@@ -12,9 +12,59 @@
  * is synchronous.
  */
 
-import { Vector3 } from "three"
+import {
+  ImageBitmapLoader,
+  SRGBColorSpace,
+  Texture,
+  TextureLoader,
+  Vector3,
+  type ColorSpace,
+} from "three"
 
 import { requestFlyTo, SKY_SHELL_DISTANCE } from "./astronomy"
+
+/**
+ * Load a texture with OFF-THREAD image decoding.
+ *
+ * The default TextureLoader decodes the image on the MAIN thread (an <img>
+ * element's synchronous decode), so loading an 8K/16K planet map freezes the
+ * frame for 100–600 ms — the exact spikes the perf probe caught on the home
+ * hero. ImageBitmapLoader routes the decode through createImageBitmap(), which
+ * runs on a browser worker thread, so the main thread never stalls and the
+ * globe's texture swap is jank-free.
+ *
+ * Same callback shape as TextureLoader.load(url, onLoad, undefined, onError) so
+ * call sites just swap the loader. Falls back to TextureLoader where
+ * createImageBitmap is unavailable (older Safari), so nothing regresses.
+ */
+export function loadTextureAsync(
+  url: string,
+  onLoad: (tex: Texture) => void,
+  onError?: () => void,
+  colorSpace: ColorSpace = SRGBColorSpace,
+): void {
+  if (typeof createImageBitmap === "undefined") {
+    const fallback = new TextureLoader()
+    fallback.load(url, (tex) => { tex.colorSpace = colorSpace; onLoad(tex) }, undefined, () => onError?.())
+    return
+  }
+  const loader = new ImageBitmapLoader()
+  // Decode already flipped to match GL's texture orientation, so the resulting
+  // Texture keeps flipY = false (an ImageBitmap can't be flipped at upload time).
+  loader.setOptions({ imageOrientation: "flipY", premultiplyAlpha: "none" })
+  loader.load(
+    url,
+    (bitmap) => {
+      const tex = new Texture(bitmap as unknown as HTMLImageElement)
+      tex.flipY = false // the bitmap is pre-flipped above
+      tex.colorSpace = colorSpace
+      tex.needsUpdate = true
+      onLoad(tex)
+    },
+    undefined,
+    () => onError?.(),
+  )
+}
 
 /** Reused for a body's world position when computing the sun direction, etc. */
 export const _earthWorldPos = new Vector3()

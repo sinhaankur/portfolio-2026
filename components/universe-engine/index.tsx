@@ -85,6 +85,7 @@ const PLANET_NAMES = new Set([
 ])
 import { MobileBodySheet } from "./mobile-sheet"
 import { StaticStarfield } from "./static-starfield"
+import { LoadingBar } from "./loading-bar"
 import { GalaxyMusic } from "../galaxy-music"
 import type { BodyInfo, HoverHandler } from "./types"
 
@@ -768,6 +769,11 @@ export function UniverseEngine({
           makeDefault
         />
       </Canvas>
+
+      {/* Single hairline progress bar at the very bottom while assets stream in
+          — makes the "quality blooms with time" warmup visible instead of
+          reading as jank. Real load %, fades out when done. */}
+      <LoadingBar invert={invert} />
 
       {/* ?perf overlay — live FPS / frame-time / tier readout for diagnosing
           real choppiness on-device. Written directly by the adaptive tick. */}

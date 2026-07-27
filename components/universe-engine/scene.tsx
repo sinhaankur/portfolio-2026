@@ -1528,6 +1528,38 @@ function SolarBackdrop({ invert }: { invert: boolean }) {
 }
 
 /* ============================================================
+ * Progressive warmup — "quality increases with time".
+ *
+ * Building every decorative layer (8,920 HYG stars + ~395 clusters + the sky
+ * panorama + nebulae) synchronously on the FIRST frame froze the main thread
+ * for ~195 ms (the hitch the perf test flagged on the home hero). Instead we
+ * bring the scene up in STAGES: the essentials paint instantly, then the richer
+ * deep-space layers stream in over the next ~2.5 s — so first paint is light and
+ * smooth, and the full 16K-grade sky blooms in a beat later. Each stage's
+ * geometry build lands on its own frame, so no single frame does all the work.
+ *
+ * Stages: 0 = essentials only (solar system + constellations) · 1 = bright stars
+ * + Milky Way · 2 = clusters + nebulae · 3 = the photographic sky panorama.
+ * The engine's adaptive controller separately climbs QUALITY tiers upward as the
+ * device proves headroom — same principle, applied to fidelity.
+ */
+function useWarmupStage(max = 3, stepMs = 700): number {
+  const [stage, setStage] = useState(0)
+  useEffect(() => {
+    if (stage >= max) return
+    // requestIdleCallback where available (build heavy geometry in idle time),
+    // else a timeout — either way each stage lands on a later frame, never the
+    // first. rAF-guarded so we never advance while a frame is still painting.
+    let raf = 0
+    const id = window.setTimeout(() => {
+      raf = requestAnimationFrame(() => setStage((s) => Math.min(max, s + 1)))
+    }, stepMs)
+    return () => { window.clearTimeout(id); if (raf) cancelAnimationFrame(raf) }
+  }, [stage, max, stepMs])
+  return stage
+}
+
+/* ============================================================
  * Public scene composition — mounted inside the <Canvas>.
  * ============================================================ */
 
@@ -1571,6 +1603,10 @@ export function SceneContents({
     }
   }, [scene, invert])
 
+  // Progressive warmup — richer layers stream in over the first ~2.5s so the
+  // first frame is light (no 195ms build hitch) and quality blooms with time.
+  const stage = useWarmupStage()
+
   return (
     <>
       <FlyToController interactive={interactive} />
@@ -1581,21 +1617,22 @@ export function SceneContents({
           line figures just trace what's already there. Skipped in
           invert/chart mode, matching the previous drei <Stars> behaviour. */}
       {/* Deep-space layers — hidden in solarOnly (the /lab/celestial explorer),
-          which focuses purely on our solar system. */}
-      {!solarOnly && (
+          which focuses purely on our solar system. STAGED so their geometry
+          builds land on later frames, not the first (kills the mount hitch). */}
+      {!solarOnly && stage >= 1 && (
         <BrightStarField invert={invert} mobile={mobile} enableMotion={enableMotion} />
       )}
       {/* Idle member stars for all ~395 catalog clusters, merged into ONE
           points draw — the fuzzy cluster glows granulate into real star
           sprinkles (globulars warm/old, open clusters blue/young). Replaces
           the old per-cluster 7-sphere spray (~2,800 draw calls → 1). */}
-      {!solarOnly && !invert && <ClusterStarField mobile={mobile} />}
+      {!solarOnly && !invert && stage >= 2 && <ClusterStarField mobile={mobile} />}
       {/* The real photographic sky (ESO/Brunier 360° panorama, CC BY 4.0) —
           actual dust lanes, star clouds and the Magellanic Clouds, mapped
           through the true J2000 galactic→equatorial rotation. Visible from
           the solar-system vantage; fades out as the camera flies to deep-sky
-          distances where the 3D galaxy model takes over. */}
-      {!solarOnly && !invert && <SkyPanorama mobile={mobile} />}
+          distances where the 3D galaxy model takes over. Streams in last. */}
+      {!solarOnly && !invert && stage >= 3 && <SkyPanorama mobile={mobile} />}
 
       {/* Hover layer for the 358 stars with proper names (Sirius, Vega,
           Betelgeuse, Polaris…). Invisible pointer-eventable spheres
@@ -1610,8 +1647,8 @@ export function SceneContents({
       {/* The solar neighbourhood in TRUE 3D — nearby named stars placed at their
           real heliocentric distance (not flattened on the sky shell), so pulling
           the camera out flies past Alpha Centauri, Sirius, Procyon… at real depth. */}
-      {!solarOnly && !mobile && <NearbyStars3D onHover={onHover} invert={invert} />}
-      {!solarOnly && (
+      {!solarOnly && !mobile && stage >= 2 && <NearbyStars3D onHover={onHover} invert={invert} />}
+      {!solarOnly && stage >= 1 && (
         <group rotation={[GALACTIC_PLANE_TILT_RAD, 0, 0]}>
           <MilkyWay onHover={onHover} mobile={mobile} invert={invert} interactive={interactive} densityScale={densityScale} />
         </group>
@@ -1629,8 +1666,9 @@ export function SceneContents({
         <NamedBodies onHover={onHover} invert={invert} interactive={interactive} />
       </group>
       {!solarOnly && <Constellations onHover={onHover} onResetView={onResetView} invert={invert} />}
-      {/* Deep-sky targets + exoplanet hosts — share the sky-shell with constellations. */}
-      {!solarOnly && <SkyPoints onHover={onHover} invert={invert} interactive={interactive} />}
+      {/* Deep-sky targets + exoplanet hosts — share the sky-shell with
+          constellations. Streams in at stage 2 (not first-frame essential). */}
+      {!solarOnly && stage >= 2 && <SkyPoints onHover={onHover} invert={invert} interactive={interactive} />}
       {enableMotion && <ShootingStars count={Math.round((mobile ? 3 : 6) * densityScale)} invert={invert} />}
       <ambientLight intensity={invert ? 0.55 : 0.18} />
     </>
