@@ -7,12 +7,17 @@
  * win. This wraps Khronos `toktx` (install: the KTX-Software macOS .pkg, or
  * `brew`/apt elsewhere). It reads a source image and writes a .ktx2 beside it.
  *
- * UASTC (not ETC1S) for the planet surfaces: higher quality for detailed maps,
- * with zstd supercompression to claw back the size. Mipmaps baked in (--genmipmap)
- * so distant globes stay sharp + shimmer-free.
+ * ETC1S (not UASTC) is the default for the planet surfaces. Measured on Mars 4K:
+ *   WebP        1.10 MB download · 32 MB VRAM · main-thread decode stall
+ *   KTX2 UASTC  8.13 MB download · 16 MB VRAM · no stall   ← download 7x WORSE
+ *   KTX2 ETC1S  1.42 MB download ·  4 MB VRAM · no stall   ← the win
+ * ETC1S keeps the download ~flat while cutting VRAM 8x and removing the decode
+ * stall entirely — the actual mobile-smoothness goal. Pass --uastc for the
+ * higher-quality (but much larger) mode on a texture where it's worth it.
+ * Mipmaps baked in (--genmipmap) so distant globes stay sharp + shimmer-free.
  *
  * Usage:
- *   node scripts/encode-ktx2.mjs <input.png|jpg> [output.ktx2]
+ *   node scripts/encode-ktx2.mjs <input.png|jpg|webp> [output.ktx2] [--uastc]
  *   node scripts/encode-ktx2.mjs public/textures/mars-4k.webp
  *   pnpm assets:ktx2 public/textures/mars-4k.webp
  *
@@ -24,9 +29,12 @@ import { spawnSync } from "node:child_process"
 import { existsSync, statSync } from "node:fs"
 import { basename, extname } from "node:path"
 
-const [inputArg, outputArg] = process.argv.slice(2)
+const rawArgs = process.argv.slice(2)
+const useUastc = rawArgs.includes("--uastc")
+const positional = rawArgs.filter((a) => !a.startsWith("--"))
+const [inputArg, outputArg] = positional
 if (!inputArg) {
-  console.error("usage: node scripts/encode-ktx2.mjs <input.(png|jpg|webp)> [output.ktx2]")
+  console.error("usage: node scripts/encode-ktx2.mjs <input.(png|jpg|webp)> [output.ktx2] [--uastc]")
   process.exit(2)
 }
 if (!existsSync(inputArg)) { console.error(`✗ input not found: ${inputArg}`); process.exit(2) }
@@ -55,16 +63,10 @@ if (/\.webp$/i.test(inputArg)) {
 
 const out = outputArg ?? inputArg.replace(/\.(png|jpg|jpeg|webp)$/i, ".ktx2")
 
-// UASTC quality 2 (good/fast), zstd 18 supercompression, mipmaps, sRGB.
-const args = [
-  "--t2",                 // KTX2 container
-  "--encode", "uastc",
-  "--uastc_quality", "2",
-  "--zcmp", "18",
-  "--genmipmap",
-  "--assign_oetf", "srgb",
-  out, src,
-]
+// Default ETC1S (small download + tiny VRAM); --uastc for the quality mode.
+const args = useUastc
+  ? ["--t2", "--encode", "uastc", "--uastc_quality", "2", "--zcmp", "18", "--genmipmap", "--assign_oetf", "srgb", out, src]
+  : ["--t2", "--encode", "etc1s", "--clevel", "4", "--qlevel", "255", "--genmipmap", "--assign_oetf", "srgb", out, src]
 console.log(`toktx ${args.join(" ")}`)
 const res = spawnSync("toktx", args, { stdio: "inherit" })
 if (res.status !== 0) { console.error("✗ toktx failed"); process.exit(1) }

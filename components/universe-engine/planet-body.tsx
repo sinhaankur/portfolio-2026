@@ -444,11 +444,13 @@ export function PlanetBody({
     // VRAM) AND (b) the fine device tier can AFFORD it (allowHiResTextures — false
     // on low-end + webOS, and on any device the adaptive controller has throttled
     // down to low). So a weak desktop no longer force-pulls megabytes of texture.
+    // Prefer a KTX2 (GPU-compressed) hi-res map when the body ships one: it
+    // uploads with no decode stall + ~1/8 the VRAM of the WebP. loadTextureAsync
+    // routes .ktx2 through the self-hosted Basis transcoder automatically.
     const hiResUrl =
       deviceTierRef.current === "desktop" &&
-      qualityForTier(perfTierRef.current).allowHiResTextures &&
-      planet.raw.hiResTextureUrl
-        ? planet.raw.hiResTextureUrl
+      qualityForTier(perfTierRef.current).allowHiResTextures
+        ? (planet.raw.ktx2TextureUrl ?? planet.raw.hiResTextureUrl)
         : undefined
     if (!baseUrl && !hiResUrl) return
     let cancelled = false

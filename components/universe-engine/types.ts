@@ -175,6 +175,11 @@ export type Planet = {
    *  phones can't resolve 4K and shouldn't pay to download it. Absent = the
    *  base textureUrl is used everywhere. */
   hiResTextureUrl?: string
+  /** Optional KTX2 (GPU-compressed, Basis ETC1S) version of the hi-res map.
+   *  Preferred over hiResTextureUrl when present: uploads to the GPU with NO
+   *  decode stall and ~1/8 the VRAM. Same desktop/tier gating. Decoded via the
+   *  self-hosted Basis transcoder (public/basis/). */
+  ktx2TextureUrl?: string
   /** Path (within the asset CDN) to a MAX-res map (e.g. 16K), used ONLY in Super
    *  Clear mode. Resolved via cdnAsset() with hiResTextureUrl as the local
    *  fallback, so the site never depends on the CDN to render. */
