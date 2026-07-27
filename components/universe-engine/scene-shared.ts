@@ -43,12 +43,20 @@ export function loadTextureAsync(
   onError?: () => void,
   colorSpace: ColorSpace = SRGBColorSpace,
 ): void {
-  if (typeof createImageBitmap === "undefined") {
-    const fallback = new TextureLoader()
-    fallback.load(url, (tex) => { tex.colorSpace = colorSpace; onLoad(tex) }, undefined, () => onError?.())
-    return
+  // TextureLoader path (main-thread decode, but works cross-origin via <img>):
+  // the safety net for (a) browsers without createImageBitmap and (b) an
+  // ImageBitmap fetch that fails CORS — three's ImageBitmapLoader uses fetch(),
+  // which REQUIRES the server to send Access-Control-Allow-Origin, whereas the
+  // <img crossOrigin> path is more forgiving. We prefer off-thread, fall back here.
+  const viaImg = () => {
+    const loader = new TextureLoader()
+    loader.setCrossOrigin("anonymous")
+    loader.load(url, (tex) => { tex.colorSpace = colorSpace; onLoad(tex) }, undefined, () => onError?.())
   }
+  if (typeof createImageBitmap === "undefined") { viaImg(); return }
+
   const loader = new ImageBitmapLoader()
+  loader.setCrossOrigin("anonymous")
   // Decode already flipped to match GL's texture orientation, so the resulting
   // Texture keeps flipY = false (an ImageBitmap can't be flipped at upload time).
   loader.setOptions({ imageOrientation: "flipY", premultiplyAlpha: "none" })
@@ -62,7 +70,10 @@ export function loadTextureAsync(
       onLoad(tex)
     },
     undefined,
-    () => onError?.(),
+    // Off-thread fetch failed (often CORS on a cross-origin CDN) → retry the
+    // forgiving <img> path before giving up, so a missing CORS header degrades
+    // to a working (if main-thread) load instead of a blank texture.
+    () => viaImg(),
   )
 }
 

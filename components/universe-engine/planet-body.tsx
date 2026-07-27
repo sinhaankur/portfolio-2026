@@ -327,6 +327,12 @@ export function PlanetBody({
   const [nightTexture, setNightTexture] = useState<Texture | null>(null)
   const [elevationTexture, setElevationTexture] = useState<Texture | null>(null)
   const detailActive = isHovered || focused
+  // Max-res (CDN 16K/8K) upgrade guard — "16K for everyone as you zoom in". The
+  // top rung of the resolution ladder is served from R2 (free egress); it's
+  // pulled ONCE when the camera gets close to this body, off-thread so the swap
+  // never stalls, for EVERY user — not just Super Clear. 'pending' blocks a
+  // second fetch while one is in flight; 'done' stops it after it lands.
+  const maxResRef = useRef<{ pending: boolean; done: boolean }>({ pending: false, done: false })
 
   // Listen for a global focus-clear (e.g. Reset) so the planet collapses
   // back to its idle chart-marker appearance.
@@ -842,6 +848,40 @@ export function PlanetBody({
         const want = detailActive ? peak * closeness : 0
         const kk = 1 - Math.exp(-delta * 6)
         dayNightUniforms.uNormalStrength.value += (want - dayNightUniforms.uNormalStrength.value) * kk
+      }
+    }
+    // ── Max-res texture ladder — "16K for everyone as you zoom in" ────────────
+    // When the camera gets close to a body that has a CDN top-rung map
+    // (superClearTextureUrl → R2, free egress), pull it ONCE, off-thread, and
+    // swap it in — for every user, not just Super Clear. This is what makes the
+    // 16K look-and-feel available to all: the shipped 2K/8K carries first paint
+    // and normal distance; the CDN 16K streams in only when you actually zoom to
+    // the surface, where the detail reads. Gated to desktop + a tier that can
+    // afford it (never force megabytes onto a phone or a throttled machine), and
+    // degrades to the shipped hi-res if the CDN is unset/unreachable.
+    {
+      const g = maxResRef.current
+      if (
+        !g.done && !g.pending &&
+        !superClearRef.current && // Super Clear already pulls 16K at mount via surfaceTextureUrl
+        planet.raw.superClearTextureUrl &&
+        deviceTierRef.current === "desktop" &&
+        qualityForTier(perfTierRef.current).allowHiResTextures &&
+        (meshRef.current || texMeshRef.current)
+      ) {
+        ;(texMeshRef.current ?? meshRef.current)!.getWorldPosition(_earthWorldPos)
+        const camDist = state.camera.position.distanceTo(_earthWorldPos)
+        // Trigger once inside ~8 body-radii — close enough that the extra detail
+        // is worth the megabytes, far enough to have it ready before you arrive.
+        if (camDist < planet.visualRadius * 8) {
+          g.pending = true
+          const url = cdnAsset(planet.raw.superClearTextureUrl, planet.raw.hiResTextureUrl ?? planet.raw.textureUrl)
+          loadTextureAsync(
+            url,
+            (hi) => { hi.anisotropy = 8; setTexture(hi); g.done = true; g.pending = false },
+            () => { g.pending = false }, // CDN miss → keep the shipped hi-res; retry on next close pass
+          )
+        }
       }
     }
     // Poll the satellites toggle (only matters for bodies with orbiters).
