@@ -264,6 +264,11 @@ export function UniverseEngine({
   // same remount key so the scene re-lays cleanly (same pattern as trueScale).
   const [solarMode, setSolarMode] = useState(solarOnly)
   const orbitRef = useRef<OrbitControlsImpl | null>(null)
+  // Timestamp of the last user drag/zoom. Drives idle-only autoRotate: the
+  // contemplative spin STOPS the instant you grab the scene and only resumes
+  // after a few seconds of stillness, so you're never fighting a drifting
+  // camera while trying to look at something (the "hard to navigate" fix).
+  const lastInteractRef = useRef(0)
   const { resolvedTheme } = useTheme()
   // Prop override wins; otherwise the engine flips to chart mode automatically
   // when the page theme is light. Gated on `mounted` to avoid the SSR/CSR
@@ -436,6 +441,22 @@ export function UniverseEngine({
       window.removeEventListener("pointercancel", clear)
     }
   }, [])
+
+  // Stamp the interaction clock on wheel-zoom + pointer grab. OrbitControls'
+  // onStart covers drag/pinch but NOT wheel-zoom (that only fires onChange),
+  // so autoRotate could sneak back in mid-scroll without this. Keeps idle-only
+  // autoRotate honest: any way you move the camera pauses the drift.
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const stamp = () => { lastInteractRef.current = performance.now() }
+    el.addEventListener("wheel", stamp, { passive: true })
+    el.addEventListener("pointerdown", stamp, { passive: true })
+    return () => {
+      el.removeEventListener("wheel", stamp)
+      el.removeEventListener("pointerdown", stamp)
+    }
+  }, [mounted])
 
   const handleReset = useCallback(() => {
     // Cancel any sustained follow first; otherwise the controller would
@@ -654,9 +675,23 @@ export function UniverseEngine({
             hands the camera back to OrbitControls untouched. */}
         {scrollDriveRef && !interactive && <ScrollDolly driveRef={scrollDriveRef} />}
 
+        {/* NavFeel scales rotate/zoom speed by distance + gates autoRotate to
+            idle so moving around the space feels predictable at every scale. */}
+        {interactive && (
+          <NavFeel
+            controlsRef={orbitRef}
+            lastInteractRef={lastInteractRef}
+            autoRotateWanted={!reducedMotion && !followingLabel}
+          />
+        )}
+
         <OrbitControls
           ref={orbitRef as React.Ref<OrbitControlsImpl>}
           enabled={interactive}
+          // Stamp the interaction clock when the user GRABS the scene (drag /
+          // pinch / wheel via the pointer). NOT onChange — that fires while
+          // autoRotate itself moves the camera and would deadlock the resume.
+          onStart={() => { lastInteractRef.current = performance.now() }}
           // Pan available in explore mode so keyboard arrows + right-click drag
           // let users drift past the default radius around the Sun. Screen-space
           // panning keeps the gesture predictable across viewing angles.
@@ -664,7 +699,9 @@ export function UniverseEngine({
           screenSpacePanning
           keyPanSpeed={8}
           enableDamping
-          dampingFactor={0.08}
+          // Lighter damping (0.12 vs 0.08) so the camera SETTLES faster after a
+          // drag instead of gliding on — a big part of the "won't sit still" feel.
+          dampingFactor={0.12}
           // minDistance 0.02 (paired with camera near 0.012) lets you zoom in
           // as close as the renderer allows — right down to a Starlink point in
           // LEO, the Moon's surface, a comet nucleus — without near-plane
@@ -1009,6 +1046,49 @@ function ScrollDolly({ driveRef }: { driveRef: React.MutableRefObject<number> })
       .copy(pos)
       .addScaledVector(back, p * 26)   // dolly out through the arm
       .addScaledVector(up, p * 6)      // rise gently above the ecliptic
+  })
+  return null
+}
+
+/*
+ * NavFeel — makes moving around the space feel PREDICTABLE across the engine's
+ * enormous zoom range (0.006 → 600 units, a 100,000× span). Two problems it
+ * solves, both "hard to navigate" complaints:
+ *
+ *   1. DISTANCE-SCALED SPEED. OrbitControls uses a fixed rotateSpeed, so the
+ *      same drag whips the camera when you're close to a body yet barely moves
+ *      it when you're far out. We scale rotateSpeed by how far the camera is
+ *      from its target, so a drag covers a consistent ANGULAR amount at every
+ *      scale — close-up framing stops feeling twitchy, wide shots stop feeling
+ *      stuck. Zoom speed eases the same way so a scroll never over/undershoots.
+ *
+ *   2. IDLE-ONLY AUTOROTATE. The contemplative spin resumes only after ~2.5s of
+ *      stillness; any drag/zoom stamps lastInteractRef and the spin cuts out, so
+ *      you never fight a drifting camera while trying to look at something.
+ */
+function NavFeel({
+  controlsRef,
+  lastInteractRef,
+  autoRotateWanted,
+}: {
+  controlsRef: React.MutableRefObject<OrbitControlsImpl | null>
+  lastInteractRef: React.MutableRefObject<number>
+  autoRotateWanted: boolean
+}) {
+  useDollyFrame(({ camera }) => {
+    const c = controlsRef.current
+    if (!c) return
+    // Distance from camera to the orbit target = the natural "scale" we're at.
+    const dist = camera.position.distanceTo(c.target)
+    // Map distance → a rotate speed that keeps angular drag roughly constant.
+    // Clamped so extremes stay usable (very close ~0.28, very far ~0.85).
+    const rot = Math.min(0.85, Math.max(0.28, 0.28 + dist * 0.02))
+    c.rotateSpeed = rot
+    // Zoom speed a touch gentler when close so you don't punch through a body.
+    c.zoomSpeed = Math.min(0.9, Math.max(0.45, 0.45 + dist * 0.015))
+    // Idle-only autorotate: resume only after 2.5s of no interaction.
+    const idle = performance.now() - lastInteractRef.current > 2500
+    c.autoRotate = autoRotateWanted && idle
   })
   return null
 }

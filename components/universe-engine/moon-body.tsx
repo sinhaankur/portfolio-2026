@@ -123,7 +123,7 @@ export function MoonBody({
       const w = img?.width ?? 4096
       const h = img?.height ?? 2048
       dayNightUniforms.uElevationTexel.value.set(1 / w, 1 / h)
-      dayNightUniforms.uNormalStrength.value = superClearRef.current ? 6.0 : 3.0
+      // uNormalStrength driven per-frame (distance + highlight aware) in useFrame.
     } else {
       dayNightUniforms.uNormalStrength.value = 0
     }
@@ -203,7 +203,7 @@ export function MoonBody({
     return () => window.removeEventListener("universe:sky-focus", onFocus)
   }, [interactive, moon.name, moon.visualRadius])
 
-  useFrame((_, delta) => {
+  useFrame((state, delta) => {
     // Date-driven so moons stay in lockstep with the scrubbable clock.
     if (orbitRef.current) {
       orbitRef.current.rotation.y = meanAnomalyAt(startPhase, moon.periodDays, simTimeRef.current.simMs)
@@ -250,6 +250,18 @@ export function MoonBody({
       _sunWorldPos.set(SUN_OFFSET_SCENE, 0, 0)
       _sunDirTmp.copy(_sunWorldPos).sub(_earthWorldPos).normalize()
       dayNightUniforms.uSunDir.value.copy(_sunDirTmp)
+      // Per-pixel lunar relief is a deep-zoom reward — fade uNormalStrength in
+      // only when the camera is close + the moon is highlighted, so the 4 extra
+      // texture fetches + derivatives cost nothing at normal distance (the fix
+      // for the relief-change lag).
+      if (elevationTexture) {
+        const camDist = state.camera.position.distanceTo(_earthWorldPos)
+        const rad = moon.visualRadius
+        const closeness = Math.max(0, Math.min(1, (14 * rad - camDist) / (10 * rad)))
+        const peak = superClearRef.current ? 6.0 : 3.0
+        const want = highlighted ? peak * closeness : 0
+        dayNightUniforms.uNormalStrength.value += (want - dayNightUniforms.uNormalStrength.value) * k
+      }
     }
   })
 

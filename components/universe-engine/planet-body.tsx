@@ -624,7 +624,9 @@ export function PlanetBody({
       const w = img?.width ?? 4096
       const h = img?.height ?? 2048
       dayNightUniforms.uElevationTexel.value.set(1 / w, 1 / h)
-      dayNightUniforms.uNormalStrength.value = superClearRef.current ? 6.0 : 3.0
+      // uNormalStrength is driven per-frame (distance + engagement aware) so the
+      // per-pixel relief costs nothing until the camera is actually close — see
+      // the day/night block in useFrame. Start at 0.
     } else {
       dayNightUniforms.uNormalStrength.value = 0
     }
@@ -827,6 +829,22 @@ export function PlanetBody({
       _sunWorldPos.set(SUN_OFFSET_SCENE, 0, 0)
       _sunDirTmp.copy(_sunWorldPos).sub(_earthWorldPos).normalize()
       dayNightUniforms.uSunDir.value.copy(_sunDirTmp)
+      // Per-pixel relief is a DEEP-ZOOM reward, not an always-on tax. The 4
+      // extra texture fetches + dFdx/dFdy per fragment only earn their keep when
+      // the body fills the view; at normal distance the mesh + displacement
+      // already carry it. Fade uNormalStrength by how close the camera is (and
+      // gate it to detailActive) so it costs ZERO until you actually zoom in —
+      // this is the fix for the relief-change lag. Peak is Super-Clear-stronger.
+      if (elevationTexture) {
+        const camDist = state.camera.position.distanceTo(_earthWorldPos)
+        // near = ~4 radii away → full strength; far = ~14 radii → off.
+        const rad = planet.visualRadius
+        const closeness = Math.max(0, Math.min(1, (14 * rad - camDist) / (10 * rad)))
+        const peak = superClearRef.current ? 6.0 : 3.0
+        const want = detailActive ? peak * closeness : 0
+        const kk = 1 - Math.exp(-delta * 6)
+        dayNightUniforms.uNormalStrength.value += (want - dayNightUniforms.uNormalStrength.value) * kk
+      }
     }
     // Poll the satellites toggle (only matters for bodies with orbiters).
     if (satShells) {
