@@ -37,7 +37,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { Canvas } from "@react-three/fiber"
 import { OrbitControls } from "@react-three/drei"
 import { TOUCH, Vector3 } from "three"
-import { useFrame as useDollyFrame } from "@react-three/fiber"
+import { useFrame as useDollyFrame, useThree } from "@react-three/fiber"
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib"
 import { useTheme } from "next-themes"
 import { motion } from "framer-motion"
@@ -684,6 +684,17 @@ export function UniverseEngine({
             autoRotateWanted={!reducedMotion && !followingLabel}
           />
         )}
+        {/* Passive HOME hero only: soften render resolution during active page
+            scroll so the heavy backdrop never fights the scroll (snaps back
+            crisp on stop). Not in explore mode — you want full sharpness there. */}
+        {!interactive && !reducedMotion && (
+          <ScrollDprGuard
+            baseDpr={Math.min(
+              typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1,
+              (() => { const d = dprForCanvas(qualityForTier(tier).dpr); return Array.isArray(d) ? d[1] : d })(),
+            )}
+          />
+        )}
 
         <OrbitControls
           ref={orbitRef as React.Ref<OrbitControlsImpl>}
@@ -1089,6 +1100,39 @@ function NavFeel({
     // Idle-only autorotate: resume only after 2.5s of no interaction.
     const idle = performance.now() - lastInteractRef.current > 2500
     c.autoRotate = autoRotateWanted && idle
+  })
+  return null
+}
+
+/*
+ * ScrollDprGuard — smoothness during page scroll on the HOME hero. The full
+ * engine (~90 per-frame callbacks) renders behind the hero while you scroll the
+ * opening, competing with the browser's scroll compositing → the "heavy scroll"
+ * feel. GPU cost is dominated by shaded-pixel count, so while the page is
+ * ACTIVELY scrolling we drop the render resolution (DPR) to ~0.72× of base —
+ * the scroll motion masks the softness completely — then ease it back to full
+ * the instant scrolling stops, so the resting sky is pixel-crisp. Passive mode
+ * only (never in explore/celestial, where you want full sharpness while still).
+ */
+function ScrollDprGuard({ baseDpr }: { baseDpr: number }) {
+  const { gl } = useThree()
+  const scrollingUntil = useRef(0)
+  const current = useRef(baseDpr)
+  useEffect(() => {
+    const onScroll = () => { scrollingUntil.current = performance.now() + 140 }
+    window.addEventListener("scroll", onScroll, { passive: true })
+    return () => window.removeEventListener("scroll", onScroll)
+  }, [])
+  useDollyFrame((_, delta) => {
+    const scrolling = performance.now() < scrollingUntil.current
+    const target = scrolling ? baseDpr * 0.72 : baseDpr
+    // Ease so the resolution change is never a visible pop.
+    const k = 1 - Math.exp(-(scrolling ? 22 : 9) * delta)
+    const next = current.current + (target - current.current) * k
+    if (Math.abs(next - current.current) > 0.01) {
+      current.current = next
+      gl.setPixelRatio(next)
+    }
   })
   return null
 }

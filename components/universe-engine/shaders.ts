@@ -802,3 +802,61 @@ export const DWARF_SURFACE_FRAGMENT_SHADER = `
     gl_FragColor = vec4(col, 1.0);
   }
 `
+
+/* ============================================================
+ * Galactic dust haze — the soft glowing "spine" of the Milky Way.
+ *
+ * A single large additive disc lying in the galactic plane. Real long-exposure
+ * sky photos show the Milky Way not as discrete stars but as a hazy luminous
+ * band threaded with dark dust lanes. This one cheap draw call adds that
+ * diffuse depth behind the point field: a warm core glow falling off toward
+ * the rim, softly modulated by value-noise dust lanes, elongated along the
+ * band. Additive + no depth-write so it sits behind everything as pure glow.
+ * ONE quad, no per-star cost — safe on every tier (dark theme only). ============================================================ */
+export const DUST_HAZE_VERTEX_SHADER = /* glsl */ `
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`
+export const DUST_HAZE_FRAGMENT_SHADER = /* glsl */ `
+  precision highp float;
+  varying vec2 vUv;
+  uniform float uTime;
+  uniform float uBrightness;
+  uniform vec3  uCoreColor;   // warm amber bulge glow
+  uniform vec3  uArmColor;    // cooler outer haze
+
+  // cheap value noise for the dust-lane mottling
+  float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+  float vnoise(vec2 p){
+    vec2 i = floor(p); vec2 f = fract(p);
+    vec2 u = f * f * (3.0 - 2.0 * f);
+    return mix(mix(hash(i), hash(i + vec2(1,0)), u.x),
+               mix(hash(i + vec2(0,1)), hash(i + vec2(1,1)), u.x), u.y);
+  }
+  float fbm(vec2 p){
+    float v = 0.0, a = 0.5;
+    for (int i = 0; i < 4; i++){ v += a * vnoise(p); p *= 2.0; a *= 0.5; }
+    return v;
+  }
+
+  void main() {
+    // Centre-origin coords; the disc's own UVs run 0..1.
+    vec2 c = vUv - 0.5;
+    // Radial core→rim falloff (soft, so no hard edge).
+    float r = length(c) * 2.0;
+    float core = smoothstep(1.0, 0.0, r);          // 1 at centre → 0 at rim
+    float glow = pow(core, 1.6);
+    // Dust-lane mottling: darker filaments crossing the band, drifting slowly.
+    float lanes = fbm(c * 7.0 + vec2(uTime * 0.01, 0.0));
+    lanes = 0.55 + 0.45 * lanes;                   // keep some floor so it glows
+    // Warm core → cooler arms as we move out.
+    vec3 col = mix(uCoreColor, uArmColor, clamp(r, 0.0, 1.0));
+    float a = glow * lanes * uBrightness;
+    // Fade the very edge to zero so the quad boundary is never visible.
+    a *= smoothstep(1.05, 0.7, r);
+    gl_FragColor = vec4(col * a, a);
+  }
+`

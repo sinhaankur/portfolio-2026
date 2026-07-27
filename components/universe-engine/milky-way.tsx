@@ -29,7 +29,7 @@ import {
   ShaderMaterial,
 } from "three"
 
-import { GALAXY_VERTEX_SHADER, GALAXY_FRAGMENT_SHADER } from "./shaders"
+import { GALAXY_VERTEX_SHADER, GALAXY_FRAGMENT_SHADER, DUST_HAZE_VERTEX_SHADER, DUST_HAZE_FRAGMENT_SHADER } from "./shaders"
 import { MILKY_WAY_INFO, SGR_A_INFO, gauss, timeWarpRef } from "./astronomy"
 import { makeFocusHandler } from "./scene-shared"
 import { NebulaClouds } from "./nebula"
@@ -57,7 +57,20 @@ export function MilkyWay({
 }) {
   const pointsRef = useRef<Points>(null)
   const matRef = useRef<ShaderMaterial>(null)
+  const dustMatRef = useRef<ShaderMaterial>(null)
   const { gl } = useThree()
+
+  // Diffuse dust-haze uniforms — the soft glowing spine behind the point field.
+  // Dark theme only (additive); chart mode keeps the clean ink look.
+  const dustUniforms = useMemo(
+    () => ({
+      uTime: { value: 0 },
+      uBrightness: { value: 0.5 },
+      uCoreColor: { value: new Color("#ffc089") }, // warm amber bulge
+      uArmColor: { value: new Color("#5a6b9c") },  // cool dusty blue arms
+    }),
+    [],
+  )
 
   const geometry = useMemo(() => {
     // Mobile counts run ~40% of desktop to keep the GPU breathing. The
@@ -290,10 +303,33 @@ export function MilkyWay({
     if (matRef.current) {
       ;(matRef.current.uniforms.uTime as { value: number }).value += delta
     }
+    if (dustMatRef.current) {
+      ;(dustMatRef.current.uniforms.uTime as { value: number }).value += delta
+    }
   })
 
   return (
     <group>
+      {/* Diffuse dust-haze spine — a single big additive disc lying in the
+          galactic plane, giving the Milky Way the hazy luminous band + dust
+          lanes of a real long-exposure sky. One draw call, no per-star cost, so
+          it's safe on every tier. Dark theme only (additive bleaches on cream).
+          Rendered first so it sits BEHIND the point field as pure glow. */}
+      {!invert && (
+        <mesh rotation={[-Math.PI / 2, 0, 0]} scale={[52, 30, 1]}>
+          <planeGeometry args={[1, 1]} />
+          <shaderMaterial
+            ref={dustMatRef}
+            vertexShader={DUST_HAZE_VERTEX_SHADER}
+            fragmentShader={DUST_HAZE_FRAGMENT_SHADER}
+            uniforms={dustUniforms}
+            transparent
+            depthWrite={false}
+            blending={AdditiveBlending}
+          />
+        </mesh>
+      )}
+
       <points ref={pointsRef} geometry={geometry}>
         <shaderMaterial
           ref={matRef}
