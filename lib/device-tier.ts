@@ -163,6 +163,18 @@ export function detectDeviceProfile(): DeviceProfile {
   else if (score <= -1) tier = "low"
   else tier = "mid"
 
+  // CONSERVATIVE START when the GPU is unknown. Browsers increasingly MASK the
+  // WebGL renderer string (privacy) → gpuHint is null, and we'd otherwise lean on
+  // soft priors (macOS +1, core/RAM counts) that can over-promise on an
+  // integrated GPU and make the scene "lag big time" for the first seconds until
+  // the probe claws it back down. Starting one notch lower and letting the live
+  // FPS probe climb UP with proven headroom is always smoother than starting high
+  // and stuttering down. So with no real GPU signal, cap the opening tier at mid.
+  if (gpuHint == null && (tier === "high" || tier === "ultra")) {
+    tier = "mid"
+    notes.push("GPU masked → conservative start")
+  }
+
   // Hard floor: a phone/tablet never gets the heavy desktop scene.
   if ((os === "ios" || os === "android") && (tier === "high" || tier === "ultra")) tier = "mid"
   if (touch && smallViewport && (tier === "high" || tier === "ultra")) tier = "mid"
@@ -272,7 +284,13 @@ export function adaptTier(
   const DOWN_MS = 26 // p95 above this = the worst frames stutter → too heavy
   const UP_MS = 15   // even the p95 is fast → real headroom to climb
   if (p95Ms > DOWN_MS) {
-    const next = downgradeTier(tier)
+    // CRASH-LAND when it's badly slow: stepping down one tier per window takes
+    // ~6s to reach the floor from ultra, so a device that "lags big time" limps
+    // for seconds first. If the p95 is way over budget, drop TWO tiers at once
+    // (e.g. >~52ms ≈ worse than 19fps). A merely-over p95 still steps down one.
+    const steps = p95Ms > DOWN_MS * 2 ? 2 : 1
+    let next = tier
+    for (let i = 0; i < steps; i++) next = downgradeTier(next)
     return { tier: next, direction: next === tier ? "hold" : "down" }
   }
   if (p95Ms < UP_MS) {
@@ -311,6 +329,10 @@ export function qualityForTier(tier: DeviceTier): QualitySettings {
       return { dpr: [1, 1.5], densityScale: 0.7, allowHiResTextures: true, allowHeavyEffects: true }
     case "low":
     default:
-      return { dpr: [1, 1.25], densityScale: 0.4, allowHiResTextures: false, allowHeavyEffects: false }
+      // Floor allows rendering BELOW native (0.75× → the canvas draws at 3/4 the
+      // pixels and the browser upscales) — the single biggest fill-rate win for a
+      // device that lags big time. Softness is a fair trade for smooth; the probe
+      // only lands here when higher tiers proved too heavy. Density + effects cut.
+      return { dpr: [0.75, 1], densityScale: 0.35, allowHiResTextures: false, allowHeavyEffects: false }
   }
 }

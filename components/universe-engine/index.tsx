@@ -324,12 +324,15 @@ export function UniverseEngine({
     if (!mounted) return
     let raf = 0
     let last = performance.now()
-    let windowStart = last + 2500 // let init/textures settle before the first judge
+    // Shorter initial settle so a device that "lags big time" gets its FIRST
+    // correction ~1.2s in, not 4.5s in (2.5s settle + 2s window). Textures keep
+    // streaming after, but the frame COST is representative almost immediately.
+    let windowStart = last + 1200
     const gaps: number[] = []
     let cooldownUntil = windowStart
     let ceiling: DeviceTier | null = null
-    const WINDOW_MS = 2000
-    const COOLDOWN_MS = 2500
+    const WINDOW_MS = 1200
+    const COOLDOWN_MS = 2000
 
     const tick = () => {
       const now = performance.now()
@@ -351,7 +354,10 @@ export function UniverseEngine({
           perfNodeRef.current.textContent =
             `${fps} fps · p50 ${Math.round(p50)}ms · p95 ${Math.round(p95v)}ms · max ${Math.round(max)}ms · ${perfTierRef.current}${superClearRef.current ? " · SUPER" : ""}`
         }
-        if (!superClearRef.current && gaps.length >= 30 && now >= cooldownUntil) {
+        // Lowered from 30 → 12: when a device is lagging BADLY it may only post a
+        // dozen frames in the window, and that's exactly when we must be allowed
+        // to judge + downgrade — the old floor let the worst devices never adapt.
+        if (!superClearRef.current && gaps.length >= 12 && now >= cooldownUntil) {
           const sorted = gaps.slice().sort((a, b) => a - b)
           // Judge on the p95 (near-worst frame), NOT the median: perceived
           // choppiness is the stutter, not the typical frame. A device can post
