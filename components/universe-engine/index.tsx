@@ -49,6 +49,7 @@ import {
   cancelFlyTo,
   cancelFollow,
   flyToRef,
+  focusDepthRef,
   followRef,
   requestFlyTo,
   cloudsVisibleRef,
@@ -498,8 +499,20 @@ export function UniverseEngine({
     // Cancel any sustained follow first; otherwise the controller would
     // immediately re-target the followed body and undo the reset.
     cancelFollow()
-    cancelFlyTo()
-    orbitRef.current?.reset()
+    // Snap-OUT, smoothly. The old orbitRef.reset() teleported the camera back in
+    // a single frame — a hard, jarring snap. Instead fly back to the exact home
+    // pose (the Canvas's default camera + the solar-system target) through the
+    // SAME eased fly-to the rest of navigation uses, so leaving a body glides out
+    // to the wide view the way arriving glided in — seamless both directions.
+    requestFlyTo(
+      { x: SUN_OFFSET_SCENE, y: 0, z: 0 },
+      13, // matches the default camera distance
+      undefined,
+      { cameraPos: { x: SUN_OFFSET_SCENE + 4, y: 6, z: 13 } },
+    )
+    // Clear any per-focus deep-zoom near-plane override so the wide view isn't
+    // stuck with a tight clip range on the way out.
+    focusDepthRef.current = null
     // Broadcast a sky-focus clear so any persistent detail blooms (galaxy
     // spiral, nebula reveal) collapse back to their idle halos.
     if (typeof window !== "undefined") {
