@@ -505,8 +505,9 @@ export function PlanetBody({
   const hiResNightUrl =
     superClearRef.current && deviceTierRef.current === "desktop" && planet.raw.superClearNightTextureUrl
       ? cdnAsset(planet.raw.superClearNightTextureUrl, planet.raw.hiResNightTextureUrl)
-      : deviceTierRef.current === "desktop" && planet.raw.hiResNightTextureUrl
-        ? planet.raw.hiResNightTextureUrl
+      : deviceTierRef.current === "desktop" && (planet.raw.ktx2NightTextureUrl || planet.raw.hiResNightTextureUrl)
+        // Prefer the KTX2 night map (no decode stall, low VRAM) off the CDN path.
+        ? (planet.raw.ktx2NightTextureUrl ?? planet.raw.hiResNightTextureUrl)
         : undefined
   // Progressive, like the day map: load the light base night texture first (so the
   // day/night globe can show), then swap the 8K city-lights in behind it.
@@ -514,29 +515,24 @@ export function PlanetBody({
     if (!nightTextureUrl || nightTexture) return
     let cancelled = false
     const timer = setTimeout(() => {
-      const loader = new TextureLoader()
-      loader.load(nightTextureUrl, (tex) => {
+      loadTextureAsync(nightTextureUrl, (tex) => {
         if (cancelled) return
-        tex.colorSpace = SRGBColorSpace
         tex.anisotropy = 8
         setNightTexture(tex)
         if (hiResNightUrl && hiResNightUrl !== nightTextureUrl) {
-          loader.load(
+          loadTextureAsync(
             hiResNightUrl,
             (hi) => {
               if (cancelled) return
-              hi.colorSpace = SRGBColorSpace
               hi.anisotropy = 8
               setNightTexture(hi)
             },
-            undefined,
             () => {
-              // CDN night map missing/slow → fall back to the shipped 8K.
+              // KTX2/CDN night map missing → fall back to the shipped 8K WebP.
               const localHi = planet.raw.hiResNightTextureUrl
               if (cancelled || !localHi || localHi === hiResNightUrl || localHi === nightTextureUrl) return
-              loader.load(localHi, (hi) => {
+              loadTextureAsync(localHi, (hi) => {
                 if (cancelled) return
-                hi.colorSpace = SRGBColorSpace
                 hi.anisotropy = 8
                 setNightTexture(hi)
               })

@@ -155,6 +155,9 @@ export type Planet = {
    *  (same perf-budget gating as hiResTextureUrl) so city lights resolve into
    *  individual cities up close. Earth = 8K Black Marble. */
   hiResNightTextureUrl?: string
+  /** KTX2 (GPU-compressed) night map — preferred over hiResNightTextureUrl when
+   *  present, for the same no-decode / low-VRAM win as ktx2TextureUrl. */
+  ktx2NightTextureUrl?: string
   /** Max-res night map on the CDN, Super Clear only (Earth = full Black Marble). */
   superClearNightTextureUrl?: string
   /** When true, the planet uses the day/night shader even without a
@@ -229,6 +232,9 @@ export type MoonData = {
   /** Optional 4K surface map, desktop-only (mobile keeps the 2K textureUrl).
    *  Same perf-budget gating as planets — see Planet.hiResTextureUrl. */
   hiResTextureUrl?: string
+  /** KTX2 (GPU-compressed) hi-res map — preferred over hiResTextureUrl (no decode
+   *  stall, ~1/8 VRAM). See Planet.ktx2TextureUrl. */
+  ktx2TextureUrl?: string
   /** Max-res (16K) CDN map, Super Clear only — see Planet.superClearTextureUrl. */
   superClearTextureUrl?: string
   /** Grayscale elevation/height map (e.g. lunar LOLA) that displaces the moon's

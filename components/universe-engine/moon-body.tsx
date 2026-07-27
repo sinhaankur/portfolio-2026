@@ -54,7 +54,7 @@ import { superClearRef } from "@/lib/device-tier"
 import type { HoverHandler, MoonData } from "./types"
 import { DAY_NIGHT_VERTEX_SHADER, DAY_NIGHT_FRAGMENT_SHADER } from "./shaders"
 import { RoverPin, SatelliteShells, HERO_CRAFT } from "./scene-satellites"
-import { _earthWorldPos, _sunWorldPos, _sunDirTmp } from "./scene-shared"
+import { _earthWorldPos, _sunWorldPos, _sunDirTmp, loadTextureAsync } from "./scene-shared"
 
 export function MoonBody({
   moon,
@@ -163,16 +163,23 @@ export function MoonBody({
   // Eagerly load the moon's surface texture on mount — same always-visible
   // treatment as the planets. Luna is the only moon shipping a texture today
   // (~550 KB WebP), and TextureLoader is async so first paint still lands fast.
-  const textureUrl = surfaceTextureUrl(moon)  // 4K on desktop, 2K on mobile
+  const textureUrl = surfaceTextureUrl(moon)  // KTX2/4K on desktop, 2K on mobile
   useEffect(() => {
     if (!textureUrl || texture) return
-    const loader = new TextureLoader()
-    loader.load(textureUrl, (tex) => {
-      tex.colorSpace = SRGBColorSpace
-      tex.anisotropy = 8
-      setTexture(tex)
-    })
-  }, [textureUrl, texture])
+    // loadTextureAsync: off-thread decode for WebP, and routes .ktx2 through the
+    // Basis transcoder (Luna's 4K → mars-style GPU-compressed). Falls back to the
+    // shipped WebP if the ktx2 can't load.
+    loadTextureAsync(
+      textureUrl,
+      (tex) => { tex.anisotropy = 8; setTexture(tex) },
+      () => {
+        // KTX2 miss → try the plain hi-res/base WebP so the moon still textures.
+        const fallback = moon.hiResTextureUrl ?? moon.textureUrl
+        if (!fallback || fallback === textureUrl) return
+        loadTextureAsync(fallback, (tex) => { tex.anisotropy = 8; setTexture(tex) })
+      },
+    )
+  }, [textureUrl, texture, moon.hiResTextureUrl, moon.textureUrl])
 
   // Make the moon addressable on the sky-focus channel (moon:<name>), so the
   // "Jump to" menu + assistant can FLY here — the "travel anywhere in a pinch"
