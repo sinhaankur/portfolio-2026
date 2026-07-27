@@ -17,6 +17,8 @@
     "sky:verify": "node scripts/verify-sky-position.mjs",
     "test:site": "node scripts/smoke-site.mjs",
     "test:dave": "node scripts/stress-dave.mjs",
+    "test:perf": "node scripts/perf-test.mjs",
+    "test:perf:gpu": "node scripts/perf-test.mjs --gpu",
     "data:textures": "node scripts/fetch-planet-textures.mjs"
   },
   "dependencies": {

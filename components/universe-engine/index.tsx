@@ -344,15 +344,23 @@ export function UniverseEngine({
       // Clear pins fidelity to max: the user chose the highest-resolution view,
       // so the adaptive controller stands down entirely (no auto-downgrade).
       if (now - windowStart >= WINDOW_MS) {
-        // Live perf readout (?perf overlay) — FPS + p95/max frame time + tier.
-        if (perfNodeRef.current && gaps.length > 0) {
+        // Per-window frame stats — computed once, then used for the ?perf
+        // overlay AND published on window.__uePerf so the perf test (and any
+        // external probe) can read structured numbers instead of scraping text.
+        if (gaps.length > 0) {
           const s = gaps.slice().sort((a, b) => a - b)
           const p50 = s[s.length >> 1]
           const p95v = s[Math.min(s.length - 1, Math.floor(s.length * 0.95))]
           const max = s[s.length - 1]
           const fps = Math.round(1000 / p50)
-          perfNodeRef.current.textContent =
-            `${fps} fps · p50 ${Math.round(p50)}ms · p95 ${Math.round(p95v)}ms · max ${Math.round(max)}ms · ${perfTierRef.current}${superClearRef.current ? " · SUPER" : ""}`
+          const stats = { fps, p50, p95: p95v, max, tier: perfTierRef.current, superClear: superClearRef.current, frames: gaps.length }
+          if (perfNodeRef.current) {
+            perfNodeRef.current.textContent =
+              `${fps} fps · p50 ${Math.round(p50)}ms · p95 ${Math.round(p95v)}ms · max ${Math.round(max)}ms · ${perfTierRef.current}${superClearRef.current ? " · SUPER" : ""}`
+          }
+          if (typeof window !== "undefined") {
+            ;(window as unknown as { __uePerf?: typeof stats }).__uePerf = stats
+          }
         }
         // Lowered from 30 → 12: when a device is lagging BADLY it may only post a
         // dozen frames in the window, and that's exactly when we must be allowed
