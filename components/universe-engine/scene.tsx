@@ -1543,20 +1543,23 @@ function SolarBackdrop({ invert }: { invert: boolean }) {
  * The engine's adaptive controller separately climbs QUALITY tiers upward as the
  * device proves headroom — same principle, applied to fidelity.
  */
-function useWarmupStage(max = 3, stepMs = 700): number {
+function useWarmupStage(max = 3): number {
   const [stage, setStage] = useState(0)
   useEffect(() => {
-    if (stage >= max) return
-    // requestIdleCallback where available (build heavy geometry in idle time),
-    // else a timeout — either way each stage lands on a later frame, never the
-    // first. rAF-guarded so we never advance while a frame is still painting.
-    let raf = 0
-    const id = window.setTimeout(() => {
-      raf = requestAnimationFrame(() => setStage((s) => Math.min(max, s + 1)))
-    }, stepMs)
-    return () => { window.clearTimeout(id); if (raf) cancelAnimationFrame(raf) }
-  }, [stage, max, stepMs])
-  return stage
+    // Pure timeout chain — NO requestAnimationFrame. rAF only fires while the
+    // Canvas is actively rendering, so a throttled/off-screen/intro frame could
+    // STALL the chain and leave a staged layer (the Milky Way!) permanently
+    // missing — the regression this fixes. Timeouts always fire, so the sky
+    // reliably fills in. First step is fast (the Milky Way + bright stars land
+    // ~250ms in, essentially with first paint), later steps spread the heavier
+    // geometry so no single frame builds everything.
+    const steps = [250, 900, 1600] // ms after mount for stages 1, 2, 3
+    const timers = steps.map((ms, i) =>
+      window.setTimeout(() => setStage((s) => Math.max(s, i + 1)), ms),
+    )
+    return () => { for (const t of timers) window.clearTimeout(t) }
+  }, [])
+  return Math.min(stage, max)
 }
 
 /* ============================================================
