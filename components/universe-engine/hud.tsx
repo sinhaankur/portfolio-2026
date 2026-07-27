@@ -14,7 +14,7 @@
  */
 
 import { SAT_GROUPS, satGroupFilterRef } from "./satellite-field"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import type { BodyDeepFacts, BodyInfo } from "./types"
 import {
   DAY_MS,
@@ -174,7 +174,7 @@ export function DeepFactsDisclosure({
       )}
     </div>
   )
-  const SectionLabel = ({ children }: { children: React.ReactNode }) => (
+  const SectionLabel = ({ children }: { children: ReactNode }) => (
     <p className={`font-mono uppercase tracking-[0.3em] text-foreground/35 ${isSheet ? "text-[9px]" : "text-[8px]"}`}>{children}</p>
   )
 
@@ -283,113 +283,72 @@ export function InfoPanel({ info, hideIdle = false }: { info: BodyInfo | null; h
     info.spectralType !== undefined ||
     info.distanceLy !== undefined
 
+  // Collect every present datum into ONE consistent stat grid, so a sparse body
+  // (black hole, spacecraft, deep-sky object) reads as a deliberate, structured
+  // card — not a bare stack of leftover rows — and a rich planet fills it out.
+  // Order is stable + grouped: identity/scale first, then dynamics, then the
+  // headline gravity/mass measurement.
+  const stats: { label: string; value: ReactNode }[] = []
+  if (isStar) {
+    if (info.apparentMag !== undefined) stats.push({ label: "Apparent mag", value: `${info.apparentMag.toFixed(2)} V` })
+    if (info.distanceLy !== undefined) stats.push({ label: "Distance", value: `${info.distanceLy.toFixed(1)} ly` })
+    if (info.spectralType !== undefined) stats.push({ label: "Spectral type", value: info.spectralType })
+    if (info.catalogDesignation !== undefined) stats.push({ label: "Catalog", value: info.catalogDesignation })
+  } else {
+    if (k) stats.push({
+      label: "Surface temp",
+      value: k.min !== undefined && k.max !== undefined
+        ? `${k.min}–${k.max} K${c ? ` (${c.mean}°C)` : ""}`
+        : `${k.mean} K${c ? ` (${c.mean}°C)` : ""}`,
+    })
+    if (info.aAU !== undefined) stats.push({
+      label: "Orbit",
+      value: `${info.aAU.toFixed(2)} AU · ${Math.round(info.periodDays ?? 0).toLocaleString()} d`,
+    })
+    if (info.rotHours !== undefined) stats.push({
+      label: "Day",
+      value: Math.abs(info.rotHours) < 100
+        ? `${Math.abs(info.rotHours).toFixed(1)} h${info.rotHours < 0 ? " (retro)" : ""}`
+        : `${(Math.abs(info.rotHours) / 24).toFixed(0)} d${info.rotHours < 0 ? " (retro)" : ""}`,
+    })
+    if (info.tiltDeg !== undefined) stats.push({ label: "Axial tilt", value: `${info.tiltDeg.toFixed(1)}°` })
+    if (info.radiusEarth !== undefined) stats.push({ label: "Radius", value: `${info.radiusEarth.toFixed(2)} × Earth` })
+    if (info.moons !== undefined && info.moons > 0) stats.push({ label: "Moons", value: info.moons })
+  }
+  if (info.gravityMeasurement) {
+    stats.push({
+      label: info.gravityMeasurement.label,
+      value: info.gravityMeasurement.value !== undefined
+        ? <>{formatGravityValue(info.gravityMeasurement.value, info.gravityMeasurement.unit ?? "m/s²")}<span className="text-foreground/50"> · {formatGee(info.gravityMeasurement.value)}</span></>
+        : info.gravityMeasurement.note,
+    })
+  }
+
   return (
     <div className="font-mono text-[11px] text-foreground/90 leading-relaxed pointer-events-none">
-      <div className="text-[10px] tracking-[0.3em] uppercase text-foreground/50 mb-1">
+      {/* Header — eyebrow classification + name, with an accent hairline so the
+          card reads as a titled object, not a floating label. */}
+      <div className="text-[9.5px] tracking-[0.3em] uppercase text-foreground/45 mb-0.5">
         {info.classification}
       </div>
-      <div className="text-base font-sans tracking-tight text-foreground mb-2">
+      <div className="text-[15px] font-sans tracking-tight text-foreground leading-tight mb-2 pb-2 border-b border-foreground/10">
         {info.name}
       </div>
 
-      {/* Star data block — NASA-style compact readout */}
-      {isStar && (
-        <div className="mb-3 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[10px]">
-          {info.apparentMag !== undefined && (
-            <>
-              <span className="text-foreground/55">Apparent mag</span>
-              <span className="text-foreground/85 tabular-nums">{info.apparentMag.toFixed(2)} V</span>
-            </>
-          )}
-          {info.distanceLy !== undefined && (
-            <>
-              <span className="text-foreground/55">Distance</span>
-              <span className="text-foreground/85 tabular-nums">{info.distanceLy.toFixed(1)} ly</span>
-            </>
-          )}
-          {info.spectralType !== undefined && (
-            <>
-              <span className="text-foreground/55">Spectral type</span>
-              <span className="text-foreground/85">{info.spectralType}</span>
-            </>
-          )}
-          {info.catalogDesignation !== undefined && (
-            <>
-              <span className="text-foreground/55">Catalog</span>
-              <span className="text-foreground/85">{info.catalogDesignation}</span>
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Non-star planetary data */}
-      {!isStar && k && (
-        <div>
-          <span className="text-foreground/55">Surface temp · </span>
-          {k.min !== undefined && k.max !== undefined ? (
-            <>
-              {k.min}–{k.max} K
-            </>
-          ) : (
-            <>{k.mean} K</>
-          )}
-          {c && <span className="text-foreground/55"> ({c.mean}°C avg)</span>}
-        </div>
-      )}
-
-      {!isStar && info.aAU !== undefined && (
-        <div>
-          <span className="text-foreground/55">Orbit · </span>
-          {info.aAU.toFixed(2)} AU · {Math.round(info.periodDays ?? 0).toLocaleString()} days
-        </div>
-      )}
-
-      {!isStar && info.rotHours !== undefined && (
-        <div>
-          <span className="text-foreground/55">Day · </span>
-          {Math.abs(info.rotHours) < 100
-            ? `${Math.abs(info.rotHours).toFixed(1)} h${info.rotHours < 0 ? " (retrograde)" : ""}`
-            : `${(Math.abs(info.rotHours) / 24).toFixed(0)} days${info.rotHours < 0 ? " (retrograde)" : ""}`}
-        </div>
-      )}
-
-      {!isStar && info.tiltDeg !== undefined && (
-        <div>
-          <span className="text-foreground/55">Axial tilt · </span>
-          {info.tiltDeg.toFixed(1)}°
-        </div>
-      )}
-
-      {!isStar && info.radiusEarth !== undefined && (
-        <div>
-          <span className="text-foreground/55">Radius · </span>
-          {info.radiusEarth.toFixed(2)} × Earth
-        </div>
-      )}
-
-      {info.gravityMeasurement && (
-        <div>
-          <span className="text-foreground/55">{info.gravityMeasurement.label} · </span>
-          {info.gravityMeasurement.value !== undefined ? (
-            <>
-              {formatGravityValue(info.gravityMeasurement.value, info.gravityMeasurement.unit ?? "m/s²")}
-              <span className="text-foreground/55"> ({formatGee(info.gravityMeasurement.value)})</span>
-            </>
-          ) : (
-            <>{info.gravityMeasurement.note}</>
-          )}
-        </div>
-      )}
-
-      {!isStar && info.moons !== undefined && info.moons > 0 && (
-        <div>
-          <span className="text-foreground/55">Moons · </span>
-          {info.moons}
-        </div>
+      {/* Unified stat grid — consistent label/value pairs for every body type. */}
+      {stats.length > 0 && (
+        <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-[10.5px]">
+          {stats.map((s, i) => (
+            <Fragment key={i}>
+              <dt className="text-foreground/50">{s.label}</dt>
+              <dd className="text-right text-foreground/90 tabular-nums">{s.value}</dd>
+            </Fragment>
+          ))}
+        </dl>
       )}
 
       {info.fact && (
-        <div className="mt-2 max-w-xs text-foreground/75 font-sans text-[12px] leading-snug">
+        <div className="mt-2.5 max-w-xs text-foreground/70 font-sans text-[12px] leading-snug">
           {info.fact}
         </div>
       )}
@@ -767,7 +726,7 @@ function TransportButton({
   active,
   onClick,
 }: {
-  children: React.ReactNode
+  children: ReactNode
   label: string
   active?: boolean
   onClick: () => void
