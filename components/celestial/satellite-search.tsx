@@ -16,6 +16,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Search, X, Crosshair, Locate } from "lucide-react"
 import { loadSatelliteCatalog, selectedSatRef, selectedArchetypeRef, selectedOrbitRef, observerRef, findNearestOverhead, satTypeFilterRef, type SatMeta, type SatOrbit, type NearestSat } from "@/components/universe-engine/satellite-field"
 import { statusFromPerigee, lifetimeFromPerigee, lifetimeLabel } from "@/lib/reentry"
+import { launchSiteFor } from "@/lib/launch-sites"
 
 const OWNER_LABEL: Record<string, string> = {
   US: "🇺🇸 United States", PRC: "🇨🇳 China", CIS: "🇷🇺 Russia / CIS",
@@ -357,6 +358,15 @@ export function SatelliteSearch() {
                 <dt className="text-muted-foreground">Launched</dt>
                 <dd className="text-foreground tabular-nums">{fmtDate(selected.launchMs)}</dd>
               </div>
+              {(() => {
+                const site = launchSiteFor(selected.site)
+                return site ? (
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-muted-foreground">Launch site</dt>
+                    <dd className="text-foreground text-right">{site.name}<span className="text-muted-foreground"> · {site.country}</span></dd>
+                  </div>
+                ) : null
+              })()}
               <div className="flex justify-between gap-3">
                 <dt className="text-muted-foreground">NORAD ID</dt>
                 <dd className="text-foreground tabular-nums">{selected.id}</dd>

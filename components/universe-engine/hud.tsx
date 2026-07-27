@@ -1101,6 +1101,27 @@ const JUMP_DESTINATIONS: { section: string; items: { label: string; pointId: str
       { label: "Sedna", pointId: "named:Sedna" },
     ],
   },
+  {
+    // Every ship that has left Earth — the interstellar escapees first (Voyagers,
+    // Pioneers, New Horizons on one-way hyperbolic trajectories out of the solar
+    // system), then the active deep-space cruisers. All render their real escape
+    // direction + heliocentric distance; jumping here flies you out to them.
+    section: "Spacecraft",
+    items: [
+      { label: "Voyager 1 — furthest human object", pointId: "named:Voyager 1" },
+      { label: "Voyager 2 — all four giants", pointId: "named:Voyager 2" },
+      { label: "Pioneer 10", pointId: "named:Pioneer 10" },
+      { label: "Pioneer 11", pointId: "named:Pioneer 11" },
+      { label: "New Horizons — Pluto/Arrokoth", pointId: "named:New Horizons" },
+      { label: "Parker Solar Probe", pointId: "named:Parker Solar Probe" },
+      { label: "James Webb (JWST)", pointId: "named:James Webb Space Telescope" },
+      { label: "JUICE — Jupiter", pointId: "named:JUICE" },
+      { label: "Europa Clipper", pointId: "named:Europa Clipper" },
+      { label: "Lucy — Trojans", pointId: "named:Lucy" },
+      { label: "Psyche", pointId: "named:Psyche" },
+      { label: "BepiColombo — Mercury", pointId: "named:BepiColombo" },
+    ],
+  },
   // Deep-sky ids became addressable on the universe:sky-focus channel
   // (scene.tsx SkyPointMesh flies + resolves on a matching id), so the
   // menu can finally take people to them. Black holes especially — idle
