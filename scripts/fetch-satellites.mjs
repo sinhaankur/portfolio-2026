@@ -139,6 +139,7 @@ async function main() {
       owner: rec.OWNER || "TBD",
       type: rec.OBJECT_TYPE, // PAY | R/B | DEB
       launchMs,
+      site: rec.LAUNCH_SITE || undefined, // CelesTrak launch-site code (origin)
       l1: t.l1,
       l2: t.l2,
     })

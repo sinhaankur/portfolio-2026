@@ -31,6 +31,7 @@ import { useGLTF, Line, Html } from "@react-three/drei"
 import * as THREE from "three"
 import { simTimeRef, requestFollow, focusDepthRef, daysSinceJ2000, earthRotationAngle, timeScaleRef, REALTIME_TIME_SCALE } from "./astronomy"
 import { perfTierRef } from "@/lib/device-tier"
+import { launchSiteFor } from "@/lib/launch-sites"
 
 /**
  * Satellite archetypes — a small library of real-design Blender models picked by
@@ -290,7 +291,7 @@ function orbitRegime(apogeeKm: number, perigeeKm: number): string {
   return "High orbit"
 }
 
-export type SatMeta = { id: number; name: string; owner: string; type?: "PAY" | "R/B" | "DEB"; launchMs: number }
+export type SatMeta = { id: number; name: string; owner: string; type?: "PAY" | "R/B" | "DEB"; launchMs: number; site?: string }
 
 /** Constellation/group filter — view one layer at a time or everything at
  *  once. The HUD chips write this ref; the field reads it per-frame into a
@@ -392,7 +393,7 @@ export function loadFullCatalog(): Promise<SatRecord[]> {
  *  shared full-catalogue fetch — no second download. */
 export function loadSatelliteCatalog(): Promise<SatMeta[]> {
   return loadFullCatalog().then((sats) =>
-    sats.map((s) => ({ id: s.id, name: s.name, owner: s.owner, type: s.type, launchMs: s.launchMs })),
+    sats.map((s) => ({ id: s.id, name: s.name, owner: s.owner, type: s.type, launchMs: s.launchMs, site: s.site })),
   )
 }
 
@@ -804,6 +805,10 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
   const [selectedLabel, setSelectedLabel] = useState<string | null>(null)
   // Orbit-path polyline for the selected satellite (recomputed on selection).
   const [orbitPts, setOrbitPts] = useState<THREE.Vector3[] | null>(null)
+  // Origin→destination arc: launch site on Earth → the craft's current orbit.
+  // Earth-fixed (drawn in the ground-track group). null when no known site.
+  const [originArc, setOriginArc] = useState<THREE.Vector3[] | null>(null)
+  const [originLabel, setOriginLabel] = useState<{ name: string; country: string; pos: THREE.Vector3 } | null>(null)
   // Ground track — the curve the sub-satellite point traces ON Earth's surface
   // over one orbit (the real "path over the ground"), + the live radial tether
   // from the current sub-point up to the craft (the honest "surface → orbit"
@@ -910,6 +915,56 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
       v.multiplyScalar(surfR / len)
       v.applyAxisAngle(UP_Y, -earthRotationAngle(tMs))
       out.push(v)
+    }
+    return out
+  }
+
+  // Lat/lon (deg) → an Earth-FIXED scene point on the surface (same frame as the
+  // ground track, so it lives in groundTrackGroupRef and spins with the globe).
+  function launchSiteScenePoint(latDeg: number, lonDeg: number): THREE.Vector3 {
+    const lat = (latDeg * Math.PI) / 180
+    const lon = (lonDeg * Math.PI) / 180
+    // Standard lat/lon → unit sphere, matched to the engine's ECI→scene mapping
+    // (x, z, -y) with the +X axis at lon 0. Earth-fixed: no rotation applied here
+    // (the render group re-applies the current spin, like the ground track).
+    const cx = Math.cos(lat) * Math.cos(lon)
+    const cy = Math.cos(lat) * Math.sin(lon)
+    const cz = Math.sin(lat)
+    const v = new THREE.Vector3(cx, cz, -cy)
+    return v.multiplyScalar(earthVisualRadius * 1.002)
+  }
+
+  // ORIGIN → DESTINATION connector: an arc from the satellite's launch site (its
+  // ORIGIN on Earth) up to where it flies now (its DESTINATION orbit). The real
+  // ascent trajectory isn't in TLE data, so this is drawn as an honest lofted
+  // arc — a "this left from here, and now flies here" connector, not a claim of
+  // the exact flight path. Earth-fixed (lives in the spinning ground-track group)
+  // so the origin stays glued to the launch pad as the globe turns.
+  function computeOriginArc(rec: unknown, latDeg: number, lonDeg: number): THREE.Vector3[] {
+    const lib = sgp4.current
+    if (!lib || !rec) return []
+    // Current craft position, projected into the Earth-FIXED frame (un-rotate by
+    // the current Earth angle) so both endpoints share the ground-track group.
+    let r: { position?: Vec3 } | false = false
+    try { r = lib.propagate(rec, new Date(simTimeRef.current.simMs)) } catch { r = false }
+    const p = r && r.position
+    if (!p) return []
+    const dest = new THREE.Vector3(p.x * kmToScene, p.z * kmToScene, -p.y * kmToScene)
+      .applyAxisAngle(UP_Y, -earthRotationAngle(simTimeRef.current.simMs))
+    const origin = launchSiteScenePoint(latDeg, lonDeg)
+    // Loft the arc above the straight chord so it reads as an ascent, peaking a
+    // bit above the destination altitude at the midpoint.
+    const steps = 48
+    const out: THREE.Vector3[] = []
+    const destAlt = dest.length()
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps
+      const pt = origin.clone().lerp(dest, t)
+      // Radial loft: 0 at the ends, peak ~+12% of the destination radius mid-arc.
+      const loft = Math.sin(t * Math.PI) * destAlt * 0.12
+      const len = pt.length()
+      if (len > 1e-6) pt.multiplyScalar((len + loft) / len)
+      out.push(pt)
     }
     return out
   }
@@ -1341,6 +1396,18 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
           // altitude + speed (km, km/s) from a fresh propagate → drives archetype
           // choice AND the live card readout.
           const meta = sats.find((s) => s.id === sel)
+
+          // Origin → destination: draw the arc from this craft's launch site up
+          // to its current orbit, if we know the site. Earth-fixed (ground-track
+          // group). Unknown site → no arc (honest: we don't guess an origin).
+          const site = launchSiteFor((meta as { site?: string } | undefined)?.site)
+          if (site) {
+            setOriginArc(computeOriginArc(rec, site.lat, site.lon))
+            setOriginLabel({ name: site.name, country: site.country, pos: launchSiteScenePoint(site.lat, site.lon) })
+          } else {
+            setOriginArc(null)
+            setOriginLabel(null)
+          }
           let altKm = 0
           let speedKms = 0
           {
@@ -1447,6 +1514,8 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
         lastSelected.current = null
         setOrbitPts(null)
         setGroundTrack(null)
+        setOriginArc(null)
+        setOriginLabel(null)
         setSelectedLabel(null)
         selectedOrbitRef.current = null
         focusDepthRef.current = null   // restore normal near-plane / zoom limits
@@ -1592,6 +1661,32 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
       <group ref={groundTrackGroupRef}>
         {groundTrack && groundTrack.length > 1 && (
           <Line points={groundTrack} color="#5affc0" transparent opacity={0.5} lineWidth={1.5} />
+        )}
+        {/* ORIGIN → DESTINATION: the arc from the launch site up to the craft's
+            current orbit + a marker + label at the launch pad. Earth-fixed, so
+            the origin stays on the pad as the globe turns. Amber-to-white gives
+            a clear "left here → flies there" read distinct from the cyan track. */}
+        {originArc && originArc.length > 1 && (
+          <Line points={originArc} color="#ff8a3a" transparent opacity={0.6} lineWidth={1.5} dashed dashSize={0.04} gapSize={0.02} />
+        )}
+        {originLabel && (
+          <group position={originLabel.pos}>
+            <mesh>
+              <sphereGeometry args={[earthVisualRadius * 0.014, 12, 12]} />
+              <meshBasicMaterial color="#ff8a3a" toneMapped={false} />
+            </mesh>
+            <Html center distanceFactor={earthVisualRadius * 8} zIndexRange={[10, 0]} style={{ pointerEvents: "none" }}>
+              <div style={{
+                whiteSpace: "nowrap", transform: "translateY(-1.6em)",
+                fontFamily: "var(--font-jetbrains-mono, monospace)", fontSize: "10px",
+                letterSpacing: "0.03em", color: "#ffd7b0",
+                background: "rgba(10,8,6,0.72)", padding: "2px 6px", borderRadius: "4px",
+                border: "1px solid rgba(255,138,58,0.4)",
+              }}>
+                ↑ {originLabel.name}
+              </div>
+            </Html>
+          </group>
         )}
       </group>
       {/* Live sub-point marker — a small dot where the craft is DIRECTLY overhead
