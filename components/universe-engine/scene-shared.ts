@@ -82,11 +82,13 @@ export function loadTextureAsync(
   }
 
   // KTX2 (GPU-compressed) — no CPU decode at all, uploads straight to the GPU.
-  // Only when the renderer's been wired (setKtx2Renderer) and this is a .ktx2.
-  // On any failure we fall through to the WebP sibling if the caller passed one
-  // via the url swap upstream — here we just report the error so the caller can
-  // retry the .webp rung.
-  if (/\.ktx2($|\?)/i.test(url) && _ktx2) {
+  // KTX2 path. On any failure the caller falls back to the shipped WebP rung
+  // (planet-body chains ktx2 → hiRes webp → base). If the transcoder isn't wired
+  // yet (renderer race) we go STRAIGHT to onError rather than let a .ktx2 fall
+  // through to the <img> path, where it'd fail as an invalid image format — so
+  // the WebP fallback fires immediately instead of after a doomed request.
+  if (/\.ktx2($|\?)/i.test(url)) {
+    if (!_ktx2) { onError?.(); return }
     _ktx2.setCrossOrigin("anonymous").load(
       url,
       (tex) => { tex.colorSpace = colorSpace; onLoad(tex) },
