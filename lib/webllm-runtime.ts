@@ -68,11 +68,21 @@ function detectFlyIntent(text: string): string | null {
   if (/^(?:fly|go|take me|navigate|jump|travel|warp|zoom)(?:\s+me)?(?:\s+(?:there|here|to it|to that))?[.?!]?$/i.test(t)) {
     return "$LAST"
   }
+  // A broad set of natural phrasings, all meaning "put the camera on X":
+  //   fly to / go to / take me to / show me / navigate to / jump to /
+  //   I want to see / bring me to / let's see / visit / find / where is / look at
   const m = t.match(
-    /\b(?:fly|go|take me|navigate|show me|jump|travel|warp|zoom)\s+(?:me\s+)?(?:to\s+|into\s+|toward\s+)?(.+)/i,
+    /\b(?:fly|go|take me|navigate|show me|jump|travel|warp|zoom|(?:i(?:'d| would)? (?:want|like) to see)|(?:can you (?:take|show) me)|bring me|let'?s (?:see|go|visit)|visit|find|(?:where(?:'s| is)?)|look at)\s+(?:me\s+)?(?:to\s+|into\s+|toward\s+|at\s+)?(.+)/i,
   )
   if (!m) return null
-  const target = m[1].replace(/[.?!,]+$/, "").replace(/\bplease\b/i, "").trim()
+  const target = m[1]
+    // Cut off a trailing compound clause ("...and show how it was sent",
+    // "...to its origin") so the target is just the body name.
+    .split(/\s+(?:and|also|then|plus|,|to (?:its|the|see|show))\s+/i)[0]
+    .replace(/[.?!,]+$/, "")
+    .replace(/\bplease\b/i, "")
+    .replace(/^(the|a|an)\s+/i, "")
+    .trim()
   if (!target || PRONOUN_TARGET.test(target)) return "$LAST"
   return target
 }
@@ -93,6 +103,28 @@ function lastMentionedBody(history: MessageParam[]): string | null {
     if (named) return named.name
   }
   return null
+}
+
+/** Does the user want the ORIGIN / launch / journey story of a craft? Broad on
+ *  purpose — 'how it was sent', 'show how it was launched', 'its journey/path/
+ *  origin/route', 'how it got there', 'left Earth'. */
+function wantsJourney(text: string): boolean {
+  return /\b(sent|launch(?:ed)?|journey|origin|route|trajectory|how (?:it|they|.+) (?:got|travel|left|reach|made))\b/i.test(text)
+}
+
+/**
+ * The real "how it was sent" story for the deep-space craft — launch year + site
+ * + the gravity-assist route that flung it outward, ending at where it is now.
+ * Real history; keyed by the exact namedBody name so it composes with a fly-to.
+ */
+const CRAFT_JOURNEY: Record<string, string> = {
+  "Voyager 1": "Launched September 5, 1977 from Cape Canaveral on a Titan IIIE-Centaur. It flew past Jupiter (1979) and Saturn (1980), stealing orbital energy from each in a gravity assist that flung it up and out of the planetary plane — now the most distant human-made object, over 24 billion km out, coasting into interstellar space.",
+  "Voyager 2": "Launched August 20, 1977 from Cape Canaveral — two weeks BEFORE Voyager 1. On the slower 'Grand Tour' path, it used gravity assists at Jupiter, Saturn, Uranus and Neptune (the only craft to visit all four), each flyby bending and speeding it toward its eventual escape to the south.",
+  "Pioneer 10": "Launched March 2, 1972 — the first craft to cross the asteroid belt and fly by Jupiter (1973), whose gravity threw it onto solar-escape velocity. Now silent, drifting toward Aldebaran.",
+  "Pioneer 11": "Launched April 5, 1973. A Jupiter flyby (1974) slingshot it across the solar system to become the first craft to visit Saturn (1979), then out toward the constellation Aquila.",
+  "New Horizons": "Launched January 19, 2006 as the fastest craft ever off Earth — a direct Jupiter gravity assist (2007) cut years off the trip to Pluto (2015) and on to the Kuiper Belt object Arrokoth (2019).",
+  "Parker Solar Probe": "Launched August 12, 2018. It uses repeated Venus gravity assists to shed orbital energy and spiral ever closer to the Sun — the opposite of the escaping probes, diving inward to touch the corona.",
+  "James Webb Space Telescope": "Launched December 25, 2021 on an Ariane 5 from Kourou. It cruised a month out to the Sun–Earth L2 point, 1.5 million km beyond Earth, where it orbits the balance point in permanent cold shadow.",
 }
 
 // A tiny (0.5–1.5B) model follows EXAMPLES far better than instructions, so the
@@ -168,7 +200,15 @@ export async function runWebLLMTurn(options: WebLLMTurnOptions): Promise<WebLLMT
   let answer = ""
   if (flewTo) {
     const hit = searchUniverseCatalog(flewTo, 1)[0]
-    answer = `Flying you to ${hit?.name ?? flewTo} now${hit?.subtitle ? ` — ${hit.subtitle}` : ""}.`
+    const name = hit?.name ?? flewTo
+    answer = `Flying you to ${name} now${hit?.subtitle ? ` — ${hit.subtitle}` : ""}.`
+    // If the user asked HOW it was sent / launched / its journey, narrate the
+    // real launch + gravity-assist route that took it from Earth to where it is.
+    // (Flying to a spacecraft already draws its escape trajectory in the scene.)
+    if (wantsJourney(userText)) {
+      const journey = CRAFT_JOURNEY[name] ?? Object.entries(CRAFT_JOURNEY).find(([k]) => name.toLowerCase().includes(k.toLowerCase()))?.[1]
+      if (journey) answer += ` ${journey} You can see its path traced out from here.`
+    }
     options.onTextDelta(answer)
     const finalAssistantContent: ContentBlock[] = [
       { type: "text", text: answer, citations: [] } as unknown as ContentBlock,
@@ -182,6 +222,20 @@ export async function runWebLLMTurn(options: WebLLMTurnOptions): Promise<WebLLMT
       { type: "text", text: answer, citations: [] } as unknown as ContentBlock,
     ]
     return { finalAssistantContent, toolResultsForHistory: toolResults, totalUsage: ZERO_USAGE }
+  }
+
+  // Journey question WITHOUT a fly ("how was Voyager 1 sent?") — answer the real
+  // launch/route story directly, deterministically, and offer to fly there.
+  if (wantsJourney(userText) && hits.length) {
+    const jName = Object.keys(CRAFT_JOURNEY).find((k) => hits.some((h) => h.name === k) || userText.toLowerCase().includes(k.toLowerCase()))
+    if (jName) {
+      answer = `${jName}: ${CRAFT_JOURNEY[jName]} Ask me to take you there to see its path.`
+      options.onTextDelta(answer)
+      const finalAssistantContent: ContentBlock[] = [
+        { type: "text", text: answer, citations: [] } as unknown as ContentBlock,
+      ]
+      return { finalAssistantContent, toolResultsForHistory: toolResults, totalUsage: ZERO_USAGE }
+    }
   }
 
   // Otherwise EXPLAIN — phrase an answer with the tiny model, streaming. If
