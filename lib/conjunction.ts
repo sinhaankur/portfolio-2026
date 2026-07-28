@@ -424,3 +424,78 @@ export async function screenOneObject(
   results.sort((a, b) => a.missKm - b.missKm)
   return results
 }
+
+/** Result of comparing two specific objects' proximity over a window. */
+export type ProximityResult = {
+  a: { id: number | string; name: string }
+  b: { id: number | string; name: string }
+  /** Closest approach: time (ms), separation (km), relative speed (km/s). */
+  tcaMs: number
+  missKm: number
+  relSpeedKms: number
+  /** Separation sampled across the window for a mini plot. */
+  series: { tMs: number; km: number }[]
+}
+
+/**
+ * PROXIMITY / state comparison — the closest approach between TWO specific
+ * objects over a window, plus their separation-over-time. Just the one pair,
+ * sampled + golden-section refined. Powers the "how close do these two get?"
+ * tool. Public data; awareness, not operations.
+ */
+export async function screenTwoObjects(
+  a: ScreeningObject,
+  b: ScreeningObject,
+  options: { startMs: number; hours?: number; coarseStepS?: number },
+): Promise<ProximityResult> {
+  const sat = await satLib()
+  const { startMs, hours = 24, coarseStepS = 60 } = options
+  const recA = sat.twoline2satrec(a.l1, a.l2)
+  const recB = sat.twoline2satrec(b.l1, b.l2)
+  if (recA.error !== 0 || recB.error !== 0) throw new Error("Invalid TLE — could not parse one of the orbits.")
+
+  const sepAt = (tMs: number): number => {
+    const d = new Date(tMs)
+    const pa = sat.propagate(recA, d).position
+    const pb = sat.propagate(recB, d).position
+    if (!pa || typeof pa === "boolean" || !pb || typeof pb === "boolean") return Infinity
+    return Math.sqrt(dist2(pa.x, pa.y, pa.z, pb.x, pb.y, pb.z))
+  }
+
+  const steps = Math.max(2, Math.round((hours * 3600) / coarseStepS))
+  const series: { tMs: number; km: number }[] = []
+  let minKm = Infinity, minT = startMs
+  const plotEvery = Math.max(1, Math.floor(steps / 120))
+  for (let s = 0; s <= steps; s++) {
+    const tMs = startMs + s * coarseStepS * 1000
+    const km = sepAt(tMs)
+    if (km < minKm) { minKm = km; minT = tMs }
+    if (s % plotEvery === 0 && isFinite(km)) series.push({ tMs, km })
+  }
+
+  const PHI = (Math.sqrt(5) - 1) / 2
+  const half = coarseStepS * 1000
+  let lo = minT - half, hi = minT + half
+  let t1 = hi - PHI * (hi - lo), t2 = lo + PHI * (hi - lo)
+  let d1 = sepAt(t1), d2v = sepAt(t2)
+  for (let i = 0; i < 40 && hi - lo > 100; i++) {
+    if (d1 <= d2v) { hi = t2; t2 = t1; d2v = d1; t1 = hi - PHI * (hi - lo); d1 = sepAt(t1) }
+    else { lo = t1; t1 = t2; d1 = d2v; t2 = lo + PHI * (hi - lo); d2v = sepAt(t2) }
+  }
+  const tcaMs = (lo + hi) / 2
+  const missKm = sepAt(tcaMs)
+
+  const date = new Date(tcaMs)
+  const va = sat.propagate(recA, date).velocity
+  const vb = sat.propagate(recB, date).velocity
+  let relSpeedKms = 0
+  if (va && typeof va !== "boolean" && vb && typeof vb !== "boolean") {
+    relSpeedKms = Math.sqrt(dist2(va.x, va.y, va.z, vb.x, vb.y, vb.z))
+  }
+
+  return {
+    a: { id: a.id, name: a.name },
+    b: { id: b.id, name: b.name },
+    tcaMs, missKm: isFinite(missKm) ? missKm : minKm, relSpeedKms, series,
+  }
+}
