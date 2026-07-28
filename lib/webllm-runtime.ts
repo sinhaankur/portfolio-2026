@@ -22,6 +22,7 @@ import type { ContentBlock, ContentBlockParam } from "@anthropic-ai/sdk/resource
 import { ZERO_USAGE, type AssistantUsage } from "@/lib/anthropic-client"
 import { searchUniverseCatalog, executeAssistantTool } from "@/lib/assistant-tools"
 import { getWebLLMEngine, isWebGPUAvailable, type WebLLMProgress } from "@/lib/webllm-engine"
+import { howWeObserve, kindFromClassification } from "@/lib/observe"
 
 export type WebLLMTurnOptions = {
   model: string
@@ -99,10 +100,15 @@ const SYSTEM = `You are the Universe Engine assistant. You help people explore a
 export async function runWebLLMTurn(options: WebLLMTurnOptions): Promise<WebLLMTurnResult> {
   const userText = lastUserText(options.history)
 
-  // 1. GROUND — real catalog hits for this query.
+  // 1. GROUND — real catalog hits for this query, each enriched with HOW WE
+  // OBSERVE it (the EM band) so the answer can teach how we actually see it.
   const hits = searchUniverseCatalog(userText, 6)
   const context = hits.length
-    ? hits.map((h) => `- ${h.name}${h.kind ? ` (${h.kind})` : ""}${h.subtitle ? `: ${h.subtitle}` : ""}`).join("\n")
+    ? hits.map((h) => {
+        const obs = howWeObserve(kindFromClassification(h.kind), h.name) ?? howWeObserve(h.kind, h.name)
+        const obsStr = obs ? ` [observed in ${obs.bands.join("/")}: ${obs.how}]` : ""
+        return `- ${h.name}${h.kind ? ` (${h.kind})` : ""}${h.subtitle ? `: ${h.subtitle}` : ""}${obsStr}`
+      }).join("\n")
     : "(no direct catalog match)"
 
   const toolResults: ContentBlockParam[] = []
@@ -193,17 +199,25 @@ export async function runWebLLMTurn(options: WebLLMTurnOptions): Promise<WebLLMT
   return { finalAssistantContent, toolResultsForHistory: toolResults, totalUsage: ZERO_USAGE }
 }
 
-/** A concise, honest answer built purely from real catalog data (no model). */
+/**
+ * A genuinely useful answer built purely from real catalog data — NO model.
+ * This is the seamless, zero-resource path: it grounds on the catalogue hit,
+ * adds how we OBSERVE the object (the EM band — radio/IR/visible/X-ray, from
+ * lib/observe.ts), and offers to fly there. So even with no LLM the assistant
+ * teaches something true rather than a one-line stub.
+ */
 function groundedFallback(
   hits: ReturnType<typeof searchUniverseCatalog>,
   flyTarget: string | null,
 ): string {
-  if (flyTarget && hits.length) {
-    return `Taking you to ${hits[0].name}. ${hits[0].subtitle ?? ""}`.trim()
+  if (!hits.length) {
+    return "I couldn't find that in the catalog. Try a planet, moon, comet, a black hole like Cygnus X-1, or a deep-sky object like the Orion Nebula."
   }
-  if (hits.length) {
-    const top = hits[0]
-    return `${top.name}${top.subtitle ? ` — ${top.subtitle}` : ""}. Explore it in the scene, or ask about another body.`
+  const top = hits[0]
+  const obs = howWeObserve(kindFromClassification(top.kind), top.name) ?? howWeObserve(top.kind, top.name)
+  const seeLine = obs ? ` ${obs.how}` : ""
+  if (flyTarget) {
+    return `Flying you to ${top.name} now${top.subtitle ? ` — ${top.subtitle}` : ""}.${seeLine}`
   }
-  return "I couldn't find that in the catalog. Try a planet, moon, comet, or a deep-sky object like the Orion Nebula."
+  return `${top.name}${top.subtitle ? ` — ${top.subtitle}` : ""}.${seeLine} Ask me to fly you there, or ask about another body.`
 }
