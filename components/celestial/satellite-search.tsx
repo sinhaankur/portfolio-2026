@@ -13,7 +13,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Search, X, Crosshair, Locate } from "lucide-react"
+import { Search, X, Crosshair, Locate, Download } from "lucide-react"
 import { loadSatelliteCatalog, selectedSatRef, selectedArchetypeRef, selectedOrbitRef, observerRef, findNearestOverhead, satTypeFilterRef, type SatMeta, type SatOrbit, type NearestSat } from "@/components/universe-engine/satellite-field"
 import { statusFromPerigee, lifetimeFromPerigee, lifetimeLabel } from "@/lib/reentry"
 import { launchSiteFor } from "@/lib/launch-sites"
@@ -221,6 +221,30 @@ export function SatelliteSearch() {
     setQ("")
     selectedSatRef.current = null
     window.dispatchEvent(new CustomEvent("universe:sky-focus", { detail: { pointId: `named:${c.name}` } }))
+  }
+
+  // Export the selected object's predicted ephemeris (SGP4 → CSV / CCSDS OEM).
+  // Needs the TLE, which lives in the full catalogue (SatRecord), so look it up
+  // by id. Public data; awareness/education, not operational use.
+  const [exporting, setExporting] = useState(false)
+  async function exportEphemeris(fmt: "csv" | "oem") {
+    if (!selected) return
+    setExporting(true)
+    try {
+      const [{ loadFullCatalog }, eph] = await Promise.all([
+        import("@/components/universe-engine/satellite-field"),
+        import("@/lib/ephemeris"),
+      ])
+      const full = await loadFullCatalog()
+      const rec = full.find((s) => s.id === selected.id)
+      if (!rec) return
+      const pts = await eph.computeEphemeris(rec.l1, rec.l2, { startMs: Date.now(), hours: 6, stepS: 60 })
+      const base = `${selected.name.replace(/[^\w-]+/g, "_")}_${selected.id}`
+      if (fmt === "csv") eph.downloadText(`${base}.csv`, eph.toCSV(selected.name, pts))
+      else eph.downloadText(`${base}.oem`, eph.toOEM(selected.name, String(selected.id), pts))
+    } finally {
+      setExporting(false)
+    }
   }
 
   // Pick a type filter — drive BOTH the results list AND the 3D swarm so the choice
@@ -562,6 +586,29 @@ export function SatelliteSearch() {
                 ? "This fragment is tracked but uncontrolled — part of the orbital-debris hazard."
                 : "The position + altitude are real to scale; the 3D model is enlarged so you can see it — at true 1:1 a satellite is a sub-pixel speck against Earth (the ISS is ~1/117,000th of Earth's width)."}
             </p>
+
+            {/* Ephemeris export — download the next 6 h of predicted state vectors
+                (SGP4) as CSV or CCSDS OEM, the formats operators use. Public data;
+                awareness/education, not operational use. */}
+            <div className="mt-3 pt-3 border-t border-border/60">
+              <p className="font-mono text-[9px] tracking-[0.2em] uppercase text-muted-foreground mb-1.5">Export ephemeris · next 6 h</p>
+              <div className="flex gap-2">
+                <button
+                  type="button" disabled={exporting}
+                  onClick={() => exportEphemeris("csv")}
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full border border-border px-3 py-2 font-mono text-[9px] tracking-wider uppercase text-foreground/80 hover:border-accent/60 hover:text-foreground transition-colors disabled:opacity-50"
+                >
+                  <Download className="w-3 h-3" /> CSV
+                </button>
+                <button
+                  type="button" disabled={exporting}
+                  onClick={() => exportEphemeris("oem")}
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full border border-border px-3 py-2 font-mono text-[9px] tracking-wider uppercase text-foreground/80 hover:border-accent/60 hover:text-foreground transition-colors disabled:opacity-50"
+                >
+                  <Download className="w-3 h-3" /> CCSDS OEM
+                </button>
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
