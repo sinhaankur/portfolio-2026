@@ -16,6 +16,18 @@
 import { SAT_GROUPS, satGroupFilterRef } from "./satellite-field"
 import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import type { BodyDeepFacts, BodyInfo } from "./types"
+import { observationFor, type ObserveBand } from "@/lib/observe"
+
+/** Band chip tints — roughly wavelength-mapped so the colours teach too:
+ *  radio warm-red (longest) → gamma violet (shortest). */
+const BAND_TINT: Record<ObserveBand, string> = {
+  radio: "#e8846b",
+  infrared: "#f0a94b",
+  visible: "#8fd66f",
+  ultraviolet: "#b98cf0",
+  "x-ray": "#7fb8f0",
+  gamma: "#c98cf0",
+}
 import {
   DAY_MS,
   REAL_NOW_MS,
@@ -346,6 +358,28 @@ export function InfoPanel({ info, hideIdle = false }: { info: BodyInfo | null; h
           ))}
         </dl>
       )}
+
+      {/* How we observe it — the EM-spectrum teaching line (radio / IR / visible
+          / X-ray). Deterministic from the body's classification, zero-cost, the
+          heart of "how do we actually SEE this?". Placed ABOVE the long fact so
+          the band chips are always visible even when the panel scrolls. */}
+      {(() => {
+        const obs = observationFor(info.classification, info.name)
+        if (!obs) return null
+        return (
+          <div className="mt-2.5 max-w-xs">
+            <div className="flex flex-wrap items-center gap-1">
+              <span className="font-mono text-[8px] tracking-[0.3em] uppercase text-foreground/40 mr-1">Seen in</span>
+              {obs.bands.map((b) => (
+                <span key={b} className="font-mono text-[8.5px] tracking-wider uppercase rounded-sm px-1 py-px" style={{ background: BAND_TINT[b], color: "#0a0a0a" }}>
+                  {b}
+                </span>
+              ))}
+            </div>
+            <div className="mt-1 text-foreground/60 font-sans text-[11px] leading-snug">{obs.how}</div>
+          </div>
+        )
+      })()}
 
       {info.fact && (
         <div className="mt-2.5 max-w-xs text-foreground/70 font-sans text-[12px] leading-snug">
