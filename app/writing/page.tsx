@@ -16,6 +16,13 @@ export const metadata: Metadata = {
 // merged and sorted newest-first.
 const longForm = [
   {
+    slug: "how-its-built",
+    title: "How this site's tech stack was built, step by step",
+    date: "2026-07-28",
+    blurb:
+      "A step-by-step walkthrough of the stack: static-export Next.js, a pure-GLSL universe engine, adaptive quality, a free asset CDN, open-source satellite tools, and deterministic-first on-device AI — the decisions and the why.",
+  },
+  {
     slug: "universe-engine",
     title: "How I built a real-data universe engine",
     date: "2026-07-05",
