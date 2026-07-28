@@ -17,6 +17,13 @@ import { Search, X, Crosshair, Locate } from "lucide-react"
 import { loadSatelliteCatalog, selectedSatRef, selectedArchetypeRef, selectedOrbitRef, observerRef, findNearestOverhead, satTypeFilterRef, type SatMeta, type SatOrbit, type NearestSat } from "@/components/universe-engine/satellite-field"
 import { statusFromPerigee, lifetimeFromPerigee, lifetimeLabel } from "@/lib/reentry"
 import { launchSiteFor } from "@/lib/launch-sites"
+import { namedBodies } from "@/components/universe-engine/astronomy"
+
+// The deep-space spacecraft (kind: "spacecraft") — objects that have left Earth
+// orbit. Derived once from the astronomy catalogue so search stays in sync.
+const SPACECRAFT: { name: string; designation: string }[] = namedBodies
+  .filter((b) => b.kind === "spacecraft")
+  .map((b) => ({ name: b.name, designation: b.designation }))
 
 const OWNER_LABEL: Record<string, string> = {
   US: "🇺🇸 United States", PRC: "🇨🇳 China", CIS: "🇷🇺 Russia / CIS",
@@ -191,12 +198,29 @@ export function SatelliteSearch() {
     return out
   }, [catalog, q, filter])
 
+  // Deep-space spacecraft that have LEFT Earth orbit (Voyagers, Pioneers, New
+  // Horizons + the active cruisers). These aren't in the SGP4 catalogue — they
+  // live in namedBodies — so search them separately and fly via named:<name>.
+  const craftResults = useMemo(() => {
+    const query = q.trim().toLowerCase()
+    if (query.length < 2) return []
+    return SPACECRAFT.filter((c) => c.name.toLowerCase().includes(query)).slice(0, 8)
+  }, [q])
+
   function pick(s: SatMeta) {
     setSelected(s)
     setQ("")
     selectedSatRef.current = s.id
     // Frame Earth so the swarm (and the marker) is on-screen.
     window.dispatchEvent(new CustomEvent("universe:sky-focus", { detail: { pointId: "planet:Earth" } }))
+  }
+
+  // Fly to a deep-space craft — the named-body sky-focus channel (fly + follow).
+  function pickCraft(c: { name: string }) {
+    setSelected(null)
+    setQ("")
+    selectedSatRef.current = null
+    window.dispatchEvent(new CustomEvent("universe:sky-focus", { detail: { pointId: `named:${c.name}` } }))
   }
 
   // Pick a type filter — drive BOTH the results list AND the 3D swarm so the choice
@@ -298,6 +322,35 @@ export function SatelliteSearch() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Deep-space spacecraft results — the ships that have LEFT Earth (Voyager,
+          Pioneer, New Horizons…). Shown above the Earth-orbit catalogue so typing
+          "voyager" surfaces it. Flies via the named-body channel. */}
+      <AnimatePresence>
+        {craftResults.length > 0 && (
+          <motion.ul
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="mt-2 rounded-lg border border-accent/40 bg-background/90 backdrop-blur-md divide-y divide-border/60 overflow-hidden"
+          >
+            <li className="px-3 pt-1.5 pb-1 font-mono text-[9px] tracking-[0.2em] uppercase text-accent/80">Deep-space craft</li>
+            {craftResults.map((c) => (
+              <li key={c.name}>
+                <button
+                  type="button"
+                  onClick={() => pickCraft(c)}
+                  data-cursor-hover
+                  className="w-full text-left px-3 py-2 hover:bg-secondary/50 transition-colors"
+                >
+                  <span className="block font-sans text-sm text-foreground truncate">{c.name}</span>
+                  <span className="block font-mono text-[10px] tracking-wider text-muted-foreground truncate">{c.designation}</span>
+                </button>
+              </li>
+            ))}
+          </motion.ul>
+        )}
+      </AnimatePresence>
 
       {/* Results dropdown */}
       <AnimatePresence>
