@@ -108,6 +108,38 @@ export default function AboutPage() {
           </p>
         </div>
       </div>
+
+      {/* Family — the people behind the work. His father's research archive and
+          the page for his mother (for whom the Cognitive Twin was built). */}
+      <section className="mt-16 md:mt-24 pt-10 border-t border-border">
+        <p className="font-mono text-[10px] tracking-widest uppercase text-foreground/45 mb-6">Family</p>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <Link
+            href="/dr-randhir-sinha"
+            className="group rounded-2xl border border-border p-5 hover:border-accent/60 transition-colors"
+          >
+            <p className="font-display text-lg font-light text-foreground group-hover:text-accent transition-colors">Dr. Randhir Kumar Sinha</p>
+            <p className="mt-1 font-mono text-[10px] tracking-wider uppercase text-muted-foreground">My father · silkworm genetics</p>
+            <p className="mt-2 font-sans text-[13px] text-foreground/65 leading-relaxed">
+              A career in silkworm mutation &amp; breeding, retired as Joint Director at CSGRC. A living
+              archive of his research, digitalized to reference and use.
+            </p>
+            <span className="mt-3 inline-block font-mono text-[10px] tracking-widest uppercase text-accent">Open the archive →</span>
+          </Link>
+          <Link
+            href="/vera"
+            className="group rounded-2xl border border-border p-5 hover:border-accent/60 transition-colors"
+          >
+            <p className="font-display text-lg font-light text-foreground group-hover:text-accent transition-colors">Vera</p>
+            <p className="mt-1 font-mono text-[10px] tracking-wider uppercase text-muted-foreground">My mother · the reason for the twin</p>
+            <p className="mt-2 font-sans text-[13px] text-foreground/65 leading-relaxed">
+              Her page — and the reason I built the Cognitive Twin: a private, on-device way to keep a
+              loved one&apos;s warmth close.
+            </p>
+            <span className="mt-3 inline-block font-mono text-[10px] tracking-widest uppercase text-accent">Her page →</span>
+          </Link>
+        </div>
+      </section>
     </main>
   )
 }
