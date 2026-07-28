@@ -312,7 +312,15 @@ function FlyToController({ interactive }: { interactive: boolean }) {
         // Arrived — track the moving target without overriding camera
         // distance.
         const fr = follow.frame ? follow.frame() : null
-        if (fr) {
+        // FREE-LOOK while grabbing: when the user is dragging (or just let go,
+        // within the drift cooldown), STOP re-orienting into the craft's travel
+        // frame — that continuous re-lock fought the drag and snapped the view
+        // back "behind" the craft, so you couldn't click-and-hold to look 360°
+        // around it. Instead just TRANSLATE the camera + target by the craft's
+        // per-frame motion (keeps it framed) and let OrbitControls own rotation
+        // fully — so you can orbit all the way around and the view stays put.
+        const freeLook = _userGrabbing || (_grabReleaseAt > 0 && performance.now() - _grabReleaseAt < 2500)
+        if (fr && !freeLook) {
           // ORBITAL-FRAME chase (satellites): the camera should ride in the
           // craft's travel frame so "behind" stays behind as it sweeps its orbit —
           // BUT the user must still be able to zoom + drag freely. So we DON'T
@@ -348,12 +356,15 @@ function FlyToController({ interactive }: { interactive: boolean }) {
           controls.update()
           return
         }
-        // Planets/comets: OrbitControls preserves the user's spherical
-        // offset (radius + angles), so as the body sweeps through
-        // space the camera slides along with it while drag/zoom
-        // respond to input normally. We move target + camera by the
-        // same per-frame delta so the *offset* OrbitControls reads
-        // stays unchanged frame to frame.
+        // Free-look released a satellite chase: drop the stored travel-frame
+        // basis so when the chase re-engages after the cooldown it re-derives
+        // cleanly from the current view instead of snapping against a stale one.
+        if (fr && freeLook) follow.chaseFrame = undefined
+        // Planets/comets (and a satellite during free-look): OrbitControls
+        // preserves the user's spherical offset (radius + angles), so as the body
+        // sweeps through space the camera slides along with it while drag/zoom
+        // respond to input normally. We move target + camera by the same
+        // per-frame delta so the *offset* OrbitControls reads stays unchanged.
         const targetDelta = _flyTargetVec.clone().sub(controls.target)
         controls.target.copy(_flyTargetVec)
         camera.position.add(targetDelta)
