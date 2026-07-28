@@ -54,15 +54,44 @@ function lastUserText(history: MessageParam[]): string {
   return ""
 }
 
+/** Words that mean "the thing we were just talking about" — resolved to the
+ *  last-mentioned body from context so "fly there" / "take me to it" work. */
+const PRONOUN_TARGET = /^(there|here|it|that|this|this one|that one|them)$/i
+
 /** Detect a navigation intent + the target name. Deterministic, so it works
- *  regardless of model quality. */
+ *  regardless of model quality. Returns the raw target phrase, or the sentinel
+ *  "$LAST" when the user referred to it by a pronoun (resolve from context). */
 function detectFlyIntent(text: string): string | null {
-  const m = text.match(
+  const t = text.trim()
+  // Bare verbs with no target ("fly", "take me", "go there") → last body.
+  if (/^(?:fly|go|take me|navigate|jump|travel|warp|zoom)(?:\s+me)?(?:\s+(?:there|here|to it|to that))?[.?!]?$/i.test(t)) {
+    return "$LAST"
+  }
+  const m = t.match(
     /\b(?:fly|go|take me|navigate|show me|jump|travel|warp|zoom)\s+(?:me\s+)?(?:to\s+|into\s+|toward\s+)?(.+)/i,
   )
   if (!m) return null
-  // Trim trailing punctuation / filler.
-  return m[1].replace(/[.?!,]+$/, "").replace(/\bplease\b/i, "").trim()
+  const target = m[1].replace(/[.?!,]+$/, "").replace(/\bplease\b/i, "").trim()
+  if (!target || PRONOUN_TARGET.test(target)) return "$LAST"
+  return target
+}
+
+/** The last real body name mentioned in the conversation (assistant or user),
+ *  so a pronoun reference ("there") resolves to it. Scans newest → oldest and
+ *  returns the first catalog hit found in any message's text. */
+function lastMentionedBody(history: MessageParam[]): string | null {
+  for (let i = history.length - 1; i >= 0; i--) {
+    const m = history[i]
+    const text = typeof m.content === "string"
+      ? m.content
+      : m.content.map((b) => (b.type === "text" ? b.text : "")).join(" ")
+    if (!text) continue
+    // Take the strongest catalog hit whose name actually appears in the text.
+    const hits = searchUniverseCatalog(text, 8)
+    const named = hits.find((h) => text.toLowerCase().includes(h.name.toLowerCase()))
+    if (named) return named.name
+  }
+  return null
 }
 
 const SYSTEM = `You are the Universe Engine assistant. You help people explore a real, data-driven 3D model of the universe. Answer in 1-3 short sentences, warm and clear, for a curious non-expert. Use ONLY the facts provided in the context — if the context doesn't cover it, say what you do know briefly and suggest exploring. Never invent numbers.`
@@ -78,8 +107,14 @@ export async function runWebLLMTurn(options: WebLLMTurnOptions): Promise<WebLLMT
 
   const toolResults: ContentBlockParam[] = []
 
-  // 2. ACT — deterministic navigation if the user asked to go somewhere.
-  const flyTarget = detectFlyIntent(userText)
+  // 2. ACT — deterministic navigation if the user asked to go somewhere. This is
+  // the source of truth: if the user says "fly there", we ACTUALLY fly (no
+  // hollow "you can fly to any location…" text). Resolve a pronoun target
+  // ("there"/"it") to the last body mentioned in the conversation.
+  let flyTarget = detectFlyIntent(userText)
+  if (flyTarget === "$LAST") flyTarget = lastMentionedBody(options.history)
+  let flewTo: string | null = null
+  let flyFailed = false
   if (flyTarget) {
     options.onToolStart({ name: "flyToBody" })
     const { content, isError } = await executeAssistantTool("flyToBody", { name: flyTarget })
@@ -89,11 +124,35 @@ export async function runWebLLMTurn(options: WebLLMTurnOptions): Promise<WebLLMT
       tool_use_id: `webllm-fly-${Date.now()}`,
       content,
     } as ContentBlockParam)
+    if (isError) flyFailed = true
+    else flewTo = flyTarget
   }
 
-  // 3. EXPLAIN — phrase an answer with the tiny model, streaming. If WebGPU is
-  // missing, fall back to a plain grounded reply (no model).
+  // 3. ANSWER. If we FLEW, confirm the real action deterministically — no model,
+  // no hollow "you can fly to any location, journey may vary" filler. The camera
+  // is already moving; the assistant just states what it did. This is what makes
+  // it actionable instead of a shell.
   let answer = ""
+  if (flewTo) {
+    const hit = searchUniverseCatalog(flewTo, 1)[0]
+    answer = `Flying you to ${hit?.name ?? flewTo} now${hit?.subtitle ? ` — ${hit.subtitle}` : ""}.`
+    options.onTextDelta(answer)
+    const finalAssistantContent: ContentBlock[] = [
+      { type: "text", text: answer, citations: [] } as unknown as ContentBlock,
+    ]
+    return { finalAssistantContent, toolResultsForHistory: toolResults, totalUsage: ZERO_USAGE }
+  }
+  if (flyFailed && flyTarget) {
+    answer = `I couldn't find "${flyTarget}" to fly to. Try a body name like Mars, the Orion Nebula, or Voyager 1.`
+    options.onTextDelta(answer)
+    const finalAssistantContent: ContentBlock[] = [
+      { type: "text", text: answer, citations: [] } as unknown as ContentBlock,
+    ]
+    return { finalAssistantContent, toolResultsForHistory: toolResults, totalUsage: ZERO_USAGE }
+  }
+
+  // Otherwise EXPLAIN — phrase an answer with the tiny model, streaming. If
+  // WebGPU is missing, fall back to a plain grounded reply (no model).
   if (isWebGPUAvailable()) {
     try {
       const engine = await getWebLLMEngine(options.model, options.onModelProgress)
