@@ -27,6 +27,7 @@ const personSchema = {
   description:
     "Scientist in silkworm mutation and breeding; retired as Joint Director at CSGRC. Now a farmer.",
   knowsAbout: ["Sericulture", "Silkworm genetics", "Silkworm breeding", "Bombyx mori"],
+  sameAs: ["https://www.linkedin.com/in/randhir-sinha-b9660132/"],
 }
 
 function H2({ children }: { children: React.ReactNode }) {
@@ -71,8 +72,10 @@ export default function DrRandhirSinhaPage() {
         </P>
         <P>
           The full arc of his career — the posts, the institutions, the years — is on his{" "}
-          {/* Add the real LinkedIn URL when confirmed. */}
-          <span className="text-foreground/90">LinkedIn</span> profile.
+          <a href="https://www.linkedin.com/in/randhir-sinha-b9660132/" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">
+            LinkedIn
+          </a>{" "}
+          profile.
         </P>
 
         <H2>The archive</H2>

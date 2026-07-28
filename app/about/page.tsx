@@ -130,7 +130,7 @@ export default function AboutPage() {
             href="/vera"
             className="group rounded-2xl border border-border p-5 hover:border-accent/60 transition-colors"
           >
-            <p className="font-display text-lg font-light text-foreground group-hover:text-accent transition-colors">Vera</p>
+            <p className="font-display text-lg font-light text-foreground group-hover:text-accent transition-colors">Anita Sinha</p>
             <p className="mt-1 font-mono text-[10px] tracking-wider uppercase text-muted-foreground">My mother · the reason for the twin</p>
             <p className="mt-2 font-sans text-[13px] text-foreground/65 leading-relaxed">
               Her page — and the reason I built the Cognitive Twin: a private, on-device way to keep a
