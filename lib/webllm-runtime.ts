@@ -95,7 +95,34 @@ function lastMentionedBody(history: MessageParam[]): string | null {
   return null
 }
 
-const SYSTEM = `You are the Universe Engine assistant. You help people explore a real, data-driven 3D model of the universe. Answer in 1-3 short sentences, warm and clear, for a curious non-expert. Use ONLY the facts provided in the context — if the context doesn't cover it, say what you do know briefly and suggest exploring. Never invent numbers.`
+// A tiny (0.5–1.5B) model follows EXAMPLES far better than instructions, so the
+// prompt is few-shot: strict rules + three worked answers that fix the exact
+// voice, length, and "ground in the context, never invent" behaviour. This is
+// what makes a small on-device model punch above its weight.
+const SYSTEM = `You are the Universe Engine assistant — a warm, precise guide to a real, data-driven 3D map of the universe.
+
+Rules:
+- Answer in 1–2 short sentences. No preamble, no "As an AI", no bullet lists.
+- Use ONLY facts in the provided Context. NEVER invent a number, distance, or date.
+- If the Context doesn't cover it, say briefly what you do know and suggest exploring that body.
+- Prefer the concrete: what it is, and how we observe it (the wavelength band), if given.
+
+Examples:
+
+Context:
+- Mars (planet): Terrestrial planet [observed in visible/infrared: Planets shine by reflecting sunlight; infrared reveals their heat and atmospheres.]
+User: what is mars
+Answer: Mars is a terrestrial planet — a cold, rusty desert world. We see it by reflected sunlight, and infrared reveals its thin atmosphere and surface heat.
+
+Context:
+- Voyager 1 (spacecraft): Voyager 1 · NASA · 1977 [observed in radio: Deep-space probes are found only by their faint radio signal — Voyager 1's 22-watt carrier takes 22+ hours to reach us.]
+User: tell me about voyager 1
+Answer: Voyager 1 is the most distant human-made object, launched in 1977. We don't see it — we listen: its faint 22-watt radio signal now takes over 22 hours to reach Earth.
+
+Context:
+(no direct catalog match)
+User: what's the best pizza
+Answer: I'm the guide to this universe map, so I can't help with pizza — but ask me about a planet, a comet, a black hole, or a satellite and I'll take you there.`
 
 export async function runWebLLMTurn(options: WebLLMTurnOptions): Promise<WebLLMTurnResult> {
   const userText = lastUserText(options.history)
@@ -182,13 +209,13 @@ export async function runWebLLMTurn(options: WebLLMTurnOptions): Promise<WebLLMT
           options.onTextDelta(delta)
         }
       }
-    } catch (err) {
+    } catch {
       // Model load / run failed → deterministic fallback.
-      answer = groundedFallback(hits, flyTarget)
+      answer = await groundedFallback(hits, flyTarget)
       options.onTextDelta(answer)
     }
   } else {
-    answer = groundedFallback(hits, flyTarget)
+    answer = await groundedFallback(hits, flyTarget)
     options.onTextDelta(answer)
   }
 
@@ -199,25 +226,44 @@ export async function runWebLLMTurn(options: WebLLMTurnOptions): Promise<WebLLMT
   return { finalAssistantContent, toolResultsForHistory: toolResults, totalUsage: ZERO_USAGE }
 }
 
+/** Pull the top hit's REAL fact from the dataset (getBodyDetails) so the no-model
+ *  answer can quote a true sentence rather than just a subtitle. */
+async function realFactFor(name: string): Promise<string | null> {
+  try {
+    const { content } = await executeAssistantTool("getBodyDetails", { name })
+    const data = JSON.parse(content) as { fact?: string }
+    const f = data?.fact
+    if (!f) return null
+    // Keep it to the first sentence or two so the answer stays glanceable.
+    const trimmed = f.split(/(?<=[.!?])\s+/).slice(0, 2).join(" ")
+    return trimmed.length > 300 ? trimmed.slice(0, 297) + "…" : trimmed
+  } catch { return null }
+}
+
 /**
  * A genuinely useful answer built purely from real catalog data — NO model.
- * This is the seamless, zero-resource path: it grounds on the catalogue hit,
- * adds how we OBSERVE the object (the EM band — radio/IR/visible/X-ray, from
- * lib/observe.ts), and offers to fly there. So even with no LLM the assistant
- * teaches something true rather than a one-line stub.
+ * The seamless, zero-resource path: it grounds on the catalogue hit, quotes the
+ * body's REAL fact from the dataset, adds how we OBSERVE it (the EM band), and
+ * offers to fly there. So with no LLM at all the assistant still gives a true,
+ * substantive answer — not a one-line stub.
  */
-function groundedFallback(
+async function groundedFallback(
   hits: ReturnType<typeof searchUniverseCatalog>,
   flyTarget: string | null,
-): string {
+): Promise<string> {
   if (!hits.length) {
     return "I couldn't find that in the catalog. Try a planet, moon, comet, a black hole like Cygnus X-1, or a deep-sky object like the Orion Nebula."
   }
   const top = hits[0]
+  const fact = await realFactFor(top.name)
   const obs = howWeObserve(kindFromClassification(top.kind), top.name) ?? howWeObserve(top.kind, top.name)
   const seeLine = obs ? ` ${obs.how}` : ""
   if (flyTarget) {
-    return `Flying you to ${top.name} now${top.subtitle ? ` — ${top.subtitle}` : ""}.${seeLine}`
+    return `Flying you to ${top.name} now${top.subtitle ? ` — ${top.subtitle}` : ""}.${fact ? ` ${fact}` : ""}`.trim()
   }
-  return `${top.name}${top.subtitle ? ` — ${top.subtitle}` : ""}.${seeLine} Ask me to fly you there, or ask about another body.`
+  // Lead with the real fact when we have one; else the subtitle + observe line.
+  const lead = fact
+    ? `${top.name} — ${fact}`
+    : `${top.name}${top.subtitle ? ` — ${top.subtitle}` : ""}.`
+  return `${lead}${seeLine} Ask me to fly you there, or about another body.`
 }

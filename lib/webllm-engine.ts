@@ -14,15 +14,19 @@
  * ready MLCEngine the assistant runtime drives via the OpenAI-compatible API.
  */
 
-/** The default tiny model — small enough to download + run on modest laptops,
- *  capable enough to follow tool-style instructions. Qwen2.5-0.5B is ~380 MB
- *  quantized; bump to 1.5B/Llama-3.2-1B for stronger answers at a larger DL. */
+/** The default tiny model — smallest download, runs on modest laptops. The
+ *  assistant works WITHOUT any model (deterministic path), so the default stays
+ *  small; the labels below guide users who want stronger phrasing to a 1B model. */
 export const DEFAULT_WEBLLM_MODEL = "Qwen2.5-0.5B-Instruct-q4f16_1-MLC"
 
+/** The recommended "better answers" model — bigger download, noticeably nicer
+ *  prose while still fully on-device. Surfaced in the settings picker. */
+export const QUALITY_WEBLLM_MODEL = "Llama-3.2-1B-Instruct-q4f16_1-MLC"
+
 export const WEBLLM_MODEL_LABELS: Record<string, string> = {
-  "Qwen2.5-0.5B-Instruct-q4f16_1-MLC": "Qwen2.5 0.5B · ~380 MB",
-  "Qwen2.5-1.5B-Instruct-q4f16_1-MLC": "Qwen2.5 1.5B · ~1.1 GB",
-  "Llama-3.2-1B-Instruct-q4f16_1-MLC": "Llama 3.2 1B · ~880 MB",
+  "Qwen2.5-0.5B-Instruct-q4f16_1-MLC": "Qwen2.5 0.5B · ~380 MB · fastest, smallest",
+  "Llama-3.2-1B-Instruct-q4f16_1-MLC": "Llama 3.2 1B · ~880 MB · better answers",
+  "Qwen2.5-1.5B-Instruct-q4f16_1-MLC": "Qwen2.5 1.5B · ~1.1 GB · best (needs a strong GPU)",
 }
 
 /** Feature-detect WebGPU without importing the heavy library. */
