@@ -4,21 +4,23 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
+import { Briefcase, FlaskConical, Layers, Gamepad2, Mail, type LucideIcon } from "lucide-react"
 import { ThemeToggle } from "./theme-toggle"
 import { DisplayMenu } from "./display-menu"
 
 // Anchor-based links use a leading "#" — when we're not on "/", clicking these
 // needs to route to "/#anchor" instead of just looking for an in-page id.
 // The Games link opens the retro webgames index (preserved as static HTML under /public/games).
-const navLinks = [
-  { label: "Works", href: "#works" },
-  { label: "Lab", href: "/lab" },
-  { label: "Skills", href: "/skills" },
+// Each item carries a small lucide icon rendered before the label.
+const navLinks: { label: string; href: string; icon: LucideIcon }[] = [
+  { label: "Works", href: "#works", icon: Briefcase },
+  { label: "Lab", href: "/lab", icon: FlaskConical },
+  { label: "Skills", href: "/skills", icon: Layers },
   // "Usability" removed — it duplicated the Lab's usability presence. The live
   // engine still lives at /usability, reachable from /lab/usability-engine's
   // "Open the live engine" button.
-  { label: "Games", href: "/games/Gamelist.html" },
-  { label: "Contact", href: "#contact" },
+  { label: "Games", href: "/games/Gamelist.html", icon: Gamepad2 },
+  { label: "Contact", href: "#contact", icon: Mail },
 ]
 
 export function Navbar() {
@@ -111,9 +113,10 @@ export function Navbar() {
 
           {/* Desktop Navigation */}
           <ul className="hidden md:flex items-center gap-8">
-            {navLinks.map((link, index) => {
+            {navLinks.map((link) => {
               const resolved = resolveHref(link.href)
               const isInPageAnchor = link.href.startsWith("#") && onHome
+              const Icon = link.icon
               return (
                 <li key={link.label}>
                   {isInPageAnchor ? (
@@ -129,7 +132,7 @@ export function Navbar() {
                         rounded
                       "
                     >
-                      <span className="text-accent mr-1">0{index + 1}</span>
+                      <Icon className="w-3.5 h-3.5 mr-1.5 opacity-70 group-hover:opacity-100 transition-opacity" aria-hidden="true" />
                       {link.label.toUpperCase()}
                       <span className="absolute -bottom-1 left-0 w-0 h-px bg-foreground group-hover:w-full transition-all duration-300" />
                     </button>
@@ -147,7 +150,7 @@ export function Navbar() {
                         ${isActiveLink(link.href) ? "text-foreground" : "text-muted-foreground hover:text-foreground"}
                       `}
                     >
-                      <span className="text-accent mr-1">0{index + 1}</span>
+                      <Icon className={`w-3.5 h-3.5 mr-1.5 transition-opacity ${isActiveLink(link.href) ? "opacity-100 text-accent" : "opacity-70 group-hover:opacity-100"}`} aria-hidden="true" />
                       {link.label.toUpperCase()}
                       {/* underline: persistent when active ("you are here"), sweep on hover otherwise */}
                       <span
@@ -231,16 +234,14 @@ export function Navbar() {
                       {...props}
                       aria-current={isActiveLink(link.href) ? "page" : undefined}
                       className={`
-                        group text-4xl font-sans tracking-tight
+                        group inline-flex items-center gap-3 text-4xl font-sans tracking-tight
                         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
                         focus-visible:ring-offset-4 focus-visible:ring-offset-background
                         rounded
                         ${isActiveLink(link.href) ? "italic text-accent" : "text-foreground"}
                       `}
                     >
-                      <span className="text-accent font-mono text-sm mr-2">
-                        0{index + 1}
-                      </span>
+                      {(() => { const Icon = link.icon; return <Icon className={`w-6 h-6 ${isActiveLink(link.href) ? "text-accent" : "text-muted-foreground"}`} aria-hidden="true" /> })()}
                       {link.label}
                       {isActiveLink(link.href) && (
                         <span className="ml-3 align-middle font-mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground">
