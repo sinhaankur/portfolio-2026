@@ -823,6 +823,9 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
   // The ground track is stored in the Earth-FIXED frame; this group re-applies
   // Earth's current spin each frame so the swath stays glued to the continents.
   const groundTrackGroupRef = useRef<THREE.Group>(null)
+  // Wraps the selected orbit path so it hides in-frame when the craft isn't
+  // launched yet at the scrubbed time (space-time fidelity).
+  const selLinesRef = useRef<THREE.Group>(null)
   const subPointRef = useRef<THREE.Mesh>(null)
   // Two-point line geometry for the surface→craft tether; its endpoints are
   // rewritten each frame (craft moves), so create it once and mutate in place.
@@ -1266,7 +1269,19 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     if (sel != null && marker) {
       const idx = idToIndex.get(sel)
       const rec = idx != null ? recs[idx] : null
-      if (rec) {
+      // SPACE-TIME FIDELITY: the selected craft's GLB marker is rendered
+      // SEPARATELY from the point swarm (which the shader launch-gates), so it
+      // must be gated too — otherwise scrubbing the clock before the object's
+      // launch date left its model floating in a sky where it didn't exist yet.
+      // Hide the marker (and skip its orbit/tether updates) until its launch.
+      const selLaunchMs = idx != null ? sats?.[idx]?.launchMs : undefined
+      const notYetLaunched = selLaunchMs != null && simTimeRef.current.simMs < selLaunchMs
+      // Show/hide the selected craft's orbit path + ground track with its launch.
+      if (selLinesRef.current) selLinesRef.current.visible = !notYetLaunched
+      if (groundTrackGroupRef.current) groundTrackGroupRef.current.visible = !notYetLaunched
+      if (notYetLaunched) {
+        marker.visible = false
+      } else if (rec) {
         let r: { position?: Vec3; velocity?: Vec3 } | false = false
         try { r = lib.propagate(rec, date) } catch { r = false }
         const p = r && r.position
@@ -1697,10 +1712,14 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
         )}
       </group>
 
-      {/* Orbital path of the selected satellite (one full revolution). */}
-      {orbitPts && orbitPts.length > 1 && (
-        <Line points={orbitPts} color="#ffd24a" transparent opacity={0.4} lineWidth={1} />
-      )}
+      {/* Orbital path of the selected satellite (one full revolution). Wrapped in
+          a ref'd group so it can be hidden in-frame when the craft isn't launched
+          yet at the scrubbed time (space-time fidelity — see the marker gate). */}
+      <group ref={selLinesRef}>
+        {orbitPts && orbitPts.length > 1 && (
+          <Line points={orbitPts} color="#ffd24a" transparent opacity={0.4} lineWidth={1} />
+        )}
+      </group>
 
       {/* Ground track — the sub-satellite curve ON Earth's surface. Stored in the
           Earth-FIXED frame and rendered inside a group that spins with the globe
