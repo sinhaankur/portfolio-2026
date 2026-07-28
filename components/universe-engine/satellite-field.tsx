@@ -765,6 +765,8 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
   }, [])
 
   const markerRef = useRef<THREE.Group>(null)
+  // Instant selection ring — billboarded + screen-space scaled each frame.
+  const selRingRef = useRef<THREE.Mesh>(null)
   const haloRef = useRef<THREE.Mesh>(null)
   // True 1:1 span (scene units) of the currently selected craft — set on
   // selection, read by the locator-halo fade so the ring hands off to the
@@ -1331,6 +1333,29 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
           }
           marker.visible = true
 
+          // INSTANT selection ring: billboard it to the camera (the marker group
+          // is rotated to the craft's travel direction, so the ring must undo
+          // that + face the viewer) and scale it in SCREEN space so it's always a
+          // clean, consistent ring — a clear "this one is selected" from any
+          // distance, the moment you click, before the fly even arrives.
+          const ring = selRingRef.current
+          if (ring) {
+            // Face the camera: world-quaternion = camera's, expressed in the
+            // marker's local frame (cancel the parent's travel-direction spin).
+            marker.getWorldQuaternion(_haloTmpQ)
+            ring.quaternion.copy(_haloTmpQ).invert().multiply(camera.quaternion)
+            // Screen-space size: scale by distance so the ring subtends a
+            // roughly constant fraction of the view. Tuned so it frames the craft
+            // as a tidy ring (not a giant off-frame circle up close): ~2.5% of the
+            // distance, clamped to a sane min/max so it's always a clean marker.
+            const camDist = camera.position.distanceTo(marker.position)
+            const s = Math.min(earthVisualRadius * 0.9, Math.max(earthVisualRadius * 0.02, camDist * 0.025))
+            ring.scale.setScalar(s)
+            // Gentle pulse so it reads as a live selection, not a static decal.
+            const mat = ring.material as THREE.MeshBasicMaterial
+            mat.opacity = 0.6 + 0.3 * Math.sin(performance.now() * 0.005)
+          }
+
           // Debug readout for the "selected craft won't render" diagnosis: real
           // marker state (no guessing). Read window.__ueSat headlessly or in devtools.
           if (typeof window !== "undefined") {
@@ -1620,13 +1645,16 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
           locator halo marks the spot from afar and fades as the model reads. */}
       <group ref={markerRef} visible={false}>
         <SatModel url={arch.url} scale={arch.k * earthVisualRadius * SELECTED_SCALE_BOOST * selectedLift} />
-        {/* Locator RING — a thin open ring that frames the craft so you can find
-            it from afar (a true-1:1 craft is sub-pixel), NOT a filled sphere (that
-            rendered as a big solid blob swallowing the craft). Faces the camera. */}
-        {/* Locator halo REMOVED — it repeatedly rendered as a big glowing blob/ring
-            that dominated the view and read green in some themes. The craft's 3D
-            model + its label tag are enough to see + identify it. Ref kept as a
-            no-op so the per-frame code below stays harmless. */}
+        {/* INSTANT selection ring — a thin, crisp, camera-facing ring that appears
+            the MOMENT a dot is clicked (the marker group flips visible on select,
+            before the fly-in arrives), so you immediately know WHICH satellite is
+            selected from any distance. Sized in SCREEN space each frame (see the
+            ringRef block in useFrame) so it stays a clean pixel ring, never the
+            old big blob that swallowed the craft. Accent-coloured, additive off. */}
+        <mesh ref={selRingRef} renderOrder={20}>
+          <ringGeometry args={[0.82, 1, 48]} />
+          <meshBasicMaterial color="#7fd4ff" transparent opacity={0.9} toneMapped={false} depthTest={false} depthWrite={false} side={THREE.DoubleSide} />
+        </mesh>
         {/* Always-visible locator label on the selected object — a LeoLabs-style
             tag so you can read WHAT you're looking at without the side panel. */}
         {selectedLabel && (
