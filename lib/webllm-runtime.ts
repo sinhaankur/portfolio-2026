@@ -23,6 +23,7 @@ import { ZERO_USAGE, type AssistantUsage } from "@/lib/anthropic-client"
 import { searchUniverseCatalog, executeAssistantTool } from "@/lib/assistant-tools"
 import { getWebLLMEngine, isWebGPUAvailable, type WebLLMProgress } from "@/lib/webllm-engine"
 import { howWeObserve, kindFromClassification } from "@/lib/observe"
+import { answerSpaceQuestion } from "@/lib/space-qa"
 
 export type WebLLMTurnOptions = {
   model: string
@@ -236,6 +237,19 @@ export async function runWebLLMTurn(options: WebLLMTurnOptions): Promise<WebLLMT
       ]
       return { finalAssistantContent, toolResultsForHistory: toolResults, totalUsage: ZERO_USAGE }
     }
+  }
+
+  // Deterministic FACT Q&A — superlatives (biggest/hottest/farthest planet),
+  // counts (how many planets/satellites/moons), a body's distance, "how far back
+  // can we go", "first spacecraft". Answered from real data, never invented, so
+  // these land correctly regardless of model quality (or with no model at all).
+  const factAnswer = answerSpaceQuestion(userText)
+  if (factAnswer) {
+    options.onTextDelta(factAnswer)
+    const finalAssistantContent: ContentBlock[] = [
+      { type: "text", text: factAnswer, citations: [] } as unknown as ContentBlock,
+    ]
+    return { finalAssistantContent, toolResultsForHistory: toolResults, totalUsage: ZERO_USAGE }
   }
 
   // Otherwise EXPLAIN — phrase an answer with the tiny model, streaming. If
