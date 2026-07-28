@@ -303,3 +303,124 @@ export async function screenConjunctions(
   results.sort((a, b) => a.missKm - b.missKm)
   return results
 }
+
+/**
+ * ON-DEMAND screening — one user object vs. the whole catalog (1-vs-N).
+ *
+ * The democratizing feature: paste ANY TLE and find what it passes close to over
+ * the next window. Much cheaper than the full N-vs-N screen — we only track the
+ * user object's distance to each catalog object — so it runs interactively in the
+ * browser. Coarse SGP4 grid to find candidates, golden-section refine to sub-km
+ * TCA. Public data only; awareness, not operational maneuver decisions.
+ *
+ * Returns conjunctions where `a` is always the user object.
+ */
+export async function screenOneObject(
+  user: ScreeningObject,
+  catalog: ScreeningObject[],
+  options: ScreeningOptions,
+): Promise<Conjunction[]> {
+  const sat = await satLib()
+  const {
+    startMs,
+    hours = 24,
+    coarseStepS = 60,
+    reportKm = 25,
+    candidateKm = 100,
+    minRelSpeedKms = 0.1,
+    onProgress,
+    yieldEvery,
+  } = options
+
+  const userRec = sat.twoline2satrec(user.l1, user.l2)
+  if (userRec.error !== 0) throw new Error("Invalid TLE — could not parse the orbit.")
+  const userBand = radialBand(userRec)
+
+  // Parse the catalog once; band-sieve against the user's radial band so we skip
+  // objects whose orbit can never physically come within candidateKm.
+  const recs: SatRec[] = []
+  const meta: ScreeningObject[] = []
+  for (const o of catalog) {
+    try {
+      const rec = sat.twoline2satrec(o.l1, o.l2)
+      if (rec.error !== 0) continue
+      if (userBand) {
+        const b = radialBand(rec)
+        if (b && (b.rp - userBand.ra > candidateKm || userBand.rp - b.ra > candidateKm)) continue
+      }
+      recs.push(rec)
+      meta.push(o)
+    } catch { /* malformed TLE — skip */ }
+  }
+  const n = recs.length
+
+  const steps = Math.max(1, Math.round((hours * 3600) / coarseStepS))
+  const candGate2 = candidateKm * candidateKm
+  // Per-catalog-object coarse minimum: [minDist² (km²), t at min (ms)].
+  const best = new Map<number, [number, number]>()
+
+  for (let s = 0; s <= steps; s++) {
+    const tMs = startMs + s * coarseStepS * 1000
+    const date = new Date(tMs)
+    const up = sat.propagate(userRec, date).position
+    if (!up || typeof up === "boolean") continue
+    for (let i = 0; i < n; i++) {
+      const p = sat.propagate(recs[i], date).position
+      if (!p || typeof p === "boolean") continue
+      const d2 = dist2(up.x, up.y, up.z, p.x, p.y, p.z)
+      if (d2 > candGate2) continue
+      const cur = best.get(i)
+      if (!cur || d2 < cur[0]) best.set(i, [d2, tMs])
+    }
+    if (onProgress) onProgress(s / steps)
+    if (yieldEvery && s % yieldEvery.steps === 0) await yieldEvery.fn()
+  }
+
+  // Refine each candidate's TCA with a golden-section search on the user↔object
+  // distance, then keep those within reportKm.
+  const PHI = (Math.sqrt(5) - 1) / 2
+  const halfWinMs = coarseStepS * 1000
+  const distUserTo = (i: number, tMs: number): number => {
+    const d = new Date(tMs)
+    const a = sat.propagate(userRec, d).position
+    const b = sat.propagate(recs[i], d).position
+    if (!a || typeof a === "boolean" || !b || typeof b === "boolean") return Infinity
+    return Math.sqrt(dist2(a.x, a.y, a.z, b.x, b.y, b.z))
+  }
+
+  const results: Conjunction[] = []
+  for (const [i, [, tCoarse]] of best) {
+    let lo = tCoarse - halfWinMs
+    let hi = tCoarse + halfWinMs
+    let t1 = hi - PHI * (hi - lo)
+    let t2 = lo + PHI * (hi - lo)
+    let d1 = distUserTo(i, t1)
+    let d2v = distUserTo(i, t2)
+    for (let iter = 0; iter < 40 && hi - lo > 100; iter++) {
+      if (d1 <= d2v) { hi = t2; t2 = t1; d2v = d1; t1 = hi - PHI * (hi - lo); d1 = distUserTo(i, t1) }
+      else { lo = t1; t1 = t2; d1 = d2v; t2 = lo + PHI * (hi - lo); d2v = distUserTo(i, t2) }
+    }
+    const tcaMs = (lo + hi) / 2
+    const missKm = distUserTo(i, tcaMs)
+    if (!isFinite(missKm) || missKm > reportKm) continue
+
+    const date = new Date(tcaMs)
+    const va = sat.propagate(userRec, date).velocity
+    const vb = sat.propagate(recs[i], date).velocity
+    let relSpeedKms = 0
+    if (va && typeof va !== "boolean" && vb && typeof vb !== "boolean") {
+      relSpeedKms = Math.sqrt(dist2(va.x, va.y, va.z, vb.x, vb.y, vb.z))
+    }
+    if (relSpeedKms < minRelSpeedKms) continue
+
+    results.push({
+      a: { id: user.id, name: user.name, type: user.type, owner: user.owner },
+      b: { id: meta[i].id, name: meta[i].name, type: meta[i].type, owner: meta[i].owner },
+      tcaMs,
+      missKm,
+      relSpeedKms,
+    })
+  }
+  results.sort((a, b) => a.missKm - b.missKm)
+  return results
+}

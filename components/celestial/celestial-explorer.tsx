@@ -12,7 +12,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import dynamic from "next/dynamic"
 import { motion, AnimatePresence } from "framer-motion"
-import { ArrowLeft, X, Rotate3d, Globe, Satellite, Sparkles, Rocket, Route, Orbit, Layers, Radio, Crosshair, Flame, Trash2, HelpCircle, MoreHorizontal } from "lucide-react"
+import { ArrowLeft, X, Rotate3d, Globe, Satellite, Sparkles, Rocket, Route, Orbit, Layers, Radio, Crosshair, Flame, Trash2, HelpCircle, MoreHorizontal, Radar } from "lucide-react"
 import { CustomCursor } from "@/components/custom-cursor"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { ClearCacheButton } from "@/components/clear-cache-button"
@@ -76,6 +76,11 @@ const TransferTool = dynamic(
 // (the operator counterpart to "ISS over you").
 const ConjunctionPanel = dynamic(
   () => import("./conjunction-panel").then((m) => m.ConjunctionPanel),
+  { ssr: false },
+)
+// On-demand screening — paste any TLE, screen it against the catalogue live.
+const ScreeningPanel = dynamic(
+  () => import("./screening-panel").then((m) => m.ScreeningPanel),
   { ssr: false },
 )
 // Re-entry / decay watchlist — objects sinking out of orbit (perigee + B* drag).
@@ -225,6 +230,8 @@ export function CelestialExplorer() {
   const [neoOpen, setNeoOpen] = useState(false)
   // Orbital-population census.
   const [inventoryOpen, setInventoryOpen] = useState(false)
+  // On-demand screening — paste any TLE, screen it vs the catalogue live.
+  const [screeningOpen, setScreeningOpen] = useState(false)
   // The feature-launcher menu (collapses all the tools into one chip so the
   // bottom-left doesn't stack 5+ buttons on mobile).
   const [menuOpen, setMenuOpen] = useState(false)
@@ -235,7 +242,7 @@ export function CelestialExplorer() {
   const [bodiesSheet, setBodiesSheet] = useState(false)
   const [toolsSheet, setToolsSheet] = useState(false)
   const [timeSheet, setTimeSheet] = useState(false)
-  const closePanels = () => { setPassesOpen(false); setWeatherOpen(false); setLaunchesOpen(false); setTransferOpen(false); setStationOpen(false); setIssLiveOpen(false); setPorkchopOpen(false); setNeoOpen(false); setInventoryOpen(false); setConjOpen(false); setReentryOpen(false); setDebrisOpen(false) }
+  const closePanels = () => { setPassesOpen(false); setWeatherOpen(false); setLaunchesOpen(false); setTransferOpen(false); setStationOpen(false); setIssLiveOpen(false); setPorkchopOpen(false); setNeoOpen(false); setInventoryOpen(false); setConjOpen(false); setReentryOpen(false); setDebrisOpen(false); setScreeningOpen(false) }
   // `?earth=1` auto-opens the photoreal view — for capture/testing + deep-links.
   useEffect(() => {
     try {
@@ -377,6 +384,8 @@ export function CelestialExplorer() {
           label="Orbital census" onClick={go(() => setInventoryOpen(true))} />
         <MenuItem color="#ff9d6b" icon={<Crosshair className="h-3.5 w-3.5" />}
           label="Conjunction screening" onClick={go(() => setConjOpen(true))} />
+        <MenuItem color="#7fd4ff" icon={<Radar className="h-3.5 w-3.5" />}
+          label="Screen a TLE" onClick={go(() => setScreeningOpen(true))} />
         <MenuItem color="#ff7a6b" icon={<Flame className="h-3.5 w-3.5" />}
           label="Re-entry watch" onClick={go(() => setReentryOpen(true))} />
         <MenuItem color="#ff5c5c" icon={<Trash2 className="h-3.5 w-3.5" />}
@@ -729,6 +738,11 @@ export function CelestialExplorer() {
                   setTitleVisible(false)
                 }}
               />
+            </div>
+          )}
+          {screeningOpen && (
+            <div className="absolute bottom-24 left-4 md:left-6 z-40">
+              <ScreeningPanel onClose={() => setScreeningOpen(false)} />
             </div>
           )}
           {reentryOpen && (
