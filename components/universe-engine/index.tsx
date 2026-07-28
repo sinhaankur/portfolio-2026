@@ -523,6 +523,32 @@ export function UniverseEngine({
   }, [])
   const dismissSheet = useCallback(() => setSelectedBody(null), [])
 
+  // Escape → smooth snap-out. The universal "get me out" gesture: if anything is
+  // focused (following a body, a fly-to in flight, a selected satellite, or an
+  // open body card), Escape glides the camera back to the wide view via the same
+  // eased handleReset — and STOPS there, so it doesn't also drop explore mode.
+  // Only when nothing is focused does Escape fall through to the hero's
+  // explore-exit. Capture phase so we intercept before the hero's handler.
+  useEffect(() => {
+    if (!interactive) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return
+      const focused =
+        followRef.current != null ||
+        flyToRef.current.active ||
+        selectedSatRef.current != null ||
+        selectedBody != null
+      if (focused) {
+        e.stopPropagation()
+        if (selectedSatRef.current != null) selectedSatRef.current = null
+        setSelectedBody(null)
+        handleReset()
+      }
+    }
+    window.addEventListener("keydown", onKey, { capture: true })
+    return () => window.removeEventListener("keydown", onKey, { capture: true })
+  }, [interactive, selectedBody, handleReset])
+
   // Following-mode banner. Polls the module-scoped followRef on a 200ms
   // interval — cheap enough vs. re-rendering on every frame, fresh enough
   // that the banner appears/disappears in step with the user's actions.
@@ -644,6 +670,20 @@ export function UniverseEngine({
   return (
     <div ref={containerRef} className="relative w-full h-full ue-engine-fade-in">
       <Canvas
+        // Click empty space → smooth snap-out. R3F fires onPointerMissed only on
+        // a genuine CLICK that hit no object (not a drag), so rotating the view
+        // never triggers it. Gated to when something's focused, so an idle wide-
+        // view click does nothing. Reuses the eased handleReset glide.
+        onPointerMissed={() => {
+          if (!interactive) return
+          const focused =
+            followRef.current != null || flyToRef.current.active ||
+            selectedSatRef.current != null || selectedBody != null
+          if (!focused) return
+          if (selectedSatRef.current != null) selectedSatRef.current = null
+          setSelectedBody(null)
+          handleReset()
+        }}
         // Camera default: close to the solar system on the Orion Arm.
         // far raised so you can pull the camera out toward the true-3D
         // solar-neighbourhood stars (NearbyStars3D, LY_SCALE 20: Alpha Cen ≈ 86,
