@@ -20,13 +20,13 @@ public data, for **understanding not operations**.
 
 ## Gaps worth building — ranked (value × safety)
 
-### Tier 1 — highest value, fully safe (public data only)
-1. **On-Demand Screening** — paste ANY TLE → screen it against the catalog for
-   conjunctions. The democratizing feature LeoLabs gates. Builds on conjunction.ts.
-2. **Proximity / State Comparison** — pick two objects → closest-approach geometry
-   over time. Extends the existing conjunction math.
-3. **Ephemeris export** — download a selected object's predicted positions
-   (CSV / CCSDS OEM). Trivial from SGP4; high researcher utility.
+### Tier 1 — highest value, fully safe (public data only)  ✅ ALL SHIPPED
+1. ✅ **On-Demand Screening** — screening-panel.tsx "Screen a TLE"
+   (lib/conjunction.ts `screenOneObject`, 1-vs-N).
+2. ✅ **Proximity / State Comparison** — proximity-panel.tsx "Proximity (2 objects)"
+   (`screenTwoObjects` + separation sparkline).
+3. ✅ **Ephemeris export** — the selected sat's card exports CSV / CCSDS OEM
+   (lib/ephemeris.ts `computeEphemeris`/`toCSV`/`toOEM`). Verified: ISS |r|=6790 km.
 
 ### Tier 2 — strong, still safe
 4. **Embeddable mini-tracker** — an iframe others drop into their sites (reach).
