@@ -48,16 +48,18 @@ export default function AboutPage() {
             through-line). To use a proper headshot instead, drop it at
             public/img/about/ankur.webp and change the src below to it. */}
         <figure className="m-0">
-          <div className="aspect-[4/5] overflow-hidden rounded-2xl border border-border bg-secondary/20">
+          <div className="overflow-hidden rounded-2xl border border-border bg-secondary/20">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/img/about/journey-2004.webp"
               alt="Ankur Sinha — where it started, at a CRT computer in 2004"
-              width={640}
-              height={800}
+              width={1400}
+              height={980}
               loading="lazy"
               decoding="async"
-              className="h-full w-full object-cover [filter:saturate(0.96)]"
+              // Natural aspect ratio — the photo shows in FULL, never cropped
+              // (block h-auto lets the frame take the image's real proportions).
+              className="block w-full h-auto [filter:saturate(0.96)]"
             />
           </div>
           <figcaption className="mt-2 font-mono text-[9px] tracking-[0.18em] uppercase text-muted-foreground">
