@@ -23,7 +23,9 @@ import {
   AdditiveBlending,
   BufferAttribute,
   BufferGeometry,
+  CanvasTexture,
   Color,
+  Group,
   NormalBlending,
   Points,
   ShaderMaterial,
@@ -58,14 +60,36 @@ export function MilkyWay({
   const pointsRef = useRef<Points>(null)
   const matRef = useRef<ShaderMaterial>(null)
   const dustMatRef = useRef<ShaderMaterial>(null)
+  const coreGlowRef = useRef<Group>(null)
   const { gl } = useThree()
+
+  // Procedural radial-glow texture for the luminous core sprites — generated
+  // once on a canvas (no asset, no Blender needed): a soft white→transparent
+  // gaussian falloff. Reused across the three stacked core billboards.
+  const coreTex = useMemo(() => {
+    if (typeof document === "undefined") return null
+    const s = 128
+    const c = document.createElement("canvas")
+    c.width = c.height = s
+    const ctx = c.getContext("2d")!
+    const g = ctx.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2)
+    g.addColorStop(0, "rgba(255,255,255,1)")
+    g.addColorStop(0.25, "rgba(255,255,255,0.7)")
+    g.addColorStop(0.5, "rgba(255,255,255,0.25)")
+    g.addColorStop(1, "rgba(255,255,255,0)")
+    ctx.fillStyle = g
+    ctx.fillRect(0, 0, s, s)
+    const tex = new CanvasTexture(c)
+    tex.needsUpdate = true
+    return tex
+  }, [])
 
   // Diffuse dust-haze uniforms — the soft glowing spine behind the point field.
   // Dark theme only (additive); chart mode keeps the clean ink look.
   const dustUniforms = useMemo(
     () => ({
       uTime: { value: 0 },
-      uBrightness: { value: 0.5 },
+      uBrightness: { value: 0.72 }, // richer dust glow for a clearer band
       uCoreColor: { value: new Color("#ffc089") }, // warm amber bulge
       uArmColor: { value: new Color("#5a6b9c") },  // cool dusty blue arms
     }),
@@ -285,7 +309,7 @@ export function MilkyWay({
       // Dark-mode brightness gain so the Milky Way band reads clearly against
       // ink (additive + ACES tone-mapping was washing it faint). Chart mode
       // keeps 1.0 — its NormalBlending ink look was already correct.
-      uBrightness: { value: invert ? 1.0 : 1.9 },
+      uBrightness: { value: invert ? 1.0 : 2.3 },
     }),
     [gl, invert],
   )
@@ -316,7 +340,7 @@ export function MilkyWay({
           it's safe on every tier. Dark theme only (additive bleaches on cream).
           Rendered first so it sits BEHIND the point field as pure glow. */}
       {!invert && (
-        <mesh rotation={[-Math.PI / 2, 0, 0]} scale={[52, 30, 1]}>
+        <mesh rotation={[-Math.PI / 2, 0, 0]} scale={[58, 34, 1]}>
           <planeGeometry args={[1, 1]} />
           <shaderMaterial
             ref={dustMatRef}
@@ -328,6 +352,24 @@ export function MilkyWay({
             blending={AdditiveBlending}
           />
         </mesh>
+      )}
+
+      {/* LUMINOUS CORE — the galactic bulge should SHINE like a real galaxy
+          photo, not just be denser dots. Three stacked additive billboards
+          (bright hot centre → warm mid → soft amber halo) give the core a real
+          glowing bloom. Camera-facing so it reads from any angle. Dark only. */}
+      {!invert && (
+        <group ref={coreGlowRef}>
+          <sprite scale={[16, 16, 1]}>
+            <spriteMaterial map={coreTex} color="#fff4e0" transparent opacity={0.9} depthWrite={false} blending={AdditiveBlending} />
+          </sprite>
+          <sprite scale={[34, 34, 1]}>
+            <spriteMaterial map={coreTex} color="#ffcf8a" transparent opacity={0.55} depthWrite={false} blending={AdditiveBlending} />
+          </sprite>
+          <sprite scale={[70, 70, 1]}>
+            <spriteMaterial map={coreTex} color="#e8a860" transparent opacity={0.22} depthWrite={false} blending={AdditiveBlending} />
+          </sprite>
+        </group>
       )}
 
       <points ref={pointsRef} geometry={geometry}>
