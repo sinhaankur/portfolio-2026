@@ -64,6 +64,14 @@ export function Intro() {
       // Escape hatch: `?nointro` skips the ignition sequence — handy for
       // deep-linking straight into a page (and for automated capture/testing).
       if (new URLSearchParams(window.location.search).has("nointro")) already = true
+      // FAST MODE (accessibility): the user chose the speed lane — skip the
+      // cinematic intro every visit. Read localStorage directly since the Intro
+      // renders before the display-prefs context hydrates. Cinematic stays the
+      // default; this only fires when the user opted in.
+      try {
+        const raw = localStorage.getItem("display-prefs-v1")
+        if (raw && JSON.parse(raw).fastMode) already = true
+      } catch { /* private mode — ignore */ }
     } catch {
       already = false
     }

@@ -31,6 +31,9 @@ export type DisplayPrefs = {
   largeText: boolean
   systemCursor: boolean
   readingMode: boolean
+  /** Faster use: skip the ~7.5s cinematic ignition intro and go straight to the
+   *  content. Cinematic stays the DEFAULT (off); this is the opt-in speed lane. */
+  fastMode: boolean
 }
 
 const DEFAULT_PREFS: DisplayPrefs = {
@@ -38,6 +41,7 @@ const DEFAULT_PREFS: DisplayPrefs = {
   largeText: false,
   systemCursor: false,
   readingMode: false,
+  fastMode: false,
 }
 
 const STORAGE_KEY = "display-prefs-v1"
@@ -69,7 +73,8 @@ export function DisplayPrefsProvider({ children }: { children: ReactNode }) {
     root.classList.toggle("text-larger", prefs.largeText)
     root.classList.toggle("cursor-system", prefs.systemCursor)
     root.classList.toggle("reading-mode", prefs.readingMode)
-  }, [prefs.reduceMotion, prefs.largeText, prefs.systemCursor, prefs.readingMode])
+    root.classList.toggle("fast-mode", prefs.fastMode)
+  }, [prefs.reduceMotion, prefs.largeText, prefs.systemCursor, prefs.readingMode, prefs.fastMode])
 
   const setPref = useCallback(
     <K extends keyof DisplayPrefs>(key: K, value: DisplayPrefs[K]) => {
