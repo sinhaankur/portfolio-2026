@@ -1096,25 +1096,36 @@ export function UniverseEngine({
             />
           )}
 
-          {/* Narrative caption — only renders during journey waypoints that
-              carry text (currently just the Pale Blue Dot beat). Centered
-              and held within a narrow column so the Sagan passage reads
-              cinematically rather than dashed across the viewport. */}
+          {/* Narrative caption — renders during journey waypoints that carry
+              text. Centered and held within a narrow column so each passage
+              reads cinematically rather than dashed across the viewport.
+
+              Position depends on the surface. On the standalone explorer
+              (full HUD) it sits near the TOP, where the frame is clear. On the
+              HOME HERO (minimalControls) the top-left carries the DESIGN ×
+              ENGINEERING × AI headline + Oracle line, so a top caption
+              COLLIDES with it — anchor the home-hero caption to the LOWER
+              third instead, above the auto-tour button, and grow it upward so
+              even the long Andromeda passage stays clear of both the headline
+              and the bottom chrome. */}
           {caption && (
             <div
               key={caption.text}
-              className="
+              className={`
                 pointer-events-none
-                absolute top-32 md:top-40 left-1/2 -translate-x-1/2
+                absolute left-1/2 -translate-x-1/2
                 z-20 max-w-md md:max-w-lg px-6 text-center
-              "
+                ${minimalControls
+                  ? "bottom-56 md:bottom-40 flex flex-col justify-end"
+                  : "top-32 md:top-40"}
+              `}
               style={{ animation: "ue-label-in 700ms ease-out both" }}
             >
-              <p className="font-serif italic text-foreground/85 text-base md:text-[18px] leading-relaxed">
+              <p className="font-serif italic text-foreground/85 text-[15px] md:text-[18px] leading-relaxed [text-shadow:0_1px_12px_var(--background)]">
                 {caption.text}
               </p>
               {caption.source && (
-                <p className="mt-3 font-mono text-[9px] tracking-[0.25em] uppercase text-foreground/55">
+                <p className="mt-3 font-mono text-[9px] tracking-[0.25em] uppercase text-foreground/55 [text-shadow:0_1px_8px_var(--background)]">
                   {caption.source}
                 </p>
               )}

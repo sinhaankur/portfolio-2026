@@ -820,7 +820,12 @@ export const DEFAULT_JOURNEY: JourneyWaypoint[] = [
     target: { x: 0, y: 0, z: 0 },
     distance: 130,
     label: "The Milky Way",
-    linger: 6500,
+    caption:
+      "Our galaxy. Four hundred billion suns wound into a slow spiral, a hundred thousand light-years across. Everything you have ever known is a single grain of light somewhere in this glow.",
+    captionSource: "The Milky Way · a barred spiral, SBbc",
+    // Hold longer on the opening — let the warm bulge breathe before the
+    // camera begins its descent inward. This is the establishing shot.
+    linger: 10000,
   },
   // 2. Pull in to the solar system — re-establish "we are here" after
   // the wide galactic shot. Focus the Sun so the framing is scale-proof
@@ -828,7 +833,10 @@ export const DEFAULT_JOURNEY: JourneyWaypoint[] = [
   {
     focusPointId: "planet:Sun",
     label: "Our solar system",
-    linger: 5500,
+    caption:
+      "One of those grains, closer now. An ordinary yellow star and the handful of worlds it holds. From here, the whole of human history has happened around this single light.",
+    captionSource: "The Sun · G2V · 26,670 light-years from the centre",
+    linger: 6500,
   },
   // 3. Pale Blue Dot — Voyager 1's vantage on Valentine's Day 1990.
   // Target is Earth (≈ 3 scene units from the Sun, on its start-phase
@@ -855,7 +863,10 @@ export const DEFAULT_JOURNEY: JourneyWaypoint[] = [
   {
     focusPointId: "planet:Saturn",
     label: "Saturn",
-    linger: 6500,
+    caption:
+      "Saturn's rings are only tens of metres thick — a sheet of ice and rock as wide as the space between Earth and the Moon, yet thinner than a house. A whole world wearing light.",
+    captionSource: "Saturn · the ringed jewel · 1.4 billion km out",
+    linger: 7000,
   },
   // 5. Sgr A* — supermassive BH at the centre of the Milky Way.
   // Origin of the MilkyWay group; closer distance frames the
@@ -899,7 +910,10 @@ export const DEFAULT_JOURNEY: JourneyWaypoint[] = [
     target: _shellPos(2.530, 89.264),
     distance: 16,
     label: "Polaris",
-    linger: 6500,
+    caption:
+      "For a thousand years, every traveller who was lost looked up and found this one star holding still while the whole sky turned around it. Not the brightest — just the one that stays.",
+    captionSource: "Polaris · the North Star · 433 light-years",
+    linger: 7000,
   },
   // 9. Proxima Centauri — closest known star to the Sun (4.24 ly),
   // host to a potentially habitable Earth-mass planet.
@@ -907,7 +921,10 @@ export const DEFAULT_JOURNEY: JourneyWaypoint[] = [
     target: _shellPos(14.495, -62.68),
     distance: 14,
     label: "Proxima Centauri",
-    linger: 6500,
+    caption:
+      "The nearest star to our own — and it has a planet in its habitable zone. Four light-years away: near enough to dream about, far enough that a signal sent today arrives in 2030.",
+    captionSource: "Proxima Centauri · 4.24 light-years · the next door",
+    linger: 7000,
   },
   // 10. TRAPPIST-1 — seven confirmed planets, three in the habitable
   // zone. The headline candidate for "another Earth" within reach.
@@ -915,7 +932,10 @@ export const DEFAULT_JOURNEY: JourneyWaypoint[] = [
     target: _shellPos(23.108, -5.04),
     distance: 14,
     label: "TRAPPIST-1",
-    linger: 6500,
+    caption:
+      "Seven Earth-sized worlds circling one small, cool star — three of them where liquid water could pool. Stand on any of them and the others would hang in the sky, larger than our Moon.",
+    captionSource: "TRAPPIST-1 · seven worlds · 40 light-years",
+    linger: 7000,
   },
   // 11. Kepler-186 — first Earth-sized planet found in a habitable
   // zone (NASA Ames, 2014). 557 ly out.
@@ -923,7 +943,10 @@ export const DEFAULT_JOURNEY: JourneyWaypoint[] = [
     target: _shellPos(19.907, 43.95),
     distance: 14,
     label: "Kepler-186",
-    linger: 6500,
+    caption:
+      "The first Earth-sized planet ever found in another star's habitable zone. Somewhere out there is a red sunset over an ocean no one has ever named. We know it exists. We just can't reach it — yet.",
+    captionSource: "Kepler-186f · the first · 557 light-years",
+    linger: 7000,
   },
   // 12. Andromeda (M31) — next galaxy over. Outward look that pairs
   // with the Milky Way opener.
@@ -931,7 +954,10 @@ export const DEFAULT_JOURNEY: JourneyWaypoint[] = [
     target: { x: SUN_OFFSET_SCENE + 102.2, y: 99.0, z: 16.9 },
     distance: 22,
     label: "Andromeda",
-    linger: 7000,
+    caption:
+      "The most distant thing you can see with your own eyes — a trillion stars, two and a half million light-years away. Its light left before there were humans to look up. In four billion years, it will collide with us, and the two galaxies will become one.",
+    captionSource: "Andromeda · M31 · our nearest galactic neighbour",
+    linger: 8500,
   },
 ]
 
