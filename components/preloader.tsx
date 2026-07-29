@@ -41,6 +41,12 @@ export function Intro() {
   const [visible, setVisible] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [progress, setProgress] = useState(0)
+  // HARD KILL: when this flips true the overlay is removed OUTRIGHT (returns
+  // null) — no framer-motion exit animation. The exit animation is rAF-driven,
+  // so on iOS Safari (where rAF can be suspended on cellular / Low Power Mode)
+  // a normal setVisible(false) can leave the curtain stuck mid-fade at opacity
+  // 1 forever — a permanent black screen. forceGone is the guaranteed escape.
+  const [forceGone, setForceGone] = useState(false)
   const engineReadyRef = useRef(false)
   const raf = useRef<number | null>(null)
 
@@ -96,6 +102,17 @@ export function Intro() {
     }
     window.addEventListener("universe-ready", onReady)
 
+    // HARD SAFETY NET (independent of rAF): on iOS Safari, requestAnimationFrame
+    // is throttled or fully paused during initial paint on cellular, in Low Power
+    // Mode, or while the tab isn't foregrounded — so a rAF-only loop can leave the
+    // black curtain up forever (the HARD_CAP is only read inside the rAF tick).
+    // This wall-clock timer force-lifts the curtain no matter what rAF does.
+    const failsafe = window.setTimeout(() => {
+      // Hard-kill: remove the overlay outright. Don't route through the
+      // framer-motion exit (rAF-driven, may be frozen) — just take it off-screen.
+      setForceGone(true)
+    }, HARD_CAP_MS + 400)
+
     const start = performance.now()
     const tick = (now: number) => {
       const elapsed = now - start
@@ -114,17 +131,59 @@ export function Intro() {
 
       const canFinish = elapsed >= MIN_VISIBLE_MS && !waitingForEngine
       if (canFinish && p >= 0.999) {
-        setProgress(1)
-        // brief beat at 100% ("Welcome") before the curtain lifts
-        window.setTimeout(() => setVisible(false), 520)
+        finish()
         return
       }
       raf.current = requestAnimationFrame(tick)
     }
     raf.current = requestAnimationFrame(tick)
 
+    // WALL-CLOCK DRIVER (parallel to rAF): setInterval keeps ticking on iOS
+    // Safari even when requestAnimationFrame is throttled/suspended, so the
+    // progress bar advances and the curtain lifts ON TIME instead of freezing.
+    // It computes the same eased progress from Date.now() and finishes at the
+    // same gates; whichever driver reaches the finish first wins (both clear the
+    // failsafe + each other). ~66ms ≈ 15fps: smooth enough, cheap.
+    const wallStart = Date.now()
+    let done = false
+    const finish = () => {
+      if (done) return
+      done = true
+      setProgress(1)
+      window.clearTimeout(failsafe)
+      window.clearInterval(interval)
+      if (raf.current) cancelAnimationFrame(raf.current)
+      raf.current = null
+      window.setTimeout(() => setVisible(false), 520)
+      // Belt-and-suspenders: if the framer exit somehow stalls, hard-remove.
+      window.setTimeout(() => setForceGone(true), 1600)
+    }
+    const interval = window.setInterval(() => {
+      const elapsed = Date.now() - wallStart
+      const timeP = Math.min(1, elapsed / MIN_VISIBLE_MS)
+      const eased = 1 - Math.pow(1 - timeP, 2)
+      const pastMin = elapsed - MIN_VISIBLE_MS
+      const waitingForEngine = !engineReadyRef.current && pastMin < 1500 && elapsed < HARD_CAP_MS
+      const gate = waitingForEngine ? 0.92 : 1
+      setProgress((prev) => Math.max(prev, Math.min(eased, gate)))
+      if (elapsed >= MIN_VISIBLE_MS && !waitingForEngine) finish()
+      else if (elapsed >= HARD_CAP_MS) finish()
+    }, 66)
+
+    // If the tab is ever hidden (backgrounded) and rAF pauses, catch resume:
+    // on visibility change back, kick the loop so it can finish.
+    const onVis = () => {
+      if (document.visibilityState === "visible" && raf.current == null && !done) {
+        raf.current = requestAnimationFrame(tick)
+      }
+    }
+    document.addEventListener("visibilitychange", onVis)
+
     return () => {
+      window.clearInterval(interval)
       window.removeEventListener("universe-ready", onReady)
+      document.removeEventListener("visibilitychange", onVis)
+      window.clearTimeout(failsafe)
       if (raf.current) cancelAnimationFrame(raf.current)
     }
   }, [prefersReducedMotion, skipIntroRoute])
@@ -139,7 +198,7 @@ export function Intro() {
     }
   }, [visible])
 
-  if (!mounted) return null
+  if (!mounted || forceGone) return null
 
   const pct = Math.round(progress * 100)
   // The point of light blooms with progress.
