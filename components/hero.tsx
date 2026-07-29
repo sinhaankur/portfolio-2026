@@ -538,12 +538,19 @@ export function Hero() {
         >
           {/* Mobile-only legibility scrim: the hero copy sits over the densest
               part of the galaxy on a phone, so a soft gradient behind the text
-              keeps it readable without hiding the scene. Desktop has room, so
-              no scrim there. */}
+              keeps it readable without hiding the scene. Two layers now — a
+              vertical wash that darkens the top band where the headline lives
+              (the warm bulge glows right through it), plus the original radial
+              anchored on the copy. Desktop has room, so no scrim there. */}
+          <div
+            aria-hidden
+            className="md:hidden pointer-events-none fixed inset-x-0 top-0 h-[52vh] z-[-1]"
+            style={{ background: "linear-gradient(to bottom, color-mix(in oklch, var(--background) 82%, transparent) 0%, color-mix(in oklch, var(--background) 46%, transparent) 46%, transparent 100%)" }}
+          />
           <div
             aria-hidden
             className="md:hidden pointer-events-none absolute -inset-x-6 -inset-y-4 z-[-1]"
-            style={{ background: "radial-gradient(120% 90% at 20% 40%, var(--background) 30%, color-mix(in oklch, var(--background) 55%, transparent) 60%, transparent 100%)" }}
+            style={{ background: "radial-gradient(130% 95% at 22% 42%, var(--background) 38%, color-mix(in oklch, var(--background) 60%, transparent) 64%, transparent 100%)" }}
           />
           <p className="font-mono text-xs tracking-[0.3em] text-foreground/75 mb-2 [text-shadow:0_1px_8px_var(--background)]">
             ANKUR SINHA

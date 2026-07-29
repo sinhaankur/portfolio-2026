@@ -72,11 +72,16 @@ export function MilkyWay({
     const c = document.createElement("canvas")
     c.width = c.height = s
     const ctx = c.getContext("2d")!
+    // Warm falloff — a real galactic bulge is amber-gold, not a flashlight.
+    // Keep a small white-hot pinpoint at the very centre, then shade warm fast
+    // so the additive stack glows like Population-II starlight, not a blown
+    // highlight. A steeper mid falloff also keeps the bloom compact on phones.
     const g = ctx.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2)
     g.addColorStop(0, "rgba(255,255,255,1)")
-    g.addColorStop(0.25, "rgba(255,255,255,0.7)")
-    g.addColorStop(0.5, "rgba(255,255,255,0.25)")
-    g.addColorStop(1, "rgba(255,255,255,0)")
+    g.addColorStop(0.14, "rgba(255,244,224,0.82)")
+    g.addColorStop(0.32, "rgba(255,214,150,0.42)")
+    g.addColorStop(0.6, "rgba(240,180,110,0.14)")
+    g.addColorStop(1, "rgba(240,180,110,0)")
     ctx.fillStyle = g
     ctx.fillRect(0, 0, s, s)
     const tex = new CanvasTexture(c)
@@ -309,9 +314,12 @@ export function MilkyWay({
       // Dark-mode brightness gain so the Milky Way band reads clearly against
       // ink (additive + ACES tone-mapping was washing it faint). Chart mode
       // keeps 1.0 — its NormalBlending ink look was already correct.
-      uBrightness: { value: invert ? 1.0 : 2.3 },
+      // On phones the galaxy fills a narrow frame, so the additive point field
+      // stacked into a white wash that drowned the hero copy — dial the gain
+      // back on mobile so the band stays luminous but the arms/colour read.
+      uBrightness: { value: invert ? 1.0 : mobile ? 1.75 : 2.3 },
     }),
-    [gl, invert],
+    [gl, invert, mobile],
   )
 
   useFrame((_, delta) => {
@@ -357,17 +365,24 @@ export function MilkyWay({
       {/* LUMINOUS CORE — the galactic bulge should SHINE like a real galaxy
           photo, not just be denser dots. Three stacked additive billboards
           (bright hot centre → warm mid → soft amber halo) give the core a real
-          glowing bloom. Camera-facing so it reads from any angle. Dark only. */}
+          glowing bloom. Camera-facing so it reads from any angle. Dark only.
+
+          On phones the same bloom filled a narrow frame and blew the centre to
+          pure white — washing out the hero copy. So on mobile we shrink the hot
+          inner sprite, drop the centre opacity, and let the WARM amber halo
+          carry the glow: the bulge reads as a golden jewel, not a white sun,
+          and the spiral colour/text survive. Desktop framing keeps the fuller
+          bloom. */}
       {!invert && (
         <group ref={coreGlowRef}>
-          <sprite scale={[16, 16, 1]}>
-            <spriteMaterial map={coreTex} color="#fff4e0" transparent opacity={0.9} depthWrite={false} blending={AdditiveBlending} />
+          <sprite scale={mobile ? [10, 10, 1] : [16, 16, 1]}>
+            <spriteMaterial map={coreTex} color="#ffedcf" transparent opacity={mobile ? 0.55 : 0.9} depthWrite={false} blending={AdditiveBlending} />
           </sprite>
-          <sprite scale={[34, 34, 1]}>
-            <spriteMaterial map={coreTex} color="#ffcf8a" transparent opacity={0.55} depthWrite={false} blending={AdditiveBlending} />
+          <sprite scale={mobile ? [26, 26, 1] : [34, 34, 1]}>
+            <spriteMaterial map={coreTex} color="#ffcf8a" transparent opacity={mobile ? 0.42 : 0.55} depthWrite={false} blending={AdditiveBlending} />
           </sprite>
-          <sprite scale={[70, 70, 1]}>
-            <spriteMaterial map={coreTex} color="#e8a860" transparent opacity={0.22} depthWrite={false} blending={AdditiveBlending} />
+          <sprite scale={mobile ? [58, 58, 1] : [70, 70, 1]}>
+            <spriteMaterial map={coreTex} color="#e8a860" transparent opacity={mobile ? 0.20 : 0.22} depthWrite={false} blending={AdditiveBlending} />
           </sprite>
         </group>
       )}
