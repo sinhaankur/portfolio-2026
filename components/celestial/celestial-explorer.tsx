@@ -187,6 +187,13 @@ export function CelestialExplorer() {
     })
     return () => { cancelled = true }
   }, [])
+  // Selecting a satellite (search pick or a dot click in the scene) means the
+  // user is already driving — the tour card must not sit over their chase view.
+  useEffect(() => {
+    const onSel = () => setTourOpen(false)
+    window.addEventListener("celestial:sat-selected", onSel)
+    return () => window.removeEventListener("celestial:sat-selected", onSel)
+  }, [])
 
   // Map a tour step's action to opening the right panel.
   const runTourAction = (key: string) => {

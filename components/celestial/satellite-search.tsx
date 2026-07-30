@@ -47,6 +47,18 @@ const DECAY_LABEL: Record<string, string> = {
   "leo-longterm": "Long-term LEO", stable: "Stable orbit",
 }
 
+// Household name → the SATCAT designation it actually lives under. Typing
+// "hubble" used to surface only Hubble Network's BLE cubesats (HUBBLE 6…)
+// while the telescope sat unfindable as "HST". Alias hits rank first.
+const NAME_ALIASES: Record<string, string> = {
+  "hubble": "hst",
+  "hubble space telescope": "hst",
+  "tiangong": "css (tianhe)",
+  "chinese space station": "css (tianhe)",
+  "space station": "iss (zarya)",
+  "international space station": "iss (zarya)",
+}
+
 function fmtDate(ms: number) {
   return new Date(ms).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric", timeZone: "UTC" })
 }
@@ -80,6 +92,11 @@ export function SatelliteSearch() {
   // field derives both from SGP4, so we poll the bridge refs while one is picked.
   const [archetype, setArchetype] = useState<string | null>(null)
   const [orbit, setOrbit] = useState<SatOrbit | null>(null)
+  // MOBILE: the full details card covered the entire viewport during a follow —
+  // the chase view (the payoff) was invisible. Collapsed by default at phone
+  // width: header + live one-liner, details behind a toggle. Desktop unchanged.
+  const [detailsOpen, setDetailsOpen] = useState(false)
+  useEffect(() => { setDetailsOpen(false) }, [selected?.id])
   // Observer location for the "distance from you" slant range. "idle" until the
   // user asks; "prompt" while the browser dialog is open; "on" once granted;
   // "denied"/"off" if they decline or it's unavailable. Sets the module-level
@@ -186,16 +203,29 @@ export function SatelliteSearch() {
   const results = useMemo(() => {
     const query = q.trim().toLowerCase()
     if (!catalog || query.length < 2) return []
-    const out: SatMeta[] = []
+    // Multi-word queries AND their tokens ("iss zarya" finds "ISS (ZARYA)");
+    // word-anchored matches rank above mid-word ones so "iss" surfaces the
+    // station, not SWISSCUBE. Household names map to SATCAT designations —
+    // the machines people know aren't catalogued under the names they use.
+    const alias = NAME_ALIASES[query]
+    const tokens = query.split(/\s+/)
+    const anchored = tokens.map(
+      (t) => new RegExp(`(^|[^a-z0-9])${t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`),
+    )
+    const scored: { s: SatMeta; score: number }[] = []
     for (const s of catalog) {
       if (filter === "active" && isDebris(s)) continue
       if (filter === "debris" && !isDebris(s)) continue
-      if (s.name.toLowerCase().includes(query)) {
-        out.push(s)
-        if (out.length >= 40) break
+      const n = s.name.toLowerCase()
+      let score: number | null = null
+      if (alias && n.startsWith(alias)) score = 0
+      else if (tokens.every((t) => n.includes(t))) {
+        score = n.startsWith(query) ? 1 : anchored.every((re) => re.test(n)) ? 2 : 3
       }
+      if (score != null) scored.push({ s, score })
     }
-    return out
+    scored.sort((a, b) => a.score - b.score) // stable — catalog order within a rank
+    return scored.slice(0, 40).map((x) => x.s)
   }, [catalog, q, filter])
 
   // Deep-space spacecraft that have LEFT Earth orbit (Voyagers, Pioneers, New
@@ -426,6 +456,22 @@ export function SatelliteSearch() {
               </button>
             </div>
             <h3 className="font-display text-xl font-light tracking-[-0.01em] leading-snug mb-2">{selected.name}</h3>
+            {/* Phone-width live one-liner — the essentials while the full table
+                is collapsed. Values tick live (same poll as the table). */}
+            {orbit && (
+              <p className="md:hidden font-mono text-[11px] tabular-nums text-foreground/80 mb-1">
+                {Math.round(orbit.altitudeKm).toLocaleString()} km · {orbit.speedKms.toFixed(2)} km/s · {orbit.regime}
+              </p>
+            )}
+            <button
+              type="button"
+              onClick={() => setDetailsOpen((v) => !v)}
+              data-cursor-hover
+              className="md:hidden mb-2 w-full rounded-full border border-border px-3 py-1.5 font-mono text-[9px] tracking-[0.15em] uppercase text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {detailsOpen ? "Hide details" : "Details"}
+            </button>
+            <div className={`${detailsOpen ? "block" : "hidden"} md:block`}>
             <dl className="space-y-1.5 font-sans text-xs">
               <div className="flex justify-between gap-3">
                 <dt className="text-muted-foreground">Operator</dt>
@@ -608,6 +654,7 @@ export function SatelliteSearch() {
                   <Download className="w-3 h-3" /> CCSDS OEM
                 </button>
               </div>
+            </div>
             </div>
           </motion.div>
         )}

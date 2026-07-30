@@ -140,11 +140,16 @@ export function classifyArchetype(name: string, owner: string, altKm: number, ty
   if (type === "R/B") return "rocketbody"
   const n = name.toUpperCase()
   // The ISS gets its own faithful model; other crewed stations share the bus.
-  if (n.includes("ISS") || n.includes("ZARYA")) return "iss"
+  // Word-anchored — a bare includes("ISS") handed SWISSCUBE the station model.
+  if (n.startsWith("ISS ") || n === "ISS" || n.includes("ZARYA")) return "iss"
   if (n.includes("TIANGONG") || n.includes("CSS (") || n.includes("MIR") || n.includes("TIANHE"))
     return "station"
+  // The real Hubble is catalogued as HST. "HUBBLE N" and LEMUR-2-HUBBLE-* are
+  // Hubble Network's 3U BLE cubesats — smallsats, not the telescope.
+  if (n === "HST" || n.includes("HUBBLE SPACE")) return "hubble"
+  if (n.includes("HUBBLE")) return "smallsat"
   // Space telescopes / observatories
-  if (n.includes("HUBBLE") || n.includes("HST") || n.includes("KEPLER") || n.includes("TESS") ||
+  if (n.includes("KEPLER") || n.includes("TESS") ||
       n.includes("SPITZER") || n.includes("CHANDRA") || n.includes("JWST") || n.includes("WEBB") ||
       n.includes("GAIA") || n.includes("XMM") || n.includes("TELESCOPE"))
     return "telescope"
@@ -808,6 +813,9 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
   // Selected satellite's display label ("L179: COSMOS 996"-style) — shown as an
   // always-visible tag on the marker, a LeoLabs-style locator readout.
   const [selectedLabel, setSelectedLabel] = useState<string | null>(null)
+  // Reactive mirror of selectedSatRef for JSX gates (the notable riders hide
+  // their DOM labels through this — drei <Html> ignores group.visible).
+  const [selId, setSelId] = useState<number | null>(null)
   // Orbit-path polyline for the selected satellite (recomputed on selection).
   const [orbitPts, setOrbitPts] = useState<THREE.Vector3[] | null>(null)
   // Origin→destination arc: launch site on Earth → the craft's current orbit.
@@ -1144,6 +1152,12 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
         const g = notableRefs.current[c]
         const idx = notableIdx[c]
         if (!g) continue
+        // Selecting a notable craft hands it to the true-1:1 marker — the
+        // boosted rider must yield or both render at once and the chase camera
+        // arrives INSIDE the oversized rider (Hubble's follow view was a
+        // screen-filling wall of foil). This is the isolate the comment above
+        // always promised.
+        if (sel === NOTABLE_CRAFT[c].id) { g.visible = false; continue }
         // TRUTH GATE: hide the craft before its real launch date. SGP4 will
         // happily propagate ISS to 6000 BC — but it didn't exist then. Only show
         // once the sim clock has reached the satellite's actual launch.
@@ -1434,6 +1448,10 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
         if (sel !== lastSelected.current) {
           lastSelected.current = sel
           selReticleAt.current = performance.now() // trigger the converging pop
+          // Tell the DOM shell a follow began (search pick OR a dot click) —
+          // the explorer closes the first-run tour card so it can't sit over
+          // the chase view the user just asked for.
+          window.dispatchEvent(new Event("celestial:sat-selected"))
           setOrbitPts(computeOrbit(rec))
           setGroundTrack(computeGroundTrack(rec))
 
@@ -1466,6 +1484,7 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
           archRef.current = a
           setArch(a)
           setSelectedLabel(meta ? `${meta.id} · ${meta.name}` : null)
+          setSelId(sel)
 
           // Orbital readout — apogee/perigee/inclination from the satrec elements,
           // period from mean motion; altitude + speed from the live propagate above.
@@ -1561,6 +1580,7 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
         setOriginArc(null)
         setOriginLabel(null)
         setSelectedLabel(null)
+        setSelId(null)
         selectedOrbitRef.current = null
         focusDepthRef.current = null   // restore normal near-plane / zoom limits
       }
@@ -1743,7 +1763,11 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
               <sphereGeometry args={[earthVisualRadius * 0.014, 12, 12]} />
               <meshBasicMaterial color="#ff8a3a" toneMapped={false} />
             </mesh>
-            <Html center distanceFactor={earthVisualRadius * 8} zIndexRange={[10, 0]} style={{ pointerEvents: "none" }}>
+            {/* SCREEN-SPACE label (no distanceFactor): a world-scaled DOM label
+                blew up to fill the whole view when the chase camera closed in on
+                a craft passing near its own launch site — a constant 10px tag
+                reads at every distance, same idiom as the selected-craft tag. */}
+            <Html center zIndexRange={[10, 0]} style={{ pointerEvents: "none" }}>
               <div style={{
                 whiteSpace: "nowrap", transform: "translateY(-1.6em)",
                 fontFamily: "var(--font-jetbrains-mono, monospace)", fontSize: "10px",
@@ -1813,15 +1837,20 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
               <meshBasicMaterial transparent opacity={0} depthWrite={false} />
             </mesh>
             {/* Refined tag: a hairline dot + thin label, no chunky box — reads as
-                a delicate annotation floating beside the craft, not a UI chip. */}
-            <Html center zIndexRange={[20, 0]} style={{ pointerEvents: "none", userSelect: "none", transform: "translate(14px, -12px)" }}>
-              <div className="flex items-center gap-1.5 whitespace-nowrap">
-                <span className="h-1 w-1 rounded-full bg-white/70" />
-                <span className="font-mono text-[9px] tracking-[0.15em] uppercase text-white/70 [text-shadow:0_1px_3px_rgba(0,0,0,0.9)]">
-                  {c.label}
-                </span>
-              </div>
-            </Html>
+                a delicate annotation floating beside the craft, not a UI chip.
+                Gated on selId: <Html> ignores group.visible, so when this craft
+                is selected (rider hidden, true-1:1 marker takes over) the DOM
+                tag would otherwise keep floating in the chase view. */}
+            {selId !== c.id && (
+              <Html center zIndexRange={[20, 0]} style={{ pointerEvents: "none", userSelect: "none", transform: "translate(14px, -12px)" }}>
+                <div className="flex items-center gap-1.5 whitespace-nowrap">
+                  <span className="h-1 w-1 rounded-full bg-white/70" />
+                  <span className="font-mono text-[9px] tracking-[0.15em] uppercase text-white/70 [text-shadow:0_1px_3px_rgba(0,0,0,0.9)]">
+                    {c.label}
+                  </span>
+                </div>
+              </Html>
+            )}
           </group>
         )
       })}
