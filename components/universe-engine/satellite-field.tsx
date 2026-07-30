@@ -218,6 +218,15 @@ export type SatOrbit = {
   // — altitudeKm (height above ground) is always known; this is "far from ME".
   slantRangeKm: number | null
   elevationDeg: number | null
+  // Live TIME / lighting state — the "when + is it lit" layer, updated per frame:
+  //   sunlit          catching the sun right now vs in Earth's shadow (eclipse).
+  //   orbitsPerDay    revolutions per day (86400 / period-seconds).
+  //   groundSpeedKms  speed of the sub-satellite point over the ground — the
+  //                   shadow's pace, always < orbital speed (Earth's radius vs
+  //                   orbital radius), the intuitive "how fast it crosses the sky".
+  sunlit: boolean
+  orbitsPerDay: number
+  groundSpeedKms: number
 }
 export const selectedOrbitRef: { current: SatOrbit | null } = { current: null }
 
@@ -1339,6 +1348,30 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
                 selectedOrbitRef.current.elevationDeg = null
               }
             } catch { /* keep last */ }
+            // SUNLIT vs ECLIPSE: is the craft catching the sun, or in Earth's
+            // shadow right now? Cylindrical umbra test — the craft is lit unless
+            // it's on the anti-sun side AND within one Earth radius of the
+            // Sun–Earth axis. Low-precision solar vector is plenty for the
+            // boolean. (Same physics the ISS "golden hour" passes depend on.)
+            try {
+              const dd = (date.getTime() - Date.UTC(2000, 0, 1, 12)) / 86_400_000
+              const g = (357.529 + 0.98560028 * dd) * (Math.PI / 180)
+              const q = (280.459 + 0.98564736 * dd) * (Math.PI / 180)
+              const L = q + (1.915 * Math.sin(g) + 0.020 * Math.sin(2 * g)) * (Math.PI / 180)
+              const e = 23.439 * (Math.PI / 180)
+              const sx = Math.cos(L), sy = Math.cos(e) * Math.sin(L), sz = Math.sin(e) * Math.sin(L)
+              const rlen = Math.sqrt(p.x * p.x + p.y * p.y + p.z * p.z) || 1
+              const along = (p.x * sx + p.y * sy + p.z * sz) // sat·sun (km, sun unit)
+              // perpendicular distance from the Sun–Earth axis
+              const px = p.x - along * sx, py = p.y - along * sy, pz = p.z - along * sz
+              const perp = Math.sqrt(px * px + py * py + pz * pz)
+              selectedOrbitRef.current.sunlit = along >= 0 || perp > EARTH_RADIUS_KM
+              // ground speed: orbital speed scaled by Earth-radius / orbital-radius
+              // (the sub-point traces a smaller circle than the craft), the
+              // intuitive "how fast its shadow crosses the ground".
+              selectedOrbitRef.current.groundSpeedKms =
+                selectedOrbitRef.current.speedKms * (EARTH_RADIUS_KM / rlen)
+            } catch { /* keep last */ }
           }
           // Position on the EXPANDED shell (matches the swarm); the altitude
           // READOUT above stays true km — only the visual position is stretched.
@@ -1516,6 +1549,10 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
               subLonDeg: 0,
               slantRangeKm: null,
               elevationDeg: null,
+              // orbits/day from the period; sunlit/groundSpeed refined per frame.
+              orbitsPerDay: periodMin > 0 ? 1440 / periodMin : 0,
+              sunlit: true,
+              groundSpeedKms: speedKms * (EARTH_RADIUS_KM / (EARTH_RADIUS_KM + altKm)),
             }
           }
 

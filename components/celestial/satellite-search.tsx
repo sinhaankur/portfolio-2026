@@ -460,6 +460,7 @@ export function SatelliteSearch() {
             {orbit && (
               <p className="md:hidden font-mono text-[11px] tabular-nums text-foreground/80 mb-1">
                 {Math.round(orbit.altitudeKm).toLocaleString()} km · {orbit.speedKms.toFixed(2)} km/s · {orbit.regime}
+                <span className={orbit.sunlit ? "text-[#ffd25a]" : "text-[#8aa0c8]"}> · {orbit.sunlit ? "☀ lit" : "🌑 shadow"}</span>
               </p>
             )}
             <button
@@ -518,6 +519,30 @@ export function SatelliteSearch() {
                     </dd>
                   </div>
                   <div className="flex justify-between gap-3">
+                    <dt className="text-muted-foreground">Sunlight</dt>
+                    <dd className="text-right">
+                      {orbit.sunlit ? (
+                        <span className="text-[#ffd25a]">☀ in sunlight</span>
+                      ) : (
+                        <span className="text-[#8aa0c8]">🌑 in Earth&apos;s shadow</span>
+                      )}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-muted-foreground">Ground speed</dt>
+                    <dd className="text-foreground text-right tabular-nums">
+                      {orbit.groundSpeedKms.toFixed(2)} km/s
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-muted-foreground">Orbit time</dt>
+                    <dd className="text-foreground text-right tabular-nums">
+                      {orbit.periodMin >= 1440
+                        ? `${(orbit.periodMin / 1440).toFixed(2)} days/orbit`
+                        : `${orbit.periodMin.toFixed(0)} min · ${orbit.orbitsPerDay.toFixed(1)}×/day`}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-3">
                     <dt className="text-muted-foreground">Currently over</dt>
                     <dd className="text-foreground text-right tabular-nums">
                       {Math.abs(orbit.subLatDeg).toFixed(1)}°{orbit.subLatDeg >= 0 ? "N" : "S"}, {Math.abs(orbit.subLonDeg).toFixed(1)}°{orbit.subLonDeg >= 0 ? "E" : "W"}
@@ -548,14 +573,6 @@ export function SatelliteSearch() {
                           use my location
                         </button>
                       )}
-                    </dd>
-                  </div>
-                  <div className="flex justify-between gap-3">
-                    <dt className="text-muted-foreground">Period</dt>
-                    <dd className="text-foreground text-right tabular-nums">
-                      {orbit.periodMin >= 1440
-                        ? `${(orbit.periodMin / 1440).toFixed(2)} days`
-                        : `${orbit.periodMin.toFixed(1)} min`}
                     </dd>
                   </div>
                   <div className="flex justify-between gap-3">
