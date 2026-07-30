@@ -613,10 +613,16 @@ const VERT = /* glsl */ `
   varying float vDebris;   // passed to frag → debris drawn dimmer (active stand out)
   varying float vFade;     // LOD alpha multiplier (LEO haze at overview zoom)
   varying float vRand;     // stable per-dot random → gentle twinkle phase in frag
+  varying float vTypeEmph; // 1 = a type filter is engaged → let type colour SPEAK
   void main() {
     vColor = aColor;
     vDebris = aDebris;
     vRand = aRand;
+    // The ALL/ACTIVE/DEBRIS chips read as broken without visible feedback:
+    // hiding 2.6k of 18.7k calm-white dots is imperceptible. With a filter
+    // engaged, the frag swaps the calm tint for the real type colour
+    // (payload green / rocket-body yellow / debris red) so the choice SHOWS.
+    vTypeEmph = (uTypeSel >= 0.0) ? 1.0 : 0.0;
     // Overview declutter, LEO only. ~85% of the catalogue lives in a band just
     // 6–30% above the surface; at overview zoom 18k min-px dots in that thin
     // annulus fuse into a solid crust over Earth. Thin LEO to a stratified
@@ -686,6 +692,7 @@ const FRAG = /* glsl */ `
   varying float vDebris;
   varying float vFade;
   varying float vRand;
+  varying float vTypeEmph;
   void main() {
     if (vHidden > 0.5) discard;
     // Crisp catalogued dot: a bright tight core + a small soft rim. Denser than
@@ -702,9 +709,12 @@ const FRAG = /* glsl */ `
     float halo    = (1.0 - smoothstep(0.0, 0.5, d)) * 0.35; // soft surround
     float a = clamp(coreDot + halo, 0.0, 1.0);
     // One calm tint — a bright cool-white, with the core whitened to a hot point so
-    // the dot reads clearly against Earth. Type colour survives as a faint undertone.
+    // the dot reads clearly against Earth. Type colour survives as a faint undertone
+    // — UNLESS a type filter is engaged, when the real type colour takes over
+    // (and the white-hot core softens so the colour actually reads).
     vec3 CALM = vec3(0.86, 0.93, 1.0);
-    vec3 col = mix(mix(CALM, vColor, 0.16), vec3(1.0), coreDot * 0.4);
+    float typeMix = mix(0.16, 0.85, vTypeEmph);
+    vec3 col = mix(mix(CALM, vColor, typeMix), vec3(1.0), coreDot * mix(0.4, 0.15, vTypeEmph));
     a *= vDebris > 0.5 ? 0.85 : 1.0;                // clearly visible now
     a *= vFade;   // overview LOD: LEO softens into haze when Earth is small
     // Gentle life: a very subtle per-dot twinkle (each phased by its stable random)
