@@ -193,6 +193,10 @@ export const selectedSatRef: { current: number | null } = { current: null }
  *  flat-pack"), so the DOM search card can name what kind of craft it is. */
 export const selectedArchetypeRef: { current: string | null } = { current: null }
 
+/** The chosen archetype ID (e.g. "hubble", "starlink2") — lets the DOM card look
+ *  up the craft's curated anatomy + build spec (CRAFT_ANATOMY, exported below). */
+export const selectedArchetypeIdRef: { current: string | null } = { current: null }
+
 /** Live orbital readout for the selected satellite — derived from its SGP4
  *  satrec (inclination, apogee/perigee) + live propagation (altitude, speed).
  *  The DOM search card polls this to show real numbers, not just a label.
@@ -1584,8 +1588,10 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
             const vv = rr && rr.velocity
             if (vv) speedKms = Math.sqrt(vv.x * vv.x + vv.y * vv.y + vv.z * vv.z)
           }
-          const a = ARCHETYPES[classifyArchetype(meta?.name ?? "", meta?.owner ?? "", altKm, meta?.type, meta?.launchMs)]
+          const archId = classifyArchetype(meta?.name ?? "", meta?.owner ?? "", altKm, meta?.type, meta?.launchMs)
+          const a = ARCHETYPES[archId]
           archRef.current = a
+          selectedArchetypeIdRef.current = archId
           setArch(a)
           setSelectedLabel(meta ? `${meta.id} · ${meta.name}` : null)
           setSelId(sel)

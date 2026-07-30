@@ -14,7 +14,8 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Search, X, Crosshair, Locate, Download } from "lucide-react"
-import { loadSatelliteCatalog, selectedSatRef, selectedArchetypeRef, selectedOrbitRef, observerRef, findNearestOverhead, launchMatesFor, satTypeFilterRef, type SatMeta, type SatOrbit, type NearestSat, type LaunchMate } from "@/components/universe-engine/satellite-field"
+import { loadSatelliteCatalog, selectedSatRef, selectedArchetypeRef, selectedArchetypeIdRef, selectedOrbitRef, observerRef, findNearestOverhead, launchMatesFor, satTypeFilterRef, type SatMeta, type SatOrbit, type NearestSat, type LaunchMate } from "@/components/universe-engine/satellite-field"
+import { anatomyFor } from "@/lib/craft-anatomy"
 import { statusFromPerigee, lifetimeFromPerigee, lifetimeLabel } from "@/lib/reentry"
 import { launchSiteFor } from "@/lib/launch-sites"
 import { namedBodies } from "@/components/universe-engine/astronomy"
@@ -101,9 +102,18 @@ export function SatelliteSearch() {
   // designator: its spent rocket body + any tracked debris/fragments. Real
   // shared-catalog data (no guessing); computed once per selection.
   const [launchMates, setLaunchMates] = useState<LaunchMate[]>([])
+  // Curated anatomy + build spec for the selected craft's archetype (bus, arrays,
+  // antennas, instruments + builder/mass/power/purpose). Read once per selection.
+  const [anatomy, setAnatomy] = useState(anatomyFor(null))
+  const [anatomyOpen, setAnatomyOpen] = useState(false)
   useEffect(() => {
-    if (selected?.id == null) { setLaunchMates([]); return }
+    if (selected?.id == null) { setLaunchMates([]); setAnatomy(null); setAnatomyOpen(false); return }
     setLaunchMates(launchMatesFor(selected.id))
+    // the id ref is set synchronously by the field the moment a craft is picked;
+    // a short delay lets that land, then read the anatomy for it.
+    setAnatomyOpen(false)
+    const t = setTimeout(() => setAnatomy(anatomyFor(selectedArchetypeIdRef.current)), 250)
+    return () => clearTimeout(t)
   }, [selected?.id])
   // Observer location for the "distance from you" slant range. "idle" until the
   // user asks; "prompt" while the browser dialog is open; "on" once granted;
@@ -297,6 +307,7 @@ export function SatelliteSearch() {
     setSelected(null)
     selectedSatRef.current = null
     selectedArchetypeRef.current = null
+    selectedArchetypeIdRef.current = null
   }
 
   // Select + fly to the nearest-overhead result. Resolve the full catalogue entry
@@ -594,6 +605,62 @@ export function SatelliteSearch() {
                 <dd className="text-foreground text-right">recognizable scale</dd>
               </div>
             </dl>
+
+            {/* ANATOMY & BUILD — what parts this craft has + how it was built.
+                Curated real spec per archetype (lib/craft-anatomy.ts); expandable
+                so it deepens the view without crowding the card. Only shows when
+                we have a spec for the classified craft type. */}
+            {anatomy && (
+              <div className="mt-3 pt-3 border-t border-border/60">
+                <button
+                  type="button"
+                  onClick={() => setAnatomyOpen((v) => !v)}
+                  data-cursor-hover
+                  className="flex w-full items-center justify-between gap-2"
+                >
+                  <span className="font-mono text-[9px] tracking-[0.2em] uppercase text-accent">
+                    Anatomy &amp; build{anatomy.approx && <span className="text-muted-foreground"> · approx.</span>}
+                  </span>
+                  <span className="font-mono text-[10px] text-muted-foreground">{anatomyOpen ? "hide" : "show"}</span>
+                </button>
+                {anatomyOpen && (
+                  <div className="mt-2.5">
+                    <p className="font-sans text-[12px] text-foreground/80 leading-relaxed">{anatomy.purpose}</p>
+                    {/* build spec */}
+                    <dl className="mt-2.5 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 font-sans text-[11px]">
+                      <dt className="text-muted-foreground">Built by</dt>
+                      <dd className="text-foreground/85 text-right">{anatomy.builder}</dd>
+                      <dt className="text-muted-foreground">Mass</dt>
+                      <dd className="text-foreground/85 text-right tabular-nums">{anatomy.mass}</dd>
+                      <dt className="text-muted-foreground">Power</dt>
+                      <dd className="text-foreground/85 text-right tabular-nums">{anatomy.power}</dd>
+                    </dl>
+                    {/* parts list */}
+                    <div className="mt-3 font-mono text-[9px] tracking-[0.2em] uppercase text-muted-foreground mb-1.5">Major parts</div>
+                    <ul className="space-y-1.5">
+                      {anatomy.parts.map((p) => (
+                        <li key={p.name} className="flex gap-2">
+                          <span className="mt-1 h-1 w-1 shrink-0 rounded-full bg-accent/70" />
+                          <span className="font-sans text-[11px] leading-relaxed">
+                            <span className="text-foreground/85 font-medium">{p.name}.</span>{" "}
+                            <span className="text-foreground/60">{p.role}</span>
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                    {/* how it was built — the memorable fact */}
+                    <p className="mt-3 rounded-lg border border-accent/20 bg-accent/[0.05] px-3 py-2 font-sans text-[11px] text-foreground/75 leading-relaxed">
+                      {anatomy.built}
+                    </p>
+                    {anatomy.approx && (
+                      <p className="mt-1.5 font-sans text-[10px] italic text-muted-foreground/80">
+                        The real design isn&apos;t public — the model + parts are the known envelope, not the exact craft.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Decay & risk — the "what's going to happen to this object" read,
                 from its perigee (drag) + any screened close approaches. Public
