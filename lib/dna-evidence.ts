@@ -189,8 +189,8 @@ export const DNA_EVIDENCE: Record<string, Evidence[]> = {
       factor: "Stress load meets the 'warrior/worrier' gene",
       finding:
         "COMT sets how fast your prefrontal cortex clears dopamine — the 'warrior' (fast) vs 'worrier' (slow) trade-off: slow clearers think sharply when calm but are more stress-sensitive under pressure. It's a tendency, not a fate — sleep, aerobic exercise, and stress-management (the same levers that steady mood) shift how much it shows up day to day.",
-      source: "COMT Val158Met (rs4680) — SNPedia",
-      url: "https://www.snpedia.com/index.php/Rs4680",
+      source: "Egan et al., COMT Val108/158Met & prefrontal function, PNAS 2001 (rs4680)",
+      url: "https://www.ncbi.nlm.nih.gov/snp/rs4680",
     },
   ],
 
@@ -261,8 +261,8 @@ export const DNA_EVIDENCE: Record<string, Evidence[]> = {
       factor: "If greens taste bitter, cook them smarter",
       finding:
         "Strong-taster genotypes perceive bitterness in cruciferous veg (broccoli, kale, Brussels sprouts) intensely, which can make them eat fewer — a small real link to veg intake. Roasting, a little fat/acid (olive oil, lemon), or pairing with something sweet tames the bitterness so you still get the nutrition.",
-      source: "TAS2R38 (rs1726866) — SNPedia",
-      url: "https://www.snpedia.com/index.php/Rs1726866",
+      source: "Kim et al., TAS2R38 bitter-taste receptor & PTC sensitivity, Science 2003 (rs1726866)",
+      url: "https://www.ncbi.nlm.nih.gov/snp/rs1726866",
     },
   ],
 
@@ -305,8 +305,8 @@ export const DNA_EVIDENCE: Record<string, Evidence[]> = {
       factor: "Sun protection + antioxidants matter more here",
       finding:
         "SOD2 is a front-line antioxidant enzyme inside your cells' mitochondria. Lower-efficiency genotypes clear oxidative stress (from UV, pollution, smoking) a little less well, so skin may show sun/pollution wear sooner. Daily SPF is the highest-leverage move; a morning vitamin-C serum and an antioxidant-rich diet (colourful veg, berries) genuinely help; don't smoke.",
-      source: "SOD2 (rs4880) — SNPedia",
-      url: "https://www.snpedia.com/index.php/Rs4880",
+      source: "Sutton et al., SOD2 Ala16Val mitochondrial targeting, Pharmacogenetics 2005 (rs4880)",
+      url: "https://www.ncbi.nlm.nih.gov/snp/rs4880",
     },
   ],
 
@@ -317,8 +317,8 @@ export const DNA_EVIDENCE: Record<string, Evidence[]> = {
       factor: "Cruciferous veg supports your detox enzymes",
       finding:
         "GST enzymes help clear certain toxins and oxidative by-products. Sulforaphane — from broccoli, and especially broccoli sprouts — upregulates the body's own antioxidant/detox pathways, a useful lever if your GST genotype is lower-activity. Not a cleanse gimmick; a real, food-based nudge.",
-      source: "GSTP1 (rs1695) — SNPedia",
-      url: "https://www.snpedia.com/index.php/Rs1695",
+      source: "GSTP1 Ile105Val (rs1695), GWAS Catalog / dbSNP",
+      url: "https://www.ncbi.nlm.nih.gov/snp/rs1695",
     },
   ],
 
@@ -389,8 +389,8 @@ export const DNA_EVIDENCE: Record<string, Evidence[]> = {
       factor: "Build the aerobic base if you clear lactate slower",
       finding:
         "MCT1 moves lactate in and out of muscle. Slower-clearing genotypes may feel high-intensity intervals burn and fatigue faster and need more recovery. The training answer is well-established regardless of genotype: build an aerobic base first, then add intervals gradually with full recovery between hard sessions — everyone's lactate threshold rises with consistent training.",
-      source: "MCT1 (rs1049434) — SNPedia",
-      url: "https://www.snpedia.com/index.php/Rs1049434",
+      source: "Cupeiro et al., MCT1 T1470A & blood lactate, J Sci Med Sport 2016 (rs1049434)",
+      url: "https://www.ncbi.nlm.nih.gov/snp/rs1049434",
     },
   ],
 }
