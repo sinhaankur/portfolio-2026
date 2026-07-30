@@ -172,7 +172,7 @@ export function EthnicitiesMap() {
       </div>
 
       <p className="mt-5 font-mono text-[10px] tracking-wider text-muted-foreground/80">
-        Continental-scale groupings from public population genetics · illustrative, not a per-person percentage
+        Continental-scale groupings from public population genetics · illustrative, not a per-person percentage · ancestry clusters, not nationalities — real structure follows community, language and region, not modern borders
       </p>
     </div>
   )

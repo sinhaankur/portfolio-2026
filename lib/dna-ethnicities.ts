@@ -33,7 +33,7 @@ export const ETHNICITY_GROUPS: EthnicityGroup[] = [
   { id: "italian", label: "Italian / Greek", homelands: ["Italy", "Greece", "Aegean"], blurb: "Deep Neolithic-farmer roots plus Near-Eastern and later Mediterranean admixture." },
   { id: "ashkenazi", label: "Ashkenazi Jewish", homelands: ["Central & Eastern Europe (diaspora)"], blurb: "A tightly bottlenecked population blending Near-Eastern and European ancestry; distinctive in DNA-match data." },
   { id: "near-eastern", label: "Near Eastern / Middle Eastern", homelands: ["Levant", "Arabia", "Iran", "Anatolia"], blurb: "Home of the Neolithic farmers who reshaped world diet; deep, layered ancestry." },
-  { id: "south-asian", label: "South Asian", homelands: ["India", "Pakistan", "Bangladesh", "Nepal", "Sri Lanka"], blurb: "A mix of Ancient Ancestral South Indian hunter-gatherers, Indus-Valley/Iranian-farmer and steppe ancestry — one of the world's most populous ancestry groups." },
+  { id: "south-asian", label: "South Asian", homelands: ["India", "Indus Valley", "Bengal", "Nepal", "Sri Lanka"], blurb: "A mix of Ancient Ancestral South Indian hunter-gatherers, Indus-Valley/Iranian-farmer and steppe ancestry — one of the world's most populous ancestry groups. Structured by community and region (caste, tribe, language) far more than by modern national borders." },
   { id: "central-asian", label: "Central Asian", homelands: ["Kazakhstan", "Uzbekistan", "Mongolia"], blurb: "A crossroads of steppe, East-Asian and Iranian ancestry along the Silk Road." },
   { id: "east-asian", label: "East Asian", homelands: ["China", "Japan", "Korea"], blurb: "Deep, relatively distinct ancestry with strong internal north–south structure." },
   { id: "se-asian", label: "Southeast Asian", homelands: ["Vietnam", "Thailand", "Philippines", "Indonesia"], blurb: "A blend of mainland East-Asian farming expansions and older indigenous lineages." },
@@ -53,7 +53,12 @@ export type RegionEntry = {
 
 export const REGIONS: RegionEntry[] = [
   { id: "in", region: "India", at: [22, 79], groups: ["south-asian", "central-asian", "east-asian"] },
-  { id: "pk", region: "Pakistan", at: [30, 69], groups: ["south-asian", "near-eastern", "central-asian"] },
+  // The northwestern subcontinent (Sindhi, Punjabi, Baluch, Pashtun and
+  // neighbouring communities) is one continuous population-genetics gradient —
+  // the meaningful unit is the tribe / language / region, not the modern
+  // national border. Labelled by geography (the Indus Valley) rather than by
+  // nationality, which does not correspond to a distinct ancestry.
+  { id: "indus", region: "Indus Valley (Sindhi · Punjabi · Baluch · Pashtun)", at: [30, 69], groups: ["south-asian", "near-eastern", "central-asian"] },
   { id: "cn", region: "China", at: [35, 104], groups: ["east-asian", "central-asian", "se-asian"] },
   { id: "jp", region: "Japan", at: [36, 138], groups: ["east-asian"] },
   { id: "gb", region: "United Kingdom", at: [54, -2], groups: ["nw-european", "scandinavian", "e-european"] },
