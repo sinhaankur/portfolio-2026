@@ -254,6 +254,67 @@ export type NearestSat = {
   altitudeKm: number
 }
 
+/** The COSPAR international designator's LAUNCH part — TLE line 1, columns
+ *  10–14 (0-based 9–13): "YYNNN" (year + launch number). Every object put up by
+ *  the SAME launch shares it (piece A = payload, B/C… = rocket body + debris).
+ *  This is the honest key for "what else came from this launch" — real shared
+ *  catalog data, never inferred. Returns "" if the TLE has no designator. */
+export function launchDesignator(l1?: string): string {
+  if (!l1 || l1.length < 14) return ""
+  return l1.slice(9, 14).trim()
+}
+
+export type LaunchMate = {
+  id: number
+  name: string
+  type: "PAY" | "R/B" | "DEB" | string
+  piece: string // the COSPAR piece letters (e.g. "A", "C", "BK")
+  altitudeKm: number | null
+}
+
+/** Every OTHER tracked object from the same launch as `satId` — its spent
+ *  rocket body and any catalogued fragments/debris — each with its current
+ *  altitude. Honest: only what the catalogue actually carries (most normal
+ *  launches list just the payload; the big fragmentation events list their
+ *  whole cloud). Returns [] when there are no launch-mates in the data. */
+export function launchMatesFor(satId: number, atMs: number = Date.now()): LaunchMate[] {
+  const sats = satsRef.current
+  const recs = satrecsRef.current
+  const lib = satLibRef.current
+  if (!sats || sats.length === 0) return []
+  const self = sats.find((s) => s.id === satId)
+  if (!self) return []
+  const launch = launchDesignator(self.l1)
+  if (!launch) return []
+  const date = new Date(atMs)
+  let gmst = 0
+  try { gmst = lib ? lib.gstime(date) : 0 } catch { gmst = 0 }
+  const out: LaunchMate[] = []
+  for (let i = 0; i < sats.length; i++) {
+    const s = sats[i]
+    if (s.id === satId) continue
+    if (launchDesignator(s.l1) !== launch) continue
+    // altitude via SGP4 (best-effort; null if it won't propagate).
+    let altitudeKm: number | null = null
+    try {
+      const r = lib && recs[i] ? (lib.propagate(recs[i] as never, date) as { position?: Vec3 }) : null
+      const p = r && r.position
+      if (p) altitudeKm = Math.sqrt(p.x * p.x + p.y * p.y + p.z * p.z) - 6371
+    } catch { /* leave null */ }
+    out.push({
+      id: s.id,
+      name: s.name,
+      type: s.type ?? "",
+      piece: s.l1.length >= 17 ? s.l1.slice(14, 17).trim() : "", // COSPAR piece letters
+      altitudeKm,
+    })
+  }
+  // rocket bodies first, then debris, then other payloads; by altitude within.
+  const rank = (t: string) => (t === "R/B" ? 0 : t === "DEB" ? 1 : 2)
+  out.sort((a, b) => rank(a.type) - rank(b.type) || (b.altitudeKm ?? 0) - (a.altitudeKm ?? 0))
+  return out
+}
+
 /** Scan the FULL catalogue for the object physically closest to the user right now
  *  (smallest slant range), among those actually above their horizon. One SGP4 pass
  *  over ~18.7k records (~a few hundred ms) — call on demand, not per frame. Returns

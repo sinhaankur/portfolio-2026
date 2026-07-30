@@ -14,7 +14,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Search, X, Crosshair, Locate, Download } from "lucide-react"
-import { loadSatelliteCatalog, selectedSatRef, selectedArchetypeRef, selectedOrbitRef, observerRef, findNearestOverhead, satTypeFilterRef, type SatMeta, type SatOrbit, type NearestSat } from "@/components/universe-engine/satellite-field"
+import { loadSatelliteCatalog, selectedSatRef, selectedArchetypeRef, selectedOrbitRef, observerRef, findNearestOverhead, launchMatesFor, satTypeFilterRef, type SatMeta, type SatOrbit, type NearestSat, type LaunchMate } from "@/components/universe-engine/satellite-field"
 import { statusFromPerigee, lifetimeFromPerigee, lifetimeLabel } from "@/lib/reentry"
 import { launchSiteFor } from "@/lib/launch-sites"
 import { namedBodies } from "@/components/universe-engine/astronomy"
@@ -97,6 +97,14 @@ export function SatelliteSearch() {
   // width: header + live one-liner, details behind a toggle. Desktop unchanged.
   const [detailsOpen, setDetailsOpen] = useState(false)
   useEffect(() => { setDetailsOpen(false) }, [selected?.id])
+  // "From this launch" — the other objects that share this craft's COSPAR launch
+  // designator: its spent rocket body + any tracked debris/fragments. Real
+  // shared-catalog data (no guessing); computed once per selection.
+  const [launchMates, setLaunchMates] = useState<LaunchMate[]>([])
+  useEffect(() => {
+    if (selected?.id == null) { setLaunchMates([]); return }
+    setLaunchMates(launchMatesFor(selected.id))
+  }, [selected?.id])
   // Observer location for the "distance from you" slant range. "idle" until the
   // user asks; "prompt" while the browser dialog is open; "on" once granted;
   // "denied"/"off" if they decline or it's unavailable. Sets the module-level
@@ -642,6 +650,54 @@ export function SatelliteSearch() {
                 ⚠ {debrisOrigin(selected.name)}
               </p>
             )}
+            {/* FROM THIS LAUNCH — the other objects that share this craft's COSPAR
+                launch designator: its spent rocket body + tracked fragments, each
+                at its real altitude. Honest: only what the catalogue carries (most
+                normal launches list just the payload; the big fragmentation events
+                carry their whole cloud). Click one to re-target the view. */}
+            <div className="mt-3 pt-3 border-t border-border/60">
+              <p className="font-mono text-[9px] tracking-[0.2em] uppercase text-muted-foreground mb-1.5">
+                From this launch {launchMates.length > 0 && <span className="text-foreground/50">· {launchMates.length} tracked</span>}
+              </p>
+              {launchMates.length === 0 ? (
+                <p className="font-sans text-[11px] text-muted-foreground leading-relaxed">
+                  No other objects from this launch are in the public catalogue — the
+                  rocket body and any fragments aren&apos;t currently tracked here.
+                </p>
+              ) : (
+                <>
+                  <ul className="space-y-1 max-h-40 overflow-y-auto [scrollbar-width:thin]">
+                    {launchMates.slice(0, 40).map((m) => (
+                      <li key={m.id}>
+                        <button
+                          type="button"
+                          onClick={() => { selectedSatRef.current = m.id }}
+                          data-cursor-hover
+                          className="flex w-full items-baseline justify-between gap-2 rounded px-1.5 py-1 text-left hover:bg-secondary/50 transition-colors"
+                        >
+                          <span className="flex items-baseline gap-1.5 min-w-0">
+                            <span className={`font-mono text-[9px] uppercase shrink-0 ${m.type === "R/B" ? "text-[#ffd166]" : m.type === "DEB" ? "text-[#ff7a6b]" : "text-accent"}`}>
+                              {m.type === "R/B" ? "body" : m.type === "DEB" ? "debris" : "payload"}
+                            </span>
+                            <span className="font-sans text-[12px] text-foreground/85 truncate">{m.name}</span>
+                          </span>
+                          <span className="font-mono text-[10px] tabular-nums text-muted-foreground shrink-0">
+                            {m.altitudeKm != null ? `${Math.round(m.altitudeKm)} km` : "—"}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                  {launchMates.length > 40 && (
+                    <p className="mt-1 font-mono text-[9px] text-muted-foreground">+ {launchMates.length - 40} more fragments</p>
+                  )}
+                  <p className="mt-1.5 font-sans text-[10px] text-muted-foreground/80 leading-relaxed">
+                    Objects sharing this launch (same COSPAR designator) — spent stages + fragments left on orbit. Click one to fly to it.
+                  </p>
+                </>
+              )}
+            </div>
+
             <p className="mt-3 font-sans text-[11px] text-muted-foreground leading-relaxed">
               Altitude + speed update live from SGP4 propagation of the current-epoch
               orbit; apogee, period and inclination are the orbit's fixed elements. {isDebris(selected)
