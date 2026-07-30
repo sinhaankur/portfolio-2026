@@ -246,8 +246,12 @@ export function TribePool() {
             After ~2,000 years of marrying within, each jāti or clan is its own
             small gene pool — often as distinct from its neighbour as two
             separate nations, even in the same town. Ancestry mix barely changes;
-            what changes is <em>how long the pool has been closed</em>. Below,
-            each group is placed by when its endogamy began.
+            what changes is <em>how long the pool has been closed</em>. A small
+            founder set plus long endogamy means members share long identical
+            DNA segments — which concentrates recessive founder variants, the
+            same reason Ashkenazi and Finnish carrier-screening exists. Below,
+            each group is placed by when its endogamy began, with that
+            shared-DNA / founder-health read where it&apos;s documented.
           </p>
 
           {/* the timeline */}
@@ -308,6 +312,27 @@ export function TribePool() {
                     <p className="mt-1 font-sans text-[11px] italic text-foreground/50">
                       When the pool closed — {era.label}: {era.context}
                     </p>
+                    {/* IBD / recessive-disease consequence of the closed pool —
+                        the medically actionable payoff, framed as screening
+                        awareness, never destiny. */}
+                    {c.founderDisease && (
+                      <div className="mt-2.5 rounded-md border border-[#c98a4a]/30 bg-[#c98a4a]/[0.07] px-3 py-2">
+                        <div className="flex items-baseline gap-2">
+                          <span className="font-mono text-[9px] tracking-widest uppercase text-[#d69a52]">
+                            Shared-DNA · founder health
+                          </span>
+                          <span className="font-mono text-[9px] text-foreground/50">
+                            IBD {c.founderDisease.ibd}
+                          </span>
+                        </div>
+                        <p className="mt-1 font-sans text-[11px] text-foreground/70 leading-relaxed">
+                          {c.founderDisease.note}
+                        </p>
+                        <p className="mt-1 font-sans text-[11px] text-foreground/55">
+                          Reported / enriched: {c.founderDisease.conditions.join(" · ")}
+                        </p>
+                      </div>
+                    )}
                   </li>
                 )
               })}
