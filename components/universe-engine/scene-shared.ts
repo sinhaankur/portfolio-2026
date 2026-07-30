@@ -23,7 +23,7 @@ import {
 } from "three"
 import { KTX2Loader } from "three/examples/jsm/loaders/KTX2Loader.js"
 
-import { requestFlyTo, SKY_SHELL_DISTANCE } from "./astronomy"
+import { requestFlyTo, SKY_SHELL_DISTANCE, skyPoints } from "./astronomy"
 
 /* ============================================================
  * KTX2 — GPU-compressed textures (Basis Universal).
@@ -175,4 +175,56 @@ export function skyDepthRadius(distance?: string): number {
   const L = Math.log10(Math.max(ly, 100))
   const t = Math.min(1, Math.max(0, (L - 3.0) / 5.0)) // 0 at 1k ly → 1 at 1e8 ly
   return 140 + t * 200
+}
+
+/**
+ * Nearest-neighbour PROJECTED separation for every sky point, in scene units.
+ *
+ * The viewer looks out from near the Sun, so what decides whether two deep-sky
+ * halos merge is angular separation — scaled by the NEARER object's depth
+ * radius (a close nebula's halo can eclipse a far galaxy on the same
+ * sight-line even though they're hundreds of units apart in 3D). Dense regions
+ * are real sky truth (the Virgo core, 30 Doradus, the Orion complex), so the
+ * fix is presentation, not data: SkyPointMesh caps halo girth + hit-sphere
+ * radius by this distance so neighbours stay individually visible + hoverable.
+ *
+ * Computed once, lazily, over the full catalog — O(n²) on ~600 points is a
+ * few ms, and the >25°-apart early-out skips the acos for almost every pair.
+ */
+let _crowdMap: Map<string, number> | null = null
+export function skyCrowdDist(pointId: string): number {
+  if (!_crowdMap) {
+    _crowdMap = new Map()
+    const n = skyPoints.length
+    const ra = new Float64Array(n)
+    const sinD = new Float64Array(n)
+    const cosD = new Float64Array(n)
+    const r = new Float64Array(n)
+    for (let i = 0; i < n; i++) {
+      const p = skyPoints[i]
+      ra[i] = (p.raHours / 12) * Math.PI
+      const dec = (p.decDeg * Math.PI) / 180
+      sinD[i] = Math.sin(dec)
+      cosD[i] = Math.cos(dec)
+      r[i] = skyDepthRadius(p.distance)
+    }
+    const nn = new Float64Array(n).fill(Infinity)
+    for (let i = 0; i < n; i++) {
+      for (let j = i + 1; j < n; j++) {
+        const cosSep = sinD[i] * sinD[j] + cosD[i] * cosD[j] * Math.cos(ra[i] - ra[j])
+        if (cosSep < 0.9) continue // > ~25° apart — can never crowd
+        const sep = Math.acos(Math.min(1, cosSep)) * Math.min(r[i], r[j])
+        // Co-located pairs are deliberate composites, not crowding — the M87*
+        // black hole sits at the M87 galaxy's own coordinates because it IS
+        // that galaxy's core. Capping either against the other would crush
+        // both to floor size.
+        if (sep < 0.15) continue
+        if (sep < nn[i]) nn[i] = sep
+        if (sep < nn[j]) nn[j] = sep
+      }
+      // Row i is final here: pairs (k,i) with k<i were handled in earlier rows.
+      _crowdMap.set(skyPoints[i].id, nn[i])
+    }
+  }
+  return _crowdMap.get(pointId) ?? Infinity
 }

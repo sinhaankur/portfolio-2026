@@ -80,7 +80,7 @@ import {
   ZODIACAL_VERTEX_SHADER,
   ZODIACAL_FRAGMENT_SHADER,
 } from "./shaders"
-import { makeFocusHandler, parseDistanceLy, skyDepthRadius, setKtx2Renderer } from "./scene-shared"
+import { makeFocusHandler, parseDistanceLy, skyDepthRadius, skyCrowdDist, setKtx2Renderer } from "./scene-shared"
 import { ClusterDetail, ClusterStarField, isGlobular } from "./cluster-detail"
 import { SkyPanorama } from "./sky-panorama"
 import { OrbitRing } from "./orbit-ring"
@@ -1054,17 +1054,41 @@ function SkyPointMesh({
     /* exoplanet-host */                  0.5
   )
 
-  const skyAffordance = useMemo(
-    () =>
-      getSkyAffordance({
-        kind: point.kind,
-        pointId: point.id,
-        visualSize,
-        invert,
-        shade: point.shade,
-      }),
-    [point.kind, point.id, visualSize, invert, point.shade],
-  )
+  // Crowding cap — in dense regions (the Virgo core, 30 Doradus, the Orion
+  // complex) neighbouring halos merge into one blob and the raycast spheres
+  // swallow each other (M84's hit zone fully covered M86). Cap girth + hit
+  // radius by the nearest neighbour's projected separation and pay the lost
+  // girth back as brightness, so every object stays individually visible and
+  // hoverable without bleeding into the next. The resolved detail components
+  // keep the uncapped size — their glow dissolves on resolve, so no bleed.
+  const skyAffordance = useMemo(() => {
+    const base = getSkyAffordance({
+      kind: point.kind,
+      pointId: point.id,
+      visualSize,
+      invert,
+      shade: point.shade,
+    })
+    const crowd = skyCrowdDist(point.id)
+    const idealHaloR = visualSize * base.haloRadiusMul
+    const haloR = Math.min(idealHaloR, Math.max(crowd * 0.45, 0.32))
+    const coreR = Math.min(visualSize * base.coreRadiusMul, Math.max(crowd * 0.35, 0.2))
+    const boost = Math.min(1.4, Math.sqrt(idealHaloR / Math.max(haloR, 1e-6)))
+    return {
+      ...base,
+      haloR,
+      coreR,
+      haloOpacity: Math.min(1, base.haloOpacity * boost),
+      // Half-strength on the core: full payback turns a soft glow into a
+      // chalky opaque ball (additive sphere edges read hard at high opacity).
+      coreOpacity: Math.min(1, base.coreOpacity * (1 + (boost - 1) * 0.5)),
+      // ≤ 0.95× the neighbour distance guarantees a pointer aimed at the
+      // neighbour's CENTER never intersects this sphere — engulfment is what
+      // made M86 unhoverable behind M84's zone. Looser than the visual cap so
+      // big objects keep generous click areas.
+      hitRadiusCap: Math.max(crowd * 0.95, 0.6),
+    }
+  }, [point.kind, point.id, visualSize, invert, point.shade])
   const starDynamic = useMemo(
     () => (point.kind === "star" ? getStarDynamicProfile(point.id) : null),
     [point.kind, point.id],
@@ -1152,7 +1176,11 @@ function SkyPointMesh({
   // Hit-zone scales with the visual so even tiny exoplanet dots are findable.
   // Nebulae get a wider zone so the on-hover bloom doesn't fall outside the
   // tracked area and cause flicker as the cursor explores the expanded detail.
-  const hitRadius = Math.max(skyAffordance.minHitRadius, visualSize * skyAffordance.hitRadiusMul)
+  // Capped by the crowding distance so a big neighbour can't eat the pointer.
+  const hitRadius = Math.min(
+    Math.max(skyAffordance.minHitRadius, visualSize * skyAffordance.hitRadiusMul),
+    skyAffordance.hitRadiusCap,
+  )
 
   return (
     <group position={position}>
@@ -1173,7 +1201,7 @@ function SkyPointMesh({
           soft halo. Baked-sprite objects + black holes skip it. */}
       {((point.kind === "galaxy" && !GALAXY_3D[point.id]) || (point.kind === "nebula" && !(NEBULA_SPRITES[point.id] && !invert)) || point.kind === "star" || isPulsar) && (
         <mesh>
-          <sphereGeometry args={[visualSize * skyAffordance.haloRadiusMul, 16, 16]} />
+          <sphereGeometry args={[skyAffordance.haloR, 16, 16]} />
           <meshBasicMaterial
             ref={(point.kind === "star" || isPulsar || galaxyResolves) ? (starHaloMatRef as React.Ref<import("three").MeshBasicMaterial>) : undefined}
             color={skyAffordance.halo}
@@ -1189,11 +1217,7 @@ function SkyPointMesh({
           the core) + black holes (dedicated detail component). */}
       {point.kind !== "black-hole" && !(point.kind === "galaxy" && GALAXY_3D[point.id]) && !(point.kind === "nebula" && NEBULA_SPRITES[point.id] && !invert) && (
         <mesh>
-          <sphereGeometry args={[
-            visualSize * skyAffordance.coreRadiusMul,
-            14,
-            14,
-          ]} />
+          <sphereGeometry args={[skyAffordance.coreR, 14, 14]} />
           <meshBasicMaterial
             ref={(point.kind === "star" || isPulsar || point.kind === "cluster" || galaxyResolves) ? (starCoreMatRef as React.Ref<import("three").MeshBasicMaterial>) : undefined}
             color={skyAffordance.core}
