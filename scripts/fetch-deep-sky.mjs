@@ -39,6 +39,21 @@ const OPENNGC_ADDENDUM =
 // AND to preserve the hand-written `fact` copy on those objects.
 const CURATED_MESSIER_IDS = new Set([1, 13, 16, 31, 33, 42, 45, 57])
 
+// NGC/IC ids that ARE curated objects under another name — the bulk pass must
+// skip these or the engine renders the same object twice, stacked (two Orion
+// Nebulae, two Crabs…). Covers every curated Messier's OpenNGC primary name
+// plus IC 4703 (the Eagle Nebula's own IC id; M16 formally names the cluster).
+const CURATED_ALIAS_NAMES = new Set([
+  "NGC1952", // M1 Crab
+  "NGC6205", // M13 Hercules
+  "NGC6611", // M16 Eagle (cluster)
+  "IC4703",  // M16 Eagle (nebula)
+  "NGC0224", // M31 Andromeda
+  "NGC0598", // M33 Triangulum
+  "NGC1976", // M42 Orion
+  "NGC6720", // M57 Ring
+])
+
 // OpenNGC type code → engine SkyPoint.kind union.
 const TYPE_TO_KIND = {
   G: "galaxy",
@@ -375,6 +390,10 @@ async function main() {
   let bulkCount = 0
   for (const row of rows) {
     if (!row.name || usedNames.has(row.name)) continue
+    // Curated objects never entered usedNames (they're filtered out of the
+    // Messier map above), so their NGC/IC aliases would leak through here.
+    if (CURATED_ALIAS_NAMES.has(row.name)) continue
+    if (row.m && CURATED_MESSIER_IDS.has(parseInt(row.m, 10))) continue
     const kind = TYPE_TO_KIND[row.type]
     if (!kind) continue
     const mag = pickMagnitude(row)

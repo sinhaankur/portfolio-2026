@@ -13,7 +13,7 @@
 
 import type { SkyPoint } from "@/components/universe-engine/types"
 
-export const DEEP_SKY_CATALOG: SkyPoint[] = [
+export const DEEP_SKY_CATALOG: SkyPoint[] =  [
   {
     "id": "m2",
     "name": "M2",
@@ -2975,19 +2975,6 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "visualSize": 1.29
   },
   {
-    "id": "ic4703",
-    "name": "Eagle Nebula",
-    "designation": "IC 4703 · Eagle Nebula,Star Queen",
-    "kind": "nebula",
-    "raHours": 18.3156,
-    "decDeg": -13.845,
-    "magnitude": 6,
-    "distance": "5,590 ly",
-    "fact": "Nebula in Se2. apparent magnitude 6.0.",
-    "visualSize": 1.7,
-    "nebulaType": "emission"
-  },
-  {
     "id": "ic4756",
     "name": "IC 4756",
     "designation": "IC 4756",
@@ -3085,21 +3072,6 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "visualSize": 1.06
   },
   {
-    "id": "ngc0224",
-    "name": "Andromeda Galaxy",
-    "designation": "NGC 224 · Andromeda Galaxy",
-    "kind": "galaxy",
-    "raHours": 0.7123,
-    "decDeg": 41.269,
-    "magnitude": 3.44,
-    "distance": "2.54 million ly",
-    "fact": "Galaxy in Andromeda. apparent magnitude 3.4.",
-    "visualSize": 1.63,
-    "morphology": "Sb",
-    "axisRatio": 0.39,
-    "posAngDeg": 35
-  },
-  {
     "id": "ngc0225",
     "name": "NGC 225",
     "designation": "NGC 225",
@@ -3173,21 +3145,6 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "distance": "9,820 ly",
     "fact": "Open cluster in Cassiopeia. apparent magnitude 8.8.",
     "visualSize": 1.06
-  },
-  {
-    "id": "ngc0598",
-    "name": "Triangulum Galaxy",
-    "designation": "NGC 598 · Triangulum Galaxy,Triangulum Pinwheel",
-    "kind": "galaxy",
-    "raHours": 1.5641,
-    "decDeg": 30.66,
-    "magnitude": 5.79,
-    "distance": "2.78 million ly",
-    "fact": "Galaxy in Triangulum. apparent magnitude 5.8.",
-    "visualSize": 1.51,
-    "morphology": "Sc",
-    "axisRatio": 0.59,
-    "posAngDeg": 23
   },
   {
     "id": "ngc0637",
@@ -3921,19 +3878,6 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "visualSize": 1.02
   },
   {
-    "id": "ngc1952",
-    "name": "Crab Nebula",
-    "designation": "NGC 1952 · Crab Nebula",
-    "kind": "nebula",
-    "raHours": 5.5755,
-    "decDeg": 22.014,
-    "magnitude": 8.4,
-    "distance": "6,520 ly",
-    "fact": "Supernova remnant in Taurus. apparent magnitude 8.4.",
-    "visualSize": 1.58,
-    "nebulaType": "snr"
-  },
-  {
     "id": "ngc1955",
     "name": "NGC 1955",
     "designation": "NGC 1955",
@@ -3983,18 +3927,6 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "fact": "Nebula in Orion. apparent magnitude 7.0.",
     "visualSize": 1.65,
     "nebulaType": "emission"
-  },
-  {
-    "id": "ngc1976",
-    "name": "Great Orion Nebula",
-    "designation": "NGC 1976 · Great Orion Nebula,Orion Nebula",
-    "kind": "cluster",
-    "raHours": 5.5879,
-    "decDeg": -5.39,
-    "magnitude": 4,
-    "distance": "1,590 ly",
-    "fact": "Cluster with nebulosity in Orion. apparent magnitude 4.0.",
-    "visualSize": 1.3
   },
   {
     "id": "ngc1980",
@@ -6256,18 +6188,6 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "visualSize": 1.09
   },
   {
-    "id": "ngc6205",
-    "name": "Hercules Globular Cluster",
-    "designation": "NGC 6205 · Hercules Globular Cluster",
-    "kind": "cluster",
-    "raHours": 16.6949,
-    "decDeg": 36.461,
-    "magnitude": 5.8,
-    "distance": "26,100 ly",
-    "fact": "Globular cluster in Hercules. apparent magnitude 5.8.",
-    "visualSize": 1.21
-  },
-  {
     "id": "ngc6208",
     "name": "NGC 6208",
     "designation": "NGC 6208",
@@ -6775,19 +6695,6 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "visualSize": 1.2
   },
   {
-    "id": "ngc6611",
-    "name": "Eagle Nebula",
-    "designation": "NGC 6611 · Eagle Nebula",
-    "kind": "nebula",
-    "raHours": 18.3134,
-    "decDeg": -13.807,
-    "magnitude": 6,
-    "distance": "5,590 ly",
-    "fact": "Nebula in Se2. apparent magnitude 6.0.",
-    "visualSize": 1.7,
-    "nebulaType": "emission"
-  },
-  {
     "id": "ngc6625",
     "name": "NGC 6625",
     "designation": "NGC 6625",
@@ -6942,19 +6849,6 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
     "distance": "2,290 ly",
     "fact": "Open cluster in Sagittarius. apparent magnitude 7.5.",
     "visualSize": 1.13
-  },
-  {
-    "id": "ngc6720",
-    "name": "Ring Nebula",
-    "designation": "NGC 6720 · Ring Nebula",
-    "kind": "nebula",
-    "raHours": 18.8931,
-    "decDeg": 33.029,
-    "magnitude": 8.8,
-    "distance": "2,750 ly",
-    "fact": "Planetary nebula in Lyra. apparent magnitude 8.8.",
-    "visualSize": 1.56,
-    "nebulaType": "planetary"
   },
   {
     "id": "ngc6738",
@@ -7492,4 +7386,4 @@ export const DEEP_SKY_CATALOG: SkyPoint[] = [
   }
 ]
 
-export const DEEP_SKY_COUNT = 587
+export const DEEP_SKY_COUNT = 579
