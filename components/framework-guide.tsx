@@ -15,6 +15,7 @@
 
 import { useEffect, useState } from "react"
 import { Container } from "@/components/container"
+import { HicksDemo } from "@/components/framework-hicks-demo"
 import {
   PRINCIPLES,
   LAW_GROUPS,
@@ -151,6 +152,13 @@ export function FrameworkGuide() {
                         </div>
                       ))}
                     </div>
+                    {/* Live proof for the decision-load group — you can feel
+                        Hick's Law rather than just read it. */}
+                    {g.id === "decision-load" && (
+                      <div className="mt-4">
+                        <HicksDemo />
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
