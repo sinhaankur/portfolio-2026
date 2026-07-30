@@ -49,7 +49,6 @@ export default function AboutPage() {
             public/img/about/ankur.webp and change the src below to it. */}
         <figure className="m-0">
           <div className="overflow-hidden rounded-2xl border border-border bg-secondary/20">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/img/about/journey-2004.webp"
               alt="Ankur Sinha — where it started, at a CRT computer in 2004"

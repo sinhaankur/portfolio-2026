@@ -33,12 +33,15 @@ export function LiveStatus() {
 
   useEffect(() => {
     const deployMs = new Date(BUILD_TIME).getTime()
-    // Real health check: can the page load its own asset? A cache-busted favicon
-    // fetch confirms the static host is actually serving. If it fails, be honest.
+    // Real health check: can the page load its own asset? A cache-busted fetch
+    // confirms the static host is actually serving. If it fails, be honest.
+    // Probe /icon.svg — the export has no favicon.ico (Next serves app/icon.svg),
+    // so the old favicon probe 404'd and the chip reported "degraded" on a
+    // perfectly healthy site.
     let cancelled = false
     const check = async () => {
       try {
-        const res = await fetch(`/favicon.ico?ping=${Date.now()}`, { method: "HEAD", cache: "no-store" })
+        const res = await fetch(`/icon.svg?ping=${Date.now()}`, { method: "HEAD", cache: "no-store" })
         if (!cancelled) setState(res.ok ? "live" : "degraded")
       } catch {
         if (!cancelled) setState("degraded")

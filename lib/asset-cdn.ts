@@ -32,6 +32,16 @@ const CDN_BASE = (process.env.NEXT_PUBLIC_ASSET_CDN_BASE ?? "").replace(/\/+$/, 
 export function cdnAsset(path: string, localFallback?: string): string {
   const clean = path.replace(/^\/+/, "")
   if (!CDN_BASE) return localFallback ?? `/${clean}`
+  // Local dev / smoke runs: R2's CORS allow-list only covers the production
+  // origin, so every CDN fetch from localhost fails loudly and falls back
+  // anyway. Skip the round trip and serve the local copy directly.
+  if (
+    typeof window !== "undefined" &&
+    /^(localhost|127\.|0\.0\.0\.0)/.test(window.location.hostname) &&
+    localFallback
+  ) {
+    return localFallback
+  }
   return `${CDN_BASE}/${clean}`
 }
 

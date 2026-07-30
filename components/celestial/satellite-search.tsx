@@ -125,7 +125,6 @@ export function SatelliteSearch() {
     navigator.permissions.query({ name: "geolocation" }).then((p) => {
       if (p.state === "granted") requestLocation()
     }).catch(() => { /* permissions API unavailable — user can tap the button */ })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   function requestLocation() {

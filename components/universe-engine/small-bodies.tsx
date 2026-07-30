@@ -30,6 +30,7 @@ import {
   AdditiveBlending,
   BufferAttribute,
   BufferGeometry,
+  CanvasTexture,
   Color,
   DoubleSide,
   Group,
@@ -91,7 +92,6 @@ const GLINT_SPRITE = typeof document !== "undefined" ? (() => {
   g.addColorStop(1, "rgba(255,255,255,0)")
   ctx.fillStyle = g
   ctx.fillRect(0, 0, 64, 64)
-  const { CanvasTexture } = require("three") as typeof import("three")
   return new CanvasTexture(c)
 })() : null
 
@@ -535,7 +535,6 @@ function NamedBodyMesh({
       depthWrite: false,
       depthTest: true,
     })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config.shade, invert])
 
   // Procedural surface for the un-imaged Kuiper dwarfs (Eris/Makemake/Haumea).
@@ -563,7 +562,6 @@ function NamedBodyMesh({
         uSpotSize: { value: spot?.size ?? 0 },
       },
     })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [body.name, surfaceTexture, invert])
 
   // Initialise the motion-trail ring buffer for comets / interstellars /

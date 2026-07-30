@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import Link from "next/link"
 import { canonicalPath } from "@/lib/seo"
 import {
   CaseStudyLayout,
@@ -70,9 +71,9 @@ export default function RubikCubePage() {
           This is where the 3D maths became real for me: transformation matrices,
           composing rotations, thinking about a scene as geometry plus a camera.
           Years later that&apos;s exactly the foundation the{" "}
-          <a href="/writing/universe-engine" className="text-accent hover:underline">
+          <Link href="/writing/universe-engine" className="text-accent hover:underline">
             Universe Engine
-          </a>{" "}
+          </Link>{" "}
           is built on — the same primitives, now in WebGL instead of fixed-function
           OpenGL. A dated project, kept honestly, because the through-line from it
           to the work I do now is real.
