@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
-import { Briefcase, FlaskConical, Layers, Gamepad2, Mail, type LucideIcon } from "lucide-react"
+import { Briefcase, FlaskConical, Layers, Gamepad2, Mail, Compass, type LucideIcon } from "lucide-react"
 import { ThemeToggle } from "./theme-toggle"
 import { DisplayMenu } from "./display-menu"
 
@@ -15,10 +15,11 @@ import { DisplayMenu } from "./display-menu"
 const navLinks: { label: string; href: string; icon: LucideIcon }[] = [
   { label: "Works", href: "#works", icon: Briefcase },
   { label: "Lab", href: "/lab", icon: FlaskConical },
+  { label: "Framework", href: "/framework", icon: Compass },
   { label: "Skills", href: "/skills", icon: Layers },
-  // "Usability" removed — it duplicated the Lab's usability presence. The live
-  // engine still lives at /usability, reachable from /lab/usability-engine's
-  // "Open the live engine" button.
+  // The standalone "Usability" nav item is gone — its methodology now lives in
+  // the Framework (Laws of UX & Cognition). The live usability engine remains at
+  // /usability, reachable from /lab/usability-engine's "Open the live engine".
   { label: "Games", href: "/games/Gamelist.html", icon: Gamepad2 },
   { label: "Contact", href: "#contact", icon: Mail },
 ]

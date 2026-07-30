@@ -92,6 +92,7 @@ export default function AboutPage() {
 
           <div className="mt-8 flex flex-wrap gap-x-6 gap-y-2 font-mono text-[11px] tracking-wide">
             <Link href="/lab" className="text-accent hover:underline">The Lab</Link>
+            <Link href="/framework" className="text-accent hover:underline">UX Framework</Link>
             <Link href="/writing" className="text-accent hover:underline">Writing</Link>
             <Link href="/writing/how-its-built" className="text-accent hover:underline">How it&apos;s built</Link>
             <a href="/ankur-sinha-resume.pdf" download className="text-accent hover:underline">Resume ↓</a>

@@ -100,6 +100,7 @@ function FooterSky() {
 
 const socials: Array<{ label: string; href: string; download?: boolean }> = [
   { label: "About", href: "/about" },
+  { label: "Framework", href: "/framework" },
   { label: "Email", href: "mailto:sinhaankur@ymail.com" },
   { label: "LinkedIn", href: "https://www.linkedin.com/in/sinhaankur27" },
   { label: "GitHub", href: "https://github.com/sinhaankur" },

@@ -33,6 +33,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/lab/usability-engine", priority: 0.7, changeFrequency: "monthly" },
     { path: "/lab/optical-flow",  priority: 0.7, changeFrequency: "monthly" },
     { path: "/lab/helion-drift",  priority: 0.6, changeFrequency: "monthly" },
+    { path: "/framework",         priority: 0.8, changeFrequency: "monthly" },
     { path: "/skills",            priority: 0.7, changeFrequency: "monthly" },
     { path: "/writing",           priority: 0.7, changeFrequency: "weekly"  },
     { path: "/writing/universe-engine", priority: 0.7, changeFrequency: "monthly" },
