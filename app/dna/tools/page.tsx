@@ -8,6 +8,7 @@ import { Container } from "@/components/container"
 import { canonicalPath } from "@/lib/seo"
 import { CmExplainer } from "@/components/dna/tools/cm-explainer"
 import { EthnicitiesMap } from "@/components/dna/tools/ethnicities-map"
+import { TribePool } from "@/components/dna/tools/tribe-pool"
 import { ChromosomeBrowser } from "@/components/dna/tools/chromosome-browser"
 import { AutoClusters } from "@/components/dna/tools/auto-clusters"
 
@@ -24,6 +25,7 @@ export const metadata: Metadata = {
 const TOOLS = [
   { id: "cm-explainer", name: "cM Explainer", desc: "Turn a shared-DNA amount (centimorgans) into the relationships it's consistent with, ranked by fit." },
   { id: "ethnicities-map", name: "Ethnicities Map", desc: "Which ancestries are most common in each region — and where each ancestry is concentrated." },
+  { id: "tribe-pool", name: "The Surviving Pool", desc: "Pick a community (tribe / language group) and see the deep ancestral layers it's built from — and the neighbours it shares that pool with, across any border." },
   { id: "chromosome-browser", name: "Chromosome Browser", desc: "Paint the DNA segments you share with matches across all 23 chromosomes; overlaps hint at a common ancestor." },
   { id: "auto-clusters", name: "AutoClusters", desc: "Group matches who also match each other into likely shared-ancestor clusters." },
 ]
@@ -80,6 +82,9 @@ export default function DnaToolsPage() {
               </section>
               <section id="ethnicities-map" className="scroll-mt-28">
                 <EthnicitiesMap />
+              </section>
+              <section id="tribe-pool" className="scroll-mt-28">
+                <TribePool />
               </section>
               <section id="chromosome-browser" className="scroll-mt-28">
                 <ChromosomeBrowser />
