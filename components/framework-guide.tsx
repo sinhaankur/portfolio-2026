@@ -16,6 +16,7 @@
 import { useEffect, useState } from "react"
 import { Container } from "@/components/container"
 import { HicksDemo } from "@/components/framework-hicks-demo"
+import { FittsDemo } from "@/components/framework-fitts-demo"
 import {
   PRINCIPLES,
   LAW_GROUPS,
@@ -152,11 +153,16 @@ export function FrameworkGuide() {
                         </div>
                       ))}
                     </div>
-                    {/* Live proof for the decision-load group — you can feel
-                        Hick's Law rather than just read it. */}
+                    {/* Live proofs — you can feel these laws, not just read
+                        them. Placed in the group where each law lives. */}
                     {g.id === "decision-load" && (
                       <div className="mt-4">
                         <HicksDemo />
+                      </div>
+                    )}
+                    {g.id === "interaction-time" && (
+                      <div className="mt-4">
+                        <FittsDemo />
                       </div>
                     )}
                   </div>
