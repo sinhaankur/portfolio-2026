@@ -20,11 +20,32 @@ import {
   closestTribes,
   tribeById,
   TRIBE_REGION_ORDER,
+  TIMELINE_ANCHORS,
+  eraFor,
+  timelinePos,
   type AncestryComponent,
   type Tribe,
+  type CasteGroup,
 } from "@/lib/dna-tribes"
 
 const COMPS: AncestryComponent[] = ["AASI", "IRAN", "STEP", "EASI"]
+
+/** Fmt a years-before-present into a short human age. */
+function fmtAge(years: number): string {
+  if (years >= 1000) {
+    const k = years / 1000
+    return `~${Number.isInteger(k) ? k : k.toFixed(1)}k yrs`
+  }
+  return `~${years} yrs`
+}
+
+/** Drift → a plain word for how isolated/bottlenecked the pool is. */
+function driftWord(d: number): string {
+  if (d >= 70) return "very strong"
+  if (d >= 60) return "strong"
+  if (d >= 50) return "moderate"
+  return "mild"
+}
 
 /** equirectangular [lat,lng] → [x%,y%], zoomed to the South/Central-Asia window
  *  (lng 45–100, lat 3–42) so the communities aren't crammed into a world plate. */
@@ -82,6 +103,12 @@ export function TribePool() {
 
   // markers: the selected tribe (accent) + its top shared communities (soft).
   const sharedIds = new Set(shared.map((s) => s.tribe.id))
+
+  // caste / clan sub-groups of the selected community, oldest pool first.
+  const castes = useMemo(
+    () => [...(tribe?.castes ?? [])].sort((a, b) => b.endogamyYears - a.endogamyYears),
+    [tribe],
+  )
 
   if (!tribe) return null
 
@@ -203,6 +230,95 @@ export function TribePool() {
           </div>
         </div>
       </div>
+
+      {/* ── Caste / clan sub-pools + endogamy timeline ──────────────────────
+          The deeper structure: WITHIN a community, endogamous jāti / clan
+          groups are each their own closed pool. Ancestry proportion barely
+          moves between them — what differs is how long, and how tightly, each
+          has married within. Shown only when we have documented sub-groups. */}
+      {castes.length > 0 && (
+        <div className="mt-8 border-t border-border pt-6">
+          <div className="flex items-baseline gap-3 mb-1.5">
+            <h4 className="font-display text-lg font-light">Inside {tribe.name}: the closed pools</h4>
+            <span className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">jāti · clan · gotra</span>
+          </div>
+          <p className="font-sans text-sm text-foreground/70 leading-relaxed max-w-2xl mb-5">
+            After ~2,000 years of marrying within, each jāti or clan is its own
+            small gene pool — often as distinct from its neighbour as two
+            separate nations, even in the same town. Ancestry mix barely changes;
+            what changes is <em>how long the pool has been closed</em>. Below,
+            each group is placed by when its endogamy began.
+          </p>
+
+          {/* the timeline */}
+          <div className="rounded-xl border border-border bg-background/40 p-4 md:p-5">
+            {/* era ruler — full set on desktop; a thinned set on phones so the
+                labels never collide (the per-row dots carry the real detail). */}
+            <div className="relative mb-1 h-4">
+              {TIMELINE_ANCHORS.map((a, i) => {
+                // on mobile show only every other anchor + always the ends.
+                const sparse = i === 0 || i === TIMELINE_ANCHORS.length - 1 || i % 2 === 0
+                return (
+                  <span
+                    key={a.years}
+                    className={`absolute -translate-x-1/2 font-mono text-[8px] tracking-wider text-muted-foreground/70 whitespace-nowrap ${sparse ? "" : "hidden sm:inline"}`}
+                    style={{ left: `${(1 - timelinePos(a.years)) * 100}%` }}
+                  >
+                    {a.label}
+                  </span>
+                )
+              })}
+            </div>
+            <div className="relative h-px w-full bg-border" />
+            {/* deep-past → today direction hint */}
+            <div className="mt-1 flex justify-between font-mono text-[8px] uppercase tracking-widest text-muted-foreground/50">
+              <span>← deep past</span>
+              <span>today →</span>
+            </div>
+
+            {/* one row per caste/clan group, dot placed on the ruler */}
+            <ul className="mt-4 space-y-2.5">
+              {castes.map((c) => {
+                const era = eraFor(c.endogamyYears)
+                const left = (1 - timelinePos(c.endogamyYears)) * 100
+                return (
+                  <li key={c.id} className="rounded-lg border border-border/70 bg-card/40 px-3.5 py-3">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <span className="font-sans text-sm font-medium text-foreground">{c.name}</span>
+                      <span className="font-mono text-[10px] text-foreground/55">{c.category}</span>
+                    </div>
+                    {/* mini age ruler for this group */}
+                    <div className="relative mt-2 h-4">
+                      <div className="absolute top-1/2 h-px w-full -translate-y-1/2 bg-border/60" />
+                      <span
+                        className="absolute top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full"
+                        style={{
+                          left: `${left}%`,
+                          // hotter = older & more drifted pool
+                          background: `hsl(${Math.round(30 - Math.min(30, c.driftIndex / 3))}, 80%, ${Math.round(72 - c.driftIndex / 4)}%)`,
+                        }}
+                        title={`isolated ~${c.endogamyYears} yrs`}
+                      />
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-baseline gap-x-4 gap-y-0.5">
+                      <span className="font-mono text-[10px] text-accent">isolated {fmtAge(c.endogamyYears)} · since {c.since}</span>
+                      <span className="font-mono text-[10px] text-foreground/55">{driftWord(c.driftIndex)} founder effect · {c.foundersEst}</span>
+                    </div>
+                    <p className="mt-1.5 font-sans text-[12px] text-foreground/70 leading-relaxed">{c.note}</p>
+                    <p className="mt-1 font-sans text-[11px] italic text-foreground/50">
+                      When the pool closed — {era.label}: {era.context}
+                    </p>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+
+          <p className="mt-3 font-mono text-[10px] tracking-wider text-muted-foreground/70">
+            Founder-effect + endogamy reads after Nakatsuka et al. 2017 (Nat. Genet.) &amp; Reich et al. 2009 — many South-Asian groups carry a founder event stronger than the Ashkenazi or Finnish bottleneck · &ldquo;isolated since&rdquo; dates are approximate qpAdm-era estimates, illustrative not exact
+          </p>
+        </div>
+      )}
 
       {/* component key */}
       <div className="mt-6 grid gap-2 sm:grid-cols-2">

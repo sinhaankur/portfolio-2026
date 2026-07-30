@@ -76,7 +76,65 @@ export type Tribe = {
   /** illustrative component mix (sums to 100). */
   mix: Record<AncestryComponent, number>
   blurb: string
+  /** the community's own endogamous sub-groups (jāti / clan / gotra), where
+   *  they carry a distinct, documented genetic signature. See CasteGroup. */
+  castes?: CasteGroup[]
 }
+
+/**
+ * CasteGroup — a jāti / clan / community-level ENDOGAMOUS group.
+ *
+ * The single most important fact about South Asian genetics (Reich et al.
+ * 2009; Nakatsuka et al. 2017, Nature Genetics, "The promise of disease gene
+ * discovery in South Asia"): after ~2,000 years of endogamy, the strongest
+ * genetic structure is NOT ancestry proportion — it's WHO A GROUP MARRIES.
+ * Thousands of jātis are each their own small, closed pool. Two jātis in the
+ * same village can carry nearly identical ANI/ASI proportions yet be as
+ * genetically distinct from each other as separate European nations, because
+ * each descends from a small founder set and has drifted in isolation since.
+ *
+ * We capture that with a FOUNDER-EFFECT read rather than an ancestry mix:
+ *   • driftIndex   0–100 — how strongly bottlenecked / isolated the pool is.
+ *                  High = a small founder group + long endogamy → long runs of
+ *                  shared DNA (IBD), elevated recessive-disease risk, a
+ *                  distinctive cluster. (Nakatsuka: many groups have a founder
+ *                  event STRONGER than the Ashkenazi or Finnish bottleneck.)
+ *   • foundersEst  a plain-language read of the effective founding size.
+ *   • note         what's documented about this group's pool.
+ */
+export type CasteGroup = {
+  id: string
+  /** jāti / clan / gotra / community name. */
+  name: string
+  /** varna / broad social category, purely as context (Brahmin, Kshatriya-like,
+   *  merchant, agrarian, artisan, Dalit, tribal…) — NOT a ranking. */
+  category: string
+  driftIndex: number
+  foundersEst: string
+  /** HOW LONG the pool has been closed — the timeline depth. `endogamyYears`
+   *  is the approximate age of the founder / start-of-endogamy event in years
+   *  before present (some are millennia, some only a century — we want both).
+   *  `since` is the plain-language era label shown on the timeline. */
+  endogamyYears: number
+  since: string
+  note: string
+}
+
+/** Timeline anchors (years before present) for the "isolated since" scale —
+ *  a shared axis so a 2,000-year-old jāti and a 100-year-old community read on
+ *  the same ruler. Deep past on the left, living memory on the right. Each
+ *  anchor carries WHAT WAS HAPPENING then, so the age of a pool connects to the
+ *  history that formed it. */
+export const TIMELINE_ANCHORS: { years: number; label: string; context: string }[] = [
+  { years: 4000, label: "Bronze Age", context: "Indus/Harappan cities thrive; Iranian-farmer + AASI ancestry already mixing across the northwest. Bronze-Age Steppe pastoralists then move in from Central Asia and the ANI (Ancestral North Indian) pool forms." },
+  { years: 2000, label: "~0 CE", context: "Widespread ANI↔ASI mixing across the subcontinent — then, over the next centuries, it largely STOPS." },
+  { years: 1600, label: "Gupta era", context: "Endogamy hardens: qpAdm dates put the founder events of MANY modern jātis around here — pools close and stay closed." },
+  { years: 1000, label: "~1000 CE", context: "Regional kingdoms; jāti structure entrenched. Turkic/Central-Asian and later Islamic gene flow enters the northwest." },
+  { years: 500, label: "Mughal era", context: "Empire-scale movement, trade diasporas (Parsis settled far earlier); some merchant + service communities crystallise." },
+  { years: 200, label: "Colonial", context: "The British census RIGIDIFIES caste categories; new occupational + religious-convert communities begin their own endogamy." },
+  { years: 100, label: "~1920s", context: "Recent founder communities — migrant, sectarian and diaspora groups whose closed marriage pool is only a few generations old." },
+  { years: 0, label: "today", context: "Most groups still marry within — the pools that formed centuries or millennia ago are still measurably distinct in DNA." },
+]
 
 /**
  * The tribes / communities. Grouped loosely by geography but the POINT of the
@@ -86,27 +144,66 @@ export type Tribe = {
  */
 export const TRIBES: Tribe[] = [
   // — Northwest (the Indus gradient) —
-  { id: "sindhi", name: "Sindhi", region: "Indus Valley", at: [26, 68], panel: "—", mix: { AASI: 22, IRAN: 45, STEP: 30, EASI: 3 }, blurb: "Lower Indus community; high Iranian-farmer ancestry, the Harappan heartland signal." },
-  { id: "punjabi", name: "Punjabi", region: "Indus Valley", at: [31, 74], panel: "PJL", mix: { AASI: 25, IRAN: 40, STEP: 32, EASI: 3 }, blurb: "The Punjab plain either side of the border; the classic northwestern mix, close to the Sindhi pool." },
+  { id: "sindhi", name: "Sindhi", region: "Indus Valley", at: [26, 68], panel: "—", mix: { AASI: 22, IRAN: 45, STEP: 30, EASI: 3 }, blurb: "Lower Indus community; high Iranian-farmer ancestry, the Harappan heartland signal.", castes: [
+    { id: "sindhi-lohana", name: "Lohana", category: "Merchant / trading", driftIndex: 62, foundersEst: "small merchant founder set", endogamyYears: 700, since: "~1300s", note: "Mercantile community with a tight trading-network endogamy; a distinctive drifted pool." },
+    { id: "sindhi-bhaiband", name: "Bhaiband", category: "Merchant / trading", driftIndex: 58, foundersEst: "trader lineage founders", endogamyYears: 500, since: "Mughal era", note: "Sindhi trading sub-community whose global diaspora kept marrying within." },
+  ] },
+  { id: "punjabi", name: "Punjabi", region: "Indus Valley", at: [31, 74], panel: "PJL", mix: { AASI: 25, IRAN: 40, STEP: 32, EASI: 3 }, blurb: "The Punjab plain either side of the border; the classic northwestern mix, close to the Sindhi pool.", castes: [
+    { id: "punjabi-khatri", name: "Khatri", category: "Merchant / scribe", driftIndex: 60, foundersEst: "modest founder set", endogamyYears: 800, since: "~1200s", note: "Trading + administrative community; a compact, drifted pool across Punjab." },
+    { id: "punjabi-arora", name: "Arora", category: "Merchant / trading", driftIndex: 57, foundersEst: "modest founder set", endogamyYears: 700, since: "~1300s", note: "West-Punjab merchant community closely allied to the Khatri pool." },
+    { id: "punjabi-ramgarhia", name: "Ramgarhia", category: "Artisan (Sikh)", driftIndex: 55, foundersEst: "artisan-caste founders", endogamyYears: 300, since: "Colonial", note: "Carpenter-smith Sikh community whose endogamy hardened in the last few centuries." },
+  ] },
   { id: "baluch", name: "Baluch", region: "Indus Valley", at: [28, 65], mix: { AASI: 15, IRAN: 55, STEP: 27, EASI: 3 }, blurb: "Western frontier pastoralists; the highest Iranian-related share, blending toward the plateau." },
-  { id: "pashtun", name: "Pashtun / Pathan", region: "Hindu Kush", at: [33, 70], mix: { AASI: 14, IRAN: 44, STEP: 39, EASI: 3 }, blurb: "Hindu-Kush communities; elevated steppe ancestry, continuous with Central Asia." },
-  { id: "kashmiri", name: "Kashmiri", region: "Himalaya (west)", at: [34, 75], mix: { AASI: 20, IRAN: 42, STEP: 35, EASI: 3 }, blurb: "Vale-of-Kashmir community; northwestern pool with a Himalayan tilt." },
+  { id: "pashtun", name: "Pashtun / Pathan", region: "Hindu Kush", at: [33, 70], mix: { AASI: 14, IRAN: 44, STEP: 39, EASI: 3 }, blurb: "Hindu-Kush communities; elevated steppe ancestry, continuous with Central Asia.", castes: [
+    { id: "pashtun-tribe", name: "Tribal (Durrani / Ghilzai)", category: "Tribal confederation", driftIndex: 50, foundersEst: "clan-based founders", endogamyYears: 900, since: "~1100s", note: "Patrilineal clan (khel) endogamy; cousin marriage keeps each tribe a distinct pool." },
+  ] },
+  { id: "kashmiri", name: "Kashmiri", region: "Himalaya (west)", at: [34, 75], mix: { AASI: 20, IRAN: 42, STEP: 35, EASI: 3 }, blurb: "Vale-of-Kashmir community; northwestern pool with a Himalayan tilt.", castes: [
+    { id: "kashmiri-pandit", name: "Kashmiri Pandit", category: "Brahmin", driftIndex: 68, foundersEst: "small valley founder set", endogamyYears: 1500, since: "Gupta era", note: "Isolated Brahmin community of the Vale; long endogamy + geographic isolation → a strongly drifted pool." },
+  ] },
 
   // — North & Gangetic plain —
-  { id: "jat", name: "Jat", region: "North India / Punjab", at: [29, 76], mix: { AASI: 28, IRAN: 36, STEP: 33, EASI: 3 }, blurb: "Agrarian community of the northwestern plains; strong steppe component." },
-  { id: "brahmin-n", name: "Brahmin (North)", region: "Gangetic plain", at: [27, 80], mix: { AASI: 30, IRAN: 35, STEP: 32, EASI: 3 }, blurb: "Traditionally priestly community; among the higher steppe + Iranian shares in the north." },
-  { id: "up-hindustani", name: "Hindustani (UP/Bihar)", region: "Gangetic plain", at: [26, 82], mix: { AASI: 42, IRAN: 33, STEP: 22, EASI: 3 }, blurb: "Central Gangetic communities — the middle of the AASI↔ANI cline." },
+  { id: "jat", name: "Jat", region: "North India / Punjab", at: [29, 76], mix: { AASI: 28, IRAN: 36, STEP: 33, EASI: 3 }, blurb: "Agrarian community of the northwestern plains; strong steppe component.", castes: [
+    { id: "jat-north", name: "Jat (agrarian got)", category: "Agrarian", driftIndex: 48, foundersEst: "large agrarian pool", endogamyYears: 700, since: "~1300s", note: "Exogamous by got (clan) but endogamous by caste; a big pool, so weaker drift than the merchant jātis." },
+  ] },
+  { id: "brahmin-n", name: "Brahmin (North)", region: "Gangetic plain", at: [27, 80], mix: { AASI: 30, IRAN: 35, STEP: 32, EASI: 3 }, blurb: "Traditionally priestly community; among the higher steppe + Iranian shares in the north.", castes: [
+    { id: "brahmin-gaur", name: "Gaur Brahmin", category: "Brahmin", driftIndex: 64, foundersEst: "priestly founder lineages", endogamyYears: 1800, since: "~200 CE", note: "Among the OLDEST founder events — qpAdm dates many Brahmin jātis to ~2,000 years ago; gotra exogamy inside caste endogamy." },
+    { id: "brahmin-kanyakubja", name: "Kanyakubja Brahmin", category: "Brahmin", driftIndex: 66, foundersEst: "priestly founder lineages", endogamyYears: 1700, since: "Gupta era", note: "Gangetic Brahmin community with a deep, tightly maintained pool." },
+  ] },
+  { id: "up-hindustani", name: "Hindustani (UP/Bihar)", region: "Gangetic plain", at: [26, 82], mix: { AASI: 42, IRAN: 33, STEP: 22, EASI: 3 }, blurb: "Central Gangetic communities — the middle of the AASI↔ANI cline.", castes: [
+    { id: "up-yadav", name: "Yadav / Ahir", category: "Pastoral-agrarian", driftIndex: 46, foundersEst: "large pastoral pool", endogamyYears: 800, since: "~1200s", note: "Big pastoral-agrarian community; caste endogamy with clan exogamy, moderate drift." },
+    { id: "up-kayastha", name: "Kayastha", category: "Scribe / administrative", driftIndex: 59, foundersEst: "scribal founder set", endogamyYears: 1000, since: "~1000 CE", note: "Record-keeping community; a compact administrative pool with clear drift." },
+  ] },
 
   // — East & Northeast —
-  { id: "bengali", name: "Bengali", region: "Bengal delta", at: [23, 89], panel: "BEB", mix: { AASI: 45, IRAN: 25, STEP: 14, EASI: 16 }, blurb: "Delta communities either side of the border; a real East-Asian-related layer appears here." },
+  { id: "bengali", name: "Bengali", region: "Bengal delta", at: [23, 89], panel: "BEB", mix: { AASI: 45, IRAN: 25, STEP: 14, EASI: 16 }, blurb: "Delta communities either side of the border; a real East-Asian-related layer appears here.", castes: [
+    { id: "bengali-brahmin", name: "Bengali Brahmin (Kulin)", category: "Brahmin", driftIndex: 61, foundersEst: "Kulin founder lineages", endogamyYears: 900, since: "~1100s", note: "Kulin reforms formalised a tight marriage circle; a drifted Brahmin pool over the East-Asian-tinged Bengali base." },
+    { id: "bengali-kayastha", name: "Bengali Kayastha", category: "Scribe / administrative", driftIndex: 57, foundersEst: "scribal founder set", endogamyYears: 900, since: "~1100s", note: "Administrative community closely paired with the Bengali Brahmin pool." },
+  ] },
   { id: "odia", name: "Odia", region: "Eastern India", at: [20, 85], mix: { AASI: 52, IRAN: 24, STEP: 14, EASI: 10 }, blurb: "Coastal eastern community; shifted toward the deep AASI layer, close to the Bengali pool." },
-  { id: "assamese", name: "Assamese / NE tribes", region: "Northeast India", at: [26, 93], mix: { AASI: 30, IRAN: 12, STEP: 6, EASI: 52 }, blurb: "Brahmaputra + hill communities; the strongest East-Asian / Tibeto-Burman signal in the subcontinent." },
+  { id: "assamese", name: "Assamese / NE tribes", region: "Northeast India", at: [26, 93], mix: { AASI: 30, IRAN: 12, STEP: 6, EASI: 52 }, blurb: "Brahmaputra + hill communities; the strongest East-Asian / Tibeto-Burman signal in the subcontinent.", castes: [
+    { id: "ne-tribal", name: "Hill tribes (Naga / Mizo-like)", category: "Tribal", driftIndex: 72, foundersEst: "small village founder sets", endogamyYears: 1200, since: "~800s", note: "Village- and clan-endogamous hill communities; small pools + isolation → strong, distinctive drift." },
+  ] },
 
   // — South (Dravidian + tribal) —
-  { id: "tamil", name: "Tamil", region: "South India", at: [11, 78], panel: "STU", mix: { AASI: 55, IRAN: 30, STEP: 12, EASI: 3 }, blurb: "Dravidian-speaking community; toward the AASI end, with a strong Iranian-farmer layer." },
-  { id: "telugu", name: "Telugu", region: "South India", at: [17, 79], panel: "ITU", mix: { AASI: 52, IRAN: 31, STEP: 14, EASI: 3 }, blurb: "Deccan Dravidian community; very close to the Tamil pool — a border makes no genetic difference." },
-  { id: "gujarati", name: "Gujarati", region: "West India", at: [22, 72], panel: "GIH", mix: { AASI: 38, IRAN: 38, STEP: 21, EASI: 3 }, blurb: "Western coastal + inland communities; balanced AASI/Iranian, the 1000-Genomes GIH panel." },
-  { id: "adivasi-s", name: "Adivasi (South/Central)", region: "Central India", at: [21, 81], mix: { AASI: 72, IRAN: 18, STEP: 7, EASI: 3 }, blurb: "Tribal communities (e.g. Gond, Paniya-like); the closest surviving proxy to the deep AASI layer." },
+  { id: "tamil", name: "Tamil", region: "South India", at: [11, 78], panel: "STU", mix: { AASI: 55, IRAN: 30, STEP: 12, EASI: 3 }, blurb: "Dravidian-speaking community; toward the AASI end, with a strong Iranian-farmer layer.", castes: [
+    { id: "tamil-brahmin", name: "Tamil Brahmin (Iyer/Iyengar)", category: "Brahmin", driftIndex: 65, foundersEst: "priestly founder lineages", endogamyYears: 1600, since: "Gupta era", note: "Deep founder event + strict endogamy; a well-studied, strongly drifted southern Brahmin pool." },
+    { id: "tamil-vellalar", name: "Vellalar", category: "Agrarian (landholding)", driftIndex: 54, foundersEst: "landholding founders", endogamyYears: 1000, since: "~1000 CE", note: "Landholding Tamil community; a substantial but clearly endogamous pool." },
+    { id: "tamil-nadar", name: "Nadar", category: "Agrarian / merchant", driftIndex: 60, foundersEst: "regional founder set", endogamyYears: 700, since: "~1300s", note: "Southern Tamil community; documented founder event and elevated shared-DNA within." },
+  ] },
+  { id: "telugu", name: "Telugu", region: "South India", at: [17, 79], panel: "ITU", mix: { AASI: 52, IRAN: 31, STEP: 14, EASI: 3 }, blurb: "Deccan Dravidian community; very close to the Tamil pool — a border makes no genetic difference.", castes: [
+    { id: "telugu-reddy", name: "Reddy", category: "Agrarian (landholding)", driftIndex: 56, foundersEst: "landholding founders", endogamyYears: 900, since: "~1100s", note: "Deccan landholding community; a distinct, moderately drifted pool." },
+    { id: "telugu-kamma", name: "Kamma", category: "Agrarian (landholding)", driftIndex: 58, foundersEst: "landholding founders", endogamyYears: 900, since: "~1100s", note: "Landholding community paired with the Reddy pool; documented founder structure." },
+    { id: "telugu-komati", name: "Komati / Vaishya", category: "Merchant / trading", driftIndex: 66, foundersEst: "small merchant founder set", endogamyYears: 1000, since: "~1000 CE", note: "Merchant community with one of the STRONGER South-Indian founder events — a tightly closed trading pool." },
+  ] },
+  { id: "gujarati", name: "Gujarati", region: "West India", at: [22, 72], panel: "GIH", mix: { AASI: 38, IRAN: 38, STEP: 21, EASI: 3 }, blurb: "Western coastal + inland communities; balanced AASI/Iranian, the 1000-Genomes GIH panel.", castes: [
+    { id: "guj-patel", name: "Patel / Patidar", category: "Agrarian (landholding)", driftIndex: 55, foundersEst: "landholding founders", endogamyYears: 600, since: "~1400s", note: "Landholding-turned-diaspora community; endogamy held even across global migration." },
+    { id: "guj-vania", name: "Vania (Jain/Hindu merchant)", category: "Merchant / trading", driftIndex: 62, foundersEst: "merchant founder set", endogamyYears: 900, since: "~1100s", note: "Merchant community, some Jain; a compact, drifted trading pool." },
+    { id: "guj-parsi", name: "Parsi (Zoroastrian)", category: "Religious diaspora", driftIndex: 74, foundersEst: "~few hundred refugees", endogamyYears: 1200, since: "~800s", note: "Zoroastrian refugees from Persia (~8th c.) who stayed strictly endogamous — one of the most striking small closed pools, with real Iranian ancestry retained." },
+  ] },
+  { id: "adivasi-s", name: "Adivasi (South/Central)", region: "Central India", at: [21, 81], mix: { AASI: 72, IRAN: 18, STEP: 7, EASI: 3 }, blurb: "Tribal communities (e.g. Gond, Paniya-like); the closest surviving proxy to the deep AASI layer.", castes: [
+    { id: "adivasi-gond", name: "Gond", category: "Tribal", driftIndex: 70, foundersEst: "small tribal founder sets", endogamyYears: 2000, since: "~0 CE", note: "Large Central-Indian tribe; deep AASI proxy with long tribal endogamy." },
+    { id: "adivasi-paniya", name: "Paniya-like", category: "Tribal", driftIndex: 80, foundersEst: "very small founder set", endogamyYears: 2500, since: "pre-mixing", note: "Among the highest-AASI, most-drifted groups sampled — a small, ancient, closed pool." },
+  ] },
 
   // — Neighbouring pools (to show the gradient continues, not stops) —
   { id: "iranian-plateau", name: "Iranian plateau peoples", region: "Iran", at: [32, 53], mix: { AASI: 3, IRAN: 72, STEP: 22, EASI: 3 }, blurb: "West of the Indus the pool tips fully to Iranian-farmer + steppe — the same components, different weights." },
@@ -154,3 +251,33 @@ export const TRIBE_REGION_ORDER = [
   "Iran",
   "Central Asia",
 ]
+
+/** Every caste/clan group across all tribes, flattened, each tagged with its
+ *  parent tribe — for the endogamy timeline (one axis, all groups on it). */
+export function allCasteGroups(): (CasteGroup & { tribe: Tribe })[] {
+  const out: (CasteGroup & { tribe: Tribe })[] = []
+  for (const t of TRIBES) {
+    for (const c of t.castes ?? []) out.push({ ...c, tribe: t })
+  }
+  return out
+}
+
+/** The single most historically resonant read: for a given endogamy age (years
+ *  before present), the timeline anchor whose era it falls in — so a group's age
+ *  maps to "what was happening then". */
+export function eraFor(years: number): { label: string; context: string } {
+  // anchors are sorted deep→recent; pick the oldest anchor at or before `years`.
+  let best = TIMELINE_ANCHORS[TIMELINE_ANCHORS.length - 1]
+  for (const a of TIMELINE_ANCHORS) {
+    if (years <= a.years) best = a
+  }
+  return { label: best.label, context: best.context }
+}
+
+/** Log-ish position (0=today at right → 1=deep past at left) for the timeline
+ *  axis, so millennia and a single century both read on one ruler. */
+export function timelinePos(years: number): number {
+  const maxY = 4000
+  // sqrt compresses the deep past so recent centuries still get visible spread.
+  return Math.min(1, Math.sqrt(Math.max(0, years) / maxY))
+}
