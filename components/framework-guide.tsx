@@ -17,6 +17,7 @@ import { useEffect, useState } from "react"
 import { Container } from "@/components/container"
 import { HicksDemo } from "@/components/framework-hicks-demo"
 import { FittsDemo } from "@/components/framework-fitts-demo"
+import { GestaltDemo } from "@/components/framework-gestalt-demo"
 import {
   PRINCIPLES,
   LAW_GROUPS,
@@ -163,6 +164,11 @@ export function FrameworkGuide() {
                     {g.id === "interaction-time" && (
                       <div className="mt-4">
                         <FittsDemo />
+                      </div>
+                    )}
+                    {g.id === "gestalt" && (
+                      <div className="mt-4">
+                        <GestaltDemo />
                       </div>
                     )}
                   </div>
