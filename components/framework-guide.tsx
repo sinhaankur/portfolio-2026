@@ -18,6 +18,7 @@ import { Container } from "@/components/container"
 import { HicksDemo } from "@/components/framework-hicks-demo"
 import { FittsDemo } from "@/components/framework-fitts-demo"
 import { GestaltDemo } from "@/components/framework-gestalt-demo"
+import { LawModal } from "@/components/framework-law-modal"
 import {
   PRINCIPLES,
   LAW_GROUPS,
@@ -28,6 +29,7 @@ import {
   PRE_SHIP,
   POUR,
   CANON,
+  type FrameworkLaw,
 } from "@/lib/framework-data"
 
 const SECTIONS = [
@@ -49,6 +51,8 @@ function Eyebrow({ no, children }: { no: string; children: React.ReactNode }) {
 
 export function FrameworkGuide() {
   const [active, setActive] = useState<string>("principles")
+  // the law whose click-through pop view is open (null = closed).
+  const [openLaw, setOpenLaw] = useState<FrameworkLaw | null>(null)
 
   // Scroll-spy: highlight the section rail item currently in view.
   useEffect(() => {
@@ -140,18 +144,24 @@ export function FrameworkGuide() {
                     <p className="font-sans text-sm text-foreground/60 leading-relaxed mb-5 max-w-2xl">{g.lead}</p>
                     <div className="grid gap-3 sm:grid-cols-2">
                       {g.laws.map((law) => (
-                        <div key={law.name} className="rounded-xl border border-border bg-card/40 p-4">
+                        <button
+                          key={law.name}
+                          type="button"
+                          onClick={() => setOpenLaw(law)}
+                          data-cursor-hover
+                          aria-haspopup="dialog"
+                          className="group rounded-xl border border-border bg-card/40 p-4 text-left transition-colors hover:border-accent/50"
+                        >
                           <div className="flex items-center gap-2 mb-1.5">
                             <span className="h-1.5 w-1.5 rounded-sm bg-accent" />
                             <h4 className="font-sans text-sm font-medium text-foreground">{law.name}</h4>
+                            <span className="ml-auto font-mono text-[9px] uppercase tracking-widest text-muted-foreground/60 group-hover:text-accent transition-colors">expand →</span>
                           </div>
                           <p className="font-sans text-[13px] text-foreground/65 leading-relaxed">{law.what}</p>
-                          {law.apply && (
-                            <p className="mt-2 font-mono text-[11px] text-accent/90 leading-relaxed">
-                              <span className="text-muted-foreground">apply · </span>{law.apply}
-                            </p>
+                          {law.mnemonic && (
+                            <p className="mt-2 font-sans text-[12px] italic text-accent/90">&ldquo;{law.mnemonic}&rdquo;</p>
                           )}
-                        </div>
+                        </button>
                       ))}
                     </div>
                     {/* Live proofs — you can feel these laws, not just read
@@ -310,6 +320,9 @@ export function FrameworkGuide() {
           </div>
         </div>
       </Container>
+
+      {/* Click-through pop view for a law — clarity + memorability. */}
+      {openLaw && <LawModal law={openLaw} onClose={() => setOpenLaw(null)} />}
     </div>
   )
 }
