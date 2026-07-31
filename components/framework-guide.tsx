@@ -18,7 +18,7 @@ import { Container } from "@/components/container"
 import { HicksDemo } from "@/components/framework-hicks-demo"
 import { FittsDemo } from "@/components/framework-fitts-demo"
 import { GestaltDemo } from "@/components/framework-gestalt-demo"
-import { LawModal } from "@/components/framework-law-modal"
+import { LawModal, type ModalItem } from "@/components/framework-law-modal"
 import {
   PRINCIPLES,
   LAW_GROUPS,
@@ -29,7 +29,6 @@ import {
   PRE_SHIP,
   POUR,
   CANON,
-  type FrameworkLaw,
 } from "@/lib/framework-data"
 
 const SECTIONS = [
@@ -51,8 +50,8 @@ function Eyebrow({ no, children }: { no: string; children: React.ReactNode }) {
 
 export function FrameworkGuide() {
   const [active, setActive] = useState<string>("principles")
-  // the law whose click-through pop view is open (null = closed).
-  const [openLaw, setOpenLaw] = useState<FrameworkLaw | null>(null)
+  // the law or heuristic whose click-through pop view is open (null = closed).
+  const [openLaw, setOpenLaw] = useState<ModalItem | null>(null)
 
   // Scroll-spy: highlight the section rail item currently in view.
   useEffect(() => {
@@ -194,12 +193,24 @@ export function FrameworkGuide() {
               </h2>
               <ul className="divide-y divide-border/60 rounded-2xl border border-border bg-card/40">
                 {HEURISTICS.map((h) => (
-                  <li key={h.n} className="flex gap-4 p-4">
-                    <span className="font-mono text-[11px] text-accent tabular-nums shrink-0 mt-0.5">{String(h.n).padStart(2, "0")}</span>
-                    <div>
-                      <h3 className="font-sans text-sm font-medium text-foreground">{h.name}</h3>
-                      <p className="mt-0.5 font-sans text-[13px] text-foreground/60 leading-relaxed">{h.what}</p>
-                    </div>
+                  <li key={h.n}>
+                    <button
+                      type="button"
+                      onClick={() => setOpenLaw({ ...h, kind: "heuristic" })}
+                      data-cursor-hover
+                      aria-haspopup="dialog"
+                      className="group flex w-full gap-4 p-4 text-left transition-colors hover:bg-secondary/40"
+                    >
+                      <span className="font-mono text-[11px] text-accent tabular-nums shrink-0 mt-0.5">{String(h.n).padStart(2, "0")}</span>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-sans text-sm font-medium text-foreground">{h.name}</h3>
+                          <span className="ml-auto font-mono text-[9px] uppercase tracking-widest text-muted-foreground/60 group-hover:text-accent transition-colors shrink-0">expand →</span>
+                        </div>
+                        <p className="mt-0.5 font-sans text-[13px] text-foreground/60 leading-relaxed">{h.what}</p>
+                        <p className="mt-1 font-sans text-[12px] italic text-accent/80">&ldquo;{h.mnemonic}&rdquo;</p>
+                      </div>
+                    </button>
                   </li>
                 ))}
               </ul>

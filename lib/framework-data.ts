@@ -223,17 +223,82 @@ export const LAW_GROUPS: FrameworkGroup[] = [
 
 /* ── HEURISTICS ───────────────────────────────────────────────────────────── */
 
-export const HEURISTICS: { n: number; name: string; what: string }[] = [
-  { n: 1, name: "Visibility of system status", what: "Keep users informed through timely feedback — loading states, saved confirmations, current location." },
-  { n: 2, name: "Match system & real world", what: "Speak the users' language; follow real-world conventions; natural, logical order." },
-  { n: 3, name: "User control & freedom", what: "Clearly-marked exits, undo and redo; never trap the user in a state they can't leave." },
-  { n: 4, name: "Consistency & standards", what: "Same words, actions and patterns mean the same thing everywhere; follow platform conventions." },
-  { n: 5, name: "Error prevention", what: "Prevent problems before they occur — constraints, good defaults, confirmation on destructive actions." },
-  { n: 6, name: "Recognition over recall", what: "Make objects, actions and options visible; don't force users to remember across the interface." },
-  { n: 7, name: "Flexibility & efficiency", what: "Accelerators (shortcuts, presets) for experts, without slowing novices." },
-  { n: 8, name: "Aesthetic & minimalist", what: "Every extra unit of information competes with the relevant ones. Keep only what serves the task." },
-  { n: 9, name: "Recognise & recover from errors", what: "Plain-language messages that state the problem precisely and suggest a fix." },
-  { n: 10, name: "Help & documentation", what: "Ideally none needed; when it is, make it searchable, task-focused, and concrete." },
+export type Heuristic = {
+  n: number
+  name: string
+  what: string
+  /** fuller explanation for the pop view. */
+  deep: string
+  /** how it helps users. */
+  helps: string
+  /** a sticky one-liner to remember it by. */
+  mnemonic: string
+  /** a concrete good-vs-bad example. */
+  bad: string
+  good: string
+}
+
+export const HEURISTICS: Heuristic[] = [
+  { n: 1, name: "Visibility of system status", mnemonic: "Always tell the user what's happening.",
+    what: "Keep users informed through timely feedback — loading states, saved confirmations, current location.",
+    deep: "Users should never wonder whether the system heard them or what state they're in. Timely, appropriate feedback — a spinner, a 'Saved' toast, a highlighted current step, a progress bar — keeps them oriented and in control.",
+    helps: "Constant, honest status means users trust the system and don't double-submit, refresh, or give up in confusion.",
+    bad: "Click 'Save' → nothing visibly changes; did it work?",
+    good: "Click 'Save' → button shows a spinner, then a 'Saved' toast." },
+  { n: 2, name: "Match system & the real world", mnemonic: "Speak their language, not the database's.",
+    what: "Speak the users' language; follow real-world conventions; natural, logical order.",
+    deep: "Use words, phrases and concepts familiar to the user rather than internal jargon. Present information in a natural order that matches how people think about the task — a trash can, not a 'soft-delete flag'.",
+    helps: "Familiar language and metaphors let users apply what they already know, so nothing needs translating.",
+    bad: "Error: 'NULL constraint violated on field usr_eml.'",
+    good: "'Please enter your email address.'" },
+  { n: 3, name: "User control & freedom", mnemonic: "Always leave an exit.",
+    what: "Clearly-marked exits, undo and redo; never trap the user in a state they can't leave.",
+    deep: "People choose actions by mistake. They need a clearly-marked 'emergency exit' to leave an unwanted state without a long detour — undo and redo, a visible cancel, a back that works. Prefer reversible actions over blocking confirmations.",
+    helps: "Knowing they can always back out lets users explore confidently instead of fearing every click.",
+    bad: "A modal with no close button; only 'Confirm'.",
+    good: "Delete shows an 'Undo' toast for a few seconds." },
+  { n: 4, name: "Consistency & standards", mnemonic: "Same thing, same word, same place.",
+    what: "Same words, actions and patterns mean the same thing everywhere; follow platform conventions.",
+    deep: "Users shouldn't have to wonder whether different words, situations or actions mean the same thing. Follow platform and industry conventions (Jakob's Law) — internal consistency within your product, external consistency with the world.",
+    helps: "Consistency means a pattern learned once works everywhere — no relearning per screen.",
+    bad: "'Delete' here, 'Remove' there, 'Trash' elsewhere — same action.",
+    good: "One verb for one action, product-wide." },
+  { n: 5, name: "Error prevention", mnemonic: "Stop the error before it happens.",
+    what: "Prevent problems before they occur — constraints, good defaults, confirmation on destructive actions.",
+    deep: "Even better than a good error message is a design that prevents the problem in the first place — constraints, smart defaults, disabling invalid options, and confirming (or making reversible) destructive actions.",
+    helps: "Fewer errors are even possible, so users hit fewer walls and lose less work.",
+    bad: "A free-text date field that accepts '31/02/2026'.",
+    good: "A date picker that can't offer an invalid day." },
+  { n: 6, name: "Recognition over recall", mnemonic: "Show it; don't make them remember it.",
+    what: "Make objects, actions and options visible; don't force users to remember across the interface.",
+    deep: "Minimise memory load by making elements, actions and options visible. The user shouldn't have to remember information from one part of the interface to another — show recently-used items, autocomplete, and visible options instead of memorised commands.",
+    helps: "Recognising an option is far easier than recalling it — less mental effort, fewer mistakes.",
+    bad: "A blank command box: type the exact command from memory.",
+    good: "A searchable list with recents + suggestions as you type." },
+  { n: 7, name: "Flexibility & efficiency of use", mnemonic: "Fast lane for experts, clear road for novices.",
+    what: "Accelerators (shortcuts, presets) for experts, without slowing novices.",
+    deep: "Accelerators — keyboard shortcuts, saved states, presets, macros — let experts speed through while staying invisible to novices. Let people tailor frequent actions to their own flow.",
+    helps: "Power users move fast and beginners aren't overwhelmed — the interface grows with skill.",
+    bad: "Every user must click through the same 6-step wizard, every time.",
+    good: "A saved preset + a keyboard shortcut for the frequent path." },
+  { n: 8, name: "Aesthetic & minimalist design", mnemonic: "Every extra word dilutes the rest.",
+    what: "Every extra unit of information competes with the relevant ones. Keep only what serves the task.",
+    deep: "Interfaces shouldn't contain information that's irrelevant or rarely needed — every extra unit competes with the relevant units and diminishes their visibility. Keep only what serves the current task; defer the rest.",
+    helps: "A focused screen makes the important thing obvious instead of burying it in noise.",
+    bad: "A dashboard with 20 equally-loud widgets.",
+    good: "The key metric leads; the rest is one click away." },
+  { n: 9, name: "Recognise & recover from errors", mnemonic: "Say what broke and how to fix it.",
+    what: "Plain-language messages that state the problem precisely and suggest a fix.",
+    deep: "When errors happen, express them in plain language (no codes), state the problem precisely, and constructively suggest a solution. Show the error where it happened, keep the user's data, and move focus to the fix.",
+    helps: "A clear, blameless error with a fix turns a dead end into a next step.",
+    bad: "'Error 0x8007. Something went wrong.'",
+    good: "'That email isn't verified — ask them to confirm, or turn off verification in Settings.'" },
+  { n: 10, name: "Help & documentation", mnemonic: "Best help is needing none.",
+    what: "Ideally none needed; when it is, make it searchable, task-focused, and concrete.",
+    deep: "It's best if the system needs no explanation, but some help may be necessary. When it is, make it easy to search, focused on the user's task, list concrete steps, and keep it short — placed in context where possible.",
+    helps: "Task-focused, in-context help gets people unstuck fast without leaving what they were doing.",
+    bad: "A 90-page PDF manual, separate from the product.",
+    good: "A contextual tip + searchable, task-based articles." },
 ]
 
 /* ── FOUNDATIONS ──────────────────────────────────────────────────────────── */

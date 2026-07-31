@@ -111,12 +111,22 @@ try {
   // ── heuristics ────────────────────────────────────────────────────────────
   p(`## 3 · Nielsen's ten usability heuristics`)
   p()
-  p(`The evaluation checklist — inspect any screen against these.`)
+  p(`The evaluation checklist — inspect any screen against these. Each carries a`)
+  p(`mnemonic + a good-vs-bad example.`)
   p()
   for (const h of HEURISTICS) {
-    p(`${h.n}. **${h.name}** — ${h.what}`)
+    p(`#### ${h.n}. ${h.name}`)
+    if (h.mnemonic) p(`> _"${h.mnemonic}"_`)
+    p()
+    p(h.deep || h.what)
+    p()
+    if (h.helps) p(`**Helps users:** ${h.helps}`)
+    if (h.bad && h.good) {
+      p(`**✕ Violates it:** ${h.bad}`)
+      p(`**✓ Honours it:** ${h.good}`)
+    }
+    p()
   }
-  p()
 
   // ── foundations ───────────────────────────────────────────────────────────
   p(`## 4 · Foundations`)

@@ -19,7 +19,16 @@ import { X } from "lucide-react"
 import type { FrameworkLaw } from "@/lib/framework-data"
 import { LawViz } from "@/components/framework-law-viz"
 
-export function LawModal({ law, onClose }: { law: FrameworkLaw; onClose: () => void }) {
+/** The modal renders both cognitive laws (with a viz) and heuristics (with a
+ *  good-vs-bad example). Both share name/mnemonic/deep/helps; the extras below
+ *  are optional and pick the right middle panel. */
+export type ModalItem = FrameworkLaw & {
+  kind?: "law" | "heuristic"
+  bad?: string
+  good?: string
+}
+
+export function LawModal({ law, onClose }: { law: ModalItem; onClose: () => void }) {
   const panelRef = useRef<HTMLDivElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
 
@@ -76,7 +85,7 @@ export function LawModal({ law, onClose }: { law: FrameworkLaw; onClose: () => v
           <X className="h-4 w-4" />
         </button>
 
-        <p className="font-mono text-[10px] tracking-[0.25em] uppercase text-accent mb-2">Law of UX</p>
+        <p className="font-mono text-[10px] tracking-[0.25em] uppercase text-accent mb-2">{law.kind === "heuristic" ? "Usability heuristic" : "Law of UX"}</p>
         <h3 id="law-modal-title" className="font-display text-2xl md:text-3xl font-light tracking-[-0.01em] pr-8">{law.name}</h3>
 
         {/* mnemonic — the thing to remember */}
@@ -86,11 +95,28 @@ export function LawModal({ law, onClose }: { law: FrameworkLaw; onClose: () => v
           </p>
         )}
 
-        {/* visualization — how it works */}
-        <div className="mt-5">
-          <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground mb-2">How it works</p>
-          <LawViz viz={law.viz} />
-        </div>
+        {/* middle panel — a diagram for a law, or a good-vs-bad example for a
+            heuristic (heuristics are best taught by contrast, not a diagram). */}
+        {law.good && law.bad ? (
+          <div className="mt-5">
+            <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground mb-2">In practice</p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <div className="rounded-xl border border-[#ef5f6b]/30 bg-[#ef5f6b]/[0.06] p-3">
+                <p className="font-mono text-[9px] uppercase tracking-widest text-[#ef8a91] mb-1">✕ Violates it</p>
+                <p className="font-sans text-[13px] text-foreground/75 leading-relaxed">{law.bad}</p>
+              </div>
+              <div className="rounded-xl border border-[#1e8e5a]/40 bg-[#1e8e5a]/[0.06] p-3">
+                <p className="font-mono text-[9px] uppercase tracking-widest text-[#4cc38a] mb-1">✓ Honours it</p>
+                <p className="font-sans text-[13px] text-foreground/75 leading-relaxed">{law.good}</p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-5">
+            <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground mb-2">How it works</p>
+            <LawViz viz={law.viz} />
+          </div>
+        )}
 
         {/* what it is */}
         <div className="mt-5">

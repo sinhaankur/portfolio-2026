@@ -265,18 +265,98 @@ The eye instantly splits a scene into a 'figure' (the object of focus) and 'grou
 
 ## 3 · Nielsen's ten usability heuristics
 
-The evaluation checklist — inspect any screen against these.
+The evaluation checklist — inspect any screen against these. Each carries a
+mnemonic + a good-vs-bad example.
 
-1. **Visibility of system status** — Keep users informed through timely feedback — loading states, saved confirmations, current location.
-2. **Match system & real world** — Speak the users' language; follow real-world conventions; natural, logical order.
-3. **User control & freedom** — Clearly-marked exits, undo and redo; never trap the user in a state they can't leave.
-4. **Consistency & standards** — Same words, actions and patterns mean the same thing everywhere; follow platform conventions.
-5. **Error prevention** — Prevent problems before they occur — constraints, good defaults, confirmation on destructive actions.
-6. **Recognition over recall** — Make objects, actions and options visible; don't force users to remember across the interface.
-7. **Flexibility & efficiency** — Accelerators (shortcuts, presets) for experts, without slowing novices.
-8. **Aesthetic & minimalist** — Every extra unit of information competes with the relevant ones. Keep only what serves the task.
-9. **Recognise & recover from errors** — Plain-language messages that state the problem precisely and suggest a fix.
-10. **Help & documentation** — Ideally none needed; when it is, make it searchable, task-focused, and concrete.
+#### 1. Visibility of system status
+> _"Always tell the user what's happening."_
+
+Users should never wonder whether the system heard them or what state they're in. Timely, appropriate feedback — a spinner, a 'Saved' toast, a highlighted current step, a progress bar — keeps them oriented and in control.
+
+**Helps users:** Constant, honest status means users trust the system and don't double-submit, refresh, or give up in confusion.
+**✕ Violates it:** Click 'Save' → nothing visibly changes; did it work?
+**✓ Honours it:** Click 'Save' → button shows a spinner, then a 'Saved' toast.
+
+#### 2. Match system & the real world
+> _"Speak their language, not the database's."_
+
+Use words, phrases and concepts familiar to the user rather than internal jargon. Present information in a natural order that matches how people think about the task — a trash can, not a 'soft-delete flag'.
+
+**Helps users:** Familiar language and metaphors let users apply what they already know, so nothing needs translating.
+**✕ Violates it:** Error: 'NULL constraint violated on field usr_eml.'
+**✓ Honours it:** 'Please enter your email address.'
+
+#### 3. User control & freedom
+> _"Always leave an exit."_
+
+People choose actions by mistake. They need a clearly-marked 'emergency exit' to leave an unwanted state without a long detour — undo and redo, a visible cancel, a back that works. Prefer reversible actions over blocking confirmations.
+
+**Helps users:** Knowing they can always back out lets users explore confidently instead of fearing every click.
+**✕ Violates it:** A modal with no close button; only 'Confirm'.
+**✓ Honours it:** Delete shows an 'Undo' toast for a few seconds.
+
+#### 4. Consistency & standards
+> _"Same thing, same word, same place."_
+
+Users shouldn't have to wonder whether different words, situations or actions mean the same thing. Follow platform and industry conventions (Jakob's Law) — internal consistency within your product, external consistency with the world.
+
+**Helps users:** Consistency means a pattern learned once works everywhere — no relearning per screen.
+**✕ Violates it:** 'Delete' here, 'Remove' there, 'Trash' elsewhere — same action.
+**✓ Honours it:** One verb for one action, product-wide.
+
+#### 5. Error prevention
+> _"Stop the error before it happens."_
+
+Even better than a good error message is a design that prevents the problem in the first place — constraints, smart defaults, disabling invalid options, and confirming (or making reversible) destructive actions.
+
+**Helps users:** Fewer errors are even possible, so users hit fewer walls and lose less work.
+**✕ Violates it:** A free-text date field that accepts '31/02/2026'.
+**✓ Honours it:** A date picker that can't offer an invalid day.
+
+#### 6. Recognition over recall
+> _"Show it; don't make them remember it."_
+
+Minimise memory load by making elements, actions and options visible. The user shouldn't have to remember information from one part of the interface to another — show recently-used items, autocomplete, and visible options instead of memorised commands.
+
+**Helps users:** Recognising an option is far easier than recalling it — less mental effort, fewer mistakes.
+**✕ Violates it:** A blank command box: type the exact command from memory.
+**✓ Honours it:** A searchable list with recents + suggestions as you type.
+
+#### 7. Flexibility & efficiency of use
+> _"Fast lane for experts, clear road for novices."_
+
+Accelerators — keyboard shortcuts, saved states, presets, macros — let experts speed through while staying invisible to novices. Let people tailor frequent actions to their own flow.
+
+**Helps users:** Power users move fast and beginners aren't overwhelmed — the interface grows with skill.
+**✕ Violates it:** Every user must click through the same 6-step wizard, every time.
+**✓ Honours it:** A saved preset + a keyboard shortcut for the frequent path.
+
+#### 8. Aesthetic & minimalist design
+> _"Every extra word dilutes the rest."_
+
+Interfaces shouldn't contain information that's irrelevant or rarely needed — every extra unit competes with the relevant units and diminishes their visibility. Keep only what serves the current task; defer the rest.
+
+**Helps users:** A focused screen makes the important thing obvious instead of burying it in noise.
+**✕ Violates it:** A dashboard with 20 equally-loud widgets.
+**✓ Honours it:** The key metric leads; the rest is one click away.
+
+#### 9. Recognise & recover from errors
+> _"Say what broke and how to fix it."_
+
+When errors happen, express them in plain language (no codes), state the problem precisely, and constructively suggest a solution. Show the error where it happened, keep the user's data, and move focus to the fix.
+
+**Helps users:** A clear, blameless error with a fix turns a dead end into a next step.
+**✕ Violates it:** 'Error 0x8007. Something went wrong.'
+**✓ Honours it:** 'That email isn't verified — ask them to confirm, or turn off verification in Settings.'
+
+#### 10. Help & documentation
+> _"Best help is needing none."_
+
+It's best if the system needs no explanation, but some help may be necessary. When it is, make it easy to search, focused on the user's task, list concrete steps, and keep it short — placed in context where possible.
+
+**Helps users:** Task-focused, in-context help gets people unstuck fast without leaving what they were doing.
+**✕ Violates it:** A 90-page PDF manual, separate from the product.
+**✓ Honours it:** A contextual tip + searchable, task-based articles.
 
 ## 4 · Foundations
 
