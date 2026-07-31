@@ -40,6 +40,19 @@ export default function FrameworkPage() {
                 up to one product that feels made by one team. When a spec and a
                 principle conflict, the principle wins — and the spec gets fixed.
               </p>
+              <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 font-mono text-[11px] tracking-widest uppercase">
+                <a
+                  href="/ankur-sinha-uxd-framework.md"
+                  download
+                  data-cursor-hover
+                  className="inline-flex items-center gap-2 rounded-full border border-accent/50 bg-accent/10 px-4 py-2 text-accent hover:bg-accent/20 transition-colors"
+                >
+                  ↓ Framework (Markdown)
+                </a>
+                <span className="text-muted-foreground/70 normal-case tracking-normal font-sans">
+                  Licensed <span className="text-foreground/70">Ankur Sinha UXD</span> · free to read + cite with attribution
+                </span>
+              </div>
             </div>
           </Container>
         </header>
