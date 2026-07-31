@@ -19,6 +19,7 @@ import { HicksDemo } from "@/components/framework-hicks-demo"
 import { FittsDemo } from "@/components/framework-fitts-demo"
 import { GestaltDemo } from "@/components/framework-gestalt-demo"
 import { LawModal, type ModalItem } from "@/components/framework-law-modal"
+import { PreShipChecklist } from "@/components/framework-checklist"
 import {
   PRINCIPLES,
   LAW_GROUPS,
@@ -26,7 +27,6 @@ import {
   PLANES,
   CORE_LOOP,
   METHOD,
-  PRE_SHIP,
   POUR,
   CANON,
 } from "@/lib/framework-data"
@@ -299,17 +299,7 @@ export function FrameworkGuide() {
                 ))}
               </ol>
 
-              <div className="rounded-2xl border border-accent/30 bg-accent/[0.05] p-6">
-                <h3 className="font-mono text-[11px] tracking-[0.2em] uppercase text-accent mb-4">Pre-ship checklist</h3>
-                <ul className="space-y-2">
-                  {PRE_SHIP.map((c) => (
-                    <li key={c} className="flex gap-2.5 font-sans text-sm text-foreground/75">
-                      <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-accent" />
-                      {c}
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              <PreShipChecklist />
             </section>
 
             {/* ── THE CANON ─────────────────────────────────────────────── */}
