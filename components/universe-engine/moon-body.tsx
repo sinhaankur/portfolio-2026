@@ -51,6 +51,7 @@ import {
   deviceTierRef,
 } from "./astronomy"
 import { superClearRef } from "@/lib/device-tier"
+import { cdnOnlyAsset } from "@/lib/asset-cdn"
 import type { HoverHandler, MoonData } from "./types"
 import { DAY_NIGHT_VERTEX_SHADER, DAY_NIGHT_FRAGMENT_SHADER } from "./shaders"
 import { RoverPin, SatelliteShells, HERO_CRAFT } from "./scene-satellites"
@@ -138,9 +139,13 @@ export function MoonBody({
     if (!elevationUrl || elevationTexture) return
     const timer = setTimeout(() => {
       // Load the relief on the deep-zoom explorer OR in Super Clear (the user
-      // opted into max fidelity), desktop only.
+      // opted into max fidelity), desktop only. The elevation map is R2-only now
+      // (offloaded from public/) — resolve through the CDN; if no CDN base is set,
+      // skip the relief rather than request a deleted local path (was a 404).
       if ((!hiResTexturesRef.current && !superClearRef.current) || deviceTierRef.current !== "desktop") return
-      new TextureLoader().load(elevationUrl, (tex) => {
+      const remote = cdnOnlyAsset(elevationUrl)
+      if (!remote) return
+      new TextureLoader().load(remote, (tex) => {
         tex.anisotropy = 4
         setElevationTexture(tex)
       })
