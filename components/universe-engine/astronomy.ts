@@ -26,7 +26,7 @@ import type {
 } from "./types"
 import { IAU_CONSTELLATIONS_GENERATED } from "@/lib/data/constellations-iau"
 import { perfTierRef, qualityForTier, superClearRef } from "@/lib/device-tier"
-import { cdnAsset } from "@/lib/asset-cdn"
+import { cdnAsset, cdnOnlyAsset } from "@/lib/asset-cdn"
 import { DEEP_SKY_CATALOG, DEEP_SKY_COUNT } from "@/lib/data/deep-sky"
 
 /* --------------------------------------------------------------------------
@@ -429,10 +429,11 @@ export function surfaceTextureUrl(planet: {
   superClearTextureUrl?: string
 }): string | undefined {
   // SUPER CLEAR — the user opted into the highest-resolution view, so pull the
-  // CDN's 16K map when this body has one. Falls back to the shipped hi-res (8K),
-  // so the site never depends on the CDN to render (the hard rule).
+  // CDN's 16K map when this body has one. Falls back to the base texture (the 8K
+  // hi-res tier was offloaded to R2, so don't point at a deleted local); the site
+  // still renders a real local surface if the CDN is unreachable.
   if (superClearRef.current && deviceTierRef.current === "desktop" && planet.superClearTextureUrl) {
-    return cdnAsset(planet.superClearTextureUrl, planet.hiResTextureUrl ?? planet.textureUrl)
+    return cdnAsset(planet.superClearTextureUrl, planet.textureUrl)
   }
   // Hi-res (4K/8K) surface only when: the deep-zoom explorer asked for it
   // (hiResTexturesRef), it's a big screen (deviceTierRef desktop), AND the fine
@@ -447,8 +448,11 @@ export function surfaceTextureUrl(planet: {
   ) {
     // Prefer the KTX2 (GPU-compressed) hi-res map — no decode stall, ~1/8 VRAM.
     // loadTextureAsync routes .ktx2 through the self-hosted Basis transcoder and
-    // falls back to the WebP sibling on any failure.
-    return planet.ktx2TextureUrl ?? planet.hiResTextureUrl
+    // falls back to the WebP sibling on any failure. This tier is R2-only now, so
+    // resolve through the CDN; if no CDN base is set, drop to the base texture
+    // rather than request a deleted local path.
+    const hiRes = planet.ktx2TextureUrl ?? planet.hiResTextureUrl
+    return cdnOnlyAsset(hiRes!) ?? planet.textureUrl
   }
   return planet.textureUrl
 }

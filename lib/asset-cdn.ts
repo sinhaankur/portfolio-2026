@@ -45,6 +45,22 @@ export function cdnAsset(path: string, localFallback?: string): string {
   return `${CDN_BASE}/${clean}`
 }
 
+/**
+ * Resolve a CDN-ONLY asset → full R2 URL, with NO local fallback.
+ *
+ * Use for heavy assets that were deliberately removed from `public/` and now
+ * live only on R2 (e.g. the hi-res planet-texture tier). Unlike cdnAsset(), this
+ * does NOT short-circuit to a local copy on localhost — the local copy no longer
+ * exists, so the round trip to R2 is the only way to get the file (R2's CORS
+ * allow-list does cover dev requests for GET texture reads). When no CDN base is
+ * configured at all, it returns `undefined` so callers can cleanly skip the
+ * hi-res upgrade and stay on the shipped base texture rather than 404.
+ */
+export function cdnOnlyAsset(path: string): string | undefined {
+  if (!CDN_BASE) return undefined
+  return `${CDN_BASE}/${path.replace(/^\/+/, "")}`
+}
+
 /** True when a real CDN base is configured (vs. forced-local). Lets callers skip
  *  requesting a heavy CDN-only asset entirely when there's no CDN. */
 export const hasAssetCdn = CDN_BASE.length > 0

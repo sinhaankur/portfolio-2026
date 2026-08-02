@@ -90,7 +90,7 @@ import {
 } from "./scene-satellites"
 import { MoonBody } from "./moon-body"
 import { perfTierRef, qualityForTier, superClearRef } from "@/lib/device-tier"
-import { cdnAsset } from "@/lib/asset-cdn"
+import { cdnAsset, cdnOnlyAsset } from "@/lib/asset-cdn"
 import { SatelliteField } from "./satellite-field"
 import { FlightField } from "./flight-field"
 
@@ -447,10 +447,17 @@ export function PlanetBody({
     // Prefer a KTX2 (GPU-compressed) hi-res map when the body ships one: it
     // uploads with no decode stall + ~1/8 the VRAM of the WebP. loadTextureAsync
     // routes .ktx2 through the self-hosted Basis transcoder automatically.
+    // The hi-res tier is R2-only now (removed from public/ to shrink the deploy;
+    // R2's free egress serves it). cdnOnlyAsset returns the R2 URL when a CDN base
+    // is configured, else undefined → we simply skip the upgrade and keep the
+    // shipped base texture (still renders, just softer) rather than request a
+    // deleted local path. No local fallback exists to retry against anymore.
+    const hiResLocal = planet.raw.ktx2TextureUrl ?? planet.raw.hiResTextureUrl
     const hiResUrl =
       deviceTierRef.current === "desktop" &&
-      qualityForTier(perfTierRef.current).allowHiResTextures
-        ? (planet.raw.ktx2TextureUrl ?? planet.raw.hiResTextureUrl)
+      qualityForTier(perfTierRef.current).allowHiResTextures &&
+      hiResLocal
+        ? cdnOnlyAsset(hiResLocal)
         : undefined
     if (!baseUrl && !hiResUrl) return
     let cancelled = false
@@ -463,29 +470,17 @@ export function PlanetBody({
         if (cancelled) return
         tex.anisotropy = 8
         setTexture(tex)
-        // 2) upgrade to hi-res in the background, if different, then swap. If the
-        //    hi-res fails (e.g. a Super Clear CDN asset not uploaded yet, or a
-        //    slow/offline CDN), fall back to the shipped hiResTextureUrl so the
-        //    globe stays crisp instead of stuck on the base — the graceful
-        //    degrade that makes the CDN safe to enable before every asset exists.
+        // 2) upgrade to the R2 hi-res in the background, then swap. hiResUrl is an
+        //    R2-only URL now (cdnOnlyAsset); if it fails (slow/offline CDN), there
+        //    is no local hi-res to retry — the globe simply stays on the crisp
+        //    base texture. That's the R2-only graceful degrade: softer, never
+        //    broken. (Super Clear still has its own CDN→local fallback above.)
         if (hiResUrl && hiResUrl !== baseUrl) {
-          loadTextureAsync(
-            hiResUrl,
-            (hi) => {
-              if (cancelled) return
-              hi.anisotropy = 8
-              setTexture(hi)
-            },
-            () => {
-              const localHi = planet.raw.hiResTextureUrl
-              if (cancelled || !localHi || localHi === hiResUrl || localHi === baseUrl) return
-              loadTextureAsync(localHi, (hi) => {
-                if (cancelled) return
-                hi.anisotropy = 8
-                setTexture(hi)
-              })
-            },
-          )
+          loadTextureAsync(hiResUrl, (hi) => {
+            if (cancelled) return
+            hi.anisotropy = 8
+            setTexture(hi)
+          })
         }
       })
     }, delay)
@@ -502,12 +497,16 @@ export function PlanetBody({
   // hiResTexturesRef (which can flip after this runs). Super Clear pulls the
   // full-res Black Marble from the CDN (with the 8K as local fallback); otherwise
   // the shipped 8K on desktop.
+  const hiResNightLocal = planet.raw.ktx2NightTextureUrl ?? planet.raw.hiResNightTextureUrl
   const hiResNightUrl =
     superClearRef.current && deviceTierRef.current === "desktop" && planet.raw.superClearNightTextureUrl
-      ? cdnAsset(planet.raw.superClearNightTextureUrl, planet.raw.hiResNightTextureUrl)
-      : deviceTierRef.current === "desktop" && (planet.raw.ktx2NightTextureUrl || planet.raw.hiResNightTextureUrl)
-        // Prefer the KTX2 night map (no decode stall, low VRAM) off the CDN path.
-        ? (planet.raw.ktx2NightTextureUrl ?? planet.raw.hiResNightTextureUrl)
+      // Super Clear night → R2 16K, falling back to the base night map (the 8K
+      // Black Marble was offloaded to R2, so don't point at the deleted local).
+      ? cdnAsset(planet.raw.superClearNightTextureUrl, planet.raw.nightTextureUrl)
+      : deviceTierRef.current === "desktop" && hiResNightLocal
+        // The 8K Black-Marble night tier is R2-only now — cdnOnlyAsset, no local
+        // retry (undefined when no CDN → stay on the base night map).
+        ? cdnOnlyAsset(hiResNightLocal)
         : undefined
   // Progressive, like the day map: load the light base night texture first (so the
   // day/night globe can show), then swap the 8K city-lights in behind it.
@@ -520,24 +519,13 @@ export function PlanetBody({
         tex.anisotropy = 8
         setNightTexture(tex)
         if (hiResNightUrl && hiResNightUrl !== nightTextureUrl) {
-          loadTextureAsync(
-            hiResNightUrl,
-            (hi) => {
-              if (cancelled) return
-              hi.anisotropy = 8
-              setNightTexture(hi)
-            },
-            () => {
-              // KTX2/CDN night map missing → fall back to the shipped 8K WebP.
-              const localHi = planet.raw.hiResNightTextureUrl
-              if (cancelled || !localHi || localHi === hiResNightUrl || localHi === nightTextureUrl) return
-              loadTextureAsync(localHi, (hi) => {
-                if (cancelled) return
-                hi.anisotropy = 8
-                setNightTexture(hi)
-              })
-            },
-          )
+          // R2-only 8K Black-Marble tier — no local retry (removed from public/).
+          // On failure the day/night globe keeps the base night map.
+          loadTextureAsync(hiResNightUrl, (hi) => {
+            if (cancelled) return
+            hi.anisotropy = 8
+            setNightTexture(hi)
+          })
         }
       })
     }, 300)
@@ -556,8 +544,13 @@ export function PlanetBody({
     if (!elevationUrl || elevationTexture) return
     const timer = setTimeout(() => {
       if (!hiResTexturesRef.current || deviceTierRef.current !== "desktop") return
+      // Elevation maps (Mars MOLA, Moon height) are R2-only now. Skip the upgrade
+      // entirely when there's no CDN base (undefined) rather than request a
+      // deleted local path — the globe just renders without displacement relief.
+      const remote = cdnOnlyAsset(elevationUrl)
+      if (!remote) return
       const loader = new TextureLoader()
-      loader.load(elevationUrl, (tex) => {
+      loader.load(remote, (tex) => {
         tex.anisotropy = 4
         setElevationTexture(tex)
       })
@@ -873,7 +866,9 @@ export function PlanetBody({
         // is worth the megabytes, far enough to have it ready before you arrive.
         if (camDist < planet.visualRadius * 8) {
           g.pending = true
-          const url = cdnAsset(planet.raw.superClearTextureUrl, planet.raw.hiResTextureUrl ?? planet.raw.textureUrl)
+          // Fallback is the base texture (the shipped 8K was offloaded to R2), so
+          // a no-CDN dev run degrades to a real local file, never a deleted one.
+          const url = cdnAsset(planet.raw.superClearTextureUrl, planet.raw.textureUrl)
           loadTextureAsync(
             url,
             (hi) => { hi.anisotropy = 8; setTexture(hi); g.done = true; g.pending = false },

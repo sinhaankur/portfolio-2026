@@ -173,8 +173,9 @@ export function MoonBody({
       textureUrl,
       (tex) => { tex.anisotropy = 8; setTexture(tex) },
       () => {
-        // KTX2 miss → try the plain hi-res/base WebP so the moon still textures.
-        const fallback = moon.hiResTextureUrl ?? moon.textureUrl
+        // R2 hi-res miss → fall back to the shipped base WebP (the 4K tier was
+        // offloaded to R2, so moon.hiResTextureUrl no longer exists locally).
+        const fallback = moon.textureUrl
         if (!fallback || fallback === textureUrl) return
         loadTextureAsync(fallback, (tex) => { tex.anisotropy = 8; setTexture(tex) })
       },
