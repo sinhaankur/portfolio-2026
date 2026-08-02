@@ -214,13 +214,35 @@ export const deviceProfileRef: { current: DeviceProfile | null } = { current: nu
 export const perfTierRef: { current: DeviceTier } = { current: "mid" }
 
 /**
- * SUPER CLEAR — a user override that pins the engine to maximum fidelity
- * (ultra tier + all heavy effects + hi-res 8K/4K textures + max DPR) and tells
- * the adaptive controller to STOP auto-downgrading. The user explicitly asked
- * for the highest-resolution view, so we honor it for the session even if frames
- * dip — they can turn it back off. Off by default; the auto system runs normally
- * until the user opts in. */
+ * RESOLUTION — the user's explicit texture-quality choice, a step above the
+ * automatic tier system. Three levels the real asset tiers map onto:
+ *   - "auto"  — Standard (~2K base maps); the adaptive controller manages detail.
+ *   - "high"  — the 4K/8K hi-res tier (Earth 8K, Mars/Moon 4K) where a body ships it.
+ *   - "ultra" — MAX fidelity: the HD / 16K "Super Clear" maps + ultra tier pinned
+ *               (all heavy effects, max DPR) with auto-downgrade disabled.
+ * Off ("auto") by default; the user opts up. Read across the engine to pick the
+ * texture tier per body. */
+export type ResolutionLevel = "auto" | "high" | "ultra"
+export const resolutionRef: { current: ResolutionLevel } = { current: "auto" }
+
+/**
+ * SUPER CLEAR — back-compat boolean derived from resolutionRef ("ultra" ⇒ true).
+ * Kept so the many `superClearRef.current` reads across the engine (texture
+ * resolvers, perf probe, shaders) keep working unchanged; setResolution() below
+ * keeps it in sync. True only at the top "ultra" level. */
 export const superClearRef: { current: boolean } = { current: false }
+
+/** True when the user picked at least the 4K/8K hi-res tier (high or ultra).
+ *  Texture resolvers use this to decide whether to reach for a body's hi-res map
+ *  regardless of the deep-zoom/device gate. */
+export const hiResChosenRef: { current: boolean } = { current: false }
+
+/** Set the user's resolution level and keep the derived refs in sync. */
+export function setResolution(level: ResolutionLevel): void {
+  resolutionRef.current = level
+  superClearRef.current = level === "ultra"
+  hiResChosenRef.current = level === "high" || level === "ultra"
+}
 
 /** Run detection once and latch it into the shared refs. Returns the profile. */
 export function initDeviceTier(): DeviceProfile {

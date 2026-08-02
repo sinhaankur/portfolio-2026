@@ -89,7 +89,7 @@ import {
   HERO_CRAFT,
 } from "./scene-satellites"
 import { MoonBody } from "./moon-body"
-import { perfTierRef, qualityForTier, superClearRef } from "@/lib/device-tier"
+import { perfTierRef, qualityForTier, superClearRef, hiResChosenRef } from "@/lib/device-tier"
 import { cdnAsset, cdnOnlyAsset } from "@/lib/asset-cdn"
 import { SatelliteField } from "./satellite-field"
 import { FlightField } from "./flight-field"
@@ -452,11 +452,13 @@ export function PlanetBody({
     // is configured, else undefined → we simply skip the upgrade and keep the
     // shipped base texture (still renders, just softer) rather than request a
     // deleted local path. No local fallback exists to retry against anymore.
+    // Load the hi-res tier when the user explicitly chose "High" (hiResChosenRef),
+    // OR on the deep-zoom explorer when the tier can afford it. Always desktop-gated.
     const hiResLocal = planet.raw.ktx2TextureUrl ?? planet.raw.hiResTextureUrl
     const hiResUrl =
       deviceTierRef.current === "desktop" &&
-      qualityForTier(perfTierRef.current).allowHiResTextures &&
-      hiResLocal
+      hiResLocal &&
+      (hiResChosenRef.current || qualityForTier(perfTierRef.current).allowHiResTextures)
         ? cdnOnlyAsset(hiResLocal)
         : undefined
     if (!baseUrl && !hiResUrl) return

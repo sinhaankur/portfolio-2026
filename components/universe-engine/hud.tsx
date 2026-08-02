@@ -17,6 +17,7 @@ import { SAT_GROUPS, satGroupFilterRef } from "./satellite-field"
 import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import type { BodyDeepFacts, BodyInfo } from "./types"
 import { observationFor, type ObserveBand } from "@/lib/observe"
+import type { ResolutionLevel } from "@/lib/device-tier"
 
 /** Band chip tints — roughly wavelength-mapped so the colours teach too:
  *  radio warm-red (longest) → gamma violet (shortest). */
@@ -1242,6 +1243,58 @@ function LayerToggleRow({
   )
 }
 
+/** A three-way segmented picker for texture resolution: Standard / High / Ultra.
+ *  Each maps onto the real asset tiers — Standard ~2K (adaptive), High 4K/8K where
+ *  a body ships one, Ultra the HD/16K "Super Clear" maps + the engine pinned to
+ *  ultra. A caption spells out what each level means so "4K" is discoverable
+ *  rather than hidden behind a "Super Clear" label. */
+const RESOLUTION_OPTIONS: { level: ResolutionLevel; label: string; hint: string }[] = [
+  { level: "auto", label: "Standard", hint: "~2K · balanced, auto-tuned to your device" },
+  { level: "high", label: "High", hint: "4K–8K surfaces where available (Earth, Mars, Moon)" },
+  { level: "ultra", label: "Ultra", hint: "Up to 16K · max detail + effects (needs a strong GPU)" },
+]
+function ResolutionPicker({
+  value,
+  onChoose,
+}: {
+  value: ResolutionLevel
+  onChoose: (level: ResolutionLevel) => void
+}) {
+  const active = RESOLUTION_OPTIONS.find((o) => o.level === value) ?? RESOLUTION_OPTIONS[0]
+  return (
+    <div className="px-3 pb-1">
+      <div
+        role="radiogroup"
+        aria-label="Texture resolution"
+        className="flex gap-1 rounded-lg border border-foreground/15 bg-foreground/[0.04] p-0.5"
+      >
+        {RESOLUTION_OPTIONS.map((o) => {
+          const on = o.level === value
+          return (
+            <button
+              key={o.level}
+              type="button"
+              role="radio"
+              aria-checked={on}
+              onClick={() => onChoose(o.level)}
+              className={`flex-1 rounded-md px-2 py-1.5 font-mono text-[10px] tracking-[0.16em] uppercase transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+                on
+                  ? "bg-accent/20 text-accent"
+                  : "text-foreground/60 hover:text-foreground hover:bg-foreground/10"
+              }`}
+            >
+              {o.label}
+            </button>
+          )
+        })}
+      </div>
+      <p className="mt-1 px-0.5 font-mono text-[9px] leading-snug text-foreground/45">
+        {active.hint}
+      </p>
+    </div>
+  )
+}
+
 /** Collapses the whole overlay-control cluster (Clouds · Satellites ·
  *  True Scale · Gravity · Deep Dive · Jump-to) into a single "Layers"
  *  button + popover, so the explorer's bottom-right no longer stacks six
@@ -1250,8 +1303,8 @@ function LayerToggleRow({
 export function LayersMenu({
   solarView,
   onToggleSolarView,
-  superClear,
-  onToggleSuperClear,
+  resolution,
+  onChooseResolution,
   showClouds,
   onToggleClouds,
   showSatellites,
@@ -1268,10 +1321,10 @@ export function LayersMenu({
    *  Optional — only wired where a view switch makes sense. */
   solarView?: boolean
   onToggleSolarView?: () => void
-  /** Super Clear (max-fidelity) override. Optional — undefined hides the row on
-   *  devices that can't plausibly sustain it. */
-  superClear?: boolean
-  onToggleSuperClear?: () => void
+  /** Resolution picker (Standard / High / Ultra). Optional — undefined hides the
+   *  control on devices that can't plausibly sustain the higher tiers. */
+  resolution?: ResolutionLevel
+  onChooseResolution?: (level: ResolutionLevel) => void
   showClouds: boolean
   onToggleClouds: () => void
   showSatellites: boolean
@@ -1347,21 +1400,17 @@ export function LayersMenu({
               <div className="mt-1 mb-1 border-t border-foreground/10" />
             </>
           )}
-          {/* Super Clear — user opt-in to MAX fidelity (8K textures, full effects,
-              native-res). Pins the engine to ultra + stops the auto-downgrade, for
-              a capable machine that wants the highest-resolution view. Only shown
-              where the device could plausibly handle it (gated in index.tsx). */}
-          {onToggleSuperClear && (
+          {/* Resolution — user picks the texture detail directly. Standard (~2K,
+              adaptive), High (4K/8K where a body ships it), or Ultra (HD/16K "Super
+              Clear" maps + engine pinned to ultra). Only shown where the device
+              could plausibly handle the higher tiers (gated in index.tsx). */}
+          {onChooseResolution && (
             <>
-              <div className="px-3 pt-1.5 pb-1 font-mono text-[8px] tracking-[0.24em] uppercase text-foreground/40">
-                Quality
+              <div className="px-3 pt-1.5 pb-0.5 font-mono text-[8px] tracking-[0.24em] uppercase text-foreground/40">
+                Resolution
               </div>
-              <LayerToggleRow
-                label={superClear ? "Super Clear · on" : "Super Clear · highest res"}
-                active={!!superClear}
-                onToggle={onToggleSuperClear}
-              />
-              <div className="mt-1 mb-1 border-t border-foreground/10" />
+              <ResolutionPicker value={resolution ?? "auto"} onChoose={onChooseResolution} />
+              <div className="mt-1.5 mb-1 border-t border-foreground/10" />
             </>
           )}
           <div className="px-3 pt-1.5 pb-1 font-mono text-[8px] tracking-[0.24em] uppercase text-foreground/40">

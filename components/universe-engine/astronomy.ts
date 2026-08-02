@@ -25,7 +25,7 @@ import type {
   SkyPoint,
 } from "./types"
 import { IAU_CONSTELLATIONS_GENERATED } from "@/lib/data/constellations-iau"
-import { perfTierRef, qualityForTier, superClearRef } from "@/lib/device-tier"
+import { perfTierRef, qualityForTier, superClearRef, hiResChosenRef } from "@/lib/device-tier"
 import { cdnAsset, cdnOnlyAsset } from "@/lib/asset-cdn"
 import { DEEP_SKY_CATALOG, DEEP_SKY_COUNT } from "@/lib/data/deep-sky"
 
@@ -435,16 +435,18 @@ export function surfaceTextureUrl(planet: {
   if (superClearRef.current && deviceTierRef.current === "desktop" && planet.superClearTextureUrl) {
     return cdnAsset(planet.superClearTextureUrl, planet.textureUrl)
   }
-  // Hi-res (4K/8K) surface only when: the deep-zoom explorer asked for it
-  // (hiResTexturesRef), it's a big screen (deviceTierRef desktop), AND the fine
-  // device tier can afford it (allowHiResTextures — false on low/webOS + any
-  // device the adaptive controller throttled to low). So a weak machine, or one
-  // struggling under load, stays on the 2K map instead of pulling megabytes.
+  // Hi-res (4K/8K) surface when EITHER (a) the user explicitly picked the "High"
+  // resolution (hiResChosenRef) — an intentional opt-in we honor on desktop — OR
+  // (b) the deep-zoom explorer asked for it (hiResTexturesRef) AND the fine device
+  // tier can afford it (allowHiResTextures — false on low/webOS + any device the
+  // adaptive controller throttled to low). Always desktop-gated: 4K on a phone-sized
+  // globe is wasted bandwidth + VRAM. A weak/throttled machine that DIDN'T opt in
+  // stays on the 2K map instead of pulling megabytes.
   if (
-    hiResTexturesRef.current &&
     deviceTierRef.current === "desktop" &&
-    qualityForTier(perfTierRef.current).allowHiResTextures &&
-    (planet.ktx2TextureUrl || planet.hiResTextureUrl)
+    (planet.ktx2TextureUrl || planet.hiResTextureUrl) &&
+    (hiResChosenRef.current ||
+      (hiResTexturesRef.current && qualityForTier(perfTierRef.current).allowHiResTextures))
   ) {
     // Prefer the KTX2 (GPU-compressed) hi-res map — no decode stall, ~1/8 VRAM.
     // loadTextureAsync routes .ktx2 through the self-hosted Basis transcoder and

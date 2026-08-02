@@ -63,7 +63,7 @@ import {
 } from "./astronomy"
 import { SceneContents } from "./scene"
 import {
-  initDeviceTier, qualityForTier, perfTierRef, superClearRef, deviceProfileRef, adaptTier, TIER_ORDER, dprForCanvas, type DeviceTier,
+  initDeviceTier, qualityForTier, perfTierRef, superClearRef, setResolution, deviceProfileRef, adaptTier, TIER_ORDER, dprForCanvas, type DeviceTier, type ResolutionLevel,
 } from "@/lib/device-tier"
 import { DestinationsMenu, InfoPanel, LayersMenu, ResetViewButton, TimelineControl } from "./hud"
 import { TonightSky } from "./tonight-sky"
@@ -243,26 +243,29 @@ export function UniverseEngine({
   useEffect(() => {
     heavyEffectsRef.current = qualityForTier(tier).allowHeavyEffects
   }, [tier])
-  // SUPER CLEAR — user override to the highest-resolution view. Pins the tier to
-  // "ultra" (max DPR + density + heavy effects + 8K/4K textures via the tier-gated
-  // knobs) and flips superClearRef so the adaptive controller stops auto-downgrading.
-  // Turning it off restores the auto system from the real detected tier.
-  const [superClear, setSuperClear] = useState(false)
-  const toggleSuperClear = useCallback(() => {
-    setSuperClear((on) => {
-      const next = !on
-      superClearRef.current = next
-      if (next) {
-        perfTierRef.current = "ultra"
-        setTier("ultra")
-      } else {
-        // hand back to the automatic system at the real detected tier
-        const detected = deviceProfileRef.current?.tier ?? "mid"
-        perfTierRef.current = detected
-        setTier(detected)
-      }
-      return next
-    })
+  // RESOLUTION — the user's explicit texture-quality choice, a step above the
+  // automatic tier system:
+  //   "auto"  Standard ~2K, adaptive controller manages detail (default).
+  //   "high"  the 4K/8K hi-res tier where a body ships one (Earth 8K, Mars/Moon 4K).
+  //   "ultra" MAX: the HD/16K "Super Clear" maps + tier pinned to ultra (max DPR +
+  //           density + heavy effects) with auto-downgrade disabled.
+  // setResolution() keeps the derived superClearRef / hiResChosenRef in sync so the
+  // per-body texture resolvers pick the right tier.
+  const [resolution, setResolutionState] = useState<ResolutionLevel>("auto")
+  const chooseResolution = useCallback((level: ResolutionLevel) => {
+    setResolution(level)
+    setResolutionState(level)
+    if (level === "ultra") {
+      perfTierRef.current = "ultra"
+      setTier("ultra")
+    } else {
+      // High/Standard hand rendering-cost tiering back to the automatic system at
+      // the real detected tier (texture res is chosen independently via the refs);
+      // a user can ask for 4K maps without also forcing ultra DPR + heavy effects.
+      const detected = deviceProfileRef.current?.tier ?? "mid"
+      perfTierRef.current = detected
+      setTier(detected)
+    }
   }, [])
   // View scale: the whole engine is ONE view that flips between the deep-space
   // UNIVERSE (galaxy, stars, constellations, deep-sky) and the EARTH-ORBIT /
@@ -975,13 +978,14 @@ export function UniverseEngine({
                 <LayersMenu
                   solarView={solarMode}
                   onToggleSolarView={() => setSolarView(!solarMode)}
-                  // Super Clear (max fidelity) — offered only where the detected
-                  // device could plausibly sustain it (mid tier or better); a
-                  // phone/low-end isn't tempted into a slideshow.
-                  superClear={superClear}
-                  onToggleSuperClear={
+                  // Resolution picker (Standard / High / Ultra) — offered only
+                  // where the detected device could plausibly sustain the higher
+                  // tiers (mid or better); a phone/low-end isn't tempted into a
+                  // slideshow, so it stays on the auto-managed standard maps.
+                  resolution={resolution}
+                  onChooseResolution={
                     ["mid", "high", "ultra"].includes(deviceProfileRef.current?.tier ?? "mid")
-                      ? toggleSuperClear
+                      ? chooseResolution
                       : undefined
                   }
                   showClouds={showClouds}
