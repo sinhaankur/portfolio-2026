@@ -1780,6 +1780,9 @@ function CameraFollowController({
     const boostSpool = Number(gameState.playerEntity.metadata?.boostSpool ?? 0);
     const accelKick = Number(gameState.playerEntity.metadata?.accelKick ?? 0);
     const speedJerk = Number(gameState.playerEntity.metadata?.speedJerk ?? 0);
+    // Flight-mode signals (read once for both the shake + FOV below).
+    const jetMix = Number(gameState.playerEntity.metadata?.jetMix ?? 0);
+    const supersonic = Boolean(gameState.playerEntity.metadata?.supersonic);
     const travelStretch = Math.min(speed / 50, 1.1);
     const ignitionCinematic = gameState.phase === 'ignition' ? 1 : 0;
 
@@ -1855,10 +1858,17 @@ function CameraFollowController({
     smoothPosRef.current.lerp(desiredCameraPos, k);
     camera.position.copy(smoothPosRef.current);
 
-    // Boost camera shake: high-frequency micro-jitter when boost is active
+    // Boost + supersonic camera shake: high-frequency micro-jitter. Jet mode adds
+    // a steady airframe buffet, and crossing the sonic line kicks a brief, sharper
+    // shudder — the cinematic "the whole cockpit rattles at Mach" beat.
     const boostActive = Boolean(gameState.playerEntity.metadata?.boostActive);
-    if (boostActive || boostSpool > 0.05) {
-      const shakeIntensity = boostSpool * 0.08 + (boostActive ? 0.03 : 0);
+    const jetBuffet = jetMix * 0.045 + (supersonic ? 0.05 : 0);
+    // Decaying boom shudder from the last sonic-boom timestamp.
+    const boomAt = Number(gameState.playerEntity.metadata?.sonicBoomAt ?? -999);
+    const boomAge = gameState.simTime - boomAt;
+    const boomShake = boomAge >= 0 && boomAge < 0.6 ? (1 - boomAge / 0.6) * 0.16 : 0;
+    if (boostActive || boostSpool > 0.05 || jetBuffet > 0.001 || boomShake > 0) {
+      const shakeIntensity = boostSpool * 0.08 + (boostActive ? 0.03 : 0) + jetBuffet + boomShake;
       const t = state.clock.elapsedTime;
       camera.position.x += Math.sin(t * 47) * shakeIntensity * 0.5;
       camera.position.y += Math.sin(t * 61 + 1.3) * shakeIntensity * 0.5;
@@ -1938,13 +1948,17 @@ function CameraFollowController({
     // raw speed pins the FOV instantly at interstellar velocities, so you lose
     // the surge-on-throttle sensation. accelKick fades as you reach top speed,
     // giving a satisfying push when you hit the gas and a settle when you cruise.
+    // Jet mode adds a cinematic FOV punch — the walls of the world pull wider so
+    // supersonic actually FEELS supersonic, with an extra kick past the sonic line.
     const targetFov =
       phaseProfile.baseFov +
       Math.min(speed / 9.0, 6) +
       accelKick * 7.0 +
       boostSpool * 6.5 +
       (boostActive ? 1.5 : 0) +
-      speedJerk * 2.4;
+      speedJerk * 2.4 +
+      jetMix * 7.0 +
+      (supersonic ? 4.5 : 0);
     const currentFov = (camera as THREE.PerspectiveCamera).fov ?? 55;
     const fovK = 1 - Math.exp(-delta * assistConfig.fov);
     const nextFov = currentFov + (targetFov - currentFov) * fovK;
@@ -2014,6 +2028,20 @@ function GameScene({
   const fireCooldownRef = useRef(0);
   const cannonCycleRef = useRef(0);
   const smoothedInputRef = useRef({ pitch: 0, yaw: 0, roll: 0 });
+  // Flight mode: 'cruise' (normal, controlled) vs 'jet' (supersonic — faster top
+  // speed, wider FOV, harder bank, sonic character). Toggled with a key. jetMix
+  // eases 0→1 so the transition between the two modes is smooth, not a snap.
+  const flightModeRef = useRef<'cruise' | 'jet'>('cruise');
+  const jetMixRef = useRef(0);
+  // Edge-detect the F toggle inside the frame loop (keysPressed is the shared
+  // input set; the keydown handler lives in a different component, so we flip the
+  // mode on the rising edge here instead of plumbing a ref across components).
+  const fKeyWasDownRef = useRef(false);
+  // Auto-bank: the roll the ship eases into as it yaws (banks into its turns like
+  // a real fighter) — a big part of making turns feel natural instead of clunky.
+  const autoBankRef = useRef(0);
+  // Latches so a sonic-boom effect fires once each time we cross into supersonic.
+  const wasSupersonicRef = useRef(false);
   // Deep Run loop: tracks whether the current sector's enemies have been
   // spawned yet (so we seed a sector exactly once on entry), and the last
   // event index we processed for salvage-on-kill.
@@ -2652,13 +2680,33 @@ function GameScene({
       smoothedInputRef.current.yaw += (yawInput - smoothedInputRef.current.yaw) * turnK;
       smoothedInputRef.current.roll += (rollInput - smoothedInputRef.current.roll) * turnK;
 
-      gameState.playerEntity.rotation.x += smoothedInputRef.current.pitch * turnSpeed * clampedDelta;
-      gameState.playerEntity.rotation.y += smoothedInputRef.current.yaw * turnSpeed * clampedDelta;
-      gameState.playerEntity.rotation.z += smoothedInputRef.current.roll * turnSpeed * clampedDelta;
+      // Speed-adaptive turn rate: ease the turn rate down a touch at high speed so
+      // the ship doesn't feel twitchy when it's screaming along, and keeps its
+      // agility at cruise. Jet mode trades a little more agility for that
+      // committed-to-the-line supersonic feel. This is a big part of "less clunky".
+      const speedFrac = Math.min(1, Math.abs(forwardSpeedRef.current) / 600);
+      const turnScale = (1 - speedFrac * 0.28) * (1 - jetMixRef.current * 0.14);
+      const effTurn = turnSpeed * turnScale;
+      gameState.playerEntity.rotation.x += smoothedInputRef.current.pitch * effTurn * clampedDelta;
+      gameState.playerEntity.rotation.y += smoothedInputRef.current.yaw * effTurn * clampedDelta;
+
+      // AUTO-BANK: a real fighter rolls INTO its turns. Ease a bank angle from the
+      // yaw input (plus the player's own roll input) so hard turns look and feel
+      // natural instead of flat/clunky. The bank eases in + out smoothly.
+      const bankTarget = -smoothedInputRef.current.yaw * (0.5 + jetMixRef.current * 0.22);
+      autoBankRef.current += (bankTarget - autoBankRef.current) * (1 - Math.exp(-clampedDelta * 4.5));
+      gameState.playerEntity.rotation.z += smoothedInputRef.current.roll * effTurn * clampedDelta;
+      // Blend the auto-bank toward the ship's roll (only the delta each frame so it
+      // composes with manual Q/E roll rather than fighting it).
+      gameState.playerEntity.rotation.z += (autoBankRef.current - gameState.playerEntity.rotation.z) * (1 - Math.exp(-clampedDelta * 2.2)) * (1 - Math.abs(smoothedInputRef.current.roll));
 
       if (assistedFlight) {
         const autoLevelK = 1 - Math.exp(-clampedDelta * 3.2);
-        gameState.playerEntity.rotation.z += (0 - gameState.playerEntity.rotation.z) * autoLevelK;
+        // Level toward the AUTO-BANK target (not flat 0) so the ship holds its
+        // bank through a turn and only rolls level when flying straight (the bank
+        // target eases to 0 as yaw input releases). Was snapping roll to 0, which
+        // killed the banked-turn feel.
+        gameState.playerEntity.rotation.z += (autoBankRef.current - gameState.playerEntity.rotation.z) * autoLevelK;
         gameState.playerEntity.rotation.x += (0 - gameState.playerEntity.rotation.x) * (autoLevelK * 0.36);
       }
 
@@ -2666,6 +2714,14 @@ function GameScene({
       const isBraking = !ignitionSequenceActive && keysPressed.current.has('KeyS');
       const isBoosting = !ignitionSequenceActive && (keysPressed.current.has('ShiftLeft') || keysPressed.current.has('ShiftRight'));
       const isFiring = !ignitionSequenceActive && (keysPressed.current.has('Mouse0') || keysPressed.current.has('KeyJ') || keysPressed.current.has('Enter'));
+
+      // Tab toggles the flight mode (Cruise ↔ Jet) on the key's rising edge.
+      // (F is already flight-assist; Tab reads as a clean "shift gears".)
+      const gearDown = keysPressed.current.has('Tab');
+      if (gearDown && !fKeyWasDownRef.current && !ignitionSequenceActive) {
+        flightModeRef.current = flightModeRef.current === 'jet' ? 'cruise' : 'jet';
+      }
+      fKeyWasDownRef.current = gearDown;
 
       // Analog throttle model: user must actively thrust to move.
       // No auto-cruise — ship starts and stays at rest until W is pressed.
@@ -2687,13 +2743,23 @@ function GameScene({
       const boostK = 1 - Math.exp(-clampedDelta * boostResponse);
       boostSpoolRef.current += (boostTarget - boostSpoolRef.current) * boostK;
 
+      // Ease the Cruise↔Jet blend so switching modes ramps smoothly (no snap).
+      // Jet spools up a touch slower than it spools down — a jet takes a moment
+      // to hit supersonic but drops back quickly when you shift down.
+      const jetTarget = flightModeRef.current === 'jet' ? 1 : 0;
+      const jetResponse = jetTarget > jetMixRef.current ? 2.6 : 3.8;
+      jetMixRef.current += (jetTarget - jetMixRef.current) * (1 - Math.exp(-clampedDelta * jetResponse));
+      const jetMix = jetMixRef.current;
+
       const forwardThrottle = Math.max(0, throttleRef.current);
       const interstellarBlend = attackMode ? 0 : Math.max(0, Math.min(1, forwardThrottle * 0.62 + boostSpoolRef.current * 0.84));
       // Speed tuned for the scene scale (Earth ~200 units away): a readable
       // cruise + a strong-but-controllable boost, so the ship reads as a hero
       // gliding through space rather than teleporting off-screen. Was 280 +
       // blend*1280 (up to 1560 u/s), which crossed the whole scene in <1s.
-      const maxForwardSpeed = attackMode ? 42 : 120 + interstellarBlend * 360;
+      // Jet mode lifts the cruise ceiling into the supersonic band — a clearly
+      // faster gear, not just a nudge. Cruise ~120–480; Jet ~120–840.
+      const maxForwardSpeed = attackMode ? 42 : 120 + interstellarBlend * (360 + jetMix * 360);
       const maxReverseSpeed = attackMode ? -14 : -21;
 
       const throttleSpeed =
@@ -2704,7 +2770,7 @@ function GameScene({
       const driveMult = gameState.gameMode === 'run' && metaRef
         ? shipModsFor(metaRef.current).driveMult
         : 1;
-      const boostSpeedBonus = boostSpoolRef.current * (attackMode ? 26 : 210 + interstellarBlend * 520) * driveMult;
+      const boostSpeedBonus = boostSpoolRef.current * (attackMode ? 26 : (210 + interstellarBlend * 520) * (1 + jetMix * 0.6)) * driveMult;
       const targetSpeed =
         throttleSpeed + (forwardThrottle > 0 ? boostSpeedBonus : 0);
 
@@ -2712,8 +2778,10 @@ function GameScene({
         forwardSpeedRef.current = 0;
       }
 
+      // Jet mode also pushes harder off the line so the extra top speed is
+      // reachable — the acceleration ceiling lifts with jetMix.
       const accelLimit =
-        ((attackMode ? 44 : 160 + interstellarBlend * 320) + boostSpoolRef.current * (attackMode ? 26 : 420)) * driveMult;
+        ((attackMode ? 44 : (160 + interstellarBlend * 320) * (1 + jetMix * 0.5)) + boostSpoolRef.current * (attackMode ? 26 : 420)) * driveMult;
       const decelLimit = isBraking ? (attackMode ? 78 : 94) : attackMode ? 42 : 56;
       const speedDelta = targetSpeed - forwardSpeedRef.current;
       const maxUpStep = accelLimit * clampedDelta;
@@ -2962,6 +3030,17 @@ function GameScene({
       gameState.playerEntity.metadata.boostActive = boostSpoolRef.current > 0.12;
       gameState.playerEntity.metadata.boostSpool = boostSpoolRef.current;
       gameState.playerEntity.metadata.throttle = throttleRef.current;
+      // Flight mode signals for the camera + engine visuals: jetMix (0=cruise,
+      // 1=jet) and a supersonic flag once we're actually past the sonic threshold.
+      gameState.playerEntity.metadata.jetMix = jetMixRef.current;
+      gameState.playerEntity.metadata.flightMode = flightModeRef.current;
+      const supersonic = jetMixRef.current > 0.5 && forwardSpeedRef.current > 480;
+      gameState.playerEntity.metadata.supersonic = supersonic;
+      // Fire a one-shot sonic-boom shockwave the moment we break into supersonic.
+      if (supersonic && !wasSupersonicRef.current) {
+        gameState.playerEntity.metadata.sonicBoomAt = gameState.simTime;
+      }
+      wasSupersonicRef.current = supersonic;
       const currentAccel = (forwardSpeedRef.current - prevForwardSpeedRef.current) / Math.max(0.0001, clampedDelta);
       const jerk = (currentAccel - prevForwardAccelRef.current) / Math.max(0.0001, clampedDelta);
       const accelKick = Math.max(0, currentAccel) / (attackMode ? 80 : 420);
@@ -3489,6 +3568,9 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
     const handleKeyDown = (e: KeyboardEvent) => {
       keysPressed.current.add(e.code);
       initEngineAudio();
+      // Tab shifts flight gear (Cruise↔Jet, handled in the frame loop) — stop it
+      // from moving DOM focus off the game canvas.
+      if (e.code === 'Tab') e.preventDefault();
       if (e.code === 'KeyX') {
         const meta = (gameState.playerEntity.metadata ??= {});
         meta.attackMode = !meta.attackMode;
@@ -4097,6 +4179,7 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
             </div>
             <div className="mt-3 space-y-2 font-mono text-[11px] text-white/85">
               <div>Move: W accelerate, S brake, Shift or Space boost</div>
+              <div>Gear: Tab toggles Cruise ↔ Jet (supersonic)</div>
               <div>Steer: A/D or Arrow keys, Q/E roll, mouse for fine aim</div>
               <div>Weapons: Hold left click, J, or Enter to fire wing cannons</div>
               <div>Audio: Engine mix slider lives in the top-right panel</div>
