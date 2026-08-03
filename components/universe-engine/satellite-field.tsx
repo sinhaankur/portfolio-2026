@@ -676,6 +676,121 @@ function tleEpochDay(l1: string): number {
   return daysSinceJ2000(Date.UTC(year, 0, 1)) + (doy - 1)
 }
 
+// A soft radial-glow sprite texture for the ascent "head" — a bright hot centre
+// falling off to transparent, built once and shared. Same idea as the milky-way
+// core sprite: additive, so it reads as a glowing point of light.
+let _ascentGlowTex: THREE.Texture | null = null
+function ascentGlowTexture(): THREE.Texture {
+  if (_ascentGlowTex) return _ascentGlowTex
+  const s = 64
+  const cnv = document.createElement("canvas")
+  cnv.width = cnv.height = s
+  const ctx = cnv.getContext("2d")!
+  const g = ctx.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2)
+  g.addColorStop(0, "rgba(255,255,255,1)")
+  g.addColorStop(0.25, "rgba(255,214,150,0.85)")
+  g.addColorStop(0.6, "rgba(255,138,58,0.35)")
+  g.addColorStop(1, "rgba(255,138,58,0)")
+  ctx.fillStyle = g
+  ctx.fillRect(0, 0, s, s)
+  const tex = new THREE.CanvasTexture(cnv)
+  tex.colorSpace = THREE.SRGBColorSpace
+  _ascentGlowTex = tex
+  return tex
+}
+
+/**
+ * AscentJourney — animates the "from Earth to orbit" journey along the origin
+ * arc. A static dashed line said "this came from here" but you couldn't SEE the
+ * journey; this sends a bright glowing head sweeping from the launch pad up to
+ * the orbit on a loop, lighting the path behind it as a fading trail — so the
+ * ascent reads as a live journey (seeing is believing) rather than a faint
+ * connector. The arc geometry itself is the real launch-site → current-orbit
+ * connector computed by the field; this only visualises travel ALONG it.
+ */
+function AscentJourney({ points }: { points: THREE.Vector3[] }) {
+  const headRef = useRef<THREE.Sprite>(null)
+  const tRef = useRef(0)
+  const glowTex = useMemo(() => ascentGlowTexture(), [])
+
+  // A smooth curve through the arc points so the head glides (not step-to-step),
+  // and a fixed sampling for the trail geometry we recolour each frame.
+  const curve = useMemo(
+    () => (points.length > 1 ? new THREE.CatmullRomCurve3(points) : null),
+    [points],
+  )
+  const SEG = 64
+  const trailGeo = useMemo(() => {
+    const g = new THREE.BufferGeometry()
+    g.setAttribute("position", new THREE.BufferAttribute(new Float32Array((SEG + 1) * 3), 3))
+    g.setAttribute("aAlpha", new THREE.BufferAttribute(new Float32Array(SEG + 1), 1))
+    return g
+  }, [])
+  const trailMat = useMemo(
+    () =>
+      new THREE.ShaderMaterial({
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        uniforms: { uColor: { value: new THREE.Color("#ffb066") } },
+        vertexShader: `
+          attribute float aAlpha; varying float vA;
+          void main(){ vA = aAlpha; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }
+        `,
+        fragmentShader: `
+          uniform vec3 uColor; varying float vA;
+          void main(){ if (vA < 0.01) discard; gl_FragColor = vec4(uColor, vA); }
+        `,
+      }),
+    [],
+  )
+
+  // Build the trail line object ONCE (stable across renders) from the memoised
+  // geometry + material — recreating it inline in JSX would thrash the scene.
+  const trailLine = useMemo(() => new THREE.Line(trailGeo, trailMat), [trailGeo, trailMat])
+
+  const _p = useMemo(() => new THREE.Vector3(), [])
+  useFrame((_, delta) => {
+    if (!curve) return
+    // Advance the journey head; loop with a brief pause implied by the eased head.
+    tRef.current = (tRef.current + delta * 0.32) % 1
+    const head = tRef.current
+    // Head sprite position along the curve.
+    if (headRef.current) {
+      curve.getPointAt(head, _p)
+      headRef.current.position.copy(_p)
+    }
+    // Trail: light the arc from the pad UP TO the head, brightest just behind it,
+    // fading to nothing further back — a comet tail climbing to orbit.
+    const pos = trailGeo.getAttribute("position") as THREE.BufferAttribute
+    const alp = trailGeo.getAttribute("aAlpha") as THREE.BufferAttribute
+    for (let i = 0; i <= SEG; i++) {
+      const u = i / SEG
+      curve.getPointAt(u, _p)
+      pos.setXYZ(i, _p.x, _p.y, _p.z)
+      // Behind the head → glowing; ahead of it → dark. Sharpen the falloff so the
+      // head has a bright, tight tail rather than the whole arc lighting up.
+      const behind = head - u
+      const a = behind >= 0 ? Math.max(0, 1 - behind * 3.5) : 0
+      alp.setX(i, a * 0.9)
+    }
+    pos.needsUpdate = true
+    alp.needsUpdate = true
+  })
+
+  if (!curve) return null
+  return (
+    <group>
+      {/* The travelling head — a bright additive glow climbing to orbit. */}
+      <sprite ref={headRef} scale={[0.09, 0.09, 0.09]}>
+        <spriteMaterial map={glowTex} transparent depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+      </sprite>
+      {/* The lit trail behind it (custom line built from trailGeo). */}
+      <primitive object={trailLine} />
+    </group>
+  )
+}
+
 const VERT = /* glsl */ `
   // NOTE: launch gating uses DAYS-since-J2000, not epoch-milliseconds. A GLSL
   // float is 32-bit (~24-bit mantissa, exact only to ~16.7M), so epoch-ms values
@@ -1908,7 +2023,13 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
             the origin stays on the pad as the globe turns. Amber-to-white gives
             a clear "left here → flies there" read distinct from the cyan track. */}
         {originArc && originArc.length > 1 && (
-          <Line points={originArc} color="#ff8a3a" transparent opacity={0.6} lineWidth={1.5} dashed dashSize={0.04} gapSize={0.02} />
+          <>
+            {/* The base connector — a faint dashed guide of the whole path. */}
+            <Line points={originArc} color="#ff8a3a" transparent opacity={0.3} lineWidth={1.25} dashed dashSize={0.04} gapSize={0.02} />
+            {/* The live JOURNEY — a glowing head sweeping launch pad → orbit on a
+                loop, so you SEE the ascent from Earth to its orbital path. */}
+            <AscentJourney points={originArc} />
+          </>
         )}
         {originLabel && (
           <group position={originLabel.pos}>
