@@ -285,6 +285,18 @@ function SaturnRings({
   )
 }
 
+// Banded / hazy atmospheres that DRIFT over their texture (a thin animated
+// turbulence shell): Venus's sulfuric haze + the four gas/ice giants' latitudinal
+// bands. Earth has its own cloud shell, so it's excluded. Module-scoped so the
+// per-body uniforms (which key off it for the soft gas-giant night floor) can read
+// it before the component body runs.
+const BANDED: Record<string, { speed: number; tint: string; strength: number }> = {
+  Venus:   { speed: 0.020, tint: "#e8d8a0", strength: 0.30 },
+  Jupiter: { speed: 0.060, tint: "#e7d3b0", strength: 0.42 },
+  Saturn:  { speed: 0.040, tint: "#e9dcb8", strength: 0.30 },
+  Uranus:  { speed: 0.015, tint: "#bfeee6", strength: 0.20 },
+  Neptune: { speed: 0.050, tint: "#9fc0ff", strength: 0.34 },
+}
 
 export function PlanetBody({
   planet,
@@ -566,7 +578,13 @@ export function PlanetBody({
   // textures + a soft Earth-atmosphere terminator; Mercury / Mars use it
   // without a night texture (shadow side falls to ambient dark) with a
   // sharper terminator matching their atmospheres.
-  const useDayNightShader = Boolean(nightTextureUrl) || Boolean(planet.raw.useDayNight)
+  // Gas/ice giants (+ Venus) join Earth & Mars on the sun-directional day/night
+  // shader so they read as real lit spheres — a proper terminator + soft limb —
+  // instead of the old flat, fully-bright texture. Their night side dims only to a
+  // soft dusk (uNightFloor above), matching how a thick atmosphere scatters
+  // sunlight around the limb.
+  const useDayNightShader =
+    Boolean(nightTextureUrl) || Boolean(planet.raw.useDayNight) || Boolean(BANDED[planet.raw.name])
   const dayNightUniforms = useMemo(
     () => ({
       tDay:                 { value: null as Texture | null },
@@ -575,7 +593,12 @@ export function PlanetBody({
       uOpacity:             { value: 0 },
       uNightStrength:       { value: nightTextureUrl ? 1.8 : 0 },
       uHasNight:            { value: nightTextureUrl ? 1.0 : 0.0 },
-      uTerminatorSoftness:  { value: planet.raw.terminatorSoftness ?? 0.18 },
+      // Night-side floor: gas/ice giants keep a soft dusky night side (thick
+      // atmosphere scatters light around the limb); rocky/airless bodies go dark.
+      uNightFloor:          { value: BANDED[planet.raw.name] ? 0.34 : 0.10 },
+      // Gas giants have a very diffuse terminator (deep scattering atmosphere) →
+      // wide, soft blend; Earth ~0.18; airless bodies stay razor-sharp (~0.04).
+      uTerminatorSoftness:  { value: planet.raw.terminatorSoftness ?? (BANDED[planet.raw.name] ? 0.42 : 0.18) },
       // Polar-smear fix: on for bodies whose equirectangular map streaks at the
       // poles (Mars). uPolarTint is the clean cap colour to fade toward.
       uPolarFix:            { value: planet.raw.polarTint ? 1 : 0 },
@@ -636,13 +659,6 @@ export function PlanetBody({
   // Banded / hazy atmospheres that should DRIFT over their texture (a thin
   // animated turbulence shell): Venus's sulfuric haze + the four gas/ice giants'
   // latitudinal bands. Earth already has its own cloud shell, so it's excluded.
-  const BANDED: Record<string, { speed: number; tint: string; strength: number }> = {
-    Venus:   { speed: 0.020, tint: "#e8d8a0", strength: 0.30 },
-    Jupiter: { speed: 0.060, tint: "#e7d3b0", strength: 0.42 },
-    Saturn:  { speed: 0.040, tint: "#e9dcb8", strength: 0.30 },
-    Uranus:  { speed: 0.015, tint: "#bfeee6", strength: 0.20 },
-    Neptune: { speed: 0.050, tint: "#9fc0ff", strength: 0.34 },
-  }
   const bandConf = BANDED[planet.raw.name]
   const isBanded = !!bandConf
   // Human-made orbiters for this body (Earth, Mars…), revealed by the HUD
@@ -810,10 +826,10 @@ export function PlanetBody({
       const target = texture ? 1 : 0
       texMatRef.current.opacity += (target - texMatRef.current.opacity) * k
     }
-    // Day/night shader path (Earth only today) — update opacity + the sun
-    // direction uniform each frame. Sun world position is fixed at the
-    // solar system's origin offset; Earth's world position moves with the
-    // orbit. dot(normal, sunDir) in the shader produces the terminator.
+    // Day/night shader path (Earth, Mars, and now the gas/ice giants + Venus) —
+    // update opacity + the sun direction uniform each frame. Sun world position is
+    // fixed at the solar system's origin offset; the body's world position moves
+    // with its orbit. dot(normal, sunDir) in the shader produces the terminator.
     if (useDayNightShader && texMeshRef.current) {
       const k = 1 - Math.exp(-delta * 8)
       // Show the surface as soon as the DAY texture is loaded — the night/city-

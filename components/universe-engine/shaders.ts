@@ -192,6 +192,8 @@ export const DAY_NIGHT_FRAGMENT_SHADER = `
   uniform float uOpacity;
   uniform float uNightStrength;
   uniform float uHasNight;       // 1 = blend night map, 0 = night side goes to ambient
+  uniform float uNightFloor;     // night-side brightness (no night map): 0.10 airless,
+                                 //   ~0.35 for thick-atmosphere gas giants (soft dusk)
   uniform float uTerminatorSoftness; // 0.18 for Earth, ~0.04 for airless bodies
   uniform float uPolarFix;        // >0 = fade the top/bottom texture rows (fixes
   uniform vec3  uPolarTint;       //   equirectangular polar smear, e.g. Mars caps)
@@ -255,7 +257,11 @@ export const DAY_NIGHT_FRAGMENT_SHADER = `
       vec3 nightBase = dayColor * 0.14 + vec3(0.02, 0.03, 0.055);
       nightColor = nightBase + cityLights;
     } else {
-      nightColor = dayColor * 0.10;
+      // No night map: the shadowed side dims to uNightFloor of the day colour.
+      // Airless rock → ~0.10 (near-black). A gas giant's thick atmosphere scatters
+      // sunlight around the limb, so its night side stays a soft dusky version of
+      // the day bands (~0.35) rather than a hard black hemisphere.
+      nightColor = dayColor * uNightFloor;
     }
     vec3 color = mix(nightColor, dayColor, dayMix);
     gl_FragColor = vec4(color, uOpacity);
