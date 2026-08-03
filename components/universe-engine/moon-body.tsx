@@ -165,27 +165,31 @@ export function MoonBody({
     return (h % 360) * DEG
   }, [moon.name])
 
-  // Eagerly load the moon's surface texture on mount — same always-visible
-  // treatment as the planets. Luna is the only moon shipping a texture today
-  // (~550 KB WebP), and TextureLoader is async so first paint still lands fast.
-  const textureUrl = surfaceTextureUrl(moon)  // KTX2/4K on desktop, 2K on mobile
+  // Load the moon's surface texture on mount — same always-visible treatment as
+  // the planets, and PROGRESSIVE like them: show the small shipped BASE map first
+  // so the globe is textured almost instantly (no lingering grey "blob" before a
+  // heavy map lands), THEN upgrade to the hi-res tier in the background.
+  //
+  // surfaceTextureUrl() returns the desktop hi-res (R2 4K KTX2) when applicable —
+  // that's a bigger download + a Basis transcode, so loading ONLY it left Luna a
+  // grey ball until it finished. Split the two: base (local moon.webp) → hi-res.
+  const hiResUrl = surfaceTextureUrl(moon)          // R2 4K/KTX2 on desktop, else base
+  const baseUrl = moon.textureUrl                    // always the small shipped map
   useEffect(() => {
-    if (!textureUrl || texture) return
-    // loadTextureAsync: off-thread decode for WebP, and routes .ktx2 through the
-    // Basis transcoder (Luna's 4K → mars-style GPU-compressed). Falls back to the
-    // shipped WebP if the ktx2 can't load.
-    loadTextureAsync(
-      textureUrl,
-      (tex) => { tex.anisotropy = 8; setTexture(tex) },
-      () => {
-        // R2 hi-res miss → fall back to the shipped base WebP (the 4K tier was
-        // offloaded to R2, so moon.hiResTextureUrl no longer exists locally).
-        const fallback = moon.textureUrl
-        if (!fallback || fallback === textureUrl) return
-        loadTextureAsync(fallback, (tex) => { tex.anisotropy = 8; setTexture(tex) })
-      },
-    )
-  }, [textureUrl, texture, moon.hiResTextureUrl, moon.textureUrl])
+    if (texture) return
+    // 1) BASE first — self-hosted, tiny, lands fast so the globe never sits grey.
+    const first = baseUrl ?? hiResUrl
+    if (!first) return
+    loadTextureAsync(first, (tex) => {
+      tex.anisotropy = 8
+      setTexture(tex)
+      // 2) Upgrade to the hi-res map in the background, then swap it in. If it
+      //    fails (slow/offline R2), the crisp base stays — never back to grey.
+      if (hiResUrl && hiResUrl !== first) {
+        loadTextureAsync(hiResUrl, (hi) => { hi.anisotropy = 8; setTexture(hi) })
+      }
+    })
+  }, [texture, hiResUrl, baseUrl])
 
   // Make the moon addressable on the sky-focus channel (moon:<name>), so the
   // "Jump to" menu + assistant can FLY here — the "travel anywhere in a pinch"
@@ -256,7 +260,7 @@ export function MoonBody({
     // lunar phases come out of this without any per-phase keyframes.
     // (The old meshStandardMaterial-based texture overlay was replaced
     // when the shader took over — no parallel opacity lerp needed.)
-    if (texMeshRef.current && textureUrl) {
+    if (texMeshRef.current && (baseUrl || hiResUrl)) {
       const target = texture ? 1 : 0
       dayNightUniforms.uOpacity.value += (target - dayNightUniforms.uOpacity.value) * k
       texMeshRef.current.getWorldPosition(_earthWorldPos)
@@ -314,7 +318,7 @@ export function MoonBody({
             phases as it orbits its parent (the lit hemisphere rotates
             relative to the Sun's fixed position). Razor-sharp terminator
             because the Moon has no atmosphere. */}
-        {textureUrl && texture && (
+        {(baseUrl || hiResUrl) && texture && (
           <mesh ref={texMeshRef}>
             {/* Super Clear pushes the displaced mesh to 384 segments so the LOLA
                 relief resolves as real 3D crater terrain on deep zoom. */}
