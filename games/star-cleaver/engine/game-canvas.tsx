@@ -2764,20 +2764,27 @@ function GameScene({
       q.multiply(_dqYaw).multiply(_dqPitch).multiply(_dqRoll);
 
       if (assistedFlight) {
-        // Fly-by-wire auto-level: gently roll the ship's OWN up vector back toward
-        // world-up so it settles level when you're not actively rolling/banking —
-        // but only the roll component, so pitch/yaw course changes are untouched
-        // and you can still fly inverted while holding roll. Skipped while the
-        // player is actively rolling so manual roll always wins.
-        const rollHold = Math.abs(smoothedInputRef.current.roll) + Math.abs(autoBankRef.current);
-        if (rollHold < 0.25) {
+        // Fly-by-wire auto-level: a GENTLE nudge that rolls the ship's own up back
+        // toward world-up so it settles wings-level when you stop steering — but
+        // deliberately weak and only when you're not actively steering at all, so
+        // it never fights an intentional bank/climb. Free-flight should feel free;
+        // this just keeps a hands-off ship from drifting into a slow roll. You can
+        // still fly fully inverted by holding roll (rollHold gates it off).
+        const steering =
+          Math.abs(smoothedInputRef.current.roll) +
+          Math.abs(smoothedInputRef.current.yaw) +
+          Math.abs(smoothedInputRef.current.pitch) +
+          Math.abs(autoBankRef.current);
+        if (steering < 0.12) {
           const up = _alUp.set(0, 1, 0).applyQuaternion(q);
           const fwd = _alFwd.set(0, 0, -1).applyQuaternion(q);
           // Desired up = world up projected perpendicular to the nose.
           const desiredUp = _alDesiredUp.set(0, 1, 0).addScaledVector(fwd, -fwd.y).normalize();
-          if (desiredUp.lengthSq() > 1e-4) {
+          // Only correct SMALL residual roll (settle), never a big upside-down
+          // flip — if the ship is far from level the player put it there on purpose.
+          if (desiredUp.lengthSq() > 1e-4 && up.dot(desiredUp) > 0.55) {
             const levelQ = _dqRoll.setFromUnitVectors(up, desiredUp);
-            const autoLevelK = 1 - Math.exp(-clampedDelta * 2.0);
+            const autoLevelK = 1 - Math.exp(-clampedDelta * 0.9);
             _dqPitch.identity().slerp(levelQ, autoLevelK);
             q.premultiply(_dqPitch);
           }
@@ -2898,10 +2905,20 @@ function GameScene({
 
       const desiredForwardVelocity = _desiredVel.copy(forwardLocal).multiplyScalar(forwardSpeedRef.current);
       if (assistedFlight) {
-        // Assisted mode behaves like fly-by-wire: velocity tracks nose aggressively.
-        gameState.playerEntity.velocity.x = desiredForwardVelocity.x;
-        gameState.playerEntity.velocity.y = desiredForwardVelocity.y;
-        gameState.playerEntity.velocity.z = desiredForwardVelocity.z;
+        // Fly-by-wire, but with a HAIR of momentum: velocity chases the nose fast
+        // (so course changes are immediate) yet eases over ~1 frame at 60fps, so a
+        // hard turn has a touch of weight/lean instead of the ship snapping rigidly
+        // onto its new heading like it's on rails. Much nicer free-flight feel.
+        const vel = _velScratch.set(
+          gameState.playerEntity.velocity.x,
+          gameState.playerEntity.velocity.y,
+          gameState.playerEntity.velocity.z
+        );
+        const trackK = 1 - Math.exp(-clampedDelta * 14);
+        vel.lerp(desiredForwardVelocity, trackK);
+        gameState.playerEntity.velocity.x = vel.x;
+        gameState.playerEntity.velocity.y = vel.y;
+        gameState.playerEntity.velocity.z = vel.z;
       } else {
         // Manual mode keeps inertial drift but steers velocity toward the nose a
         // bit more eagerly (was 1.15) so turns translate into actual direction
