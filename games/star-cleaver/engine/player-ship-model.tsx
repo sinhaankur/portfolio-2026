@@ -9,13 +9,14 @@ import { auditShipModel } from './ship-model-qa';
 import type { SelectedShip } from './ship-selector';
 import { GAMEPLAY_SHIP_RENDER_SCALE, PREVIEW_SHIP_RENDER_SCALE } from './scale-contract';
 
-// Active player ship: the "Peregrine" — an ORIGINAL Blender-authored quad-foil
-// strike fighter (blender/space-assets/build_peregrine.py → peregrine.glb).
-// Long chisel nose, rear-set HUD-glow canopy, four strike-foils in a shallow X,
-// an engine nacelle at each wing root, four forward wingtip cannons. The
-// previous Vanguard GLB stays in public/models/ so this swap is revertible.
+// Active player ship model: a detailed quad-foil strike fighter mesh. Named the
+// "Peregrine" in-game (original name; the game never claims any outside brand).
+// Model reoriented + centred + scaled to the fleet's 4.3u length in Blender so it
+// drops onto the shared [0,0,0] basis (nose -Z, up +Y) like the rest of the fleet.
+// The previous procedural Peregrine GLB stays in public/models/ so this is
+// revertible. Model credit — see MODEL-CREDITS.md (CC-BY, attribution required).
 const SHIP_MODEL_PATHS: Record<SelectedShip, string> = {
-	'default-vanguard': '/models/peregrine.glb',
+	'default-vanguard': '/models/xwing.glb',
 	kestrel: '/models/kestrel.glb',
 	gyrfalcon: '/models/gyrfalcon.glb',
 };
