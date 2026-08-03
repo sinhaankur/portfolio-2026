@@ -913,18 +913,23 @@ export function UniverseEngine({
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-              className="absolute bottom-6 right-4 md:right-6 z-30 pointer-events-none max-w-56"
+              // Sits on the ABOVE-TIMELINE layer (bottom-32), not the bottom-6
+              // floor — otherwise this legend collided with the LAYERS / JUMP TO
+              // cluster (bottom-6 right-56) and the timeline's right edge. The
+              // spacing ladder: floor = timeline + bottom controls; bottom-32 =
+              // legends/notes above them.
+              className="absolute bottom-32 right-4 md:right-6 z-30 pointer-events-none max-w-56 text-right"
             >
               {/* Minimal, lightweight note — the swarm is now a single unified
                   veil, so a 4-colour key would be false. Just the essentials, on a
                   near-invisible surface so it doesn't read as a boxy panel. */}
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center justify-end gap-2.5">
                 <span className="inline-flex h-1.5 w-1.5 rounded-full" style={{ background: "#cfe0ff" }} />
                 <span className="font-mono text-[9px] tracking-[0.22em] uppercase text-foreground/55">
                   18,600+ tracked objects · real orbits
                 </span>
               </div>
-              <p className="mt-1.5 font-sans text-[10px] leading-4 text-foreground/40 max-w-60">
+              <p className="mt-1.5 ml-auto font-sans text-[10px] leading-4 text-foreground/40 max-w-60">
                 Click any point to chase it live.
               </p>
             </motion.div>
