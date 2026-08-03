@@ -69,6 +69,11 @@ import { SUN_OFFSET_SCENE } from '../../../components/universe-engine/astronomy'
 const UNIVERSE_SCALE = 40;
 const NOOP = () => {};
 const SIMPLE_JOURNEY_MODE = true;
+// FLY-AROUND-ONLY: collapse the game to a single free-flight mode for now (drop
+// straight into Exploration, no mode-select). Fixing the flight feel comes first;
+// combat / Deep Run / Defend get added back after. Set false to restore the
+// three-way mode-select start screen.
+const FLY_AROUND_ONLY = true;
 const KNOWN_UNIVERSE_RADIUS = 9100;
 
 type GraphicsTier = 'low' | 'high' | 'ultra';
@@ -3250,7 +3255,14 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
   // or instantly on phase changes, and render code reads current values out
   // of this same stable object.
   const gameStateRef = useRef<GameState | null>(null);
-  if (gameStateRef.current === null) gameStateRef.current = createInitialGameState();
+  if (gameStateRef.current === null) {
+    const s = createInitialGameState();
+    // FLY-AROUND MODE: for now the game is just free-flight — skip the three-way
+    // mode-select and drop straight into Exploration so we can nail the flight
+    // feel first, then add combat / Deep Run / Defend back on top. Flip
+    // FLY_AROUND_ONLY to false to restore the mode-select start screen.
+    gameStateRef.current = FLY_AROUND_ONLY ? selectGameMode(s, 'explore') : s;
+  }
   const gameState = gameStateRef.current;
   const [, bumpUi] = useReducer((c: number) => c + 1, 0);
   const [graphicsProfile, setGraphicsProfile] = useState<GraphicsProfile>(GRAPHICS_PROFILES.high);
