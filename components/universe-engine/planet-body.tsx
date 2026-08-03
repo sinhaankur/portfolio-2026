@@ -39,6 +39,7 @@ import {
   Group,
   Matrix3,
   Mesh,
+  Quaternion,
   NormalBlending,
   RepeatWrapping,
   ShaderMaterial,
@@ -97,6 +98,10 @@ import { FlightField } from "./flight-field"
 // One-shot latch so the Google-Earth auto-descend fires once per approach (not
 // every frame while you sit at the surface); re-armed when the camera pulls back.
 let _earthDescendArmed = false
+
+// Scratch quaternion for deriving Saturn's ring-plane normal in world space each
+// frame (module-scope, reused — the ring-shadow-on-planet term needs it).
+const _ringQuatTmp = new Quaternion()
 
 /**
  * Build a ring geometry with proper radial UVs — `u` runs from 0 (inner
@@ -615,6 +620,14 @@ export function PlanetBody({
       // one texel step for the central-difference gradient (set from the map size).
       uNormalStrength:      { value: 0 },
       uElevationTexel:      { value: new Vector2(1 / 4096, 1 / 2048) },
+      // Ring shadow ON the planet — only Saturn drives these (uRingShadow stays
+      // 0 for every other body). Radii are in the same local units as the ring
+      // geometry (1.24–2.34 planet-radii); normal + centre updated each frame.
+      uRingShadow:          { value: planet.raw.hasRings ? 1 : 0 },
+      uRingNormal:          { value: new Vector3(0, 1, 0) },
+      uPlanetCenter:        { value: new Vector3() },
+      uRingInner:           { value: planet.visualRadius * 1.24 },
+      uRingOuter:           { value: planet.visualRadius * 2.34 },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
@@ -842,6 +855,15 @@ export function PlanetBody({
       _sunWorldPos.set(SUN_OFFSET_SCENE, 0, 0)
       _sunDirTmp.copy(_sunWorldPos).sub(_earthWorldPos).normalize()
       dayNightUniforms.uSunDir.value.copy(_sunDirTmp)
+      // Ring shadow ON the planet (Saturn): feed the shader the planet centre +
+      // the ring-plane normal in WORLD space so it can trace each surface point's
+      // sun ray against the ring annulus. The ring plane is the planet's
+      // equatorial plane → the body's local +Y after the axial-tilt group.
+      if (planet.raw.hasRings) {
+        dayNightUniforms.uPlanetCenter.value.copy(_earthWorldPos)
+        texMeshRef.current.getWorldQuaternion(_ringQuatTmp)
+        dayNightUniforms.uRingNormal.value.set(0, 1, 0).applyQuaternion(_ringQuatTmp).normalize()
+      }
       // Per-pixel relief is a DEEP-ZOOM reward, not an always-on tax. The 4
       // extra texture fetches + dFdx/dFdy per fragment only earn their keep when
       // the body fills the view; at normal distance the mesh + displacement

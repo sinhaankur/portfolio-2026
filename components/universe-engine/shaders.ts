@@ -199,6 +199,13 @@ export const DAY_NIGHT_FRAGMENT_SHADER = `
   uniform vec3  uPolarTint;       //   equirectangular polar smear, e.g. Mars caps)
   uniform float uNormalStrength;  // 0 = off; >0 = perturb lighting normal from the
   uniform vec2  uElevationTexel;  //   height gradient so craters/canyons catch light
+  // Ring shadow ON the planet (Saturn) — the dark band the rings cast across the
+  // cloud tops. Off (uRingShadow 0) for every ringless body.
+  uniform float uRingShadow;      // 0 = off, 1 = cast the ring shadow
+  uniform vec3  uRingNormal;      // ring-plane normal in WORLD space (Saturn's axis)
+  uniform vec3  uPlanetCenter;    // planet centre in WORLD space
+  uniform float uRingInner;       // inner ring radius (world units)
+  uniform float uRingOuter;       // outer ring radius (world units)
   varying vec2 vUv;
   varying vec3 vWorldNormal;
   varying vec3 vWorldPos;
@@ -264,6 +271,39 @@ export const DAY_NIGHT_FRAGMENT_SHADER = `
       nightColor = dayColor * uNightFloor;
     }
     vec3 color = mix(nightColor, dayColor, dayMix);
+
+    // --- Ring shadow ON the planet (Saturn) -------------------------------
+    // Saturn's rings cast a hard dark band across the sunlit cloud tops — one of
+    // its most recognisable real features. For this surface point, march toward
+    // the Sun and find where that ray crosses the ring plane; if the crossing
+    // lands inside the ring annulus (and in front of the surface, i.e. the rings
+    // are between it and the Sun), the point is in ring shadow.
+    if (uRingShadow > 0.5 && dayMix > 0.01) {
+      vec3 L = normalize(uSunDir);
+      vec3 n = normalize(uRingNormal);
+      float denom = dot(L, n);
+      if (abs(denom) > 1e-4) {
+        // Distance along the sun ray to the ring plane (plane through planet centre).
+        float tPlane = dot(uPlanetCenter - vWorldPos, n) / denom;
+        if (tPlane > 0.0) {                          // ring plane is toward the Sun
+          vec3 hit = vWorldPos + L * tPlane;         // where the ray meets the plane
+          float ringR = length(hit - uPlanetCenter); // radius within the ring plane
+          // Inside the annulus → shadowed. Soft edges at the inner/outer rims and
+          // across the Cassini gap region so the band isn't a hard stamp.
+          float inA = smoothstep(uRingInner, uRingInner * 1.03, ringR);
+          float outA = 1.0 - smoothstep(uRingOuter * 0.97, uRingOuter, ringR);
+          float band = inA * outA;
+          // A faint density dip near the Cassini Division (~1.95R) so the shadow
+          // band shows the gap too — honest to the ring structure.
+          float cassini = 1.0 - 0.5 * (1.0 - smoothstep(0.0, 0.04, abs(ringR - uRingOuter * 0.83)));
+          float shade = band * cassini;
+          // Darken the lit surface where the rings block the Sun (keep a little
+          // ambient so it's a deep dusk band, not pure black).
+          color *= mix(1.0, 0.32, shade * dayMix);
+        }
+      }
+    }
+
     gl_FragColor = vec4(color, uOpacity);
   }
 `
