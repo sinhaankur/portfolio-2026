@@ -851,18 +851,38 @@ export const DUST_HAZE_FRAGMENT_SHADER = /* glsl */ `
   void main() {
     // Centre-origin coords; the disc's own UVs run 0..1.
     vec2 c = vUv - 0.5;
-    // Radial core→rim falloff (soft, so no hard edge).
-    float r = length(c) * 2.0;
-    float core = smoothstep(1.0, 0.0, r);          // 1 at centre → 0 at rim
-    float glow = pow(core, 1.6);
-    // Dust-lane mottling: darker filaments crossing the band, drifting slowly.
-    float lanes = fbm(c * 7.0 + vec2(uTime * 0.01, 0.0));
-    lanes = 0.55 + 0.45 * lanes;                   // keep some floor so it glows
-    // Warm core → cooler arms as we move out.
-    vec3 col = mix(uCoreColor, uArmColor, clamp(r, 0.0, 1.0));
-    float a = glow * lanes * uBrightness;
+
+    // A real Milky Way is a THIN bright spine, not a round blob. Squash the
+    // across-plane axis so the band is elongated along its length (x), with a
+    // tight bright bulge at centre. Anisotropic radius: cheap to weight y harder.
+    float rAlong  = abs(c.x) * 2.0;                 // along the galactic plane
+    float rAcross = abs(c.y) * 2.0;                 // perpendicular (thin!)
+    float r = length(vec2(rAlong * 0.62, rAcross * 1.35));
+
+    // Bright, CONCENTRATED bulge → steep falloff so the core actually reads as a
+    // core instead of a wash. Separate a hot central bulge from the fainter band.
+    float band  = pow(smoothstep(1.0, 0.0, r), 2.2);        // the elongated band
+    float bulge = pow(smoothstep(0.55, 0.0, length(c) * 2.0), 2.6); // hot centre
+
+    // Real DARK dust lanes — high-frequency filaments that actually cut to dark,
+    // not a gentle mottle. Two octaves at different scales carve rifts across the
+    // band (the Great Rift look). Floor is low so lanes read as true dark gaps.
+    float n1 = fbm(c * 11.0 + vec2(uTime * 0.008, 0.0));
+    float n2 = fbm(c * 23.0 - vec2(0.0, uTime * 0.005));
+    float lanes = clamp(0.18 + 1.05 * (n1 * 0.65 + n2 * 0.35), 0.0, 1.0);
+    // Contrast curve — pushes the mid greys apart into bright filaments + dark rifts.
+    lanes = smoothstep(0.12, 0.88, lanes);
+
+    // Warm amber bulge → cooler dusty blue toward the edges of the band.
+    vec3 col = mix(uCoreColor, uArmColor, clamp(r * 0.85, 0.0, 1.0));
+
+    // Compose: the band is dust-lane-modulated; the bulge shines through nearly
+    // clean (lanes lifted near centre so the core stays luminous, not mottled).
+    float bandA  = band * mix(lanes, 1.0, bulge * 0.7);
+    float a = (bandA + bulge * 1.15) * uBrightness;
+
     // Fade the very edge to zero so the quad boundary is never visible.
-    a *= smoothstep(1.05, 0.7, r);
+    a *= smoothstep(1.15, 0.55, r);
     gl_FragColor = vec4(col * a, a);
   }
 `
