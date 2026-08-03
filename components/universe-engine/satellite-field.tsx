@@ -290,7 +290,7 @@ export function launchMatesFor(satId: number, atMs: number = Date.now()): Launch
   if (!self) return []
   const launch = launchDesignator(self.l1)
   if (!launch) return []
-  const date = new Date(atMs)
+  const date = new Date(clampToSpaceAge(atMs))
   let gmst = 0
   try { gmst = lib ? lib.gstime(date) : 0 } catch { gmst = 0 }
   const out: LaunchMate[] = []
@@ -302,7 +302,7 @@ export function launchMatesFor(satId: number, atMs: number = Date.now()): Launch
     let altitudeKm: number | null = null
     try {
       const r = lib && recs[i] ? (lib.propagate(recs[i] as never, date) as { position?: Vec3 }) : null
-      const p = r && r.position
+      const p = finitePos(r)
       if (p) altitudeKm = Math.sqrt(p.x * p.x + p.y * p.y + p.z * p.z) - 6371
     } catch { /* leave null */ }
     out.push({
@@ -331,7 +331,7 @@ export function findNearestOverhead(atMs: number = Date.now()): NearestSat | nul
   const recs = satrecsRef.current
   const sats = satsRef.current
   if (!lib || !obs || recs.length === 0) return null
-  const date = new Date(atMs)
+  const date = new Date(clampToSpaceAge(atMs))
   let gmst: number
   try { gmst = lib.gstime(date) } catch { return null }
   let best: NearestSat | null = null
@@ -340,7 +340,7 @@ export function findNearestOverhead(atMs: number = Date.now()): NearestSat | nul
     if (!rec) continue
     let r: { position?: Vec3 } | false = false
     try { r = lib.propagate(rec, date) } catch { r = false }
-    const p = r && r.position
+    const p = finitePos(r)
     if (!p) continue
     const ecf = lib.eciToEcf(p, gmst)
     const la = lib.ecfToLookAngles(obs, ecf)
@@ -546,6 +546,20 @@ function expandR(rKm: number): number {
   const alt = rKm - EARTH_RADIUS_KM
   return EARTH_RADIUS_KM + Math.max(0, alt) * SHELL_EXPAND
 }
+/** A propagated position is USABLE only if it exists and every component is
+ *  finite. SGP4 (satellite.js) returns NaN/Inf — without throwing — when the
+ *  timeline is scrubbed far from a TLE's epoch (centuries/millennia). A single
+ *  NaN that reaches the geometry makes three.js's bounding-sphere → frustum-cull
+ *  → raycast machinery spin, which is the far-past-date FREEZE. Gate every
+ *  propagate() result through this. */
+function finitePos(
+  r: { position?: { x: number; y: number; z: number } } | false | null | undefined,
+): { x: number; y: number; z: number } | null {
+  const p = r && r.position
+  if (!p || !Number.isFinite(p.x) || !Number.isFinite(p.y) || !Number.isFinite(p.z)) return null
+  return p
+}
+
 /** Scale an ECI position (km) radially by the shell expansion, returning the new
  *  x/y/z (km). Direction preserved; only the radius is stretched above the surface. */
 function expandEci(x: number, y: number, z: number): [number, number, number] {
@@ -564,6 +578,18 @@ const MIN_VISIBLE_DOTS = 2400
 // ring is an annotation of a real populated belt; before this date there was
 // no belt to annotate.
 const FIRST_GEO_MS = Date.UTC(1963, 6, 26)
+
+// SGP4 is a near-epoch model: propagate a TLE centuries — let alone the timeline's
+// full ±5000-year span — from its epoch and satellite.js grinds through diverging
+// deep-space terms and returns NaN, which is what froze the page on a far-past
+// scrub. Clamp the date fed to propagate() to the space age (Sputnik → +50y). The
+// swarm's shader already launch-gates each object by its real launch date, so a
+// clamped position outside its lifetime is invisible anyway — clamping only spares
+// us the pathological math, it doesn't show satellites where they didn't exist.
+const SPACE_AGE_START_MS = Date.UTC(1957, 9, 4) // Sputnik 1
+const SPACE_AGE_END_MS = Date.UTC(2075, 0, 1)   // ~50y ahead — well past any TLE's usefulness
+const clampToSpaceAge = (ms: number) =>
+  ms < SPACE_AGE_START_MS ? SPACE_AGE_START_MS : ms > SPACE_AGE_END_MS ? SPACE_AGE_END_MS : ms
 
 // Debris + rocket bodies read as a hazard colour (dull red/amber), distinct from
 // the altitude-band palette — the LeoLabs-style "junk vs active" separation.
@@ -966,14 +992,14 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     if (!lib || !rec) return []
     const no = (rec as { no?: number }).no ?? 0
     const periodMin = no > 0 ? (2 * Math.PI) / no : 95
-    const start = simTimeRef.current.simMs
+    const start = clampToSpaceAge(simTimeRef.current.simMs)
     const steps = 128
     const out: THREE.Vector3[] = []
     for (let i = 0; i <= steps; i++) {
       const t = new Date(start + (periodMin * 60000 * i) / steps)
       let r: { position?: { x: number; y: number; z: number } } | false = false
       try { r = lib.propagate(rec, t) } catch { r = false }
-      const p = r && r.position
+      const p = finitePos(r)
       if (p) {
         const [ex, ey, ez] = expandEci(p.x, p.y, p.z) // match the swarm's expanded shell
         out.push(new THREE.Vector3(ex * kmToScene, ez * kmToScene, -ey * kmToScene))
@@ -1003,7 +1029,7 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
       const tMs = start + (periodMin * 60000 * i) / steps
       let r: { position?: Vec3 } | false = false
       try { r = lib.propagate(rec, new Date(tMs)) } catch { r = false }
-      const p = r && r.position
+      const p = finitePos(r)
       if (!p) continue
       // ECI → scene (x, z, -y), project to surface, then un-rotate about Y by the
       // Earth angle AT THIS SAMPLE TIME → Earth-fixed. The render group re-applies
@@ -1046,8 +1072,8 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     // Current craft position, projected into the Earth-FIXED frame (un-rotate by
     // the current Earth angle) so both endpoints share the ground-track group.
     let r: { position?: Vec3 } | false = false
-    try { r = lib.propagate(rec, new Date(simTimeRef.current.simMs)) } catch { r = false }
-    const p = r && r.position
+    try { r = lib.propagate(rec, new Date(clampToSpaceAge(simTimeRef.current.simMs))) } catch { r = false }
+    const p = finitePos(r)
     if (!p) return []
     const dest = new THREE.Vector3(p.x * kmToScene, p.z * kmToScene, -p.y * kmToScene)
       .applyAxisAngle(UP_Y, -earthRotationAngle(simTimeRef.current.simMs))
@@ -1230,7 +1256,7 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     // while a single satellite is isolated (that view is about the one craft).
     {
       const recsN = satrecs.current
-      const nowMs = simTimeRef.current.simMs
+      const nowMs = clampToSpaceAge(simTimeRef.current.simMs)
       const dateN = new Date(nowMs)
       for (let c = 0; c < NOTABLE_CRAFT.length; c++) {
         const g = notableRefs.current[c]
@@ -1249,7 +1275,7 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
         if (idx < 0 || !recsN[idx] || !launched) { g.visible = false; continue }
         let r: { position?: Vec3; velocity?: Vec3 } | false = false
         try { r = lib.propagate(recsN[idx], dateN) } catch { r = false }
-        const p = r && r.position
+        const p = finitePos(r)
         if (!p) { g.visible = false; continue }
         g.visible = true
         {
@@ -1259,7 +1285,7 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
         // orient along velocity (sample a moment ahead)
         let r2: { position?: Vec3 } | false = false
         try { r2 = lib.propagate(recsN[idx], new Date(dateN.getTime() + 30000)) } catch { r2 = false }
-        const p2 = r2 && r2.position
+        const p2 = finitePos(r2)
         if (p2) {
           const [ax, ay, az] = expandEci(p2.x, p2.y, p2.z)
           const ahead = new THREE.Vector3(ax * kmToScene, az * kmToScene, -ay * kmToScene)
@@ -1268,7 +1294,10 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
       }
     }
 
-    const date = new Date(simTimeRef.current.simMs)
+    // Clamp to the space age before propagating (see clampToSpaceAge): keeps a
+    // far-past/future scrub from feeding SGP4 a millennia-scale delta that returns
+    // NaN and freezes the frame. The shader still launch-gates by real launch date.
+    const date = new Date(clampToSpaceAge(simTimeRef.current.simMs))
     const recs = satrecs.current
 
     // SAT-1: when the group filter changes, (re)build a sampled set of orbit-
@@ -1320,7 +1349,9 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
         if (!rec) { buf[j] = 0; buf[j + 1] = 0; buf[j + 2] = 0; return }
         let r: { position?: { x: number; y: number; z: number } } | false = false
         try { r = lib.propagate(rec, date) } catch { r = false }
-        const p = r && r.position
+        // Reject non-finite SGP4 output (far-from-epoch scrub) so NaNs never reach
+        // the geometry — the far-past-date freeze. See finitePos().
+        const p = finitePos(r)
         if (!p) { buf[j] = 0; buf[j + 1] = 0; buf[j + 2] = 0; return }
         // ECI km → scene units, with the shell EXPANDED (altitude exaggerated) so
         // the swarm spreads out and dots separate. Map ECI (x,y,z) to scene
@@ -1382,7 +1413,7 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
       } else if (rec) {
         let r: { position?: Vec3; velocity?: Vec3 } | false = false
         try { r = lib.propagate(rec, date) } catch { r = false }
-        const p = r && r.position
+        const p = finitePos(r)
         if (p) {
           // Keep the card's altitude + speed live as the craft moves along its
           // orbit (apogee/perigee/period/inclination are fixed elements, set once
@@ -1445,7 +1476,7 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
           // orient the model along its direction of travel (sample a moment ahead)
           let r2: { position?: { x: number; y: number; z: number } } | false = false
           try { r2 = lib.propagate(rec, new Date(date.getTime() + 30000)) } catch { r2 = false }
-          const p2 = r2 && r2.position
+          const p2 = finitePos(r2)
           marker.position.copy(cur)
 
           // Update the surface→craft tether: from the sub-point (craft direction
@@ -1583,7 +1614,7 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
           {
             let rr: { position?: Vec3; velocity?: Vec3 } | false = false
             try { rr = lib.propagate(rec, date) } catch { rr = false }
-            const pp = rr && rr.position
+            const pp = finitePos(rr)
             if (pp) altKm = Math.sqrt(pp.x * pp.x + pp.y * pp.y + pp.z * pp.z) - EARTH_RADIUS_KM
             const vv = rr && rr.velocity
             if (vv) speedKms = Math.sqrt(vv.x * vv.x + vv.y * vv.y + vv.z * vv.z)
