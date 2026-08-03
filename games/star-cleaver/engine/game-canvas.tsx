@@ -425,6 +425,18 @@ const UI_SYNC_INTERVAL = 1 / 12;
 // allocations (GC hitches were a major source of frame drops).
 const _playerEuler = new THREE.Euler();
 const _playerQuat = new THREE.Quaternion();
+// Scratch for the 6-DOF local-axis rotation deltas each frame.
+const _dqPitch = new THREE.Quaternion();
+const _dqYaw = new THREE.Quaternion();
+const _dqRoll = new THREE.Quaternion();
+const _axisX = new THREE.Vector3(1, 0, 0);
+const _axisY = new THREE.Vector3(0, 1, 0);
+const _axisZ = new THREE.Vector3(0, 0, 1);
+// Dedicated scratch for the auto-level up/forward math (must NOT reuse the
+// forwardLocal/rightLocal/upLocal scratch that velocity + firing read).
+const _alUp = new THREE.Vector3();
+const _alFwd = new THREE.Vector3();
+const _alDesiredUp = new THREE.Vector3();
 const _forwardLocal = new THREE.Vector3();
 const _rightLocal = new THREE.Vector3();
 const _upLocal = new THREE.Vector3();
@@ -1633,6 +1645,8 @@ const cameraOrbitRef = {
 const _camForward = new THREE.Vector3();
 const _camRight = new THREE.Vector3();
 const _camWorldUp = new THREE.Vector3(0, 1, 0);
+const _camShipUp = new THREE.Vector3();   // ship's own up (for the roll-follow blend)
+const _camUpBlend = new THREE.Vector3();  // resulting blended camera up
 const _camDesired = new THREE.Vector3();
 const _camCatchUp = new THREE.Vector3();
 const _camLook = new THREE.Vector3();
@@ -1770,7 +1784,11 @@ function CameraFollowController({
     );
     _camQuat.setFromEuler(_camEuler);
     const forwardDir = _camForward.set(0, 0, -1).applyQuaternion(_camQuat).normalize();
-    const worldUp = _camWorldUp;
+    // Chase-cam up: blend world-up with the SHIP's own up so the camera partially
+    // rolls with a bank/loop (reads as real 6-DOF flight) but never goes fully
+    // upside-down (which is disorienting). ~45% follow keeps it legible.
+    const shipUp = _camShipUp.set(0, 1, 0).applyQuaternion(_camQuat);
+    const worldUp = _camUpBlend.copy(shipUp).multiplyScalar(0.45).addScaledVector(_camWorldUp, 0.55).normalize();
     const rightDir = _camRight.crossVectors(forwardDir, worldUp).normalize();
     const speed = Math.sqrt(
       gameState.playerEntity.velocity.x ** 2 +
@@ -2040,6 +2058,16 @@ function GameScene({
   // Auto-bank: the roll the ship eases into as it yaws (banks into its turns like
   // a real fighter) — a big part of making turns feel natural instead of clunky.
   const autoBankRef = useRef(0);
+  // 6-DOF orientation as a QUATERNION — the source of truth for the ship's facing.
+  // Pitch/yaw/roll are applied as rotations about the ship's OWN local axes each
+  // frame (which is what makes free maneuvering work with no gimbal lock — you can
+  // loop, bank, fly inverted, and change course in any direction). The entity's
+  // Euler rotation is written FROM this each frame so the renderer + camera, which
+  // read Euler, stay in sync. Seeded from the entity's initial Euler on first use.
+  const orientRef = useRef<THREE.Quaternion | null>(null);
+  // Tracks the heading-reset signal so R (reset heading) / external Euler sets
+  // re-seed the orientation quaternion instead of being overwritten by it.
+  const headingResetSeenRef = useRef(0);
   // Latches so a sonic-boom effect fires once each time we cross into supersonic.
   const wasSupersonicRef = useRef(false);
   // Deep Run loop: tracks whether the current sector's enemies have been
@@ -2674,41 +2702,96 @@ function GameScene({
       rollInput = applyDeadzone(Math.max(-1, Math.min(1, rollInput)));
 
       // Snappier steering response: input ramps up fast (immediate) but still
-      // eases, so turns feel connected/precise rather than mushy. Was 10.5.
+      // eases, so turns feel connected/precise rather than mushy.
       const turnK = 1 - Math.exp(-clampedDelta * 16.0);
       smoothedInputRef.current.pitch += (pitchInput - smoothedInputRef.current.pitch) * turnK;
       smoothedInputRef.current.yaw += (yawInput - smoothedInputRef.current.yaw) * turnK;
       smoothedInputRef.current.roll += (rollInput - smoothedInputRef.current.roll) * turnK;
 
-      // Speed-adaptive turn rate: ease the turn rate down a touch at high speed so
-      // the ship doesn't feel twitchy when it's screaming along, and keeps its
-      // agility at cruise. Jet mode trades a little more agility for that
-      // committed-to-the-line supersonic feel. This is a big part of "less clunky".
+      // Speed-adaptive turn rate: ease it down a touch at high speed so the ship
+      // isn't twitchy when screaming along, keep agility at cruise. Jet trades a
+      // little agility for the committed high-speed line.
       const speedFrac = Math.min(1, Math.abs(forwardSpeedRef.current) / 600);
       const turnScale = (1 - speedFrac * 0.28) * (1 - jetMixRef.current * 0.14);
       const effTurn = turnSpeed * turnScale;
-      gameState.playerEntity.rotation.x += smoothedInputRef.current.pitch * effTurn * clampedDelta;
-      gameState.playerEntity.rotation.y += smoothedInputRef.current.yaw * effTurn * clampedDelta;
 
-      // AUTO-BANK: a real fighter rolls INTO its turns. Ease a bank angle from the
-      // yaw input (plus the player's own roll input) so hard turns look and feel
-      // natural instead of flat/clunky. The bank eases in + out smoothly.
+      // ===== 6-DOF QUATERNION FLIGHT =====================================
+      // Rotate the ship about its OWN local axes (pitch=local X, yaw=local Y,
+      // roll=local Z). Composing local-axis quaternions means there's no gimbal
+      // lock: you can pitch straight up, loop, fly inverted, and change course in
+      // ANY direction — real free maneuvering. The entity keeps an Euler rotation
+      // for the renderer/camera, so we seed the quaternion from it once, integrate
+      // in quaternion space, then write the Euler back at the end.
+      // Re-seed from the entity Euler on first frame OR whenever an external
+      // heading reset (R key / fly-to) bumped the reset signal — so those set the
+      // orientation rather than being clobbered by the quaternion next frame.
+      const resetSeq = Number(gameState.playerEntity.metadata?.headingResetSeq ?? 0);
+      if (!orientRef.current || resetSeq !== headingResetSeenRef.current) {
+        headingResetSeenRef.current = resetSeq;
+        _playerEuler.set(
+          gameState.playerEntity.rotation.x,
+          gameState.playerEntity.rotation.y,
+          gameState.playerEntity.rotation.z,
+          'YXZ',
+        );
+        if (!orientRef.current) orientRef.current = new THREE.Quaternion().setFromEuler(_playerEuler);
+        else orientRef.current.setFromEuler(_playerEuler);
+      }
+      const q = orientRef.current;
+
+      // AUTO-BANK: a fighter rolls INTO its turns. Target roll from yaw input, eased.
       const bankTarget = -smoothedInputRef.current.yaw * (0.5 + jetMixRef.current * 0.22);
       autoBankRef.current += (bankTarget - autoBankRef.current) * (1 - Math.exp(-clampedDelta * 4.5));
-      gameState.playerEntity.rotation.z += smoothedInputRef.current.roll * effTurn * clampedDelta;
-      // Blend the auto-bank toward the ship's roll (only the delta each frame so it
-      // composes with manual Q/E roll rather than fighting it).
-      gameState.playerEntity.rotation.z += (autoBankRef.current - gameState.playerEntity.rotation.z) * (1 - Math.exp(-clampedDelta * 2.2)) * (1 - Math.abs(smoothedInputRef.current.roll));
+
+      // Per-frame rotation amounts (radians) about each local axis.
+      const pitchAmt = smoothedInputRef.current.pitch * effTurn * clampedDelta;
+      const yawAmt = smoothedInputRef.current.yaw * effTurn * clampedDelta;
+      // Manual roll (Q/E) + a slice of the auto-bank folded in as roll rate so the
+      // ship visibly banks while turning, without ever snapping the whole roll.
+      const rollAmt =
+        smoothedInputRef.current.roll * effTurn * clampedDelta +
+        autoBankRef.current * (1 - Math.exp(-clampedDelta * 2.2)) * (1 - Math.abs(smoothedInputRef.current.roll)) * 0.5;
+
+      _dqPitch.setFromAxisAngle(_axisX, pitchAmt);
+      _dqYaw.setFromAxisAngle(_axisY, yawAmt);
+      _dqRoll.setFromAxisAngle(_axisZ, rollAmt);
+      // Post-multiply (q * dq) → rotate about the ship's LOCAL axes.
+      q.multiply(_dqYaw).multiply(_dqPitch).multiply(_dqRoll);
 
       if (assistedFlight) {
-        const autoLevelK = 1 - Math.exp(-clampedDelta * 3.2);
-        // Level toward the AUTO-BANK target (not flat 0) so the ship holds its
-        // bank through a turn and only rolls level when flying straight (the bank
-        // target eases to 0 as yaw input releases). Was snapping roll to 0, which
-        // killed the banked-turn feel.
-        gameState.playerEntity.rotation.z += (autoBankRef.current - gameState.playerEntity.rotation.z) * autoLevelK;
-        gameState.playerEntity.rotation.x += (0 - gameState.playerEntity.rotation.x) * (autoLevelK * 0.36);
+        // Fly-by-wire auto-level: gently roll the ship's OWN up vector back toward
+        // world-up so it settles level when you're not actively rolling/banking —
+        // but only the roll component, so pitch/yaw course changes are untouched
+        // and you can still fly inverted while holding roll. Skipped while the
+        // player is actively rolling so manual roll always wins.
+        const rollHold = Math.abs(smoothedInputRef.current.roll) + Math.abs(autoBankRef.current);
+        if (rollHold < 0.25) {
+          const up = _alUp.set(0, 1, 0).applyQuaternion(q);
+          const fwd = _alFwd.set(0, 0, -1).applyQuaternion(q);
+          // Desired up = world up projected perpendicular to the nose.
+          const desiredUp = _alDesiredUp.set(0, 1, 0).addScaledVector(fwd, -fwd.y).normalize();
+          if (desiredUp.lengthSq() > 1e-4) {
+            const levelQ = _dqRoll.setFromUnitVectors(up, desiredUp);
+            const autoLevelK = 1 - Math.exp(-clampedDelta * 2.0);
+            _dqPitch.identity().slerp(levelQ, autoLevelK);
+            q.premultiply(_dqPitch);
+          }
+        }
       }
+
+      q.normalize();
+      // Write the integrated orientation back to the entity's Euler (YXZ order to
+      // match the seed) for the renderer + camera, which read rotation.x/y/z.
+      _playerEuler.setFromQuaternion(q, 'YXZ');
+      gameState.playerEntity.rotation.x = _playerEuler.x;
+      gameState.playerEntity.rotation.y = _playerEuler.y;
+      gameState.playerEntity.rotation.z = _playerEuler.z;
+      // Refresh the direction vectors from the JUST-updated orientation so velocity
+      // and cannon-fire use the ship's CURRENT facing (no one-frame lag), and so
+      // course changes translate to travel + aim immediately.
+      forwardLocal.set(0, 0, -1).applyQuaternion(q);
+      rightLocal.set(1, 0, 0).applyQuaternion(q);
+      upLocal.set(0, 1, 0).applyQuaternion(q);
 
       const isAccelerating = !ignitionSequenceActive && keysPressed.current.has('KeyW');
       const isBraking = !ignitionSequenceActive && keysPressed.current.has('KeyS');
@@ -3403,6 +3486,11 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
     gameState.playerEntity.rotation.x = -Math.asin(Math.max(-1, Math.min(1, toTarget.y)));
     gameState.playerEntity.rotation.y = Math.atan2(-toTarget.x, -toTarget.z);
     gameState.playerEntity.rotation.z = 0;
+    // Tell the 6-DOF flight integrator to RE-SEED its orientation quaternion from
+    // this Euler next frame (otherwise the quaternion source-of-truth would just
+    // overwrite the reset). Consumed + cleared in the flight loop.
+    (gameState.playerEntity.metadata ??= {}).headingResetSeq =
+      Number(gameState.playerEntity.metadata?.headingResetSeq ?? 0) + 1;
     bumpUi();
   };
 
