@@ -180,7 +180,11 @@ function FlyToController({ interactive }: { interactive: boolean }) {
       if (follow && follow.frame) {                 // only for a satellite chase
         if (e.deltaY > 0) {                          // zoom OUT
           zoomOutAccum += e.deltaY
-          if (zoomOutAccum > 240) {                  // decisive, not a nudge
+          // Only a DECISIVE, sustained zoom-out releases the chase — raised from
+          // 240 so a small "let me pull back a touch to see the whole craft"
+          // scroll adjusts distance normally instead of snapping all the way out
+          // to Earth. You can still fling out to leave; it just takes intent.
+          if (zoomOutAccum > 600) {
             zoomOutAccum = 0
             cancelFollow()
             window.dispatchEvent(new CustomEvent("universe:sky-focus", { detail: { pointId: "planet:Earth" } }))
@@ -188,6 +192,9 @@ function FlyToController({ interactive }: { interactive: boolean }) {
         } else {
           zoomOutAccum = 0                            // zoom-in resets the accumulator
         }
+        // Decay the accumulator over time so slow, separate scrolls don't add up
+        // into an accidental snap-out (only a fast burst should trigger it).
+        setTimeout(() => { zoomOutAccum = Math.max(0, zoomOutAccum - 120) }, 400)
       } else {
         zoomOutAccum = 0
       }

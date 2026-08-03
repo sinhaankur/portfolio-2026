@@ -1670,8 +1670,14 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
           setSelectedLift(lift)
           selectedSpanRef.current = span
           focusDepthRef.current = {
-            near: Math.max(span * 0.35, 2e-4),
-            minDistance: Math.max(span * 1.1, 6e-4),
+            // Tighten the near plane so you can dolly right up to the craft's
+            // hull without it clipping.
+            near: Math.max(span * 0.12, 1.2e-4),
+            // Let the user zoom in until the craft nearly fills the frame. The old
+            // floor (span * 1.1) sat you barely closer than arrival, so scrolling
+            // in felt dead — "can't zoom on the satellite". span * 0.28 gives a
+            // real close-inspection range while staying just outside the hull.
+            minDistance: Math.max(span * 0.28, 2e-4),
             // Pull FAR in to just past Earth (centre ~0.42 from a LEO craft, radius
             // 0.05) + generous margin: with near this tight, the FULL linear depth
             // buffer now falls on the craft ↔ Earth range, so the craft stops
@@ -1693,8 +1699,10 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
               m.getWorldPosition(v)
               return { x: v.x, y: v.y, z: v.z }
             },
-            // frame the craft with breathing room — model + locator ring both read.
-            span * 12,
+            // Arrive framing the craft with a little breathing room (model +
+            // locator ring both read), close enough that the zoom-in range below
+            // it feels alive rather than starting you far out.
+            span * 7,
             meta?.name,
             undefined,
             // Travel frame for the chase camera: the marker's +Z is aimed along
