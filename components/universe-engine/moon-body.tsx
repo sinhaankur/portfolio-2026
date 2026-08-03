@@ -299,7 +299,16 @@ export function MoonBody({
             white BALL before/without the texture — the "ISS looks wrong" ball was
             actually the Moon rendering low-poly. Smooth now at any zoom. */}
         <sphereGeometry args={[moon.visualRadius, 64, 64]} />
-        <meshStandardMaterial color={moon.shade} roughness={0.95} />
+        {/* A faint emissive floor (~7% of the body's own shade) so an untextured
+            moon on its NIGHT side reads as a dim sphere lit by ambient/planetshine
+            rather than a pure-black hole — the same "never a black void" principle
+            the planets' uNightFloor uses. Tiny, so the sun-lit side is unchanged. */}
+        <meshStandardMaterial
+          color={moon.shade}
+          roughness={0.95}
+          emissive={moon.shade}
+          emissiveIntensity={0.07}
+        />
         {/* Textured-globe overlay — currently only Luna ships a real surface
             map. Uses the day/night shader so the moon shows real lunar
             phases as it orbits its parent (the lit hemisphere rotates
