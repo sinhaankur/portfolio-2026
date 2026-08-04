@@ -17,9 +17,12 @@ import type { GameState } from '../../../lib/neural-game-engine';
  *   - Boost triggers a "warp tunnel" effect with extreme streaking
  * ------------------------------------------------------------------------ */
 
-const DEFAULT_DUST_COUNT = 1200;
+const DEFAULT_DUST_COUNT = 700;
 const DUST_TUNNEL_LENGTH = 500; // particles spawn in a tunnel this long ahead
-const DUST_TUNNEL_RADIUS = 140;
+const DUST_TUNNEL_RADIUS = 180;
+// Keep a clear "hole" around the flight axis so dust never streaks across the
+// ship / camera view — the near-axis warp streaks were what hid the ship.
+const DUST_TUNNEL_INNER = 26;
 const DUST_COLORS = [
   new THREE.Color(0xffffff),
   new THREE.Color(0xcce8ff),
@@ -51,7 +54,8 @@ export function SpaceDust({ gameState, count = DEFAULT_DUST_COUNT }: { gameState
       // Cylindrical tunnel distribution — denser along the forward axis
       const t = Math.random(); // 0 = near ship, 1 = far ahead
       const angle = Math.random() * Math.PI * 2;
-      const r = Math.pow(Math.random(), 0.6) * DUST_TUNNEL_RADIUS;
+      // Ring between inner (clear hole) and outer radius — never over the ship.
+      const r = DUST_TUNNEL_INNER + Math.pow(Math.random(), 0.6) * (DUST_TUNNEL_RADIUS - DUST_TUNNEL_INNER);
       arr.push({
         x: Math.cos(angle) * r,
         y: Math.sin(angle) * r,
@@ -87,8 +91,9 @@ export function SpaceDust({ gameState, count = DEFAULT_DUST_COUNT }: { gameState
     const speed = Math.sqrt(vx * vx + vy * vy + vz * vz);
     const boostActive = Boolean(gameState.playerEntity.metadata?.boostActive);
 
-    // Warp factor: extreme stretch when boosting
-    const warp = boostActive ? 3.5 : 1.0;
+    // Warp factor: a modest stretch when boosting (was 3.5 — a blinding tunnel
+    // that hid the ship). Keep it a subtle sense of speed, not a wall of light.
+    const warp = boostActive ? 1.8 : 1.0;
 
     // Move direction + streak orientation, computed once for all particles.
     if (speed > 0.1) {
@@ -113,7 +118,7 @@ export function SpaceDust({ gameState, count = DEFAULT_DUST_COUNT }: { gameState
       // Wrap: when a particle passes behind the ship, respawn it far ahead
       if (s.z > 40) {
         const angle = Math.random() * Math.PI * 2;
-        const r = Math.pow(Math.random(), 0.6) * DUST_TUNNEL_RADIUS;
+        const r = DUST_TUNNEL_INNER + Math.pow(Math.random(), 0.6) * (DUST_TUNNEL_RADIUS - DUST_TUNNEL_INNER);
         s.x = Math.cos(angle) * r;
         s.y = Math.sin(angle) * r;
         s.z = -DUST_TUNNEL_LENGTH * (0.3 + Math.random() * 0.7);
@@ -124,10 +129,11 @@ export function SpaceDust({ gameState, count = DEFAULT_DUST_COUNT }: { gameState
       const absY = py + s.y;
       const absZ = pz + s.z;
 
-      // Streak: long thin line aligned to velocity
-      const stretch = Math.min(1, speed / 30) * warp;
-      const streakLen = s.baseSize * (1 + stretch * 18);
-      const streakWidth = s.baseSize * (1 + stretch * 0.5);
+      // Streak: thin line aligned to velocity. Shorter stretch (was 18×) so the
+      // dust reads as passing motion, not long light-sabres filling the frame.
+      const stretch = Math.min(1, speed / 60) * warp;
+      const streakLen = s.baseSize * (1 + stretch * 7);
+      const streakWidth = s.baseSize * (1 + stretch * 0.3);
 
       dummy.position.set(absX, absY, absZ);
       dummy.scale.set(streakWidth, streakWidth, streakLen);
@@ -141,9 +147,10 @@ export function SpaceDust({ gameState, count = DEFAULT_DUST_COUNT }: { gameState
 
     meshRef.current.instanceMatrix.needsUpdate = true;
 
-    // Global opacity ramps with speed
+    // Global opacity ramps in gently and caps low, so the dust adds a sense of
+    // motion without washing out the scene or hiding the ship (was 0.65 @ 80).
     const mat = meshRef.current.material as THREE.MeshBasicMaterial;
-    mat.opacity = Math.min(0.65, speed / 80);
+    mat.opacity = Math.min(0.3, speed / 300);
   });
 
   return (

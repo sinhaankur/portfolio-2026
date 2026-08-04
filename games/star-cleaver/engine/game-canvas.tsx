@@ -550,15 +550,15 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
   const engineMounts = useMemo(
     () => {
       if (usingDefaultMountMap) {
-        // Mount map aligned to the Peregrine GLB's FOUR wing-root nacelle
-        // exhausts — one plume per nacelle. Positions come straight from the
-        // build's printed exhausts_three (build_peregrine.py):
-        // (±0.681, ±0.146, 1.997) in GLB source space.
+        // Mount map aligned to the xwing.glb's FOUR S-foil engine exhausts, one
+        // plume per engine. Measured directly from the GLB in the game-render
+        // frame (after the +90° X basis rotation), rear nozzle at z≈2.15:
+        //   upper pair (±0.10, +0.11, 1.80) · lower pair (±0.13, −0.09, 1.75).
         return [
-          [-0.681, 0.146, 1.997] as [number, number, number],
-          [-0.681, -0.146, 1.997] as [number, number, number],
-          [0.681, 0.146, 1.997] as [number, number, number],
-          [0.681, -0.146, 1.997] as [number, number, number],
+          [-0.105, 0.11, 1.80] as [number, number, number],
+          [0.105, 0.11, 1.80] as [number, number, number],
+          [-0.13, -0.09, 1.75] as [number, number, number],
+          [0.13, -0.09, 1.75] as [number, number, number],
         ];
       }
 
@@ -659,10 +659,13 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
       ref.current.scale.setScalar(coreScale);
     });
 
-    const plumeLength = 0.42 + driveSignal * (boostActive ? 0.84 : 0.68);
-    const plumeRadius = 0.24 + driveSignal * (boostActive ? 0.06 : 0.05);
-    const plumeOpacity = (0.04 + driveSignal * (boostActive ? 0.12 : 0.1)) * flicker;
-    const outerPlumeOpacity = (0.015 + driveSignal * (boostActive ? 0.07 : 0.055)) * flicker;
+    // Engine fire: a bright warm plume that grows with thrust. A low idle
+    // pilot-light always burns so the four engines read even at rest; W/boost
+    // lengthens + brightens it into a real exhaust flame.
+    const plumeLength = 0.5 + driveSignal * (boostActive ? 1.5 : 1.05);
+    const plumeRadius = 0.24 + driveSignal * (boostActive ? 0.1 : 0.07);
+    const plumeOpacity = (0.22 + driveSignal * (boostActive ? 0.7 : 0.55)) * flicker;
+    const outerPlumeOpacity = (0.1 + driveSignal * (boostActive ? 0.4 : 0.3)) * flicker;
     const thrusterHalfLength = 0.9 * plumeLength;
     const outerHalfLength = 1.2 * plumeLength * 1.22;
     thrusterRefs.forEach((ref, idx) => {
@@ -808,38 +811,38 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
               the GLB nacelles already glow). The plumes animate with thrust. */}
           <mesh ref={thrusterCone1Ref} position={[engineMounts[0][0], engineMounts[0][1], initialThrusterCenters[0]]} rotation={[Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.11, 1.1, 14, 1, true]} />
-          <meshBasicMaterial color={0x8fdbff} transparent opacity={0.36} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+          <meshBasicMaterial color={0xffe3b0} transparent opacity={0.55} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
           <mesh ref={outerPlume1Ref} position={[engineMounts[0][0], engineMounts[0][1], initialOuterCenters[0]]} rotation={[Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.16, 1.5, 14, 1, true]} />
-          <meshBasicMaterial color={0x4c9dff} transparent opacity={0.2} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+          <meshBasicMaterial color={0xff6a2c} transparent opacity={0.34} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
 
           <mesh ref={thrusterCone2Ref} position={[engineMounts[1][0], engineMounts[1][1], initialThrusterCenters[1]]} rotation={[Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.11, 1.1, 14, 1, true]} />
-          <meshBasicMaterial color={0x8fdbff} transparent opacity={0.36} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+          <meshBasicMaterial color={0xffe3b0} transparent opacity={0.55} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
           <mesh ref={outerPlume2Ref} position={[engineMounts[1][0], engineMounts[1][1], initialOuterCenters[1]]} rotation={[Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.16, 1.5, 14, 1, true]} />
-          <meshBasicMaterial color={0x4c9dff} transparent opacity={0.2} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+          <meshBasicMaterial color={0xff6a2c} transparent opacity={0.34} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
 
           <mesh ref={thrusterCone3Ref} position={[engineMounts[2][0], engineMounts[2][1], initialThrusterCenters[2]]} rotation={[Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.11, 1.1, 14, 1, true]} />
-          <meshBasicMaterial color={0x8fdbff} transparent opacity={0.36} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+          <meshBasicMaterial color={0xffe3b0} transparent opacity={0.55} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
           <mesh ref={outerPlume3Ref} position={[engineMounts[2][0], engineMounts[2][1], initialOuterCenters[2]]} rotation={[Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.16, 1.5, 14, 1, true]} />
-          <meshBasicMaterial color={0x4c9dff} transparent opacity={0.2} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+          <meshBasicMaterial color={0xff6a2c} transparent opacity={0.34} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
 
           <mesh ref={thrusterCone4Ref} position={[engineMounts[3][0], engineMounts[3][1], initialThrusterCenters[3]]} rotation={[Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.11, 1.1, 14, 1, true]} />
-          <meshBasicMaterial color={0x8fdbff} transparent opacity={0.36} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+          <meshBasicMaterial color={0xffe3b0} transparent opacity={0.55} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
           <mesh ref={outerPlume4Ref} position={[engineMounts[3][0], engineMounts[3][1], initialOuterCenters[3]]} rotation={[Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.16, 1.5, 14, 1, true]} />
-          <meshBasicMaterial color={0x4c9dff} transparent opacity={0.2} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+          <meshBasicMaterial color={0xff6a2c} transparent opacity={0.34} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
 
           {/* Nose forward glow cone — orientation marker */}
@@ -1825,14 +1828,18 @@ function CameraFollowController({
       orbit.pitch += (0 - orbit.pitch) * decay;
     }
 
+    // Keep the camera CLOSE and at a stable height regardless of speed, so the
+    // ship holds its screen position instead of shrinking + dropping out of the
+    // bottom of frame when you thrust forward (the speed-driven pull-back was
+    // 2.8 + boost 2.4 — the ship fell out of frame). Only a small stretch now.
     const offsetDistance =
       (phaseProfile.offsetDistance +
         ignitionCinematic * 1.5 +
-        travelStretch * 2.8 +
-        boostSpool * 2.4 +
-        accelKick * 1.1 +
-        speedJerk * 2.2) * orbit.zoom;
-    const offsetHeight = phaseProfile.offsetHeight + ignitionCinematic * 0.42 + travelStretch * 0.35;
+        travelStretch * 0.8 +
+        boostSpool * 1.0 +
+        accelKick * 0.5 +
+        speedJerk * 0.8) * orbit.zoom;
+    const offsetHeight = phaseProfile.offsetHeight + ignitionCinematic * 0.42 + travelStretch * 0.15;
 
     // Keep camera behind ship orientation so nose direction is always readable.
     const cloudShake = speedJerk * 0.08;
@@ -1935,12 +1942,15 @@ function CameraFollowController({
     // pushes it off the bottom of the screen). Kept SMALL so the ship stays
     // framed and always visible — a big look-ahead aimed the camera past the
     // ship and dropped it off the bottom at speed (the "ship vanishes" bug).
-    const lookAheadDistance = Math.min(speed * 0.02, 2.4) + boostSpool * 0.5;
+    // Near-zero look-ahead: aim essentially AT the ship so it holds a stable
+    // screen position at any speed (large look-ahead was pitching the camera up
+    // and dropping the ship off the bottom when thrusting forward).
+    const lookAheadDistance = Math.min(speed * 0.006, 0.8) + boostSpool * 0.2;
 
-    // Aim slightly ABOVE the ship so it sits in the lower-third of frame (clearly
-    // visible) with the world ahead, rather than dead-centre where fast travel
-    // pushed it off-screen.
-    const lookTarget = _camLook.copy(playerPos).add(_camTmp.set(0, 1.4, 0));
+    // Aim right AT the ship centre — no upward lift (any +Y here pitched the
+    // camera up and dropped the ship toward the bottom edge under thrust). The
+    // behind+above camera offset already puts the world ahead in view.
+    const lookTarget = _camLook.copy(playerPos);
     // Blend the smoothed nose forward with a touch of velocity direction.
     const velLen = speed;
     const aimDir = _camVelDir.copy(smoothForwardRef.current);
@@ -1955,7 +1965,7 @@ function CameraFollowController({
     }
     const lookVelK = 1 - Math.exp(-delta * 9.0);
     lookAheadRef.current.lerp(aimDir, lookVelK).normalize();
-    lookTarget.addScaledVector(lookAheadRef.current, Math.max(1.0, lookAheadDistance));
+    lookTarget.addScaledVector(lookAheadRef.current, Math.max(0.3, lookAheadDistance));
 
     const lookK = 1 - Math.exp(-delta * assistConfig.look);
     smoothLookRef.current.lerp(lookTarget, lookK);
@@ -2899,7 +2909,9 @@ function GameScene({
       const driveMult = gameState.gameMode === 'run' && metaRef
         ? shipModsFor(metaRef.current).driveMult
         : 1;
-      const boostSpeedBonus = boostSpoolRef.current * (attackMode ? 26 : (210 + interstellarBlend * 520) * (1 + jetMix * 0.6)) * driveMult;
+      // Boost adds a controllable dash, not a runaway (was 210 + blend*520 =
+      // up to ~730 on top of cruise → the ship rocketed to 750+ and out of frame).
+      const boostSpeedBonus = boostSpoolRef.current * (attackMode ? 26 : (90 + interstellarBlend * 160) * (1 + jetMix * 0.5)) * driveMult;
       const targetSpeed =
         throttleSpeed + (forwardThrottle > 0 ? boostSpeedBonus : 0);
 
