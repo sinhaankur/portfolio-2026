@@ -3977,12 +3977,12 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
           {useMemo(
             () => (
               <group scale={UNIVERSE_SCALE}>
-                {/* solarOnly: a clean, REAL star backdrop + the solar-system
-                    bodies, without the constellation line-figures/labels, the
-                    up-close Milky Way haze + nebula sprites, cluster glows and
-                    deep-sky label points — all of which read as flat "glowy
-                    blobs" when you're flying THROUGH them. This is what makes
-                    the in-game sky feel like real space rather than a chart. */}
+                {/* backdropOnly: render ONLY the engine's far star backdrop —
+                    no engine Sun/planets/atmosphere halos (the game supplies its
+                    OWN Earth + Sun + asteroids). The engine's solar system sat at
+                    different coordinates and its glow/atmosphere sprites were the
+                    stray flat "glowy blobs" floating in the game. Now the sky is
+                    just real stars behind the game's own bodies. */}
                 <UniverseSceneContents
                   enableMotion
                   onHover={NOOP}
@@ -3991,6 +3991,7 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
                   mobile={graphicsProfile.universeMobile}
                   invert={false}
                   solarOnly
+                  backdropOnly
                 />
               </group>
             ),

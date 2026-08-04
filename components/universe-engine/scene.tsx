@@ -1619,6 +1619,7 @@ export function SceneContents({
   showDeepDive = false,
   solarOnly = false,
   hideConstellations = false,
+  backdropOnly = false,
   densityScale = 1,
 }: {
   enableMotion: boolean
@@ -1641,6 +1642,11 @@ export function SceneContents({
    *  clutter over a real starfield. Lighter than solarOnly (which strips the
    *  whole sky). */
   hideConstellations?: boolean
+  /** Render ONLY the far star backdrop — no solar-system bodies (Sun, planets,
+   *  their glow/atmosphere halos, comets, asteroids). Used inside the game,
+   *  which supplies its OWN Earth + Sun; the engine's solar system otherwise
+   *  overlaps at different coordinates and reads as stray flat glow blobs. */
+  backdropOnly?: boolean
   /** Decorative-density multiplier from the device tier (ultra 1.4 → richer,
    *  low 0.4 → lighter). Scales the DECORATIVE point fields (Milky Way haze,
    *  nebula clouds, shooting stars) — NOT the real HYG star catalog, whose
@@ -1710,16 +1716,18 @@ export function SceneContents({
       )}
       {/* Calm, faint backdrop so solar-only space still has depth without the
           full HYG catalog / constellations. */}
-      {solarOnly && <SolarBackdrop invert={invert} />}
-      <group position={SOLAR_SYSTEM_POSITION}>
-        <SolarSystem onHover={onHover} invert={invert} interactive={interactive} mobile={mobile} solarOnly={solarOnly} />
-        <GravityOverlay show={showGravityOverlay} invert={invert} />
-        <TrajectoryTrails show={showDeepDive} invert={invert} />
-        <SphereOfInfluence show={showDeepDive} invert={invert} />
-        {/* Comets, asteroids, interstellars — share the SolarSystem origin
-            so their orbits sit around the same Sun the planets do. */}
-        <NamedBodies onHover={onHover} invert={invert} interactive={interactive} />
-      </group>
+      {(solarOnly || backdropOnly) && <SolarBackdrop invert={invert} />}
+      {!backdropOnly && (
+        <group position={SOLAR_SYSTEM_POSITION}>
+          <SolarSystem onHover={onHover} invert={invert} interactive={interactive} mobile={mobile} solarOnly={solarOnly} />
+          <GravityOverlay show={showGravityOverlay} invert={invert} />
+          <TrajectoryTrails show={showDeepDive} invert={invert} />
+          <SphereOfInfluence show={showDeepDive} invert={invert} />
+          {/* Comets, asteroids, interstellars — share the SolarSystem origin
+              so their orbits sit around the same Sun the planets do. */}
+          <NamedBodies onHover={onHover} invert={invert} interactive={interactive} />
+        </group>
+      )}
       {!solarOnly && !hideConstellations && <Constellations onHover={onHover} onResetView={onResetView} invert={invert} />}
       {/* Deep-sky targets + exoplanet hosts — share the sky-shell with
           constellations. Streams in at stage 2 (not first-frame essential). */}
