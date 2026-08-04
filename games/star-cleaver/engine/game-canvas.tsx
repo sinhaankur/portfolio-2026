@@ -1932,10 +1932,15 @@ function CameraFollowController({
     // high speed so fast straight-line travel reads forward.
     // Keep the look-ahead modest relative to the follow distance so the ship
     // stays framed in the lower-centre (a big look-ahead aims past the ship and
-    // pushes it off the bottom of the screen).
-    const lookAheadDistance = Math.min(speed * 0.05, 6) + boostSpool * 0.8;
+    // pushes it off the bottom of the screen). Kept SMALL so the ship stays
+    // framed and always visible — a big look-ahead aimed the camera past the
+    // ship and dropped it off the bottom at speed (the "ship vanishes" bug).
+    const lookAheadDistance = Math.min(speed * 0.02, 2.4) + boostSpool * 0.5;
 
-    const lookTarget = _camLook.copy(playerPos).add(_camTmp.set(0, 0.7, 0));
+    // Aim slightly ABOVE the ship so it sits in the lower-third of frame (clearly
+    // visible) with the world ahead, rather than dead-centre where fast travel
+    // pushed it off-screen.
+    const lookTarget = _camLook.copy(playerPos).add(_camTmp.set(0, 1.4, 0));
     // Blend the smoothed nose forward with a touch of velocity direction.
     const velLen = speed;
     const aimDir = _camVelDir.copy(smoothForwardRef.current);
@@ -1950,7 +1955,7 @@ function CameraFollowController({
     }
     const lookVelK = 1 - Math.exp(-delta * 9.0);
     lookAheadRef.current.lerp(aimDir, lookVelK).normalize();
-    lookTarget.addScaledVector(lookAheadRef.current, Math.max(2.2, lookAheadDistance));
+    lookTarget.addScaledVector(lookAheadRef.current, Math.max(1.0, lookAheadDistance));
 
     const lookK = 1 - Math.exp(-delta * assistConfig.look);
     smoothLookRef.current.lerp(lookTarget, lookK);
