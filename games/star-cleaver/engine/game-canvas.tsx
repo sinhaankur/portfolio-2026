@@ -2060,6 +2060,12 @@ function GameScene({
   // input set; the keydown handler lives in a different component, so we flip the
   // mode on the rising edge here instead of plumbing a ref across components).
   const fKeyWasDownRef = useRef(false);
+  // Auto-cruise: hold a comfortable forward speed hands-free so the fly-around is
+  // about STEERING, not pinning W. Toggled with C (edge-detected in the loop).
+  // When on, the ship maintains a cruise throttle unless the player overrides with
+  // W (faster) or S (brake); tapping S to a near-stop cancels cruise so you can park.
+  const autoCruiseRef = useRef(false);
+  const cKeyWasDownRef = useRef(false);
   // Auto-bank: the roll the ship eases into as it yaws (banks into its turns like
   // a real fighter) — a big part of making turns feel natural instead of clunky.
   const autoBankRef = useRef(0);
@@ -2818,9 +2824,22 @@ function GameScene({
       }
       fKeyWasDownRef.current = gearDown;
 
-      // Analog throttle model: user must actively thrust to move.
-      // No auto-cruise — ship starts and stays at rest until W is pressed.
+      // C toggles auto-cruise so you can fly hands-free and just steer.
+      const cruiseKeyDown = keysPressed.current.has('KeyC');
+      if (cruiseKeyDown && !cKeyWasDownRef.current && !ignitionSequenceActive) {
+        autoCruiseRef.current = !autoCruiseRef.current;
+      }
+      cKeyWasDownRef.current = cruiseKeyDown;
+
+      // Throttle model. By default the ship holds at rest until W is pressed, so
+      // you can park anywhere. With auto-cruise ON it settles to a comfortable
+      // hands-free cruise (0.6 throttle) that you can still override: W pushes to
+      // full, S brakes — and braking to a near-stop cancels cruise so you can park.
       let targetThrottle = 0;
+      if (autoCruiseRef.current) {
+        targetThrottle = 0.6;
+        if (isBraking && Math.abs(forwardSpeedRef.current) < 8) autoCruiseRef.current = false;
+      }
       if (isAccelerating) targetThrottle = 1.0;
       if (isBraking) targetThrottle = -0.5;
 
@@ -2887,8 +2906,9 @@ function GameScene({
         forwardSpeedRef.current += Math.max(speedDelta, -maxDownStep);
       }
 
-      // Gentle friction deceleration to zero when no thrust input.
-      if (!isAccelerating && !isBraking && Math.abs(forwardSpeedRef.current) > 0) {
+      // Gentle friction deceleration to zero when no thrust input (skipped while
+      // auto-cruise is holding a set speed for you).
+      if (!isAccelerating && !isBraking && !autoCruiseRef.current && Math.abs(forwardSpeedRef.current) > 0) {
         const next = Math.abs(forwardSpeedRef.current) - 10 * clampedDelta;
         forwardSpeedRef.current = Math.sign(forwardSpeedRef.current) * Math.max(0, next);
         if (Math.abs(forwardSpeedRef.current) < 0.05) forwardSpeedRef.current = 0;
@@ -3139,6 +3159,8 @@ function GameScene({
       // 1=jet) and a supersonic flag once we're actually past the sonic threshold.
       gameState.playerEntity.metadata.jetMix = jetMixRef.current;
       gameState.playerEntity.metadata.flightMode = flightModeRef.current;
+      gameState.playerEntity.metadata.autoCruise = autoCruiseRef.current;
+      gameState.playerEntity.metadata.forwardSpeed = forwardSpeedRef.current;
       const supersonic = jetMixRef.current > 0.5 && forwardSpeedRef.current > 480;
       gameState.playerEntity.metadata.supersonic = supersonic;
       // Fire a one-shot sonic-boom shockwave the moment we break into supersonic.
@@ -3338,8 +3360,8 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
   const tutorialMessages = SIMPLE_JOURNEY_MODE
     ? [
         'W accelerate · S brake · A/D or Arrow keys steer',
-        'Shift boosts · Click/J fires cannons',
-        'R recenters heading · F toggles flight assist',
+        'C auto-cruise (fly hands-free) · Tab shifts to Jet',
+        'Shift boosts · Q/E roll · R recenters heading',
       ]
     : [
         'W accelerate · S brake · A/D or Arrow keys steer',
@@ -4296,6 +4318,7 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
             </div>
             <div className="mt-3 space-y-2 font-mono text-[11px] text-white/85">
               <div>Move: W accelerate, S brake, Shift or Space boost</div>
+              <div>Cruise: C toggles auto-cruise (fly hands-free, just steer)</div>
               <div>Gear: Tab toggles Cruise ↔ Jet (supersonic)</div>
               <div>Steer: A/D or Arrow keys, Q/E roll, mouse for fine aim</div>
               <div>Weapons: Hold left click, J, or Enter to fire wing cannons</div>
@@ -4312,6 +4335,11 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
             <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-cyan-200/75">First Flight Guide</div>
             <div className="mt-1 text-sm text-white/85">{tutorialMessages[tutorialIndex]}</div>
           </div>
+        )}
+
+        {/* Live flight readout — only while actually flying (not in menus) */}
+        {(gameState.phase === 'exploration' || gameState.phase === 'ignition' || gameState.phase === 'charging' || gameState.phase === 'firing') && (
+          <FlightHud gameStateRef={gameStateRef} />
         )}
 
         {/* Mode-select start screen: Deep Run / Exploration / Defend Earth */}
@@ -4417,6 +4445,60 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
           />
         )}
       </>
+    </div>
+  );
+}
+
+// Live flight readout — speed, gear (Cruise/Jet), and auto-cruise state. Reads the
+// player metadata each frame via its own rAF (the sim runs on refs inside the
+// canvas, not React state), so the numbers track the ship without re-rendering the
+// whole overlay. Kept minimal + bottom-left so it never crowds the scene.
+function FlightHud({ gameStateRef }: { gameStateRef: React.RefObject<GameState | null> }) {
+  const [hud, setHud] = useState({ speed: 0, ratio: 0, gear: 'cruise' as 'cruise' | 'jet', cruise: false, supersonic: false });
+  useEffect(() => {
+    let raf = 0;
+    const tick = () => {
+      const md = gameStateRef.current?.playerEntity?.metadata;
+      if (md) {
+        const speed = Number(md.forwardSpeed ?? 0);
+        const maxV = Math.max(1, Number(md.maxForwardSpeed ?? 1));
+        setHud({
+          speed: Math.max(0, Math.round(speed)),
+          ratio: Math.max(0, Math.min(1, speed / maxV)),
+          gear: (md.flightMode as 'cruise' | 'jet') ?? 'cruise',
+          cruise: Boolean(md.autoCruise),
+          supersonic: Boolean(md.supersonic),
+        });
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [gameStateRef]);
+
+  const jet = hud.gear === 'jet';
+  return (
+    <div className="pointer-events-none fixed bottom-6 left-6 z-50 select-none font-mono">
+      <div className="flex items-end gap-2">
+        <div className={`text-3xl font-semibold tabular-nums leading-none ${hud.supersonic ? 'text-orange-300' : 'text-cyan-100'}`}>
+          {hud.speed}
+        </div>
+        <div className="mb-0.5 text-[10px] uppercase tracking-[0.2em] text-white/50">u/s</div>
+      </div>
+      {/* Throttle bar */}
+      <div className="mt-1.5 h-1 w-40 overflow-hidden rounded-full bg-white/10">
+        <div
+          className={`h-full rounded-full transition-[width] duration-100 ${hud.supersonic ? 'bg-orange-300' : jet ? 'bg-cyan-300' : 'bg-cyan-200/80'}`}
+          style={{ width: `${Math.round(hud.ratio * 100)}%` }}
+        />
+      </div>
+      <div className="mt-1.5 flex items-center gap-1.5 text-[9px] uppercase tracking-[0.16em]">
+        <span className={`rounded px-1.5 py-0.5 ${jet ? 'bg-orange-400/20 text-orange-200' : 'bg-cyan-400/15 text-cyan-200/80'}`}>
+          {jet ? 'Jet' : 'Cruise'}
+        </span>
+        {hud.cruise && <span className="rounded bg-emerald-400/15 px-1.5 py-0.5 text-emerald-200/80">Auto</span>}
+        {hud.supersonic && <span className="rounded bg-orange-400/20 px-1.5 py-0.5 text-orange-200">Mach</span>}
+      </div>
     </div>
   );
 }
