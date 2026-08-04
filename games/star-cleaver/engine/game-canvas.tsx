@@ -2884,8 +2884,11 @@ function GameScene({
       // gliding through space rather than teleporting off-screen. Was 280 +
       // blend*1280 (up to 1560 u/s), which crossed the whole scene in <1s.
       // Jet mode lifts the cruise ceiling into the supersonic band — a clearly
-      // faster gear, not just a nudge. Cruise ~120–480; Jet ~120–840.
-      const maxForwardSpeed = attackMode ? 42 : 120 + interstellarBlend * (360 + jetMix * 360);
+      // faster gear, not just a nudge. Pulled DOWN for a controllable fly-around
+      // where the ship stays readable in frame (was 120 + blend*(360+jet*360) =
+      // up to 840, which warped you into empty space too fast to see the ship).
+      // Cruise ~90–260; Jet extends to ~500 for the deliberate fast dash.
+      const maxForwardSpeed = attackMode ? 42 : 90 + interstellarBlend * (170 + jetMix * 240);
       const maxReverseSpeed = attackMode ? -14 : -21;
 
       const throttleSpeed =
@@ -2905,9 +2908,11 @@ function GameScene({
       }
 
       // Jet mode also pushes harder off the line so the extra top speed is
-      // reachable — the acceleration ceiling lifts with jetMix.
+      // reachable — the acceleration ceiling lifts with jetMix. Gentled (was
+      // 160 + blend*320) so the ship builds speed over a beat instead of
+      // snapping to top cruise in ~1s and warping out of frame.
       const accelLimit =
-        ((attackMode ? 44 : (160 + interstellarBlend * 320) * (1 + jetMix * 0.5)) + boostSpoolRef.current * (attackMode ? 26 : 420)) * driveMult;
+        ((attackMode ? 44 : (90 + interstellarBlend * 150) * (1 + jetMix * 0.5)) + boostSpoolRef.current * (attackMode ? 26 : 260)) * driveMult;
       const decelLimit = isBraking ? (attackMode ? 78 : 94) : attackMode ? 42 : 56;
       const speedDelta = targetSpeed - forwardSpeedRef.current;
       const maxUpStep = accelLimit * clampedDelta;
