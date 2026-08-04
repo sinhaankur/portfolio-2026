@@ -3792,7 +3792,10 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
           setStationExploreMode((v) => !v);
         }
       }
-      // Start ignition on spacebar / W, then transition to exploration when startup completes.
+      // Start ignition on spacebar / W. IMPORTANT: only SPACE engages boost —
+      // W is plain accelerate. (Previously W also added ShiftLeft, so holding W
+      // always boosted → the ship rocketed to ~450+ instead of its ~195 cruise
+      // and warped out of frame. W now cruises; Space/Shift boosts.)
       if (e.code === 'Space' || e.code === 'KeyW') {
         e.preventDefault();
         if (gameState.phase === 'ignition') {
@@ -3800,7 +3803,10 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
             Object.assign(gameState, startIgnition(gameState));
             bumpUi();
           }
-        } else if (gameState.phase === 'exploration' || gameState.phase === 'charging' || gameState.phase === 'combat') {
+        } else if (
+          e.code === 'Space' &&
+          (gameState.phase === 'exploration' || gameState.phase === 'charging' || gameState.phase === 'combat')
+        ) {
           keysPressed.current.add('ShiftLeft');
         }
       }
