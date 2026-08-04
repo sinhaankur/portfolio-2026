@@ -2052,7 +2052,11 @@ function GameScene({
   const encounterTimerRef = useRef(ENCOUNTER_INTERVAL_S * 0.5); // first patrol comes a touch sooner
   const enemyIdCounterRef = useRef(0);
   const forwardSpeedRef = useRef(0);
-  const throttleRef = useRef(0.34);
+  // Start at REST. The ship should sit still until you thrust (W) or engage
+  // auto-cruise (C), so you can stop anywhere and look around. A non-zero idle
+  // throttle made the ship self-propel forever (you could never stop, and it
+  // kept flying off into deep space where it fell out of frame).
+  const throttleRef = useRef(0);
   const boostSpoolRef = useRef(0);
   const prevForwardSpeedRef = useRef(0);
   const prevForwardAccelRef = useRef(0);
