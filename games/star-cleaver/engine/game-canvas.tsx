@@ -17,7 +17,7 @@ import {
   type GameEntity,
 } from '../../../lib/neural-game-engine';
 // import { createNeuralAgent, type NeuralAgent } from '../../../lib/neural-game-engine/ai-agent';
-import { createInitialGameState, startIgnition, startExploration, selectGameMode, formatScore, IGNITION_STARTUP_DURATION } from './game-state';
+import { createInitialGameState, startIgnition, startExploration, startFlyAround, selectGameMode, formatScore, IGNITION_STARTUP_DURATION } from './game-state';
 import { ModeSelect } from './mode-select';
 import { Outfitting, type RunSummary } from './outfitting';
 import {
@@ -1273,7 +1273,7 @@ function MuzzleFlashField({ gameState }: { gameState: GameState }) {
   );
 }
 
-function MissionStartScene({ worldIndex }: { worldIndex: number }) {
+function MissionStartScene({ worldIndex, hideStation = false }: { worldIndex: number; hideStation?: boolean }) {
   const layout = useMemo(() => getMissionLayout(worldIndex), [worldIndex]);
   const stationRigRef = useRef<THREE.Group>(null);
   const dockingRingRef = useRef<THREE.Group>(null);
@@ -1324,7 +1324,9 @@ function MissionStartScene({ worldIndex }: { worldIndex: number }) {
         />
       </group>
 
-      {/* Orbital station — Star Wars outpost style */}
+      {/* Orbital station — Star Wars outpost style. Hidden in pure fly-around
+          exploration (no docking/launch — a space fighter just flies). */}
+      {!hideStation && (
       <group
         position={[layout.stationPosition.x, layout.stationPosition.y, layout.stationPosition.z]}
         scale={[layout.stationScale, layout.stationScale, layout.stationScale]}
@@ -1577,6 +1579,7 @@ function MissionStartScene({ worldIndex }: { worldIndex: number }) {
           <pointLight position={[0, -4, -20]} intensity={1.2} distance={120} color={glowHot} />
         </group>
       </group>
+      )}
     </group>
   );
 }
@@ -2979,31 +2982,47 @@ function GameScene({
       let nearestHazard = '';
       let nearestDist = Number.POSITIVE_INFINITY;
 
-      gravityHazards.forEach((hazard) => {
-        const deltaToHazard = _hazardDelta.copy(hazard.position).sub(playerPosVec);
-        const distance = deltaToHazard.length();
-        if (distance < nearestDist) {
-          nearestDist = distance;
-          nearestHazard = hazard.label;
-        }
-        if (distance > hazard.influenceRadius || distance <= 0.0001) return;
+      // Pure fly-around exploration: no lethal gravity shear, no proximity kill.
+      // You should be able to fly right up to a planet and explore it — that's
+      // the whole point. Gravity pull + hull damage from bodies are OFF here; we
+      // still track the nearest body's name for a neutral readout, and the soft
+      // universe boundary below still keeps you from flying off forever.
+      if (!FLY_AROUND_ONLY) {
+        gravityHazards.forEach((hazard) => {
+          const deltaToHazard = _hazardDelta.copy(hazard.position).sub(playerPosVec);
+          const distance = deltaToHazard.length();
+          if (distance < nearestDist) {
+            nearestDist = distance;
+            nearestHazard = hazard.label;
+          }
+          if (distance > hazard.influenceRadius || distance <= 0.0001) return;
 
-        const normalizedInfluence = 1 - distance / hazard.influenceRadius;
-        const safeDistance = Math.max(20, distance);
-        const pullStrength = (hazard.gravityStrength * normalizedInfluence * normalizedInfluence) / safeDistance;
-        gravityAcceleration.add(deltaToHazard.normalize().multiplyScalar(pullStrength));
-        gravityLoad = Math.max(gravityLoad, Math.min(1, normalizedInfluence * 1.25));
+          const normalizedInfluence = 1 - distance / hazard.influenceRadius;
+          const safeDistance = Math.max(20, distance);
+          const pullStrength = (hazard.gravityStrength * normalizedInfluence * normalizedInfluence) / safeDistance;
+          gravityAcceleration.add(deltaToHazard.normalize().multiplyScalar(pullStrength));
+          gravityLoad = Math.max(gravityLoad, Math.min(1, normalizedInfluence * 1.25));
 
-        if (distance < hazard.warningRadius) {
-          const warningRange = Math.max(1, hazard.warningRadius - hazard.fatalRadius);
-          const warningPressure = 1 - Math.max(0, distance - hazard.fatalRadius) / warningRange;
-          hullDamageThisFrame += warningPressure * hazard.damagePerSecond * clampedDelta;
-        }
+          if (distance < hazard.warningRadius) {
+            const warningRange = Math.max(1, hazard.warningRadius - hazard.fatalRadius);
+            const warningPressure = 1 - Math.max(0, distance - hazard.fatalRadius) / warningRange;
+            hullDamageThisFrame += warningPressure * hazard.damagePerSecond * clampedDelta;
+          }
 
-        if (distance <= hazard.fatalRadius) {
-          fatalSource = hazard.label;
-        }
-      });
+          if (distance <= hazard.fatalRadius) {
+            fatalSource = hazard.label;
+          }
+        });
+      } else {
+        // Still surface which body is nearest (neutral, non-lethal) for a readout.
+        gravityHazards.forEach((hazard) => {
+          const distance = _hazardDelta.copy(hazard.position).sub(playerPosVec).length();
+          if (distance < nearestDist) {
+            nearestDist = distance;
+            nearestHazard = hazard.label;
+          }
+        });
+      }
 
       // --- Incoming enemy fire: resolve enemy bolts hitting the player. Folds
       // into hullDamageThisFrame, so taking fire actually drains the hull (and,
@@ -3296,11 +3315,11 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
   const gameStateRef = useRef<GameState | null>(null);
   if (gameStateRef.current === null) {
     const s = createInitialGameState();
-    // FLY-AROUND MODE: for now the game is just free-flight — skip the three-way
-    // mode-select and drop straight into Exploration so we can nail the flight
-    // feel first, then add combat / Deep Run / Defend back on top. Flip
-    // FLY_AROUND_ONLY to false to restore the mode-select start screen.
-    gameStateRef.current = FLY_AROUND_ONLY ? selectGameMode(s, 'explore') : s;
+    // FLY-AROUND MODE: the game is free-flight exploration only. Drop STRAIGHT
+    // into open-space flight, already facing forward — no mode-select, no launch
+    // tower / vertical ignition (a space fighter starts in space). Flip
+    // FLY_AROUND_ONLY to false to restore the old mode-select + ignition start.
+    gameStateRef.current = FLY_AROUND_ONLY ? startFlyAround(s) : s;
   }
   const gameState = gameStateRef.current;
   const [, bumpUi] = useReducer((c: number) => c + 1, 0);
@@ -3932,6 +3951,12 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
           {useMemo(
             () => (
               <group scale={UNIVERSE_SCALE}>
+                {/* solarOnly: a clean, REAL star backdrop + the solar-system
+                    bodies, without the constellation line-figures/labels, the
+                    up-close Milky Way haze + nebula sprites, cluster glows and
+                    deep-sky label points — all of which read as flat "glowy
+                    blobs" when you're flying THROUGH them. This is what makes
+                    the in-game sky feel like real space rather than a chart. */}
                 <UniverseSceneContents
                   enableMotion
                   onHover={NOOP}
@@ -3939,6 +3964,7 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
                   interactive={false}
                   mobile={graphicsProfile.universeMobile}
                   invert={false}
+                  solarOnly
                 />
               </group>
             ),
@@ -3953,7 +3979,7 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
         {gameState.gameMode === 'run' ? (
           <MemoSectorBackdrop sectorIndex={Number(gameState.playerEntity.metadata?.runSectorIndex ?? 0)} />
         ) : (
-          <MemoMissionStartScene worldIndex={gameState.worldIndex} />
+          <MemoMissionStartScene worldIndex={gameState.worldIndex} hideStation={FLY_AROUND_ONLY} />
         )}
 
         {/* Blender-authored asteroids — stony + carbon rocks + comet nucleus.

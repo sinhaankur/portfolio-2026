@@ -1618,6 +1618,7 @@ export function SceneContents({
   showGravityOverlay = false,
   showDeepDive = false,
   solarOnly = false,
+  hideConstellations = false,
   densityScale = 1,
 }: {
   enableMotion: boolean
@@ -1634,6 +1635,12 @@ export function SceneContents({
   /** Focus on our solar system only — hide constellations, named stars, the
    *  Milky Way, deep-sky/exoplanet points. Used by /lab/celestial. */
   solarOnly?: boolean
+  /** Hide the constellation LINE FIGURES + labels and deep-sky/exoplanet label
+   *  points, but KEEP the real photographic sky panorama + full HYG star field.
+   *  Used inside the game, where the constellation lines/labels read as UI
+   *  clutter over a real starfield. Lighter than solarOnly (which strips the
+   *  whole sky). */
+  hideConstellations?: boolean
   /** Decorative-density multiplier from the device tier (ultra 1.4 → richer,
    *  low 0.4 → lighter). Scales the DECORATIVE point fields (Milky Way haze,
    *  nebula clouds, shooting stars) — NOT the real HYG star catalog, whose
@@ -1713,10 +1720,10 @@ export function SceneContents({
             so their orbits sit around the same Sun the planets do. */}
         <NamedBodies onHover={onHover} invert={invert} interactive={interactive} />
       </group>
-      {!solarOnly && <Constellations onHover={onHover} onResetView={onResetView} invert={invert} />}
+      {!solarOnly && !hideConstellations && <Constellations onHover={onHover} onResetView={onResetView} invert={invert} />}
       {/* Deep-sky targets + exoplanet hosts — share the sky-shell with
           constellations. Streams in at stage 2 (not first-frame essential). */}
-      {!solarOnly && stage >= 2 && <SkyPoints onHover={onHover} invert={invert} interactive={interactive} />}
+      {!solarOnly && !hideConstellations && stage >= 2 && <SkyPoints onHover={onHover} invert={invert} interactive={interactive} />}
       {enableMotion && <ShootingStars count={Math.round((mobile ? 3 : 6) * densityScale)} invert={invert} />}
       <ambientLight intensity={invert ? 0.55 : 0.18} />
     </>

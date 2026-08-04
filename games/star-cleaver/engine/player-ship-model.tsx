@@ -21,10 +21,12 @@ const SHIP_MODEL_PATHS: Record<SelectedShip, string> = {
 	gyrfalcon: '/models/gyrfalcon.glb',
 };
 const DEFAULT_SHIP_PATH = SHIP_MODEL_PATHS['default-vanguard'];
-// All fleet GLBs are exported +Y-forward / +Z-up in Blender with export_yup=true,
-// so in three-space they already arrive nose -Z (game forward) and up +Y — no
-// basis rotation needed.
-export const SHIP_MODEL_BASIS_ROTATION: [number, number, number] = [0, 0, 0];
+// The xwing.glb (Sketchfab "XWing 2.0") arrives NOSE-UP in three-space: its
+// fuselage runs along +Y (points up) instead of the game's forward -Z. Rotating
+// +90° about X tips the nose from +Y down to -Z (game forward) while bringing the
+// belly-up to +Y. This is the basis correction applied to the mesh before the
+// per-frame flight rotation, so the ship faces the way it flies.
+export const SHIP_MODEL_BASIS_ROTATION: [number, number, number] = [Math.PI / 2, 0, 0];
 
 type PlayerShipMode = 'game' | 'preview';
 type ShipVariant = SelectedShip;

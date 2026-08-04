@@ -198,6 +198,40 @@ export function startIgnition(state: GameState): GameState {
 }
 
 /**
+ * Fly-around start: drop STRAIGHT into free-flight exploration, already out in
+ * open space and facing forward (nose -Z). No launch tower, no vertical rocket,
+ * no ignition cinematic — a space fighter begins in space. The spawn is pulled
+ * off the station and up so the ship has clear sky ahead and the planet as a
+ * backdrop, never buried in the structure. Given a small initial forward drift
+ * so the scene reads as "already flying" the instant it appears.
+ */
+export function startFlyAround(state: GameState): GameState {
+  const layout = getMissionLayout(state.worldIndex);
+  return {
+    ...state,
+    gameMode: 'explore',
+    phase: 'exploration',
+    simTime: 0,
+    waveStartTime: 0,
+    ignitionStartTime: undefined,
+    playerEntity: {
+      ...state.playerEntity,
+      position: {
+        // Out in front of / above the station, clear of the structure, with the
+        // planet and star field ahead down -Z.
+        x: 0,
+        y: 6,
+        z: -180,
+      },
+      // Gentle forward drift so it looks like flight from frame one.
+      velocity: { x: 0, y: 0, z: -12 },
+      // Level, nose forward (-Z). This is the crux of "it needs to face right".
+      rotation: { x: 0, y: 0, z: 0 },
+    },
+  };
+}
+
+/**
  * Transition from ignition to exploration (after startup sequence completes).
  */
 export function startExploration(state: GameState): GameState {
