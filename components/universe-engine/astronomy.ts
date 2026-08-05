@@ -1128,13 +1128,15 @@ export function planetToInfo(p: Planet): BodyInfo {
 export const moons: MoonData[] = [
   { name: "Moon (Luna)",     parent: "Earth",   visualRadius: 0.05,  orbitRadius: 0.42, periodDays: 27.32,  shade: "#bdbdbd", fact: "Earth's only natural satellite. Surface temp −173 to +127 °C. Tidally locked — same face always toward Earth.", textureUrl: "/textures/moon.webp", hiResTextureUrl: "/textures/moon-4k.webp", ktx2TextureUrl: "/textures/moon-4k.ktx2", superClearTextureUrl: "hd/textures/moon-16k.webp", elevationUrl: "/textures/moon-elevation.webp", elevationScale: 0.025, deep: { atmosphere: "Essentially none — a trace exosphere of helium, argon, sodium", composition: "Small iron core, silicate mantle; anorthosite highlands + basaltic maria; polar water-ice in shadowed craters" }, surfaceFeatures: [
     // ── HIGHLIGHTED IMPACT EVENT ──────────────────────────────────────────
-    // A spent Falcon 9 upper stage (from the Jan 2025 Blue Ghost lunar launch)
-    // hit the Moon near Einstein Crater on the far-western limb. Predicted by
-    // Bill Gray (Project Pluto) from amateur telescope surveys — NOT tracked by
-    // CelesTrak/Space-Track, which is exactly why the Satellite Engine (SGP4 +
-    // Earth-orbit TLEs) couldn't see it. Einstein Crater ≈ 16.3°N, 88.6°W →
-    // 271.4°E. ~4,000 kg at ~5,400 mph ≈ a 3-tonne-TNT blast + a debris plume.
-    { name: "Falcon 9 stage impact", lat: 16.3, lon: 271.4, date: "2026-08-05", status: "impact", agency: "SpaceX (spent stage)", impactMs: Date.UTC(2026, 7, 5, 6, 35, 0), fact: "A spent Falcon 9 upper stage crashed here near Einstein Crater on 5 Aug 2026, 06:35 UTC — after a 19-month drift in a Moon-crossing high-Earth orbit. It flew the Blue Ghost lander (first fully-successful private Moon landing, Mar 2025), then was abandoned; solar pressure + gravity bent its path into the Moon.\n\n~4,000 kg at ~2.4 km/s (5,400 mph) → an impact of roughly 3 tonnes of TNT, a new ~10-m crater, and a debris plume flung up to ~1,000 km — a hazard model for the Artemis era.\n\nNot on any official catalogue: CelesTrak/Space-Track don't track cislunar objects, so this was predicted by hand (Bill Gray, Project Pluto) from amateur telescope data. That blind spot is why an Earth-orbit tracker can't 'see' it." },
+    // A spent Falcon 9 upper stage (cat. 2025-010D, from the Jan-2025 Blue Ghost
+    // launch) hit the Moon just beyond the western limb, near Einstein & Bell
+    // craters. Coords/time are the EXACT Project Pluto (Bill Gray) prediction:
+    // 2026-08-05 06:35:37.5 UTC · 19.461°N, 266.707°E (93.293°W) · v=2.43 km/s ·
+    // ~4,900 kg · 14.5 GJ ≈ 3 t TNT · ~17 m crater. NOT tracked by CelesTrak/
+    // Space-Track (no cislunar catalogue) — computed from ~1,050 amateur-scope
+    // observations across 5 observatories (MS, UT, Beijing, England). That blind
+    // spot is exactly why the Earth-orbit Satellite Engine (SGP4 + TLE) can't see it.
+    { name: "Falcon 9 stage impact", lat: 19.461, lon: 266.707, date: "2026-08-05", status: "impact", agency: "SpaceX F9 stage · 2025-010D", impactMs: Date.UTC(2026, 7, 5, 6, 35, 37), fact: "A spent Falcon 9 upper stage (catalogue 2025-010D) struck the Moon on 5 Aug 2026 at 06:35:37 UTC — just beyond the western limb near Einstein & Bell craters — after a 19-month drift in a Moon-crossing high-Earth orbit. It flew Firefly's Blue Ghost lander (first fully-successful private Moon landing, Mar 2025) and Japan's Resilience lander, then was abandoned nearly out of fuel; solar-radiation pressure + gravity bent its path into the Moon.\n\n~4,900 kg at 2.43 km/s (5,400 mph) → 14.5 GJ, ≈ 3 tonnes of TNT, a new ~17-m crater, and a debris plume — a hazard model for the Artemis era. NASA's LRO couldn't watch live (wrong side) but imaged the site on Jul 29 and again Aug 12 for before/after crater shots.\n\nNot on any official catalogue: CelesTrak/Space-Track don't track cislunar objects. It was computed by hand (Bill Gray, Project Pluto) from ~1,050 amateur-telescope observations. That blind spot is why an Earth-orbit tracker can't 'see' it." },
     // Apollo crewed landings (1969–1972) — the only human boot-prints
     // off Earth. All six landed on the near side (so Earth was visible
     // from the surface) within ±5° of the lunar equator.
