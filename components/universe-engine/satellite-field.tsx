@@ -2165,3 +2165,148 @@ function SatModel({ url, scale }: { url: string; scale: number }) {
   }, [scene, url])
   return <primitive object={cloned} scale={scale} />
 }
+
+/* ==========================================================================
+ * CislunarField — REAL cislunar object tracking, beyond the SGP4/TLE horizon.
+ *
+ * The satellite swarm above is Earth-orbit only (SGP4 can't propagate escape /
+ * Moon-crossing paths, and CelesTrak doesn't publish cislunar objects). This
+ * closes that gap: it reads a JPL-Horizons-baked geocentric ephemeris
+ * (public/data/cislunar.json, from scripts/fetch-cislunar.mjs) and draws each
+ * object's TRUE path arcing out toward the Moon, with a marker interpolated to
+ * the current sim time. This is the actual "track it, don't just highlight it"
+ * lane — the object the Aug-2026 Falcon 9 impact came from, now visible on its
+ * real trajectory in the same Earth-centered frame as the satellites.
+ * ======================================================================== */
+type CislunarSample = { tMs: number; x: number; y: number; z: number }
+type CislunarObject = { id: string; name: string; kind: string; note: string; impactMs?: number; samples: CislunarSample[] }
+type CislunarData = { snapshot: string; source: string; frame: string; objects: CislunarObject[] }
+
+// Geocentric ICRF km → scene (same axis convention as the satellite field).
+function cislunarToScene(x: number, y: number, z: number, kmToScene: number) {
+  return new THREE.Vector3(x * kmToScene, z * kmToScene, -y * kmToScene)
+}
+
+function CislunarObjectTrack({
+  obj,
+  kmToScene,
+  earthVisualRadius,
+}: {
+  obj: CislunarObject
+  kmToScene: number
+  earthVisualRadius: number
+}) {
+  const markerRef = useRef<THREE.Group>(null)
+  const glowRef = useRef<THREE.Sprite>(null)
+  const [selected, setSelected] = useState(false)
+
+  // Full baked path (faint) — the object's whole known trajectory.
+  const fullPath = useMemo(
+    () => obj.samples.map((s) => cislunarToScene(s.x, s.y, s.z, kmToScene)),
+    [obj.samples, kmToScene],
+  )
+  const t0 = obj.samples[0]?.tMs ?? 0
+  const t1 = obj.samples[obj.samples.length - 1]?.tMs ?? 0
+
+  // interpolate the object's position at an arbitrary time within the window
+  const posAt = (ms: number, out: THREE.Vector3) => {
+    const s = obj.samples
+    if (ms <= s[0].tMs) { out.copy(fullPath[0]); return true }
+    if (ms >= s[s.length - 1].tMs) { out.copy(fullPath[fullPath.length - 1]); return true }
+    // binary search the bracketing samples
+    let lo = 0, hi = s.length - 1
+    while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (s[mid].tMs <= ms) lo = mid; else hi = mid }
+    const a = s[lo], b = s[hi]
+    const f = (ms - a.tMs) / (b.tMs - a.tMs || 1)
+    out.copy(fullPath[lo]).lerp(fullPath[hi], f)
+    return true
+  }
+
+  const _p = useMemo(() => new THREE.Vector3(), [])
+  useFrame(() => {
+    if (!markerRef.current) return
+    const ms = simTimeRef.current.simMs
+    // only show the marker while the object is within its tracked window; the
+    // faint full path always shows so you can see where it came from / went.
+    const inWindow = ms >= t0 - 2 * 86_400_000 && ms <= t1 + 2 * 86_400_000
+    markerRef.current.visible = inWindow
+    if (inWindow) {
+      posAt(ms, _p)
+      markerRef.current.position.copy(_p)
+      const pulse = 1 + Math.sin(performance.now() * 0.004) * 0.18
+      if (glowRef.current) glowRef.current.scale.setScalar(earthVisualRadius * 2.4 * (selected ? 1.5 : pulse))
+    }
+  })
+
+  const info = () => ({
+    name: obj.name,
+    classification: `Cislunar object · JPL Horizons track${obj.impactMs ? " · impactor" : ""}`,
+    fact: obj.note + "\n\nWhy it's here and not in the satellite swarm: this is a Moon-crossing trajectory. SGP4 (which drives the ~15,700-object swarm) can't propagate escape orbits, and CelesTrak/Space-Track don't catalogue cislunar objects — so its path is baked from JPL Horizons n-body ephemeris instead.",
+  })
+
+  const dotColor = obj.impactMs ? "#ff7a3c" : "#8fd0ff"
+
+  return (
+    <group>
+      {/* full known trajectory — a faint line from first sample to last */}
+      <Line points={fullPath} color={dotColor} lineWidth={1} transparent opacity={0.28} />
+      {/* moving object marker */}
+      <group ref={markerRef}>
+        <sprite ref={glowRef} scale={earthVisualRadius * 2.4}>
+          <spriteMaterial color={dotColor} transparent opacity={0.8} depthWrite={false} blending={THREE.AdditiveBlending} />
+        </sprite>
+        <mesh
+          onPointerOver={(e) => { e.stopPropagation(); window.dispatchEvent(new CustomEvent("universe:hover", { detail: { body: info(), clickable: true } })) }}
+          onPointerOut={() => window.dispatchEvent(new CustomEvent("universe:hover", { detail: { body: null, clickable: false } }))}
+          onClick={(e) => {
+            e.stopPropagation()
+            const next = !selected
+            setSelected(next)
+            if (next) {
+              window.dispatchEvent(new CustomEvent("universe:hover", { detail: { body: info(), clickable: true } }))
+              const obj3 = markerRef.current
+              if (obj3) requestFollow(() => { const v = new THREE.Vector3(); obj3.getWorldPosition(v); return { x: v.x, y: v.y, z: v.z } }, earthVisualRadius * 2.0, obj.name)
+            }
+          }}
+        >
+          <sphereGeometry args={[earthVisualRadius * 0.5, 12, 12]} />
+          <meshBasicMaterial color={dotColor} />
+        </mesh>
+        {selected && (
+          <Html position={[0, earthVisualRadius * 0.9, 0]} zIndexRange={[20, 0]} style={{ pointerEvents: "none" }}>
+            <div className="pointer-events-none flex -translate-x-1/2 -translate-y-full select-none flex-col items-center">
+              <div className="flex items-center gap-1.5 whitespace-nowrap rounded-full border border-white/15 bg-black/60 px-2.5 py-1 backdrop-blur-sm font-mono text-[9px] uppercase tracking-[0.22em] text-white/90">
+                <span aria-hidden className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: dotColor }} />
+                {obj.name}
+              </div>
+              <span aria-hidden className="h-2.5 w-px bg-white/30" />
+            </div>
+          </Html>
+        )}
+      </group>
+    </group>
+  )
+}
+
+export function CislunarField({ earthVisualRadius }: { earthVisualRadius: number }) {
+  const [data, setData] = useState<CislunarData | null>(null)
+  const kmToScene = earthVisualRadius / EARTH_RADIUS_KM
+
+  useEffect(() => {
+    let alive = true
+    fetch("/data/cislunar.json")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: CislunarData | null) => { if (alive && d?.objects?.length) setData(d) })
+      .catch(() => { /* no cislunar data → render nothing */ })
+    return () => { alive = false }
+  }, [])
+
+  if (!data) return null
+  return (
+    <group>
+      {data.objects.map((obj) => (
+        <CislunarObjectTrack key={obj.id} obj={obj} kmToScene={kmToScene} earthVisualRadius={earthVisualRadius} />
+      ))}
+    </group>
+  )
+}

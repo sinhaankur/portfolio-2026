@@ -93,7 +93,7 @@ import {
 import { MoonBody } from "./moon-body"
 import { perfTierRef, qualityForTier, superClearRef, hiResChosenRef } from "@/lib/device-tier"
 import { cdnAsset, cdnOnlyAsset } from "@/lib/asset-cdn"
-import { SatelliteField } from "./satellite-field"
+import { SatelliteField, CislunarField } from "./satellite-field"
 import { FlightField } from "./flight-field"
 
 // One-shot latch so the Google-Earth auto-descend fires once per approach (not
@@ -1313,6 +1313,15 @@ export function PlanetBody({
           {isEarth && solarOnly && satsOn && (
             <Suspense fallback={null}>
               <SatelliteField earthVisualRadius={planet.visualRadius} />
+            </Suspense>
+          )}
+
+          {/* Real CISLUNAR object tracks (JPL Horizons) — Moon-crossing objects
+              that the SGP4 satellite swarm can't propagate. Draws their true
+              paths arcing out toward the Moon in the same Earth-centered frame. */}
+          {isEarth && solarOnly && satsOn && (
+            <Suspense fallback={null}>
+              <CislunarField earthVisualRadius={planet.visualRadius} />
             </Suspense>
           )}
 
