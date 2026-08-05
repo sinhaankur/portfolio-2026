@@ -73,7 +73,7 @@ const products: Product[] = [
     blurb:
       "The native iOS companion to the Universe Engine: point your iPhone at the real sky and it identifies stars, planets, the Moon and constellations from your exact location and time — then captures the night sky with a tripod-aware long-exposure camera and an on-device AI editor that recovers the real sky from a dark frame. Same fidelity philosophy, out in the field. All-custom Swift, on-device, offline.",
     stack: ["Swift", "AVFoundation", "Apple Intelligence", "Celestron"],
-    href: "https://github.com/sinhaankur/Firmament",
+    href: "/lab/firmament",
     highlight: "Field companion to the Universe Engine",
     status: "building",
   },
