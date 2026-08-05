@@ -35,8 +35,11 @@ import {
   Box3,
   BufferAttribute,
   BufferGeometry,
+  Color,
   Group,
+  Mesh,
   Points,
+  Quaternion,
   Vector3,
 } from "three"
 import { DEG, simTimeRef, requestFollow, cancelFollow, followRef } from "./astronomy"
@@ -505,6 +508,128 @@ const _pinWorld = new Vector3()
 const _pinCenterWorld = new Vector3()
 const _pinToCam = new Vector3()
 
+/** Animated impact SIMULATION for a `status:"impact"` surface feature (a crash
+ *  site). Loops a ~4.2 s cycle: a bright flash, an expanding shockwave ring, and
+ *  a plume of debris particles arcing up and settling back — so the event reads
+ *  as a live, highlighted happening, not a static dot. Sits on the surface at the
+ *  feature's lat/lon (same placement math as RoverPin) and rotates with the body. */
+const IMPACT_CYCLE = 4.2
+const PLUME_N = 120
+export function ImpactMarker({ feature, planetRadius }: { feature: SurfaceFeature; planetRadius: number }) {
+  const flashRef = useRef<Mesh>(null)
+  const ring1Ref = useRef<Mesh>(null)
+  const ring2Ref = useRef<Mesh>(null)
+  const coreRef = useRef<Mesh>(null)
+  const plumeRef = useRef<Points>(null)
+
+  const latRad = feature.lat * DEG
+  const lonRad = feature.lon * DEG
+  const r = planetRadius * 1.008
+  const pos = useMemo(
+    () => new Vector3(
+      r * Math.cos(latRad) * Math.cos(lonRad),
+      r * Math.sin(latRad),
+      r * Math.cos(latRad) * Math.sin(lonRad),
+    ),
+    [r, latRad, lonRad],
+  )
+  const s = planetRadius // size unit
+
+  // debris plume: per-particle launch direction (biased upward = surface normal)
+  const plume = useMemo(() => {
+    const positions = new Float32Array(PLUME_N * 3)
+    const vel: Vector3[] = []
+    const up = pos.clone().normalize()
+    for (let i = 0; i < PLUME_N; i++) {
+      // random hemisphere direction, biased toward the surface normal
+      const v = new Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5)
+        .normalize().multiplyScalar(0.35).add(up.clone().multiplyScalar(0.9)).normalize()
+      vel.push(v.multiplyScalar(0.4 + Math.random() * 1.0))
+    }
+    const geo = new BufferGeometry()
+    geo.setAttribute("position", new BufferAttribute(positions, 3))
+    return { geo, positions, vel }
+  }, [pos])
+
+  const col = useMemo(() => new Color("#ffcaa0"), [])
+
+  useFrame(() => {
+    const t = ((performance.now() / 1000) % IMPACT_CYCLE) / IMPACT_CYCLE
+    // phase 0–0.12: flash; 0–1: rings expand + fade; plume launches at t≈0 and arcs
+    const flash = Math.max(0, 1 - t / 0.12)
+    if (flashRef.current) {
+      const m = flashRef.current.material as { opacity: number }
+      m.opacity = flash * 0.95
+      flashRef.current.scale.setScalar(s * (0.3 + flash * 1.6))
+    }
+    if (coreRef.current) {
+      const m = coreRef.current.material as { opacity: number }
+      m.opacity = 0.5 + 0.5 * Math.sin(performance.now() * 0.006) // steady hot pulse
+    }
+    const ringAt = (ref: typeof ring1Ref, phase: number) => {
+      const rt = (t + phase) % 1
+      if (!ref.current) return
+      ref.current.scale.setScalar(s * (0.2 + rt * 3.4))
+      const m = ref.current.material as { opacity: number }
+      m.opacity = (1 - rt) * 0.5
+    }
+    ringAt(ring1Ref, 0)
+    ringAt(ring2Ref, 0.5)
+    // plume: launch at t≈0, arc up under a gentle "gravity", fade over the cycle
+    if (plumeRef.current) {
+      const tp = t // 0→1 across the cycle
+      for (let i = 0; i < PLUME_N; i++) {
+        const v = plume.vel[i]
+        const g = 1.1 * tp * tp // simple parabolic fall-back
+        const up = pos.clone().normalize()
+        const p = pos.clone()
+          .addScaledVector(v, tp * s * 2.2)
+          .addScaledVector(up, -g * s * 1.4)
+        plume.positions[3 * i] = p.x
+        plume.positions[3 * i + 1] = p.y
+        plume.positions[3 * i + 2] = p.z
+      }
+      plume.geo.attributes.position.needsUpdate = true
+      const m = plumeRef.current.material as { opacity: number }
+      m.opacity = (1 - t) * 0.85
+    }
+  })
+
+  return (
+    <group>
+      {/* hot core — always glowing at the crash point */}
+      <mesh ref={coreRef} position={pos}>
+        <sphereGeometry args={[s * 0.05, 12, 12]} />
+        <meshBasicMaterial color="#fff2d0" transparent opacity={0.9} blending={AdditiveBlending} depthWrite={false} />
+      </mesh>
+      {/* impact flash */}
+      <mesh ref={flashRef} position={pos}>
+        <sphereGeometry args={[s * 0.14, 12, 12]} />
+        <meshBasicMaterial color="#ffffff" transparent opacity={0} blending={AdditiveBlending} depthWrite={false} />
+      </mesh>
+      {/* two expanding shockwave rings, oriented tangent to the surface */}
+      <mesh ref={ring1Ref} position={pos} quaternion={surfaceQuat(pos)}>
+        <ringGeometry args={[s * 0.12, s * 0.16, 40]} />
+        <meshBasicMaterial color="#ffb890" transparent opacity={0} blending={AdditiveBlending} depthWrite={false} side={BackSide} />
+      </mesh>
+      <mesh ref={ring2Ref} position={pos} quaternion={surfaceQuat(pos)}>
+        <ringGeometry args={[s * 0.12, s * 0.16, 40]} />
+        <meshBasicMaterial color="#ff9a6b" transparent opacity={0} blending={AdditiveBlending} depthWrite={false} side={BackSide} />
+      </mesh>
+      {/* debris plume */}
+      <points ref={plumeRef} geometry={plume.geo} frustumCulled={false}>
+        <pointsMaterial size={s * 0.03} color={col} transparent opacity={0.8} depthWrite={false} blending={AdditiveBlending} sizeAttenuation />
+      </points>
+    </group>
+  )
+}
+
+// Quaternion that lays a ring flat against the sphere surface at point p
+// (its default normal +Z → the outward surface normal).
+function surfaceQuat(p: Vector3) {
+  return new Quaternion().setFromUnitVectors(new Vector3(0, 0, 1), p.clone().normalize())
+}
+
 export function RoverPin({
   feature,
   planetRadius,
@@ -544,10 +669,12 @@ export function RoverPin({
   // Status colour: active = green, completed = warm amber, lost = muted red,
   // natural = warm tan ring (geographic landmark, not a mission target).
   const color =
+    feature.status === "impact"    ? (invert ? "#c23a10" : "#ff7a3c") :
     feature.status === "active"    ? (invert ? "#1f6f3f" : "#7dffaf") :
     feature.status === "completed" ? (invert ? "#7a4a14" : "#ffc878") :
     feature.status === "lost"      ? (invert ? "#7a2828" : "#ff8888") :
     /* natural */                    (invert ? "#7a5028" : "#f0c890")
+  const isImpact = feature.status === "impact"
   const year = feature.date !== "natural" ? feature.date.slice(0, 4) : null
 
   // Rich detail for the InfoPanel (desktop) / bottom sheet (mobile).
@@ -642,7 +769,12 @@ export function RoverPin({
           not point landing sites. Mission pins keep the solid sphere.
           Hover/selection swells the marker slightly as the click cue. */}
       <group scale={isHovered || selected ? 1.45 : 1}>
-        {isNatural ? (
+        {isImpact ? (
+          <mesh>
+            <sphereGeometry args={[pinRadius * 1.3, 12, 12]} />
+            <meshBasicMaterial color={color} />
+          </mesh>
+        ) : isNatural ? (
           <mesh>
             <torusGeometry args={[pinRadius, pinRadius * 0.15, 8, 24]} />
             <meshBasicMaterial color={color} transparent opacity={0.85} />

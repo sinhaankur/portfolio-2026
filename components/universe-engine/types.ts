@@ -22,9 +22,14 @@ export type SurfaceFeature = {
   lon: number
   /** Mission date or "—" / "natural" for geographic features. */
   date: string
-  /** For missions: mission status. For naturals: always "natural" — drives
-   *  pin colour + visual treatment (dot vs outline ring). */
-  status: "active" | "completed" | "lost" | "natural"
+  /** For missions: mission status. For naturals: always "natural". "impact" is
+   *  a HIGHLIGHTED artificial-impact event (a crash site) — drives a distinct,
+   *  animated treatment (pulsing hotspot + shockwave + debris plume) so it
+   *  stands out from ordinary landing pins. Drives pin colour + visual style. */
+  status: "active" | "completed" | "lost" | "natural" | "impact"
+  /** Optional exact impact timestamp (ms since epoch) for "impact" events, so
+   *  the sim can show a live countdown / "just now" and time the animation. */
+  impactMs?: number
   /** Agency / nation for missions; "—" for naturals. */
   agency: string
   /** Short fact for the hover label tooltip. */

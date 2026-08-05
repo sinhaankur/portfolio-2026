@@ -54,7 +54,7 @@ import { superClearRef } from "@/lib/device-tier"
 import { cdnOnlyAsset } from "@/lib/asset-cdn"
 import type { HoverHandler, MoonData } from "./types"
 import { DAY_NIGHT_VERTEX_SHADER, DAY_NIGHT_FRAGMENT_SHADER } from "./shaders"
-import { RoverPin, SatelliteShells, HERO_CRAFT } from "./scene-satellites"
+import { RoverPin, ImpactMarker, SatelliteShells, HERO_CRAFT } from "./scene-satellites"
 import { _earthWorldPos, _sunWorldPos, _sunDirTmp, loadTextureAsync } from "./scene-shared"
 
 export function MoonBody({
@@ -351,6 +351,13 @@ export function MoonBody({
             onHover={onHover}
           />
         ))}
+        {/* Highlighted impact SIMULATION (flash + shockwave + debris plume) for
+            any status:"impact" feature — e.g. the 2026 Falcon 9 stage crash. */}
+        {moon.surfaceFeatures && highlighted && moon.surfaceFeatures
+          .filter((f) => f.status === "impact")
+          .map((feature) => (
+            <ImpactMarker key={`impact-${feature.name}`} feature={feature} planetRadius={moon.visualRadius} />
+          ))}
       </mesh>
 
       {/* Lunar orbiter shell — LRO, Chang'e relays, Lunar Gateway-era craft.
