@@ -85,6 +85,7 @@ import {
 import { _earthWorldPos, _sunWorldPos, _sunDirTmp, loadTextureAsync } from "./scene-shared"
 import {
   RoverPin,
+  ImpactMarker,
   SatelliteShells,
   SATELLITE_CATALOG,
   HERO_CRAFT,
@@ -1170,6 +1171,13 @@ export function PlanetBody({
                     onHover={onHover}
                   />
                 ))}
+                {/* Animated impact simulations (flash + shockwave + plume) for
+                    any status:"impact" feature — e.g. Mars crash landings. */}
+                {planet.raw.surfaceFeatures
+                  .filter((f) => f.status === "impact")
+                  .map((feature) => (
+                    <ImpactMarker key={`impact-${feature.name}`} feature={feature} planetRadius={planet.visualRadius} />
+                  ))}
               </group>
             )}
 

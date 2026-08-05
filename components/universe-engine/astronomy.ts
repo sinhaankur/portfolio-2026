@@ -1036,6 +1036,15 @@ export const planetsData: Planet[] = [
     { name: "Opportunity", lat: -1.95, lon: 354.47, date: "2004-01-25", status: "lost", agency: "NASA", fact: "MER-B. Designed for 90 days, lasted 14 years. Drove 45 km across Meridiani Planum before a planet-wide dust storm in 2018 ended communications. Final transmission: \"My battery is low and it's getting dark.\"" },
     { name: "Spirit", lat: -14.57, lon: 175.47, date: "2004-01-04", status: "lost", agency: "NASA", fact: "MER-A. Twin of Opportunity, landed three weeks earlier in Gusev Crater. Drove 7.7 km before getting stuck in soft sand in 2009; last contact March 2010. Found evidence of past hydrothermal activity." },
     { name: "Zhurong", lat: 25.06, lon: 109.93, date: "2021-05-14", status: "lost", agency: "CNSA", fact: "China's first Mars rover, named for a mythological fire god. Explored southern Utopia Planitia for 358 sols (~12× planned). Entered hibernation May 2022; never reawakened." },
+    // ── HIGHLIGHTED IMPACT EVENTS ─────────────────────────────────────────
+    // Mars is famously where missions crash — a thin atmosphere too thick to
+    // ignore but too thin to brake with, so ~half of all landing attempts have
+    // ended as impacts. These get the animated impact treatment (flash +
+    // shockwave + plume) alongside the successful landers, telling the honest
+    // story of how hard it is to reach another world's surface.
+    { name: "Schiaparelli EDM", lat: -1.95, lon: 353.79, date: "2016-10-19", status: "impact", agency: "ESA / Roscosmos", fact: "ExoMars 2016 test lander. A saturated inertial-measurement unit made the software think it was already below ground, so it cut its parachute and fired the retro-thrusters for just 3 seconds — then free-fell from ~3.7 km. It hit Meridiani Planum at ~300 km/h, ~540 m from target, and exploded (its fuel tanks still full). MRO photographed the fresh dark impact scar days later." },
+    { name: "Mars Polar Lander", lat: -76.0, lon: 165.0, date: "1999-12-03", status: "impact", agency: "NASA", fact: "Lost on arrival near the south polar layered deposits. The leading theory: leg-deployment vibration was misread as touchdown, cutting the descent engines ~40 m up. It fell and was destroyed. Along with the Mars Climate Orbiter lost weeks earlier (a metric/imperial units mix-up), it made 1999 NASA's worst Mars year." },
+    { name: "Mars 3 lander", lat: -45.0, lon: 202.0, date: "1971-12-02", status: "impact", agency: "USSR", fact: "The first spacecraft to achieve a soft landing on Mars — and it transmitted for only ~20 seconds before going silent forever, likely felled by a raging global dust storm. Counted here as a de-facto impact: a technical 'first landing' that never really survived the surface. Its twin, Mars 2, crashed outright days earlier — the first human object to reach Mars." },
     // Natural surface features — the iconic geography Mars is known for.
     // Shown as outline rings instead of dots so they read as "regions" not
     // "single points". Each spans hundreds of km on the real surface.
