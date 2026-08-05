@@ -68,6 +68,16 @@ type Product = {
 // auto-synced GitHub feed. Add or remove entries ONLY on his call.
 const products: Product[] = [
   {
+    name: "Firmament",
+    tagline: "The Universe Engine, in your pocket",
+    blurb:
+      "The native iOS companion to the Universe Engine: point your iPhone at the real sky and it identifies stars, planets, the Moon and constellations from your exact location and time — then captures the night sky with a tripod-aware long-exposure camera and an on-device AI editor that recovers the real sky from a dark frame. Same fidelity philosophy, out in the field. All-custom Swift, on-device, offline.",
+    stack: ["Swift", "AVFoundation", "Apple Intelligence", "Celestron"],
+    href: "https://github.com/sinhaankur/Firmament",
+    highlight: "Field companion to the Universe Engine",
+    status: "building",
+  },
+  {
     name: "WatchTower",
     tagline: "Self-hosted deployment platform",
     blurb:
