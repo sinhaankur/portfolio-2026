@@ -14,8 +14,9 @@
 
 import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
-import { Image as ImageIcon, X, ExternalLink } from "lucide-react"
+import { Image as ImageIcon, X, ExternalLink, Telescope } from "lucide-react"
 import { fetchImagery, fetchIssPosition, type ApodItem, type IssFix } from "@/lib/imagery"
+import { fetchHubbleLatest, type HubbleImage } from "@/lib/hubble"
 
 type State =
   | { kind: "loading" }
@@ -26,6 +27,7 @@ export function ImageryPanel({ onClose }: { onClose: () => void }) {
   const [state, setState] = useState<State>({ kind: "loading" })
   const [selected, setSelected] = useState<ApodItem | null>(null)
   const [iss, setIss] = useState<IssFix | null>(null)
+  const [hubble, setHubble] = useState<HubbleImage[] | null>(null)
 
   useEffect(() => {
     let alive = true
@@ -35,6 +37,14 @@ export function ImageryPanel({ onClose }: { onClose: () => void }) {
       setState({ kind: "done", today: r.today, recent: r.recent })
       setSelected(r.today ?? r.recent[0] ?? null)
     })
+    return () => { alive = false }
+  }, [])
+
+  // Latest Hubble images (via the feed-proxy). Optional — omitted if the proxy
+  // isn't reachable yet, so the panel is useful with or without it.
+  useEffect(() => {
+    let alive = true
+    fetchHubbleLatest(6).then((r) => { if (alive && r && r.length) setHubble(r) })
     return () => { alive = false }
   }, [])
 
@@ -131,6 +141,30 @@ export function ImageryPanel({ onClose }: { onClose: () => void }) {
               </div>
             )}
 
+            {/* Latest from Hubble (via feed-proxy) */}
+            {hubble && hubble.length > 0 && (
+              <div>
+                <p className="mb-1.5 flex items-center gap-1.5 font-mono text-[9px] tracking-[0.2em] uppercase text-[#c8b6ff]">
+                  <Telescope className="h-3 w-3" /> Latest from Hubble
+                </p>
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {hubble.map((h) => (
+                    <a
+                      key={h.id}
+                      href={h.full}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={h.title}
+                      className="shrink-0 overflow-hidden rounded-md border border-border hover:border-[#c8b6ff] transition-colors"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={h.thumb} alt={h.title} loading="lazy" className="h-14 w-20 object-cover" />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Live ISS line */}
             {iss && (
               <div className="rounded-lg border border-border bg-background/60 p-2.5">
@@ -142,7 +176,7 @@ export function ImageryPanel({ onClose }: { onClose: () => void }) {
             )}
 
             <p className="font-mono text-[9px] text-muted-foreground/70">
-              Source: NASA APOD · ISS position: wheretheiss.at
+              Sources: NASA APOD{hubble ? " · HubbleSite" : ""} · ISS: wheretheiss.at
             </p>
           </div>
         )}
