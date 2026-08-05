@@ -12,7 +12,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import dynamic from "next/dynamic"
 import { motion, AnimatePresence } from "framer-motion"
-import { ArrowLeft, X, Rotate3d, Globe, Satellite, Sparkles, Rocket, Route, Orbit, Layers, Radio, Crosshair, Flame, Trash2, HelpCircle, MoreHorizontal, Radar, ArrowLeftRight } from "lucide-react"
+import { ArrowLeft, X, Rotate3d, Globe, Satellite, Sparkles, Rocket, Route, Orbit, Layers, Radio, Crosshair, Flame, Trash2, HelpCircle, MoreHorizontal, Radar, ArrowLeftRight, Image as ImageIcon } from "lucide-react"
 import { CustomCursor } from "@/components/custom-cursor"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { ClearCacheButton } from "@/components/clear-cache-button"
@@ -63,6 +63,12 @@ const SpaceWeatherPanel = dynamic(
 // Live launch feed (Launch Library 2).
 const LaunchFeed = dynamic(
   () => import("./launch-feed").then((m) => m.LaunchFeed),
+  { ssr: false },
+)
+
+// Live astronomy imagery — NASA APOD (keyless, CORS-open) + live ISS position.
+const ImageryPanel = dynamic(
+  () => import("./imagery-panel").then((m) => m.ImageryPanel),
   { ssr: false },
 )
 
@@ -214,6 +220,7 @@ export function CelestialExplorer() {
   const [weatherOpen, setWeatherOpen] = useState(false)
   // Live launch feed.
   const [launchesOpen, setLaunchesOpen] = useState(false)
+  const [imageryOpen, setImageryOpen] = useState(false)
   // Earth→Mars transfer calculator.
   const [transferOpen, setTransferOpen] = useState(false)
   // Ground-station pass planner (ISS passes from named tracking stations).
@@ -256,7 +263,7 @@ export function CelestialExplorer() {
   const [bodiesSheet, setBodiesSheet] = useState(false)
   const [toolsSheet, setToolsSheet] = useState(false)
   const [timeSheet, setTimeSheet] = useState(false)
-  const closePanels = () => { setPassesOpen(false); setWeatherOpen(false); setLaunchesOpen(false); setTransferOpen(false); setStationOpen(false); setIssLiveOpen(false); setPorkchopOpen(false); setNeoOpen(false); setInventoryOpen(false); setConjOpen(false); setReentryOpen(false); setDebrisOpen(false); setScreeningOpen(false); setProximityOpen(false) }
+  const closePanels = () => { setPassesOpen(false); setWeatherOpen(false); setLaunchesOpen(false); setImageryOpen(false); setTransferOpen(false); setStationOpen(false); setIssLiveOpen(false); setPorkchopOpen(false); setNeoOpen(false); setInventoryOpen(false); setConjOpen(false); setReentryOpen(false); setDebrisOpen(false); setScreeningOpen(false); setProximityOpen(false) }
   // `?earth=1` auto-opens the photoreal view — for capture/testing + deep-links.
   useEffect(() => {
     try {
@@ -420,6 +427,8 @@ export function CelestialExplorer() {
           label="Space weather · aurora" onClick={go(() => setWeatherOpen(true))} />
         <MenuItem color="#ffd27a" icon={<Rocket className="h-3.5 w-3.5" />}
           label="Launches" onClick={go(() => setLaunchesOpen(true))} />
+        <MenuItem color="#8ab6ff" icon={<ImageIcon className="h-3.5 w-3.5" />}
+          label="Sky imagery · APOD" onClick={go(() => setImageryOpen(true))} />
 
         <MenuHeading>Surfaces</MenuHeading>
         {hasGoogleEarthKey && (
@@ -711,6 +720,11 @@ export function CelestialExplorer() {
           {launchesOpen && (
             <div className="absolute bottom-24 left-4 md:left-6 z-40">
               <LaunchFeed onClose={() => setLaunchesOpen(false)} />
+            </div>
+          )}
+          {imageryOpen && (
+            <div className="absolute bottom-24 left-4 md:left-6 z-40">
+              <ImageryPanel onClose={() => setImageryOpen(false)} />
             </div>
           )}
           {transferOpen && (
