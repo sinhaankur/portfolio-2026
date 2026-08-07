@@ -292,6 +292,20 @@
   .ue-engine-fade-in { animation: none; opacity: 1; }
 }
 
+/* Route transition — a soft per-navigation fade for content pages (app/template.tsx).
+   Pure CSS so content is fully visible with no JS / before hydration; the keyframe
+   just eases it in when painted. Disabled under reduced motion. */
+@keyframes route-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.route-fade {
+  animation: route-fade-in 260ms ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .route-fade { animation: none; }
+}
+
 /* Universe engine — living loading fallback (StaticStarfield).
    Pure-CSS so it stays featherweight on first paint. Each star layer twinkles
    on its own cadence and drifts slowly for parallax, so the lazy-load reads as
