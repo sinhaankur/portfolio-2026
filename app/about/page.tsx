@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { canonicalPath } from "@/lib/seo"
+import { Footer } from "@/components/footer"
 
 export const metadata: Metadata = {
   ...canonicalPath("/about"),
@@ -32,7 +33,8 @@ function P({ children }: { children: React.ReactNode }) {
 
 export default function AboutPage() {
   return (
-    <main className="mx-auto max-w-3xl px-6 md:px-12 py-20 md:py-28">
+    <>
+      <main className="mx-auto max-w-3xl px-6 md:px-12 py-20 md:py-28">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(aboutSchema) }} />
 
       <Link
@@ -140,6 +142,12 @@ export default function AboutPage() {
           </Link>
         </div>
       </section>
-    </main>
+      </main>
+
+      {/* Full footer so About is a real hub, not a stop — onward to Works, Lab,
+          Contact. Contact CTA kept here (unlike the tributes): About → let's
+          collaborate is on-tone. */}
+      <Footer />
+    </>
   )
 }
