@@ -85,7 +85,9 @@ export function UpdateToast() {
     <div
       role="status"
       aria-live="polite"
-      className="update-toast fixed bottom-4 left-1/2 -translate-x-1/2 z-[9999] flex items-center gap-3 rounded-full border border-border bg-background/95 px-4 py-2.5 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.5)] backdrop-blur-md max-w-[calc(100vw-2rem)]"
+      // Sits ABOVE the bottom-right UPCOMING badge (bottom-4/6, z-30) on mobile
+      // so the centered toast never overlaps it — the recurring "overlap" rule.
+      className="update-toast fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-[9999] flex items-center gap-3 rounded-full border border-border bg-background/95 px-4 py-2.5 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.5)] backdrop-blur-md max-w-[calc(100vw-2rem)]"
     >
       <span className="font-sans text-[13px] text-foreground/85">A new version is available.</span>
       <button
