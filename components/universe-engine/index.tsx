@@ -63,7 +63,7 @@ import {
 } from "./astronomy"
 import { SceneContents } from "./scene"
 import {
-  initDeviceTier, qualityForTier, perfTierRef, superClearRef, setResolution, deviceProfileRef, adaptTier, TIER_ORDER, dprForCanvas, type DeviceTier, type ResolutionLevel,
+  initDeviceTier, qualityForTier, perfTierRef, setPerfTier, superClearRef, setResolution, deviceProfileRef, adaptTier, TIER_ORDER, dprForCanvas, type DeviceTier, type ResolutionLevel,
 } from "@/lib/device-tier"
 import { DestinationsMenu, InfoPanel, LayersMenu, ResetViewButton, TimelineControl } from "./hud"
 import { TonightSky } from "./tonight-sky"
@@ -256,14 +256,14 @@ export function UniverseEngine({
     setResolution(level)
     setResolutionState(level)
     if (level === "ultra") {
-      perfTierRef.current = "ultra"
+      setPerfTier("ultra")
       setTier("ultra")
     } else {
       // High/Standard hand rendering-cost tiering back to the automatic system at
       // the real detected tier (texture res is chosen independently via the refs);
       // a user can ask for 4K maps without also forcing ultra DPR + heavy effects.
       const detected = deviceProfileRef.current?.tier ?? "mid"
-      perfTierRef.current = detected
+      setPerfTier(detected)
       setTier(detected)
     }
   }, [])
@@ -382,7 +382,7 @@ export function UniverseEngine({
             // A downgrade sets the ceiling: the tier we just left proved too heavy,
             // so don't climb back above the one below it. This converges the loop.
             if (direction === "down") ceiling = perfTierRef.current
-            perfTierRef.current = next
+            setPerfTier(next)
             setTier(next)
             cooldownUntil = now + COOLDOWN_MS
             if (process.env.NODE_ENV !== "production") {

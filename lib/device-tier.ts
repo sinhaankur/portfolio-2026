@@ -244,11 +244,21 @@ export function setResolution(level: ResolutionLevel): void {
   hiResChosenRef.current = level === "high" || level === "ultra"
 }
 
+/** Publish the current perf tier to a global so anything outside the engine
+ *  (e.g. the bug reporter) can read what tier the device converged to. Keeps
+ *  perfTierRef the single source of truth; this just mirrors it. */
+export function setPerfTier(tier: DeviceTier): void {
+  perfTierRef.current = tier
+  if (typeof window !== "undefined") {
+    ;(window as unknown as { __ueTier?: string }).__ueTier = tier
+  }
+}
+
 /** Run detection once and latch it into the shared refs. Returns the profile. */
 export function initDeviceTier(): DeviceProfile {
   const p = detectDeviceProfile()
   deviceProfileRef.current = p
-  perfTierRef.current = p.tier
+  setPerfTier(p.tier)
   return p
 }
 
@@ -348,7 +358,14 @@ export function qualityForTier(tier: DeviceTier): QualitySettings {
     case "high":
       return { dpr: [1, 2], densityScale: 1.0, allowHiResTextures: true, allowHeavyEffects: true }
     case "mid":
-      return { dpr: [1, 1.5], densityScale: 0.7, allowHiResTextures: true, allowHeavyEffects: true }
+      // Keep the rich sky (density + effects) but DON'T auto-pull the heavy 4K/8K
+      // R2 textures — a lot of real-world devices land on "mid" (it's the default
+      // before detection + the unknown-GPU fallback), and force-loading hi-res
+      // maps there was a real lag source. Base maps still render crisp; the user
+      // can opt up to hi-res via the resolution picker ("High"/"Ultra"), which
+      // sets hiResChosenRef and overrides this. Fidelity stays available — it's
+      // just not forced onto a mid device that didn't ask for it.
+      return { dpr: [1, 1.5], densityScale: 0.7, allowHiResTextures: false, allowHeavyEffects: true }
     case "low":
     default:
       // Floor allows rendering BELOW native (0.75× → the canvas draws at 3/4 the
