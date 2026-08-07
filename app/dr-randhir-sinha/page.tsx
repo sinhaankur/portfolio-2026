@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react"
 import { canonicalPath } from "@/lib/seo"
 import { ParallaxBackdrop } from "@/components/parallax-backdrop"
 import { SilkMotif } from "@/components/silk-motif"
+import { Footer } from "@/components/footer"
 import {
   randhirStats,
   researchPapers,
@@ -183,15 +184,18 @@ function PubList({ title, pubs }: { title: string; pubs: Publication[] }) {
 
 export default function DrRandhirSinhaPage() {
   return (
-    <main className="relative mx-auto max-w-3xl px-6 md:px-12 py-20 md:py-28">
+    <main className="relative">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(personSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(publicationsSchema) }} />
 
-      {/* His field, drawn in light — silk filaments drifting on scroll. */}
+      {/* His field, drawn in light — silk filaments drifting on scroll.
+          Full-viewport backdrop lives OUTSIDE the narrow content column so the
+          fixed layer isn't trapped in a max-w stacking context. */}
       <ParallaxBackdrop speed={0.12}>
         <SilkMotif />
       </ParallaxBackdrop>
 
+      <div className="mx-auto max-w-3xl px-6 md:px-12 py-20 md:py-28">
       <Link
         href="/about"
         className="group inline-flex items-center gap-2 font-mono text-[10px] tracking-widest uppercase text-foreground/60 hover:text-foreground transition-colors mb-12"
@@ -343,6 +347,12 @@ export default function DrRandhirSinhaPage() {
           </a>.
         </p>
       </article>
+      </div>
+
+      {/* Full site footer so a visitor arriving from search isn't dead-ended —
+          they can reach Works, Lab, Contact. hideContact drops the
+          "let's collaborate" CTA, which is off-tone under a tribute. */}
+      <Footer hideContact />
     </main>
   )
 }

@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react"
 import { canonicalPath } from "@/lib/seo"
 import { ParallaxBackdrop } from "@/components/parallax-backdrop"
 import { WarmthMotif } from "@/components/warmth-motif"
+import { Footer } from "@/components/footer"
 
 export const metadata: Metadata = {
   ...canonicalPath("/vera"),
@@ -129,6 +130,9 @@ export default function VeraPage() {
           </p>
         </article>
       </div>
+
+      {/* Site footer for navigation (no "collaborate" CTA under a memorial). */}
+      <Footer hideContact />
     </main>
   )
 }
