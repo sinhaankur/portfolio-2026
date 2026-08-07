@@ -138,10 +138,11 @@ export function Navbar() {
                       <span className="absolute -bottom-1 left-0 w-0 h-px bg-foreground group-hover:w-full transition-all duration-300" />
                     </button>
                   ) : (
-                    <a
-                      href={resolved}
-                      aria-current={isActiveLink(link.href) ? "page" : undefined}
-                      className={`
+                    // next/link for real Next routes (prefetch + instant client
+                    // nav = seamless); plain <a> only for the static .html game
+                    // index, which isn't a Next route (Link would 404 it).
+                    (() => {
+                      const cls = `
                         group relative inline-flex items-center
                         font-mono text-xs tracking-wider
                         transition-colors duration-300
@@ -149,17 +150,25 @@ export function Navbar() {
                         focus-visible:ring-offset-4 focus-visible:ring-offset-background
                         rounded
                         ${isActiveLink(link.href) ? "text-foreground" : "text-muted-foreground hover:text-foreground"}
-                      `}
-                    >
-                      <Icon className={`w-3.5 h-3.5 mr-1.5 transition-opacity ${isActiveLink(link.href) ? "opacity-100 text-accent" : "opacity-70 group-hover:opacity-100"}`} aria-hidden="true" />
-                      {link.label.toUpperCase()}
-                      {/* underline: persistent when active ("you are here"), sweep on hover otherwise */}
-                      <span
-                        className={`absolute -bottom-1 left-0 h-px transition-all duration-300 ${
-                          isActiveLink(link.href) ? "w-full bg-accent" : "w-0 bg-foreground group-hover:w-full"
-                        }`}
-                      />
-                    </a>
+                      `
+                      const inner = (
+                        <>
+                          <Icon className={`w-3.5 h-3.5 mr-1.5 transition-opacity ${isActiveLink(link.href) ? "opacity-100 text-accent" : "opacity-70 group-hover:opacity-100"}`} aria-hidden="true" />
+                          {link.label.toUpperCase()}
+                          {/* underline: persistent when active ("you are here"), sweep on hover otherwise */}
+                          <span
+                            className={`absolute -bottom-1 left-0 h-px transition-all duration-300 ${
+                              isActiveLink(link.href) ? "w-full bg-accent" : "w-0 bg-foreground group-hover:w-full"
+                            }`}
+                          />
+                        </>
+                      )
+                      return resolved.includes(".html") ? (
+                        <a href={resolved} data-cursor-hover aria-current={isActiveLink(link.href) ? "page" : undefined} className={cls}>{inner}</a>
+                      ) : (
+                        <Link href={resolved} data-cursor-hover aria-current={isActiveLink(link.href) ? "page" : undefined} className={cls}>{inner}</Link>
+                      )
+                    })()
                   )}
                 </li>
               )
@@ -219,10 +228,27 @@ export function Navbar() {
               {navLinks.map((link, index) => {
                 const resolved = resolveHref(link.href)
                 const isInPageAnchor = link.href.startsWith("#") && onHome
-                const Tag = isInPageAnchor ? "button" : "a"
-                const props = isInPageAnchor
-                  ? { onClick: () => handleLinkClick(link.href) }
-                  : { href: resolved, onClick: () => setIsMenuOpen(false) }
+                const isStaticHtml = resolved.includes(".html")
+                const Icon = link.icon
+                const cls = `
+                  group inline-flex items-center gap-3 text-4xl font-sans tracking-tight
+                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+                  focus-visible:ring-offset-4 focus-visible:ring-offset-background
+                  rounded
+                  ${isActiveLink(link.href) ? "italic text-accent" : "text-foreground"}
+                `
+                const current = isActiveLink(link.href) ? ("page" as const) : undefined
+                const inner = (
+                  <>
+                    <Icon className={`w-6 h-6 ${isActiveLink(link.href) ? "text-accent" : "text-muted-foreground"}`} aria-hidden="true" />
+                    {link.label}
+                    {isActiveLink(link.href) && (
+                      <span className="ml-3 align-middle font-mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground">
+                        · here
+                      </span>
+                    )}
+                  </>
+                )
                 return (
                   <motion.div
                     key={link.label}
@@ -231,25 +257,16 @@ export function Navbar() {
                     exit={{ opacity: 0, y: 20 }}
                     transition={{ delay: index * 0.08 }}
                   >
-                    <Tag
-                      {...props}
-                      aria-current={isActiveLink(link.href) ? "page" : undefined}
-                      className={`
-                        group inline-flex items-center gap-3 text-4xl font-sans tracking-tight
-                        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
-                        focus-visible:ring-offset-4 focus-visible:ring-offset-background
-                        rounded
-                        ${isActiveLink(link.href) ? "italic text-accent" : "text-foreground"}
-                      `}
-                    >
-                      {(() => { const Icon = link.icon; return <Icon className={`w-6 h-6 ${isActiveLink(link.href) ? "text-accent" : "text-muted-foreground"}`} aria-hidden="true" /> })()}
-                      {link.label}
-                      {isActiveLink(link.href) && (
-                        <span className="ml-3 align-middle font-mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground">
-                          · here
-                        </span>
-                      )}
-                    </Tag>
+                    {/* anchor → button; static .html → <a>; real route → Link
+                        (prefetch + instant client nav; menu closes into the next
+                        page seamlessly instead of a full reload). */}
+                    {isInPageAnchor ? (
+                      <button onClick={() => handleLinkClick(link.href)} aria-current={current} className={cls}>{inner}</button>
+                    ) : isStaticHtml ? (
+                      <a href={resolved} onClick={() => setIsMenuOpen(false)} aria-current={current} className={cls}>{inner}</a>
+                    ) : (
+                      <Link href={resolved} onClick={() => setIsMenuOpen(false)} aria-current={current} className={cls}>{inner}</Link>
+                    )}
                   </motion.div>
                 )
               })}
