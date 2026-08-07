@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { RotateCcw, X } from "lucide-react"
 
 /**
@@ -19,6 +19,14 @@ import { RotateCcw, X } from "lucide-react"
 export function UpdateToast() {
   const [waiting, setWaiting] = useState<ServiceWorker | null>(null)
   const [dismissed, setDismissed] = useState(false)
+  // One guard shared by BOTH reload paths (controllerchange + the fallback
+  // timeout) so a refresh can never fire two reloads.
+  const reloadingRef = useRef(false)
+  const reloadOnce = () => {
+    if (reloadingRef.current) return
+    reloadingRef.current = true
+    window.location.reload()
+  }
 
   useEffect(() => {
     if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return
@@ -49,30 +57,25 @@ export function UpdateToast() {
     })
 
     // When the new worker takes control, reload once to get the fresh assets.
-    let reloaded = false
-    const onControllerChange = () => {
-      if (reloaded) return
-      reloaded = true
-      window.location.reload()
-    }
-    navigator.serviceWorker.addEventListener("controllerchange", onControllerChange)
+    navigator.serviceWorker.addEventListener("controllerchange", reloadOnce)
 
     return () => {
       cancelled = true
-      navigator.serviceWorker.removeEventListener("controllerchange", onControllerChange)
+      navigator.serviceWorker.removeEventListener("controllerchange", reloadOnce)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   async function refresh() {
     // Clear caches + storage so nothing stale survives the reload.
     try { if (typeof caches !== "undefined") { const k = await caches.keys(); await Promise.all(k.map((n) => caches.delete(n))) } } catch { /* */ }
-    // Tell the waiting worker to activate; controllerchange above triggers reload.
+    // Tell the waiting worker to activate; controllerchange (above) reloads once.
     if (waiting) {
       waiting.postMessage({ type: "SKIP_WAITING" })
-      // Fallback: if the worker doesn't message back, hard-reload after a beat.
-      setTimeout(() => window.location.reload(), 1200)
+      // Fallback if the worker never takes control — reloadOnce guards the race.
+      setTimeout(reloadOnce, 1200)
     } else {
-      window.location.reload()
+      reloadOnce()
     }
   }
 
