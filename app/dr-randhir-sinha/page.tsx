@@ -3,6 +3,8 @@ import Image from "next/image"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { canonicalPath } from "@/lib/seo"
+import { ParallaxBackdrop } from "@/components/parallax-backdrop"
+import { SilkMotif } from "@/components/silk-motif"
 import {
   randhirStats,
   researchPapers,
@@ -147,9 +149,14 @@ function PubList({ title, pubs }: { title: string; pubs: Publication[] }) {
 
 export default function DrRandhirSinhaPage() {
   return (
-    <main className="mx-auto max-w-3xl px-6 md:px-12 py-20 md:py-28">
+    <main className="relative mx-auto max-w-3xl px-6 md:px-12 py-20 md:py-28">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(personSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(publicationsSchema) }} />
+
+      {/* His field, drawn in light — silk filaments drifting on scroll. */}
+      <ParallaxBackdrop speed={0.12}>
+        <SilkMotif />
+      </ParallaxBackdrop>
 
       <Link
         href="/about"
@@ -281,8 +288,10 @@ export default function DrRandhirSinhaPage() {
 
         <H2>After the lab</H2>
         <P>
-          In retirement he turned to <em>farming</em> — from the genetics of one organism to the whole
-          living system of a field. A scientist&apos;s attention, applied to the soil.
+          In retirement he turned to the soil — he is building an <strong>organic farm in Munger,
+          Bihar</strong>. It&apos;s a fitting second act: from the genetics of one organism to the
+          whole living system of a field, a scientist&apos;s patience and rigour applied to growing
+          food the honest way. The same care he gave the silkworm, given now to the land he came from.
         </P>
 
         <p className="font-sans text-[15px] md:text-base text-foreground/70 leading-relaxed mt-10 pt-6 border-t border-border">
