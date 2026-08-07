@@ -253,12 +253,12 @@ export default function SnowtintCaseStudy() {
         intro="Studio days — IoT sessions, design discussions, team meals, and everyday office life at Snowtint."
         moments={[
           {
-            src: "/img/case-studies/snowtint/Snowtint1.JPG",
+            src: "/img/case-studies/snowtint/Snowtint1.webp",
             alt: "IoT project session with Sibin Santhosh and Murali",
             caption: "IoT project session with Sibin Santhosh and Murali.",
           },
           {
-            src: "/img/case-studies/snowtint/snowtint3.jpg",
+            src: "/img/case-studies/snowtint/snowtint3.webp",
             alt: "Team collaboration with developer Srinivas",
             caption: "Team collaboration with our developer Srinivas.",
           },
@@ -273,7 +273,7 @@ export default function SnowtintCaseStudy() {
             caption: "Everyday moments from Snowtint office life.",
           },
           {
-            src: "/img/case-studies/snowtint/IMG_5198.JPG",
+            src: "/img/case-studies/snowtint/IMG_5198.webp",
             alt: "A memorable snapshot from the Snowtint journey",
             caption: "A memorable snapshot from the Snowtint journey.",
           },

@@ -84,7 +84,7 @@ export function DnaVisualization({ data }: { data: DnaSummary }) {
         <div className="grid md:grid-cols-2 gap-8 md:gap-10 items-center">
           <div className="rounded-lg border border-border bg-secondary/20 p-4">
             <img
-              src="/img/dna/helix-diagram.png"
+              src="/img/dna/helix-diagram.webp"
               alt="Labeled double-helix diagram: two backbone strands connected by colored base-pair rungs"
               loading="lazy"
               decoding="async"
@@ -258,7 +258,7 @@ export function DnaVisualization({ data }: { data: DnaSummary }) {
             />
             {/* gentle float so the illustration has life without the 3D cost */}
             <img
-              src="/img/dna/helix-illustrated.png"
+              src="/img/dna/helix-illustrated.webp"
               alt="Illustrated double helix: two backbones with colour-coded base-pair rungs (A amber, C teal, G violet, T rose)"
               loading="lazy"
               decoding="async"

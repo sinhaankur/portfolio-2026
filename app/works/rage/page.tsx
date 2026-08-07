@@ -323,27 +323,27 @@ export default function RageCaseStudy() {
         intro="First UX role, DDH team. People I learned the craft from."
         moments={[
           {
-            src: "/img/case-studies/rage/R1.jpg",
+            src: "/img/case-studies/rage/R1.webp",
             alt: "With Chella, lead UX designer at Rage",
             caption: "With Chella, lead UX designer.",
           },
           {
-            src: "/img/case-studies/rage/R2.png",
+            src: "/img/case-studies/rage/R2.webp",
             alt: "The DDH team at Rage",
             caption: "The DDH team at Rage.",
           },
           {
-            src: "/img/case-studies/rage/R3.png",
+            src: "/img/case-studies/rage/R3.webp",
             alt: "With Krishanan, UX manager at Rage",
             caption: "With Krishanan, UX manager.",
           },
           {
-            src: "/img/case-studies/rage/R4.jpg",
+            src: "/img/case-studies/rage/R4.webp",
             alt: "Rage team outing and bonding",
             caption: "Team outing and bonding.",
           },
           {
-            src: "/img/case-studies/rage/R5.png",
+            src: "/img/case-studies/rage/R5.webp",
             alt: "With Mitra, business analyst at Rage",
             caption: "With Mitra, business analyst.",
           },
