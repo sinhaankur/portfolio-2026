@@ -86,10 +86,36 @@ export function CustomCursor() {
   useEffect(() => {
     if (!enabled) return
 
+    // Remember the last pointer position in VIEWPORT coordinates. The custom
+    // reticle is position:fixed, so on scroll the pointer stays at the same
+    // client x/y — but `mousemove` does NOT fire during a pure scroll, so
+    // without re-affirming the position the reticle can read as frozen/detached
+    // (the "pointer acting up on scroll" bug). We re-set it on scroll so it
+    // stays glued to the real pointer, and refresh the hover target too.
+    let lastX = 0
+    let lastY = 0
+    let hasPos = false
+
     const handleMove = (e: MouseEvent) => {
+      lastX = e.clientX
+      lastY = e.clientY
+      hasPos = true
       x.set(e.clientX)
       y.set(e.clientY)
       setIsVisible(true)
+    }
+    // rAF-throttle the scroll work so elementFromPoint runs at most once per
+    // frame — never per scroll event (which can fire far more often).
+    let scrollRaf = 0
+    const handleScroll = () => {
+      if (!hasPos || scrollRaf) return
+      scrollRaf = requestAnimationFrame(() => {
+        scrollRaf = 0
+        x.set(lastX)
+        y.set(lastY)
+        const el = document.elementFromPoint(lastX, lastY) as HTMLElement | null
+        setIsHoveringLink(Boolean(el?.closest?.("a, button, [data-cursor-hover]")))
+      })
     }
     const handleEnter = () => setIsVisible(true)
     const handleLeave = () => setIsVisible(false)
@@ -112,6 +138,7 @@ export function CustomCursor() {
     }
 
     window.addEventListener("mousemove", handleMove)
+    window.addEventListener("scroll", handleScroll, { passive: true })
     document.addEventListener("mouseenter", handleEnter)
     document.addEventListener("mouseleave", handleLeave)
     document.addEventListener("mouseover", handleHoverStart)
@@ -120,11 +147,13 @@ export function CustomCursor() {
 
     return () => {
       window.removeEventListener("mousemove", handleMove)
+      window.removeEventListener("scroll", handleScroll)
       document.removeEventListener("mouseenter", handleEnter)
       document.removeEventListener("mouseleave", handleLeave)
       document.removeEventListener("mouseover", handleHoverStart)
       document.removeEventListener("mouseout", handleHoverEnd)
       window.removeEventListener("universe:hover", handleUniverseHover)
+      if (scrollRaf) cancelAnimationFrame(scrollRaf)
     }
   }, [enabled, x, y])
 

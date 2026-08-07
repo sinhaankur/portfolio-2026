@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Download } from "lucide-react"
 import { SignalTuner } from "./signal-tuner"
 import { LiveStatus } from "./live-status"
+import { ReportBug } from "./report-bug"
 
 // Baked at build time via next.config (NEXT_PUBLIC_BUILD_TIME). Falls back to
 // now in dev. Reflects each deploy, not the visitor's clock.
@@ -257,6 +258,9 @@ export function Footer({ hideContact = false }: { hideContact?: boolean } = {}) 
                   </li>
                 )
               })}
+              <li>
+                <ReportBug area="Website" />
+              </li>
             </ul>
           </div>
 

@@ -11,6 +11,7 @@ import {
   conferencePapers,
   popularArticles,
   booksAndCatalogues,
+  careerPosts,
   type Publication,
 } from "@/lib/randhir-publications"
 
@@ -46,6 +47,7 @@ const personSchema = {
   name: "Dr. Randhir Kumar Sinha",
   honorificPrefix: "Dr.",
   honorificSuffix: "Ph.D.",
+  birthDate: "1949-01-10",
   jobTitle: "Scientist-D (Joint Director, retd.), Central Sericultural Germplasm Resources Centre",
   affiliation: {
     "@type": "GovernmentOrganization",
@@ -106,6 +108,38 @@ function Stat({ value, label }: { value: string; label: string }) {
       <div className="font-display text-3xl md:text-4xl font-light tracking-[-0.02em] text-foreground">{value}</div>
       <div className="font-mono text-[10px] tracking-[0.15em] uppercase text-foreground/50 mt-1">{label}</div>
     </div>
+  )
+}
+
+/** His 34-year career as a connected vertical timeline of postings. */
+function CareerTimeline() {
+  return (
+    <ol className="relative mt-6 space-y-6 border-l border-border/70 pl-6 md:pl-8">
+      {careerPosts.map((post, i) => (
+        <li key={i} className="relative group">
+          {/* Node on the spine — the first (current) one glows amber. */}
+          <span
+            className={`absolute -left-[calc(1.5rem+1px)] md:-left-[calc(2rem+1px)] top-1.5 grid place-items-center`}
+          >
+            <span
+              className={`block h-2.5 w-2.5 rounded-full ring-4 ring-background ${
+                i === 0 ? "bg-accent shadow-[0_0_12px_var(--accent)]" : "bg-foreground/30 group-hover:bg-accent"
+              } transition-colors`}
+            />
+          </span>
+          <div className="rounded-xl border border-border bg-secondary/10 p-4 md:p-5 transition-colors group-hover:border-accent/40">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+              <p className="font-sans text-[15px] font-medium text-foreground">{post.role}</p>
+              <p className="font-mono text-[11px] tracking-[0.15em] uppercase text-accent">{post.years}</p>
+            </div>
+            <p className="font-sans text-[13px] text-foreground/60 mt-0.5">
+              {post.institute} · {post.place}
+            </p>
+            <p className="font-sans text-[13px] leading-relaxed text-foreground/75 mt-2">{post.work}</p>
+          </div>
+        </li>
+      ))}
+    </ol>
   )
 }
 
@@ -233,6 +267,14 @@ export default function DrRandhirSinhaPage() {
           </a>{" "}
           profile.
         </P>
+
+        <H2>The journey</H2>
+        <P>
+          Thirty-four years, eight postings, across the length of India — from the Himalayan foothills
+          to the tropical south. Each stop, a different silkworm, a different set of farmers, the same
+          patient science.
+        </P>
+        <CareerTimeline />
 
         <H2>The archive</H2>
         <P>

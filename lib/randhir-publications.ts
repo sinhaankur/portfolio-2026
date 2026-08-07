@@ -32,6 +32,76 @@ export const randhirStats = {
   silkwormAccessions: 450,
 } as const
 
+/** A posting in his 34-year career — for the visual timeline. Newest first.
+    All from his official biodata (RKS Bio-data). */
+export type CareerPost = {
+  years: string
+  role: string
+  place: string
+  institute: string
+  /** One-line of what he did there. */
+  work: string
+}
+
+export const careerPosts: CareerPost[] = [
+  {
+    years: "2008 →",
+    role: "Retired — organic farmer",
+    place: "Munger, Bihar",
+    institute: "After the lab",
+    work: "Building an organic farm — a scientist's rigour applied to growing food the honest way.",
+  },
+  {
+    years: "1995–2008",
+    role: "Divisional Chief · Joint Director (Scientist-D)",
+    place: "Hosur, Tamil Nadu",
+    institute: "Central Sericultural Germplasm Resources Centre (CSGRC)",
+    work: "Conserved India's silkworm genetic diversity — 1,125 mulberry + 450 silkworm accessions; ran 15 research projects with 30 staff.",
+  },
+  {
+    years: "1992–1995",
+    role: "Deputy Director",
+    place: "Imphal, Manipur",
+    institute: "Regional Tasar Research Station (RTRS)",
+    work: "Oak-tasar breed development, seed production, and extension reaching 100 poor farming families.",
+  },
+  {
+    years: "1985–1992",
+    role: "Head, Breeding & Genetics",
+    place: "Ranchi, Jharkhand",
+    institute: "Central Tasar Research & Training Institute (CTR&TI)",
+    work: "Developed high-yielding tasar breeds and field-tested them for breed authorization.",
+  },
+  {
+    years: "1982–1985",
+    role: "Senior Research Officer",
+    place: "Kolar, Karnataka",
+    institute: "Research Extension Centre (REC)",
+    work: "Region- and season-specific silkworm breeds and mulberry varieties; technology transfer to 1,000 farmers.",
+  },
+  {
+    years: "1981–1982",
+    role: "Senior Research Officer",
+    place: "Mysore, Karnataka",
+    institute: "Central Sericultural Research & Training Institute (CSR&TI)",
+    work: "R&D support to tropical mulberry sericulture.",
+  },
+  {
+    years: "1977–1981",
+    role: "Senior Research Assistant",
+    place: "Bir, Himachal Pradesh",
+    institute: "Research Extension Centre (REC)",
+    work: "Established the centre; developed breeds and popularized oak-tasar culture, reaching 500 farmers.",
+  },
+  {
+    years: "1975–1977",
+    role: "Senior Research Assistant",
+    place: "Ranchi & Batote (J&K)",
+    institute: "CTR&TI / Regional Tasar Research Station",
+    work: "High-yielding tasar breeds and technology transfer to farmers — where it all began.",
+  },
+]
+
 /** Peer-reviewed research papers, newest groups first. */
 export const researchPapers: Publication[] = [
   // 2008
