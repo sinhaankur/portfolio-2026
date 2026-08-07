@@ -306,6 +306,18 @@
   .route-fade { animation: none; }
 }
 
+/* "New version available" toast — slides up gently from the bottom. */
+@keyframes update-toast-in {
+  from { opacity: 0; transform: translate(-50%, 12px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+.update-toast {
+  animation: update-toast-in 320ms ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .update-toast { animation: none; }
+}
+
 /* Universe engine — living loading fallback (StaticStarfield).
    Pure-CSS so it stays featherweight on first paint. Each star layer twinkles
    on its own cadence and drifts slowly for parallax, so the lazy-load reads as

@@ -1,6 +1,12 @@
 const CACHE_NAME = "portfolio-shell-v4"
 const SHELL_ASSETS = ["/", "/offline.html", "/manifest.webmanifest", "/apple-touch-icon.png", "/icon.svg"]
 
+// The UpdateToast's "Refresh" button posts this so a waiting worker activates
+// immediately (controllerchange then reloads the page with fresh assets).
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") self.skipWaiting()
+})
+
 self.addEventListener("install", (event) => {
   event.waitUntil(
     (async () => {

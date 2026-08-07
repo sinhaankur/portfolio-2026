@@ -13,6 +13,7 @@ import { TimeOfDayTheme } from "@/components/time-of-day-theme"
 import { DisplayPrefsProvider } from "@/components/display-prefs"
 import { VisitorAnalytics } from "@/components/analytics/visitor-analytics"
 import { Preloader } from "@/components/preloader"
+import { UpdateToast } from "@/components/update-toast"
 import "./globals.css"
 
 // Google Tag Manager container — feeds GA4 + any future marketing tags from
@@ -362,6 +363,9 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
             </a>
             <div className="noise-overlay" aria-hidden="true" />
             {children}
+            {/* "A new version is available" prompt when the service worker has a
+                fresh deploy waiting — so visitors aren't stuck on a stale shell. */}
+            <UpdateToast />
           </DisplayPrefsProvider>
         </ThemeProvider>
       </body>

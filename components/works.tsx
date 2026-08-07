@@ -99,8 +99,9 @@ export function Works() {
 
   return (
     <section
+      id="works"
       aria-labelledby="works-heading"
-      className="relative py-24 md:py-32 px-6 md:px-12"
+      className="relative scroll-mt-24 py-24 md:py-32 px-6 md:px-12"
     >
       <div className="mx-auto w-full max-w-6xl">
         {/* Section header */}

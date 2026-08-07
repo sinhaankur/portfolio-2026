@@ -107,6 +107,32 @@ function FooterSky() {
   )
 }
 
+/** A quiet footer link that force-refreshes: clears caches + storage, unregisters
+ *  the service worker, then hard-reloads. The manual escape hatch for a stale
+ *  deploy (the UpdateToast is the automatic prompt; this is the always-there one). */
+function RefreshLink() {
+  async function refresh() {
+    try { localStorage.clear() } catch { /* private mode */ }
+    try { sessionStorage.clear() } catch { /* */ }
+    try { if (typeof caches !== "undefined") { const k = await caches.keys(); await Promise.all(k.map((n) => caches.delete(n))) } } catch { /* */ }
+    try { if (navigator.serviceWorker) { const r = await navigator.serviceWorker.getRegistrations(); await Promise.all(r.map((x) => x.unregister())) } } catch { /* */ }
+    const url = new URL(window.location.href)
+    url.searchParams.set("fresh", Date.now().toString(36))
+    window.location.replace(url.toString())
+  }
+  return (
+    <button
+      type="button"
+      onClick={refresh}
+      data-cursor-hover
+      aria-label="Refresh — clear cache and reload the latest version"
+      className="font-mono text-xs tracking-widest text-muted-foreground hover:text-foreground transition-colors duration-300"
+    >
+      REFRESH
+    </button>
+  )
+}
+
 const socials: Array<{ label: string; href: string; download?: boolean }> = [
   { label: "About", href: "/about" },
   { label: "Framework", href: "/framework" },
@@ -144,8 +170,9 @@ export function Footer({ hideContact = false }: { hideContact?: boolean } = {}) 
           where a 'let's collaborate' CTA is off-tone). */}
       {!hideContact && (
       <section
+        id="contact"
         aria-labelledby="contact-heading"
-        className="relative overflow-hidden px-6 md:px-12 py-20 md:py-28 border-t border-border"
+        className="relative scroll-mt-24 overflow-hidden px-6 md:px-12 py-20 md:py-28 border-t border-border"
       >
         <FooterSky />
         <div className="relative mx-auto max-w-6xl">
@@ -268,6 +295,9 @@ export function Footer({ hideContact = false }: { hideContact?: boolean } = {}) 
               })}
               <li>
                 <ReportBug area="Website" />
+              </li>
+              <li>
+                <RefreshLink />
               </li>
             </ul>
           </div>
