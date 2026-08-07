@@ -24,6 +24,13 @@ const nextConfig = {
   // Allow dev resources (HMR/assets) when opening the site from a phone on LAN.
   allowedDevOrigins: ["192.168.1.79", "localhost", "127.0.0.1"],
 
+  // Tree-shake barrel-file libraries so a page only ships the icons/components it
+  // actually uses, not the whole package. lucide-react especially is a large barrel
+  // (1000+ icons) imported on nearly every page — this trims the shared bundle.
+  experimental: {
+    optimizePackageImports: ["lucide-react", "framer-motion", "@react-three/drei"],
+  },
+
   // Turbopack alias map — stubs the Node-only `node:fs/promises` and
   // `node:path` imports that the Anthropic SDK pulls in transitively via
   // its managed-agents environment-worker namespace. The browser never
