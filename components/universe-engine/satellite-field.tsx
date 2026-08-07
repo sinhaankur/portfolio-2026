@@ -183,11 +183,13 @@ export function classifyArchetype(name: string, owner: string, altKm: number, ty
 }
 
 /**
- * Selection bridge — the explorer's search box (DOM) writes the chosen NORAD id
- * here; SatelliteField (R3F) reads it to highlight + follow + ring the satellite.
- * Module-scoped ref mirrors the engine's flyToRef/followRef loose-coupling.
+ * Selection bridge refs (selectedSatRef, satGroupFilterRef, showAllSatsRef) now
+ * live in the Three-free `./satellite-refs` module so the DOM chrome can import
+ * them without dragging in this file's Three.js dependency. Re-exported here so
+ * the engine's internal call sites keep importing them from `./satellite-field`.
  */
-export const selectedSatRef: { current: number | null } = { current: null }
+export { selectedSatRef, satGroupFilterRef, showAllSatsRef } from "./satellite-refs"
+import { selectedSatRef, satGroupFilterRef, showAllSatsRef } from "./satellite-refs"
 
 /** The chosen archetype label for the selected satellite (e.g. "Starlink
  *  flat-pack"), so the DOM search card can name what kind of craft it is. */
@@ -384,13 +386,10 @@ export const SAT_GROUPS = [
   "Rocket bodies",
   "Other",
 ] as const
-export const satGroupFilterRef: { current: number } = { current: -1 }
-
-/** "Show all" override: when true, the overview LOD cull stands down entirely so
- *  the FULL ~18.6k catalogue is visible at once, even from far out (Ankur: "I wish
- *  we could see all the satellites at once"). Off by default — the cull keeps the
- *  far view from becoming a solid crust that hides Earth. Toggled from the HUD. */
-export const showAllSatsRef: { current: boolean } = { current: false }
+// satGroupFilterRef + showAllSatsRef now live in ./satellite-refs (re-exported at
+// the top of this file). "Show all": when true the overview LOD cull stands down
+// so the FULL ~18.6k catalogue is visible at once (Ankur wanted this) — off by
+// default so the far view doesn't become a solid crust hiding Earth.
 
 /** Real fragmentation-event families — the collisions + ASAT tests that created
  *  the biggest tracked debris clouds. name-prefix → a family id, so the swarm can

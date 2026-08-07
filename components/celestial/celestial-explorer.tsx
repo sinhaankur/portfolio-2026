@@ -22,7 +22,7 @@ import { TimelineControl } from "@/components/universe-engine/hud"
 import { BODIES } from "@/lib/celestial-data"
 import { SatelliteSearch } from "./satellite-search"
 import { useIsMobile, MobileBar, BodiesSheet, Sheet } from "./mobile-controls"
-import { selectedSatRef, satGroupFilterRef, showAllSatsRef } from "@/components/universe-engine/satellite-field"
+import { selectedSatRef, satGroupFilterRef, showAllSatsRef } from "@/components/universe-engine/satellite-refs"
 import { setSimMs, timeScaleRef, hiResTexturesRef } from "@/components/universe-engine/astronomy"
 import { hasGoogleEarthKey } from "@/components/universe-engine/google-earth-tiles"
 

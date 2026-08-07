@@ -1,10 +1,18 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import dynamic from "next/dynamic"
 import { Download } from "lucide-react"
-import { SignalTuner } from "./signal-tuner"
 import { LiveStatus } from "./live-status"
 import { ReportBug } from "./report-bug"
+
+// SignalTuner (the contact widget) pulls in framer-motion — but it only renders
+// in the contact section, which pages can hide (hideContact). Lazy-load it so
+// tribute/hub pages that use <Footer hideContact> don't ship its bundle.
+const SignalTuner = dynamic(
+  () => import("./signal-tuner").then((m) => m.SignalTuner),
+  { ssr: false, loading: () => <div className="h-40" aria-hidden /> },
+)
 
 // Baked at build time via next.config (NEXT_PUBLIC_BUILD_TIME). Falls back to
 // now in dev. Reflects each deploy, not the visitor's clock.
