@@ -191,314 +191,35 @@ export function classifyArchetype(name: string, owner: string, altKm: number, ty
 export { selectedSatRef, satGroupFilterRef, showAllSatsRef } from "./satellite-refs"
 import { selectedSatRef, satGroupFilterRef, showAllSatsRef } from "./satellite-refs"
 
-/** The chosen archetype label for the selected satellite (e.g. "Starlink
- *  flat-pack"), so the DOM search card can name what kind of craft it is. */
-export const selectedArchetypeRef: { current: string | null } = { current: null }
+// The Three-FREE satellite data layer (types, bridge refs, SGP4-math helpers,
+// catalogue loading, classification) lives in ./satellite-data so the DOM chrome
+// can import it without this file's Three.js bundle. Re-export the whole surface
+// so existing `./satellite-field` imports elsewhere keep resolving unchanged.
+export * from "./satellite-data"
+import {
+  EARTH_RADIUS_KM,
+  type Vec3, type Sgp4, type Sat, type SatType, type SatMeta, type SatRecord,
+  type SatOrbit, type NearestSat, type LaunchMate,
+  selectedArchetypeRef, selectedArchetypeIdRef, selectedOrbitRef, observerRef,
+  satLibRef, satrecsRef, satsRef,
+  satTypeFilterRef, satRegimeFilterRef, debrisFamilyFilterRef,
+  SAT_GROUPS, DEBRIS_FAMILIES,
+  clampToSpaceAge, finitePos,
+  classifyDebrisFamily, classifyRegimeId, classifyGroup, orbitRegime,
+  launchDesignator, launchMatesFor, findNearestOverhead,
+  loadFullCatalog, loadSatelliteCatalog,
+} from "./satellite-data"
 
-/** The chosen archetype ID (e.g. "hubble", "starlink2") — lets the DOM card look
- *  up the craft's curated anatomy + build spec (CRAFT_ANATOMY, exported below). */
-export const selectedArchetypeIdRef: { current: string | null } = { current: null }
+// The satellite data layer (types, bridge refs, SGP4-math helpers, catalogue
+// loading, classification: selectedArchetypeRef, SatOrbit, observerRef, satLibRef,
+// launchMatesFor, findNearestOverhead, orbitRegime, SAT_GROUPS, DEBRIS_FAMILIES,
+// classify*, loadSatelliteCatalog, Vec3, Sgp4, clampToSpaceAge, finitePos, …) all
+// moved to ./satellite-data (Three-free) and are imported at the top of this file.
 
-/** Live orbital readout for the selected satellite — derived from its SGP4
- *  satrec (inclination, apogee/perigee) + live propagation (altitude, speed).
- *  The DOM search card polls this to show real numbers, not just a label.
- *   altitudeKm  current height above Earth's surface
- *   speedKms    current orbital speed
- *   apogeeKm/perigeeKm  farthest/closest altitude of the orbit
- *   periodMin   time for one revolution
- *   inclinationDeg  tilt of the orbital plane vs the equator
- *   regime      human label for the orbit band (LEO/MEO/GEO/HEO) */
-export type SatOrbit = {
-  altitudeKm: number
-  speedKms: number
-  apogeeKm: number
-  perigeeKm: number
-  periodMin: number
-  inclinationDeg: number
-  regime: string
-  // Live sub-satellite point — the spot on Earth it's directly over right now.
-  subLatDeg: number
-  subLonDeg: number
-  // Live distance from the user's own location (slant range, straight line) and
-  // how high above their horizon the object sits. null until they grant location
-  // — altitudeKm (height above ground) is always known; this is "far from ME".
-  slantRangeKm: number | null
-  elevationDeg: number | null
-  // Live TIME / lighting state — the "when + is it lit" layer, updated per frame:
-  //   sunlit          catching the sun right now vs in Earth's shadow (eclipse).
-  //   orbitsPerDay    revolutions per day (86400 / period-seconds).
-  //   groundSpeedKms  speed of the sub-satellite point over the ground — the
-  //                   shadow's pace, always < orbital speed (Earth's radius vs
-  //                   orbital radius), the intuitive "how fast it crosses the sky".
-  sunlit: boolean
-  orbitsPerDay: number
-  groundSpeedKms: number
-}
-export const selectedOrbitRef: { current: SatOrbit | null } = { current: null }
-
-/** The user's own location, in RADIANS (satellite.js observerGd form), set by the
- *  search card once geolocation is granted. While null, the slant-range readout
- *  stays "—". Height is metres → km-agnostic (satellite.js takes km); ground level
- *  is a fine approximation for a distance that runs to hundreds/thousands of km. */
-export const observerRef: {
-  current: { longitude: number; latitude: number; height: number } | null
-} = { current: null }
-
-/** Bridge refs the field publishes once the catalogue + satellite.js load, so the
- *  DOM card can scan the whole catalogue on demand (nearest-overhead) without
- *  re-fetching or re-parsing anything. satrecsRef is aligned index-for-index with
- *  satsRef. Both stay null until the field has mounted + loaded. */
-export const satLibRef: { current: Sgp4 | null } = { current: null }
-export const satrecsRef: { current: unknown[] } = { current: [] }
-export const satsRef: { current: Sat[] } = { current: [] }
-
-export type NearestSat = {
-  id: number
-  name: string
-  slantRangeKm: number
-  elevationDeg: number
-  altitudeKm: number
-}
-
-/** The COSPAR international designator's LAUNCH part — TLE line 1, columns
- *  10–14 (0-based 9–13): "YYNNN" (year + launch number). Every object put up by
- *  the SAME launch shares it (piece A = payload, B/C… = rocket body + debris).
- *  This is the honest key for "what else came from this launch" — real shared
- *  catalog data, never inferred. Returns "" if the TLE has no designator. */
-export function launchDesignator(l1?: string): string {
-  if (!l1 || l1.length < 14) return ""
-  return l1.slice(9, 14).trim()
-}
-
-export type LaunchMate = {
-  id: number
-  name: string
-  type: "PAY" | "R/B" | "DEB" | string
-  piece: string // the COSPAR piece letters (e.g. "A", "C", "BK")
-  altitudeKm: number | null
-}
-
-/** Every OTHER tracked object from the same launch as `satId` — its spent
- *  rocket body and any catalogued fragments/debris — each with its current
- *  altitude. Honest: only what the catalogue actually carries (most normal
- *  launches list just the payload; the big fragmentation events list their
- *  whole cloud). Returns [] when there are no launch-mates in the data. */
-export function launchMatesFor(satId: number, atMs: number = Date.now()): LaunchMate[] {
-  const sats = satsRef.current
-  const recs = satrecsRef.current
-  const lib = satLibRef.current
-  if (!sats || sats.length === 0) return []
-  const self = sats.find((s) => s.id === satId)
-  if (!self) return []
-  const launch = launchDesignator(self.l1)
-  if (!launch) return []
-  const date = new Date(clampToSpaceAge(atMs))
-  let gmst = 0
-  try { gmst = lib ? lib.gstime(date) : 0 } catch { gmst = 0 }
-  const out: LaunchMate[] = []
-  for (let i = 0; i < sats.length; i++) {
-    const s = sats[i]
-    if (s.id === satId) continue
-    if (launchDesignator(s.l1) !== launch) continue
-    // altitude via SGP4 (best-effort; null if it won't propagate).
-    let altitudeKm: number | null = null
-    try {
-      const r = lib && recs[i] ? (lib.propagate(recs[i] as never, date) as { position?: Vec3 }) : null
-      const p = finitePos(r)
-      if (p) altitudeKm = Math.sqrt(p.x * p.x + p.y * p.y + p.z * p.z) - 6371
-    } catch { /* leave null */ }
-    out.push({
-      id: s.id,
-      name: s.name,
-      type: s.type ?? "",
-      piece: s.l1.length >= 17 ? s.l1.slice(14, 17).trim() : "", // COSPAR piece letters
-      altitudeKm,
-    })
-  }
-  // rocket bodies first, then debris, then other payloads; by altitude within.
-  const rank = (t: string) => (t === "R/B" ? 0 : t === "DEB" ? 1 : 2)
-  out.sort((a, b) => rank(a.type) - rank(b.type) || (b.altitudeKm ?? 0) - (a.altitudeKm ?? 0))
-  return out
-}
-
-/** Scan the FULL catalogue for the object physically closest to the user right now
- *  (smallest slant range), among those actually above their horizon. One SGP4 pass
- *  over ~18.7k records (~a few hundred ms) — call on demand, not per frame. Returns
- *  null if location isn't shared or the catalogue hasn't loaded. The elevation gate
- *  (>0°) is the honest filter: an object below the horizon is on the far side of
- *  Earth — "nearest" should mean nearest thing you could actually look up at. */
-export function findNearestOverhead(atMs: number = Date.now()): NearestSat | null {
-  const lib = satLibRef.current
-  const obs = observerRef.current
-  const recs = satrecsRef.current
-  const sats = satsRef.current
-  if (!lib || !obs || recs.length === 0) return null
-  const date = new Date(clampToSpaceAge(atMs))
-  let gmst: number
-  try { gmst = lib.gstime(date) } catch { return null }
-  let best: NearestSat | null = null
-  for (let i = 0; i < recs.length; i++) {
-    const rec = recs[i]
-    if (!rec) continue
-    let r: { position?: Vec3 } | false = false
-    try { r = lib.propagate(rec, date) } catch { r = false }
-    const p = finitePos(r)
-    if (!p) continue
-    const ecf = lib.eciToEcf(p, gmst)
-    const la = lib.ecfToLookAngles(obs, ecf)
-    if (la.elevation <= 0) continue // below horizon — far side of Earth
-    if (best && la.rangeSat >= best.slantRangeKm) continue
-    const s = sats[i]
-    best = {
-      id: s?.id ?? -1,
-      name: s?.name ?? "Unknown",
-      slantRangeKm: la.rangeSat,
-      elevationDeg: (la.elevation * 180) / Math.PI,
-      altitudeKm: Math.sqrt(p.x * p.x + p.y * p.y + p.z * p.z) - EARTH_RADIUS_KM,
-    }
-  }
-  return best
-}
-
-/** Name the orbit band from apogee/perigee — the quick "where does it live?"
- *  read most people recognise (ISS = LEO, GPS = MEO, comsats = GEO). */
-function orbitRegime(apogeeKm: number, perigeeKm: number): string {
-  const mean = (apogeeKm + perigeeKm) / 2
-  const ecc = (apogeeKm - perigeeKm) / (apogeeKm + perigeeKm + 2 * EARTH_RADIUS_KM)
-  if (ecc > 0.25) return "Highly elliptical (HEO)"
-  if (mean < 2000) return "Low Earth orbit (LEO)"
-  if (mean < 34000) return "Medium Earth orbit (MEO)"
-  if (mean < 37000) return "Geostationary (GEO)"
-  return "High orbit"
-}
-
-export type SatMeta = { id: number; name: string; owner: string; type?: "PAY" | "R/B" | "DEB"; launchMs: number; site?: string }
-
-/** Constellation/group filter — view one layer at a time or everything at
- *  once. The HUD chips write this ref; the field reads it per-frame into a
- *  shader uniform. -1 = all groups. */
-export const SAT_GROUPS = [
-  "Starlink",
-  "OneWeb",
-  "Navigation",
-  "Stations",
-  "Debris",
-  "Rocket bodies",
-  "Other",
-] as const
-// satGroupFilterRef + showAllSatsRef now live in ./satellite-refs (re-exported at
-// the top of this file). "Show all": when true the overview LOD cull stands down
-// so the FULL ~18.6k catalogue is visible at once (Ankur wanted this) — off by
-// default so the far view doesn't become a solid crust hiding Earth.
-
-/** Real fragmentation-event families — the collisions + ASAT tests that created
- *  the biggest tracked debris clouds. name-prefix → a family id, so the swarm can
- *  isolate one cloud (e.g. all ~1,900 Fengyun-1C fragments) to make the scale of
- *  a single event VISIBLE. Order fixed = the id. */
-export const DEBRIS_FAMILIES = [
-  { id: 0, prefix: "FENGYUN 1C", label: "Fengyun-1C", event: "China ASAT test", year: 2007 },
-  { id: 1, prefix: "COSMOS 2251", label: "Cosmos-2251", event: "Iridium collision", year: 2009 },
-  { id: 2, prefix: "IRIDIUM 33", label: "Iridium-33", event: "Cosmos collision", year: 2009 },
-  { id: 3, prefix: "COSMOS 1408", label: "Cosmos-1408", event: "Russia ASAT test", year: 2021 },
-] as const
-/** Family filter for the swarm: -1 = no family isolated, else a DEBRIS_FAMILIES id. */
-export const debrisFamilyFilterRef: { current: number } = { current: -1 }
-
-/** Object-type filter for the swarm, driven by the search card's ALL/ACTIVE/DEBRIS
- *  chips so the choice is VISIBLE in the 3D scene (not just the results list):
- *  -1 = all · 0 = active payloads only (debris hidden) · 1 = debris/rocket only. */
-export const satTypeFilterRef: { current: number } = { current: -1 }
-
-/** Classify a debris object into a fragmentation family id, or -1 if none. */
-export function classifyDebrisFamily(name: string): number {
-  const n = name.toUpperCase()
-  for (const f of DEBRIS_FAMILIES) if (n.startsWith(f.prefix)) return f.id
-  return -1
-}
-
-/** Orbit-REGIME filter (set by the census panel): -1 = all, else 0=LEO 1=MEO
- *  2=GEO 3=HEO. Parallel to the group filter; both AND together in the shader. */
-export const satRegimeFilterRef: { current: number } = { current: -1 }
-
-/** Classify a catalogue object into an orbit-regime id from its real TLE
- *  elements (0=LEO, 1=MEO, 2=GEO, 3=HEO). Same thresholds as lib/sat-inventory. */
-export function classifyRegimeId(l2: string): number {
-  const mm = parseFloat(l2.substring(52, 63))
-  if (!(mm > 0)) return 0
-  const ecc = parseFloat("0." + l2.substring(26, 33).trim())
-  if (ecc > 0.25) return 3 // HEO
-  const n = (mm * 2 * Math.PI) / 86400
-  const a = Math.cbrt(398600.4418 / (n * n))
-  const alt = a - 6371
-  if (alt < 2000) return 0  // LEO
-  if (alt < 34000) return 1 // MEO
-  if (alt < 37000) return 2 // GEO
-  return 1
-}
-
-/** Classify a catalogue object into a viewing group (name/type based). */
-export function classifyGroup(name: string, type?: string): number {
-  if (type === "DEB") return 4
-  if (type === "R/B") return 5
-  const n = name.toUpperCase()
-  if (n.includes("STARLINK")) return 0
-  if (n.includes("ONEWEB")) return 1
-  if (/NAVSTAR|GPS |GLONASS|GALILEO|BEIDOU|BDS[- ]|IRNSS|QZS/.test(n)) return 2
-  if (/ISS \(|ZARYA|TIANHE|CSS \(|TIANGONG/.test(n)) return 3
-  return 6
-}
-
-// Full catalogue record — id/name/owner/type/launch + the raw TLE lines the
-// SGP4 propagator needs. Kept as one shape so every consumer shares ONE fetch.
-export type SatRecord = SatMeta & { l1: string; l2: string }
-
-// Shared FULL-catalogue cache. The 4.3 MB satellites.json is fetched + parsed
-// exactly ONCE here; the field (which needs TLEs), the search box (metadata
-// only), and the conjunction screener all derive from this single promise
-// instead of each re-downloading the file.
-let _fullCatalogPromise: Promise<SatRecord[]> | null = null
-export function loadFullCatalog(): Promise<SatRecord[]> {
-  if (!_fullCatalogPromise) {
-    _fullCatalogPromise = fetch("/data/satellites.json")
-      .then((r) => r.json())
-      .then((d) => d.sats as SatRecord[])
-      .catch(() => [])
-  }
-  return _fullCatalogPromise
-}
-
-/** Metadata-only view of the catalogue (for the search box). Derived from the
- *  shared full-catalogue fetch — no second download. */
-export function loadSatelliteCatalog(): Promise<SatMeta[]> {
-  return loadFullCatalog().then((sats) =>
-    sats.map((s) => ({ id: s.id, name: s.name, owner: s.owner, type: s.type, launchMs: s.launchMs, site: s.site })),
-  )
-}
-
-// satellite.js is imported DYNAMICALLY (below), not at the top level — a static
-// import drags it into the Turbopack build graph and hangs `next build`. Loading
-// it lazily at runtime keeps the production build fast and the SGP4 code out of
-// the initial chunk.
-type Vec3 = { x: number; y: number; z: number }
-type Sgp4 = {
-  twoline2satrec: (l1: string, l2: string) => unknown
-  propagate: (rec: unknown, date: Date) => { position?: Vec3; velocity?: Vec3 } | false
-  gstime: (date: Date) => number
-  eciToGeodetic: (eci: Vec3, gmst: number) => { latitude: number; longitude: number; height: number }
-  degreesLat: (rad: number) => number
-  degreesLong: (rad: number) => number
-  // Observer-relative geometry — the "how far from me right now" slant range.
-  degreesToRadians: (deg: number) => number
-  eciToEcf: (eci: Vec3, gmst: number) => Vec3
-  ecfToLookAngles: (
-    observer: { longitude: number; latitude: number; height: number },
-    ecf: Vec3,
-  ) => { azimuth: number; elevation: number; rangeSat: number }
-}
-// SGP4 satrec fields we read for the orbital readout (satellite.js@5 names).
+// satellite.js is imported DYNAMICALLY (below), not at the top level. The Sgp4 /
+// Vec3 shapes + EARTH_RADIUS_KM come from ./satellite-data (imported at top).
+// SGP4 satrec fields we read locally for the orbital readout (satellite.js@5 names):
 type SatRec = { inclo?: number; alta?: number; altp?: number; no?: number; ecco?: number }
-
-const EARTH_RADIUS_KM = 6371
 
 /**
  * SGP4 cost budget by device tier. Propagating ~18,600 satellites is a constant
@@ -545,19 +266,7 @@ function expandR(rKm: number): number {
   const alt = rKm - EARTH_RADIUS_KM
   return EARTH_RADIUS_KM + Math.max(0, alt) * SHELL_EXPAND
 }
-/** A propagated position is USABLE only if it exists and every component is
- *  finite. SGP4 (satellite.js) returns NaN/Inf — without throwing — when the
- *  timeline is scrubbed far from a TLE's epoch (centuries/millennia). A single
- *  NaN that reaches the geometry makes three.js's bounding-sphere → frustum-cull
- *  → raycast machinery spin, which is the far-past-date FREEZE. Gate every
- *  propagate() result through this. */
-function finitePos(
-  r: { position?: { x: number; y: number; z: number } } | false | null | undefined,
-): { x: number; y: number; z: number } | null {
-  const p = r && r.position
-  if (!p || !Number.isFinite(p.x) || !Number.isFinite(p.y) || !Number.isFinite(p.z)) return null
-  return p
-}
+// finitePos (the NaN/Inf gate for far-past scrubs) moved to ./satellite-data.
 
 /** Scale an ECI position (km) radially by the shell expansion, returning the new
  *  x/y/z (km). Direction preserved; only the radius is stretched above the surface. */
@@ -578,17 +287,7 @@ const MIN_VISIBLE_DOTS = 2400
 // no belt to annotate.
 const FIRST_GEO_MS = Date.UTC(1963, 6, 26)
 
-// SGP4 is a near-epoch model: propagate a TLE centuries — let alone the timeline's
-// full ±5000-year span — from its epoch and satellite.js grinds through diverging
-// deep-space terms and returns NaN, which is what froze the page on a far-past
-// scrub. Clamp the date fed to propagate() to the space age (Sputnik → +50y). The
-// swarm's shader already launch-gates each object by its real launch date, so a
-// clamped position outside its lifetime is invisible anyway — clamping only spares
-// us the pathological math, it doesn't show satellites where they didn't exist.
-const SPACE_AGE_START_MS = Date.UTC(1957, 9, 4) // Sputnik 1
-const SPACE_AGE_END_MS = Date.UTC(2075, 0, 1)   // ~50y ahead — well past any TLE's usefulness
-const clampToSpaceAge = (ms: number) =>
-  ms < SPACE_AGE_START_MS ? SPACE_AGE_START_MS : ms > SPACE_AGE_END_MS ? SPACE_AGE_END_MS : ms
+// clampToSpaceAge (the SGP4 far-past date guard) moved to ./satellite-data.
 
 // Debris + rocket bodies read as a hazard colour (dull red/amber), distinct from
 // the altitude-band palette — the LeoLabs-style "junk vs active" separation.
@@ -643,8 +342,7 @@ function bandColor(l2: string, type?: SatType): [number, number, number] {
   return BAND_LEO
 }
 
-type SatType = "PAY" | "R/B" | "DEB"
-type Sat = { id: number; name: string; owner: string; type?: SatType; launchMs: number; l1: string; l2: string }
+// SatType + Sat moved to ./satellite-data (imported at top).
 
 // Launch-gating uses days-since-J2000 (small → exact in a float32 shader uniform).
 // Reuse the engine's canonical J2000 epoch + day helper (see astronomy.ts).

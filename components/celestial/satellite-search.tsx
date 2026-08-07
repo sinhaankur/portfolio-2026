@@ -14,7 +14,8 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Search, X, Crosshair, Locate, Download } from "lucide-react"
-import { loadSatelliteCatalog, selectedSatRef, selectedArchetypeRef, selectedArchetypeIdRef, selectedOrbitRef, observerRef, findNearestOverhead, launchMatesFor, satTypeFilterRef, type SatMeta, type SatOrbit, type NearestSat, type LaunchMate } from "@/components/universe-engine/satellite-field"
+import { loadSatelliteCatalog, selectedArchetypeRef, selectedArchetypeIdRef, selectedOrbitRef, observerRef, findNearestOverhead, launchMatesFor, satTypeFilterRef, type SatMeta, type SatOrbit, type NearestSat, type LaunchMate } from "@/components/universe-engine/satellite-data"
+import { selectedSatRef } from "@/components/universe-engine/satellite-refs"
 import { anatomyFor } from "@/lib/craft-anatomy"
 import { statusFromPerigee, lifetimeFromPerigee, lifetimeLabel } from "@/lib/reentry"
 import { launchSiteFor } from "@/lib/launch-sites"
@@ -279,7 +280,7 @@ export function SatelliteSearch() {
     setExporting(true)
     try {
       const [{ loadFullCatalog }, eph] = await Promise.all([
-        import("@/components/universe-engine/satellite-field"),
+        import("@/components/universe-engine/satellite-data"),
         import("@/lib/ephemeris"),
       ])
       const full = await loadFullCatalog()

@@ -13,7 +13,8 @@
  * if a consumer wraps it in a light scope.
  */
 
-import { SAT_GROUPS, satGroupFilterRef } from "./satellite-field"
+import { SAT_GROUPS } from "./satellite-data"
+import { satGroupFilterRef } from "./satellite-refs"
 import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import type { BodyDeepFacts, BodyInfo } from "./types"
 import { observationFor, type ObserveBand } from "@/lib/observe"

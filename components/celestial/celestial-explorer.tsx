@@ -24,7 +24,7 @@ import { SatelliteSearch } from "./satellite-search"
 import { useIsMobile, MobileBar, BodiesSheet, Sheet } from "./mobile-controls"
 import { selectedSatRef, satGroupFilterRef, showAllSatsRef } from "@/components/universe-engine/satellite-refs"
 import { setSimMs, timeScaleRef, hiResTexturesRef } from "@/components/universe-engine/astronomy"
-import { hasGoogleEarthKey } from "@/components/universe-engine/google-earth-tiles"
+import { hasGoogleEarthKey } from "@/components/universe-engine/google-earth-config"
 
 // The photoreal-Earth view pulls in the (heavy) 3D-tiles renderer. Lazy-load it
 // so that bundle only downloads when the user actually clicks "Descend to Earth"

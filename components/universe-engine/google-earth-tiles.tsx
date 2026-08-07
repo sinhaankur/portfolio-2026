@@ -34,20 +34,11 @@ import {
 } from "3d-tiles-renderer/plugins"
 import { X } from "lucide-react"
 
-/** Map Tiles API key, inlined at build time. Empty until provided. */
-export const GOOGLE_MAPS_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY ?? ""
-
-/**
- * Explicit kill-switch for the Google photoreal-Earth feature. Google 3D Tiles
- * require ACTIVE billing on the Cloud project even while free credits remain —
- * so if billing is disabled, the key is present but every tile request fails,
- * leaving the user on a black screen. Set NEXT_PUBLIC_GOOGLE_EARTH_ENABLED to
- * "false" (or leave the key empty) to hide the entry point entirely and keep the
- * graceful-degradation path. The rest of the site is unaffected — this feature
- * is the ONLY thing that touches Google.
- */
-const GOOGLE_EARTH_ENABLED = process.env.NEXT_PUBLIC_GOOGLE_EARTH_ENABLED !== "false"
-export const hasGoogleEarthKey = GOOGLE_EARTH_ENABLED && GOOGLE_MAPS_KEY.length > 0
+// GOOGLE_MAPS_KEY + hasGoogleEarthKey moved to ./google-earth-config (Three-free)
+// so the DOM can read the feature flag without this file's R3F import. Re-exported
+// here so existing importers keep resolving.
+export { GOOGLE_MAPS_KEY, hasGoogleEarthKey } from "./google-earth-config"
+import { GOOGLE_MAPS_KEY, hasGoogleEarthKey } from "./google-earth-config"
 
 // --- Hard caps (cost control) -------------------------------------------------
 // Closest the camera may get to the surface, in metres. Street level is ~10 m
