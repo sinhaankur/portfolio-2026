@@ -69,11 +69,15 @@ const notoArabic = Noto_Sans_Arabic({
   subsets: ["arabic"],
   variable: "--font-ar",
   display: "swap",
+  // Only used on /ar — don't preload it on every (English) page's first paint.
+  preload: false,
 })
 const notoJP = Noto_Sans_JP({
   subsets: ["latin"], // JP glyphs ship regardless; "latin" keeps the requested subset valid
   variable: "--font-jp",
   display: "swap",
+  // Only used on /ja — don't preload it on every (English) page.
+  preload: false,
 })
 
 const SITE_URL = "https://www.sinhaankur.com"

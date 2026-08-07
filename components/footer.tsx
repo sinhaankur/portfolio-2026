@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import dynamic from "next/dynamic"
+import Link from "next/link"
 import { Download } from "lucide-react"
 import { LiveStatus } from "./live-status"
 import { ReportBug } from "./report-bug"
@@ -258,23 +259,11 @@ export function Footer({ hideContact = false }: { hideContact?: boolean } = {}) 
               {socials.map((link) => {
                 const isExternal = link.href.startsWith("http")
                 const isDownload = "download" in link && link.download
-                return (
-                  <li key={link.label}>
-                    <a
-                      href={link.href}
-                      {...(isExternal
-                        ? { target: "_blank", rel: "noreferrer noopener" }
-                        : {})}
-                      {...(isDownload ? { download: true } : {})}
-                      data-cursor-hover
-                      aria-label={
-                        isExternal
-                          ? `${link.label} — opens in a new tab`
-                          : isDownload
-                          ? `Download ${link.label}`
-                          : link.label
-                      }
-                      className="
+                const isMailto = link.href.startsWith("mailto:")
+                // Internal Next route → <Link> (prefetch + instant client nav).
+                // External / mailto / download / anchor → plain <a>.
+                const useLink = !isExternal && !isDownload && !isMailto && link.href.startsWith("/") && !link.href.includes(".html")
+                const cls = `
                         relative font-mono text-xs tracking-widest
                         text-muted-foreground hover:text-foreground
                         transition-colors duration-300
@@ -286,10 +275,26 @@ export function Footer({ hideContact = false }: { hideContact?: boolean } = {}) 
                         focus-visible:ring-2 focus-visible:ring-accent
                         focus-visible:ring-offset-2 focus-visible:ring-offset-background
                         rounded
-                      "
-                    >
-                      {link.label.toUpperCase()}
-                    </a>
+                      `
+                const label = isExternal ? `${link.label} — opens in a new tab` : isDownload ? `Download ${link.label}` : link.label
+                return (
+                  <li key={link.label}>
+                    {useLink ? (
+                      <Link href={link.href} data-cursor-hover aria-label={label} className={cls}>
+                        {link.label.toUpperCase()}
+                      </Link>
+                    ) : (
+                      <a
+                        href={link.href}
+                        {...(isExternal ? { target: "_blank", rel: "noreferrer noopener" } : {})}
+                        {...(isDownload ? { download: true } : {})}
+                        data-cursor-hover
+                        aria-label={label}
+                        className={cls}
+                      >
+                        {link.label.toUpperCase()}
+                      </a>
+                    )}
                   </li>
                 )
               })}
