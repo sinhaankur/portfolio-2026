@@ -220,8 +220,40 @@
         <footer class="retro-footer">
             <div class="retro-container">
                 <span class="retro-mono">© 2026 SIMPLE GAMES · ANKUR SINHA</span>
+                <a id="report-bug" class="retro-mono" href="#" style="margin-left:1.25rem;text-decoration:underline;">REPORT A BUG</a>
             </div>
         </footer>
+        <script>
+          // Static-page bug report: mailto with auto-collected diagnostics so a
+          // "game X is broken on my phone" report is actually actionable.
+          (function () {
+            var link = document.getElementById("report-bug");
+            if (!link) return;
+            link.addEventListener("click", function (e) {
+              e.preventDefault();
+              var gpu = "unknown";
+              try {
+                var c = document.createElement("canvas");
+                var gl = c.getContext("webgl") || c.getContext("experimental-webgl");
+                if (gl) {
+                  var dbg = gl.getExtension("WEBGL_debug_renderer_info");
+                  gpu = dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : (gl.getParameter(gl.RENDERER) || "unknown");
+                }
+              } catch (err) { gpu = "gpu-read-failed"; }
+              var diag = [
+                "Area: Games",
+                "Page: " + location.href,
+                "Viewport: " + innerWidth + "x" + innerHeight + " @ DPR " + devicePixelRatio,
+                "GPU: " + gpu,
+                "User agent: " + navigator.userAgent
+              ].join("\n");
+              var body = "What went wrong (please describe):\n\n\n— — —\nDiagnostics (auto-collected):\n" + diag;
+              location.href = "mailto:sinhaankur@ymail.com?subject=" +
+                encodeURIComponent("Bug report — Games") +
+                "&body=" + encodeURIComponent(body);
+            });
+          })();
+        </script>
     </div>
 
     <script>

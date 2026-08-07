@@ -108,10 +108,11 @@ export function ReportBug({
       type="button"
       onClick={onClick}
       data-cursor-hover
-      aria-label="Report a bug"
-      className={`relative font-mono text-xs tracking-widest text-muted-foreground hover:text-foreground transition-colors duration-300 ${className}`}
+      aria-label={`Report a bug in the ${area}`}
+      className={`inline-flex items-center font-mono text-xs tracking-widest text-muted-foreground transition-colors duration-300 hover:text-foreground ${className}`}
     >
-      {opening ? "OPENING…" : "REPORT A BUG"}
+      <BugGlyph />
+      <span className="ml-2">{opening ? "OPENING…" : "REPORT A BUG"}</span>
     </button>
   )
 }

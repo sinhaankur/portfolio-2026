@@ -5,6 +5,7 @@ import dynamic from "next/dynamic"
 import Link from "next/link"
 import { StaticStarfield } from "./universe-engine/static-starfield"
 import { GalaxyMusic } from "./galaxy-music"
+import { ReportBug } from "./report-bug"
 
 // Same code-split as the home hero: the ~250 KB R3F engine streams in over the
 // CSS starfield, so /sky paints instantly and the real sky blooms in after.
@@ -108,6 +109,15 @@ export function SkyExperience() {
         >
           sinhaankur.com
         </Link>
+      </div>
+
+      {/* Report a bug — quiet, top-right, matching the minimal chrome. Found a
+          rendering glitch in the sky? One tap, diagnostics attached. */}
+      <div className={`absolute top-5 right-6 md:top-6 md:right-10 z-20 ${chrome}`}>
+        <ReportBug
+          area="Universe Engine"
+          className="text-[10px] tracking-[0.25em] !text-white/30 hover:!text-white/70"
+        />
       </div>
     </div>
   )

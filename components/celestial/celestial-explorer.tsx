@@ -14,6 +14,7 @@ import dynamic from "next/dynamic"
 import { motion, AnimatePresence } from "framer-motion"
 import { ArrowLeft, X, Rotate3d, Globe, Satellite, Sparkles, Rocket, Route, Orbit, Layers, Radio, Crosshair, Flame, Trash2, HelpCircle, MoreHorizontal, Radar, ArrowLeftRight, Image as ImageIcon } from "lucide-react"
 import { CustomCursor } from "@/components/custom-cursor"
+import { ReportBug } from "@/components/report-bug"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { ClearCacheButton } from "@/components/clear-cache-button"
 import { StaticStarfield } from "@/components/universe-engine/static-starfield"
@@ -516,6 +517,12 @@ export function CelestialExplorer() {
                   <div className="flex items-center gap-2.5 rounded-lg px-2.5 py-1.5">
                     <ClearCacheButton />
                     <span className="font-mono text-[10px] tracking-widest uppercase text-foreground/60">Reset cache</span>
+                  </div>
+                  <div className="mt-0.5 border-t border-border/60 pt-1">
+                    <ReportBug
+                      area="Satellite Engine"
+                      className="w-full justify-start gap-2.5 rounded-lg border-0 bg-transparent px-2.5 py-2 text-foreground/80 hover:bg-accent/10 hover:text-accent"
+                    />
                   </div>
                 </div>
               </>
