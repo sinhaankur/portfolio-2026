@@ -295,7 +295,7 @@ export default function DeloitteCaseStudy() {
             caption: "Office celebration and cross-team collaboration.",
           },
           {
-            src: "/img/case-studies/deloitte/FABworkshop1.JPG",
+            src: "/img/case-studies/deloitte/FABworkshop1.webp",
             alt: "Client workshop session with FAB stakeholders",
             caption: "Client workshop session with FAB stakeholders.",
           },

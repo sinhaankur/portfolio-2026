@@ -684,7 +684,7 @@ export default function OracleCaseStudy() {
         intro="Snapshots from the Oracle journey — remote collaboration, product context, and team memory."
         moments={[
           {
-            src: "/img/case-studies/oracle/WFH.png",
+            src: "/img/case-studies/oracle/WFH.webp",
             alt: "Remote work setup while collaborating with Oracle teams",
             caption: "Remote collaboration setup while working with Oracle teams.",
           },

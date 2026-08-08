@@ -263,12 +263,12 @@ export default function SnowtintCaseStudy() {
             caption: "Team collaboration with our developer Srinivas.",
           },
           {
-            src: "/img/case-studies/snowtint/Snowtint4.JPG",
+            src: "/img/case-studies/snowtint/Snowtint4.webp",
             alt: "Team lunch and informal design discussions",
             caption: "Team lunch and informal design discussions.",
           },
           {
-            src: "/img/case-studies/snowtint/Snowtint5.JPG",
+            src: "/img/case-studies/snowtint/Snowtint5.webp",
             alt: "Snowtint office moment",
             caption: "Everyday moments from Snowtint office life.",
           },
