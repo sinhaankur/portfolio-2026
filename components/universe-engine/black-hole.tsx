@@ -218,10 +218,24 @@ function BlackHoleShadowSphere() {
 }
 
 /** The Sketchfab "Blackhole" by rubykamen (CC-BY-4.0) — isolated so useGLTF
- *  only runs (and downloads) once a BH is actually engaged. */
+ *  only runs (and downloads) once a BH is actually engaged.
+ *
+ *  The GLB ships WebP textures (EXT_texture_webp) — three's GLTFLoader registers
+ *  that extension by default, so no extra loader wiring is needed. If a load ever
+ *  fails, the Suspense fallback keeps the honest shadow sphere on screen (the BH
+ *  never vanishes), and we surface the error in dev so it's diagnosable rather
+ *  than a silent black gap. */
 function BlackHoleGlbMesh() {
-  const { scene: bhScene } = useGLTF("/models/blackhole.glb")
-  return <Clone object={bhScene} />
+  const gltf = useGLTF("/models/blackhole.glb")
+  // Defensive: if the GLB somehow parsed without a scene, fall back to the
+  // shadow sphere instead of rendering nothing (the "missing black hole").
+  if (!gltf?.scene) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("[universe-engine] black-hole GLB loaded but has no scene")
+    }
+    return <BlackHoleShadowSphere />
+  }
+  return <Clone object={gltf.scene} />
 }
 
 /**
