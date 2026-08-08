@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { canonicalPath } from "@/lib/seo"
 import { Github, ExternalLink } from "lucide-react"
+import { VeraMark } from "@/components/vera-mark"
 import {
   CaseStudyLayout,
   CaseSectionHeading,
@@ -66,8 +67,8 @@ const shipped: { title: string; body: string }[] = [
     body: "Clones a real voice on-device with Coqui XTTS-v2 — from a recording cleaned by a companion Voice Harvester (ffmpeg + Demucs vocal isolation). The sample never leaves the machine; a warm-loaded worker keeps replies fast. Built to keep a person's warmth close, never for impersonation.",
   },
   {
-    title: "A floating orb on Mac and iPhone",
-    body: "An always-present, borderless orb (no Dock icon) — tap it and a chat opens; type or talk. A reactive Siri-style waveform inside the orb ripples to her voice. Same SwiftUI front end on macOS and iOS.",
+    title: "A floating hexagonal mark on Mac and iPhone",
+    body: "An always-present, borderless mark (no Dock icon) — a faceted hexagon drawn from Ashokan geometry, not a Siri-style orb. Tap it and a chat opens; type or talk. The hexagon breathes and its spokes turn as she listens. Same SwiftUI front end on macOS and iOS.",
   },
   {
     title: "One Rust core, every device",
@@ -136,13 +137,19 @@ export default function CognitiveTwinPage() {
     <CaseStudyLayout
       eyebrow="Lab — AI Systems · 2026 · in progress"
       title="Cognitive Twin Agent"
-      subtitle="A local-first personal AI twin that can speak in a loved one's actual voice — running as a floating orb on Mac and iPhone, entirely on a machine I control."
+      subtitle="A local-first personal AI twin that can speak in a loved one's actual voice — running as a floating hexagonal mark on Mac and iPhone, entirely on a machine I control."
       period="2026 · active build"
       role="Architect · Designer · Engineer"
       tags={["Agent systems", "Local-first", "Multimodal", "Privacy", "Work in progress"]}
       backTo={{ label: "Back to The Lab", href: "/lab" }}
       intro={
         <>
+          {/* Vera's emblem — a faceted hexagon (Ashokan geometric discipline),
+              deliberately NOT a Siri-style orb. Keeps the breathing/listening
+              animation. */}
+          <div className="mb-8 flex justify-center md:justify-start">
+            <VeraMark size={104} />
+          </div>
           <p>
             This project started as a digital-twin prompt architecture and evolved into
             an application runtime: an always-on daemon, multimodal perception, and
