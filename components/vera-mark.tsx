@@ -35,10 +35,20 @@ export function VeraMark({
   })
   const hexPath = hex.map(([x, y], i) => `${i ? "L" : "M"}${x.toFixed(2)},${y.toFixed(2)}`).join(" ") + " Z"
 
-  // Inner facets — spokes from center to each vertex + a smaller inset hex,
-  // the Ashoka-chakra "spoked" discipline abstracted into a hexagon.
+  // Inset hexagon (the faceted frame within the frame).
   const inner = hex.map(([x, y]) => [cx + (x - cx) * 0.52, cy + (y - cy) * 0.52])
   const innerPath = inner.map(([x, y], i) => `${i ? "L" : "M"}${x.toFixed(2)},${y.toFixed(2)}`).join(" ") + " Z"
+
+  // The Ashoka Chakra proper: 24 spokes (the Dharmachakra count on the Sarnath
+  // capital + the Indian flag). Rendered inside the hexagon so it reads as
+  // "chakra within a hex", the real Mauryan discipline rather than a Siri circle.
+  const CHAKRA_R = 34
+  const spokes24 = Array.from({ length: 24 }, (_, i) => {
+    const a = (Math.PI / 12) * i
+    return [cx + CHAKRA_R * Math.cos(a), cy + CHAKRA_R * Math.sin(a)]
+  })
+  // A beaded ring (Mauryan pillar/abacus bead detail) at the spoke tips.
+  const beads = spokes24
 
   return (
     <svg
@@ -65,17 +75,24 @@ export function VeraMark({
       <path d={hexPath} stroke="var(--accent)" strokeWidth="1.6" strokeLinejoin="round" opacity="0.9" />
 
       {/* Inset hexagon. */}
-      <path d={innerPath} stroke="var(--accent)" strokeWidth="1" strokeLinejoin="round" opacity="0.55" />
+      <path d={innerPath} stroke="var(--accent)" strokeWidth="1" strokeLinejoin="round" opacity="0.5" />
 
-      {/* Spokes — center to each vertex (the chakra discipline). */}
-      <g className="vera-spokes" stroke="var(--accent)" strokeWidth="0.8" opacity="0.45">
-        {hex.map(([x, y], i) => (
-          <line key={i} x1={cx} y1={cy} x2={x.toFixed(2)} y2={y.toFixed(2)} />
+      {/* Ashoka Chakra — 24 spokes + a rim + beaded tips, the authentic
+          Dharmachakra, turning slowly (the "listening" motion). */}
+      <g className="vera-spokes" opacity="0.6">
+        <circle cx={cx} cy={cy} r={CHAKRA_R} stroke="var(--accent)" strokeWidth="0.8" opacity="0.6" />
+        {spokes24.map(([x, y], i) => (
+          <line key={i} x1={cx} y1={cy} x2={x.toFixed(2)} y2={y.toFixed(2)}
+            stroke="var(--accent)" strokeWidth="0.5" opacity="0.55" />
+        ))}
+        {beads.map(([x, y], i) => (
+          <circle key={`b${i}`} cx={x.toFixed(2)} cy={y.toFixed(2)} r="0.9" fill="var(--accent)" opacity="0.7" />
         ))}
       </g>
 
-      {/* Center node. */}
-      <circle cx={cx} cy={cy} r="2.4" fill="var(--accent)" />
+      {/* Center hub. */}
+      <circle cx={cx} cy={cy} r="3" fill="var(--accent)" />
+      <circle cx={cx} cy={cy} r="5.5" stroke="var(--accent)" strokeWidth="0.8" opacity="0.5" />
 
       <style>{`
         .vera-core { transform-origin: 50% 50%; }
