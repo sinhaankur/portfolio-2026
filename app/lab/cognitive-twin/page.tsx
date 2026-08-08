@@ -67,8 +67,8 @@ const shipped: { title: string; body: string }[] = [
     body: "Clones a real voice on-device with Coqui XTTS-v2 — from a recording cleaned by a companion Voice Harvester (ffmpeg + Demucs vocal isolation). The sample never leaves the machine; a warm-loaded worker keeps replies fast. Built to keep a person's warmth close, never for impersonation.",
   },
   {
-    title: "A floating hexagonal mark on Mac and iPhone",
-    body: "An always-present, borderless mark (no Dock icon) — a faceted hexagon drawn from Ashokan geometry, not a Siri-style orb. Tap it and a chat opens; type or talk. The hexagon breathes and its spokes turn as she listens. Same SwiftUI front end on macOS and iOS.",
+    title: "A floating Ashokan gold orb on Mac and iPhone",
+    body: "An always-present, borderless mark (no Dock icon) — a warm sandstone-gold orb — the crowning sphere of the Ashokan Lion Capital, not a Siri rainbow orb. Tap it and a chat opens; type or talk. The orb breathes, its sand-gold interior swirls, and a faint 24-spoke Ashoka Chakra turns over it as she listens. Same SwiftUI front end on macOS and iOS.",
   },
   {
     title: "One Rust core, every device",
@@ -137,7 +137,7 @@ export default function CognitiveTwinPage() {
     <CaseStudyLayout
       eyebrow="Lab — AI Systems · 2026 · in progress"
       title="Cognitive Twin Agent"
-      subtitle="A local-first personal AI twin that can speak in a loved one's actual voice — running as a floating hexagonal mark on Mac and iPhone, entirely on a machine I control."
+      subtitle="A local-first personal AI twin that can speak in a loved one's actual voice — running as a floating Ashokan gold orb on Mac and iPhone, entirely on a machine I control."
       period="2026 · active build"
       role="Architect · Designer · Engineer"
       tags={["Agent systems", "Local-first", "Multimodal", "Privacy", "Work in progress"]}
