@@ -100,7 +100,7 @@ import { Constellations } from "./constellations"
 import { ExoplanetSystem, PulsarDetail } from "./star-details"
 import { MilkyWay } from "./milky-way"
 import { Belt, BeltAsteroids } from "./belt"
-import { ShootingStars } from "./shooting-stars"
+import { ShootingStars, MeteorShowerLayer } from "./shooting-stars"
 
 import {
   getPulsarDynamicProfile,
@@ -109,6 +109,7 @@ import {
 } from "./celestial-sub-engine"
 import type {
   HoverHandler,
+  MeteorShower,
   SkyPoint,
 } from "./types"
 
@@ -1621,6 +1622,7 @@ export function SceneContents({
   hideConstellations = false,
   backdropOnly = false,
   densityScale = 1,
+  onActiveShowerChange,
 }: {
   enableMotion: boolean
   onHover: HoverHandler
@@ -1652,6 +1654,9 @@ export function SceneContents({
    *  nebula clouds, shooting stars) — NOT the real HYG star catalog, whose
    *  count is fixed data. Defaults to 1 (the historic desktop density). */
   densityScale?: number
+  /** Fires when a real meteor shower becomes active/inactive by sim-date, so
+   *  the HUD can surface its observing guide. Null = no shower active. */
+  onActiveShowerChange?: (shower: MeteorShower | null) => void
 }) {
   const { scene, gl } = useThree()
   useEffect(() => {
@@ -1733,6 +1738,16 @@ export function SceneContents({
           constellations. Streams in at stage 2 (not first-frame essential). */}
       {!solarOnly && !hideConstellations && stage >= 2 && <SkyPoints onHover={onHover} invert={invert} interactive={interactive} />}
       {enableMotion && <ShootingStars count={Math.round((mobile ? 3 : 6) * densityScale)} invert={invert} />}
+      {/* Real dated meteor showers — radiant-anchored meteors that appear only
+          when Earth is actually crossing a debris stream (by sim-date). */}
+      {enableMotion && !solarOnly && (
+        <MeteorShowerLayer
+          simTimeRef={simTimeRef}
+          invert={invert}
+          densityScale={mobile ? 0.6 : densityScale}
+          onShowerChange={onActiveShowerChange}
+        />
+      )}
       <ambientLight intensity={invert ? 0.55 : 0.18} />
     </>
   )

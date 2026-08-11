@@ -18,6 +18,7 @@
 import type {
   BodyInfo,
   Constellation,
+  MeteorShower,
   MoonData,
   NamedBody,
   Planet,
@@ -2232,6 +2233,118 @@ export const namedBodies: NamedBody[] = [
     visualRadius: 0.035,
   },
 ]
+
+/* --------------------------------------------------------------------------
+ * Meteor showers — real annual events, activated on their true dates.
+ *
+ * Radiant RA/Dec, peak date, active window, and ZHR are published measured
+ * values (IMO Meteor Shower Calendar / AMS). The engine turns a shower "on"
+ * only during its real window in sim-time, and makes meteors stream from the
+ * true radiant. This restores a real sky event — it never invents one. The
+ * `parent` matches a `namedBodies` comet where we carry it, so the shower and
+ * its source body cross-reference.
+ * ------------------------------------------------------------------------ */
+export const METEOR_SHOWERS: MeteorShower[] = [
+  {
+    id: "quadrantids", name: "Quadrantids",
+    radiantRaHours: 15.33, radiantDecDeg: 49.5, radiantIn: "Boötes",
+    peakMonth: 1, peakDay: 3, activeFrom: { month: 12, day: 28 }, activeTo: { month: 1, day: 12 },
+    zhr: 110, speedKms: 41, parent: "2003 EH1",
+    fact: "One of the year's strongest showers, but with a razor-sharp peak only ~6 hours wide — miss the window and you miss it. Parent is an extinct comet, asteroid 2003 EH1.",
+    howToSpot: "Look high in the northern sky after midnight into the pre-dawn hours. The radiant (in old 'Quadrans Muralis', now Boötes) climbs as morning nears. No telescope — a wide, dark-sky view of the whole sky is best; give your eyes 20 minutes to adapt.",
+    cameraTips: "Naked eye first. Phone: night mode on a tripod, 10–30s. DSLR/mirrorless: wide lens (14–24mm), f/2.8 or faster, ISO 1600–3200, 15–25s exposures on an intervalometer, aimed ~40° from the radiant to catch longer streaks.",
+  },
+  {
+    id: "lyrids", name: "Lyrids",
+    radiantRaHours: 18.13, radiantDecDeg: 34, radiantIn: "Lyra",
+    peakMonth: 4, peakDay: 22, activeFrom: { month: 4, day: 16 }, activeTo: { month: 4, day: 25 },
+    zhr: 18, speedKms: 49, parent: "Comet Thatcher",
+    fact: "The oldest recorded shower — Chinese records note it in 687 BC. Fast, bright meteors that occasionally leave glowing trains; rare outbursts have hit 100/hour.",
+    howToSpot: "Best after midnight when Lyra and its bright star Vega are high in the east. Lie back and take in a wide swath of sky rather than staring at the radiant. A Moon-free night matters most.",
+    cameraTips: "Naked eye first. Phone: tripod + night mode, 15–30s. DSLR: 14–24mm at f/2.8, ISO 1600–3200, 20s frames, continuous shooting; frame Vega high and wait.",
+  },
+  {
+    id: "eta-aquariids", name: "Eta Aquariids",
+    radiantRaHours: 22.5, radiantDecDeg: -1, radiantIn: "Aquarius",
+    peakMonth: 5, peakDay: 6, activeFrom: { month: 4, day: 19 }, activeTo: { month: 5, day: 28 },
+    zhr: 50, speedKms: 66, parent: "Halley's Comet",
+    fact: "Debris from Halley's Comet — the first of two showers Earth sweeps from its trail each year (the Orionids are the second). Very fast meteors, many with long glowing trains. Best from the tropics and southern hemisphere.",
+    howToSpot: "Look east in the ~2 hours before dawn, when the radiant in Aquarius is above the horizon. The lower your latitude the better. Face east-southeast and watch wide.",
+    cameraTips: "Naked eye first. Phone: tripod, night mode, 15–30s aimed east. DSLR: fast wide lens, ISO 3200, 15–20s frames; the fast Halley meteors reward a slightly shorter exposure to keep the streak crisp.",
+  },
+  {
+    id: "perseids", name: "Perseids",
+    radiantRaHours: 3.13, radiantDecDeg: 58, radiantIn: "Perseus",
+    peakMonth: 8, peakDay: 12, activeFrom: { month: 7, day: 17 }, activeTo: { month: 8, day: 24 },
+    zhr: 100, speedKms: 59, parent: "Comet Swift-Tuttle",
+    fact: "The most-watched shower of the year — warm August nights, up to 100/hour, plenty of bright fireballs. Debris from Comet Swift-Tuttle, whose 26 km nucleus is one of the largest repeat Earth-crossers.",
+    howToSpot: "Look northeast from late evening through dawn; the radiant in Perseus rises through the night, so rates climb toward morning. No gear needed — just a dark sky away from city lights, a reclining chair, and patience. Avoid nights near a bright Moon.",
+    cameraTips: "Naked eye first — it's genuinely a lie-back-and-watch event. Phone: night mode on a tripod, 20–30s. DSLR/mirrorless: 14–24mm at f/2.8, ISO 1600–3200, 20–25s exposures on an intervalometer for hours, framed ~30–40° from the radiant so meteors streak across, not toward you.",
+  },
+  {
+    id: "orionids", name: "Orionids",
+    radiantRaHours: 6.35, radiantDecDeg: 16, radiantIn: "Orion",
+    peakMonth: 10, peakDay: 21, activeFrom: { month: 10, day: 2 }, activeTo: { month: 11, day: 7 },
+    zhr: 20, speedKms: 66, parent: "Halley's Comet",
+    fact: "The second shower from Halley's Comet's trail. Fast meteors — among the quickest that hit our atmosphere — often leaving persistent trains, radiating from near Orion's raised club.",
+    howToSpot: "After midnight, when Orion has climbed well up in the southeast. Look wide, not straight at Betelgeuse; the meteors flare all across the sky. Best under a dark, Moonless sky.",
+    cameraTips: "Naked eye first. Phone: tripod, night mode, 20–30s. DSLR: wide fast lens, ISO 3200, 15–20s frames; the high speed means shorter exposures keep the streaks tight and bright.",
+  },
+  {
+    id: "leonids", name: "Leonids",
+    radiantRaHours: 10.13, radiantDecDeg: 22, radiantIn: "Leo",
+    peakMonth: 11, peakDay: 17, activeFrom: { month: 11, day: 6 }, activeTo: { month: 11, day: 30 },
+    zhr: 15, speedKms: 71, parent: "Comet Tempel-Tuttle",
+    fact: "The fastest meteors of any major shower (71 km/s). Usually modest, but every ~33 years — when parent Comet Tempel-Tuttle returns — it can erupt into a storm; the 1833 storm rained ~100,000/hour over North America.",
+    howToSpot: "After midnight into pre-dawn, looking east toward the rising Sickle of Leo. In a normal year expect a steady trickle of fast, bright streaks; watch wide and stay warm.",
+    cameraTips: "Naked eye first. Phone: tripod, night mode, 20–30s. DSLR: fast wide lens, ISO 3200, 12–20s frames — the extreme speed rewards the shortest exposure that still records the trail.",
+  },
+  {
+    id: "geminids", name: "Geminids",
+    radiantRaHours: 7.5, radiantDecDeg: 33, radiantIn: "Gemini",
+    peakMonth: 12, peakDay: 14, activeFrom: { month: 12, day: 4 }, activeTo: { month: 12, day: 17 },
+    zhr: 120, speedKms: 35, parent: "3200 Phaethon",
+    fact: "The year's richest and most reliable shower — up to 120/hour of slow, bright, often colourful meteors. The only major shower not from a comet: its parent is the 'rock comet' asteroid 3200 Phaethon.",
+    howToSpot: "Rates are good from mid-evening (the radiant in Gemini rises early), peaking after midnight. The slow, graceful meteors are easy to catch — just find a dark sky, look up broadly, and dress very warmly for the December cold.",
+    cameraTips: "Naked eye first. Phone: night mode on a tripod, 20–30s — the slow Geminids record well. DSLR/mirrorless: 14–24mm at f/2.8, ISO 1600–3200, 20–30s frames on an intervalometer; slower meteors mean longer exposures still keep clean streaks.",
+  },
+]
+
+/** Given a sim-time instant, which shower (if any) is within its active window?
+ * Compares month/day only (showers recur annually), so it's correct for any
+ * year the engine is scrolled to. Returns the shower nearest its peak when more
+ * than one overlaps (e.g. late-December Geminids vs. early Quadrantids). */
+export function activeShowerAt(simMs: number): MeteorShower | null {
+  const d = new Date(simMs)
+  const mo = d.getUTCMonth() + 1
+  const day = d.getUTCDate()
+  const doy = mo * 100 + day // month*100+day, monotonic within a year
+  const inWindow = (s: MeteorShower) => {
+    const from = s.activeFrom.month * 100 + s.activeFrom.day
+    const to = s.activeTo.month * 100 + s.activeTo.day
+    // windows that wrap the new year (Quadrantids: Dec 28 → Jan 12)
+    return from <= to ? doy >= from && doy <= to : doy >= from || doy <= to
+  }
+  const active = METEOR_SHOWERS.filter(inWindow)
+  if (!active.length) return null
+  // pick the one whose peak is nearest today (handles overlap honestly)
+  const dayDist = (s: MeteorShower) => {
+    const peak = s.peakMonth * 100 + s.peakDay
+    const raw = Math.abs(peak - doy)
+    return Math.min(raw, 1231 - raw) // wrap-around distance
+  }
+  return active.slice().sort((a, b) => dayDist(a) - dayDist(b))[0]
+}
+
+/** The active shower's radiant, projected to a scene position on the sky-shell
+ * (same projection constellations use), or null when no shower is active. */
+export function activeShowerRadiantScenePos(
+  simMs: number,
+): { shower: MeteorShower; pos: { x: number; y: number; z: number } } | null {
+  const shower = activeShowerAt(simMs)
+  if (!shower) return null
+  return { shower, pos: _shellPos(shower.radiantRaHours, shower.radiantDecDeg) }
+}
 
 /* --------------------------------------------------------------------------
  * Constellations

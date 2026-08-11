@@ -88,7 +88,7 @@ import { MobileBodySheet } from "./mobile-sheet"
 import { StaticStarfield } from "./static-starfield"
 import { LoadingBar } from "./loading-bar"
 import { GalaxyMusic } from "../galaxy-music"
-import type { BodyInfo, HoverHandler } from "./types"
+import type { BodyInfo, HoverHandler, MeteorShower } from "./types"
 
 export type UniverseEngineProps = {
   /** Enable drag-to-rotate + scroll-to-zoom. Defaults to false (passive backdrop). */
@@ -143,6 +143,15 @@ export type UniverseEngineProps = {
   realtime?: boolean
 }
 
+/** 1-12 → short month name, for the meteor-shower observing guide. */
+const MONTH_NAMES = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+]
+function monthName(m: number): string {
+  return MONTH_NAMES[Math.max(0, Math.min(11, m - 1))]
+}
+
 export function UniverseEngine({
   interactive = false,
   scrollDriveRef,
@@ -192,6 +201,9 @@ export function UniverseEngine({
   const [onScreen, setOnScreen] = useState(true)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [hovered, setHovered] = useState<BodyInfo | null>(null)
+  // The real meteor shower active for the current sim-date (or null) — drives
+  // the observing-guide panel. Updated by SceneContents as the timeline scrolls.
+  const [activeShower, setActiveShower] = useState<MeteorShower | null>(null)
   // DOM-side mirror of the satellite follow state (module ref, R3F-side) —
   // drives chrome step-asides (legend + ticker) while chasing a craft.
   const [satFollowed, setSatFollowed] = useState(false)
@@ -761,6 +773,7 @@ export function UniverseEngine({
           // richer Milky Way / nebula field, low/mid a lighter one. Recomputes
           // if the live FPS probe steps the tier down.
           densityScale={qualityForTier(tier).densityScale}
+          onActiveShowerChange={setActiveShower}
         />
 
         {/* Scroll-scrubbed camera dolly — passive mode only. Explore mode
@@ -854,6 +867,38 @@ export function UniverseEngine({
             <div className="absolute bottom-32 left-4 md:bottom-32 md:left-6 z-20 pointer-events-none max-w-70 max-h-[min(46vh,22rem)] overflow-y-auto overscroll-contain">
               <InfoPanel info={hovered} hideIdle={solarMode} />
             </div>
+          )}
+
+          {/* Meteor-shower observing guide — appears only when Earth is really
+              crossing a debris stream (by sim-date). Teaches how to actually
+              SEE it (naked-eye first) + practical camera tips. Top-right so it
+              never collides with the bottom-left InfoPanel / legend. */}
+          {activeShower && !mobile && (
+            <motion.div
+              key={activeShower.id}
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+              className="absolute top-16 right-4 md:right-6 z-30 pointer-events-none max-w-72 rounded-lg border border-white/10 bg-black/70 px-4 py-3 backdrop-blur-sm"
+            >
+              <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-amber-300/90">
+                <span>✦ Meteor shower tonight</span>
+              </div>
+              <div className="mt-1 font-serif text-base text-white">{activeShower.name}</div>
+              <div className="mt-0.5 font-mono text-[11px] text-white/50">
+                Peak {monthName(activeShower.peakMonth)} {activeShower.peakDay} · radiant in{" "}
+                {activeShower.radiantIn} · up to {activeShower.zhr}/hr
+              </div>
+              <div className="mt-2 text-[12px] leading-snug text-white/75">
+                <span className="font-medium text-white/90">How to spot it — </span>
+                {activeShower.howToSpot}
+              </div>
+              <div className="mt-2 text-[12px] leading-snug text-white/75">
+                <span className="font-medium text-white/90">Cameras — </span>
+                {activeShower.cameraTips}
+              </div>
+            </motion.div>
           )}
 
           {/* Ambient teaching — rotating real facts about the bodies. Steps aside

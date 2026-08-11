@@ -373,6 +373,43 @@ export type NamedBody = {
 }
 
 /**
+ * A real annual meteor shower — Earth crossing a known comet/asteroid debris
+ * stream on fixed calendar dates, radiating from a fixed point on the sky.
+ *
+ * These are REAL, predictable events (the fidelity litmus): the radiant RA/Dec,
+ * the peak date, and the zenithal hourly rate are measured, published values
+ * (IMO / AMS). The engine activates a shower only on its real dates in sim-time
+ * and makes meteors emanate from the true radiant — restoring a real sky event,
+ * not inventing one. Add entries to `METEOR_SHOWERS` in astronomy.ts.
+ */
+export type MeteorShower = {
+  id: string
+  name: string
+  /** Radiant — the point the meteors appear to stream from (J2000). */
+  radiantRaHours: number
+  radiantDecDeg: number
+  /** In which constellation the radiant sits (where to look). */
+  radiantIn: string
+  /** Peak: month (1-12) + day, and the inclusive active window (month/day). */
+  peakMonth: number
+  peakDay: number
+  activeFrom: { month: number; day: number }
+  activeTo: { month: number; day: number }
+  /** Zenithal hourly rate at peak under a dark sky (meteors/hour). */
+  zhr: number
+  /** Typical meteor speed (km/s) — fast showers streak, slow ones drift. */
+  speedKms: number
+  /** Parent body name (matches a `namedBodies` entry where we have it). */
+  parent: string
+  /** One-line why-it-matters fact. */
+  fact: string
+  /** How to actually see it — naked-eye-first observing guidance. */
+  howToSpot: string
+  /** Practical, tiered camera guidance (phone → DSLR). */
+  cameraTips: string
+}
+
+/**
  * A far-field point projected onto the sky-shell at fixed RA/Dec.
  *
  * Covers everything that isn't part of the solar system: galaxies,
