@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { canonicalPath, canonicalUrl } from "@/lib/seo"
 import { CelestialExplorer } from "@/components/celestial/celestial-explorer"
+import { SkyTonight } from "@/components/sky-tonight"
 
 export const metadata: Metadata = {
   ...canonicalPath("/lab/celestial"),
@@ -96,6 +97,9 @@ export default function CelestialPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
       />
       <CelestialExplorer />
+      {/* "What's happening in the sky" — real events (showers, oppositions,
+          conjunctions) + opt-in browser reminders. Renders nothing on a quiet sky. */}
+      <SkyTonight />
     </>
   )
 }
