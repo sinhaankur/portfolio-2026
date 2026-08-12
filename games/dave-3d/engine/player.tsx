@@ -17,6 +17,7 @@ import { SkeletonUtils } from "three-stdlib"
 import * as THREE from "three"
 import { LEVEL_1, type Level, type Hazard } from "./level"
 import { input, tickInput } from "./controls"
+import { CharacterController } from "./character-controller"
 import { game } from "./state"
 
 const DAVE_GLB = "/models/dave/dave.glb"
@@ -29,7 +30,13 @@ useGLTF.preload(DAVE_GLB)
 // become unbeatable — scripts/validate-dave-levels.ts guards the pairing.
 const GRAVITY = 30
 const MOVE_SPEED = 7.5
-const ACCEL = 60          // ground responsiveness
+const ACCEL = 60          // ground responsiveness (drive toward top speed)
+// Crisp stops/reversals — the "walk properly" feel. A hard brake and an even
+// harder turn kill the floaty, ice-skating drift the old exponential-lerp had:
+// let go and Dave halts in a couple frames; press the other way and he snaps
+// direction instead of coasting through zero. Higher than ACCEL on purpose.
+const DECEL = 90          // brake rate when no input (units/s²)
+const TURN_ACCEL = 120    // reversal rate when steering into the opposite way
 const JUMP_V = 14.3
 const COYOTE = 0.1        // s after leaving ground you can still jump
 const BUFFER = 0.12       // s a jump press is remembered
@@ -39,7 +46,6 @@ const RADIUS = 0.38       // player half-width (x/z)
 // his head bonks the platform above and jumps die instantly. ~1.0 leaves real
 // headroom to hop up into a one-tile gap (like the original). Model scaled to match.
 const HEIGHT = 1.0        // player full height (feet→head)
-const STEP_UP = 0.5       // walk over lips/steps up to this tall (don't treat as a wall)
 const SKIN = 0.02         // tiny gap kept above a landed surface (avoids re-overlap jitter)
 
 // jetpack (level 6): holding jump while fuelled gives controlled lift.
@@ -48,11 +54,13 @@ const JET_MAX_UP = 9      // cap on upward velocity under thrust
 const JET_DRAIN = 0.22    // fuel/s while thrusting
 const PICKUP_R = 1.4      // pickup radius for jetpack / warp pads
 
-// Respawn the player at the level spawn after a death (hazard or fall). Refuels
-// the jetpack if they had it, and bumps the death counter for the HUD.
-function die(p: THREE.Vector3, v: THREE.Vector3, level: Level) {
-  p.set(...level.spawn)
-  v.set(0, 0, 0)
+// Respawn the player at the level spawn after a death (hazard or fall). Teleports
+// the controller (which clears momentum so a respawn doesn't inherit a fall),
+// refuels the jetpack if they had it, and bumps the death counter for the HUD.
+// The controller works in body-CENTRE space, so we lift the feet-space spawn by
+// half the body height.
+function respawn(c: CharacterController, level: Level) {
+  c.reset(new THREE.Vector3(level.spawn[0], level.spawn[1] + HEIGHT / 2, level.spawn[2]))
   game.deaths += 1
   if (game.hasJetpack) game.jetFuel = 1 // keep the jetpack, top fuel back up
 }
@@ -74,20 +82,58 @@ export function Player({ level = LEVEL_1 }: { level?: Level }) {
   const ref = useRef<THREE.Group>(null)
   const camera = useThree((s) => s.camera)
 
-  const vel = useRef(new THREE.Vector3())
-  const pos = useRef(new THREE.Vector3(...level.spawn))
-  const onGround = useRef(false)
-  const coyote = useRef(0)
-  const buffer = useRef(0)
   const yaw = useRef(0)
+  const sideOn = level.style === "side"
+
+  // The deterministic, fixed-timestep motion core. Same jump envelope the levels
+  // were validated against (JUMP_V/GRAVITY/MOVE_SPEED), but frame-rate independent
+  // and with crisp accel/decel/turn so walking + stopping feel intentional. Built
+  // fresh per level so its colliders/spawn track the current room.
+  const controller = useMemo(() => {
+    return new CharacterController(new THREE.Vector3(...level.spawn), {
+      half: new THREE.Vector3(RADIUS, HEIGHT / 2, RADIUS),
+      maxSpeed: MOVE_SPEED,
+      accel: ACCEL,
+      decel: DECEL,
+      turnAccel: TURN_ACCEL,
+      gravity: GRAVITY,
+      jumpSpeed: JUMP_V,
+      jumpCut: JUMP_CUT,
+      coyoteTime: COYOTE,
+      jumpBufferTime: BUFFER,
+      skin: SKIN,
+      lockZ: sideOn,
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [level])
+
+  // Precompute the level's platform AABBs once (the controller centres its body
+  // on `position`, so the boxes are the raw platform volumes). Rebuilt per level.
+  const colliders = useMemo(() => {
+    return level.platforms.map((b) => {
+      const [bx, by, bz] = b.pos
+      const [sx, sy, sz] = b.size
+      return new THREE.Box3(
+        new THREE.Vector3(bx - sx / 2, by - sy / 2, bz - sz / 2),
+        new THREE.Vector3(bx + sx / 2, by + sy / 2, bz + sz / 2),
+      )
+    })
+  }, [level])
+
+  // The controller anchors its body at the CENTRE of the collision box, but the
+  // rest of the game (spawn, gems, hazards, rendering) treats the stored position
+  // as FEET. We keep a feet-space position for the game and lift it to centre for
+  // the controller. HALF_H is that offset.
+  const HALF_H = HEIGHT / 2
 
   // reset to spawn when the level/restart changes
   useEffect(() => {
-    pos.current.set(...level.spawn)
-    vel.current.set(0, 0, 0)
-  }, [level])
-
-  const sideOn = level.style === "side"
+    controller.setColliders(colliders)
+    const spawn = new THREE.Vector3(level.spawn[0], level.spawn[1] + HALF_H, level.spawn[2])
+    controller.reset(spawn)
+    yaw.current = sideOn ? Math.PI : 0
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [level, controller, colliders])
 
   useFrame((state, dtRaw) => {
     // Freeze physics + input while not actively running (start screen / paused) or
@@ -95,156 +141,77 @@ export function Player({ level = LEVEL_1 }: { level?: Level }) {
     if (!game.running || game.phase !== "playing") { tickInput(); return }
     const dt = Math.min(dtRaw, 1 / 30) // clamp big frames so physics stays stable
     const now = state.clock.elapsedTime
-    const p = pos.current
-    const v = vel.current
+    const c = controller
 
-    // --- camera-relative input → desired horizontal velocity ---
-    const camDir = new THREE.Vector3()
-    camera.getWorldDirection(camDir)
-    camDir.y = 0
-    if (camDir.lengthSq() < 1e-4) camDir.set(0, 0, -1)
-    camDir.normalize()
-    const camRight = new THREE.Vector3().crossVectors(camDir, new THREE.Vector3(0, 1, 0)).normalize()
-
-    const wish = new THREE.Vector3()
+    // --- camera-relative input → the controller's [-1..1] move axes ---
+    let moveX = 0
+    let moveZ = 0
     if (sideOn) {
       // SIDE-ON Dave screen: pure left/right along world X (no depth nav). Only
-      // A/D / ←/→ steer; up/down (forward/back) are unused. Z stays pinned to 0.
-      let dir = 0
-      if (input.right) dir += 1
-      if (input.left) dir -= 1
-      wish.set(dir, 0, 0)
+      // A/D / ←/→ steer; up/down (forward/back) are unused. Z is locked by the
+      // controller (cfg.lockZ), so we only feed moveX.
+      if (input.right) moveX += 1
+      if (input.left) moveX -= 1
     } else {
+      // FREE roam: project WASD onto the camera's ground plane, then read the
+      // world-space X/Z the controller integrates against.
+      const camDir = new THREE.Vector3()
+      camera.getWorldDirection(camDir)
+      camDir.y = 0
+      if (camDir.lengthSq() < 1e-4) camDir.set(0, 0, -1)
+      camDir.normalize()
+      const camRight = new THREE.Vector3().crossVectors(camDir, new THREE.Vector3(0, 1, 0)).normalize()
+      const wish = new THREE.Vector3()
       if (input.forward) wish.add(camDir)
       if (input.back) wish.sub(camDir)
       if (input.right) wish.add(camRight)
       if (input.left) wish.sub(camRight)
+      if (wish.lengthSq() > 1e-4) wish.normalize()
+      moveX = wish.x
+      moveZ = wish.z
     }
-    const moving = wish.lengthSq() > 1e-4
-    if (moving) wish.normalize().multiplyScalar(MOVE_SPEED)
-
-    // accelerate horizontal velocity toward the wish velocity (snappy, frame-rate
-    // independent). One exponential approach — not two fighting each other.
-    const k = 1 - Math.exp(-(ACCEL / MOVE_SPEED) * dt)
-    v.x += (wish.x - v.x) * k
-    if (sideOn) { v.z = 0; p.z = 0 } else { v.z += (wish.z - v.z) * k }
+    const moving = Math.abs(moveX) + Math.abs(moveZ) > 1e-3
 
     // --- jetpack flight (level 6): holding jump thrusts up while fuel remains,
-    //     overriding the normal jump. Drains fuel; when empty, normal jump resumes.
+    //     overriding the normal jump. Drives the controller's Y directly and
+    //     suppresses the coyote/buffer jump so the two don't fight. ---
     const jetActive = game.hasJetpack && game.jetFuel > 0 && input.jump
     if (jetActive) {
-      v.y = Math.min(v.y + JET_THRUST * dt, JET_MAX_UP)
+      c.setVelocityY(Math.min(c.velocity.y + JET_THRUST * dt, JET_MAX_UP))
       game.jetFuel = Math.max(0, game.jetFuel - JET_DRAIN * dt)
       game.fx.jumpAt = now // reuse whoosh as a thruster hiss
-      buffer.current = 0
-    } else {
-      // --- jump: coyote + buffer + variable height ---
-      if (onGround.current) coyote.current = COYOTE
-      else coyote.current = Math.max(0, coyote.current - dt)
-      if (input.jumpPressed) buffer.current = BUFFER
-      else buffer.current = Math.max(0, buffer.current - dt)
-      if (buffer.current > 0 && coyote.current > 0) {
-        v.y = JUMP_V
-        onGround.current = false
-        coyote.current = 0
-        buffer.current = 0
-        game.fx.jumpAt = now // whoosh
-      }
-      if (!input.jump && v.y > 0) v.y *= JUMP_CUT > 0 ? Math.pow(JUMP_CUT, dt * 60) : 1
+    } else if (input.jumpPressed) {
+      // edge-triggered press → buffer it (the controller decides if it fires,
+      // honouring coyote-time); it stamps the whoosh implicitly on take-off.
+      c.notifyJumpPressed()
     }
 
-    // gravity (lighter while actively jetting so lift feels controllable)
-    v.y -= (jetActive ? GRAVITY * 0.35 : GRAVITY) * dt
-    if (v.y < -40) v.y = -40
+    // Feed the frame's intent, then advance the deterministic fixed-timestep
+    // core. Under the jetpack we lighten gravity and suppress its jump handling.
+    const vyBefore = c.velocity.y
+    c.setInput({ moveX, moveZ, jumpHeld: input.jump })
+    c.update(dt, jetActive ? { gravityScale: 0.35, suppressJump: true } : undefined)
 
-    // --- integrate + collide. Y FIRST (so ground/landing is authoritative and a
-    //     fast fall can't tunnel through a thin platform), then X and Z with a
-    //     step-up tolerance so small lips/steps don't act like walls. ---
-    const wasAir = !onGround.current
-    const vyBeforeLand = v.y
-
-    // Y — swept: test the whole span the feet travel this frame, not just the end
-    // point, so landing on a 1-unit-thick pad at high downward speed still catches.
-    const prevFootTop = p.y + HEIGHT
-    const prevFoot = p.y
-    p.y += v.y * dt
-    onGround.current = false
-    for (const b of level.platforms) {
-      const [bx, by, bz] = b.pos
-      const [sx, sy, sz] = b.size
-      // must overlap horizontally to interact vertically at all
-      if (Math.abs(p.x - bx) >= RADIUS + sx / 2) continue
-      if (Math.abs(p.z - bz) >= RADIUS + sz / 2) continue
-      const boxTop = by + sy / 2
-      const boxBottom = by - sy / 2
-      if (v.y <= 0) {
-        // falling/standing: land if the feet were at-or-above the box top at the
-        // start of the frame (allowing the SKIN gap) and have now reached it.
-        // Swept test catches a fast fall through a thin pad in one frame.
-        if (prevFoot >= boxTop - SKIN - 0.001 && p.y <= boxTop + SKIN) {
-          p.y = boxTop + SKIN
-          v.y = 0
-          onGround.current = true
-        }
-      } else {
-        // rising: bonk head if the head crossed the box bottom this frame
-        if (prevFootTop <= boxBottom + 0.001 && p.y + HEIGHT >= boxBottom) {
-          p.y = boxBottom - HEIGHT - SKIN
-          v.y = 0
-        }
-      }
+    // Whoosh on a fresh take-off — the controller kicks velocity.y up to jumpSpeed
+    // on the tick it jumps (coyote or grounded), so a sharp non-gravity rise in
+    // upward velocity marks the launch.
+    if (!jetActive && c.velocity.y > vyBefore + 1) {
+      game.fx.jumpAt = now
     }
 
-    // X — block only if the box is a genuine wall at our feet height (taller than
-    // STEP_UP above our feet). Small steps are walked onto, not blocked.
-    p.x += v.x * dt
-    for (const b of level.platforms) {
-      const [bx, by, bz] = b.pos
-      const [sx, sy, sz] = b.size
-      if (Math.abs(p.x - bx) >= RADIUS + sx / 2) continue
-      if (Math.abs(p.z - bz) >= RADIUS + sz / 2) continue
-      const boxTop = by + sy / 2
-      const boxBottom = by - sy / 2
-      // vertical overlap of the player's body with the box
-      if (p.y >= boxTop || p.y + HEIGHT <= boxBottom) continue
-      // if the box top is within step height above our feet, step up onto it
-      if (boxTop - p.y <= STEP_UP && v.y <= 0) {
-        p.y = boxTop + SKIN
-        onGround.current = true
-        v.y = 0
-        continue
-      }
-      // otherwise it's a wall — push out in X
-      p.x = bx + Math.sign(p.x - bx || 1) * (sx / 2 + RADIUS)
-      v.x = 0
-    }
+    // The controller works in body-CENTRE space; the game reads FEET. Lower the
+    // resolved centre back to feet for hazards / pickups / rendering.
+    const px = c.renderPosition.x
+    const pyFeet = c.renderPosition.y - HALF_H
+    const pz = c.renderPosition.z
+    // authoritative (non-interpolated) feet position for gameplay tests
+    const solidFeetY = c.position.y - HALF_H
 
-    // Z — same logic as X
-    p.z += v.z * dt
-    for (const b of level.platforms) {
-      const [bx, by, bz] = b.pos
-      const [sx, sy, sz] = b.size
-      if (Math.abs(p.x - bx) >= RADIUS + sx / 2) continue
-      if (Math.abs(p.z - bz) >= RADIUS + sz / 2) continue
-      const boxTop = by + sy / 2
-      const boxBottom = by - sy / 2
-      if (p.y >= boxTop || p.y + HEIGHT <= boxBottom) continue
-      if (boxTop - p.y <= STEP_UP && v.y <= 0) {
-        p.y = boxTop + SKIN
-        onGround.current = true
-        v.y = 0
-        continue
-      }
-      p.z = bz + Math.sign(p.z - bz || 1) * (sz / 2 + RADIUS)
-      v.z = 0
-    }
-    // landing this frame? spike landImpact by how hard we hit (drives the
-    // squash on the character + a small camera shake).
-    if (onGround.current && wasAir && vyBeforeLand < -2) {
-      game.landImpact = Math.min(1, Math.abs(vyBeforeLand) / 14)
-      // dust puff at the feet (thud SFX + particle burst)
+    // landing this frame? the controller flags justLanded + the impact speed.
+    if (c.justLanded && c.landingVY > 2) {
+      game.landImpact = Math.min(1, c.landingVY / 14)
       game.fx.landAt = now
-      game.fx.landPos.set(p.x, p.y, p.z)
+      game.fx.landPos.set(px, pyFeet, pz)
       game.fx.landPower = game.landImpact
     } else {
       game.landImpact = Math.max(0, game.landImpact - dt * 4)
@@ -253,26 +220,26 @@ export function Player({ level = LEVEL_1 }: { level?: Level }) {
     // --- hazards: touching a spike/fire/water box = death → respawn ---
     if (level.hazards) {
       for (const h of level.hazards) {
-        if (hazardHit(p.x, p.y, p.z, h)) {
+        if (hazardHit(px, solidFeetY, pz, h)) {
           game.fx.deathAt = now
-          game.fx.deathPos.set(p.x, p.y + 0.5, p.z)
-          die(p, v, level)
+          game.fx.deathPos.set(px, solidFeetY + 0.5, pz)
+          respawn(c, level)
           break
         }
       }
     }
 
     // fell off → respawn (also counts as a death)
-    if (p.y < level.killY) {
+    if (solidFeetY < level.killY) {
       game.fx.deathAt = now
-      game.fx.deathPos.set(p.x, level.spawn[1] + 0.5, p.z)
-      die(p, v, level)
+      game.fx.deathPos.set(px, level.spawn[1] + 0.5, pz)
+      respawn(c, level)
     }
 
     // --- jetpack pickup (level 6): grab it → flight enabled, full fuel ---
     if (level.jetpack && !game.hasJetpack) {
       const j = level.jetpack
-      if (Math.hypot(p.x - j[0], p.y - j[1], p.z - j[2]) < PICKUP_R) {
+      if (Math.hypot(px - j[0], solidFeetY - j[1], pz - j[2]) < PICKUP_R) {
         game.hasJetpack = true
         game.jetFuel = 1
         game.fx.collectAt = now
@@ -283,7 +250,7 @@ export function Player({ level = LEVEL_1 }: { level?: Level }) {
     // --- secret warp pad (level 10): step on it → jump straight to the win ---
     if (level.warp && game.phase === "playing") {
       const w = level.warp
-      if (Math.hypot(p.x - w[0], p.y - w[1], p.z - w[2]) < PICKUP_R) {
+      if (Math.hypot(px - w[0], solidFeetY - w[1], pz - w[2]) < PICKUP_R) {
         game.hasTrophy = true   // warp grants the cup so the win counts
         game.phase = "levelClear"
       }
@@ -297,18 +264,20 @@ export function Player({ level = LEVEL_1 }: { level?: Level }) {
     //    there toward travel. Walking right → face-right lean; left → face-left
     //    lean. You always see his face and clearly which way he's headed.
     //  • FREE: face the travel vector.
+    const vx = c.velocity.x
+    const vz = c.velocity.z
     const FACE_CAM = Math.PI          // -Z model front → toward +Z camera
     const LEAN = Math.PI * 0.28       // ~50° lean toward the walk direction
     if (sideOn) {
-      const target = Math.abs(v.x) > 0.05
-        ? FACE_CAM - Math.sign(v.x) * LEAN  // right (+x) leans one way, left the other
-        : FACE_CAM                          // idle: face the camera straight-on
+      const target = Math.abs(vx) > 0.05
+        ? FACE_CAM - Math.sign(vx) * LEAN  // right (+x) leans one way, left the other
+        : FACE_CAM                         // idle: face the camera straight-on
       let d = target - yaw.current
       while (d > Math.PI) d -= Math.PI * 2
       while (d < -Math.PI) d += Math.PI * 2
       yaw.current += d * (1 - Math.exp(-16 * dt))
     } else if (moving) {
-      const target = Math.atan2(-v.x, -v.z)
+      const target = Math.atan2(-vx, -vz)
       let d = target - yaw.current
       while (d > Math.PI) d -= Math.PI * 2
       while (d < -Math.PI) d += Math.PI * 2
@@ -316,17 +285,16 @@ export function Player({ level = LEVEL_1 }: { level?: Level }) {
     }
 
     // motion signals (read by the character animator + camera juice)
-    const hSpeed = Math.hypot(v.x, v.z)
-    game.playerSpeed = hSpeed
-    game.playerVY = v.y
-    game.playerAir = !onGround.current
+    game.playerSpeed = Math.hypot(vx, vz)
+    game.playerVY = c.velocity.y
+    game.playerAir = !c.grounded
 
-    // commit to the transform + shared state
+    // commit to the transform + shared state (feet-space)
     if (ref.current) {
-      ref.current.position.copy(p)
+      ref.current.position.set(px, pyFeet, pz)
       ref.current.rotation.y = yaw.current
     }
-    game.playerPos.copy(p)
+    game.playerPos.set(px, pyFeet, pz)
     game.playerYaw = yaw.current
 
     tickInput()
