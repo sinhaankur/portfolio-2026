@@ -290,19 +290,30 @@ export function Player({ level = LEVEL_1 }: { level?: Level }) {
     }
 
     // Face movement direction.
-    //  • SIDE-ON: the default camera sits BEHIND Dave on +Z looking along -Z,
-    //    so at yaw 0 we'd see his BACK — which read as "he goes backward".
-    //    Instead, keep his FACE toward the camera (yaw ≈ π, the model's -Z
-    //    front pointing to +Z where the camera is) and lean left/right from
-    //    there toward travel. Walking right → face-right lean; left → face-left
-    //    lean. You always see his face and clearly which way he's headed.
-    //  • FREE: face the travel vector.
-    const FACE_CAM = Math.PI          // -Z model front → toward +Z camera
-    const LEAN = Math.PI * 0.28       // ~50° lean toward the walk direction
+    //  • SIDE-ON: like the original Dave sprite, Dave TURNS to face the way he
+    //    walks — profile-right when going right, profile-left when going left.
+    //    The model's front is -Z, the camera sits at +Z looking -Z. Geometry
+    //    (verified): yaw -PI/2 points his front to +X (right), +PI/2 to -X
+    //    (left). Pure profile would hide his face from the camera, so we pull
+    //    the turn back toward the camera by (1-FACE) — a three-quarter view that
+    //    reads clearly as "facing right/left" while still showing his face.
+    //    Idle: settle back to facing the camera straight-on.
+    const FACE_CAM = Math.PI          // -Z model front → toward +Z camera (face us)
+    const TURN = 0.68                 // how far toward full profile (0=face cam, 1=profile)
     if (sideOn) {
-      const target = Math.abs(v.x) > 0.05
-        ? FACE_CAM - Math.sign(v.x) * LEAN  // right (+x) leans one way, left the other
-        : FACE_CAM                          // idle: face the camera straight-on
+      let target: number
+      if (v.x > 0.05) {
+        // walking RIGHT: profile yaw is -PI/2 (front→+X). Blend from -PI (the
+        // camera-facing angle, taken the SHORT way) → yaw ≈ -2.07: front tilts
+        // +X and keeps +Z, i.e. a three-quarter view facing right, toward us.
+        target = -Math.PI + (-Math.PI / 2 - -Math.PI) * TURN
+      } else if (v.x < -0.05) {
+        // walking LEFT: profile yaw is +PI/2 (front→-X). Blend from +PI → yaw
+        // ≈ +2.07: front tilts -X, keeps +Z — three-quarter view facing left.
+        target = Math.PI + (Math.PI / 2 - Math.PI) * TURN
+      } else {
+        target = FACE_CAM               // idle: face the camera straight-on
+      }
       let d = target - yaw.current
       while (d > Math.PI) d -= Math.PI * 2
       while (d < -Math.PI) d += Math.PI * 2
