@@ -168,6 +168,49 @@ export const TRAIT_MARKERS: TraitMarker[] = [
     },
   },
   {
+    // "Is beer/wheat okay for me?" — the WHEAT half. This is a POSSIBILITY flag,
+    // never a diagnosis: rs2187668 tags the HLA-DQ2.5 type. Carrying it is common
+    // (~30-40% of people) and MOST carriers never develop coeliac disease; NOT
+    // carrying it makes coeliac very unlikely. A chip cannot diagnose coeliac —
+    // only a doctor's blood test / biopsy can. Framed strictly as information,
+    // in the spirit of how APOE-E4 is deliberately withheld here.
+    id: "gluten-wheat",
+    paper: { cite: "Romanos et al. — HLA-DQ tag SNPs (incl. rs2187668) for coeliac-disease risk typing", pmid: "24333368" },
+    rsid: "rs2187668",
+    category: "diet",
+    title: "Beer & wheat — gluten possibility",
+    gene: "HLA-DQ2.5",
+    about:
+      "Beer is made from wheat/barley, so it contains gluten. This marker tags the main gene type linked to coeliac disease — it flags whether coeliac is even POSSIBLE for you, not whether you have it. It says nothing about the alcohol itself (see the flush trait for that).",
+    source: "peer-reviewed",
+    evidence: "well-established risk marker; not diagnostic",
+    outcomes: {
+      CC: {
+        label: "Coeliac very unlikely",
+        detail: "You don't carry the DQ2.5 tag. Coeliac disease is very unlikely for you — it almost always needs this gene type. That doesn't rule out ordinary, non-coeliac wheat sensitivity, but the autoimmune kind is off the table for most people without this marker.",
+        tone: "neutral",
+        feels: "If wheat/beer gives you no gut trouble, this fits. If beer still bloats you, it's more likely the carbonation, the alcohol, or plain non-coeliac sensitivity than coeliac.",
+        tip: "No gluten avoidance is implied here. Enjoy beer/wheat as normal-risk foods; the alcohol-flush trait is the one worth checking for beer itself.",
+      },
+      CT: {
+        label: "Carries the tag — possible, not likely",
+        detail: "You carry one copy of the DQ2.5 tag. This is COMMON — roughly a third of people do — and the large majority never develop coeliac disease. It means coeliac is possible for you, not that you have it. Only a doctor's blood test (and sometimes a biopsy) can tell.",
+        tone: "notable",
+        feels: "Most carriers eat wheat and drink beer with no issue at all. Watch only for a real pattern — ongoing bloating, diarrhoea, fatigue, or weight loss that tracks with gluten — and if you see it, that's a doctor conversation, not a self-diagnosis.",
+        tip: "Do NOT cut gluten on the strength of this marker — and especially don't cut it before seeing a doctor, because going gluten-free first can make the medical test come back falsely negative. This is information to keep in your back pocket, nothing more.",
+      },
+      TT: {
+        label: "Carries the tag — possible, not likely",
+        detail: "You carry two copies of the DQ2.5 tag. It's still only a possibility marker: the majority of people with it never develop coeliac disease. It raises the chance relative to non-carriers, but is nowhere near a diagnosis — only a doctor can test for that.",
+        tone: "notable",
+        feels: "Plenty of people with this genotype eat wheat their whole lives with no problem. The marker matters only if real symptoms appear alongside gluten.",
+        tip: "Keep eating normally unless symptoms genuinely track with gluten; if they do, ask a doctor for a coeliac blood test BEFORE removing gluten (removing it first can hide the result). Never self-diagnose from a chip.",
+      },
+    },
+    inherit:
+      "This gene type is inherited, which is why coeliac can run in families — but inheriting the tag is not inheriting the disease. Most family members who carry it never develop it.",
+  },
+  {
     id: "carb-weight",
     paper: { cite: "Frayling et al., Science — the FTO variant linked to BMI & obesity risk", pmid: "17434869" },
     rsid: "rs9939609",

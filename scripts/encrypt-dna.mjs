@@ -66,6 +66,7 @@ const TRAIT_RSIDS = {
   rs762551: "caffeine",
   rs671: "alcohol-flush",
   rs1229984: "alcohol-metab",
+  rs2187668: "gluten-wheat",
   rs9939609: "carb-weight",
   rs7903146: "blood-sugar",
   rs1726866: "bitter-taste",
