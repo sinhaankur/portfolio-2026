@@ -65,12 +65,27 @@
       font-size: clamp(0.95rem, 2.4vw, 1.3rem); font-weight: 700; margin-top: 0.15rem;
     }
     canvas#game {
-      width: min(100%, 480px); height: auto; aspect-ratio: 1 / 1;
+      /* HEIGHT-AWARE: the square board is capped by BOTH the column width and a
+         viewport-height budget, so on phones the START button + D-pad always
+         stay above the fold (the vh cap wins on tall phones). */
+      --board-h-budget: 52dvh;
+      width: min(100%, 480px, var(--board-h-budget)); height: auto; aspect-ratio: 1 / 1;
       /* the neon board is drawn dark in-canvas; keep a dark frame + glow so it
          reads as an arcade screen in either theme. */
       background: #060815; border: 3px solid hsl(var(--border));
       box-shadow: var(--shadow), 0 0 30px rgba(60,255,192,0.15);
-      touch-action: none; display: block;
+      touch-action: none; display: block; margin: 0 auto;
+    }
+    /* Phone one-screen fit: trim vertical rhythm so the D-pad never clips. */
+    @media (pointer: coarse), (max-height: 780px) {
+      body { gap: 0.5rem; }
+      .game-container { gap: 0.5rem; padding: 0.75rem; }
+      canvas#game { --board-h-budget: 48dvh; }
+      .controls .ctrl { min-height: 48px; }
+      .controls-toggle { display: none; }
+    }
+    @media (max-height: 680px) and (orientation: portrait) {
+      canvas#game { --board-h-budget: 44dvh; }
     }
     .game-container .retro-btn { width: 100%; }
     .controls {

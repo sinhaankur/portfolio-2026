@@ -154,7 +154,18 @@
     }
 
     canvas#game {
-      width: clamp(180px, 60vw, 360px);
+      /* HEIGHT-AWARE sizing so the whole game — board + stats + on-screen
+         controls — fits ONE phone screen with nothing shoved below the fold.
+         The board is 1:2, so its width is capped by BOTH the column width and
+         half of a viewport-height budget (the vh cap wins on tall/narrow phones,
+         the vw cap wins on wide screens). --board-h-budget reserves space for the
+         header, stats row, buttons + control pad.
+         DEFAULT (desktop): a budget (~68vh) so the board is tall and readable
+         but the whole game — topbar + title + stats + board + Start button — fits
+         one screen without scrolling. The mobile / short-viewport media queries
+         below lower --board-h-budget further to fit the touch control pad too. */
+      --board-h-budget: 68vh;
+      width: min(clamp(160px, 58vw, 360px), calc(var(--board-h-budget) / 2));
       height: auto;
       aspect-ratio: 10 / 20;
       background: hsl(var(--card));
@@ -273,6 +284,36 @@
       .stat label { font-size: 0.55rem; }
       .stat span { font-size: 0.95rem; }
       .side-label { font-size: 0.55rem; }
+    }
+
+    /* Phone one-screen fit: trim the vertical budget so the board + stats +
+       control pad all sit above the fold. Touch controls stay big enough to
+       thumb (≥48px). The Next/Hold rail shrinks so the board keeps its width. */
+    @media (pointer: coarse), (max-height: 780px) {
+      body { gap: 0.5rem; }
+      .game-container { gap: 0.5rem; padding: 0.75rem; }
+      canvas#game { --board-h-budget: 54dvh; }
+      .side-canvas { width: clamp(44px, 11vw, 68px); height: clamp(44px, 11vw, 68px); }
+      .controls { gap: 0.35rem; }
+      .controls .ctrl { min-height: 48px; font-size: 1.05rem; padding: 0.4rem 0.2rem; }
+      .controls .ctrl-label { font-size: 0.5rem; }
+      /* the "show controls" toggle is desktop-only anyway; hide the extra row */
+      .controls-toggle { display: none; }
+    }
+
+    /* Shortest portrait phones (≤680px tall): squeeze the board budget a bit
+       more so the bottom control row is never clipped. */
+    @media (max-height: 680px) and (orientation: portrait) {
+      canvas#game { --board-h-budget: 50dvh; }
+      h1.game-container, .game-container h1 { font-size: 1.15rem; }
+    }
+
+    /* Very short viewports (landscape phones): shrink the board harder so the
+       control pad never leaves the screen. */
+    @media (max-height: 560px) {
+      canvas#game { --board-h-budget: 66dvh; }
+      .side-panel { display: none; } /* drop Next/Hold rail; canvas widens */
+      .play-area { grid-template-columns: auto; }
     }
 
     @media (prefers-reduced-motion: reduce) {
