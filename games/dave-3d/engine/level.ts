@@ -37,6 +37,57 @@ export type Hazard = {
 /** gem look: cyan diamond, purple ball, or red ruby (all worth collecting). */
 export type GemKind = "diamond" | "ball" | "ruby"
 
+/**
+ * An enemy — the real Dangerous Dave roster. `kind` drives the look + score;
+ * `move` drives the motion pattern around the anchor `pos`. Touching an enemy
+ * (or its shot) kills Dave. Most shoot; a couple don't (matching the original).
+ *
+ *   spider   L3  — spins a circular circuit, shoots            (300)
+ *   blade    L4  — a purple spinning blade, no shots           (—)
+ *   sun      L5  — red sun, counter-clockwise ellipse, shoots  (500)
+ *   baton    L6  — green baton, moves horizontally, shoots     (600)
+ *   cloud    L7  — cloud thing, spins + shoots                 (700)
+ *   ufo      L8  — brown UFO, wobbles + shoots                 (800)
+ *   blobby   L9  — green blob, moves horizontally, no gun      (900)
+ *   disc     L10 — grey disc, moves left-right, shoots         (1000)
+ */
+export type EnemyKind =
+  | "spider" | "blade" | "sun" | "baton" | "cloud" | "ufo" | "blobby" | "disc"
+
+/** How an enemy moves around its anchor position. */
+export type EnemyMove =
+  | "stationary"          // holds position (still spins visually)
+  | "patrolX"             // ↔ back-and-forth horizontally over `span`
+  | "patrolY"             // ↕ back-and-forth vertically over `span`
+  | "ellipse"             // elliptical orbit (span = [rx, ry])
+  | "circle"              // circular circuit (span = radius)
+  | "wobble"              // small jitter around the anchor
+
+export type Enemy = {
+  kind: EnemyKind
+  /** anchor position (centre of the motion path) */
+  pos: Vec3
+  move: EnemyMove
+  /** motion extent: patrol half-length, circle radius, or [rx, ry] for ellipse */
+  span?: number | [number, number]
+  /** motion speed multiplier (1 = default per-kind speed) */
+  speed?: number
+  /** does it fire at Dave? (defaults per-kind; blade/blobby never do) */
+  shoots?: boolean
+}
+
+/** Per-kind defaults: base score, whether it shoots, and a tint for the look. */
+export const ENEMY_SPEC: Record<EnemyKind, { score: number; shoots: boolean; tint: string }> = {
+  spider: { score: 300, shoots: true, tint: "#c94db0" },
+  blade: { score: 0, shoots: false, tint: "#a838d6" },
+  sun: { score: 500, shoots: true, tint: "#ff5a3c" },
+  baton: { score: 600, shoots: true, tint: "#4fd06a" },
+  cloud: { score: 700, shoots: true, tint: "#bcd6ff" },
+  ufo: { score: 800, shoots: true, tint: "#b98a4a" },
+  blobby: { score: 900, shoots: false, tint: "#4fbf3a" },
+  disc: { score: 1000, shoots: true, tint: "#9aa2ad" },
+}
+
 export type Level = {
   /** short title shown on the HUD ("1 — Cavern") */
   name: string
@@ -51,6 +102,10 @@ export type Level = {
   door: Vec3
   /** hazards that respawn the player on contact */
   hazards?: Hazard[]
+  /** enemies — touching one (or its shot) kills the player */
+  enemies?: Enemy[]
+  /** if present, a gun pickup at this position lets Dave shoot enemies */
+  gun?: Vec3
   /** if present, a jetpack pickup at this position grants temporary flight */
   jetpack?: Vec3
   /** if present, a hidden warp pad that skips to the credits / final beat */
@@ -87,6 +142,10 @@ export type Level = {
  *   ^  spikes (hazard)                       F  fire (hazard)
  *   W  water (hazard)                        P  decorative pipe (no collision)
  *   J  jetpack pickup                        X  hidden warp pad
+ *   G  gun pickup (lets Dave shoot)
+ * Enemies (touch = death; letter → kind, default motion in fromTiles):
+ *   S spider   B blade    U sun     T baton
+ *   L cloud    Y ufo      Z blobby  E disc
  * Adjacent '#' cells are emitted as merged horizontal runs (fewer, wider boxes
  * → cleaner AABB collision and fewer draw calls).
  * ────────────────────────────────────────────────────────────────────────── */
@@ -120,11 +179,31 @@ export function fromTiles(rows: string[], meta: TileMeta): Level {
   const gemKinds: GemKind[] = []
   const pipes: Vec3[] = []
   const hazards: Hazard[] = []
+  const enemies: Enemy[] = []
   let trophy: Vec3 = [0, 0, 0]
   let door: Vec3 = [0, 0, 0]
   let spawn: Vec3 = [0, 1, 0]
+  let gun: Vec3 | undefined
   let jetpack: Vec3 | undefined
   let warp: Vec3 | undefined
+
+  // Enemy tile letter → kind. Motion defaults are applied below (per the real
+  // Dave roster); levels can override by supplying `enemies` directly instead.
+  const ENEMY_CHAR: Record<string, EnemyKind> = {
+    S: "spider", B: "blade", U: "sun", T: "baton",
+    L: "cloud", Y: "ufo", Z: "blobby", E: "disc",
+  }
+  // Default motion + span per kind (matches the originals' feel).
+  const ENEMY_MOVE: Record<EnemyKind, { move: EnemyMove; span?: number | [number, number] }> = {
+    spider: { move: "circle", span: 1.4 },
+    blade: { move: "stationary" },
+    sun: { move: "ellipse", span: [1.8, 1.2] },
+    baton: { move: "patrolX", span: 2.4 },
+    cloud: { move: "circle", span: 1.2 },
+    ufo: { move: "wobble", span: 0.6 },
+    blobby: { move: "patrolX", span: 2.0 },
+    disc: { move: "patrolX", span: 3.0 },
+  }
 
   // solid chars: '#' = primary brick (level tint), '=' = secondary platform
   // (purple, Dave's L2 platforms). Both collide; only the colour differs.
@@ -167,8 +246,16 @@ export function fromTiles(rows: string[], meta: TileMeta): Level {
         case "F": hazards.push({ pos: [x, y - TILE * 0.25, 0], size: [TILE, TILE * 0.5, DEPTH], kind: "fire" }); break
         case "W": hazards.push({ pos: [x, y - TILE * 0.25, 0], size: [TILE, TILE * 0.5, DEPTH], kind: "water" }); break
         case "J": jetpack = [x, y, 0]; break
+        case "G": gun = [x, y, 0]; break
         case "X": warp = [x, y, 0]; break
         case "P": pipes.push([x, y, 0]); break
+        default: {
+          const kind = ENEMY_CHAR[ch]
+          if (kind) {
+            const dflt = ENEMY_MOVE[kind]
+            enemies.push({ kind, pos: [x, y, 0], move: dflt.move, span: dflt.span })
+          }
+        }
       }
     }
   }
@@ -186,8 +273,10 @@ export function fromTiles(rows: string[], meta: TileMeta): Level {
     gemKinds,
     pipes: pipes.length ? pipes : undefined,
     hazards: hazards.length ? hazards : undefined,
+    enemies: enemies.length ? enemies : undefined,
     trophy,
     door,
+    gun,
     jetpack,
     warp,
     killY: -TILE * 3, // a few tiles below the floor
