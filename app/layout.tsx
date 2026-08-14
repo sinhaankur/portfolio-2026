@@ -357,6 +357,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           attribute="class"
           defaultTheme="dark"
           enableSystem={false}
+          themes={["light", "dark", "observatory"]}
           disableTransitionOnChange={false}
         >
           <DisplayPrefsProvider>

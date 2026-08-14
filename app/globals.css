@@ -87,6 +87,47 @@
   --sidebar-ring: oklch(0.439 0 0);
 }
 
+/* Observatory — a red-light night mode (the third theme). What a navigator
+   actually uses at night: monochrome red on near-black. Red light preserves dark
+   adaptation, so every role collapses into one red ramp and hierarchy is carried
+   by brightness alone. The ThemeToggle cycles dark → light → observatory.
+   Values from the Universe Design System token set. */
+.observatory {
+  --background: oklch(0.13 0.012 25);
+  --foreground: oklch(0.84 0.062 25);
+  --card: oklch(0.15 0.018 25);
+  --card-foreground: oklch(0.84 0.062 25);
+  --popover: oklch(0.15 0.018 25);
+  --popover-foreground: oklch(0.84 0.062 25);
+  --primary: oklch(0.84 0.062 25);
+  --primary-foreground: oklch(0.13 0.012 25);
+  --secondary: oklch(0.22 0.035 25);
+  --secondary-foreground: oklch(0.84 0.062 25);
+  --muted: oklch(0.22 0.035 25);
+  --muted-foreground: oklch(0.62 0.075 25);
+  --muted-foreground-dim: oklch(0.48 0.06 25);
+  --accent: oklch(0.62 0.21 29);              /* signal red — the one hot element */
+  --accent-foreground: oklch(0.11 0.01 25);
+  --destructive: oklch(0.62 0.21 29);
+  --destructive-foreground: oklch(0.11 0.01 25);
+  --border: oklch(0.26 0.045 25);
+  --input: oklch(0.26 0.045 25);
+  --ring: oklch(0.62 0.21 29);
+  --chart-1: oklch(0.62 0.21 29);
+  --chart-2: oklch(0.7 0.15 30);
+  --chart-3: oklch(0.55 0.18 28);
+  --chart-4: oklch(0.75 0.12 32);
+  --chart-5: oklch(0.5 0.16 27);
+  --sidebar: oklch(0.15 0.018 25);
+  --sidebar-foreground: oklch(0.84 0.062 25);
+  --sidebar-primary: oklch(0.62 0.21 29);
+  --sidebar-primary-foreground: oklch(0.11 0.01 25);
+  --sidebar-accent: oklch(0.22 0.035 25);
+  --sidebar-accent-foreground: oklch(0.84 0.062 25);
+  --sidebar-border: oklch(0.26 0.045 25);
+  --sidebar-ring: oklch(0.62 0.21 29);
+}
+
 @theme inline {
   --font-sans: var(--font-inter), "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
   --font-serif: var(--font-instrument), "Instrument Serif", "Georgia", serif;

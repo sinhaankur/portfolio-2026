@@ -3,11 +3,25 @@
 import { useEffect, useState } from "react"
 import { useTheme } from "next-themes"
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
-import { Moon, Sun } from "lucide-react"
+import { Moon, Sun, Telescope } from "lucide-react"
 import { markThemeChosenByUser } from "@/components/time-of-day-theme"
 
+// The three themes cycle dark → light → observatory (the navigator's red-light
+// night mode). One function so the click + Shift+L shortcut stay in sync.
+const THEME_ORDER = ["dark", "light", "observatory"] as const
+type ThemeName = (typeof THEME_ORDER)[number]
+function nextTheme(current: string | undefined): ThemeName {
+  const i = THEME_ORDER.indexOf((current as ThemeName) ?? "dark")
+  return THEME_ORDER[(i + 1) % THEME_ORDER.length]
+}
+const THEME_LABEL: Record<ThemeName, string> = {
+  dark: "dark",
+  light: "light",
+  observatory: "observatory (red-light)",
+}
+
 export function ThemeToggle({ className = "" }: { className?: string }) {
-  const { resolvedTheme, setTheme } = useTheme()
+  const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
   const prefersReducedMotion = useReducedMotion()
 
@@ -28,11 +42,11 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
       if (target?.isContentEditable) return
       e.preventDefault()
       markThemeChosenByUser()
-      setTheme(resolvedTheme === "dark" ? "light" : "dark")
+      setTheme(nextTheme(theme))
     }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
-  }, [mounted, resolvedTheme, setTheme])
+  }, [mounted, theme, setTheme])
 
   // Avoid hydration mismatch — render a fixed-size placeholder until theme resolves
   if (!mounted) {
@@ -45,15 +59,16 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
     )
   }
 
-  const isDark = resolvedTheme === "dark"
-  const nextLabel = `${isDark ? "Switch to light theme" : "Switch to dark theme"} (Shift+L)`
+  const current = (theme as ThemeName) ?? "dark"
+  const upcoming = nextTheme(current)
+  const nextLabel = `Switch to ${THEME_LABEL[upcoming]} theme (Shift+L)`
 
   return (
     <button
       type="button"
       onClick={() => {
         markThemeChosenByUser()
-        setTheme(isDark ? "light" : "dark")
+        setTheme(upcoming)
       }}
       aria-label={nextLabel}
       title={nextLabel}
@@ -73,7 +88,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
     >
       <AnimatePresence mode="wait" initial={false}>
         <motion.span
-          key={isDark ? "moon" : "sun"}
+          key={current}
           initial={
             prefersReducedMotion
               ? { opacity: 0 }
@@ -92,10 +107,12 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
           transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
           className="absolute inset-0 flex items-center justify-center"
         >
-          {isDark ? (
+          {current === "dark" ? (
             <Moon className="w-4 h-4" aria-hidden="true" />
-          ) : (
+          ) : current === "light" ? (
             <Sun className="w-4 h-4" aria-hidden="true" />
+          ) : (
+            <Telescope className="w-4 h-4" aria-hidden="true" />
           )}
         </motion.span>
       </AnimatePresence>
