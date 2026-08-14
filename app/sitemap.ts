@@ -39,6 +39,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/writing/universe-engine", priority: 0.7, changeFrequency: "monthly" },
     { path: "/usability",         priority: 0.6, changeFrequency: "monthly" },
     { path: "/upcoming",          priority: 0.5, changeFrequency: "weekly"  },
+    { path: "/photos",            priority: 0.5, changeFrequency: "monthly" },
     { path: "/ar",                priority: 0.6, changeFrequency: "monthly" },
     { path: "/ja",                priority: 0.6, changeFrequency: "monthly" },
     { path: "/games/dave-3d",     priority: 0.5, changeFrequency: "monthly" },
