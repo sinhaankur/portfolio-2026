@@ -151,9 +151,40 @@ function SatelliteShellPoints({
     }
   })
 
+  // Click ANY point in the swarm → follow it. R3F's points raycast returns the
+  // hit vertex index; we reconstruct THAT point's live world position each frame
+  // (the points object spins, so read its world matrix) and hand it to the same
+  // follow rig the named craft use. This makes every satellite selectable, not
+  // just the few real GLB models — the "follow any satellite" behaviour.
+  const followPoint = (e: { index?: number; stopPropagation: () => void }) => {
+    e.stopPropagation()
+    const pts = ref.current
+    if (!pts || e.index == null) return
+    const idx = e.index
+    const local = new Vector3()
+    requestFollow(
+      () => {
+        const posAttr = geometry.getAttribute("position")
+        local.set(posAttr.getX(idx), posAttr.getY(idx), posAttr.getZ(idx))
+        pts.updateWorldMatrix(true, false)
+        local.applyMatrix4(pts.matrixWorld)
+        return { x: local.x, y: local.y, z: local.z }
+      },
+      // frame it close — a satellite is a point, so zoom right in on it
+      Math.max(bodyRadius * 0.06, 0.02),
+      shell.debris ? "Tracked object" : shell.label.split(" (")[0],
+    )
+  }
+
   return (
     <group ref={gateRef}>
-      <points ref={ref} geometry={geometry}>
+      <points
+        ref={ref}
+        geometry={geometry}
+        onClick={followPoint}
+        onPointerOver={(e) => { e.stopPropagation(); document.body.style.cursor = "pointer" }}
+        onPointerOut={() => { document.body.style.cursor = "" }}
+      >
         <pointsMaterial
           // Real altitude ratios keep LEO tight to Earth, so the swarm only
           // fully resolves when you zoom in. Debris specks render smaller +

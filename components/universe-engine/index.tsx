@@ -780,6 +780,9 @@ export function UniverseEngine({
             hands the camera back to OrbitControls untouched. */}
         {scrollDriveRef && !interactive && <ScrollDolly driveRef={scrollDriveRef} />}
 
+        {/* Makes the satellite swarm points clickable (click any → follow it). */}
+        {interactive && <PointsRaycastThreshold />}
+
         {/* NavFeel scales rotate/zoom speed by distance + gates autoRotate to
             idle so moving around the space feels predictable at every scale. */}
         {interactive && (
@@ -1247,6 +1250,20 @@ function ScrollDolly({ driveRef }: { driveRef: React.MutableRefObject<number> })
  *      stillness; any drag/zoom stamps lastInteractRef and the spin cuts out, so
  *      you never fight a drifting camera while trying to look at something.
  */
+/**
+ * Sets the raycaster's Points threshold so the satellite swarm is clickable —
+ * without it, the tiny points never register a click. Set imperatively (via
+ * useThree) rather than the Canvas `raycaster` prop, which requires the full
+ * RaycasterParameters shape. Small so it only picks a point you're actually on.
+ */
+function PointsRaycastThreshold({ threshold = 0.015 }: { threshold?: number }) {
+  const raycaster = useThree((s) => s.raycaster)
+  useEffect(() => {
+    raycaster.params.Points = { threshold }
+  }, [raycaster, threshold])
+  return null
+}
+
 function NavFeel({
   controlsRef,
   lastInteractRef,
