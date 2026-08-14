@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1000" viewBox="0 0 1000 1000">
+  <defs>
+    <radialGradient id="g2" cx="35%" cy="25%" r="90%">
+      <stop offset="0%" stop-color="#7a4a55"/>
+      <stop offset="55%" stop-color="#3a1f2e"/>
+      <stop offset="100%" stop-color="#12080c"/>
+    </radialGradient>
+  </defs>
+  <rect width="1000" height="1000" fill="url(#g2)"/>
+  <text x="50%" y="52%" text-anchor="middle" fill="rgba(255,255,255,0.18)"
+    font-family="Georgia, serif" font-size="120" font-style="italic">02</text>
+</svg>
