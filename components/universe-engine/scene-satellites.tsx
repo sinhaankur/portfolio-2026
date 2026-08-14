@@ -158,11 +158,15 @@ function SatelliteShellPoints({
           // Real altitude ratios keep LEO tight to Earth, so the swarm only
           // fully resolves when you zoom in. Debris specks render smaller +
           // fainter than active satellites (tiny tracked fragments).
-          size={shell.debris ? Math.max(0.005, bodyRadius * 0.009) : Math.max(0.008, bodyRadius * 0.016)}
+          // Debris specks render smaller + much fainter than active satellites so
+          // the swarm reads as a subtle shell texture — the Earth stays the hero
+          // instead of being buried under an opaque blanket of dots. The full
+          // density still resolves as you zoom into the LEO band.
+          size={shell.debris ? Math.max(0.004, bodyRadius * 0.006) : Math.max(0.007, bodyRadius * 0.013)}
           sizeAttenuation
           color={shell.color}
           transparent
-          opacity={shell.debris ? 0.7 : 1.0}
+          opacity={shell.debris ? 0.4 : 0.9}
           blending={AdditiveBlending}
           depthWrite={false}
         />
@@ -221,8 +225,8 @@ export const SATELLITE_CATALOG: Record<string, SatelliteShell[]> = {
     //     spent stages, dead satellites, collision + ASAT-test fragments. A
     //     near-spherical cloud at ALL inclinations, densest ~800–1000 km. The
     //     defining hazard of the LEO environment (cf. LeoLabs tracking). ---
-    { label: "LEO debris cloud (~600–1100 km, all inclinations)", launchMs: Date.UTC(1961, 5, 29), altRatio: 1.13, count: 2600, color: "#ff7a6b", incl: 3.14, speed: 0.17, debris: true, altSpread: 0.10 },
-    { label: "Upper-LEO debris (~1200–1500 km)", launchMs: Date.UTC(1961, 5, 29), altRatio: 1.22, count: 700, color: "#ffae8a", incl: 3.14, speed: 0.14, debris: true, altSpread: 0.10 },
+    { label: "LEO debris cloud (~600–1100 km, all inclinations)", launchMs: Date.UTC(1961, 5, 29), altRatio: 1.13, count: 1100, color: "#ff7a6b", incl: 3.14, speed: 0.17, debris: true, altSpread: 0.10 },
+    { label: "Upper-LEO debris (~1200–1500 km)", launchMs: Date.UTC(1961, 5, 29), altRatio: 1.22, count: 320, color: "#ffae8a", incl: 3.14, speed: 0.14, debris: true, altSpread: 0.10 },
   ],
   Mars: [
     { label: "Mars orbiters (MRO / MAVEN / Odyssey / TGO …)", launchMs: Date.UTC(1971, 10, 14), altRatio: 1.3, count: 14, color: "#ffb89a", incl: 1.1, speed: 0.12 },

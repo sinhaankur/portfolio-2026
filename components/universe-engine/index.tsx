@@ -1262,11 +1262,14 @@ function NavFeel({
     // Distance from camera to the orbit target = the natural "scale" we're at.
     const dist = camera.position.distanceTo(c.target)
     // Map distance → a rotate speed that keeps angular drag roughly constant.
-    // Clamped so extremes stay usable (very close ~0.28, very far ~0.85).
-    const rot = Math.min(0.85, Math.max(0.28, 0.28 + dist * 0.02))
+    // Freed up (was 0.28–0.85, felt stuck): a responsive floor + a higher ceiling
+    // so dragging moves the camera generously at every scale — closer to the
+    // free, fluid feel of LeoLabs' orbital viewer.
+    const rot = Math.min(1.5, Math.max(0.55, 0.55 + dist * 0.03))
     c.rotateSpeed = rot
-    // Zoom speed a touch gentler when close so you don't punch through a body.
-    c.zoomSpeed = Math.min(0.9, Math.max(0.45, 0.45 + dist * 0.015))
+    // Zoom likewise: fast and free (was capped ~0.9). Still eases a touch when
+    // very close so you don't punch straight through a body.
+    c.zoomSpeed = Math.min(1.8, Math.max(0.9, 0.9 + dist * 0.02))
     // Idle-only autorotate: resume only after 2.5s of no interaction.
     const idle = performance.now() - lastInteractRef.current > 2500
     c.autoRotate = autoRotateWanted && idle
