@@ -205,6 +205,19 @@ export type QualitySettings = {
   allowHiResTextures: boolean
   /** Allow the heaviest optional effects (volumetric nebulae, etc.). */
   allowHeavyEffects: boolean
+  /**
+   * Max satellites the LIVE SWARM parses into SGP4 satrecs + renders. The full
+   * catalogue is ~18.7k objects; each parsed satrec is a fat JS object (~7 KB),
+   * so holding all of them is ~130 MB of RAM plus a per-pass CPU cost. On weaker
+   * devices that's the single biggest memory/CPU load of the whole engine. This
+   * caps the RENDERED SWARM to a representative sample so a phone/low-RAM machine
+   * stays smooth; the sample is chosen by importance (active payloads first), and
+   * the HUD says "showing N of 18,744" so it's honest, never a silent lie. The
+   * analysis panels (reentry / conjunction / proximity) still load the FULL
+   * catalogue on demand — this only bounds what's held live for the swarm.
+   * `Infinity` = no cap (every object, the full truth) for high/ultra.
+   */
+  maxSwarmSats: number
 }
 
 /** Module-scoped current tier + profile, so any engine component can read the
@@ -339,6 +352,29 @@ export function adaptTier(
   return { tier, direction: "hold" }
 }
 
+/**
+ * The effective live-swarm cap for this device — the tier's `maxSwarmSats`, but
+ * with a HARD RAM FLOOR that a strong-GPU / weak-RAM machine can't escape.
+ *
+ * Why a separate floor: the tier is a GPU-weighted vote, so a laptop with a
+ * discrete GPU but only 4 GB of RAM can land on "high" and then try to hold the
+ * full ~130 MB satrec heap — exactly the machine that can least afford it. The
+ * GPU says "I can draw it"; RAM says "I can't hold it". This clamps by RAM
+ * regardless of tier. `navigator.deviceMemory` is Chromium-only and coarse
+ * (bucketed, capped at 8 GB), so we only ACT on a low reading (a present, small
+ * value) and never loosen the cap when it's unknown.
+ */
+export function swarmCapForDevice(tier: DeviceTier): number {
+  const tierCap = qualityForTier(tier).maxSwarmSats
+  const mem = deviceProfileRef.current?.memoryGB ?? null
+  if (mem == null) return tierCap // unknown → trust the tier (never loosen)
+  // ≤2 GB: very tight — match the low floor. ≤4 GB: match the mid floor. These
+  // only ever TIGHTEN (Math.min), never raise a low tier's already-small cap.
+  if (mem <= 2) return Math.min(tierCap, 5000)
+  if (mem <= 4) return Math.min(tierCap, 10000)
+  return tierCap
+}
+
 export function qualityForTier(tier: DeviceTier): QualitySettings {
   // webOS TV profile: the absolute pixel budget (dprForCanvas) does the heavy
   // lifting — a 4K panel renders ≤1080p and upscales, 4× less fill — which buys
@@ -346,7 +382,9 @@ export function qualityForTier(tier: DeviceTier): QualitySettings {
   // not 0.4). Big-screen quality with TV-chip smoothness; textures/effects
   // stay conservative.
   if (deviceProfileRef.current?.os === "webos") {
-    return { dpr: [0.5, 1], densityScale: 0.6, allowHiResTextures: false, allowHeavyEffects: false }
+    // TV chips are fill-rate-bound AND memory-tight — a full 130 MB satrec heap
+    // is a real risk of the browser tab being killed. Cap the live swarm hard.
+    return { dpr: [0.5, 1], densityScale: 0.6, allowHiResTextures: false, allowHeavyEffects: false, maxSwarmSats: 4000 }
   }
   switch (tier) {
     case "ultra":
@@ -354,9 +392,10 @@ export function qualityForTier(tier: DeviceTier): QualitySettings {
       // up to 3 for HiDPI displays) and MORE decorative density than "high" —
       // this is the "use the power for a good experience" tier. The live FPS
       // probe steps it back to "high" if the machine can't hold ~36fps.
-      return { dpr: [1, 3], densityScale: 1.4, allowHiResTextures: true, allowHeavyEffects: true }
+      return { dpr: [1, 3], densityScale: 1.4, allowHiResTextures: true, allowHeavyEffects: true, maxSwarmSats: Infinity }
     case "high":
-      return { dpr: [1, 2], densityScale: 1.0, allowHiResTextures: true, allowHeavyEffects: true }
+      // Plenty of RAM + CPU: hold the WHOLE catalogue — the full truth, every dot live.
+      return { dpr: [1, 2], densityScale: 1.0, allowHiResTextures: true, allowHeavyEffects: true, maxSwarmSats: Infinity }
     case "mid":
       // Keep the rich sky (density + effects) but DON'T auto-pull the heavy 4K/8K
       // R2 textures — a lot of real-world devices land on "mid" (it's the default
@@ -365,13 +404,17 @@ export function qualityForTier(tier: DeviceTier): QualitySettings {
       // can opt up to hi-res via the resolution picker ("High"/"Ultra"), which
       // sets hiResChosenRef and overrides this. Fidelity stays available — it's
       // just not forced onto a mid device that didn't ask for it.
-      return { dpr: [1, 1.5], densityScale: 0.7, allowHiResTextures: false, allowHeavyEffects: true }
+      // A LOT of real devices land on "mid" (it's the default + the unknown-GPU
+      // fallback). Holding all ~18.7k satrecs (~130 MB) here was a real memory
+      // load; cap the live swarm to a representative 10k so the tab stays light
+      // while the sky still reads as dense. The panels keep full-catalogue truth.
+      return { dpr: [1, 1.5], densityScale: 0.7, allowHiResTextures: false, allowHeavyEffects: true, maxSwarmSats: 10000 }
     case "low":
     default:
       // Floor allows rendering BELOW native (0.75× → the canvas draws at 3/4 the
       // pixels and the browser upscales) — the single biggest fill-rate win for a
       // device that lags big time. Softness is a fair trade for smooth; the probe
       // only lands here when higher tiers proved too heavy. Density + effects cut.
-      return { dpr: [0.75, 1], densityScale: 0.35, allowHiResTextures: false, allowHeavyEffects: false }
+      return { dpr: [0.75, 1], densityScale: 0.35, allowHiResTextures: false, allowHeavyEffects: false, maxSwarmSats: 5000 }
   }
 }

@@ -23,7 +23,8 @@ import { BODIES } from "@/lib/celestial-data"
 import { SatelliteSearch } from "./satellite-search"
 import { useIsMobile, MobileBar, BodiesSheet, Sheet } from "./mobile-controls"
 import { selectedSatRef, satGroupFilterRef, showAllSatsRef } from "@/components/universe-engine/satellite-refs"
-import { setSimMs, timeScaleRef, hiResTexturesRef } from "@/components/universe-engine/astronomy"
+import { setSimMs, timeScaleRef, hiResTexturesRef, cancelFollow } from "@/components/universe-engine/astronomy"
+import type { SatFacts } from "@/components/universe-engine/scene-satellites"
 import { hasGoogleEarthKey } from "@/components/universe-engine/google-earth-config"
 
 // The photoreal-Earth view pulls in the (heavy) 3D-tiles renderer. Lazy-load it
@@ -169,6 +170,16 @@ const ENGINE_FOCUSABLE = new Set([
 export function CelestialExplorer() {
   const [openName, setOpenName] = useState<string | null>(null)
   const open = BODIES.find((b) => b.name === openName) ?? null
+  // Live swarm count — how many objects the field actually holds vs. the true
+  // catalogue total. On weaker devices the swarm is capped for memory (see
+  // budgetSwarm), so the copy must say "showing N of TOTAL" — never claim the
+  // full 18.7k when only a sample is live. Null until the field reports.
+  const [swarmCount, setSwarmCount] = useState<{ shown: number; total: number } | null>(null)
+  // Honest readout for a followed SWARM point (an un-catalogued dot in the shell).
+  // Named craft carry a full SatMeta card in SatelliteSearch; the swarm dots have
+  // no NORAD identity, so their inspector shows only facts DERIVED from the shell's
+  // real orbital elements (altitude/inclination/velocity/period). Null = none.
+  const [swarmFacts, setSwarmFacts] = useState<SatFacts | null>(null)
   // Title tile is a welcome, not permanent chrome: show it on entry, then fade
   // it out so the view breathes (declutter). It also hides the moment the user
   // engages with a body. A small "?" affordance brings it back.
@@ -197,9 +208,34 @@ export function CelestialExplorer() {
   // Selecting a satellite (search pick or a dot click in the scene) means the
   // user is already driving — the tour card must not sit over their chase view.
   useEffect(() => {
-    const onSel = () => setTourOpen(false)
+    const onSel = (e: Event) => {
+      setTourOpen(false)
+      // Swarm-dot follows carry a SatFacts detail → show the derived-facts card.
+      // Named-craft follows dispatch this event WITHOUT a detail (they own the
+      // richer SatelliteSearch card), so clear the swarm card so the two inspectors
+      // never stack.
+      const facts = (e as CustomEvent<SatFacts | undefined>).detail
+      setSwarmFacts(facts ?? null)
+    }
     window.addEventListener("celestial:sat-selected", onSel)
     return () => window.removeEventListener("celestial:sat-selected", onSel)
+  }, [])
+
+  // Stop following the swarm point and dismiss its card.
+  const clearSwarm = () => {
+    setSwarmFacts(null)
+    cancelFollow()
+  }
+
+  // Listen for the field's live swarm count (shown vs. true total) so the copy
+  // stays honest about the on-device cap.
+  useEffect(() => {
+    const onCount = (e: Event) => {
+      const d = (e as CustomEvent<{ shown: number; total: number }>).detail
+      if (d) setSwarmCount(d)
+    }
+    window.addEventListener("celestial:swarm-count", onCount)
+    return () => window.removeEventListener("celestial:swarm-count", onCount)
   }, [])
 
   // Map a tour step's action to opening the right panel.
@@ -544,6 +580,74 @@ export function CelestialExplorer() {
           <SatelliteSearch />
         </div>
 
+        {/* Swarm-point inspector — a followed dot in the shell has no catalogue
+            identity (no NORAD id / operator / launch date), so we show ONLY the
+            orbital facts DERIVED from the shell it belongs to (altitude, inclination,
+            velocity, period). Honest by construction: nothing here is an invented
+            per-object catalog value. Named craft use SatelliteSearch's fuller card
+            instead. Bottom-left on desktop (clear of the top-right search + detail
+            aside), bottom sheet on mobile. */}
+        <AnimatePresence>
+          {swarmFacts && (
+            <motion.aside
+              key="swarm-facts"
+              initial={mobile ? { opacity: 0, y: 40 } : { opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={mobile ? { opacity: 0, y: 40 } : { opacity: 0, y: 12 }}
+              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+              style={mobile ? { paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" } : undefined}
+              className="absolute z-40 border border-accent/40 bg-background/95 md:bg-background/90 backdrop-blur-md shadow-[0_16px_48px_-20px_rgba(0,0,0,0.7)]
+                left-0 right-0 bottom-0 rounded-t-2xl border-b-0 p-5
+                md:left-6 md:right-auto md:bottom-32 md:w-[20rem] md:rounded-xl md:border-b md:p-4"
+            >
+              <div className="flex items-start justify-between gap-3 mb-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Crosshair className={`h-3.5 w-3.5 shrink-0 ${swarmFacts.debris ? "text-red-300" : "text-accent"}`} aria-hidden />
+                  <p className={`font-mono text-[10px] tracking-[0.2em] uppercase truncate ${swarmFacts.debris ? "text-red-300" : "text-accent"}`}>
+                    {swarmFacts.debris ? "Tracked debris · following" : "Following"}
+                  </p>
+                </div>
+                <button type="button" onClick={clearSwarm} data-cursor-hover aria-label="Stop following"
+                  className="grid h-7 w-7 place-items-center rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors shrink-0">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              <h3 className="font-display text-xl font-light tracking-[-0.01em] leading-snug mb-0.5">{swarmFacts.name}</h3>
+              <p className="font-mono text-[10px] tracking-wider text-muted-foreground mb-3">
+                {swarmFacts.group} · {swarmFacts.catalogId}
+              </p>
+              <dl className="space-y-1.5 font-sans text-xs">
+                <div className="flex justify-between gap-3">
+                  <dt className="text-muted-foreground">Orbit class</dt>
+                  <dd className="text-foreground text-right">{swarmFacts.orbitClass}</dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-muted-foreground">Altitude</dt>
+                  <dd className="text-accent text-right tabular-nums">{swarmFacts.altitudeKm.toLocaleString()} km</dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-muted-foreground">Inclination</dt>
+                  <dd className="text-foreground text-right tabular-nums">{swarmFacts.inclinationDeg.toFixed(1)}°</dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-muted-foreground">Velocity</dt>
+                  <dd className="text-foreground text-right tabular-nums">{swarmFacts.velocityKmS.toFixed(2)} km/s</dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-muted-foreground">Orbit time</dt>
+                  <dd className="text-foreground text-right tabular-nums">
+                    {swarmFacts.periodMin} min · {(1440 / swarmFacts.periodMin).toFixed(1)}×/day
+                  </dd>
+                </div>
+              </dl>
+              <p className="mt-3 font-sans text-[10px] leading-relaxed text-muted-foreground/70">
+                Derived from this shell&apos;s real orbital elements — an un-catalogued
+                object has no NORAD id. Search a named craft for its full record.
+              </p>
+            </motion.aside>
+          )}
+        </AnimatePresence>
+
         {/* Title tile — the landing framing. Tells a cold visitor (often arriving
             from a "satellites orbiting Earth" search) what this is before they dive
             in. DESKTOP ONLY — at phone width it collided with the search + filter
@@ -563,7 +667,16 @@ export function CelestialExplorer() {
             Everything orbiting <span className="italic">Earth</span>, live.
           </h1>
           <p className="mt-1.5 font-sans text-xs text-foreground/60 leading-relaxed pointer-events-none">
-            <span className="text-accent">18,600+</span> tracked objects on real orbits — computed live.
+            {swarmCount && swarmCount.shown < swarmCount.total ? (
+              <>
+                <span className="text-accent">{swarmCount.shown.toLocaleString()}</span> of{" "}
+                {swarmCount.total.toLocaleString()} tracked objects on real orbits — sampled to keep this device smooth.
+              </>
+            ) : (
+              <>
+                <span className="text-accent">{(swarmCount?.total ?? 18744).toLocaleString()}</span> tracked objects on real orbits — computed live.
+              </>
+            )}
           </p>
         </div>
 

@@ -30,8 +30,64 @@ import { useFrame, useThree } from "@react-three/fiber"
 import { useGLTF, Line, Html } from "@react-three/drei"
 import * as THREE from "three"
 import { simTimeRef, requestFollow, focusDepthRef, daysSinceJ2000, earthRotationAngle, timeScaleRef, REALTIME_TIME_SCALE } from "./astronomy"
-import { perfTierRef } from "@/lib/device-tier"
+import { perfTierRef, swarmCapForDevice } from "@/lib/device-tier"
 import { launchSiteFor } from "@/lib/launch-sites"
+
+/**
+ * Downsample the catalogue to a memory/CPU budget for the LIVE SWARM, honestly.
+ *
+ * Each object we keep becomes a parsed SGP4 satrec (~7 KB) held for the whole
+ * session, so all ~18.7k is ~130 MB — the engine's single biggest RAM load, and
+ * it hurts weak/low-RAM devices most. When the device tier sets a cap, we keep a
+ * REPRESENTATIVE sample rather than a blind head-slice:
+ *   1. every ACTIVE PAYLOAD is kept first (the working spacecraft — what people
+ *      actually come to see; a satellite map that dropped the ISS would be wrong),
+ *   2. the remaining budget is filled with an EVEN stride across the debris /
+ *      rocket-body population, ordered by NORAD id, so the junk shell still reads
+ *      as a shell (spread across altitudes/planes) instead of a clump.
+ * Deterministic (id-ordered stride) so the sample never reshuffles between loads.
+ * `pinnedIds` always survive the cull (the famous craft — ISS/Hubble/Tiangong —
+ * that also ride as real 3D hardware; dropping them would be a visible wrong).
+ * Returns the (possibly capped) list plus the true total for an honest HUD note.
+ */
+function budgetSwarm(list: SatRecord[], cap: number, pinnedIds?: Set<number>): { list: SatRecord[]; total: number } {
+  const total = list.length
+  if (!Number.isFinite(cap) || total <= cap) return { list, total }
+  const isDebris = (s: SatRecord) => s.type === "DEB" || s.type === "R/B"
+  // Pull the pinned craft aside first so a stride can never skip them.
+  const pinned: SatRecord[] = []
+  const rest: SatRecord[] = []
+  for (const s of list) (pinnedIds?.has(s.id) ? pinned : rest).push(s)
+  const room0 = Math.max(0, cap - pinned.length)
+  const active: SatRecord[] = []
+  const junk: SatRecord[] = []
+  for (const s of rest) (isDebris(s) ? junk : active).push(s)
+  // Active payloads are the priority; if they alone exceed the room, stride THEM.
+  if (active.length >= room0) {
+    const stride = active.length / room0
+    const out: SatRecord[] = []
+    for (let i = 0; out.length < room0 && i < active.length; i += stride) out.push(active[Math.floor(i)])
+    return { list: pinned.concat(out), total }
+  }
+  // Keep all active payloads, fill the rest with an even stride across the junk.
+  const room = room0 - active.length
+  junk.sort((a, b) => a.id - b.id)
+  const stride = room > 0 ? junk.length / room : Infinity
+  const keptJunk: SatRecord[] = []
+  for (let i = 0; keptJunk.length < room && i < junk.length; i += stride) keptJunk.push(junk[Math.floor(i)])
+  return { list: pinned.concat(active, keptJunk), total }
+}
+
+/** NORAD ids that must always survive the swarm cap — the famous craft that also
+ *  ride as real 3D hardware (see NOTABLE_CRAFT). Kept as a module const so the
+ *  top-level budgetSwarm can reference it without a forward-ref to NOTABLE_CRAFT. */
+const PINNED_SWARM_IDS = new Set<number>([25544, 20580, 48274]) // ISS, Hubble, Tiangong
+
+/** Bridge: the true catalogue total vs. how many the swarm actually holds, so
+ *  the DOM HUD can honestly say "showing N of TOTAL on this device". */
+export const swarmCountRef: { current: { shown: number; total: number } } = {
+  current: { shown: 0, total: 0 },
+}
 
 /**
  * Satellite archetypes — a small library of real-design Blender models picked by
@@ -84,6 +140,8 @@ const ARCHETYPES: Record<ArchetypeId, Archetype> = {
 // real orbits as actual 3D hardware (not just dots) — so the scene shows the
 // famous machines where they really are. Real NORAD ids from the catalogue.
 type NotableCraft = { id: number; label: string; arch: ArchetypeId }
+// NOTE: keep these ids in sync with PINNED_SWARM_IDS (top of file) so the swarm
+// cap never strides these famous craft out from under their 3D markers.
 const NOTABLE_CRAFT: NotableCraft[] = [
   { id: 25544, label: "ISS",      arch: "iss" },
   { id: 20580, label: "Hubble",   arch: "hubble" },
@@ -674,9 +732,20 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
       import("satellite.js") as Promise<unknown> as Promise<Sgp4>,
       loadFullCatalog(),
     ])
-      .then(([lib, list]) => {
+      .then(([lib, full]) => {
         if (cancelled) return
         sgp4.current = lib
+        // Cap the LIVE SWARM to the device tier's budget before parsing satrecs —
+        // parsing every one of ~18.7k TLEs is ~130 MB held for the session, the
+        // engine's biggest RAM load. Weak devices keep a representative sample;
+        // high/ultra keep everything (Infinity). The analysis panels still call
+        // loadFullCatalog() for the complete set on demand, so no feature loses
+        // truth — only the always-resident swarm is bounded.
+        const { list, total } = budgetSwarm(full, swarmCapForDevice(perfTierRef.current), PINNED_SWARM_IDS)
+        swarmCountRef.current = { shown: list.length, total }
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("celestial:swarm-count", { detail: { shown: list.length, total } }))
+        }
         satrecs.current = list.map((s) => {
           try { return lib.twoline2satrec(s.l1, s.l2) } catch { return null }
         })
