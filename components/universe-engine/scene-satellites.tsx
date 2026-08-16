@@ -79,6 +79,48 @@ export type SatelliteShell = {
   launchMs?: number
 }
 
+/** The honest readout for the selected-object inspector, derived from a shell's
+ *  real orbital parameters (no invented per-object catalog data — the values
+ *  reflect the constellation/band the point belongs to). */
+export type SatFacts = {
+  name: string
+  group: string
+  catalogId: string
+  altitudeKm: number
+  inclinationDeg: number
+  velocityKmS: number
+  periodMin: number
+  orbitClass: string
+  debris: boolean
+}
+
+const EARTH_RADIUS_KM = 6371
+const MU_EARTH = 398600.4418 // km³/s²
+
+/** Derive real orbital facts for a followed swarm point from its shell. */
+export function satFacts(shell: SatelliteShell, idx: number): SatFacts {
+  const rKm = shell.altRatio * EARTH_RADIUS_KM // orbit radius from Earth centre
+  const altitudeKm = rKm - EARTH_RADIUS_KM
+  const velocityKmS = Math.sqrt(MU_EARTH / rKm) // circular-orbit speed
+  const periodMin = (2 * Math.PI * Math.sqrt((rKm * rKm * rKm) / MU_EARTH)) / 60
+  const inclinationDeg = (shell.incl * 180) / Math.PI
+  const orbitClass =
+    altitudeKm < 2000 ? "LEO" : altitudeKm < 35000 ? "MEO" : altitudeKm < 37000 ? "GEO" : "HEO"
+  const group = shell.label.split(" (")[0]
+  return {
+    name: shell.debris ? "Tracked debris object" : `${group} object`,
+    group,
+    // A stable, honest synthetic id (not a real NORAD number we don't have).
+    catalogId: `${shell.debris ? "DEB" : "OBJ"}-${(idx + 1).toString().padStart(5, "0")}`,
+    altitudeKm: Math.round(altitudeKm),
+    inclinationDeg: Math.round(inclinationDeg * 10) / 10,
+    velocityKmS: Math.round(velocityKmS * 100) / 100,
+    periodMin: Math.round(periodMin),
+    orbitClass,
+    debris: !!shell.debris,
+  }
+}
+
 function SatelliteShellPoints({
   shell,
   bodyRadius,
@@ -173,6 +215,11 @@ function SatelliteShellPoints({
       // frame it close — a satellite is a point, so zoom right in on it
       Math.max(bodyRadius * 0.06, 0.02),
       shell.debris ? "Tracked object" : shell.label.split(" (")[0],
+    )
+    // Publish a clean, HONEST readout for the selected-object inspector — all
+    // derived from the shell's real orbital parameters (altRatio, incl).
+    window.dispatchEvent(
+      new CustomEvent("celestial:sat-selected", { detail: satFacts(shell, idx) }),
     )
   }
 
