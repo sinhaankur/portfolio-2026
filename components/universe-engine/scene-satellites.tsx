@@ -445,6 +445,31 @@ export const HERO_CRAFT: Record<string, HeroCraft[]> = {
       agency: "🇺🇸 NASA", orbit: "Jupiter polar orbit · 53-day", launched: "2011 · arrived 2016", size: "~20 m solar span", launchMs: Date.UTC(2016, 6, 5),
       fact: "Juno — a polar orbiter with three huge solar wings (Jupiter gets ~4% of Earth's sunlight), probing the giant's deep structure, gravity, and aurorae." },
   ],
+  // ── Newly wired: craft that reached these worlds now show as REAL 3D models
+  //    (the GLBs already existed in public/models; they just weren't attached to
+  //    their planet). "Anything that has left Earth should be visible." Facts are
+  //    real; launchMs gates each craft so it only appears once it actually flew.
+  Saturn: [
+    { label: "Cassini", model: "/models/craft-cassini.glb", altRatio: 1.7, incl: 0.6, speed: 0.05, sizeRatio: 0.18, phase: 0.9,
+      agency: "🇺🇸🇪🇺 NASA/ESA", orbit: "Saturn orbit · 2004–2017", launched: "1997 · arrived 2004", size: "~6.8 m", launchMs: Date.UTC(2004, 6, 1),
+      fact: "Cassini — orbited Saturn for 13 years, delivered the Huygens probe to Titan, and ended in a deliberate plunge into Saturn (the 'Grand Finale', 2017)." },
+  ],
+  Venus: [
+    { label: "Akatsuki", model: "/models/craft-dish.glb", altRatio: 1.45, incl: 0.9, speed: 0.1, sizeRatio: 0.09, phase: 1.4,
+      agency: "🇯🇵 JAXA", orbit: "Venus elliptical orbit", launched: "2010 · arrived 2015", size: "~1.4 m bus", launchMs: Date.UTC(2015, 11, 7),
+      fact: "Akatsuki — Japan's Venus Climate Orbiter, studying the planet's super-rotating atmosphere after a dramatic second orbit-insertion attempt in 2015." },
+    { label: "Venus Express", model: "/models/craft-spinner.glb", altRatio: 1.58, incl: 1.4, speed: 0.09, sizeRatio: 0.08, phase: 4.0,
+      agency: "🇪🇺 ESA", orbit: "Venus polar orbit · 2006–2014", launched: "2005 · arrived 2006", size: "~1.5 m bus", launchMs: Date.UTC(2006, 3, 11),
+      fact: "Venus Express — ESA's first Venus mission, mapping the atmosphere and surface temperatures for eight years before running out of fuel in 2014." },
+  ],
+  Mercury: [
+    { label: "MESSENGER", model: "/models/craft-spinner.glb", altRatio: 1.5, incl: 1.0, speed: 0.1, sizeRatio: 0.08, phase: 2.2,
+      agency: "🇺🇸 NASA", orbit: "Mercury orbit · 2011–2015", launched: "2004 · arrived 2011", size: "~1.4 m bus", launchMs: Date.UTC(2011, 2, 18),
+      fact: "MESSENGER — first spacecraft to orbit Mercury; mapped the whole planet and found water ice in permanently-shadowed polar craters before impacting in 2015." },
+    { label: "BepiColombo", model: "/models/craft-dish.glb", altRatio: 1.62, incl: 1.2, speed: 0.09, sizeRatio: 0.1, phase: 5.1,
+      agency: "🇪🇺🇯🇵 ESA/JAXA", orbit: "Mercury transfer · arriving 2026", launched: "2018", size: "~2 stacked orbiters", launchMs: Date.UTC(2018, 9, 20),
+      fact: "BepiColombo — a joint ESA/JAXA mission of two orbiters, using repeated Mercury flybys to brake into orbit; arrival at Mercury is planned for late 2026." },
+  ],
   "Moon (Luna)": [
     { label: "LRO", model: "/models/craft-lro.glb", altRatio: 1.11, incl: 1.55, speed: 0.14, sizeRatio: 0.12, phase: 0.4,
       agency: "🇺🇸 NASA", orbit: "Lunar polar orbit · ~50 km", launched: "2009", size: "~4.3 m span", launchMs: Date.UTC(2009, 5, 18),
