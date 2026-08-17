@@ -34,6 +34,13 @@ import { perfTierRef, swarmCapForDevice } from "@/lib/device-tier"
 import { launchSiteFor } from "@/lib/launch-sites"
 import { SatelliteNearField } from "./satellite-nearfield"
 
+// PERF ISOLATION SWITCH — the near-field 3D layer (dots→lit slabs up close) was
+// added this session and built without a live GPU test. It runs a per-frame
+// instanced-matrix pass, so it's the prime suspect for the "super laggy on all
+// browsers" report. Disabled while we confirm whether it's the cause; flip back
+// to true once perf is verified. (The dots + everything else are unaffected.)
+const ENABLE_NEARFIELD = false
+
 /**
  * Downsample the catalogue to a memory/CPU budget for the LIVE SWARM, honestly.
  *
@@ -1937,13 +1944,15 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
           there's no pop. Reads the SAME live position buffer + visibility rule as
           the dots; it never changes selection or picking. See satellite-nearfield.tsx
           for the full USER JOURNEY. Additive garnish — safe to remove. */}
-      <SatelliteNearField
-        geometry={geometry}
-        types={satTypes}
-        kmToScene={kmToScene}
-        earthVisualRadius={earthVisualRadius}
-        isVisible={isDotVisible}
-      />
+      {ENABLE_NEARFIELD && (
+        <SatelliteNearField
+          geometry={geometry}
+          types={satTypes}
+          kmToScene={kmToScene}
+          earthVisualRadius={earthVisualRadius}
+          isVisible={isDotVisible}
+        />
+      )}
 
       {/* GEO belt guide — the geostationary ring is real, sharply defined
           structure (35,786 km above the equator, 42,164 km from Earth's
