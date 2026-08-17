@@ -788,18 +788,25 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
         // so its satrec copy and the swarm geometry are index-aligned. If the
         // Worker can't be created (older browser, blocked), we silently keep the
         // inline sweep — the fallback path produces identical positions.
+        //
+        // NB: this is a PLAIN CLASSIC worker served from /public/workers, NOT a
+        // bundled TS module. The old `new URL('./sgp4-worker.ts', import.meta.url)`
+        // module worker worked in dev but the STATIC EXPORT shipped it as a raw
+        // `.ts` file the browser couldn't run — it failed async, so every frame
+        // silently ran the inline main-thread sweep (the lag). A public classic
+        // worker + importScripts has no MIME/module pitfalls under `output:export`.
         try {
           const expectedLen = list.length * 3
-          const w = new Worker(new URL("./sgp4-worker.ts", import.meta.url), { type: "module" })
+          const w = new Worker("/workers/sgp4-worker.js")
           w.onmessage = (ev: MessageEvent) => {
             const m = ev.data as
               | { type: "ready"; count: number }
               | { type: "positions"; timeMs: number; buffer: ArrayBuffer }
             if (m.type === "ready") {
               workerReady.current = true
-              if (process.env.NODE_ENV !== "production") {
-                console.info(`[sgp4-worker] off-thread propagation live: ${m.count} objects`)
-              }
+              // Log in prod too — this is the one-line proof (visible in the live
+              // site's console) that propagation is actually OFF the main thread.
+              console.info(`[sgp4-worker] off-thread propagation live: ${m.count} objects`)
             } else if (m.type === "positions") {
               const incoming = new Float32Array(m.buffer)
               // SAFETY: only adopt a buffer that matches the swarm geometry length.

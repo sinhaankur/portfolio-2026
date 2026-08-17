@@ -157,8 +157,12 @@ export function SatelliteNearField({
     // of nearby objects changes slowly, so we only redo it every SCAN_INTERVAL_MS
     // and cache the winning indices in keptIdx. One max-heap-free pass: keep the
     // CAP closest, replacing the current farthest once full.
+    // Re-pick strictly on the timer. (The old `|| keptIdx.length === 0` fallback
+    // forced a full 18k scan EVERY frame whenever the near-field was legitimately
+    // empty — a per-frame 18k-loop that defeated the whole throttle. The timer
+    // alone is correct: an empty result just stays empty until the next interval.)
     const now = performance.now()
-    if (now - lastScanMs.current >= SCAN_INTERVAL_MS || keptIdx.current.length === 0) {
+    if (now - lastScanMs.current >= SCAN_INTERVAL_MS) {
       lastScanMs.current = now
       const kept: { idx: number; d2: number }[] = []
       let farthestSlot = -1
@@ -182,6 +186,13 @@ export function SatelliteNearField({
       }
       // Cache just the indices; positions are re-read live below every frame.
       keptIdx.current = kept.map((k) => k.idx)
+      // COLOUR only changes when the SET changes — write it HERE (10 Hz), not per
+      // frame. setColorAt every frame needlessly re-uploads the instanceColor
+      // buffer to the GPU; doing it only on a re-pick is a real saving.
+      for (let k = 0; k < keptIdx.current.length; k++) {
+        mesh.setColorAt(k, colorFor(types[keptIdx.current[k]], _col))
+      }
+      if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
     }
 
     // ── STEP 2 (every frame): move the cached objects to their LIVE positions ──
@@ -199,11 +210,9 @@ export function SatelliteNearField({
       _quat.setFromUnitVectors(_upZ, radial)
       _mat.compose(_pos, _quat, _scale)
       mesh.setMatrixAt(k, _mat)
-      mesh.setColorAt(k, colorFor(types[i], _col))
     }
     mesh.count = idxs.length
     mesh.instanceMatrix.needsUpdate = true
-    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
     // Keep it from being frustum-culled as a whole (positions live far apart).
     mesh.frustumCulled = false
   })
