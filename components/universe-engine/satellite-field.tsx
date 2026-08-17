@@ -1447,12 +1447,30 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
       // rolls next→prev + reopens the window when the buffer returns. The render
       // thread does ZERO propagation here — just the prev→next LERP above.
       const n = recs.length * 3
-      // First fill: seed prev/next so the LERP has something before the first
-      // worker buffer lands (avoids a one-window blank on entry).
+      // FIRST FILL — BUG FIX (missing dots): previously this seeded prev/next as
+      // all-ZEROS and waited up to recomputeMs for the worker's first buffer. In
+      // that window the LERP interpolated zeros→zeros, so all 18k dots sat at the
+      // origin (invisible) — and the lerpTAtOne guard could latch that empty state.
+      // Now we do ONE immediate synchronous propagation (same as the fallback) so
+      // the swarm appears in place instantly; the worker then takes over updates.
       if (!nextPos.current || nextPos.current.length !== n) {
-        nextPos.current = new Float32Array(n)
-        prevPos.current = new Float32Array(n)
+        const seed = new Float32Array(n)
+        const date0 = new Date(clampToSpaceAge(simTimeRef.current.simMs))
+        for (let i = 0; i < recs.length; i++) {
+          const j = i * 3
+          const rec = recs[i]
+          if (!rec) { seed[j] = 0; seed[j + 1] = 0; seed[j + 2] = 0; continue }
+          let r: { position?: { x: number; y: number; z: number } } | false = false
+          try { r = lib.propagate(rec, date0) } catch { r = false }
+          const p = finitePos(r)
+          if (!p) { seed[j] = 0; seed[j + 1] = 0; seed[j + 2] = 0; continue }
+          const [ex, ey, ez] = expandEci(p.x, p.y, p.z)
+          seed[j] = ex * kmToScene; seed[j + 1] = ez * kmToScene; seed[j + 2] = -ey * kmToScene
+        }
+        nextPos.current = seed
+        prevPos.current = seed.slice() // prev==next so the first LERP is a no-op (dots visible, still)
         sweepStartMs.current = now
+        lerpTAtOne.current = false
       }
       if (!workerBusy.current && now - sweepStartMs.current >= recomputeMs) {
         workerBusy.current = true
