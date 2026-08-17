@@ -32,6 +32,7 @@ import * as THREE from "three"
 import { simTimeRef, requestFollow, focusDepthRef, daysSinceJ2000, earthRotationAngle, timeScaleRef, REALTIME_TIME_SCALE } from "./astronomy"
 import { perfTierRef, swarmCapForDevice } from "@/lib/device-tier"
 import { launchSiteFor } from "@/lib/launch-sites"
+import { SatelliteNearField } from "./satellite-nearfield"
 
 /**
  * Downsample the catalogue to a memory/CPU budget for the LIVE SWARM, honestly.
@@ -1050,6 +1051,11 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     return out
   }
 
+  // Per-object type, index-aligned with the swarm buffer. The near-field layer
+  // reads this to colour each promoted slab by what the object IS (payload /
+  // rocket body / debris) — the same legend as the dots. Built once per catalogue.
+  const satTypes = useMemo(() => (sats ? sats.map((s) => s.type) : null), [sats])
+
   const geometry = useMemo(() => {
     if (!sats || sats.length === 0) return null
     const n = sats.length
@@ -1797,6 +1803,20 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
           }}
         />
       </points>
+
+      {/* NEAR-FIELD 3D layer — "dots become objects". When the camera flies into
+          the shell, the closest objects resolve into little lit slabs (green
+          payload / yellow rocket body / red debris), fading in with proximity so
+          there's no pop. Reads the SAME live position buffer + visibility rule as
+          the dots; it never changes selection or picking. See satellite-nearfield.tsx
+          for the full USER JOURNEY. Additive garnish — safe to remove. */}
+      <SatelliteNearField
+        geometry={geometry}
+        types={satTypes}
+        kmToScene={kmToScene}
+        earthVisualRadius={earthVisualRadius}
+        isVisible={isDotVisible}
+      />
 
       {/* GEO belt guide — the geostationary ring is real, sharply defined
           structure (35,786 km above the equator, 42,164 km from Earth's
