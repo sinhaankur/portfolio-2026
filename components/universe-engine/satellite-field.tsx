@@ -807,6 +807,9 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
               // Log in prod too — this is the one-line proof (visible in the live
               // site's console) that propagation is actually OFF the main thread.
               console.info(`[sgp4-worker] off-thread propagation live: ${m.count} objects`)
+              // Publish for the ?perf overlay so you can SEE whether propagation
+              // is off-thread ("wkr") or fell back to the main thread ("main").
+              if (typeof window !== "undefined") (window as unknown as { __ueWorker?: string }).__ueWorker = "wkr"
             } else if (m.type === "positions") {
               const incoming = new Float32Array(m.buffer)
               // SAFETY: only adopt a buffer that matches the swarm geometry length.
@@ -830,7 +833,11 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
             }
           }
           // A worker crash must not freeze the swarm: fall back to the inline sweep.
-          w.onerror = () => { workerReady.current = false; workerBusy.current = false }
+          w.onerror = () => {
+            workerReady.current = false; workerBusy.current = false
+            if (typeof window !== "undefined") (window as unknown as { __ueWorker?: string }).__ueWorker = "main"
+            console.warn("[sgp4-worker] failed to start — running SGP4 on the main thread (fallback)")
+          }
           w.postMessage({
             type: "init",
             tles: list.map((s) => ({ l1: s.l1, l2: s.l2 })),
@@ -839,6 +846,7 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
           worker.current = w
         } catch {
           workerReady.current = false
+          if (typeof window !== "undefined") (window as unknown as { __ueWorker?: string }).__ueWorker = "main"
         }
       })
       .catch(() => setSats([]))

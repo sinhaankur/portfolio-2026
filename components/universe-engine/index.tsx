@@ -372,8 +372,12 @@ export function UniverseEngine({
           const fps = Math.round(1000 / p50)
           const stats = { fps, p50, p95: p95v, max, tier: perfTierRef.current, superClear: superClearRef.current, frames: gaps.length }
           if (perfNodeRef.current) {
+            // Include the SGP4 propagation location: "wkr" = off-thread worker
+            // (good), "main" = fell back to the main thread (the lag suspect). This
+            // is the key diagnostic for the satellite page's smoothness.
+            const wk = (window as unknown as { __ueWorker?: string }).__ueWorker
             perfNodeRef.current.textContent =
-              `${fps} fps · p50 ${Math.round(p50)}ms · p95 ${Math.round(p95v)}ms · max ${Math.round(max)}ms · ${perfTierRef.current}${superClearRef.current ? " · SUPER" : ""}`
+              `${fps} fps · p50 ${Math.round(p50)}ms · p95 ${Math.round(p95v)}ms · max ${Math.round(max)}ms · ${perfTierRef.current}${wk ? " · sgp4:" + wk : ""}${superClearRef.current ? " · SUPER" : ""}`
           }
           if (typeof window !== "undefined") {
             ;(window as unknown as { __uePerf?: typeof stats }).__uePerf = stats
