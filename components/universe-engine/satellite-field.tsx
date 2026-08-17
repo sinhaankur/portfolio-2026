@@ -1897,17 +1897,17 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
 
   return (
     <>
+      {/* PERF: the swarm is ~18k points. onPointerOver/Out here forced R3F to
+          RAYCAST ALL 18k POINTS ON EVERY MOUSE MOVE (continuous hover-testing) —
+          the "super laggy the moment you interact with the dots" cause. We drop
+          the hover cursor (a nicety) and keep onClick: a click raycasts ONCE, not
+          continuously. Clicking any dot to follow it still works exactly the same;
+          it just no longer re-raycasts the whole cloud on every pointer motion. */}
       <points
         ref={pointsRef}
         geometry={geometry}
         frustumCulled={false}
         onClick={onPointsClick}
-        onPointerOver={(e: { index?: number }) => {
-          // Only flip the cursor for dots that are actually visible — the
-          // pointer ring promising a click on empty-looking space is a lie.
-          if (e.index == null || isDotVisible(e.index)) document.body.style.cursor = "pointer"
-        }}
-        onPointerOut={() => { document.body.style.cursor = "" }}
       >
         <shaderMaterial
           ref={matRef}
