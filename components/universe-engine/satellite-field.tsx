@@ -714,6 +714,26 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
   // cursor; a full pass rolls next→prev. Same freshness, no single-frame stall.
   const sweepCursor = useRef(0)
   const sweepStartMs = useRef(0)
+  // OFF-THREAD SGP4: a Worker owns a second copy of the satrecs and propagates
+  // the WHOLE swarm on request, posting a transferable position buffer back — so
+  // the render thread never spends its budget on 18.7k propagations. When the
+  // worker is live (workerReady) the frame loop asks it for a fresh buffer each
+  // refresh window and just LERPs prev→next; the inline time-sliced sweep below
+  // is the FALLBACK for SSR / worker-init failure (identical output, on-thread).
+  //
+  // ── USER JOURNEY (the four refs below, in the order they matter) ──
+  //   • On load, we build `worker` and mark `workerReady` once it has parsed the
+  //     TLEs. → the user's first paint isn't blocked by parsing 18.7k satrecs.
+  //   • Each refresh window the frame loop sets `workerBusy` and asks the worker
+  //     "where is everything now?". → the maths runs off-thread; the user's
+  //     drag/zoom keeps its full frame budget.
+  //   • The worker replies with a positions buffer; we adopt it and clear
+  //     `workerBusy`, handing the old buffer back via `recycledBuf`. → smooth,
+  //     allocation-free motion (no GC hitches while the user watches the sky).
+  const worker = useRef<Worker | null>(null)
+  const workerReady = useRef(false)
+  const workerBusy = useRef(false) // a tick is in flight → don't double-post
+  const recycledBuf = useRef<ArrayBuffer | null>(null) // ping-pong buffer to reuse
   // scene units per km, so satellite altitudes sit just above Earth's sphere
   const kmToScene = earthVisualRadius / EARTH_RADIUS_KM
 
@@ -755,10 +775,64 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
         satLibRef.current = lib
         satrecsRef.current = satrecs.current
         satsRef.current = list as Sat[]
+
+        // Spin up the off-thread propagator with the SAME (already-capped) list,
+        // so its satrec copy and the swarm geometry are index-aligned. If the
+        // Worker can't be created (older browser, blocked), we silently keep the
+        // inline sweep — the fallback path produces identical positions.
+        try {
+          const expectedLen = list.length * 3
+          const w = new Worker(new URL("./sgp4-worker.ts", import.meta.url), { type: "module" })
+          w.onmessage = (ev: MessageEvent) => {
+            const m = ev.data as
+              | { type: "ready"; count: number }
+              | { type: "positions"; timeMs: number; buffer: ArrayBuffer }
+            if (m.type === "ready") {
+              workerReady.current = true
+              if (process.env.NODE_ENV !== "production") {
+                console.info(`[sgp4-worker] off-thread propagation live: ${m.count} objects`)
+              }
+            } else if (m.type === "positions") {
+              const incoming = new Float32Array(m.buffer)
+              // SAFETY: only adopt a buffer that matches the swarm geometry length.
+              // A mismatch (stale worker after a swarm-size change / race) would
+              // misalign every dot — drop it and let the inline fallback cover.
+              if (incoming.length !== expectedLen) { workerBusy.current = false; return }
+              // A completed full-swarm buffer arrived: roll next→prev, adopt it as
+              // the new next, and open a fresh interpolation window. Hand the OLD
+              // prev buffer back to the worker to reuse (ping-pong, no GC).
+              const oldPrev = prevPos.current
+              prevPos.current = nextPos.current ?? incoming.slice()
+              nextPos.current = incoming
+              sweepStartMs.current = performance.now()
+              workerBusy.current = false
+              if (oldPrev && oldPrev.buffer.byteLength === incoming.buffer.byteLength) {
+                // stash for the next tick's transferable reuse (always a plain
+                // ArrayBuffer here — we never allocate these over SharedArrayBuffer)
+                recycledBuf.current = oldPrev.buffer as ArrayBuffer
+              }
+            }
+          }
+          // A worker crash must not freeze the swarm: fall back to the inline sweep.
+          w.onerror = () => { workerReady.current = false; workerBusy.current = false }
+          w.postMessage({
+            type: "init",
+            tles: list.map((s) => ({ l1: s.l1, l2: s.l2 })),
+            kmToScene,
+          })
+          worker.current = w
+        } catch {
+          workerReady.current = false
+        }
       })
       .catch(() => setSats([]))
-    return () => { cancelled = true }
-  }, [])
+    return () => {
+      cancelled = true
+      worker.current?.terminate()
+      worker.current = null
+      workerReady.current = false
+    }
+  }, [kmToScene])
 
   const markerRef = useRef<THREE.Group>(null)
   // Instant selection reticle (group) — billboarded + screen-space scaled each
@@ -1217,7 +1291,31 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
       }
     }
 
-    {
+    if (workerReady.current && worker.current) {
+      // OFF-THREAD PATH — the worker propagates the whole swarm. Once the current
+      // interpolation window has elapsed and no tick is already in flight, ask it
+      // for a fresh full buffer at the current sim time. The onmessage handler
+      // rolls next→prev + reopens the window when the buffer returns. The render
+      // thread does ZERO propagation here — just the prev→next LERP above.
+      const n = recs.length * 3
+      // First fill: seed prev/next so the LERP has something before the first
+      // worker buffer lands (avoids a one-window blank on entry).
+      if (!nextPos.current || nextPos.current.length !== n) {
+        nextPos.current = new Float32Array(n)
+        prevPos.current = new Float32Array(n)
+        sweepStartMs.current = now
+      }
+      if (!workerBusy.current && now - sweepStartMs.current >= recomputeMs) {
+        workerBusy.current = true
+        const timeMs = clampToSpaceAge(simTimeRef.current.simMs)
+        const reuse = recycledBuf.current
+        recycledBuf.current = null
+        worker.current.postMessage(
+          reuse ? { type: "tick", timeMs, buffer: reuse } : { type: "tick", timeMs },
+          reuse ? [reuse] : [],
+        )
+      }
+    } else {
       // Swarm view — TIME-SLICED SGP4 sweep (runs even while a satellite is
       // selected: the dimmed field keeps flying). Propagating all ~15,700 in
       // one frame is a 4 Hz stutter; instead we do a fixed BUDGET per frame into
