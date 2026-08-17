@@ -99,6 +99,16 @@ export function SatelliteNearField({
   const meshRef = useRef<THREE.InstancedMesh>(null)
   const { camera } = useThree()
 
+  // PERF SPLIT (throttled selection, live positions):
+  // Finding the CAP-closest objects means scanning all ~18k positions — too much
+  // to do 60×/sec. But the objects the user is near barely change frame-to-frame,
+  // so we RE-PICK the set only ~10×/sec and cache the winning indices here. Every
+  // frame we still move those cached objects to their live positions, so motion is
+  // perfectly smooth while the expensive scan runs a sixth as often.
+  const keptIdx = useRef<number[]>([]) // the currently-promoted object indices
+  const lastScanMs = useRef(0)
+  const SCAN_INTERVAL_MS = 100 // re-pick the near-field set at ~10 Hz
+
   // A tiny box stands in for a satellite bus. Slight non-cube proportions read as
   // "panel/body" rather than a die. Size ~ a 12 m craft at the scene's km scale,
   // floored so it's never sub-pixel when you're right next to it.
@@ -139,53 +149,59 @@ export function SatelliteNearField({
     const far = earthVisualRadius * 6.0 // overview distance — objects are dots
     const proximity = THREE.MathUtils.clamp((far - camDist) / (far - near), 0, 1)
     material.opacity = proximity * 0.95
-    // Fully faded out: skip all the per-object work entirely.
+    // Fully faded out: skip ALL work (scan and write) — the cheapest common case.
     if (proximity <= 0.001) { mesh.count = 0; return }
 
-    // Find the CAP closest VISIBLE objects to the camera. We do a single linear
-    // pass keeping a running max-heap-free "worst of the kept" — simple and fast
-    // enough for ~18.7k at these frame budgets, and it avoids sorting the world.
-    // kept[] holds {idx, d2}; we replace the current farthest when a closer one
-    // appears once full. (CAP is small, so the linear "find farthest" is cheap.)
-    const kept: { idx: number; d2: number }[] = []
-    let farthestSlot = -1
-    let farthestD2 = -1
-    for (let i = 0; i < n; i++) {
-      const j = i * 3
-      const x = arr[j], y = arr[j + 1], z = arr[j + 2]
-      // (0,0,0) is the "culled/NaN" sentinel the propagator writes — skip it.
-      if (x === 0 && y === 0 && z === 0) continue
-      if (!isVisible(i)) continue
-      const dx = x - camera.position.x, dy = y - camera.position.y, dz = z - camera.position.z
-      const d2 = dx * dx + dy * dy + dz * dz
-      if (kept.length < CAP) {
-        kept.push({ idx: i, d2 })
-        if (d2 > farthestD2) { farthestD2 = d2; farthestSlot = kept.length - 1 }
-      } else if (d2 < farthestD2) {
-        // Replace the current farthest kept object, then rescan for the new farthest.
-        kept[farthestSlot] = { idx: i, d2 }
-        farthestD2 = -1
-        for (let k = 0; k < kept.length; k++) if (kept[k].d2 > farthestD2) { farthestD2 = kept[k].d2; farthestSlot = k }
+    // ── STEP 1 (throttled ~10 Hz): re-pick the CAP closest VISIBLE objects ──
+    // This is the expensive part — a linear pass over all ~18k positions. The set
+    // of nearby objects changes slowly, so we only redo it every SCAN_INTERVAL_MS
+    // and cache the winning indices in keptIdx. One max-heap-free pass: keep the
+    // CAP closest, replacing the current farthest once full.
+    const now = performance.now()
+    if (now - lastScanMs.current >= SCAN_INTERVAL_MS || keptIdx.current.length === 0) {
+      lastScanMs.current = now
+      const kept: { idx: number; d2: number }[] = []
+      let farthestSlot = -1
+      let farthestD2 = -1
+      for (let i = 0; i < n; i++) {
+        const j = i * 3
+        const x = arr[j], y = arr[j + 1], z = arr[j + 2]
+        // (0,0,0) is the "culled/NaN" sentinel the propagator writes — skip it.
+        if (x === 0 && y === 0 && z === 0) continue
+        if (!isVisible(i)) continue
+        const dx = x - camera.position.x, dy = y - camera.position.y, dz = z - camera.position.z
+        const d2 = dx * dx + dy * dy + dz * dz
+        if (kept.length < CAP) {
+          kept.push({ idx: i, d2 })
+          if (d2 > farthestD2) { farthestD2 = d2; farthestSlot = kept.length - 1 }
+        } else if (d2 < farthestD2) {
+          kept[farthestSlot] = { idx: i, d2 }
+          farthestD2 = -1
+          for (let k = 0; k < kept.length; k++) if (kept[k].d2 > farthestD2) { farthestD2 = kept[k].d2; farthestSlot = k }
+        }
       }
+      // Cache just the indices; positions are re-read live below every frame.
+      keptIdx.current = kept.map((k) => k.idx)
     }
 
-    // Write one instance (matrix + colour) per kept object at its live position.
-    // Orientation: aim the slab's long axis along its radial direction from Earth
-    // centre — a cheap, honest "pointing roughly the way a bus sits" without real
-    // attitude data (which TLEs don't carry).
+    // ── STEP 2 (every frame): move the cached objects to their LIVE positions ──
+    // Cheap — only CAP (≤260) matrix writes. Because we read the live buffer each
+    // frame, the slabs glide with the swarm even though the SET only refreshes at
+    // 10 Hz. Orientation: long axis points radially outward from Earth centre — a
+    // cheap, honest "roughly how a bus sits" without real attitude data (no TLE).
+    const idxs = keptIdx.current
     _scale.set(1, 1, 1)
-    for (let k = 0; k < kept.length; k++) {
-      const i = kept[k].idx
+    for (let k = 0; k < idxs.length; k++) {
+      const i = idxs[k]
       const j = i * 3
       _pos.set(arr[j], arr[j + 1], arr[j + 2])
-      // Point the long axis away from Earth centre (radial). quaternion from +Z→radial.
       const radial = _cam.copy(_pos).normalize()
       _quat.setFromUnitVectors(_upZ, radial)
       _mat.compose(_pos, _quat, _scale)
       mesh.setMatrixAt(k, _mat)
       mesh.setColorAt(k, colorFor(types[i], _col))
     }
-    mesh.count = kept.length
+    mesh.count = idxs.length
     mesh.instanceMatrix.needsUpdate = true
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
     // Keep it from being frustum-culled as a whole (positions live far apart).

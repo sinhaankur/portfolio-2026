@@ -735,6 +735,10 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
   const workerReady = useRef(false)
   const workerBusy = useRef(false) // a tick is in flight → don't double-post
   const recycledBuf = useRef<ArrayBuffer | null>(null) // ping-pong buffer to reuse
+  // True once the current interpolation window has fully settled (t≥1) and we've
+  // done the final write — lets the frame loop skip the 56k-op LERP on settled
+  // frames. Reset to false whenever a NEW window opens (a fresh buffer arrives).
+  const lerpTAtOne = useRef(false)
   // scene units per km, so satellite altitudes sit just above Earth's sphere
   const kmToScene = earthVisualRadius / EARTH_RADIUS_KM
 
@@ -806,6 +810,7 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
               prevPos.current = nextPos.current ?? incoming.slice()
               nextPos.current = incoming
               sweepStartMs.current = performance.now()
+              lerpTAtOne.current = false // new window → resume interpolating
               workerBusy.current = false
               if (oldPrev && oldPrev.buffer.byteLength === incoming.buffer.byteLength) {
                 // stash for the next tick's transferable reuse (always a plain
@@ -1207,9 +1212,17 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
       // recomputeMs; a completed sweep resets sweepStartMs (below), so `t` glides
       // 0→1 over the window regardless of how many frames the slices took.
       const t = Math.min(1, (now - sweepStartMs.current) / recomputeMs)
-      const a = prevPos.current, b = nextPos.current
-      for (let i = 0; i < arr.length; i++) arr[i] = a[i] + (b[i] - a[i]) * t
-      pos.needsUpdate = true
+      // PERF: once t hits 1 the result equals `b` exactly — re-running the 56k-op
+      // loop each frame would write identical values. So we do the final write
+      // ONCE (when t first reaches 1) and then skip the loop entirely until the
+      // next buffer opens a new window (t drops below 1 again). This reclaims the
+      // whole interpolation cost on every "settled" frame between SGP4 updates.
+      if (t < 1 || lerpTAtOne.current !== true) {
+        const a = prevPos.current, b = nextPos.current
+        for (let i = 0; i < arr.length; i++) arr[i] = a[i] + (b[i] - a[i]) * t
+        pos.needsUpdate = true
+        lerpTAtOne.current = t >= 1 // remember we've done the final settle write
+      }
     }
 
     // SAT-3: position the notable craft on their real orbits EVERY frame (only a
@@ -1365,6 +1378,7 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
           prevPos.current!.set(nx)
           sweepCursor.current = 0
           sweepStartMs.current = now
+          lerpTAtOne.current = false // new window → resume interpolating
           lastCompute.current = now
         }
         // Propagate a BUDGET of sats this frame, spread across `sweepFrames` frames

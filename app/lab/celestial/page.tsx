@@ -92,6 +92,15 @@ const structuredData = {
 export default function CelestialPage() {
   return (
     <>
+      {/* PERF — start the 1.1 MB (gzipped) satellite catalogue downloading the
+          moment this page's HTML is parsed, IN PARALLEL with the R3F/engine JS
+          bundle booting. Without this the catalogue fetch only fires after the
+          engine mounts and calls loadFullCatalog(), serialising download AFTER
+          JS execution. Prefetch overlaps the two → the swarm data is often
+          already in cache by the time the engine asks for it. `as="fetch"` +
+          crossOrigin so the browser reuses this exact response for the later
+          fetch() (same request mode). */}
+      <link rel="prefetch" href="/data/satellites.json" as="fetch" crossOrigin="anonymous" />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
