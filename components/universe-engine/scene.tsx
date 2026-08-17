@@ -1737,7 +1737,10 @@ export function SceneContents({
       {/* Deep-sky targets + exoplanet hosts — share the sky-shell with
           constellations. Streams in at stage 2 (not first-frame essential). */}
       {!solarOnly && !hideConstellations && stage >= 2 && <SkyPoints onHover={onHover} invert={invert} interactive={interactive} />}
-      {enableMotion && <ShootingStars count={Math.round((mobile ? 3 : 6) * densityScale)} invert={invert} />}
+      {/* Shooting stars belong to the sky view, not the /lab/celestial Earth-orbit
+          view (solarOnly) — gate them off there so their per-frame update isn't
+          spent while the user is looking at satellites around Earth. */}
+      {enableMotion && !solarOnly && <ShootingStars count={Math.round((mobile ? 3 : 6) * densityScale)} invert={invert} />}
       {/* Real dated meteor showers — radiant-anchored meteors that appear only
           when Earth is actually crossing a debris stream (by sim-date). */}
       {enableMotion && !solarOnly && (
