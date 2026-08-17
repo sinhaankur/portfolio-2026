@@ -18,3 +18,32 @@ export const satGroupFilterRef: { current: number } = { current: -1 }
 
 /** Whether to show the full swarm vs. just a focused subset. */
 export const showAllSatsRef: { current: boolean } = { current: false }
+
+/**
+ * CONJUNCTION ENCOUNTER FOCUS — the close-approach the user tapped in the
+ * Conjunction Watch panel, so the 3D scene can VISUALISE the encounter (mark both
+ * objects, draw the line between them, show the miss distance tightening toward
+ * TCA). The panel (DOM) writes it; SatelliteField (R3F) reads it each frame.
+ *
+ * All geometry, no probability: the numbers are the two objects' real SGP4 states
+ * at closest approach — miss distance + relative speed — never a fabricated Pc
+ * (public TLEs carry no covariance). null = no encounter is being shown.
+ *
+ * ── USER JOURNEY ──
+ *   1. User opens "Conjunction Watch", taps a row (e.g. "0.12 km · COSMOS × …").
+ *   2. The panel writes THIS ref {aId, bId, tcaMs, missKm, relSpeedKms} and scrubs
+ *      the clock to ~90 s before closest approach at real-time rate.
+ *   3. SatelliteField sees the ref, finds both objects in the swarm, and draws the
+ *      encounter: a marker on each, a connecting line, and a miss-distance readout
+ *      that updates as the two dots visibly converge toward the tightest point.
+ *   4. The user watches them reach closest approach, then drift apart. Clearing the
+ *      panel (or selecting elsewhere) sets this back to null and the overlay lifts.
+ */
+export type ConjunctionFocus = {
+  aId: number
+  bId: number
+  tcaMs: number
+  missKm: number
+  relSpeedKms: number
+}
+export const conjunctionFocusRef: { current: ConjunctionFocus | null } = { current: null }

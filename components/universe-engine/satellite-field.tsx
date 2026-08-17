@@ -247,8 +247,8 @@ export function classifyArchetype(name: string, owner: string, altKm: number, ty
  * them without dragging in this file's Three.js dependency. Re-exported here so
  * the engine's internal call sites keep importing them from `./satellite-field`.
  */
-export { selectedSatRef, satGroupFilterRef, showAllSatsRef } from "./satellite-refs"
-import { selectedSatRef, satGroupFilterRef, showAllSatsRef } from "./satellite-refs"
+export { selectedSatRef, satGroupFilterRef, showAllSatsRef, conjunctionFocusRef } from "./satellite-refs"
+import { selectedSatRef, satGroupFilterRef, showAllSatsRef, conjunctionFocusRef } from "./satellite-refs"
 
 // The Three-FREE satellite data layer (types, bridge refs, SGP4-math helpers,
 // catalogue loading, classification) lives in ./satellite-data so the DOM chrome
@@ -311,6 +311,9 @@ const _sfUp = new THREE.Vector3()
 const _sfE = new THREE.Vector3()
 const UP_Y = new THREE.Vector3(0, 1, 0) // Earth's spin axis in scene space
 const _haloTmpQ = new THREE.Quaternion() // scratch for billboarding the locator ring
+// Conjunction-encounter scratch (the two objects' live scene positions).
+const _encA = new THREE.Vector3()
+const _encB = new THREE.Vector3()
 
 // SHELL EXPANSION (Ankur: "spacing can be expanded... like actual spacing"): at
 // true scale, LEO sits only 6–30% above the surface, so 18k objects pile into a
@@ -840,6 +843,29 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     }
   }, [kmToScene])
 
+  // ── CONJUNCTION ENCOUNTER overlay refs ──
+  // When the user taps a close-approach in the Conjunction Watch panel, we mark
+  // BOTH objects and draw the line between them so the encounter is legible in 3D.
+  // These groups/line are positioned every frame from the two objects' live SGP4
+  // states; hidden (visible=false) whenever no conjunction is focused.
+  const encAGroupRef = useRef<THREE.Group>(null) // marker on object A
+  const encBGroupRef = useRef<THREE.Group>(null) // marker on object B
+  const encLastEmit = useRef(0) // throttle the live-separation HUD event (~5 Hz)
+  // The A↔B separation line, built imperatively (the JSX <line> intrinsic clashes
+  // with the SVG line type in React 19). A 2-vertex geometry whose endpoints we
+  // rewrite each frame; rendered via <primitive>. Hidden until an encounter opens.
+  const encLine = useMemo(() => {
+    const g = new THREE.BufferGeometry()
+    g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(6), 3))
+    const m = new THREE.LineBasicMaterial({ color: "#ff5a6b", transparent: true, opacity: 0.85, toneMapped: false, depthTest: false })
+    const line = new THREE.Line(g, m)
+    line.visible = false
+    line.renderOrder = 19
+    line.frustumCulled = false
+    return line
+  }, [])
+  const encLineRef = useRef<THREE.Line>(encLine) // stable ref to the imperative line
+  encLineRef.current = encLine
   const markerRef = useRef<THREE.Group>(null)
   // Instant selection reticle (group) — billboarded + screen-space scaled each
   // frame. selReticleAt tracks WHEN the current selection started, for the
@@ -967,6 +993,22 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
       }
     }
     return out
+  }
+
+  // Propagate ONE satrec at the current sim time to a scene-space point, matching
+  // the swarm's expanded shell (so an encounter marker sits exactly on its dot).
+  // Writes into `out` and returns true on success; false if SGP4 gave a non-finite
+  // result (e.g. a far-past scrub) so the caller can hide the marker.
+  function propagateOneToScene(rec: unknown, out: THREE.Vector3): boolean {
+    const lib = sgp4.current
+    if (!lib || !rec) return false
+    let r: { position?: { x: number; y: number; z: number } } | false = false
+    try { r = lib.propagate(rec, new Date(clampToSpaceAge(simTimeRef.current.simMs))) } catch { r = false }
+    const p = finitePos(r)
+    if (!p) return false
+    const [ex, ey, ez] = expandEci(p.x, p.y, p.z)
+    out.set(ex * kmToScene, ez * kmToScene, -ey * kmToScene)
+    return true
   }
 
   // Ground track: the sub-satellite curve ON Earth's surface over one orbit,
@@ -1273,6 +1315,62 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     // NaN and freezes the frame. The shader still launch-gates by real launch date.
     const date = new Date(clampToSpaceAge(simTimeRef.current.simMs))
     const recs = satrecs.current
+
+    // ── CONJUNCTION ENCOUNTER overlay (per-frame) ──────────────────────────────
+    // If the user tapped a close-approach, mark BOTH objects and draw the line
+    // between them so the encounter reads in 3D. Everything here is real geometry:
+    // both dots come from live SGP4 states, and the separation we publish is their
+    // true 3D distance in km — never a fabricated collision probability.
+    {
+      let foc = conjunctionFocusRef.current
+      // Auto-lift the encounter if the user has since selected something OUTSIDE
+      // this pair (a search pick, a dot click, another panel). Keeps the overlay
+      // from lingering without having to clear it at every selection call site.
+      if (foc && sel != null && sel !== foc.aId && sel !== foc.bId) {
+        conjunctionFocusRef.current = null
+        foc = null
+      }
+      const gA = encAGroupRef.current, gB = encBGroupRef.current, line = encLineRef.current
+      if (foc && sats && gA && gB && line) {
+        // Resolve both NORAD ids → swarm indices → satrecs. (Linear find is fine:
+        // it runs once per frame for ONE pair, not the whole catalogue.)
+        const iA = sats.findIndex((s) => s.id === foc.aId)
+        const iB = sats.findIndex((s) => s.id === foc.bId)
+        const okA = iA >= 0 && propagateOneToScene(recs[iA], _encA)
+        const okB = iB >= 0 && propagateOneToScene(recs[iB], _encB)
+        if (okA && okB) {
+          gA.visible = true; gB.visible = true; line.visible = true
+          gA.position.copy(_encA)
+          gB.position.copy(_encB)
+          // Update the connecting line's two endpoints in place (no re-alloc).
+          const lg = line.geometry as THREE.BufferGeometry
+          const lp = lg.getAttribute("position") as THREE.BufferAttribute
+          lp.setXYZ(0, _encA.x, _encA.y, _encA.z)
+          lp.setXYZ(1, _encB.x, _encB.y, _encB.z)
+          lp.needsUpdate = true
+          lg.computeBoundingSphere()
+          // TRUE current separation (km): scene distance ÷ kmToScene, then divide
+          // out the shell expansion so the number is the REAL slant range, not the
+          // exaggerated-shell distance. (Both dots share the same radial expansion,
+          // but their separation is dominated by the tangential gap, so we report
+          // the honest ECI-scale distance by unexpanding uniformly.)
+          const sceneSep = _encA.distanceTo(_encB)
+          const sepKm = (sceneSep / kmToScene) / SHELL_EXPAND
+          // Publish for the HUD readout (throttled to ~5 Hz to avoid DOM churn).
+          if (now - encLastEmit.current > 200) {
+            encLastEmit.current = now
+            window.dispatchEvent(new CustomEvent("celestial:conjunction-live", {
+              detail: { sepKm, tcaMs: foc.tcaMs, missKm: foc.missKm, relSpeedKms: foc.relSpeedKms },
+            }))
+          }
+        } else {
+          gA.visible = false; gB.visible = false; line.visible = false
+        }
+      } else if (gA && gB && line && (gA.visible || gB.visible || line.visible)) {
+        // No focus (or objects not found) → lift the overlay.
+        gA.visible = false; gB.visible = false; line.visible = false
+      }
+    }
 
     // SAT-1: when the group filter changes, (re)build a sampled set of orbit-
     // track ellipses for that group so its STRUCTURE is visible. Cleared when the
@@ -1897,6 +1995,31 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
           </Html>
         )}
       </group>
+
+      {/* CONJUNCTION ENCOUNTER overlay — two markers (one per object) + the line
+          between them, positioned each frame from the pair's live SGP4 states when
+          a close-approach is focused from the Conjunction Watch panel. Hidden until
+          then. Honest geometry only: the separation shown is the real 3D distance,
+          never a fabricated collision probability. See conjunctionFocusRef. */}
+      <group ref={encAGroupRef} visible={false} renderOrder={20}>
+        {/* Amber ring — object A. Billboarding isn't needed; a flat ring on the
+            equatorial plane reads fine at the encounter's typical viewing angles. */}
+        <mesh>
+          <ringGeometry args={[earthVisualRadius * 0.02, earthVisualRadius * 0.026, 40]} />
+          <meshBasicMaterial color="#ffb066" transparent opacity={0.95} toneMapped={false} depthTest={false} side={THREE.DoubleSide} />
+        </mesh>
+      </group>
+      <group ref={encBGroupRef} visible={false} renderOrder={20}>
+        {/* Cyan ring — object B (distinct colour so the two are tellable apart). */}
+        <mesh>
+          <ringGeometry args={[earthVisualRadius * 0.02, earthVisualRadius * 0.026, 40]} />
+          <meshBasicMaterial color="#5affc0" transparent opacity={0.95} toneMapped={false} depthTest={false} side={THREE.DoubleSide} />
+        </mesh>
+      </group>
+      {/* The A↔B separation line — a 2-vertex THREE.Line built imperatively above
+          (encLine); its endpoints are rewritten each frame by the encounter driver.
+          Bright + depthTest off so it reads over the swarm as the pair converges. */}
+      <primitive object={encLine} />
 
       {/* Orbital path of the selected satellite (one full revolution). Wrapped in
           a ref'd group so it can be hidden in-frame when the craft isn't launched

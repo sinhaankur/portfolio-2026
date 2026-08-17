@@ -27,7 +27,7 @@ import { useEffect, useMemo, useState } from "react"
 import { motion } from "framer-motion"
 import { X, Crosshair, ArrowUpDown, Search } from "lucide-react"
 import { setSimMs, timeScaleRef, REALTIME_TIME_SCALE } from "@/components/universe-engine/astronomy"
-import { selectedSatRef } from "@/components/universe-engine/satellite-field"
+import { selectedSatRef, conjunctionFocusRef } from "@/components/universe-engine/satellite-refs"
 
 type BakedConjunction = {
   aId: number
@@ -140,11 +140,35 @@ export function ConjunctionPanel({
     // with the (payload-preferred) object selected so its orbit lights up.
     const highlightId = isPayload(c.aType) ? c.aId : c.bId
     selectedSatRef.current = highlightId
+    // Drive the 3D ENCOUNTER overlay — the scene marks BOTH objects and draws the
+    // line between them, so the user sees the pair converge (not just one dot).
+    conjunctionFocusRef.current = {
+      aId: c.aId, bId: c.bId, tcaMs: c.tcaMs, missKm: c.missKm, relSpeedKms: c.relSpeedKms,
+    }
     setSimMs(c.tcaMs - 90_000)
     timeScaleRef.current = REALTIME_TIME_SCALE
     setPicked(`${c.aId}-${c.bId}-${c.tcaMs}`)
     onJump?.()
   }
+
+  // Live SEPARATION readout — the scene publishes the pair's true 3D distance each
+  // frame while an encounter is focused; we show it counting down toward the miss
+  // distance so the user reads "how close, right now". Cleared when nothing's live.
+  const [liveSep, setLiveSep] = useState<number | null>(null)
+  useEffect(() => {
+    const onLive = (e: Event) => {
+      const d = (e as CustomEvent<{ sepKm: number }>).detail
+      if (d && Number.isFinite(d.sepKm)) setLiveSep(d.sepKm)
+    }
+    window.addEventListener("celestial:conjunction-live", onLive)
+    return () => window.removeEventListener("celestial:conjunction-live", onLive)
+  }, [])
+
+  // Lift the 3D encounter overlay when this panel unmounts (closed) so a stale
+  // pair doesn't keep drawing after the user leaves the conjunction view.
+  useEffect(() => {
+    return () => { conjunctionFocusRef.current = null }
+  }, [])
 
   const SortBtn = ({ k, label }: { k: SortKey; label: string }) => (
     <button
@@ -203,6 +227,35 @@ export function ConjunctionPanel({
               Sort + filter the closest {Math.min(150, data.conjunctions.length)}; tap a row to
               fly to it 90 s before closest approach and watch it converge.
             </p>
+
+            {/* LIVE ENCOUNTER readout — appears once a row is flown to. The scene
+                marks both objects (amber + cyan rings) and the separation ticks
+                down toward the predicted miss distance as they converge. */}
+            {picked && liveSep != null && (
+              <div className="mt-3 rounded-lg border border-[#ff5a6b]/40 bg-[#ff5a6b]/5 px-3 py-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-mono text-[9px] tracking-[0.2em] uppercase text-[#ff5a6b]">
+                    Live separation
+                  </span>
+                  <span className="font-mono text-[9px] tracking-wider text-muted-foreground">
+                    3D distance · now
+                  </span>
+                </div>
+                <div className="mt-1 flex items-baseline gap-2">
+                  <span className="font-mono text-[22px] tabular-nums text-foreground">
+                    {liveSep < 10 ? liveSep.toFixed(2) : liveSep.toFixed(1)}
+                  </span>
+                  <span className="font-mono text-[11px] text-muted-foreground">km apart</span>
+                </div>
+                <p className="mt-1 font-mono text-[9px] tracking-wider text-muted-foreground">
+                  <span className="text-[#ffb066]">◯ A</span>
+                  <span className="mx-1">·</span>
+                  <span className="text-[#5affc0]">◯ B</span>
+                  <span className="mx-1.5">→</span>
+                  closest approach ≈ predicted miss distance
+                </p>
+              </div>
+            )}
 
             {/* Controls: search + sort + payload toggle. */}
             <div className="mt-3 space-y-2">
