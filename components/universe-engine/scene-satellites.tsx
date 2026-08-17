@@ -97,15 +97,51 @@ export type SatFacts = {
 const EARTH_RADIUS_KM = 6371
 const MU_EARTH = 398600.4418 // km³/s²
 
-/** Derive real orbital facts for a followed swarm point from its shell. */
-export function satFacts(shell: SatelliteShell, idx: number): SatFacts {
-  const rKm = shell.altRatio * EARTH_RADIUS_KM // orbit radius from Earth centre
-  const altitudeKm = rKm - EARTH_RADIUS_KM
-  const velocityKmS = Math.sqrt(MU_EARTH / rKm) // circular-orbit speed
-  const periodMin = (2 * Math.PI * Math.sqrt((rKm * rKm * rKm) / MU_EARTH)) / 60
+/**
+ * Real per-planet physics for the orbiter-facts readout. A shell's `altRatio` is
+ * "orbit radius ÷ THIS PLANET's radius", so an orbiter's true altitude, speed and
+ * period depend on the PARENT PLANET — not Earth. The old satFacts() hardcoded
+ * Earth for every shell, which reported a Mars orbiter as "Earth LEO · 1,911 km"
+ * (the bug Ankur caught). Values are real (NASA planetary fact sheets):
+ *   radiusKm = mean/volumetric radius; muKm3S2 = GM, the gravitational parameter.
+ */
+type BodyPhysics = { radiusKm: number; muKm3S2: number }
+const BODY_PHYSICS: Record<string, BodyPhysics> = {
+  Earth:   { radiusKm: 6371,    muKm3S2: 398600.4418 },
+  Mars:    { radiusKm: 3389.5,  muKm3S2: 42828.375 },
+  Mercury: { radiusKm: 2439.7,  muKm3S2: 22031.868 },
+  Venus:   { radiusKm: 6051.8,  muKm3S2: 324858.592 },
+  Jupiter: { radiusKm: 69911,   muKm3S2: 126686534.9 },
+  Saturn:  { radiusKm: 58232,   muKm3S2: 37931207.8 },
+  Moon:    { radiusKm: 1737.4,  muKm3S2: 4902.800 },
+}
+// Fallback when a shell's parent body isn't in the table — assume Earth (its only
+// caller today is Earth), so behaviour is unchanged for the common case.
+const DEFAULT_PHYSICS = BODY_PHYSICS.Earth
+
+/**
+ * Derive real orbital facts for a followed swarm point from its shell.
+ * `body` = the parent planet name (the SATELLITE_CATALOG key). We look up that
+ * body's real radius + gravity so a Mars orbiter reports MARS altitude/speed, not
+ * Earth's. Orbit-class (LEO/MEO/GEO) is only meaningful around Earth, so for other
+ * bodies we report the honest generic "orbit" instead of an Earth-specific band.
+ */
+export function satFacts(shell: SatelliteShell, idx: number, body = "Earth"): SatFacts {
+  // Use the PARENT planet's real physics (radius + GM), not Earth's — otherwise a
+  // Mars orbiter is reported with Earth's radius/gravity (the "Mars · LEO" bug).
+  const phys = BODY_PHYSICS[body] ?? DEFAULT_PHYSICS
+  const rKm = shell.altRatio * phys.radiusKm // orbit radius from the planet's centre
+  const altitudeKm = rKm - phys.radiusKm // height above THIS planet's surface
+  const velocityKmS = Math.sqrt(phys.muKm3S2 / rKm) // circular-orbit speed (vis-viva, e=0)
+  const periodMin = (2 * Math.PI * Math.sqrt((rKm * rKm * rKm) / phys.muKm3S2)) / 60 // Kepler's 3rd
   const inclinationDeg = (shell.incl * 180) / Math.PI
+  // LEO/MEO/GEO are EARTH-specific regime names (they encode Earth's altitudes).
+  // Around another planet they'd be a false label, so report a neutral "orbit"
+  // there — honest over a borrowed Earth term. (GEO altitude only holds for Earth.)
   const orbitClass =
-    altitudeKm < 2000 ? "LEO" : altitudeKm < 35000 ? "MEO" : altitudeKm < 37000 ? "GEO" : "HEO"
+    body !== "Earth"
+      ? `${body} orbit`
+      : altitudeKm < 2000 ? "LEO" : altitudeKm < 35000 ? "MEO" : altitudeKm < 37000 ? "GEO" : "HEO"
   const group = shell.label.split(" (")[0]
   return {
     name: shell.debris ? "Tracked debris object" : `${group} object`,
@@ -125,10 +161,12 @@ function SatelliteShellPoints({
   shell,
   bodyRadius,
   onHover,
+  body = "Earth", // parent planet name — drives the correct orbiter physics in satFacts
 }: {
   shell: SatelliteShell
   bodyRadius: number
   onHover?: HoverHandler
+  body?: string
 }) {
   const ref = useRef<Points>(null)
   const gateRef = useRef<Group>(null)
@@ -217,9 +255,10 @@ function SatelliteShellPoints({
       shell.debris ? "Tracked object" : shell.label.split(" (")[0],
     )
     // Publish a clean, HONEST readout for the selected-object inspector — all
-    // derived from the shell's real orbital parameters (altRatio, incl).
+    // derived from the shell's real orbital parameters (altRatio, incl) AND the
+    // PARENT planet's real physics (so a Mars orbiter reads as Mars, not Earth).
     window.dispatchEvent(
-      new CustomEvent("celestial:sat-selected", { detail: satFacts(shell, idx) }),
+      new CustomEvent("celestial:sat-selected", { detail: satFacts(shell, idx, body) }),
     )
   }
 
@@ -559,6 +598,7 @@ export function SatelliteShells({
   onHover,
   interactive = false,
   trueScale = false,
+  body = "Earth", // parent planet — passed to satFacts for correct per-planet physics
 }: {
   shells: SatelliteShell[]
   heroCraft?: HeroCraft[]
@@ -566,11 +606,14 @@ export function SatelliteShells({
   onHover?: HoverHandler
   interactive?: boolean
   trueScale?: boolean
+  /** Parent planet name (SATELLITE_CATALOG key) — threaded to satFacts so each
+   *  orbiter's altitude/speed/period is computed against ITS planet, not Earth. */
+  body?: string
 }) {
   return (
     <group>
       {shells.map((s) => (
-        <SatelliteShellPoints key={s.label} shell={s} bodyRadius={bodyRadius} onHover={onHover} />
+        <SatelliteShellPoints key={s.label} shell={s} bodyRadius={bodyRadius} onHover={onHover} body={body} />
       ))}
       {heroCraft?.map((c) => (
         <Suspense key={c.label} fallback={null}>

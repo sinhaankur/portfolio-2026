@@ -1305,6 +1305,9 @@ export function PlanetBody({
               onHover={onHover}
               interactive={interactive}
               trueScale={solarOnly}
+              // Parent planet name → satFacts uses its real radius + gravity, so a
+              // Mars/Venus/Jupiter orbiter reports ITS altitude/speed, not Earth's.
+              body={planet.raw.name}
             />
           )}
 

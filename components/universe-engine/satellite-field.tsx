@@ -321,6 +321,12 @@ const _haloTmpQ = new THREE.Quaternion() // scratch for billboarding the locator
 // Conjunction-encounter scratch (the two objects' live scene positions).
 const _encA = new THREE.Vector3()
 const _encB = new THREE.Vector3()
+// Per-frame "look ahead" scratch — REUSED for every notable/selected craft's
+// orientation instead of allocating a fresh Vector3 each frame. Allocating inside
+// the render loop churns the garbage collector, and a GC pause is a visible frame
+// stutter — exactly the kind of micro-lag we're hunting. One shared vector = zero
+// per-frame allocation for craft orientation.
+const _aheadScratch = new THREE.Vector3()
 
 // SHELL EXPANSION (Ankur: "spacing can be expanded... like actual spacing"): at
 // true scale, LEO sits only 6–30% above the surface, so 18k objects pile into a
@@ -1325,9 +1331,13 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
         try { r2 = lib.propagate(recsN[idx], new Date(dateN.getTime() + 30000)) } catch { r2 = false }
         const p2 = finitePos(r2)
         if (p2) {
+          // Position a moment ahead on the orbit, so lookAt() faces travel.
           const [ax, ay, az] = expandEci(p2.x, p2.y, p2.z)
-          const ahead = new THREE.Vector3(ax * kmToScene, az * kmToScene, -ay * kmToScene)
-          if (ahead.distanceToSquared(g.position) > 1e-9) g.lookAt(ahead)
+          // REUSE the module scratch (no per-frame Vector3 allocation → no GC churn).
+          _aheadScratch.set(ax * kmToScene, az * kmToScene, -ay * kmToScene)
+          // Only reorient if the "ahead" point is meaningfully distinct (avoids a
+          // NaN lookAt when the two samples coincide, e.g. a paused clock).
+          if (_aheadScratch.distanceToSquared(g.position) > 1e-9) g.lookAt(_aheadScratch)
         }
       }
     }
