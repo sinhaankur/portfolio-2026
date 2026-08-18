@@ -41,6 +41,13 @@ import { SatelliteNearField } from "./satellite-nearfield"
 // to true once perf is verified. (The dots + everything else are unaffected.)
 const ENABLE_NEARFIELD = false
 
+// OFF-THREAD SGP4 WORKER switch. The worker was added this session and, combined
+// with a "skip settled LERP" guard, caused the swarm dots to vanish (buffers
+// could latch at the origin). Disabled to restore the PROVEN inline time-sliced
+// sweep that always rendered the dots. The worker code stays in place behind this
+// flag; re-enable only once the missing-dots path is fully verified live.
+const ENABLE_SGP4_WORKER = false
+
 /**
  * Downsample the catalogue to a memory/CPU budget for the LIVE SWARM, honestly.
  *
@@ -808,7 +815,10 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
         // `.ts` file the browser couldn't run — it failed async, so every frame
         // silently ran the inline main-thread sweep (the lag). A public classic
         // worker + importScripts has no MIME/module pitfalls under `output:export`.
+        // Gated behind ENABLE_SGP4_WORKER (off) while the missing-dots path is
+        // verified — the inline sweep below renders the swarm reliably.
         try {
+          if (!ENABLE_SGP4_WORKER) throw new Error("worker disabled")
           const expectedLen = list.length * 3
           const w = new Worker("/workers/sgp4-worker.js")
           w.onmessage = (ev: MessageEvent) => {
@@ -1282,17 +1292,13 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
       // recomputeMs; a completed sweep resets sweepStartMs (below), so `t` glides
       // 0→1 over the window regardless of how many frames the slices took.
       const t = Math.min(1, (now - sweepStartMs.current) / recomputeMs)
-      // PERF: once t hits 1 the result equals `b` exactly — re-running the 56k-op
-      // loop each frame would write identical values. So we do the final write
-      // ONCE (when t first reaches 1) and then skip the loop entirely until the
-      // next buffer opens a new window (t drops below 1 again). This reclaims the
-      // whole interpolation cost on every "settled" frame between SGP4 updates.
-      if (t < 1 || lerpTAtOne.current !== true) {
-        const a = prevPos.current, b = nextPos.current
-        for (let i = 0; i < arr.length; i++) arr[i] = a[i] + (b[i] - a[i]) * t
-        pos.needsUpdate = true
-        lerpTAtOne.current = t >= 1 // remember we've done the final settle write
-      }
+      // Always LERP the whole buffer (the proven pre-session behaviour). The
+      // earlier "skip when settled" guard (lerpTAtOne) could latch an empty/zero
+      // state and leave the swarm invisible ("dots missing") — removed for
+      // correctness. The full loop is cheap enough versus the SGP4 sweep itself.
+      const a = prevPos.current, b = nextPos.current
+      for (let i = 0; i < arr.length; i++) arr[i] = a[i] + (b[i] - a[i]) * t
+      pos.needsUpdate = true
     }
 
     // SAT-3: position the notable craft on their real orbits EVERY frame (only a
@@ -1440,7 +1446,7 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
       }
     }
 
-    if (workerReady.current && worker.current) {
+    if (ENABLE_SGP4_WORKER && workerReady.current && worker.current) {
       // OFF-THREAD PATH — the worker propagates the whole swarm. Once the current
       // interpolation window has elapsed and no tick is already in flight, ask it
       // for a fresh full buffer at the current sim time. The onmessage handler
