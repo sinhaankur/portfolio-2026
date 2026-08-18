@@ -67,9 +67,23 @@ const SOURCES = {
     rawToMetres: 0.5,
     attribution: "NASA LRO LOLA (LDEM_64, PDS Geosciences) — public domain",
   },
+  earth: {
+    // ETOPO 2022 BED elevation, 60 arc-second (21600×10800), single global
+    // GeoTIFF in metres. "Bed" = the solid surface below BOTH ice and water, so
+    // draining the oceans reveals the real ocean floor: mid-ocean ridges,
+    // abyssal plains, trenches. ~466 MB, public domain (NOAA NCEI). min/max are
+    // read live from the data and printed; the declared range below is ETOPO's
+    // known global bed relief and is corrected to the measured values on bake.
+    format: "geotiff",
+    url: "https://www.ngdc.noaa.gov/mgg/global/relief/ETOPO2022/data/60s/60s_bed_elev_gtif/ETOPO_2022_v1_60s_N90W180_bed.tif",
+    out: "earth-height-2k.png",
+    minM: -10900,
+    maxM: 8849,
+    rawToMetres: 1,
+    attribution: "NOAA NCEI ETOPO 2022 bed elevation (public domain)",
+  },
   // mercury: { …MESSENGER…, minM: -5380, maxM: 4480 }  // wired as bakes come online
   // venus:   { …Magellan… }
-  // earth:   { …GEBCO… }
 }
 
 function parseArgs(argv) {

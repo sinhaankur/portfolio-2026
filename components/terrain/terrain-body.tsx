@@ -28,6 +28,7 @@ import {
 } from "three"
 import { terrainVertexShader, terrainFragmentShader } from "./terrain-shaders"
 import type { TerrainBody as TerrainBodyData } from "@/lib/terrain/bodies"
+import { cdnAsset } from "@/lib/asset-cdn"
 
 interface Props {
   body: TerrainBodyData
@@ -76,8 +77,15 @@ export function TerrainBody({
   useEffect(() => {
     if (!body.heightMap) { setHeightTex(null); return }
     let alive = true
+    // Maps already uploaded to R2 resolve to the CDN (with the committed copy as
+    // local fallback); everything else loads from the repo. R2 key mirrors the
+    // filename under a "terrain/" prefix, e.g.
+    //   /textures/terrain/moon-height-2k.png  →  terrain/moon-height-2k.png
+    const heightUrl = body.heightMapOnR2
+      ? cdnAsset(`terrain/${body.heightMap.split("/").pop()}`, body.heightMap)
+      : body.heightMap
     new TextureLoader().load(
-      body.heightMap,
+      heightUrl,
       (tex) => {
         if (!alive) return
         tex.wrapS = RepeatWrapping
@@ -94,7 +102,7 @@ export function TerrainBody({
       () => { /* height load failed → stay smooth, never crash */ if (alive) setHeightTex(null) },
     )
     return () => { alive = false }
-  }, [body.heightMap])
+  }, [body.heightMap, body.heightMapOnR2])
 
   const uniforms = useMemo(
     () => ({

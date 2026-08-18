@@ -62,6 +62,15 @@ export interface TerrainBody {
    * "baking". Committed small; deep tiles come from R2 later.
    */
   heightMap: string | null
+  /**
+   * True once this (heavy) height map has been uploaded to R2
+   * (assets.sinhaankur.com) — then production serves it from the CDN with the
+   * committed copy as local fallback. Until it's actually on R2, leave this OFF
+   * so the map loads from the repo copy and never 404s. Mars's 29 KB map ships
+   * from the repo and doesn't need R2; the Moon (3.2 MB) + Earth (3.0 MB) maps
+   * are R2 candidates — flip this to true after running scripts/upload-terrain.sh.
+   */
+  heightMapOnR2?: boolean
   /** Path to the colour/albedo map (equirectangular). Reuses engine textures. */
   colorMap: string
   /** What instrument measured the elevation (shown as provenance). */
@@ -78,6 +87,13 @@ export interface TerrainBody {
   hasOcean?: boolean
   /** Sea-level elevation in metres (for the ocean toggle). Earth = 0. */
   seaLevelM?: number
+  /**
+   * Open with the hypsometric (elevation-tint) overlay on. True for Earth: its
+   * colour map paints blue oceans, which is wrong once drained — the depth tint
+   * reveals the real seafloor instead. Bodies whose colour map already is the
+   * bare surface (Mars, Moon) default off.
+   */
+  defaultHypsometric?: boolean
 }
 
 /**
@@ -147,6 +163,7 @@ export const TERRAIN_BODIES: TerrainBody[] = [
     elevationMaxM: 10773,
     defaultExaggeration: 15,
     heightMap: "/textures/terrain/moon-height-2k.png",
+    heightMapOnR2: false, // 3.2 MB — R2 candidate; flip true after upload
     colorMap: "/textures/moon.webp",
     source: "laser-altimeter",
     attribution: "Elevation: NASA LRO LOLA (USGS Astrogeology, public domain)",
@@ -194,19 +211,24 @@ export const TERRAIN_BODIES: TerrainBody[] = [
     id: "earth",
     name: "Earth (oceans drained)",
     radiusKm: 6371.0,
-    // GEBCO combined relief: Challenger Deep ≈ -10900 m to Everest ≈ +8849 m.
+    // ETOPO 2022 BED elevation — the solid surface below both ice and water.
+    // Declared range spans Challenger Deep (≈ -10900 m) to Everest (≈ 8849 m);
+    // the 60″ global bed grid downsampled to 2K resolves ≈ -10196 m … +6288 m
+    // (peaks average down at this resolution). Decode uses the declared range.
     elevationMinM: -10900,
     elevationMaxM: 8849,
     defaultExaggeration: 12,
-    heightMap: null,
+    heightMap: "/textures/terrain/earth-height-2k.png",
+    heightMapOnR2: false, // 3.0 MB — R2 candidate; flip true after upload
     colorMap: "/textures/earth.webp",
     source: "bathymetry",
-    attribution: "Elevation: GEBCO_2026 Grid (CC BY 4.0) — bathymetry & topography",
+    attribution: "Elevation: NOAA NCEI ETOPO 2022 bed elevation (public domain)",
     accent: "#5aa9e0",
     tagline: "Drain the oceans: mid-ocean ridges & trenches, really there",
     sites: [],
     hasOcean: true,
     seaLevelM: 0,
+    defaultHypsometric: true,
   },
 ]
 

@@ -30,7 +30,9 @@ const RADIUS_UNITS = 2
 export function TerrainEngine({ initialBody = "mars" }: { initialBody?: string }) {
   const [bodyId, setBodyId] = useState(initialBody)
   const [exaggeration, setExaggeration] = useState<number | null>(null)
-  const [hypsometric, setHypsometric] = useState(false)
+  // null = follow the body's default (Earth opens tinted to reveal the drained
+  // seafloor); once the user toggles, their choice sticks for this body view.
+  const [hypsometricOverride, setHypsometricOverride] = useState<boolean | null>(null)
   const [slopeShade, setSlopeShade] = useState(true)
   const [oceanVisible, setOceanVisible] = useState(false)
   const [selectedSite, setSelectedSite] = useState<number | null>(null)
@@ -39,6 +41,7 @@ export function TerrainEngine({ initialBody = "mars" }: { initialBody?: string }
   // Exaggeration resets to the body's sensible default on switch, until the user
   // moves the slider (then their choice sticks for that body view).
   const exag = exaggeration ?? body.defaultExaggeration
+  const hypsometric = hypsometricOverride ?? body.defaultHypsometric ?? false
 
   // Peak displacement in scene units (for pin float height) at current exaggeration.
   const maxDisplaceUnits = useMemo(() => {
@@ -49,6 +52,7 @@ export function TerrainEngine({ initialBody = "mars" }: { initialBody?: string }
   function pickBody(id: string) {
     setBodyId(id)
     setExaggeration(null) // reset to new body's default
+    setHypsometricOverride(null) // follow new body's default tint
     setSelectedSite(null)
     setOceanVisible(false)
     if (typeof window !== "undefined") {
@@ -120,7 +124,7 @@ export function TerrainEngine({ initialBody = "mars" }: { initialBody?: string }
         exaggeration={exag}
         onExaggeration={setExaggeration}
         hypsometric={hypsometric}
-        onHypsometric={setHypsometric}
+        onHypsometric={setHypsometricOverride}
         slopeShade={slopeShade}
         onSlopeShade={setSlopeShade}
         oceanVisible={oceanVisible}
