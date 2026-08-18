@@ -71,6 +71,19 @@ export interface TerrainBody {
    * are R2 candidates — flip this to true after running scripts/upload-terrain.sh.
    */
   heightMapOnR2?: boolean
+  /**
+   * This height map lives ONLY on R2 — it's too large to commit (e.g. the 11 MB
+   * GEBCO 15″ map). `heightMap` holds the R2 key path; there's no repo copy.
+   */
+  heightMapR2Only?: boolean
+  /**
+   * Set true ONLY after an R2-only map has actually been uploaded (run
+   * scripts/upload-terrain.sh). Until then the body stays HIDDEN from the picker
+   * so it never 404s to a smooth ball — the CDN base is always configured (it's
+   * in .env.local), so "CDN up" alone isn't proof the file exists. Flip this the
+   * moment the upload succeeds and GEBCO appears.
+   */
+  heightMapUploaded?: boolean
   /** Path to the colour/albedo map (equirectangular). Reuses engine textures. */
   colorMap: string
   /** What instrument measured the elevation (shown as provenance). */
@@ -230,10 +243,52 @@ export const TERRAIN_BODIES: TerrainBody[] = [
     seaLevelM: 0,
     defaultHypsometric: true,
   },
+  {
+    id: "earth-gebco",
+    name: "Earth (GEBCO 15″)",
+    radiusKm: 6371.0,
+    // GEBCO_2024 combined bathymetry + topography at 15 arc-second — ~4× ETOPO's
+    // resolution, baked to a 4K map. Same real range; sharper seafloor detail
+    // (ridges, fracture zones, seamount chains). Decode uses the declared range.
+    elevationMinM: -10900,
+    elevationMaxM: 8849,
+    defaultExaggeration: 12,
+    // R2-only (11 MB, too big to commit). The path is the R2 key; hidden from
+    // the picker until the CDN base is set AND the file is uploaded.
+    heightMap: "earth-gebco-height-4k.png",
+    heightMapR2Only: true,
+    colorMap: "/textures/earth.webp",
+    source: "bathymetry",
+    attribution: "Elevation: GEBCO Compilation Group (GEBCO_2024 Grid) — CC BY 4.0",
+    accent: "#4fb0d9",
+    tagline: "The sharper seafloor — GEBCO 15″ bathymetry",
+    sites: [],
+    hasOcean: true,
+    seaLevelM: 0,
+    defaultHypsometric: true,
+  },
 ]
 
 export function getTerrainBody(id: string): TerrainBody | undefined {
   return TERRAIN_BODIES.find((b) => b.id === id)
+}
+
+/** True when the R2 asset CDN is configured (its base env is set). */
+export function isAssetCdnConfigured(): boolean {
+  return Boolean((process.env.NEXT_PUBLIC_ASSET_CDN_BASE ?? "").trim())
+}
+
+/**
+ * Bodies to show in the picker. An R2-only body (e.g. GEBCO) is hidden until its
+ * map is actually uploaded (`heightMapUploaded`) AND the CDN is configured, so it
+ * never renders as a smooth 404 ball. Flip `heightMapUploaded` after running
+ * scripts/upload-terrain.sh and GEBCO appears.
+ */
+export function visibleTerrainBodies(): TerrainBody[] {
+  const cdnUp = isAssetCdnConfigured()
+  return TERRAIN_BODIES.filter(
+    (b) => !b.heightMapR2Only || (b.heightMapUploaded && cdnUp),
+  )
 }
 
 /** Normalise a longitude (any convention) to [-180, 180] degrees. */

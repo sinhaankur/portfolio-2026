@@ -20,6 +20,7 @@
 
 import { readdirSync, statSync } from "node:fs"
 import { join } from "node:path"
+import { execFileSync } from "node:child_process"
 
 const MB = 1024 * 1024
 
@@ -53,9 +54,34 @@ function walk(dir) {
 const root = process.cwd()
 const publicDir = join(root, "public")
 
-const allFiles = walk(publicDir)
+/**
+ * Drop gitignored files: they never ship (CI won't even check them out), so they
+ * shouldn't count against the LFS/bandwidth budget. This lets a deliberately
+ * R2-only asset (e.g. the 11 MB GEBCO height map, kept locally for upload) sit in
+ * public/ without failing the local budget check. `git check-ignore --stdin`
+ * echoes back only the ignored paths.
+ */
+function dropGitignored(files) {
+  if (files.length === 0) return files
+  let ignored = new Set()
+  try {
+    const input = files.map(([p]) => p).join("\n")
+    const out = execFileSync("git", ["check-ignore", "--stdin"], {
+      input,
+      encoding: "utf8",
+      stdio: ["pipe", "pipe", "ignore"],
+    })
+    ignored = new Set(out.split("\n").filter(Boolean))
+  } catch {
+    // `git check-ignore` exits non-zero when NOTHING is ignored — that's fine,
+    // it means keep everything. Any other failure: don't hide anything.
+  }
+  return files.filter(([p]) => !ignored.has(p))
+}
+
+const allFiles = dropGitignored(walk(publicDir))
 const glbFiles = allFiles.filter(([p]) => p.endsWith(".glb"))
-const texFiles = walk(join(publicDir, "textures"))
+const texFiles = dropGitignored(walk(join(publicDir, "textures")))
 
 const sum = (files) => files.reduce((s, [, b]) => s + b, 0)
 const glbTotal = sum(glbFiles)

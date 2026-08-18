@@ -8,7 +8,7 @@
  * hover-only affordances.
  */
 
-import { TERRAIN_BODIES, type TerrainBody } from "@/lib/terrain/bodies"
+import { visibleTerrainBodies, type TerrainBody } from "@/lib/terrain/bodies"
 
 interface Props {
   body: TerrainBody
@@ -51,7 +51,7 @@ export function TerrainHud({
 
       {/* Body picker: top-right chips */}
       <div className="pointer-events-auto absolute right-4 top-4 z-30 flex flex-wrap justify-end gap-1.5 md:right-6 md:top-6">
-        {TERRAIN_BODIES.map((b) => {
+        {visibleTerrainBodies().map((b) => {
           const active = b.id === body.id
           const baking = b.heightMap === null
           return (

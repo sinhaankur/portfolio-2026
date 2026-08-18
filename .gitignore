@@ -100,3 +100,7 @@ blender/space-assets/celestial/*.blend
 
 # Terrain engine — big source DEMs (downsampled results are committed, sources are not)
 .terrain-cache/
+
+# Terrain: GEBCO 4K height map is R2-only (11 MB, too big to commit) — kept
+# locally for upload via scripts/upload-terrain.sh, served from R2 in production.
+public/textures/terrain/earth-gebco-height-4k.png

@@ -21,8 +21,9 @@ if [ ! -d "$ASSETS_REPO" ]; then
   echo "!! assets repo not found at $ASSETS_REPO — set ASSETS_REPO to its path"; exit 1
 fi
 
-# Heavy maps to upload → R2 key is terrain/<filename>.
-HEAVY=( moon-height-2k.png earth-height-2k.png )
+# Heavy maps to upload → R2 key is terrain/<filename>. The GEBCO 4K map is
+# R2-ONLY (too big to commit); the others are committed-copy + R2 mirror.
+HEAVY=( moon-height-2k.png earth-height-2k.png earth-gebco-height-4k.png )
 DEST_DIR="$ASSETS_REPO/terrain"
 mkdir -p "$DEST_DIR"
 
@@ -38,6 +39,7 @@ done
 echo "→ uploading terrain/ to R2 via the assets repo's upload.sh"
 ( cd "$ASSETS_REPO" && ./upload.sh terrain )
 
-echo "✓ terrain maps on R2. Next: set heightMapOnR2: true for Moon + Earth in"
-echo "  lib/terrain/bodies.ts, then commit + deploy. The committed copies stay"
-echo "  as local fallback."
+echo "✓ terrain maps on R2. Next, in lib/terrain/bodies.ts:"
+echo "  • Moon + Earth: set heightMapOnR2: true (committed copies stay as fallback)."
+echo "  • Earth (GEBCO): set heightMapUploaded: true — this UNHIDES it in the picker"
+echo "    (it's R2-only, no repo copy). Then commit + deploy."

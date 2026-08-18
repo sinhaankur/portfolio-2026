@@ -77,13 +77,17 @@ export function TerrainBody({
   useEffect(() => {
     if (!body.heightMap) { setHeightTex(null); return }
     let alive = true
-    // Maps already uploaded to R2 resolve to the CDN (with the committed copy as
-    // local fallback); everything else loads from the repo. R2 key mirrors the
-    // filename under a "terrain/" prefix, e.g.
-    //   /textures/terrain/moon-height-2k.png  →  terrain/moon-height-2k.png
-    const heightUrl = body.heightMapOnR2
-      ? cdnAsset(`terrain/${body.heightMap.split("/").pop()}`, body.heightMap)
-      : body.heightMap
+    // Resolve the height-map URL by hosting mode:
+    //   • R2-only (GEBCO)   → R2 key, NO local fallback (no repo copy exists).
+    //   • on R2 (Moon/Earth) → R2 with the committed copy as local fallback.
+    //   • otherwise          → straight from the repo.
+    // R2 key mirrors the filename under a "terrain/" prefix.
+    const fileName = body.heightMap.split("/").pop() as string
+    const heightUrl = body.heightMapR2Only
+      ? cdnAsset(`terrain/${fileName}`) // no fallback — the visibility gate ensures the CDN is up
+      : body.heightMapOnR2
+        ? cdnAsset(`terrain/${fileName}`, body.heightMap)
+        : body.heightMap
     new TextureLoader().load(
       heightUrl,
       (tex) => {
@@ -102,7 +106,7 @@ export function TerrainBody({
       () => { /* height load failed → stay smooth, never crash */ if (alive) setHeightTex(null) },
     )
     return () => { alive = false }
-  }, [body.heightMap, body.heightMapOnR2])
+  }, [body.heightMap, body.heightMapOnR2, body.heightMapR2Only])
 
   const uniforms = useMemo(
     () => ({
