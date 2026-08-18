@@ -82,15 +82,69 @@ const SOURCES = {
     rawToMetres: 1,
     attribution: "NOAA NCEI ETOPO 2022 bed elevation (public domain)",
   },
-  // mercury: { …MESSENGER…, minM: -5380, maxM: 4480 }  // wired as bakes come online
-  // venus:   { …Magellan… }
+  mercury: {
+    // MESSENGER global DEM, 665 m/pixel (23040×11520), single GeoTIFF in metres
+    // relative to the 2439.4 km reference sphere. ~530 MB, public domain.
+    format: "geotiff",
+    url: "https://planetarymaps.usgs.gov/mosaic/Mercury_Messenger_USGS_DEM_Global_665m_v2.tif",
+    out: "mercury-height-2k.png",
+    minM: -5380,
+    maxM: 4480,
+    rawToMetres: 1,
+    attribution: "NASA MESSENGER / USGS Astrogeology (public domain)",
+  },
+  venus: {
+    // Magellan global topography, 4641 m/pixel. Small (~64 MB) GeoTIFF in metres
+    // relative to the 6051 km reference sphere (radar altimetry). Public domain.
+    format: "geotiff",
+    url: "https://planetarymaps.usgs.gov/mosaic/Venus_Magellan_Topography_Global_4641m_v02.tif",
+    out: "venus-height-2k.png",
+    minM: -2900,
+    maxM: 10998,
+    rawToMetres: 1,
+    attribution: "NASA Magellan / USGS Astrogeology (public domain)",
+  },
+  "earth-gebco": {
+    // GEBCO 2024, 15 arc-second — ~4× ETOPO's resolution. Ships as a ZIP of 8
+    // 90°×90° GeoTIFF tiles (4×2 grid) that must be MOSAICKED into one global
+    // raster before downsampling. ~4.26 GB zipped. For the Phase 3 deep-zoom
+    // tile pyramid — overkill for the current 2K globe (use `earth`/ETOPO there).
+    // License: GEBCO Compilation Group (credit required; CC BY 4.0 via OpenTopography).
+    format: "zip-mosaic",
+    url: "https://dap.ceda.ac.uk/bodc/gebco/global/gebco_2024/ice_surface_elevation/geotiff/gebco_2024_geotiff.zip",
+    out: "earth-gebco-height-4k.png",
+    ext: "zip",
+    // The 8 tiles in row-major order (N row then S row), west→east, matching the
+    // filenames read from the zip directory. Each is 90° tall × 90° wide.
+    tiles: [
+      // North row (n90 → s0)
+      "gebco_2024_n90.0_s0.0_w-180.0_e-90.0.tif",
+      "gebco_2024_n90.0_s0.0_w-90.0_e0.0.tif",
+      "gebco_2024_n90.0_s0.0_w0.0_e90.0.tif",
+      "gebco_2024_n90.0_s0.0_w90.0_e180.0.tif",
+      // South row (n0 → s-90)
+      "gebco_2024_n0.0_s-90.0_w-180.0_e-90.0.tif",
+      "gebco_2024_n0.0_s-90.0_w-90.0_e0.0.tif",
+      "gebco_2024_n0.0_s-90.0_w0.0_e90.0.tif",
+      "gebco_2024_n0.0_s-90.0_w90.0_e180.0.tif",
+    ],
+    tileCols: 4,
+    tileRows: 2,
+    minM: -10900,
+    maxM: 8849,
+    rawToMetres: 1,
+    // GEBCO 15″ is huge; default this body to a wider bake so the extra data
+    // survives. Override with --width as needed.
+    defaultWidth: 4096,
+    attribution: "GEBCO Compilation Group (GEBCO_2024 Grid) — CC BY 4.0",
+  },
 }
 
 function parseArgs(argv) {
   const body = argv[2]
-  const opts = { width: 2048, keep: false }
+  const opts = { width: 2048, keep: false, widthExplicit: false }
   for (let i = 3; i < argv.length; i++) {
-    if (argv[i] === "--width") opts.width = parseInt(argv[++i], 10)
+    if (argv[i] === "--width") { opts.width = parseInt(argv[++i], 10); opts.widthExplicit = true }
     else if (argv[i] === "--keep") opts.keep = true
   }
   return { body, opts }
@@ -133,25 +187,48 @@ function downsample(src, out, width, s) {
   const height = Math.round(width / 2) // equirectangular is 2:1
   const { minM, maxM, rawToMetres, format } = s
 
-  const readBlock =
-    format === "pds-raw"
-      ? `
+  let readBlock
+  if (format === "pds-raw") {
+    readBlock = `
 # RAW PDS .img: fixed dimensions + dtype from the .lbl, no header to parse.
 rw, rh, dt = ${s.rawWidth}, ${s.rawHeight}, ${JSON.stringify(s.rawDtype)}
 print(f"  ↳ reading raw PDS grid {rw}x{rh} ({dt}) …", flush=True)
 raw = np.fromfile(src, dtype=np.dtype(dt)).astype(np.float64)
 raw = raw.reshape((rh, rw))
-# Block-mean downsample to (H, W): reshape into tiles and average. rw/rh are
-# exact multiples of W/H for LDEM_64 (23040/2048=11.25 → use integer factor path).
 def block_resize(a, W, H):
-    ih, iw = a.shape
-    # Fall back to PIL's high-quality resize via an intermediate float image.
     from PIL import Image
     im = Image.fromarray(a.astype(np.float32), mode="F").resize((W, H), Image.LANCZOS)
     return np.asarray(im, dtype=np.float64)
 arr = block_resize(raw, W, H) * scale
 `
-      : `
+  } else if (format === "zip-mosaic") {
+    // Mosaic N×M GeoTIFF tiles into one global grid WITHOUT ever holding all of
+    // them in memory: downsample each tile straight into its cell of the output.
+    readBlock = `
+import zipfile, io
+from PIL import Image
+Image.MAX_IMAGE_PIXELS = None
+cols, rows = ${s.tileCols}, ${s.tileRows}
+tiles = ${JSON.stringify(s.tiles)}
+cw, ch = W // cols, H // rows           # per-tile output cell size
+print(f"  ↳ mosaicking {len(tiles)} tiles ({cols}×{rows}) into {W}x{H} …", flush=True)
+arr = np.zeros((H, W), dtype=np.float64)
+with zipfile.ZipFile(src) as z:
+    names = {n.split('/')[-1]: n for n in z.namelist()}
+    for i, t in enumerate(tiles):
+        member = names.get(t)
+        if member is None:
+            raise SystemExit(f"tile missing from zip: {t}")
+        r, c = divmod(i, cols)
+        with z.open(member) as fh:
+            im = Image.open(io.BytesIO(fh.read()))
+            im = im.convert("F").resize((cw, ch), Image.LANCZOS)
+            arr[r*ch:(r+1)*ch, c*cw:(c+1)*cw] = np.asarray(im, dtype=np.float64)
+        print(f"    tile {i+1}/{len(tiles)} placed [{r},{c}]", flush=True)
+arr = arr * scale
+`
+  } else {
+    readBlock = `
 from PIL import Image
 Image.MAX_IMAGE_PIXELS = None  # these mosaics exceed the decompression-bomb guard
 print(f"  ↳ opening {src} …", flush=True)
@@ -164,10 +241,15 @@ except Exception:
 im = im.convert("F").resize((W, H), Image.LANCZOS)
 arr = np.asarray(im, dtype=np.float64) * scale
 `
+  }
 
   const py = `
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageFile
+# Some USGS mosaics (e.g. Venus Magellan) declare a hair more rows than the last
+# strip actually contains — PIL errors on the short tail. Allow truncated loads:
+# the missing sliver is off-map (a pole edge) and gets clamped anyway.
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 src, out = ${JSON.stringify(src)}, ${JSON.stringify(out)}
 W, H = ${width}, ${height}
@@ -202,12 +284,14 @@ function main() {
 
   const srcPath = join(SCRATCH, `${body}-source.${s.ext ?? "tif"}`)
   const outPath = join(OUT_DIR, s.out)
+  // A source can prefer a wider bake (GEBCO 15″); an explicit --width still wins.
+  const width = opts.widthExplicit ? opts.width : s.defaultWidth ?? opts.width
 
   console.log(`Terrain DEM: ${body}`)
   console.log(`  source: ${s.attribution}`)
   download(s.url, srcPath)
-  console.log(`  ↳ downsampling → ${s.out} (${opts.width}×${Math.round(opts.width / 2)}, 16-bit)`)
-  downsample(srcPath, outPath, opts.width, s)
+  console.log(`  ↳ downsampling → ${s.out} (${width}×${Math.round(width / 2)}, 16-bit)`)
+  downsample(srcPath, outPath, width, s)
 
   console.log(`  final: ${human(statSync(outPath).size)} committed to public/textures/terrain/`)
   if (!opts.keep) {

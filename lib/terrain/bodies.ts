@@ -179,11 +179,11 @@ export const TERRAIN_BODIES: TerrainBody[] = [
     id: "mercury",
     name: "Mercury",
     radiusKm: 2439.7,
-    // MESSENGER global DEM relief: ≈ -5380 m to +4480 m.
+    // MESSENGER global DEM relief — measured on bake: -5380 m to +4480 m.
     elevationMinM: -5380,
     elevationMaxM: 4480,
     defaultExaggeration: 25,
-    heightMap: null,
+    heightMap: "/textures/terrain/mercury-height-2k.png",
     colorMap: "/textures/mercury.webp",
     source: "stereo",
     attribution: "Elevation: NASA MESSENGER (USGS Astrogeology, public domain)",
@@ -199,7 +199,7 @@ export const TERRAIN_BODIES: TerrainBody[] = [
     elevationMinM: -2900,
     elevationMaxM: 10998,
     defaultExaggeration: 30,
-    heightMap: null,
+    heightMap: "/textures/terrain/venus-height-2k.png",
     colorMap: "/textures/venus.webp",
     source: "radar",
     attribution: "Elevation: NASA Magellan radar (USGS Astrogeology, public domain)",
