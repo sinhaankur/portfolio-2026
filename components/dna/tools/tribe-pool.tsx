@@ -25,7 +25,6 @@ import {
   timelinePos,
   type AncestryComponent,
   type Tribe,
-  type CasteGroup,
 } from "@/lib/dna-tribes"
 
 const COMPS: AncestryComponent[] = ["AASI", "IRAN", "STEP", "EASI"]

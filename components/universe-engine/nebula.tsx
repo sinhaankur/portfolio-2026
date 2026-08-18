@@ -19,7 +19,7 @@
 
 import { useRef, useMemo, useEffect, useState } from "react"
 import { useFrame, useThree } from "@react-three/fiber"
-import { useGLTF, Clone, Billboard } from "@react-three/drei"
+import { useGLTF, Billboard } from "@react-three/drei"
 import {
   AdditiveBlending,
   BackSide,

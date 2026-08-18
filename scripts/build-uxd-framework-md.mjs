@@ -10,7 +10,7 @@
  * Run: node scripts/build-uxd-framework-md.mjs   (or: pnpm framework:md)
  */
 
-import { readFileSync, writeFileSync } from "node:fs"
+import { writeFileSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 import { dirname, join } from "node:path"
 import { execFileSync } from "node:child_process"

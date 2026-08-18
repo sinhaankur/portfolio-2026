@@ -45,8 +45,6 @@ export function answerSpaceQuestion(raw: string): string | null {
   const planets = planetsData.filter((p) => p.radiusEarth != null)
   const bySize = (dir: 1 | -1) => [...planets].sort((a, b) => ((b.radiusEarth ?? 0) - (a.radiusEarth ?? 0)) * dir)[0]
   const byDist = (dir: 1 | -1) => [...planets].sort((a, b) => ((b.aAU ?? 0) - (a.aAU ?? 0)) * dir)[0]
-  const tempOf = (p: (typeof planets)[number]) => p.surfaceTempK?.max ?? p.surfaceTempK?.mean ?? -1
-  const byTemp = (dir: 1 | -1) => [...planets].sort((a, b) => (tempOf(b) - tempOf(a)) * dir)[0]
 
   if (/(?:biggest|largest|hugest) planet/.test(q)) {
     const p = bySize(1)

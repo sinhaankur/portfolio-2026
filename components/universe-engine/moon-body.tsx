@@ -32,7 +32,6 @@ import {
   Group,
   Mesh,
   ShaderMaterial,
-  SRGBColorSpace,
   TextureLoader,
   Vector2,
   Vector3,

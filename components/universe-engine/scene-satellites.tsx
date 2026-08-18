@@ -94,9 +94,6 @@ export type SatFacts = {
   debris: boolean
 }
 
-const EARTH_RADIUS_KM = 6371
-const MU_EARTH = 398600.4418 // km³/s²
-
 /**
  * Real per-planet physics for the orbiter-facts readout. A shell's `altRatio` is
  * "orbit radius ÷ THIS PLANET's radius", so an orbiter's true altitude, speed and

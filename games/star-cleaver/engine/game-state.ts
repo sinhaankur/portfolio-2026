@@ -206,7 +206,6 @@ export function startIgnition(state: GameState): GameState {
  * so the scene reads as "already flying" the instant it appears.
  */
 export function startFlyAround(state: GameState): GameState {
-  const layout = getMissionLayout(state.worldIndex);
   return {
     ...state,
     gameMode: 'explore',

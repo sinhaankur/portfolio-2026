@@ -63,7 +63,7 @@ import {
 } from "./astronomy"
 import { SceneContents } from "./scene"
 import {
-  initDeviceTier, qualityForTier, perfTierRef, setPerfTier, superClearRef, setResolution, deviceProfileRef, adaptTier, TIER_ORDER, dprForCanvas, type DeviceTier, type ResolutionLevel,
+  initDeviceTier, qualityForTier, perfTierRef, setPerfTier, superClearRef, setResolution, deviceProfileRef, adaptTier, dprForCanvas, type DeviceTier, type ResolutionLevel,
 } from "@/lib/device-tier"
 import { DestinationsMenu, InfoPanel, LayersMenu, ResetViewButton, TimelineControl } from "./hud"
 import { TonightSky } from "./tonight-sky"

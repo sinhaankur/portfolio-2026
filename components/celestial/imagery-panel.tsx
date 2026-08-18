@@ -90,7 +90,6 @@ export function ImageryPanel({ onClose }: { onClose: () => void }) {
           <div className="space-y-3">
             {/* Featured image */}
             <div className="overflow-hidden rounded-lg border border-border bg-background/60">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={active.url}
                 alt={active.title}
@@ -133,7 +132,6 @@ export function ImageryPanel({ onClose }: { onClose: () => void }) {
                       aria-label={it.title}
                       className={`shrink-0 overflow-hidden rounded-md border ${active.date === it.date ? "border-[#8ab6ff]" : "border-border"} transition-colors`}
                     >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={it.url} alt={it.title} loading="lazy" className="h-12 w-16 object-cover" />
                     </button>
                   ))}
@@ -157,7 +155,6 @@ export function ImageryPanel({ onClose }: { onClose: () => void }) {
                       title={h.title}
                       className="shrink-0 overflow-hidden rounded-md border border-border hover:border-[#c8b6ff] transition-colors"
                     >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={h.thumb} alt={h.title} loading="lazy" className="h-14 w-20 object-cover" />
                     </a>
                   ))}

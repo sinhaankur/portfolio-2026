@@ -198,10 +198,6 @@ function InfluenceSpheres({
 }) {
   const groupRef = useRef<THREE.Group>(null)
 
-  // Precompute static sphere count so useFrame knows which mesh is which.
-  const solarSystemCount = 1 + planets.length // Sun + planets
-  const distantCount = SKY_MASSIVE_BODIES.length + 1 // sky BHs + Sgr A*
-
   useFrame(() => {
     if (!groupRef.current) return
     const simMs = simTimeRef.current.simMs
