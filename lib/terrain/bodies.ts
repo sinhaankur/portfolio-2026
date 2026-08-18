@@ -140,11 +140,13 @@ export const TERRAIN_BODIES: TerrainBody[] = [
     id: "moon",
     name: "The Moon",
     radiusKm: 1737.4,
-    // LOLA global relief: ≈ -9100 m (South Pole–Aitken) to +10800 m (far-side highlands).
-    elevationMinM: -9150,
-    elevationMaxM: 10786,
+    // LOLA global relief — exact from the LDEM_64 PDS label (DN × 0.5 m):
+    // MINIMUM -18251 DN → -9125.5 m (near South Pole–Aitken), MAXIMUM 21546 DN
+    // → +10773 m (far-side highlands). Real measured span.
+    elevationMinM: -9126,
+    elevationMaxM: 10773,
     defaultExaggeration: 15,
-    heightMap: null,
+    heightMap: "/textures/terrain/moon-height-2k.png",
     colorMap: "/textures/moon.webp",
     source: "laser-altimeter",
     attribution: "Elevation: NASA LRO LOLA (USGS Astrogeology, public domain)",

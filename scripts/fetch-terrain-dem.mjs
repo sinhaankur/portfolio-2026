@@ -41,6 +41,7 @@ const SCRATCH = join(ROOT, ".terrain-cache")
 const SOURCES = {
   mars: {
     // MOLA 463m global mosaic (MGS). ~2.1 GB BigTIFF, real metres relative to areoid.
+    format: "geotiff",
     url: "https://planetarymaps.usgs.gov/mosaic/Mars_MGS_MOLA_DEM_mosaic_global_463m.tif",
     out: "mars-height-2k.png",
     minM: -8201,
@@ -49,9 +50,26 @@ const SOURCES = {
     rawToMetres: 1,
     attribution: "NASA MGS MOLA / USGS Astrogeology (public domain)",
   },
-  // Others wired as their bakes come online (LOLA / MESSENGER / Magellan / GEBCO).
-  // moon:    { url: "…LOLA…",        out: "moon-height-2k.png",    minM: -9150, maxM: 10786, rawToMetres: 1 },
-  // mercury: { url: "…MESSENGER…",   out: "mercury-height-2k.png", minM: -5380, maxM: 4480,  rawToMetres: 1 },
+  moon: {
+    // LOLA LDEM_64 (64 pix/deg) from the PDS Geosciences node. A RAW headerless
+    // PDS .img: 23040×11520, 16-bit signed little-endian. HEIGHT_m = DN × 0.5
+    // (SCALING_FACTOR), relative to the 1737.4 km reference sphere. ~530 MB.
+    format: "pds-raw",
+    url: "https://pds-geosciences.wustl.edu/lro/lro-l-lola-3-rdr-v1/lrolol_1xxx/data/lola_gdr/cylindrical/img/ldem_64.img",
+    out: "moon-height-2k.png",
+    ext: "img",
+    rawWidth: 23040,
+    rawHeight: 11520,
+    rawDtype: "<i2", // little-endian signed 16-bit
+    minM: -9126,
+    maxM: 10773,
+    // DN → metres per the label's SCALING_FACTOR.
+    rawToMetres: 0.5,
+    attribution: "NASA LRO LOLA (LDEM_64, PDS Geosciences) — public domain",
+  },
+  // mercury: { …MESSENGER…, minM: -5380, maxM: 4480 }  // wired as bakes come online
+  // venus:   { …Magellan… }
+  // earth:   { …GEBCO… }
 }
 
 function parseArgs(argv) {
@@ -91,46 +109,65 @@ function download(url, dest) {
  * Downsample the big DEM to a 16-bit equirectangular PNG using Python/PIL+numpy.
  * We normalise raw elevation → [0, 65535] across [minM, maxM] so the shader can
  * decode exact metres: metres = minM + (px/65535) * (maxM - minM).
+ *
+ * Two source formats:
+ *   • "geotiff"  — opened with PIL (Mars MOLA and most USGS mosaics).
+ *   • "pds-raw"  — a headerless PDS .img: read with numpy.fromfile using the
+ *     dimensions + dtype from the product's .lbl (Moon LOLA LDEM_64).
  */
-function downsample(src, out, width, minM, maxM, rawToMetres) {
+function downsample(src, out, width, s) {
   const height = Math.round(width / 2) // equirectangular is 2:1
-  const py = `
-import sys, numpy as np
+  const { minM, maxM, rawToMetres, format } = s
+
+  const readBlock =
+    format === "pds-raw"
+      ? `
+# RAW PDS .img: fixed dimensions + dtype from the .lbl, no header to parse.
+rw, rh, dt = ${s.rawWidth}, ${s.rawHeight}, ${JSON.stringify(s.rawDtype)}
+print(f"  ↳ reading raw PDS grid {rw}x{rh} ({dt}) …", flush=True)
+raw = np.fromfile(src, dtype=np.dtype(dt)).astype(np.float64)
+raw = raw.reshape((rh, rw))
+# Block-mean downsample to (H, W): reshape into tiles and average. rw/rh are
+# exact multiples of W/H for LDEM_64 (23040/2048=11.25 → use integer factor path).
+def block_resize(a, W, H):
+    ih, iw = a.shape
+    # Fall back to PIL's high-quality resize via an intermediate float image.
+    from PIL import Image
+    im = Image.fromarray(a.astype(np.float32), mode="F").resize((W, H), Image.LANCZOS)
+    return np.asarray(im, dtype=np.float64)
+arr = block_resize(raw, W, H) * scale
+`
+      : `
 from PIL import Image
 Image.MAX_IMAGE_PIXELS = None  # these mosaics exceed the decompression-bomb guard
-
-src, out = ${JSON.stringify(src)}, ${JSON.stringify(out)}
-W, H = ${width}, ${height}
-minM, maxM, scale = ${minM}, ${maxM}, ${rawToMetres}
-
 print(f"  ↳ opening {src} …", flush=True)
 im = Image.open(src)
 print(f"    source size: {im.size[0]}x{im.size[1]}, mode {im.mode}", flush=True)
-
-# draft() lets the decoder skip pixels while reading (huge speed/mem win on big
-# rasters); only meaningful for JPEG-backed data but harmless otherwise.
 try:
     im.draft(im.mode, (W, H))
 except Exception:
     pass
+im = im.convert("F").resize((W, H), Image.LANCZOS)
+arr = np.asarray(im, dtype=np.float64) * scale
+`
 
-# Resize to target with a high-quality filter. Convert to 32-bit float first so
-# negative elevations (below datum) survive; PIL 'I' is 32-bit signed int.
-im = im.convert("F")
-im = im.resize((W, H), Image.LANCZOS)
-arr = np.asarray(im, dtype=np.float64) * scale  # raw → metres
+  const py = `
+import numpy as np
+from PIL import Image
 
+src, out = ${JSON.stringify(src)}, ${JSON.stringify(out)}
+W, H = ${width}, ${height}
+minM, maxM, scale = ${minM}, ${maxM}, ${rawToMetres}
+${readBlock}
 # Clamp to the known real range, then normalise to full 16-bit.
 arr = np.clip(arr, minM, maxM)
 norm = (arr - minM) / (maxM - minM)             # 0..1 across true relief
 u16 = np.rint(norm * 65535.0).astype(np.uint16)
 
-# Report the real elevation actually present (sanity vs the declared range).
 lo = minM + (u16.min() / 65535.0) * (maxM - minM)
 hi = minM + (u16.max() / 65535.0) * (maxM - minM)
 print(f"    encoded relief present: {lo:.0f} m … {hi:.0f} m (declared {minM}..{maxM})", flush=True)
 
-# mode inferred from the uint16 array; save as 16-bit greyscale PNG.
 Image.fromarray(u16).save(out, optimize=True)
 print(f"  ✓ wrote {out} ({W}x{H}, 16-bit)", flush=True)
 `
@@ -149,14 +186,14 @@ function main() {
   mkdirSync(OUT_DIR, { recursive: true })
   mkdirSync(SCRATCH, { recursive: true })
 
-  const srcPath = join(SCRATCH, `${body}-source.tif`)
+  const srcPath = join(SCRATCH, `${body}-source.${s.ext ?? "tif"}`)
   const outPath = join(OUT_DIR, s.out)
 
   console.log(`Terrain DEM: ${body}`)
   console.log(`  source: ${s.attribution}`)
   download(s.url, srcPath)
   console.log(`  ↳ downsampling → ${s.out} (${opts.width}×${Math.round(opts.width / 2)}, 16-bit)`)
-  downsample(srcPath, outPath, opts.width, s.minM, s.maxM, s.rawToMetres)
+  downsample(srcPath, outPath, opts.width, s)
 
   console.log(`  final: ${human(statSync(outPath).size)} committed to public/textures/terrain/`)
   if (!opts.keep) {
