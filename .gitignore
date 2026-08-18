@@ -97,3 +97,6 @@ blender/space-assets/celestial/*.blend
 
 # packaged webOS artifacts — build outputs, not source
 *.ipk
+
+# Terrain engine — big source DEMs (downsampled results are committed, sources are not)
+.terrain-cache/
