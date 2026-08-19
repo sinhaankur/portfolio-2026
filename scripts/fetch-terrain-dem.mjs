@@ -142,12 +142,25 @@ const SOURCES = {
 
 function parseArgs(argv) {
   const body = argv[2]
-  const opts = { width: 2048, keep: false, widthExplicit: false }
+  const opts = { width: 2048, keep: false, widthExplicit: false, region: null }
   for (let i = 3; i < argv.length; i++) {
     if (argv[i] === "--width") { opts.width = parseInt(argv[++i], 10); opts.widthExplicit = true }
     else if (argv[i] === "--keep") opts.keep = true
+    else if (argv[i] === "--region") opts.region = argv[++i]
   }
   return { body, opts }
+}
+
+/**
+ * Named regional crops: a high-res tile is a lat/lon window of the body's native
+ * source, downsampled to a tile. Bounds MUST mirror lib/terrain/bodies.ts regions
+ * so the runtime UV mapping matches. Cropped from the SAME cached source — no new
+ * download. Only geotiff sources (Mars/Earth-style) are croppable this way today.
+ */
+const REGIONS = {
+  mars: {
+    "valles-marineris": { out: "mars-valles-marineris-2k.png", lonW: -95, lonE: -35, latS: -20, latN: 10 },
+  },
 }
 
 function human(bytes) {
@@ -228,17 +241,25 @@ with zipfile.ZipFile(src) as z:
 arr = arr * scale
 `
   } else {
+    // Read via tifffile so the sample format/bit-depth is honoured (many DEM
+    // GeoTIFFs are int16 or float32; PIL misreads them as 32-bit int mode 'I' →
+    // garbage). Mask obvious nodata (values outside a sane elevation window) so
+    // fill sentinels don't blow out the normalisation, then resize via PIL.
     readBlock = `
+import tifffile
 from PIL import Image
-Image.MAX_IMAGE_PIXELS = None  # these mosaics exceed the decompression-bomb guard
-print(f"  ↳ opening {src} …", flush=True)
-im = Image.open(src)
-print(f"    source size: {im.size[0]}x{im.size[1]}, mode {im.mode}", flush=True)
-try:
-    im.draft(im.mode, (W, H))
-except Exception:
-    pass
-im = im.convert("F").resize((W, H), Image.LANCZOS)
+print(f"  ↳ reading {src} via tifffile …", flush=True)
+raw = tifffile.imread(src).astype(np.float64)
+if raw.ndim == 3: raw = raw[..., 0]
+print(f"    source size: {raw.shape[1]}x{raw.shape[0]}, dtype from file", flush=True)
+# Nodata mask: anything far outside the plausible elevation window (in metres)
+# is a fill sentinel; replace with the median of valid samples before resizing.
+valid = np.isfinite(raw) & (raw > (minM - 2000)/scale) & (raw < (maxM + 2000)/scale)
+if valid.mean() < 1.0:
+    med = np.median(raw[valid]) if valid.any() else 0.0
+    raw = np.where(valid, raw, med)
+    print(f"    masked nodata: {100*(1-valid.mean()):.2f}% filled with median", flush=True)
+im = Image.fromarray(raw.astype(np.float32), mode="F").resize((W, H), Image.LANCZOS)
 arr = np.asarray(im, dtype=np.float64) * scale
 `
   }
@@ -271,6 +292,60 @@ print(f"  ✓ wrote {out} ({W}x{H}, 16-bit)", flush=True)
   if (r.status !== 0) throw new Error(`python downsample failed (exit ${r.status})`)
 }
 
+/**
+ * Crop a lat/lon window out of the (equirectangular) source at NATIVE resolution,
+ * then downsample that window to a tile. The tile carries far more detail per
+ * degree than the whole-planet map. Same 16-bit decode as the global map (uses
+ * the body's declared minM/maxM), so the runtime shader decodes both identically.
+ */
+function cropRegion(src, out, width, s, region) {
+  const { minM, maxM, rawToMetres } = s
+  const { lonW, lonE, latS, latN } = region
+  // Tile height keeps the region's real aspect ratio (lon-span : lat-span).
+  const aspect = (lonE - lonW) / (latN - latS)
+  const height = Math.max(1, Math.round(width / aspect))
+  const py = `
+import numpy as np
+import tifffile
+from PIL import Image
+
+src, out = ${JSON.stringify(src)}, ${JSON.stringify(out)}
+W, H = ${width}, ${height}
+minM, maxM, scale = ${minM}, ${maxM}, ${rawToMetres}
+lonW, lonE, latS, latN = ${lonW}, ${lonE}, ${latS}, ${latN}
+
+print(f"  ↳ reading {src} via tifffile for crop …", flush=True)
+full = tifffile.imread(src)
+if full.ndim == 3: full = full[..., 0]
+SH, SW = full.shape  # equirectangular: lon -180..180, lat 90..-90
+def px(lon, lat):
+    x = int(round((lon + 180.0) / 360.0 * SW))
+    y = int(round((90.0 - lat) / 180.0 * SH))
+    return max(0, min(SW, x)), max(0, min(SH, y))
+x0, y0 = px(lonW, latN)   # top-left = west edge, north edge
+x1, y1 = px(lonE, latS)   # bottom-right = east edge, south edge
+print(f"    crop px box: ({x0},{y0})–({x1},{y1}) = {x1-x0}x{y1-y0} native", flush=True)
+sub = full[y0:y1, x0:x1].astype(np.float64)
+# Mask nodata within the crop before resizing.
+valid = np.isfinite(sub) & (sub > (minM-2000)/scale) & (sub < (maxM+2000)/scale)
+if valid.mean() < 1.0:
+    sub = np.where(valid, sub, np.median(sub[valid]) if valid.any() else 0.0)
+crop = Image.fromarray(sub.astype(np.float32), mode="F").resize((W, H), Image.LANCZOS)
+arr = np.asarray(crop, dtype=np.float64) * scale
+
+arr = np.clip(arr, minM, maxM)
+norm = (arr - minM) / (maxM - minM)
+u16 = np.rint(norm * 65535.0).astype(np.uint16)
+lo = minM + (u16.min() / 65535.0) * (maxM - minM)
+hi = minM + (u16.max() / 65535.0) * (maxM - minM)
+print(f"    region relief: {lo:.0f} m … {hi:.0f} m", flush=True)
+Image.fromarray(u16).save(out, optimize=True)
+print(f"  ✓ wrote {out} ({W}x{H}, 16-bit regional tile)", flush=True)
+`
+  const r = spawnSync("python3", ["-c", py], { stdio: "inherit" })
+  if (r.status !== 0) throw new Error(`python region crop failed (exit ${r.status})`)
+}
+
 function main() {
   const { body, opts } = parseArgs(process.argv)
   if (!body || !SOURCES[body]) {
@@ -283,13 +358,31 @@ function main() {
   mkdirSync(SCRATCH, { recursive: true })
 
   const srcPath = join(SCRATCH, `${body}-source.${s.ext ?? "tif"}`)
-  const outPath = join(OUT_DIR, s.out)
   // A source can prefer a wider bake (GEBCO 15″); an explicit --width still wins.
   const width = opts.widthExplicit ? opts.width : s.defaultWidth ?? opts.width
 
   console.log(`Terrain DEM: ${body}`)
   console.log(`  source: ${s.attribution}`)
   download(s.url, srcPath)
+
+  // Regional tile mode: crop a named lat/lon window at native resolution.
+  if (opts.region) {
+    const region = REGIONS[body]?.[opts.region]
+    if (!region) {
+      console.error(`Unknown region "${opts.region}" for ${body}.`)
+      console.error(`Known regions: ${Object.keys(REGIONS[body] ?? {}).join(", ") || "(none)"}`)
+      process.exit(1)
+    }
+    const tilePath = join(OUT_DIR, region.out)
+    const rw = opts.widthExplicit ? opts.width : 2048
+    console.log(`  ↳ cropping region "${opts.region}" → ${region.out}`)
+    cropRegion(srcPath, tilePath, rw, s, region)
+    console.log(`  final: ${human(statSync(tilePath).size)} → public/textures/terrain/`)
+    console.log("Done.")
+    return
+  }
+
+  const outPath = join(OUT_DIR, s.out)
   console.log(`  ↳ downsampling → ${s.out} (${width}×${Math.round(width / 2)}, 16-bit)`)
   downsample(srcPath, outPath, width, s)
 

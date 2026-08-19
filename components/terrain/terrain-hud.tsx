@@ -22,6 +22,9 @@ interface Props {
   oceanVisible: boolean
   onOcean: (v: boolean) => void
   zoomDepth: number
+  activeRegion: string | null
+  /** Fly the camera down into a named high-res region. */
+  onDive: (regionId: string) => void
 }
 
 export function TerrainHud({
@@ -36,6 +39,8 @@ export function TerrainHud({
   oceanVisible,
   onOcean,
   zoomDepth,
+  activeRegion,
+  onDive,
 }: Props) {
   return (
     <>
@@ -49,12 +54,15 @@ export function TerrainHud({
         </h1>
         <p className="mt-1 text-[12px] leading-snug text-white/65">{body.tagline}</p>
         <p className="mt-2 text-[10px] leading-snug text-white/40">{body.attribution}</p>
-        {/* Deep-zoom indicator: appears as you descend toward the surface. */}
+        {/* Deep-zoom indicator: appears as you descend. Names the high-res region
+            when the camera is over one (its finer DEM tile is now active). */}
         {zoomDepth > 0.35 && (
           <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/40 px-2.5 py-1">
             <span className="h-1.5 w-1.5 animate-pulse rounded-full" style={{ background: body.accent }} />
             <span className="font-mono text-[10px] uppercase tracking-widest text-white/70">
-              {zoomDepth > 0.8 ? "Surface detail" : "Descending"}
+              {activeRegion
+                ? `${activeRegion} · hi-res`
+                : zoomDepth > 0.8 ? "Surface detail" : "Descending"}
             </span>
           </div>
         )}
@@ -114,6 +122,22 @@ export function TerrainHud({
               <Toggle label={oceanVisible ? "Ocean: on" : "Ocean: drained"} on={oceanVisible} onChange={onOcean} />
             )}
           </div>
+
+          {/* Deep-dive rail: fly down into a high-res region (e.g. Valles Marineris). */}
+          {body.regions && body.regions.length > 0 && (
+            <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-white/10 pt-2">
+              <span className="font-mono text-[10px] uppercase tracking-widest text-white/40">Deep dive</span>
+              {body.regions.map((r) => (
+                <button
+                  key={r.id}
+                  onClick={() => onDive(r.id)}
+                  className="rounded-full border border-white/15 bg-black/30 px-2.5 py-1 text-[11px] text-white/70 transition-colors hover:border-white/40 hover:text-white"
+                >
+                  {r.name}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Elevation legend — real metres */}
           <div className="mt-2 flex items-center gap-2 text-[10px] text-white/45">

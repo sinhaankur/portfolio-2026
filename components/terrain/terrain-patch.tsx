@@ -30,6 +30,7 @@ import {
   ClampToEdgeWrapping,
   Vector2,
   Vector3,
+  Vector4,
   Texture,
 } from "three"
 import { terrainFragmentShader } from "./terrain-shaders"
@@ -56,7 +57,10 @@ function patchHalfAngle(camDist: number, near: number, spawn: number): number {
  * map, matching the globe's displacement exactly so the patch sits flush on it.
  */
 const patchVertexShader = /* glsl */ `
-uniform sampler2D uHeightMap;
+uniform sampler2D uHeightMap;   // global equirectangular height map
+uniform sampler2D uRegionMap;   // high-res regional tile (when uUseRegion=1)
+uniform float uUseRegion;       // 0 = global map, 1 = regional tile
+uniform vec4 uRegionBounds;     // (lonW, lonE, latS, latN) in radians
 uniform float uElevMinM;
 uniform float uElevMaxM;
 uniform float uRadiusUnits;
@@ -66,7 +70,7 @@ uniform float uLatC;      // patch centre latitude (rad)
 uniform float uLonC;      // patch centre longitude (rad)
 uniform float uHalf;      // angular half-size (rad)
 
-varying vec2 vUv;         // equirectangular UV into the global map (for colour)
+varying vec2 vUv;         // equirectangular UV into the GLOBAL map (for colour)
 varying float vElevM;
 varying float vNormAmt;
 varying vec3 vWorldNormal;
@@ -78,12 +82,27 @@ void main() {
   float lat = uLatC + position.y * uHalf;
   float lon = uLonC + position.x * uHalf;
 
-  // Equirectangular UV so both patch and globe sample the SAME texel.
+  // Global equirectangular UV (used for colour, and for height off-region).
   float u = lon / (2.0 * PI) + 0.5;
   float v = lat / PI + 0.5;
   vUv = vec2(u, v);
 
-  float h = texture2D(uHeightMap, vec2(u, v)).r;
+  // Height: from the high-res regional tile if active + within its bounds,
+  // else the global map. The tile spans [lonW,lonE]×[latS,latN], remapped to 0..1.
+  float h;
+  if (uUseRegion > 0.5) {
+    float ru = (lon - uRegionBounds.x) / (uRegionBounds.y - uRegionBounds.x);
+    float rv = (lat - uRegionBounds.z) / (uRegionBounds.w - uRegionBounds.z);
+    // Inside the tile → sample it; outside → fall back to the global map so the
+    // patch edges blend seamlessly into the surrounding globe.
+    if (ru >= 0.0 && ru <= 1.0 && rv >= 0.0 && rv <= 1.0) {
+      h = texture2D(uRegionMap, vec2(ru, rv)).r;
+    } else {
+      h = texture2D(uHeightMap, vec2(u, v)).r;
+    }
+  } else {
+    h = texture2D(uHeightMap, vec2(u, v)).r;
+  }
   vNormAmt = h;
   float elevM = mix(uElevMinM, uElevMaxM, h);
   vElevM = elevM;
@@ -112,6 +131,9 @@ interface PatchProps {
   half: number
   heightTex: Texture | null
   colorTex: Texture | null
+  /** High-res regional tile + its bounds (radians), when the patch is over one. */
+  regionTex: Texture | null
+  regionBounds: [number, number, number, number] | null
   /** Grid resolution (verts per side). */
   grid?: number
 }
@@ -127,6 +149,8 @@ function TerrainPatch({
   half,
   heightTex,
   colorTex,
+  regionTex,
+  regionBounds,
   grid = 256,
 }: PatchProps) {
   const matRef = useRef<ShaderMaterial>(null)
@@ -134,6 +158,9 @@ function TerrainPatch({
   const uniforms = useMemo(
     () => ({
       uHeightMap: { value: null as Texture | null },
+      uRegionMap: { value: null as Texture | null },
+      uUseRegion: { value: 0 },
+      uRegionBounds: { value: new Vector4(0, 0, 0, 0) },
       uColorMap: { value: null as Texture | null },
       uElevMinM: { value: body.elevationMinM },
       uElevMaxM: { value: body.elevationMaxM },
@@ -164,6 +191,11 @@ function TerrainPatch({
     m.uniforms.uLatC.value = latC
     m.uniforms.uLonC.value = lonC
     m.uniforms.uHalf.value = half
+    // Regional tile: active only when we have both the texture and its bounds.
+    const useRegion = regionTex != null && regionBounds != null
+    m.uniforms.uUseRegion.value = useRegion ? 1 : 0
+    m.uniforms.uRegionMap.value = regionTex
+    if (regionBounds) m.uniforms.uRegionBounds.value.set(...regionBounds)
     const img = heightTex?.image as { width?: number; height?: number } | undefined
     if (img?.width && img?.height) m.uniforms.uTexel.value.set(1 / img.width, 1 / img.height)
   })
@@ -195,6 +227,8 @@ interface ControllerProps {
    *  derive from it so the patch always engages before the floor. */
   minDistance: number
   onDepthChange: (depth: number) => void
+  /** Reports the high-res region the camera is over (or null). */
+  onRegionChange?: (regionName: string | null) => void
 }
 
 export function DeepZoomController({
@@ -205,10 +239,14 @@ export function DeepZoomController({
   slopeShade,
   minDistance,
   onDepthChange,
+  onRegionChange,
 }: ControllerProps) {
   const { camera } = useThree()
   const [heightTex, setHeightTex] = useState<Texture | null>(null)
   const [colorTex, setColorTex] = useState<Texture | null>(null)
+  // Loaded regional tiles keyed by region id, + which region is active now.
+  const regionTexes = useRef<Record<string, Texture>>({})
+  const [activeRegionId, setActiveRegionId] = useState<string | null>(null)
   // Patch placement, updated in useFrame; kept in refs to avoid per-frame React.
   const [patchOn, setPatchOn] = useState(false)
   const latC = useRef(0)
@@ -245,6 +283,26 @@ export function DeepZoomController({
     return () => { alive = false }
   }, [body.id, body.colorMap, body.heightMap, body.heightMapOnR2, body.heightMapR2Only])
 
+  // Load the body's high-res regional tiles (once per body). Kept in a ref map so
+  // switching over a region just flips activeRegionId without reloading.
+  useEffect(() => {
+    let alive = true
+    regionTexes.current = {}
+    setActiveRegionId(null)
+    for (const region of body.regions ?? []) {
+      const fileName = region.tile.split("/").pop() as string
+      const url = region.tileOnR2 ? cdnAsset(`terrain/${fileName}`) : region.tile
+      new TextureLoader().load(url, (t) => {
+        if (!alive) return
+        t.wrapS = ClampToEdgeWrapping; t.wrapT = ClampToEdgeWrapping
+        t.minFilter = LinearFilter; t.magFilter = LinearFilter
+        t.generateMipmaps = false
+        regionTexes.current[region.id] = t
+      })
+    }
+    return () => { alive = false }
+  }, [body.id, body.regions])
+
   const tmp = useMemo(() => new Vector3(), [])
 
   useFrame(() => {
@@ -267,14 +325,48 @@ export function DeepZoomController({
       // The surface point under the camera = camera direction from origin.
       tmp.copy(camera.position).normalize()
       // dir → lat/lon (inverse of latLonToUnitVec: x=cosLat cosLon, y=sinLat, z=cosLat sinLon)
-      latC.current = Math.asin(Math.max(-1, Math.min(1, tmp.y)))
-      lonC.current = Math.atan2(tmp.z, tmp.x)
+      const latRad = Math.asin(Math.max(-1, Math.min(1, tmp.y)))
+      const lonRad = Math.atan2(tmp.z, tmp.x)
+      latC.current = latRad
+      lonC.current = lonRad
       half.current = patchHalfAngle(dist, near, spawn)
+
+      // Which region (if any) is the camera centred over? Bounds are in degrees.
+      const latDeg = (latRad * 180) / Math.PI
+      const lonDeg = (lonRad * 180) / Math.PI
+      let found: string | null = null
+      for (const r of body.regions ?? []) {
+        if (
+          regionTexes.current[r.id] &&
+          lonDeg >= r.lonW && lonDeg <= r.lonE &&
+          latDeg >= r.latS && latDeg <= r.latN
+        ) { found = r.id; break }
+      }
+      if (found !== activeRegionId) {
+        setActiveRegionId(found)
+        const name = found ? (body.regions?.find((r) => r.id === found)?.name ?? null) : null
+        onRegionChange?.(name)
+      }
     }
-    if (shouldPatch !== patchOn) setPatchOn(shouldPatch)
+    if (shouldPatch !== patchOn) {
+      setPatchOn(shouldPatch)
+      if (!shouldPatch && activeRegionId) { setActiveRegionId(null); onRegionChange?.(null) }
+    }
   })
 
   if (!patchOn || !heightTex) return null
+
+  const activeRegion = body.regions?.find((r) => r.id === activeRegionId) ?? null
+  const regionTex = activeRegion ? regionTexes.current[activeRegion.id] ?? null : null
+  const regionBounds: [number, number, number, number] | null = activeRegion
+    ? [
+        (activeRegion.lonW * Math.PI) / 180,
+        (activeRegion.lonE * Math.PI) / 180,
+        (activeRegion.latS * Math.PI) / 180,
+        (activeRegion.latN * Math.PI) / 180,
+      ]
+    : null
+
   return (
     <TerrainPatch
       body={body}
@@ -287,6 +379,8 @@ export function DeepZoomController({
       half={half.current}
       heightTex={heightTex}
       colorTex={colorTex}
+      regionTex={regionTex}
+      regionBounds={regionBounds}
     />
   )
 }

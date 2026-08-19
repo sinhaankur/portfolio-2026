@@ -28,8 +28,12 @@ const MB = 1024 * 1024
 const BUDGETS = {
   // All *.glb models (LFS). Today ~24 MB after webp-texture compression.
   glbTotalMB: 40,
-  // public/textures/*. Today ~13 MB.
-  texturesTotalMB: 24,
+  // public/textures/*. Raised to 36 MB when the terrain engine's 16-bit DEM
+  // height maps landed at their TRUE size (~3 MB each once read correctly via
+  // tifffile — the earlier tiny files were clipped-garbage artifacts). These are
+  // deliberate, real, committed assets (Mars/Moon/Mercury/Venus/Earth + regional
+  // tiles); the heaviest (GEBCO 4K) is R2-only + gitignored so it doesn't count.
+  texturesTotalMB: 36,
   // No single asset should exceed this — catches an un-optimized export.
   singleFileMB: 6,
 }

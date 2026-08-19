@@ -16,6 +16,29 @@
 
 export type TerrainSourceKind = "laser-altimeter" | "radar" | "stereo" | "bathymetry"
 
+/**
+ * A high-resolution REGIONAL height tile — a bounded lat/lon window cropped from
+ * the body's native-resolution DEM at far finer detail than the whole-planet map.
+ * When the deep-zoom camera descends over a region's bounds, the patch swaps its
+ * sampling to this tile, so the max-zoom view is crisp (real relief) instead of a
+ * blur of the global map. Baked via `fetch-terrain-dem.mjs <body> --region <id>`.
+ */
+export interface TerrainRegion {
+  /** Stable id (kebab). */
+  id: string
+  /** Display name (e.g. "Valles Marineris"). */
+  name: string
+  /** Region bounds in degrees: west/east longitude, south/north latitude. */
+  lonW: number
+  lonE: number
+  latS: number
+  latN: number
+  /** Path to the baked regional height tile (16-bit equirectangular crop). */
+  tile: string
+  /** True if the tile lives only on R2 (heavy) — loaded via the CDN. */
+  tileOnR2?: boolean
+}
+
 export interface RoverSite {
   /** Display name of the mission / landing site. */
   name: string
@@ -96,6 +119,11 @@ export interface TerrainBody {
   tagline: string
   /** Rover / lander sites to pin on the surface (real coords). */
   sites: RoverSite[]
+  /**
+   * High-resolution regional tiles. When the deep-zoom camera descends over a
+   * region's bounds, the patch loads its tile for crisp max-zoom detail.
+   */
+  regions?: TerrainRegion[]
   /** Optional: this body has a real ocean we can drain (Earth). */
   hasOcean?: boolean
   /** Sea-level elevation in metres (for the ocean toggle). Earth = 0. */
@@ -162,6 +190,20 @@ export const TERRAIN_BODIES: TerrainBody[] = [
         lon: 311.811,
         year: 1976,
         note: "First successful U.S. Mars landing.",
+      },
+    ],
+    regions: [
+      {
+        // The grandest canyon in the solar system — 4000 km long, up to 7 km deep.
+        // Cropped from the native-resolution MOLA source at ~10× the global map's
+        // detail density over this window.
+        id: "valles-marineris",
+        name: "Valles Marineris",
+        lonW: -95,
+        lonE: -35,
+        latS: -20,
+        latN: 10,
+        tile: "/textures/terrain/mars-valles-marineris-2k.png",
       },
     ],
   },

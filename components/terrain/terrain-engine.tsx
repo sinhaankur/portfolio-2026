@@ -13,11 +13,12 @@
  * Client-only + static-export safe.
  */
 
-import { useState, useMemo, Suspense } from "react"
+import { useState, useMemo, useRef, Suspense } from "react"
 import { Canvas } from "@react-three/fiber"
 import { OrbitControls } from "@react-three/drei"
 import { BackSide } from "three"
-import { TERRAIN_BODIES, getTerrainBody } from "@/lib/terrain/bodies"
+import type { OrbitControls as OrbitControlsImpl } from "three-stdlib"
+import { TERRAIN_BODIES, getTerrainBody, latLonToUnitVec } from "@/lib/terrain/bodies"
 import { TerrainBody } from "./terrain-body"
 import { DeepZoomController } from "./terrain-patch"
 import { RoverPins } from "./rover-pin"
@@ -39,6 +40,9 @@ export function TerrainEngine({ initialBody = "mars" }: { initialBody?: string }
   const [selectedSite, setSelectedSite] = useState<number | null>(null)
   // 0 = full orbit view, 1 = skimming the surface. Drives the deep-zoom readout.
   const [zoomDepth, setZoomDepth] = useState(0)
+  // Name of the high-res region the camera is over (e.g. "Valles Marineris"), or null.
+  const [activeRegion, setActiveRegion] = useState<string | null>(null)
+  const controlsRef = useRef<OrbitControlsImpl | null>(null)
 
   const body = getTerrainBody(bodyId) ?? TERRAIN_BODIES[0]
   // Exaggeration resets to the body's sensible default on switch, until the user
@@ -68,6 +72,22 @@ export function TerrainEngine({ initialBody = "mars" }: { initialBody?: string }
     if (typeof window !== "undefined") {
       window.history.replaceState(null, "", `#${id}`)
     }
+  }
+
+  // Fly the camera down into a region: point it at the region centre and pull it
+  // just above the surface floor so the high-res tile engages.
+  function flyToRegion(regionId: string) {
+    const region = body.regions?.find((r) => r.id === regionId)
+    const controls = controlsRef.current
+    if (!region || !controls) return
+    const latC = (region.latS + region.latN) / 2
+    const lonC = (region.lonW + region.lonE) / 2
+    const [x, y, z] = latLonToUnitVec(latC, lonC)
+    const d = minDistance + RADIUS_UNITS * 0.12 // just above the floor
+    const cam = controls.object
+    cam.position.set(x * d, y * d, z * d)
+    controls.target.set(0, 0, 0)
+    controls.update()
   }
 
   const activeSite = selectedSite != null ? body.sites[selectedSite] : null
@@ -126,9 +146,11 @@ export function TerrainEngine({ initialBody = "mars" }: { initialBody?: string }
           slopeShade={slopeShade ? 1 : 0}
           minDistance={minDistance}
           onDepthChange={setZoomDepth}
+          onRegionChange={setActiveRegion}
         />
 
         <OrbitControls
+          ref={controlsRef}
           enablePan={false}
           // Allow descent close to the surface so the local patch resolves, but
           // never below the tallest EXAGGERATED peak + a little clearance — else
@@ -154,6 +176,8 @@ export function TerrainEngine({ initialBody = "mars" }: { initialBody?: string }
         oceanVisible={oceanVisible}
         onOcean={setOceanVisible}
         zoomDepth={zoomDepth}
+        activeRegion={activeRegion}
+        onDive={flyToRegion}
       />
 
       {activeSite && (
