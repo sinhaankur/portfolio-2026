@@ -19,6 +19,7 @@ import { OrbitControls } from "@react-three/drei"
 import { BackSide } from "three"
 import { TERRAIN_BODIES, getTerrainBody } from "@/lib/terrain/bodies"
 import { TerrainBody } from "./terrain-body"
+import { DeepZoomController } from "./terrain-patch"
 import { RoverPins } from "./rover-pin"
 import { RoverImageryPanel } from "./rover-imagery-panel"
 import { TerrainHud } from "./terrain-hud"
@@ -36,6 +37,8 @@ export function TerrainEngine({ initialBody = "mars" }: { initialBody?: string }
   const [slopeShade, setSlopeShade] = useState(true)
   const [oceanVisible, setOceanVisible] = useState(false)
   const [selectedSite, setSelectedSite] = useState<number | null>(null)
+  // 0 = full orbit view, 1 = skimming the surface. Drives the deep-zoom readout.
+  const [zoomDepth, setZoomDepth] = useState(0)
 
   const body = getTerrainBody(bodyId) ?? TERRAIN_BODIES[0]
   // Exaggeration resets to the body's sensible default on switch, until the user
@@ -48,6 +51,13 @@ export function TerrainEngine({ initialBody = "mars" }: { initialBody?: string }
     const unitsPerMetre = RADIUS_UNITS / (body.radiusKm * 1000)
     return Math.max(0, body.elevationMaxM) * unitsPerMetre * exag
   }, [body, exag])
+
+  // Camera floor: never below the tallest exaggerated peak + clearance. The
+  // clearance is generous (0.22×R) so the closest view still shows CRISP relief
+  // from the global map rather than diving so close the 2K/4K texels blur — the
+  // honest resolution limit of a whole-planet map. (A regional DEM tile would let
+  // us go closer; that's the next layer.)
+  const minDistance = RADIUS_UNITS + maxDisplaceUnits + RADIUS_UNITS * 0.22
 
   function pickBody(id: string) {
     setBodyId(id)
@@ -107,9 +117,23 @@ export function TerrainEngine({ initialBody = "mars" }: { initialBody?: string }
           />
         </Suspense>
 
+        {/* Deep-zoom: drives the local high-detail patch + reports zoom depth. */}
+        <DeepZoomController
+          body={body}
+          radiusUnits={RADIUS_UNITS}
+          exaggeration={exag}
+          hypsometric={hypsometric ? 1 : 0}
+          slopeShade={slopeShade ? 1 : 0}
+          minDistance={minDistance}
+          onDepthChange={setZoomDepth}
+        />
+
         <OrbitControls
           enablePan={false}
-          minDistance={RADIUS_UNITS * 1.15}
+          // Allow descent close to the surface so the local patch resolves, but
+          // never below the tallest EXAGGERATED peak + a little clearance — else
+          // the camera clips through the terrain into a flat fill.
+          minDistance={minDistance}
           maxDistance={RADIUS_UNITS * 8}
           rotateSpeed={0.5}
           zoomSpeed={0.8}
@@ -129,6 +153,7 @@ export function TerrainEngine({ initialBody = "mars" }: { initialBody?: string }
         onSlopeShade={setSlopeShade}
         oceanVisible={oceanVisible}
         onOcean={setOceanVisible}
+        zoomDepth={zoomDepth}
       />
 
       {activeSite && (

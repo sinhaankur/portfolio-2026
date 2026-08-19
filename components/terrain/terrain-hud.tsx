@@ -21,6 +21,7 @@ interface Props {
   onSlopeShade: (v: boolean) => void
   oceanVisible: boolean
   onOcean: (v: boolean) => void
+  zoomDepth: number
 }
 
 export function TerrainHud({
@@ -34,6 +35,7 @@ export function TerrainHud({
   onSlopeShade,
   oceanVisible,
   onOcean,
+  zoomDepth,
 }: Props) {
   return (
     <>
@@ -47,6 +49,15 @@ export function TerrainHud({
         </h1>
         <p className="mt-1 text-[12px] leading-snug text-white/65">{body.tagline}</p>
         <p className="mt-2 text-[10px] leading-snug text-white/40">{body.attribution}</p>
+        {/* Deep-zoom indicator: appears as you descend toward the surface. */}
+        {zoomDepth > 0.35 && (
+          <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/40 px-2.5 py-1">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full" style={{ background: body.accent }} />
+            <span className="font-mono text-[10px] uppercase tracking-widest text-white/70">
+              {zoomDepth > 0.8 ? "Surface detail" : "Descending"}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Body picker: top-right chips */}
