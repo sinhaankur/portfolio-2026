@@ -21,6 +21,7 @@ import {
   constellations,
   daysSinceJ2000,
   J2000_MS,
+  moons,
   namedBodies,
   planetsData,
   requestFlyTo,
@@ -29,7 +30,7 @@ import {
   skyPoints,
   timeWarpRef,
 } from "@/components/universe-engine/astronomy"
-import type { NamedBody, Planet } from "@/components/universe-engine/types"
+import type { MoonData, NamedBody, Planet } from "@/components/universe-engine/types"
 import {
   EXOPLANET_HOSTS_NEARBY,
   type ExoplanetHost,
@@ -254,6 +255,16 @@ function findPlanet(name: string): Planet | undefined {
   return planetsData.find((p) => p.name.toLowerCase() === lower)
 }
 
+function findMoon(name: string): MoonData | undefined {
+  if (!name) return undefined
+  const lower = name.toLowerCase().trim()
+  // Exact, then contains ("Luna" ↔ "Moon (Luna)", "Titan" etc.).
+  return (
+    moons.find((m) => m.name.toLowerCase() === lower) ??
+    moons.find((m) => m.name.toLowerCase().includes(lower))
+  )
+}
+
 /**
  * Compute a perihelion date (ms) for a named body relative to a reference time.
  *
@@ -314,7 +325,7 @@ function findExoplanetHost(name: string): ExoplanetHost | undefined {
 export type UniverseSearchHit = {
   name: string
   kind: string
-  source: "sun" | "planet" | "named-body" | "sky-point" | "exoplanet-host"
+  source: "sun" | "planet" | "moon" | "named-body" | "sky-point" | "exoplanet-host"
   subtitle?: string
 }
 
@@ -375,6 +386,18 @@ export function searchUniverseCatalog(query: string, limit = 12): UniverseSearch
         subtitle: body.designation,
       },
       [body.designation, body.kind],
+    )
+  })
+
+  moons.forEach((moon) => {
+    pushScored(
+      {
+        name: moon.name,
+        kind: "moon",
+        source: "moon",
+        subtitle: `Moon of ${moon.parent}`,
+      },
+      [moon.parent, "moon", "satellite"],
     )
   })
 
@@ -592,6 +615,17 @@ function runTool(toolName: string, input: ToolInput): unknown {
           fact: planet.fact,
         }
       }
+      const moon = findMoon(name)
+      if (moon) {
+        return {
+          name: moon.name,
+          type: "moon",
+          parent: moon.parent,
+          orbitalPeriodDays: moon.periodDays,
+          fact: moon.fact,
+          ...(moon.deep ? { detail: moon.deep } : {}),
+        }
+      }
       // Curated sky points (galaxies, nebulae, exoplanet hosts with
       // rich per-planet detail). These take precedence over the
       // fetched catalog because the curated entries carry hand-written
@@ -760,6 +794,16 @@ function runTool(toolName: string, input: ToolInput): unknown {
         const r = planetSceneRadius(planet)
         requestFlyTo({ x: r, y: 0, z: 0 }, 1.6, planet.name)
         return `Flying to ${planet.name}.`
+      }
+      // Moons: a moon sits beside its parent planet at scene scale, so we frame
+      // the parent (which draws the moon in view) and name the moon. Closer
+      // framing than a bare planet so the moon reads.
+      const moon = findMoon(name)
+      if (moon) {
+        const parent = findPlanet(moon.parent)
+        const r = parent ? planetSceneRadius(parent) : 0
+        requestFlyTo({ x: r, y: 0, z: 0 }, 1.1, moon.name)
+        return `Flying to ${moon.name}, orbiting ${moon.parent}.`
       }
       if (name.toLowerCase() === "sun") {
         requestFlyTo({ x: 0, y: 0, z: 0 }, 3.2, "Sun")
