@@ -214,19 +214,47 @@ const DWARF_SURFACES: Record<string, DwarfSurfaceProfile> = {
  * the icosahedron as the fallback, so a slow/failed load never blanks the comet.
  * The parent still spins it via the forwarded nucleusRef.
  */
+/** Deterministic 0..1 hash of a string — so each comet's nucleus gets a stable,
+ *  distinct-looking shape/spin without inventing a fake mission map. Same name
+ *  → same look every load. */
+function seed01(s: string): number {
+  let h = 2166136261
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) }
+  return ((h >>> 0) % 100000) / 100000
+}
+
 function CometNucleusGlb({
   scale,
   nucleusRef,
   url = "/models/comet-nucleus-hi.glb",
+  seed = 0.5,
 }: {
   scale: number
   nucleusRef: React.RefObject<Group | null>
   url?: string
+  /** 0..1 per-comet seed → non-uniform scale + initial orientation, so the 12
+   *  never-imaged comets don't all read as the identical rock. The nucleus is
+   *  still a REPRESENTATIVE irregular body (honest), not a mission shape. */
+  seed?: number
 }) {
   const { scene } = useGLTF(url)
+  // Elongate/squash a little per comet (real nuclei are irregular, 1.2–2.5:1),
+  // and rotate to a distinct rest attitude. Inner group takes the seeded shape;
+  // the outer nucleusRef group takes the animated tumble (unchanged).
+  const shape = useMemo<[number, number, number]>(() => {
+    const e = 0.65 + seed * 0.9            // long axis stretch 0.65..1.55
+    const f = 0.8 + seed01(url + seed) * 0.5 // second axis 0.8..1.3
+    return [scale * e, scale * f, scale * (1.9 - e - (f - 1) * 0.3)]
+  }, [scale, seed, url])
+  const rest = useMemo<[number, number, number]>(
+    () => [seed * Math.PI * 2, seed01("y" + seed) * Math.PI * 2, seed01("z" + seed) * Math.PI],
+    [seed],
+  )
   return (
-    <group ref={nucleusRef as React.Ref<Group>} scale={scale}>
-      <Clone object={scene} />
+    <group ref={nucleusRef as React.Ref<Group>}>
+      <group scale={shape} rotation={rest}>
+        <Clone object={scene} />
+      </group>
     </group>
   )
 }
@@ -923,13 +951,15 @@ function NamedBodyMesh({
       }
     }
 
-    // Nucleus rotation — slow tumble on two axes so the irregular
-    // facets read as a real spinning body. Independent of the perihelion
-    // ramp (real nuclei rotate everywhere along the orbit, they just
-    // aren't visible from Earth until the coma lights them up).
+    // Nucleus rotation — slow tumble on two axes so the irregular facets read as
+    // a real spinning body. Rate varies per comet (seeded by name) so the 12
+    // never-imaged nuclei don't tumble in lockstep. Independent of the perihelion
+    // ramp (real nuclei rotate everywhere along the orbit, they just aren't
+    // visible from Earth until the coma lights them up).
     if (nucleusRef.current) {
-      nucleusRef.current.rotation.y += delta * 0.35
-      nucleusRef.current.rotation.x += delta * 0.12
+      const spin = 0.7 + seed01(body.name) * 0.9 // 0.7×..1.6× base rate
+      nucleusRef.current.rotation.y += delta * 0.35 * spin
+      nucleusRef.current.rotation.x += delta * 0.12 * spin
     }
 
     // Trail opacity lerps with hover state — addresses the no-collisions
@@ -1061,6 +1091,7 @@ function NamedBodyMesh({
                 scale={config.visualRadius * 0.42}
                 nucleusRef={nucleusRef as React.RefObject<Group | null>}
                 url={COMET_NUCLEUS_GLB[body.name]}
+                seed={seed01(body.name)}
               />
             </Suspense>
 
