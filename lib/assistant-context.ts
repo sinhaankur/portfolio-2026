@@ -217,6 +217,7 @@ Read tools (look things up without changing the scene):
 
 Action tools (change the scene the visitor is looking at):
 - \`flyToBody(name)\` — fly the camera to a named body
+- \`flyToBodyAtPerihelion(name, which?)\` — jump the clock to a body's perihelion (closest to the Sun) AND fly + follow it there, in one call. Use this for "take me to X at perihelion" / "show me X when it's closest to the Sun" instead of chaining setSimTime + flyToBody.
 - \`followBody(name)\` — lock the camera to follow a body as it orbits
 - \`setTimeWarp(value)\` — speed up or slow down time (1 = real-time-ish, 60 = a minute per second, etc.)
 - \`setSimTime(date)\` — jump the simulation to a specific calendar date (ISO, e.g. "2061-07-28")

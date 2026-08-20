@@ -113,6 +113,27 @@ function wantsJourney(text: string): boolean {
   return /\b(sent|launch(?:ed)?|journey|origin|route|trajectory|how (?:it|they|.+) (?:got|travel|left|reach|made))\b/i.test(text)
 }
 
+/** Does the user want the body AT PERIHELION (closest to the Sun)? Returns which
+ *  perihelion ("next"/"previous"/"nearest") or null. Deterministic so "take me to
+ *  Halley's Comet at perihelion" flies AND sets the date without needing the LLM. */
+function wantsPerihelion(text: string): "next" | "previous" | "nearest" | null {
+  if (!/\b(perihelion|closest (?:approach )?to the sun|nearest the sun|closest to the sun)\b/i.test(text)) {
+    return null
+  }
+  if (/\b(last|previous|prior|1986|most recent)\b/i.test(text)) return "previous"
+  if (/\b(nearest|closest) (?:in )?time\b/i.test(text)) return "nearest"
+  return "next"
+}
+
+/** Strip a trailing "at perihelion" clause so the target resolves to just the
+ *  body name (e.g. "Halley's Comet at perihelion" → "Halley's Comet"). */
+function stripPerihelion(target: string): string {
+  return target
+    .replace(/\s+(?:at|during|near|around)\s+(?:its\s+)?(?:perihelion|closest.*|nearest.*)$/i, "")
+    .replace(/\s+perihelion$/i, "")
+    .trim()
+}
+
 /**
  * The real "how it was sent" story for the deep-space craft — launch year + site
  * + the gravity-assist route that flung it outward, ending at where it is now.
@@ -179,19 +200,26 @@ export async function runWebLLMTurn(options: WebLLMTurnOptions): Promise<WebLLMT
   // ("there"/"it") to the last body mentioned in the conversation.
   let flyTarget = detectFlyIntent(userText)
   if (flyTarget === "$LAST") flyTarget = lastMentionedBody(options.history)
+  // "...at perihelion" upgrades the plain fly-to into a perihelion jump: set the
+  // clock to closest approach AND fly + follow, in one deterministic call.
+  const periWhich = flyTarget ? wantsPerihelion(userText) : null
+  if (flyTarget && periWhich) flyTarget = stripPerihelion(flyTarget)
   let flewTo: string | null = null
   let flyFailed = false
+  let periResult: string | null = null
   if (flyTarget) {
-    options.onToolStart({ name: "flyToBody" })
-    const { content, isError } = await executeAssistantTool("flyToBody", { name: flyTarget })
-    options.onToolEnd({ name: "flyToBody", result: content, isError })
+    const toolName = periWhich ? "flyToBodyAtPerihelion" : "flyToBody"
+    const toolInput = periWhich ? { name: flyTarget, which: periWhich } : { name: flyTarget }
+    options.onToolStart({ name: toolName })
+    const { content, isError } = await executeAssistantTool(toolName, toolInput)
+    options.onToolEnd({ name: toolName, result: content, isError })
     toolResults.push({
       type: "tool_result",
       tool_use_id: `webllm-fly-${Date.now()}`,
       content,
     } as ContentBlockParam)
     if (isError) flyFailed = true
-    else flewTo = flyTarget
+    else { flewTo = flyTarget; if (periWhich) periResult = content }
   }
 
   // 3. ANSWER. If we FLEW, confirm the real action deterministically — no model,
@@ -202,7 +230,11 @@ export async function runWebLLMTurn(options: WebLLMTurnOptions): Promise<WebLLMT
   if (flewTo) {
     const hit = searchUniverseCatalog(flewTo, 1)[0]
     const name = hit?.name ?? flewTo
-    answer = `Flying you to ${name} now${hit?.subtitle ? ` — ${hit.subtitle}` : ""}.`
+    // A perihelion jump already carries the real date + distance in its result —
+    // surface that rather than the generic "flying you to X" line.
+    answer = periResult
+      ? periResult
+      : `Flying you to ${name} now${hit?.subtitle ? ` — ${hit.subtitle}` : ""}.`
     // If the user asked HOW it was sent / launched / its journey, narrate the
     // real launch + gravity-assist route that took it from Earth to where it is.
     // (Flying to a spacecraft already draws its escape trajectory in the scene.)

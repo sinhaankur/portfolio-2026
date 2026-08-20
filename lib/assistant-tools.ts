@@ -20,6 +20,7 @@ import {
   cancelFlyTo,
   constellations,
   daysSinceJ2000,
+  J2000_MS,
   namedBodies,
   planetsData,
   requestFlyTo,
@@ -154,6 +155,27 @@ export const ASSISTANT_TOOLS: Tool[] = [
     },
   },
   {
+    name: "flyToBodyAtPerihelion",
+    description:
+      "Jump the simulation to a body's perihelion (its closest approach to the Sun) AND fly the camera there in one step. Use for 'take me to Halley's Comet at perihelion', 'show me Comet X when it's closest to the Sun', or 'when does X reach perihelion'. Computes the real perihelion date from the body's orbit, sets sim time to it, then flies + follows. Prefer this over calling setSimTime and flyToBody separately.",
+    input_schema: {
+      type: "object",
+      properties: {
+        name: {
+          type: "string",
+          description: "Body name (e.g. 'Halley's Comet', 'Comet Hale-Bopp', 'Mars').",
+        },
+        which: {
+          type: "string",
+          enum: ["next", "previous", "nearest"],
+          description:
+            "Which perihelion relative to the current sim date: the next upcoming one (default), the previous one, or whichever is nearest in time.",
+        },
+      },
+      required: ["name"],
+    },
+  },
+  {
     name: "followBody",
     description:
       "Lock the camera to track a body as it orbits — useful for fast movers (comets near perihelion, the ISS, interstellar visitors). The camera stays attached until the user clicks elsewhere or resetView is called.",
@@ -230,6 +252,54 @@ function findPlanet(name: string): Planet | undefined {
   if (!name) return undefined
   const lower = name.toLowerCase().trim()
   return planetsData.find((p) => p.name.toLowerCase() === lower)
+}
+
+/**
+ * Compute a perihelion date (ms) for a named body relative to a reference time.
+ *
+ * Two sources, in order of fidelity:
+ *   1. A stored reference perihelion epoch (`perihelionTT`) + the period — exact
+ *      for the comets that carry it (Halley, Hale-Bopp, …). Step by whole periods
+ *      to the perihelion next/previous/nearest the reference.
+ *   2. Otherwise derive it from the mean-anomaly anchor: perihelion is M = 0, so
+ *      from `m0Deg` + `periodDays` we solve for the time M crosses zero.
+ *
+ * Returns null when the body has no usable period (hyperbolic / interstellar —
+ * a single perihelion that the caller can still read from perihelionTT directly).
+ */
+function perihelionMsFor(
+  body: NamedBody,
+  refMs: number,
+  which: "next" | "previous" | "nearest",
+): number | null {
+  const periodDays = isFinite(body.periodYears) ? body.periodYears * 365.25 : Infinity
+  if (!isFinite(periodDays) || periodDays <= 0) {
+    // Non-periodic: the one known perihelion, if stored.
+    return body.perihelionTT ? Date.parse(body.perihelionTT) : null
+  }
+  const periodMs = periodDays * 86_400_000
+
+  // Reference perihelion instant.
+  let baseMs: number
+  if (body.perihelionTT) {
+    baseMs = Date.parse(body.perihelionTT)
+  } else {
+    // No stored epoch: derive from the mean-anomaly anchor. computeBodyPosition
+    // treats `startPhase` (turns, 0..1) as the mean anomaly M at J2000; perihelion
+    // is M ≡ 0, so the perihelion just before J2000 is startPhase·period days back.
+    const m0Turns = ((body.startPhase % 1) + 1) % 1
+    const daysToPeri = -m0Turns * periodDays
+    baseMs = J2000_MS + daysToPeri * 86_400_000
+  }
+
+  // Step by whole periods to bracket the reference time.
+  const k = Math.floor((refMs - baseMs) / periodMs)
+  const prevMs = baseMs + k * periodMs
+  const nextMs = baseMs + (k + 1) * periodMs
+  if (which === "previous") return prevMs
+  if (which === "next") return nextMs
+  // nearest
+  return Math.abs(refMs - prevMs) <= Math.abs(nextMs - refMs) ? prevMs : nextMs
 }
 
 function findExoplanetHost(name: string): ExoplanetHost | undefined {
@@ -730,6 +800,36 @@ function runTool(toolName: string, input: ToolInput): unknown {
       return `Body "${name}" not found. Use listBodies or listExoplanetHosts to see what's available.`
     }
 
+    case "flyToBodyAtPerihelion": {
+      const name = String(input.name ?? "")
+      const which = (["next", "previous", "nearest"].includes(String(input.which))
+        ? String(input.which)
+        : "next") as "next" | "previous" | "nearest"
+      const body = findNamedBody(name)
+      if (!body) {
+        return `Body "${name}" not found. Use listBodies to see available comets, asteroids, and spacecraft.`
+      }
+      const periMs = perihelionMsFor(body, simTimeRef.current.simMs, which)
+      if (periMs == null || Number.isNaN(periMs)) {
+        return `${body.name} has no computable perihelion (its orbit isn't periodic or lacks a reference epoch).`
+      }
+      // 1) jump the clock to perihelion, 2) fly there, 3) follow through it.
+      simTimeRef.current.simMs = periMs
+      const pos = computeBodyPosition(body)
+      requestFlyTo({ x: pos.xSceneUnits, y: pos.ySceneUnits, z: pos.zSceneUnits }, 1.6, body.name)
+      requestFollow(
+        () => {
+          const p = computeBodyPosition(body)
+          return { x: p.xSceneUnits, y: p.ySceneUnits, z: p.zSceneUnits }
+        },
+        body.kind === "dwarf" ? 2.4 : 1.6,
+        body.name,
+      )
+      const dateStr = new Date(periMs).toISOString().slice(0, 10)
+      const q = body.eccentricity < 1 ? body.aAU * (1 - body.eccentricity) : body.aAU
+      return `At perihelion, ${body.name} is ${q.toFixed(3)} AU from the Sun on ${dateStr}. Jumped the clock there and following it through closest approach.`
+    }
+
     case "followBody": {
       const name = String(input.name ?? "")
       const body = findNamedBody(name)
@@ -790,6 +890,7 @@ export const TOOL_LABELS: Record<string, string> = {
   listConstellations: "Listing constellations",
   getCurrentSimDate: "Checking sim time",
   flyToBody: "Flying camera",
+  flyToBodyAtPerihelion: "Flying to perihelion",
   followBody: "Locking camera",
   setTimeWarp: "Adjusting time warp",
   setSimTime: "Jumping in time",
