@@ -474,6 +474,11 @@ export function CelestialExplorer() {
         )}
         <MenuItem color="#ff9a6b" icon={<Globe className="h-3.5 w-3.5" />}
           label="Mars · what we've seen" onClick={go(() => setMarsView(true))} />
+
+        <MenuHeading>Reference</MenuHeading>
+        <MenuItem color="#c8b6ff" icon={<Rocket className="h-3.5 w-3.5" />}
+          label="Spacecraft catalog"
+          onClick={() => { if (typeof window !== "undefined") window.location.href = "/reference/spacecraft" }} />
       </>
     )
   }
