@@ -204,6 +204,7 @@ export const TERRAIN_BODIES: TerrainBody[] = [
         latS: -20,
         latN: 10,
         tile: "/textures/terrain/mars-valles-marineris-2k.png",
+        tileOnR2: true,
       },
       {
         // The tallest volcano in the solar system — ~22 km high, 600 km across.
@@ -215,6 +216,7 @@ export const TERRAIN_BODIES: TerrainBody[] = [
         latS: 2,
         latN: 34,
         tile: "/textures/terrain/mars-olympus-mons-2k.png",
+        tileOnR2: true,
       },
       {
         // Perseverance's home — an ancient crater lake + river delta. ~77.4°E, 18.4°N.
@@ -225,6 +227,7 @@ export const TERRAIN_BODIES: TerrainBody[] = [
         latS: 12,
         latN: 24,
         tile: "/textures/terrain/mars-jezero-2k.png",
+        tileOnR2: true,
       },
     ],
   },
@@ -239,7 +242,7 @@ export const TERRAIN_BODIES: TerrainBody[] = [
     elevationMaxM: 10773,
     defaultExaggeration: 15,
     heightMap: "/textures/terrain/moon-height-2k.png",
-    heightMapOnR2: false, // 3.2 MB — R2 candidate; flip true after upload
+    heightMapOnR2: true, // 3.2 MB — served from R2 (assets.sinhaankur.com), local fallback
     colorMap: "/textures/moon.webp",
     source: "laser-altimeter",
     attribution: "Elevation: NASA LRO LOLA (USGS Astrogeology, public domain)",
@@ -261,6 +264,7 @@ export const TERRAIN_BODIES: TerrainBody[] = [
         latS: -51,
         latN: -35,
         tile: "/textures/terrain/moon-tycho-2k.png",
+        tileOnR2: true,
       },
     ],
   },
@@ -306,6 +310,7 @@ export const TERRAIN_BODIES: TerrainBody[] = [
         latS: 55,
         latN: 75,
         tile: "/textures/terrain/venus-maxwell-montes-2k.png",
+        tileOnR2: true,
       },
     ],
   },
@@ -321,7 +326,7 @@ export const TERRAIN_BODIES: TerrainBody[] = [
     elevationMaxM: 8849,
     defaultExaggeration: 12,
     heightMap: "/textures/terrain/earth-height-2k.png",
-    heightMapOnR2: false, // 3.0 MB — R2 candidate; flip true after upload
+    heightMapOnR2: true, // 3.0 MB — served from R2 (assets.sinhaankur.com), local fallback
     colorMap: "/textures/earth.webp",
     source: "bathymetry",
     attribution: "Elevation: NOAA NCEI ETOPO 2022 bed elevation (public domain)",
@@ -342,10 +347,11 @@ export const TERRAIN_BODIES: TerrainBody[] = [
     elevationMinM: -10900,
     elevationMaxM: 8849,
     defaultExaggeration: 12,
-    // R2-only (11 MB, too big to commit). The path is the R2 key; hidden from
-    // the picker until the CDN base is set AND the file is uploaded.
+    // R2-only (11 MB, too big to commit). The path is the R2 key. Uploaded to R2
+    // 2026-08-20 (scripts/upload-terrain.sh) → heightMapUploaded unhides it.
     heightMap: "earth-gebco-height-4k.png",
     heightMapR2Only: true,
+    heightMapUploaded: true,
     colorMap: "/textures/earth.webp",
     source: "bathymetry",
     attribution: "Elevation: GEBCO Compilation Group (GEBCO_2024 Grid) — CC BY 4.0",

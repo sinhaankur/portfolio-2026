@@ -104,3 +104,10 @@ blender/space-assets/celestial/*.blend
 # Terrain: GEBCO 4K height map is R2-only (11 MB, too big to commit) — kept
 # locally for upload via scripts/upload-terrain.sh, served from R2 in production.
 public/textures/terrain/earth-gebco-height-4k.png
+
+# Terrain region tiles are R2-only (served from CDN, re-upload via scripts/upload-terrain.sh)
+public/textures/terrain/mars-valles-marineris-2k.png
+public/textures/terrain/mars-olympus-mons-2k.png
+public/textures/terrain/mars-jezero-2k.png
+public/textures/terrain/moon-tycho-2k.png
+public/textures/terrain/venus-maxwell-montes-2k.png

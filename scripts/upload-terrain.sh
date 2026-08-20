@@ -21,9 +21,19 @@ if [ ! -d "$ASSETS_REPO" ]; then
   echo "!! assets repo not found at $ASSETS_REPO — set ASSETS_REPO to its path"; exit 1
 fi
 
-# Heavy maps to upload → R2 key is terrain/<filename>. The GEBCO 4K map is
-# R2-ONLY (too big to commit); the others are committed-copy + R2 mirror.
-HEAVY=( moon-height-2k.png earth-height-2k.png earth-gebco-height-4k.png )
+# Heavy maps to upload → R2 key is terrain/<filename>. GEBCO 4K is R2-ONLY (too
+# big to commit); the global maps + region tiles are committed-copy + R2 mirror
+# (production serves from R2, local copy is the fallback). All well within free tier.
+HEAVY=(
+  moon-height-2k.png
+  earth-height-2k.png
+  earth-gebco-height-4k.png
+  mars-valles-marineris-2k.png
+  mars-olympus-mons-2k.png
+  mars-jezero-2k.png
+  moon-tycho-2k.png
+  venus-maxwell-montes-2k.png
+)
 DEST_DIR="$ASSETS_REPO/terrain"
 mkdir -p "$DEST_DIR"
 
