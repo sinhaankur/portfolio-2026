@@ -277,6 +277,18 @@ const CRAFT_GLB: Record<string, string> = {
   // five-layer diamond sunshield (build_jwst_glb.py) — the single-hex procedural
   // shape never did Webb's identity justice.
   "James Webb Space Telescope": "/models/craft-jwst.glb",
+  // Deep-space probes that were still boxGeometry silhouettes → real GLBs, each
+  // keyed to its identifying feature (build_deep_space_craft.py).
+  "Voyager 1": "/models/craft-voyager.glb", // HGA dish + mag boom + RTG boom
+  "Voyager 2": "/models/craft-voyager.glb",
+  "Pioneer 10": "/models/craft-pioneer.glb", // dish + trailing RTG booms
+  "Pioneer 11": "/models/craft-pioneer.glb",
+  "New Horizons": "/models/craft-newhorizons.glb", // triangular bus + one big dish
+  "Parker Solar Probe": "/models/craft-parker.glb", // hex heat shield out front
+  "BepiColombo": "/models/craft-bepi.glb", // ion-engine block + radiators
+  "Hayabusa2": "/models/craft-hayabusa.glb", // wings + sampler horn
+  "OSIRIS-APEX": "/models/craft-osiris.glb", // wings + TAGSAM arm
+  "Lucy": "/models/craft-lucy.glb", // two huge ROUND solar arrays
 }
 function SpacecraftGlb({ url }: { url: string }) {
   const { scene } = useGLTF(url)
