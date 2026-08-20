@@ -51,6 +51,14 @@ export function TerrainHud({
     <>
       {/* Top-left: title + provenance */}
       <div className="pointer-events-none absolute left-4 top-4 z-30 max-w-[min(90vw,22rem)] md:left-6 md:top-6">
+        {/* Bridge back to the orbital Satellite Engine — the same worlds, in orbit.
+            "Whatever is related should be related." */}
+        <a
+          href="/lab/celestial"
+          className="pointer-events-auto mb-2 inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-white/55 transition-colors hover:text-white"
+        >
+          ← Satellite Engine
+        </a>
         <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/50">
           Planetary Terrain
         </div>

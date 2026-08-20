@@ -16,10 +16,10 @@
 import { useState, useMemo, useRef, useEffect, Suspense } from "react"
 import { Canvas } from "@react-three/fiber"
 import { OrbitControls } from "@react-three/drei"
-import { BackSide } from "three"
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib"
 import { TERRAIN_BODIES, getTerrainBody, latLonToUnitVec } from "@/lib/terrain/bodies"
 import { TerrainBody } from "./terrain-body"
+import { EarthLive, currentSunDirection } from "./earth-live"
 import { DeepZoomController } from "./terrain-patch"
 import { RoverPins } from "./rover-pin"
 import { RoverImageryPanel } from "./rover-imagery-panel"
@@ -36,7 +36,9 @@ export function TerrainEngine({ initialBody = "mars" }: { initialBody?: string }
   // seafloor); once the user toggles, their choice sticks for this body view.
   const [hypsometricOverride, setHypsometricOverride] = useState<boolean | null>(null)
   const [slopeShade, setSlopeShade] = useState(true)
-  const [oceanVisible, setOceanVisible] = useState(false)
+  // Ocean defaults ON for bodies that have water (Earth) — the living planet, not
+  // drained. null = follow the body default; once toggled, the choice sticks.
+  const [oceanOverride, setOceanOverride] = useState<boolean | null>(null)
   const [selectedSite, setSelectedSite] = useState<number | null>(null)
   // 0 = full orbit view, 1 = skimming the surface. Drives the deep-zoom readout.
   const [zoomDepth, setZoomDepth] = useState(0)
@@ -49,6 +51,14 @@ export function TerrainEngine({ initialBody = "mars" }: { initialBody?: string }
   // moves the slider (then their choice sticks for that body view).
   const exag = exaggeration ?? body.defaultExaggeration
   const hypsometric = hypsometricOverride ?? body.defaultHypsometric ?? false
+  // Ocean on by default wherever the body has water (Earth); off elsewhere.
+  const oceanVisible = oceanOverride ?? body.hasOcean ?? false
+  // Real Sun direction for live bodies (Earth) — computed once at mount; the
+  // per-frame refresh inside EarthLive keeps the terminator tracking the clock.
+  const sunNow = useMemo(() => {
+    const s = currentSunDirection()
+    return [s.x, s.y, s.z] as [number, number, number]
+  }, [])
 
   // Peak displacement in scene units (for pin float height) at current exaggeration.
   const maxDisplaceUnits = useMemo(() => {
@@ -68,7 +78,7 @@ export function TerrainEngine({ initialBody = "mars" }: { initialBody?: string }
     setExaggeration(null) // reset to new body's default
     setHypsometricOverride(null) // follow new body's default tint
     setSelectedSite(null)
-    setOceanVisible(false)
+    setOceanOverride(null) // follow new body's default (Earth = water on)
     if (typeof window !== "undefined") {
       const write = opts?.push ? "pushState" : "replaceState"
       window.history[write](null, "", `#${id}`)
@@ -182,21 +192,14 @@ export function TerrainEngine({ initialBody = "mars" }: { initialBody?: string }
             exaggeration={exag}
             hypsometric={hypsometric ? 1 : 0}
             slopeShade={slopeShade ? 1 : 0}
+            sunDir={body.live ? sunNow : undefined}
           />
 
-          {/* Earth ocean shell: a translucent sphere at sea level you can drain. */}
-          {body.hasOcean && oceanVisible && (
-            <mesh>
-              <sphereGeometry args={[RADIUS_UNITS * 1.001, 96, 48]} />
-              <meshStandardMaterial
-                color="#1e5a8a"
-                transparent
-                opacity={0.62}
-                roughness={0.15}
-                metalness={0.0}
-                side={BackSide}
-              />
-            </mesh>
+          {/* The living Earth — ocean at sea level, drifting clouds, real-Sun
+              terminator. Ocean hides when the user drains it; clouds/atmosphere
+              stay. Only for bodies flagged `live` (Earth). */}
+          {body.live && (
+            <EarthLive radiusUnits={RADIUS_UNITS} oceanVisible={oceanVisible} />
           )}
 
           <RoverPins
@@ -245,7 +248,7 @@ export function TerrainEngine({ initialBody = "mars" }: { initialBody?: string }
         slopeShade={slopeShade}
         onSlopeShade={setSlopeShade}
         oceanVisible={oceanVisible}
-        onOcean={setOceanVisible}
+        onOcean={setOceanOverride}
         zoomDepth={zoomDepth}
         activeRegion={activeRegion}
         onDive={flyToRegion}

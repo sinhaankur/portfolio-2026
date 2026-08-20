@@ -40,6 +40,9 @@ interface Props {
   hypsometric: number
   /** Slope/relief shading strength, 0..1. */
   slopeShade: number
+  /** Optional real Sun direction (unit vec) — for live bodies (Earth) so the
+   *  surface terminator matches now. Omitted = the default studio light. */
+  sunDir?: [number, number, number]
   /** Mesh segments — higher = smoother displacement, heavier. */
   segments?: number
 }
@@ -50,6 +53,7 @@ export function TerrainBody({
   exaggeration,
   hypsometric,
   slopeShade,
+  sunDir,
   segments = 512,
 }: Props) {
   const matRef = useRef<ShaderMaterial>(null)
@@ -139,6 +143,9 @@ export function TerrainBody({
     m.uniforms.uHypsometric.value = hypsometric
     m.uniforms.uSlopeShade.value = slopeShade
     m.uniforms.uRadiusUnits.value = radiusUnits
+    // Live bodies (Earth) drive the terminator from the real Sun so the lit
+    // hemisphere matches now + lines up with the ocean/cloud layers.
+    if (sunDir) m.uniforms.uSunDir.value.set(sunDir[0], sunDir[1], sunDir[2])
     const img = heightTex?.image as { width?: number; height?: number } | undefined
     if (img?.width && img?.height) {
       m.uniforms.uTexel.value.set(1 / img.width, 1 / img.height)

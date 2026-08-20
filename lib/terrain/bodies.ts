@@ -129,6 +129,11 @@ export interface TerrainBody {
   /** Sea-level elevation in metres (for the ocean toggle). Earth = 0. */
   seaLevelM?: number
   /**
+   * "Living" body — render it as it is TODAY: a cloud layer + lit by the real
+   * current Sun position so the day/night terminator matches now. Earth only.
+   */
+  live?: boolean
+  /**
    * Open with the hypsometric (elevation-tint) overlay on. True for Earth: its
    * colour map paints blue oceans, which is wrong once drained — the depth tint
    * reveals the real seafloor instead. Bodies whose colour map already is the
@@ -316,7 +321,7 @@ export const TERRAIN_BODIES: TerrainBody[] = [
   },
   {
     id: "earth",
-    name: "Earth (oceans drained)",
+    name: "Earth",
     radiusKm: 6371.0,
     // ETOPO 2022 BED elevation — the solid surface below both ice and water.
     // Declared range spans Challenger Deep (≈ -10900 m) to Everest (≈ 8849 m);
@@ -329,13 +334,17 @@ export const TERRAIN_BODIES: TerrainBody[] = [
     heightMapOnR2: true, // 3.0 MB — served from R2 (assets.sinhaankur.com), local fallback
     colorMap: "/textures/earth.webp",
     source: "bathymetry",
-    attribution: "Elevation: NOAA NCEI ETOPO 2022 bed elevation (public domain)",
+    attribution: "Elevation: NOAA NCEI ETOPO 2022 · imagery NASA Blue Marble",
     accent: "#5aa9e0",
-    tagline: "Drain the oceans: mid-ocean ridges & trenches, really there",
+    // Default: the living Earth — real colour, water, clouds, lit by the real Sun.
+    // Draining the oceans (mid-ocean ridges, trenches) is an opt-in MODE, not the
+    // default — the default should look like the Earth people know.
+    tagline: "The living Earth — real water, clouds & today's sunlight",
     sites: [],
     hasOcean: true,
     seaLevelM: 0,
-    defaultHypsometric: true,
+    defaultHypsometric: false, // real colour by default, not the depth tint
+    live: true, // clouds + real current sun position (day/night terminator = now)
   },
   {
     id: "earth-gebco",

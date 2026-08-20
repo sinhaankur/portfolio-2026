@@ -12,7 +12,7 @@ import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import dynamic from "next/dynamic"
 import { motion, AnimatePresence } from "framer-motion"
-import { ArrowLeft, X, Rotate3d, Globe, Satellite, Sparkles, Rocket, Route, Orbit, Layers, Radio, Crosshair, Flame, Trash2, HelpCircle, MoreHorizontal, Radar, ArrowLeftRight, Image as ImageIcon, Share2, Check } from "lucide-react"
+import { ArrowLeft, X, Rotate3d, Globe, Satellite, Sparkles, Rocket, Route, Orbit, Layers, Radio, Crosshair, Flame, Trash2, HelpCircle, MoreHorizontal, Radar, ArrowLeftRight, Image as ImageIcon, Share2, Check, Mountain } from "lucide-react"
 import { CustomCursor } from "@/components/custom-cursor"
 import { ReportBug } from "@/components/report-bug"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -547,6 +547,11 @@ export function CelestialExplorer() {
         )}
         <MenuItem color="#ff9a6b" icon={<Globe className="h-3.5 w-3.5" />}
           label="Mars · what we've seen" onClick={go(() => setMarsView(true))} />
+        {/* Bridge to the Terrain Engine — the same worlds, walkable at real
+            elevation. "Whatever is related should be related." */}
+        <MenuItem color="#e07a4f" icon={<Mountain className="h-3.5 w-3.5" />}
+          label="Walk the surfaces · Terrain"
+          onClick={() => { if (typeof window !== "undefined") window.location.href = "/lab/terrain" }} />
 
         <MenuHeading>Reference</MenuHeading>
         <MenuItem color="#c8b6ff" icon={<Rocket className="h-3.5 w-3.5" />}
