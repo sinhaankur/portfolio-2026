@@ -13,7 +13,7 @@
  * Client-only + static-export safe.
  */
 
-import { useState, useMemo, useRef, Suspense } from "react"
+import { useState, useMemo, useRef, useEffect, Suspense } from "react"
 import { Canvas } from "@react-three/fiber"
 import { OrbitControls } from "@react-three/drei"
 import { BackSide } from "three"
@@ -63,16 +63,69 @@ export function TerrainEngine({ initialBody = "mars" }: { initialBody?: string }
   // us go closer; that's the next layer.)
   const minDistance = RADIUS_UNITS + maxDisplaceUnits + RADIUS_UNITS * 0.22
 
-  function pickBody(id: string) {
+  function pickBody(id: string, opts?: { push?: boolean }) {
     setBodyId(id)
     setExaggeration(null) // reset to new body's default
     setHypsometricOverride(null) // follow new body's default tint
     setSelectedSite(null)
     setOceanVisible(false)
     if (typeof window !== "undefined") {
-      window.history.replaceState(null, "", `#${id}`)
+      const write = opts?.push ? "pushState" : "replaceState"
+      window.history[write](null, "", `#${id}`)
     }
   }
+
+  // Deep-link support: react to hash changes (shared links, back/forward). A hash
+  // of "#body" or "#body/region" switches the body and, if a region is named,
+  // flies down into it once the new body's tiles have loaded. This is what makes
+  // sinhaankur.com/lab/terrain#mars/valles-marineris open right on the canyon.
+  const pendingRegion = useRef<string | null>(null)
+  useEffect(() => {
+    function applyHash() {
+      const raw = window.location.hash.replace(/^#/, "")
+      if (!raw) return
+      const [bId, regionId] = raw.split("/")
+      const target = getTerrainBody(bId)
+      if (!target) return
+      if (bId !== bodyId) pickBody(bId)
+      pendingRegion.current = regionId ?? null
+    }
+    window.addEventListener("hashchange", applyHash)
+    return () => window.removeEventListener("hashchange", applyHash)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bodyId])
+
+  // Once a body switch settles, honour a pending region from the URL.
+  useEffect(() => {
+    if (!pendingRegion.current) return
+    const regionId = pendingRegion.current
+    pendingRegion.current = null
+    // Small delay so the new body's controls + region tiles are mounted/loaded.
+    const t = setTimeout(() => flyToRegion(regionId), 600)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bodyId])
+
+  // On first mount, honour a "#body/region" deep-link's region part. Retries
+  // until the OrbitControls are mounted (the Canvas + region tiles load async),
+  // so a cold shared link reliably lands on the region.
+  useEffect(() => {
+    const raw = typeof window !== "undefined" ? window.location.hash.replace(/^#/, "") : ""
+    const regionId = raw.split("/")[1]
+    if (!regionId) return
+    let tries = 0
+    const iv = setInterval(() => {
+      tries++
+      if (controlsRef.current) {
+        flyToRegion(regionId)
+        clearInterval(iv)
+      } else if (tries > 40) {
+        clearInterval(iv) // give up after ~8s
+      }
+    }, 200)
+    return () => clearInterval(iv)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Fly the camera down into a region: point it at the region centre and pull it
   // just above the surface floor so the high-res tile engages.
@@ -88,6 +141,24 @@ export function TerrainEngine({ initialBody = "mars" }: { initialBody?: string }
     cam.position.set(x * d, y * d, z * d)
     controls.target.set(0, 0, 0)
     controls.update()
+    // Reflect the deep-dive in the URL so it's a shareable link.
+    if (typeof window !== "undefined") {
+      window.history.replaceState(null, "", `#${body.id}/${regionId}`)
+    }
+  }
+
+  // Copy the current view as a shareable link (body + any active region).
+  const [shareState, setShareState] = useState<"idle" | "copied">("idle")
+  async function shareView() {
+    if (typeof window === "undefined") return
+    const url = window.location.origin + window.location.pathname + window.location.hash
+    try {
+      await navigator.clipboard.writeText(url)
+      setShareState("copied")
+      setTimeout(() => setShareState("idle"), 1800)
+    } catch {
+      // Clipboard blocked — select-free fallback: no-op, the URL is already in the bar.
+    }
   }
 
   const activeSite = selectedSite != null ? body.sites[selectedSite] : null
@@ -178,6 +249,8 @@ export function TerrainEngine({ initialBody = "mars" }: { initialBody?: string }
         zoomDepth={zoomDepth}
         activeRegion={activeRegion}
         onDive={flyToRegion}
+        onShare={shareView}
+        shareState={shareState}
       />
 
       {activeSite && (

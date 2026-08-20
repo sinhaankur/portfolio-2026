@@ -25,6 +25,9 @@ interface Props {
   activeRegion: string | null
   /** Fly the camera down into a named high-res region. */
   onDive: (regionId: string) => void
+  /** Copy the current view as a shareable link. */
+  onShare: () => void
+  shareState: "idle" | "copied"
 }
 
 export function TerrainHud({
@@ -41,6 +44,8 @@ export function TerrainHud({
   zoomDepth,
   activeRegion,
   onDive,
+  onShare,
+  shareState,
 }: Props) {
   return (
     <>
@@ -89,6 +94,15 @@ export function TerrainHud({
             </button>
           )
         })}
+        {/* Share the current view (body + any deep-dive) as a link. */}
+        <button
+          onClick={onShare}
+          className="flex items-center gap-1.5 rounded-full border border-white/15 bg-black/40 px-2.5 py-1 text-[11px] text-white/70 transition-colors hover:border-white/40 hover:text-white"
+          title="Copy a link to this exact view"
+          aria-label="Share this view"
+        >
+          {shareState === "copied" ? "Link copied ✓" : "Share ↗"}
+        </button>
       </div>
 
       {/* Bottom control bar */}
