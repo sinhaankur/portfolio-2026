@@ -14,6 +14,7 @@
  */
 
 import { useEffect, useState } from "react"
+import { ArrowUpRight } from "lucide-react"
 import { Container } from "@/components/container"
 import { HicksDemo } from "@/components/framework-hicks-demo"
 import { FittsDemo } from "@/components/framework-fitts-demo"
@@ -214,6 +215,30 @@ export function FrameworkGuide() {
                   </li>
                 ))}
               </ul>
+
+              {/* The Usability Engine — the runnable companion to this checklist.
+                  Lives with the framework (it IS the framework, made executable),
+                  not as a Lab flagship. */}
+              <a
+                href="/usability"
+                data-cursor-hover
+                className="group mt-6 flex items-center gap-4 rounded-2xl border border-border bg-card/40 p-5 transition-colors hover:border-accent/60"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="font-mono text-[10px] tracking-[0.25em] uppercase text-accent mb-1">
+                    Run it · the Usability Engine
+                  </p>
+                  <h3 className="font-sans text-sm font-medium text-foreground">
+                    These ten heuristics, made runnable — plus two AI-agent extensions.
+                  </h3>
+                  <p className="mt-1 font-sans text-[13px] text-foreground/60 leading-relaxed">
+                    Each row carries its audit question, its LLM prompt, and where it
+                    helps, an interactive good-vs-bad demo. Local Ollama, opt-in, no
+                    backend. The checklist above, as a tool you can point at a screen.
+                  </p>
+                </div>
+                <ArrowUpRight className="w-4 h-4 shrink-0 text-foreground/50 transition-transform duration-300 group-hover:text-accent group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+              </a>
             </section>
 
             {/* ── FOUNDATIONS ───────────────────────────────────────────── */}
