@@ -8,11 +8,11 @@
  * tile that shows the photoreal Blender globe + data for the picked world.
  */
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import dynamic from "next/dynamic"
 import { motion, AnimatePresence } from "framer-motion"
-import { ArrowLeft, X, Rotate3d, Globe, Satellite, Sparkles, Rocket, Route, Orbit, Layers, Radio, Crosshair, Flame, Trash2, HelpCircle, MoreHorizontal, Radar, ArrowLeftRight, Image as ImageIcon } from "lucide-react"
+import { ArrowLeft, X, Rotate3d, Globe, Satellite, Sparkles, Rocket, Route, Orbit, Layers, Radio, Crosshair, Flame, Trash2, HelpCircle, MoreHorizontal, Radar, ArrowLeftRight, Image as ImageIcon, Share2, Check } from "lucide-react"
 import { CustomCursor } from "@/components/custom-cursor"
 import { ReportBug } from "@/components/report-bug"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -23,7 +23,7 @@ import { BODIES } from "@/lib/celestial-data"
 import { SatelliteSearch } from "./satellite-search"
 import { useIsMobile, MobileBar, BodiesSheet, Sheet } from "./mobile-controls"
 import { selectedSatRef, satGroupFilterRef, showAllSatsRef } from "@/components/universe-engine/satellite-refs"
-import { setSimMs, timeScaleRef, hiResTexturesRef, cancelFollow } from "@/components/universe-engine/astronomy"
+import { setSimMs, getSimMs, timeScaleRef, hiResTexturesRef, cancelFollow, flyToRef } from "@/components/universe-engine/astronomy"
 import type { SatFacts } from "@/components/universe-engine/scene-satellites"
 import { hasGoogleEarthKey } from "@/components/universe-engine/google-earth-config"
 
@@ -184,6 +184,30 @@ export function CelestialExplorer() {
   // it out so the view breathes (declutter). It also hides the moment the user
   // engages with a body. A small "?" affordance brings it back.
   const [titleVisible, setTitleVisible] = useState(true)
+  // Remember the last body the camera focused (via the universe:sky-focus event)
+  // so the Share button can encode it in a link. Also drives the "copied" flash.
+  const lastFocusRef = useRef<string | null>(null)
+  // The last fly-to body label (copilot / "fly to X" / body-rail route through
+  // requestFlyTo, which stamps flyToRef.label). We poll it — requestFlyTo emits
+  // no event — so the Share link reflects wherever the camera last went, even
+  // after the fly animation ends and flyToRef.active resets.
+  const lastFlyLabelRef = useRef<string | null>(null)
+  const [shareState, setShareState] = useState<"idle" | "copied">("idle")
+  useEffect(() => {
+    function onFocus(e: Event) {
+      const id = (e as CustomEvent<{ pointId?: string }>).detail?.pointId
+      if (id) { lastFocusRef.current = id; lastFlyLabelRef.current = null } // menu focus supersedes a stale fly label
+    }
+    window.addEventListener("universe:sky-focus", onFocus as EventListener)
+    const poll = window.setInterval(() => {
+      const label = flyToRef.current.label
+      if (label) lastFlyLabelRef.current = label
+    }, 500)
+    return () => {
+      window.removeEventListener("universe:sky-focus", onFocus as EventListener)
+      window.clearInterval(poll)
+    }
+  }, [])
   // This is the deep-zoom explorer — enable the 4K planet surfaces (the hero keeps
   // 2K, since there planets are dots and 4K just costs a GPU upload stall).
   useEffect(() => {
@@ -345,8 +369,57 @@ export function CelestialExplorer() {
       if (ss) setTimeout(() => { selectedSatRef.current = parseInt(ss, 10) }, 1600)
       const g = q.get("satgroup") // testing: drive the group filter (0=Starlink…)
       if (g) satGroupFilterRef.current = parseInt(g, 10)
+
+      // Shareable deep-links: ?date=YYYY-MM-DD sets the sim clock; ?focus=<pointId>
+      // flies the camera to a body (e.g. planet:Mars, comet:Halley's Comet). Both
+      // are written by the Share button below, so a shared link reopens the view.
+      const date = q.get("date")
+      if (date) {
+        const ms = Date.parse(date)
+        if (!Number.isNaN(ms)) setTimeout(() => { timeScaleRef.current = 0; setSimMs(ms) }, 300)
+      }
+      const focus = q.get("focus")
+      if (focus) {
+        setTitleVisible(false)
+        lastFocusRef.current = focus
+        // The engine mounts its sky-focus listener asynchronously (lazy R3F), and
+        // its own real-time anchor + intro can steal the camera early. Re-dispatch
+        // a few times over the first few seconds so a cold shared link reliably
+        // lands on the body regardless of mount timing.
+        const times = [1200, 2200, 3500, 5000]
+        times.forEach((t) =>
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent("universe:sky-focus", { detail: { pointId: focus } }))
+          }, t),
+        )
+      }
     } catch { /* no window */ }
   }, [])
+
+  // Copy a shareable link to the current view: the focused body + the sim date,
+  // so a link reopens exactly what you're looking at. Part of making the engine a
+  // public tool people can point each other at.
+  async function shareView() {
+    if (typeof window === "undefined") return
+    const params = new URLSearchParams()
+    // Where is the camera pointed? Track it via BOTH channels, newest wins:
+    // sky-focus (HUD/menu) stamps lastFocusRef; requestFlyTo (copilot/"fly to X")
+    // stamps flyToRef.label. `active` clears when the fly animation ends, so we
+    // read the label unconditionally (it's the last place the camera went). A
+    // plain body label maps to planet:<Name>, which the load handler dispatches.
+    const flyFocus = lastFlyLabelRef.current ? `planet:${lastFlyLabelRef.current}` : null
+    const focus = flyFocus ?? lastFocusRef.current
+    if (focus) params.set("focus", focus)
+    const d = new Date(getSimMs())
+    if (!Number.isNaN(d.getTime())) params.set("date", d.toISOString().slice(0, 10))
+    const qs = params.toString()
+    const url = window.location.origin + window.location.pathname + (qs ? `?${qs}` : "")
+    try {
+      await navigator.clipboard.writeText(url)
+      setShareState("copied")
+      setTimeout(() => setShareState("idle"), 1800)
+    } catch { /* clipboard blocked — URL is still constructed, no-op */ }
+  }
 
   // Fly to Earth to see the satellite shell. At true scale, LEO sats orbit only
   // ~6% above Earth's surface — invisible from the solar-system view, visible
@@ -543,6 +616,16 @@ export function CelestialExplorer() {
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setMoreOpen(false)} aria-hidden />
                 <div className="absolute left-0 top-11 z-20 flex flex-col gap-1 rounded-xl border border-border bg-background/95 backdrop-blur-md p-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.4)] min-w-[9rem]">
+                  <button
+                    type="button"
+                    onClick={() => { shareView(); }}
+                    data-cursor-hover
+                    className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 font-mono text-[10px] tracking-widest uppercase text-foreground/80 hover:bg-accent/10 hover:text-accent transition-colors"
+                  >
+                    {shareState === "copied"
+                      ? <><Check className="h-4 w-4 text-[#7ee0a5]" /> Link copied</>
+                      : <><Share2 className="h-4 w-4" /> Share this view</>}
+                  </button>
                   <button
                     type="button"
                     onClick={() => { setTourOpen(true); setMoreOpen(false) }}
