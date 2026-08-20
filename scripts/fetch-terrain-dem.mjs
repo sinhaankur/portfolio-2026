@@ -160,6 +160,14 @@ function parseArgs(argv) {
 const REGIONS = {
   mars: {
     "valles-marineris": { out: "mars-valles-marineris-2k.png", lonW: -95, lonE: -35, latS: -20, latN: 10 },
+    "olympus-mons": { out: "mars-olympus-mons-2k.png", lonW: -152, lonE: -116, latS: 2, latN: 34 },
+    "jezero": { out: "mars-jezero-2k.png", lonW: 70, lonE: 85, latS: 12, latN: 24 },
+  },
+  moon: {
+    "tycho": { out: "moon-tycho-2k.png", lonW: -19, lonE: -3, latS: -51, latN: -35 },
+  },
+  venus: {
+    "maxwell-montes": { out: "venus-maxwell-montes-2k.png", lonW: -12, lonE: 20, latS: 55, latN: 75 },
   },
 }
 
@@ -299,24 +307,33 @@ print(f"  ✓ wrote {out} ({W}x{H}, 16-bit)", flush=True)
  * the body's declared minM/maxM), so the runtime shader decodes both identically.
  */
 function cropRegion(src, out, width, s, region) {
-  const { minM, maxM, rawToMetres } = s
+  const { minM, maxM, rawToMetres, format } = s
   const { lonW, lonE, latS, latN } = region
   // Tile height keeps the region's real aspect ratio (lon-span : lat-span).
   const aspect = (lonE - lonW) / (latN - latS)
   const height = Math.max(1, Math.round(width / aspect))
+  // Read the full source grid: raw PDS .img via fromfile, else tifffile.
+  const readFull =
+    format === "pds-raw"
+      ? `
+print(f"  ↳ reading raw PDS {src} for crop …", flush=True)
+full = np.fromfile(src, dtype=np.dtype(${JSON.stringify(s.rawDtype)})).reshape((${s.rawHeight}, ${s.rawWidth}))
+`
+      : `
+import tifffile
+print(f"  ↳ reading {src} via tifffile for crop …", flush=True)
+full = tifffile.imread(src)
+if full.ndim == 3: full = full[..., 0]
+`
   const py = `
 import numpy as np
-import tifffile
 from PIL import Image
 
 src, out = ${JSON.stringify(src)}, ${JSON.stringify(out)}
 W, H = ${width}, ${height}
 minM, maxM, scale = ${minM}, ${maxM}, ${rawToMetres}
 lonW, lonE, latS, latN = ${lonW}, ${lonE}, ${latS}, ${latN}
-
-print(f"  ↳ reading {src} via tifffile for crop …", flush=True)
-full = tifffile.imread(src)
-if full.ndim == 3: full = full[..., 0]
+${readFull}
 SH, SW = full.shape  # equirectangular: lon -180..180, lat 90..-90
 def px(lon, lat):
     x = int(round((lon + 180.0) / 360.0 * SW))
@@ -374,7 +391,9 @@ function main() {
       process.exit(1)
     }
     const tilePath = join(OUT_DIR, region.out)
-    const rw = opts.widthExplicit ? opts.width : 2048
+    // Regional tiles default to 1536px — plenty of local detail (they cover a
+    // small window) while staying within the texture budget when committed.
+    const rw = opts.widthExplicit ? opts.width : 1536
     console.log(`  ↳ cropping region "${opts.region}" → ${region.out}`)
     cropRegion(srcPath, tilePath, rw, s, region)
     console.log(`  final: ${human(statSync(tilePath).size)} → public/textures/terrain/`)

@@ -205,6 +205,27 @@ export const TERRAIN_BODIES: TerrainBody[] = [
         latN: 10,
         tile: "/textures/terrain/mars-valles-marineris-2k.png",
       },
+      {
+        // The tallest volcano in the solar system — ~22 km high, 600 km across.
+        // Centre ~226°E (-134°), +18° lat.
+        id: "olympus-mons",
+        name: "Olympus Mons",
+        lonW: -152,
+        lonE: -116,
+        latS: 2,
+        latN: 34,
+        tile: "/textures/terrain/mars-olympus-mons-2k.png",
+      },
+      {
+        // Perseverance's home — an ancient crater lake + river delta. ~77.4°E, 18.4°N.
+        id: "jezero",
+        name: "Jezero Crater",
+        lonW: 70,
+        lonE: 85,
+        latS: 12,
+        latN: 24,
+        tile: "/textures/terrain/mars-jezero-2k.png",
+      },
     ],
   },
   {
@@ -228,6 +249,19 @@ export const TERRAIN_BODIES: TerrainBody[] = [
       { name: "Apollo 11 — Sea of Tranquility", lat: 0.6741, lon: 23.4730, year: 1969, note: "First crewed landing." },
       { name: "Apollo 17 — Taurus–Littrow", lat: 20.1908, lon: 30.7717, year: 1972, note: "Last crewed landing; geologist Schmitt aboard." },
       { name: "Chang'e 4 — Von Kármán Crater", lat: -45.4446, lon: 177.5991, year: 2019, note: "First soft landing on the far side." },
+    ],
+    regions: [
+      {
+        // Tycho — a young, sharp rayed crater with a dramatic central peak.
+        // ~85 km wide, centred ~11.4°W, 43.3°S.
+        id: "tycho",
+        name: "Tycho Crater",
+        lonW: -19,
+        lonE: -3,
+        latS: -51,
+        latN: -35,
+        tile: "/textures/terrain/moon-tycho-2k.png",
+      },
     ],
   },
   {
@@ -261,6 +295,19 @@ export const TERRAIN_BODIES: TerrainBody[] = [
     accent: "#d9b98a",
     tagline: "Maxwell Montes under the clouds — Magellan radar relief",
     sites: [],
+    regions: [
+      {
+        // Maxwell Montes — the highest mountains on Venus, ~11 km above the mean
+        // radius. In Ishtar Terra, centred ~3.3°E, 65.2°N.
+        id: "maxwell-montes",
+        name: "Maxwell Montes",
+        lonW: -12,
+        lonE: 20,
+        latS: 55,
+        latN: 75,
+        tile: "/textures/terrain/venus-maxwell-montes-2k.png",
+      },
+    ],
   },
   {
     id: "earth",
