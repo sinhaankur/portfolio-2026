@@ -66,12 +66,12 @@ export function TerrainEngine({ initialBody = "mars" }: { initialBody?: string }
     return Math.max(0, body.elevationMaxM) * unitsPerMetre * exag
   }, [body, exag])
 
-  // Camera floor: never below the tallest exaggerated peak + clearance. The
-  // clearance is generous (0.22×R) so the closest view still shows CRISP relief
-  // from the global map rather than diving so close the 2K/4K texels blur — the
-  // honest resolution limit of a whole-planet map. (A regional DEM tile would let
-  // us go closer; that's the next layer.)
-  const minDistance = RADIUS_UNITS + maxDisplaceUnits + RADIUS_UNITS * 0.22
+  // Camera floor: clear the tallest exaggerated peak, then a modest clearance so
+  // you can descend close to skim the surface ("go as deep as we want") WITHOUT
+  // diving so far the terrain rises into the camera as a flat fill. 0.10×R is the
+  // sweet spot — much closer than before, still shows relief. A regional hi-res
+  // tile keeps the close-up crisp where one exists.
+  const minDistance = RADIUS_UNITS + maxDisplaceUnits + RADIUS_UNITS * 0.1
 
   function pickBody(id: string, opts?: { push?: boolean }) {
     setBodyId(id)
@@ -176,7 +176,7 @@ export function TerrainEngine({ initialBody = "mars" }: { initialBody?: string }
   return (
     <div className="relative h-[100dvh] w-full bg-black">
       <Canvas
-        camera={{ position: [0, 1.5, 6], fov: 45, near: 0.01, far: 100 }}
+        camera={{ position: [0, 1.5, 6], fov: 45, near: 0.002, far: 100 }}
         dpr={[1, 1.75]}
         gl={{ antialias: true }}
       >

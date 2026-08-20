@@ -47,7 +47,9 @@ const DEPTH_FAR = 8 // full orbit (matches maxDistance)
  *  as you zoom so tessellation concentrates where you look. */
 function patchHalfAngle(camDist: number, near: number, spawn: number): number {
   const t = (camDist - near) / Math.max(0.001, spawn - near) // 0 near … 1 at spawn
-  const deg = 4 + 18 * Math.min(1, Math.max(0, t)) // 4°(close) … 22°(far)
+  // Shrink hard as you descend so the fixed vertex budget concentrates on an ever
+  // smaller patch → finer effective detail the deeper you go (1.2°..22°).
+  const deg = 1.2 + 20.8 * Math.min(1, Math.max(0, t))
   return (deg * Math.PI) / 180
 }
 
@@ -151,7 +153,7 @@ function TerrainPatch({
   colorTex,
   regionTex,
   regionBounds,
-  grid = 256,
+  grid = 384,
 }: PatchProps) {
   const matRef = useRef<ShaderMaterial>(null)
 
