@@ -25,6 +25,8 @@ Repository layout:
 | [`lib/`](./lib)              | Utility helpers |
 | [`styles/`](./styles)        | Global styling beyond Tailwind |
 | [`archive/`](./archive)      | The previous hand-written static-HTML build, parked but not deployed |
+| [`docs/`](./docs)            | Architecture notes — incl. [`ENGINES.md`](./docs/ENGINES.md), the three-engine system map |
+| [`CHANGELOG.md`](./CHANGELOG.md) | Notable changes, newest first |
 | [`LICENSE`](./LICENSE)        | All-rights-reserved license — read before using any of this code |
 | [`CLAUDE.md`](./CLAUDE.md)    | Internal notes for the AI assistant that helps me iterate on the site |
 | [`CNAME`](./CNAME)            | Custom-domain configuration for GitHub Pages |
@@ -32,33 +34,53 @@ Repository layout:
 
 ---
 
-## Highlights
+## The three engines
 
-- **Galaxy hero** — a hand-built R3F universe engine. Real astronomical
-  positioning: the Milky Way disc is tilted 60.2° relative to the ecliptic,
-  the Sun sits ~26,670 ly out on the Orion Arm, and seven constellations
-  (Big Dipper, Orion, Cassiopeia, Leo, Lyra, Cygnus, Polaris) project from
-  real J2000 RA/Dec coordinates onto a sky-shell around the Sun. Eight
-  planets and one dwarf planet (Pluto) orbit at real AU values with real
-  axial tilts and rotation periods.
-- **Universe Engine** — extracted as a self-contained module under
-  [`components/universe-engine/`](./components/universe-engine). Custom
-  GLSL shaders, a sticky time-warp control, theme-aware "chart mode"
-  rendering for light theme, and a mobile bottom sheet that replaces the
-  desktop hover label on touch devices.
-- **Hover Earth / Jupiter / Saturn** — the abstract grey chart-marker
-  morphs into a photographic globe on hover, with the parent's moons
-  brightening + scaling up. Textures lazy-load on first hover so the
-  assets stay out of the critical path.
-- **Astronomical reticle cursor** — context-aware. Switches to a target
-  ring + warm-gold dot + body name label when over an interactive
-  universe body.
-- **Display preferences** — accessibility menu in the navbar. Three
-  localStorage-persisted toggles (reduce motion, larger text, system
-  cursor) that override OS settings per device.
-- **Case studies** with shared layout primitives, reading-progress bar,
-  auto-extracted table of contents (sticky on desktop, collapsible on
-  mobile), and per-company "moments" image strips.
+The site is built around a family of real-data, WebGL space engines. They share
+one truth spine and cross-link — see the system map in
+[`docs/ENGINES.md`](./docs/ENGINES.md) for how they fit together.
+
+- **Universe Engine** ([`components/universe-engine/`](./components/universe-engine))
+  — the reusable core (`<UniverseEngine/>`), mounted across the galaxy hero, `/sky`,
+  `/story`, `/tv`, and the game. A pure-GLSL point-field galaxy, real J2000
+  constellations, and a full solar system where every body's position is a *pure
+  function of the simulation date* (J2000 epoch → Kepler). The data + math live in
+  a React/three-free truth spine, `astronomy.ts`.
+
+- **Satellite Engine** ([`/lab/celestial`](https://www.sinhaankur.com/lab/celestial))
+  — the Universe Engine focused on Earth orbit, with ~18,600 satellites propagated
+  live on real SGP4 orbits, ISS passes over your location, conjunction screening,
+  re-entry watch, Earth→Mars transfers, and an **on-device, keyless AI copilot**
+  (a tiny in-browser LLM) that flies the camera in plain language. Views are
+  shareable deep-links (`?focus=…&date=…`).
+
+- **Terrain Engine** ([`/lab/terrain`](https://www.sinhaankur.com/lab/terrain))
+  — fly over the *measured* surface of the planets. A displaced-sphere renderer
+  driven by real elevation data (NASA MOLA · LOLA · MESSENGER · Magellan · NOAA
+  ETOPO · GEBCO), with a living Earth (real water, drifting clouds, today's Sun),
+  a drained-ocean mode, one-click deep-dives into named regions (Valles Marineris,
+  Olympus Mons, Tycho…), and live NASA rover imagery at landing sites. Shareable
+  as `#body/region`.
+
+- **Spacecraft catalog** ([`/reference/spacecraft`](https://www.sinhaankur.com/reference/spacecraft))
+  — a browsable reference of real missions (Voyager, Cassini, Hubble, JWST, the
+  Mars orbiters…), each shown as a live rotating 3D model with its real agency,
+  orbit, launch date, and history — the same meshes the engines fly.
+
+Every body is built from real, sourced data (NASA/JPL/ESA/USGS/HYG); where a
+value genuinely isn't known it's labelled as inference, never presented as fact.
+See [`ENGINE-STANDARDS.md`](./components/universe-engine/ENGINE-STANDARDS.md).
+
+## Other highlights
+
+- **Astronomical reticle cursor**, theme-aware "chart mode" rendering, and a
+  mobile bottom sheet in place of hover labels on touch devices.
+- **Accessibility preferences** — reduce motion, larger text, system cursor —
+  persisted per device, overriding OS settings.
+- **Case studies** with shared layout primitives, reading-progress, an
+  auto-extracted table of contents, and per-company image strips.
+- **A UX framework** ([`/framework`](https://www.sinhaankur.com/framework)) — the
+  cognitive laws, Nielsen's heuristics, and a runnable Usability Engine.
 
 ---
 
