@@ -19,7 +19,10 @@ import type { FamilyMedia } from "./types"
  * them when "Everyone" is selected). Order top-to-bottom = left-to-right.
  */
 export const familyMedia: FamilyMedia[] = [
-  { id: "anita", type: "image", src: "/img/family/anita-sinha-01.webp", people: ["Anita Sinha"],    caption: "Anita Sinha" },
+  { id: "anita",  type: "image", src: "/img/family/anita-sinha-01.webp", people: ["Anita Sinha"],   caption: "Anita Sinha" },
+  { id: "anita2", type: "image", src: "/img/family/anita-sinha-02.webp", people: ["Anita Sinha"],   caption: "Anita Sinha" },
+  { id: "anita3", type: "image", src: "/img/family/anita-sinha-03.webp", people: ["Anita Sinha"],   caption: "Anita Sinha" },
+  { id: "anita4", type: "image", src: "/img/family/anita-sinha-04.webp", people: ["Anita Sinha"],   caption: "Anita Sinha" },
   { id: "0",  type: "image", src: "/img/family/shweta-01.webp",       people: ["Shweta"],           caption: "Shweta" },
   { id: "0b", type: "image", src: "/img/family/shweta-02.webp",       people: ["Shweta"],           caption: "Shweta" },
   { id: "as", type: "image", src: "/img/family/ankur-shweta-01.webp", people: ["Shweta"],           caption: "Ankur & Shweta" },
