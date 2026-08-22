@@ -108,11 +108,15 @@ function FooterSky() {
   )
 }
 
-/** A quiet footer link that force-refreshes: clears caches + storage, unregisters
+/** A footer button that clears the cache: wipes caches + storage, unregisters
  *  the service worker, then hard-reloads. The manual escape hatch for a stale
- *  deploy (the UpdateToast is the automatic prompt; this is the always-there one). */
-function RefreshLink() {
-  async function refresh() {
+ *  deploy (the UpdateToast is the automatic prompt; this is the always-there one).
+ *  Styled as a pill so it reads as an action, not a nav link. */
+function ClearCacheButton() {
+  const [clearing, setClearing] = useState(false)
+
+  async function clearCache() {
+    setClearing(true)
     try { localStorage.clear() } catch { /* private mode */ }
     try { sessionStorage.clear() } catch { /* */ }
     try { if (typeof caches !== "undefined") { const k = await caches.keys(); await Promise.all(k.map((n) => caches.delete(n))) } } catch { /* */ }
@@ -121,15 +125,30 @@ function RefreshLink() {
     url.searchParams.set("fresh", Date.now().toString(36))
     window.location.replace(url.toString())
   }
+
   return (
     <button
       type="button"
-      onClick={refresh}
+      onClick={clearCache}
+      disabled={clearing}
       data-cursor-hover
-      aria-label="Refresh — clear cache and reload the latest version"
-      className="font-mono text-xs tracking-widest text-muted-foreground hover:text-foreground transition-colors duration-300"
+      aria-label="Clear cache and reload the latest version"
+      className="inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary/30 px-3 py-1.5 font-mono text-[10px] tracking-[0.15em] uppercase text-muted-foreground backdrop-blur-sm transition-colors hover:text-foreground hover:border-foreground/30 disabled:opacity-60"
     >
-      REFRESH
+      <svg
+        aria-hidden
+        viewBox="0 0 24 24"
+        className={`h-3 w-3 ${clearing ? "animate-spin" : ""}`}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+        <path d="M21 3v6h-6" />
+      </svg>
+      {clearing ? "Clearing…" : "Clear Cache"}
     </button>
   )
 }
@@ -303,7 +322,7 @@ export function Footer({ hideContact = false }: { hideContact?: boolean } = {}) 
                 <ReportBug area="Website" />
               </li>
               <li>
-                <RefreshLink />
+                <ClearCacheButton />
               </li>
             </ul>
           </div>
