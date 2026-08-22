@@ -3,6 +3,7 @@ import Link from "next/link"
 import { CustomCursor } from "@/components/custom-cursor"
 import { Navbar } from "@/components/navbar"
 import { StaticStarfield } from "@/components/universe-engine/static-starfield"
+import { NotFoundProbe } from "@/components/not-found-probe"
 
 export const metadata: Metadata = {
   title: "Drifted off course · 404",
@@ -37,6 +38,15 @@ export default function NotFound() {
       >
         {/* Shared three-layer CSS starfield (also used as the hero's lazy-load fallback). */}
         <StaticStarfield />
+
+        {/* Interactive lost-probe scene — drag/fling it through the starfield.
+            Purely decorative; the escape links below stay fully usable. */}
+        <NotFoundProbe />
+
+        {/* Hint that the probe is grabbable. */}
+        <p className="pointer-events-none absolute bottom-6 left-1/2 z-10 -translate-x-1/2 font-mono text-[10px] tracking-[0.25em] uppercase text-foreground/40">
+          drag the probe · or tap to send it
+        </p>
 
         {/* Drifting planet — sits behind the type, scaled responsively */}
         <div
