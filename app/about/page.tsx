@@ -140,6 +140,17 @@ export default function AboutPage() {
             </p>
             <span className="mt-3 inline-block font-mono text-[10px] tracking-widest uppercase text-accent">Her page →</span>
           </Link>
+          <Link
+            href="/family"
+            className="group rounded-2xl border border-border p-5 hover:border-accent/60 transition-colors sm:col-span-2"
+          >
+            <p className="font-display text-lg font-light text-foreground group-hover:text-accent transition-colors">For the people I love</p>
+            <p className="mt-1 font-mono text-[10px] tracking-wider uppercase text-muted-foreground">A private corner · passcode</p>
+            <p className="mt-2 font-sans text-[13px] text-foreground/65 leading-relaxed">
+              Photos and moments I want to share with family. Gently gated behind a passcode.
+            </p>
+            <span className="mt-3 inline-block font-mono text-[10px] tracking-widest uppercase text-accent">Open →</span>
+          </Link>
         </div>
       </section>
       </main>
