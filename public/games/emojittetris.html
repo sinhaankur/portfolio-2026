@@ -8,7 +8,10 @@
   <link rel="icon" href="games-logo.svg" type="image/svg+xml">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
   <link href="css/retro.css" rel="stylesheet">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+  <!-- Optional sound only. `defer` so a slow/blocked CDN on mobile can never
+       delay the game loading; the code already guards every Tone.* call and
+       fails silent if Tone is missing (offline, blocked, autoplay-restricted). -->
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
   <style>
     /* Layout — full-bleed page that scales from phone to desktop. */
     html, body {
@@ -395,17 +398,25 @@
      · Theme toggle, viewport-fit safe-area handling
    ================================================================ */
 
+/* Safe storage — iOS Safari Private Mode / strict privacy throws on any
+   localStorage access. A bare read at module top killed the whole script (and
+   all controls) on those phones. Route every call through these guards. */
+const store = {
+  get(k) { try { return store.get(k); } catch { return null; } },
+  set(k, v) { try { store.set(k, v); } catch { /* private mode */ } },
+};
+
 // ---------- Theme ----------
 function initTheme() {
   const toggle = document.getElementById('themeToggle');
-  const saved = localStorage.getItem('emojiTetrisTheme') || 'light';
+  const saved = store.get('emojiTetrisTheme') || 'light';
   setTheme(saved);
   toggle.addEventListener('click', toggleTheme);
 }
 function setTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
   document.documentElement.style.colorScheme = theme;
-  localStorage.setItem('emojiTetrisTheme', theme);
+  store.set('emojiTetrisTheme', theme);
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.setAttribute('content', theme === 'dark' ? '#0a0a0a' : '#f5f5f0');
   updateThemeButton();
@@ -485,7 +496,7 @@ let score = 0;
 let lines = 0;
 let level = 1;
 let combo = -1;
-let highScore = Number(localStorage.getItem('emojiTetrisHigh') || 0);
+let highScore = Number(store.get('emojiTetrisHigh') || 0);
 
 let gameRunning = false;
 let gameOver = false;
@@ -883,7 +894,7 @@ function showGameOver() {
 
   if (score > highScore) {
     highScore = score;
-    localStorage.setItem('emojiTetrisHigh', String(highScore));
+    store.set('emojiTetrisHigh', String(highScore));
   }
 
   finalScore.textContent = score;
@@ -902,7 +913,7 @@ function showGameOver() {
 
 // ---------- Start / restart ----------
 function startGame() {
-  if (!audioContextStarted) {
+  if (!audioContextStarted && typeof Tone !== 'undefined') {
     try {
       Tone.start();
       lineClearSynth = new Tone.Synth({

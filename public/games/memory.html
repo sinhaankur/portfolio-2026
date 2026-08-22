@@ -200,6 +200,13 @@
    moves + elapsed time; best (lowest moves + fastest tie-break)
    per difficulty is stored in localStorage.
    ================================================================ */
+/* Safe storage — iOS Safari Private Mode / strict privacy throws on any
+   localStorage access. Route every call through these guards so a blocked
+   read can never kill the script (and with it, all the controls). */
+const store = {
+  get(k) { try { return store.get(k); } catch { return null; } },
+  set(k, v) { try { store.set(k, v); } catch { /* private mode */ } },
+};
 const EMOJI_POOL = [
   '🦊','🐯','🐻','🐼','🐨','🐶','🦁','🐸','🦄','🐙',
   '🦋','🐝','🐌','🐳','🦖','🦉','🦩','🦚','🐉','🐢',
@@ -236,7 +243,7 @@ let timerRAF = null;
 let won = false;
 
 function initTheme() {
-  const saved = localStorage.getItem('emojiMemoryTheme') || 'light';
+  const saved = store.get('emojiMemoryTheme') || 'light';
   setTheme(saved);
   document.getElementById('themeToggle').addEventListener('click', () => {
     setTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
@@ -245,7 +252,7 @@ function initTheme() {
 function setTheme(t) {
   document.documentElement.setAttribute('data-theme', t);
   document.documentElement.style.colorScheme = t;
-  localStorage.setItem('emojiMemoryTheme', t);
+  store.set('emojiMemoryTheme', t);
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.setAttribute('content', t === 'dark' ? '#0a0a0a' : '#f5f5f0');
   const btn = document.getElementById('themeToggle');
@@ -271,12 +278,12 @@ function formatTime(ms) {
 function bestKey() { return `emojiMemoryBest:${difficulty}`; }
 function loadBest() {
   try {
-    const raw = localStorage.getItem(bestKey());
+    const raw = store.get(bestKey());
     return raw ? JSON.parse(raw) : null;
   } catch { return null; }
 }
 function saveBest(rec) {
-  try { localStorage.setItem(bestKey(), JSON.stringify(rec)); } catch {}
+  try { store.set(bestKey(), JSON.stringify(rec)); } catch {}
 }
 function updateBestDisplay() {
   const best = loadBest();

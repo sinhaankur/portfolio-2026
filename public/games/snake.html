@@ -172,6 +172,14 @@
    at a random empty cell. Eat food → +1 length, +10 × level points.
    Speed increases gradually with score (level = floor(score/100) + 1).
    ================================================================ */
+/* Safe storage — iOS Safari Private Mode / strict privacy settings throw a
+   SecurityError on any localStorage access. A bare read at module top used to
+   kill the whole script (and therefore ALL controls) on those phones. Route
+   every localStorage call through these guards so the game always runs. */
+const store = {
+  get(k) { try { return store.get(k); } catch { return null; } },
+  set(k, v) { try { store.set(k, v); } catch { /* private mode */ } },
+};
 const COLS = 20;
 const ROWS = 20;
 const FOOD_EMOJIS = ['🍎','🍓','🍒','🍇','🍌','🥝','🍑','🍍','🍋','🥭'];
@@ -199,7 +207,7 @@ let queuedDir = null;
 let food = null;
 let foodEmoji = '🍎';
 let score = 0;
-let highScore = Number(localStorage.getItem('emojiSnakeHigh') || 0);
+let highScore = Number(store.get('emojiSnakeHigh') || 0);
 let running = false;
 let gameOver = false;
 let lastStepTime = 0;
@@ -209,7 +217,7 @@ let rAF = null;
 function cellPx() { return canvas.width / COLS; }
 
 function initTheme() {
-  const saved = localStorage.getItem('emojiSnakeTheme') || 'light';
+  const saved = store.get('emojiSnakeTheme') || 'light';
   setTheme(saved);
   document.getElementById('themeToggle').addEventListener('click', () => {
     setTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
@@ -218,7 +226,7 @@ function initTheme() {
 function setTheme(t) {
   document.documentElement.setAttribute('data-theme', t);
   document.documentElement.style.colorScheme = t;
-  localStorage.setItem('emojiSnakeTheme', t);
+  store.set('emojiSnakeTheme', t);
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.setAttribute('content', t === 'dark' ? '#0a0a0a' : '#f5f5f0');
   const btn = document.getElementById('themeToggle');
@@ -436,7 +444,7 @@ function finishGame(reason) {
   rAF = null;
   if (score > highScore) {
     highScore = score;
-    localStorage.setItem('emojiSnakeHigh', String(highScore));
+    store.set('emojiSnakeHigh', String(highScore));
   }
   finalScore.textContent = score;
   finalLength.textContent = snake.length;
