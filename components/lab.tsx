@@ -66,17 +66,12 @@ type Product = {
 
 // HAND-PICKED by Ankur (2026-07-14): this is a curated shelf, not an
 // auto-synced GitHub feed. Add or remove entries ONLY on his call.
+//
+// De-duped 2026-08-22: Firmament and the Cognitive Twin both already have rich
+// "Live experiments" cards above (→ /lab/firmament, /lab/cognitive-twin), so
+// they were removed from this shelf to stop each appearing twice on the page.
+// The shelf now holds only repos that AREN'T featured as a card above.
 const products: Product[] = [
-  {
-    name: "Firmament",
-    tagline: "The Universe Engine, in your pocket",
-    blurb:
-      "The native iOS companion to the Universe Engine: point your iPhone at the real sky and it identifies stars, planets, the Moon and constellations from your exact location and time — then captures the night sky with a tripod-aware long-exposure camera and an on-device AI editor that recovers the real sky from a dark frame. Same fidelity philosophy, out in the field. All-custom Swift, on-device, offline.",
-    stack: ["Swift", "AVFoundation", "Apple Intelligence", "Celestron"],
-    href: "/lab/firmament",
-    highlight: "Field companion to the Universe Engine",
-    status: "building",
-  },
   {
     name: "WatchTower",
     tagline: "Self-hosted deployment platform",
@@ -86,16 +81,6 @@ const products: Product[] = [
     href: "https://github.com/sinhaankur/WatchTower",
     highlight: "Ships across 6 distribution channels",
     status: "exploration",
-  },
-  {
-    name: "Cognitive Twin",
-    tagline: "Digital-twin agent architecture",
-    blurb:
-      "The public repo behind the blueprint above: local-first context store, behavioral rehearsal, deterministic guardrails. A personal agent that learns decision style, not just prompts — and runs entirely on your machine.",
-    stack: ["Python", "Local-first", "Agents"],
-    href: "https://github.com/sinhaankur/cognitive-twin-agent",
-    highlight: "Blueprint at /lab/cognitive-twin",
-    status: "building",
   },
   {
     name: "EMPATHEIA",
@@ -219,7 +204,7 @@ export function Lab() {
             Live experiments
           </p>
           <span aria-hidden="true" className="flex-1 h-px bg-border" />
-          <p className="font-mono text-[10px] tracking-widest text-muted-foreground/70">7</p>
+          <p className="font-mono text-[10px] tracking-widest text-muted-foreground/70">6</p>
         </div>
         <div className="grid gap-4 md:gap-5 md:grid-cols-2 mb-14 md:mb-16">
 
