@@ -27,6 +27,7 @@ export const familyMedia: FamilyMedia[] = [
   { id: "0b", type: "image", src: "/img/family/shweta-02.webp",       people: ["Shweta"],           caption: "Shweta" },
   { id: "as", type: "image", src: "/img/family/ankur-shweta-01.webp", people: ["Shweta"],           caption: "Ankur & Shweta" },
   { id: "as2",type: "image", src: "/img/family/ankur-shweta-02.webp", people: ["Shweta"],           caption: "Ankur & Shweta" },
+  { id: "ar", type: "image", src: "/img/family/ankur-ritam-01.webp", people: ["Ritam"],           caption: "Ankur & Ritam" },
   { id: "1",  type: "image", src: "/img/family/shweta-ritam-01.webp", people: ["Shweta", "Ritam"],  caption: "Shweta & Ritam" },
   { id: "2",  type: "image", src: "/img/family/shweta-ritam-02.webp", people: ["Shweta", "Ritam"],  caption: "Shweta & Ritam" },
   { id: "3",  type: "image", src: "/img/family/shweta-ritam-03.webp", people: ["Shweta", "Ritam"],  caption: "Shweta & Ritam" },
