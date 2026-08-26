@@ -7,6 +7,7 @@ import { ParallaxBackdrop } from "@/components/parallax-backdrop"
 import { SilkMotif } from "@/components/silk-motif"
 import { RandhirJourneyMap } from "@/components/randhir-journey-map"
 import { RandhirSilkHero } from "@/components/randhir-silk-hero"
+import { RandhirSilkworm } from "@/components/randhir-silkworm"
 import { RandhirSectionNav } from "@/components/randhir-section-nav"
 import { Footer } from "@/components/footer"
 import {
@@ -296,6 +297,12 @@ export default function DrRandhirSinhaPage() {
             the quiet work of a lifetime
           </p>
         </blockquote>
+
+        {/* The living creatures behind the career — a realistic silkworm render +
+            the species he worked on across his postings. */}
+        <div className="my-10">
+          <RandhirSilkworm />
+        </div>
 
         <H2 id="journey">The journey</H2>
         <P>

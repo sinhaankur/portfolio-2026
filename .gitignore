@@ -115,3 +115,6 @@ public/textures/terrain/venus-maxwell-montes-2k.png
 # Blender rendered frames (heavy; the encoded videos live in public/video/)
 blender/randhir-silk/frames/
 blender/randhir-silk/test_frame.png
+
+blender/silkworm/frames/
+blender/silkworm/test*.png
