@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { canonicalPath } from "@/lib/seo"
+import { RubikCubeEmbed } from "@/components/academic/rubik-cube-embed"
 import {
   CaseStudyLayout,
   CaseSectionHeading,
@@ -35,6 +36,19 @@ export default function RubikCubePage() {
         </>
       }
     >
+      <section>
+        <CaseSectionHeading>The cube, live</CaseSectionHeading>
+        <CaseProse>
+          A rebuilt version of the project, running here in your browser in WebGL —
+          drag to orbit, turn any face, scramble it. The original was fixed-function
+          OpenGL in C++; this is the same geometry and the same rotation maths, now
+          on the web.
+        </CaseProse>
+        <div className="mt-6">
+          <RubikCubeEmbed />
+        </div>
+      </section>
+
       <section>
         <CaseSectionHeading>The problem</CaseSectionHeading>
         <CaseProse>
