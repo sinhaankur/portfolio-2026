@@ -7,6 +7,7 @@ import { ParallaxBackdrop } from "@/components/parallax-backdrop"
 import { SilkMotif } from "@/components/silk-motif"
 import { RandhirJourneyMap } from "@/components/randhir-journey-map"
 import { RandhirSilkHero } from "@/components/randhir-silk-hero"
+import { RandhirSectionNav } from "@/components/randhir-section-nav"
 import { Footer } from "@/components/footer"
 import {
   randhirStats,
@@ -98,8 +99,12 @@ const publicationsSchema = {
   })),
 }
 
-function H2({ children }: { children: React.ReactNode }) {
-  return <h2 className="font-display text-2xl md:text-3xl font-light tracking-[-0.01em] text-foreground mt-14 mb-4">{children}</h2>
+function H2({ children, id }: { children: React.ReactNode; id?: string }) {
+  return (
+    <h2 id={id} className="scroll-mt-24 font-display text-2xl md:text-3xl font-light tracking-[-0.01em] text-foreground mt-14 mb-4">
+      {children}
+    </h2>
+  )
 }
 function P({ children }: { children: React.ReactNode }) {
   return <p className="font-sans text-[15px] md:text-base text-foreground/80 leading-relaxed mb-5">{children}</p>
@@ -148,9 +153,9 @@ function CareerTimeline() {
 }
 
 /** A collapsible, year-grouped list of publications. */
-function PubList({ title, pubs }: { title: string; pubs: Publication[] }) {
+function PubList({ title, pubs, id }: { title: string; pubs: Publication[]; id?: string }) {
   return (
-    <details className="group my-6 rounded-xl border border-border bg-secondary/10">
+    <details id={id} className="group my-6 scroll-mt-24 rounded-xl border border-border bg-secondary/10">
       <summary className="cursor-pointer list-none select-none px-5 py-4 flex items-center justify-between gap-4">
         <span className="font-sans text-[15px] text-foreground">
           {title}
@@ -197,6 +202,8 @@ export default function DrRandhirSinhaPage() {
       <ParallaxBackdrop speed={0.12}>
         <SilkMotif />
       </ParallaxBackdrop>
+
+      <RandhirSectionNav />
 
       <div className="mx-auto max-w-3xl px-6 md:px-12 py-20 md:py-28">
       <Link
@@ -247,7 +254,7 @@ export default function DrRandhirSinhaPage() {
           <Stat value={`${randhirStats.mulberryAccessions.toLocaleString()}`} label="Mulberry" sub="germplasm accessions" />
         </div>
 
-        <H2>His work</H2>
+        <H2 id="work">His work</H2>
         <P>
           Dr. Sinha&apos;s doctoral research was on <em>silkworm mutation breeding</em> — his thesis,{" "}
           <em>&ldquo;Effect of various mutagens on economic traits and chromosomes of silkworm Bombyx mori L.&rdquo;</em>{" "}
@@ -290,7 +297,7 @@ export default function DrRandhirSinhaPage() {
           </p>
         </blockquote>
 
-        <H2>The journey</H2>
+        <H2 id="journey">The journey</H2>
         <P>
           Thirty-four years, eight postings, across the length of India — from the Himalayan foothills
           to the tropical south. Each stop, a different silkworm, a different set of farmers, the same
@@ -301,7 +308,7 @@ export default function DrRandhirSinhaPage() {
         </div>
         <CareerTimeline />
 
-        <H2>The archive</H2>
+        <H2 id="archive">The archive</H2>
         <P>
           This is a living page — his work, digitalized so a student, a breeder, or a fellow scientist
           can find and cite it rather than hunt through old journals. Below is his full documented
@@ -311,10 +318,10 @@ export default function DrRandhirSinhaPage() {
           by year.
         </P>
 
-        <PubList title="Research papers" pubs={researchPapers} />
-        <PubList title="Conference & seminar papers" pubs={conferencePapers} />
-        <PubList title="Popular & technical articles" pubs={popularArticles} />
-        <PubList title="Books & catalogues" pubs={booksAndCatalogues} />
+        <PubList id="research" title="Research papers" pubs={researchPapers} />
+        <PubList id="conference" title="Conference & seminar papers" pubs={conferencePapers} />
+        <PubList id="popular" title="Popular & technical articles" pubs={popularArticles} />
+        <PubList id="books" title="Books & catalogues" pubs={booksAndCatalogues} />
 
         <p className="font-sans text-[12px] text-foreground/45 leading-relaxed -mt-2 mb-6">
           Transcribed from his curriculum vitae. Where a paper has a verifiable online record, a{" "}
@@ -353,7 +360,7 @@ export default function DrRandhirSinhaPage() {
           </div>
         </div>
 
-        <H2>After the lab</H2>
+        <H2 id="after">After the lab</H2>
         <P>
           In retirement he turned to the soil — he is building an <strong>organic farm in Munger,
           Bihar</strong>. It&apos;s a fitting second act: from the genetics of one organism to the
