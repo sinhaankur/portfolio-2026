@@ -142,11 +142,23 @@ function CubeScene({
 const AXIS = { x: new THREE.Vector3(1, 0, 0), y: new THREE.Vector3(0, 1, 0), z: new THREE.Vector3(0, 0, 1) }
 const ease = (t: number) => 1 - Math.pow(1 - t, 3) // easeOutCubic — a turn that reads as a turn
 
+/** Is the cube solved? Every cubie back at its start orientation (identity quat)
+ *  AND home position — i.e. each face shows a single colour. */
+function isSolved(cubies: Cubie[]): boolean {
+  return cubies.every((c) => {
+    const q = c.quat
+    // identity quaternion (within a small epsilon) means the cubie hasn't twisted
+    return Math.abs(q.x) < 1e-4 && Math.abs(q.y) < 1e-4 && Math.abs(q.z) < 1e-4 && Math.abs(Math.abs(q.w) - 1) < 1e-4
+  })
+}
+
 /** The public component: the canvas + a clean control strip. */
 export function RubikCube() {
   const [cubies, setCubies] = useState<Cubie[]>(initialCubies)
   const [queue, setQueue] = useState<string[]>([])
   const [turning, setTurning] = useState<{ move: string } | null>(null)
+  const [moves, setMoves] = useState(0)
+  const [scrambled, setScrambled] = useState(false)
 
   // drain the queue one move at a time
   useEffect(() => {
@@ -157,16 +169,34 @@ export function RubikCube() {
   }, [turning, queue])
 
   const enqueue = useCallback((...moves: string[]) => setQueue((q) => [...q, ...moves]), [])
-  const onTurnDone = useCallback(() => setTurning(null), [])
+  const onTurnDone = useCallback(() => { setTurning(null); setMoves((m) => m + 1) }, [])
 
   const scramble = useCallback(() => {
     const keys = Object.keys(MOVES)
     const seq = Array.from({ length: 20 }, () => keys[Math.floor(Math.random() * keys.length)])
+    setScrambled(true); setMoves(0)
     enqueue(...seq)
   }, [enqueue])
 
-  const reset = useCallback(() => { setQueue([]); setTurning(null); setCubies(initialCubies()) }, [])
+  const reset = useCallback(() => {
+    setQueue([]); setTurning(null); setCubies(initialCubies()); setMoves(0); setScrambled(false)
+  }, [])
 
+  // keyboard: U/D/L/R/F/B turn a face; hold Shift for the counter-clockwise (inverse)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const k = e.key.toUpperCase()
+      if (!"UDLRFB".includes(k)) return
+      // ignore when the user is typing in a field
+      const el = document.activeElement
+      if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA")) return
+      enqueue(e.shiftKey ? k + "'" : k)
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [enqueue])
+
+  const solved = scrambled && queue.length === 0 && !turning && isSolved(cubies)
   const faceButtons: [string, string][] = [["U", "U"], ["D", "D"], ["L", "L"], ["R", "R"], ["F", "F"], ["B", "B"]]
 
   return (
@@ -180,8 +210,20 @@ export function RubikCube() {
           <OrbitControls enablePan={false} minDistance={5} maxDistance={12} enableDamping dampingFactor={0.08} />
         </Canvas>
         <div className="pointer-events-none absolute left-3 top-3 font-mono text-[10px] tracking-widest uppercase text-white/40">
-          drag to orbit
+          drag to orbit · keys U D L R F B (⇧ inverse)
         </div>
+        {(scrambled || moves > 0) && (
+          <div className="pointer-events-none absolute right-3 top-3 font-mono text-[11px] text-white/55">
+            {moves} {moves === 1 ? "move" : "moves"}
+          </div>
+        )}
+        {solved && (
+          <div className="pointer-events-none absolute inset-x-0 bottom-4 flex justify-center">
+            <span className="rounded-full border border-emerald-400/40 bg-emerald-400/15 px-4 py-1.5 font-mono text-sm text-emerald-200 backdrop-blur">
+              ✓ solved in {moves} moves
+            </span>
+          </div>
+        )}
       </div>
 
       {/* the control strip — face turns, then their inverses, then scramble/reset */}
