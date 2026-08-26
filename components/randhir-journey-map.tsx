@@ -70,31 +70,44 @@ export function RandhirJourneyMap() {
             )})}
           </g>
 
-          {/* the journey thread — a glowing silk line in career order */}
-          <path d={pathD} fill="none" stroke="url(#silk)" strokeWidth="0.6"
-            strokeLinecap="round" strokeLinejoin="round" strokeDasharray="0.1 1.5"
-            opacity="0.9" filter="url(#glow)" className="journey-thread" />
+          {/* the journey thread — a bright glowing silk line, drawn twice: a soft wide
+              under-glow + a crisp bright core, so the PATH reads boldly at a glance */}
+          <path d={pathD} fill="none" stroke="url(#silk)" strokeWidth="1.6"
+            strokeLinecap="round" strokeLinejoin="round" opacity="0.28" filter="url(#glow)" />
+          <path d={pathD} fill="none" stroke="url(#silk)" strokeWidth="0.7"
+            strokeLinecap="round" strokeLinejoin="round" strokeDasharray="0.2 1.4"
+            opacity="1" filter="url(#glow)" className="journey-thread" />
 
-          {/* the stops */}
+          {/* the stops — larger, brighter pins with a halo; each numbered in career order */}
           {pts.map(([x, y], i) => {
             const isActive = active === i
             const isEnd = i === STOPS.length - 1
-            const labelBelow = y < 30 // put the label under the northern-most pins
+            const col = isEnd ? "#f0c074" : "var(--accent)"
+            const labelBelow = y < 30 // label under the northern-most pins
             return (
               <g key={i} transform={`translate(${x} ${y})`}
                 onMouseEnter={() => setActive(i)} onMouseLeave={() => setActive(null)}
                 onClick={() => setActive(isActive ? null : i)}
                 style={{ cursor: "pointer" }} tabIndex={0} onFocus={() => setActive(i)}>
-                <circle r="5" fill="transparent" /> {/* tap target */}
-                {isActive && <circle r="3.4" fill="none" stroke={isEnd ? "#e6b26a" : "var(--accent)"} strokeWidth="0.4" opacity="0.6" />}
-                <circle r={isActive ? 2.2 : 1.5} fill={isEnd ? "#e6b26a" : "var(--accent)"}
-                  opacity={isActive ? 1 : 0.9} filter="url(#glow)" style={{ transition: "r 0.2s" }} />
-                <text y={labelBelow ? 4.6 : -2.8} textAnchor="middle" className="fill-foreground"
-                  style={{ fontSize: "2.7px", fontFamily: "var(--font-mono, monospace)", opacity: isActive ? 1 : 0.72 }}>
+                <circle r="6" fill="transparent" /> {/* generous tap target */}
+                {/* a soft always-on halo so every pin glows */}
+                <circle r={isActive ? 4.6 : 3.4} fill={col} opacity={isActive ? 0.28 : 0.16}
+                  filter="url(#glow)" style={{ transition: "r 0.2s, opacity 0.2s" }} />
+                {/* the bright core */}
+                <circle r={isActive ? 2.9 : 2.2} fill={col} opacity="1"
+                  stroke="#ffffff" strokeWidth={isActive ? 0.4 : 0.25} strokeOpacity="0.7"
+                  filter="url(#glow)" style={{ transition: "r 0.2s" }} />
+                {/* the order number, inside the pin */}
+                <text y="0.9" textAnchor="middle"
+                  style={{ fontSize: "2.4px", fontWeight: 700, fontFamily: "var(--font-mono, monospace)", fill: "#0a0b12" }}>
+                  {i + 1}
+                </text>
+                <text y={labelBelow ? 5.8 : -3.6} textAnchor="middle" className="fill-foreground"
+                  style={{ fontSize: "3.1px", fontWeight: 600, fontFamily: "var(--font-mono, monospace)", opacity: isActive ? 1 : 0.9 }}>
                   {STOPS[i].city.split(" ")[0]}
                 </text>
-                <text y={labelBelow ? 7.2 : -5.4} textAnchor="middle"
-                  style={{ fontSize: "2px", fontFamily: "var(--font-mono, monospace)", fill: "var(--accent)", opacity: 0.55 }}>
+                <text y={labelBelow ? 8.6 : -6.6} textAnchor="middle"
+                  style={{ fontSize: "2.3px", fontFamily: "var(--font-mono, monospace)", fill: col, opacity: 0.8 }}>
                   {YEARS[i]}
                 </text>
               </g>
@@ -104,6 +117,16 @@ export function RandhirJourneyMap() {
         <p className="mt-1 text-center font-mono text-[10px] tracking-[0.15em] uppercase text-foreground/40">
           1975 → 2008 · hover or tap a stop
         </p>
+
+        {/* his work reached beyond India — conferences + collaborations abroad */}
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 border-t border-border/50 pt-3">
+          <span className="font-mono text-[9px] tracking-[0.15em] uppercase text-foreground/40">and abroad</span>
+          {["China", "Hong Kong", "Singapore"].map((c) => (
+            <span key={c} className="rounded-full border border-accent/30 bg-accent/5 px-2.5 py-0.5 font-mono text-[10px] text-foreground/70">
+              {c}
+            </span>
+          ))}
+        </div>
       </div>
 
       {/* the detail panel */}
@@ -127,7 +150,8 @@ export function RandhirJourneyMap() {
             <p className="font-sans text-[13px] text-foreground/55 mt-2 leading-relaxed">
               From the Himalayan foothills of Himachal to the tropical south, the
               north-east hills of Manipur, and home to Bihar — eight postings, the
-              same patient science. Hover a stop to follow the path.
+              same patient science. His work carried him abroad too, to China, Hong
+              Kong, and Singapore. Hover a stop to follow the path.
             </p>
           </div>
         )}

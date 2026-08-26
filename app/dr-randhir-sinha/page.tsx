@@ -105,11 +105,12 @@ function P({ children }: { children: React.ReactNode }) {
   return <p className="font-sans text-[15px] md:text-base text-foreground/80 leading-relaxed mb-5">{children}</p>
 }
 
-function Stat({ value, label }: { value: string; label: string }) {
+function Stat({ value, label, sub }: { value: string; label: string; sub?: string }) {
   return (
-    <div className="text-center">
-      <div className="font-display text-3xl md:text-4xl font-light tracking-[-0.02em] text-foreground">{value}</div>
-      <div className="font-mono text-[10px] tracking-[0.15em] uppercase text-foreground/50 mt-1">{label}</div>
+    <div className="text-center px-2">
+      <div className="font-display text-4xl md:text-5xl font-light tracking-[-0.03em] text-foreground leading-none">{value}</div>
+      <div className="font-mono text-[10px] tracking-[0.16em] uppercase text-accent/70 mt-2.5">{label}</div>
+      {sub && <div className="font-sans text-[11px] text-foreground/40 mt-1">{sub}</div>}
     </div>
   )
 }
@@ -239,10 +240,11 @@ export default function DrRandhirSinhaPage() {
         </figure>
 
         {/* Career at a glance — figures from his own CV. */}
-        <div className="grid grid-cols-3 gap-4 py-8 my-4 border-y border-border">
-          <Stat value={`${randhirStats.yearsOfService}`} label="Years of service" />
-          <Stat value={`${randhirStats.researchPapers}`} label="Research papers" />
-          <Stat value={`${randhirStats.silkwormAccessions}+`} label="Silkworm accessions" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-y-8 gap-x-4 py-9 my-6 border-y border-border">
+          <Stat value={`${randhirStats.yearsOfService}`} label="Years" sub="of service" />
+          <Stat value={`${randhirStats.researchPapers}`} label="Papers" sub="national + international" />
+          <Stat value={`${randhirStats.silkwormAccessions}+`} label="Silkworm" sub="germplasm accessions" />
+          <Stat value={`${randhirStats.mulberryAccessions.toLocaleString()}`} label="Mulberry" sub="germplasm accessions" />
         </div>
 
         <H2>His work</H2>
@@ -277,6 +279,16 @@ export default function DrRandhirSinhaPage() {
           </a>{" "}
           profile.
         </P>
+
+        {/* a quiet pull-quote to give the page a reverent beat between prose blocks */}
+        <blockquote className="my-12 border-l-2 border-accent/50 pl-6">
+          <p className="font-display text-xl md:text-2xl font-light italic leading-snug text-foreground/90">
+            Conserving the genetic diversity that all future breeding depends on.
+          </p>
+          <p className="font-mono text-[10px] tracking-[0.15em] uppercase text-foreground/45 mt-3">
+            the quiet work of a lifetime
+          </p>
+        </blockquote>
 
         <H2>The journey</H2>
         <P>
