@@ -111,3 +111,7 @@ public/textures/terrain/mars-olympus-mons-2k.png
 public/textures/terrain/mars-jezero-2k.png
 public/textures/terrain/moon-tycho-2k.png
 public/textures/terrain/venus-maxwell-montes-2k.png
+
+# Blender rendered frames (heavy; the encoded videos live in public/video/)
+blender/randhir-silk/frames/
+blender/randhir-silk/test_frame.png

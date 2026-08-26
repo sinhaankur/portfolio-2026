@@ -6,6 +6,7 @@ import { canonicalPath } from "@/lib/seo"
 import { ParallaxBackdrop } from "@/components/parallax-backdrop"
 import { SilkMotif } from "@/components/silk-motif"
 import { RandhirJourneyMap } from "@/components/randhir-journey-map"
+import { RandhirSilkHero } from "@/components/randhir-silk-hero"
 import { Footer } from "@/components/footer"
 import {
   randhirStats,
@@ -215,6 +216,10 @@ export default function DrRandhirSinhaPage() {
           mutation and breeding that improves the very thread of sericulture. My father. This page
           gathers and digitalizes his work so others can reference and build on it.
         </p>
+
+        {/* Silk hero — a Blender-rendered loop of flowing silk, the material of his
+            life's work. Files in public/video/ (rendered from blender/randhir-silk). */}
+        <RandhirSilkHero />
 
         {/* Portrait — Québec City, the Château Frontenac and the St. Lawrence behind him.
             Save the photo to public/img/about/randhir-quebec.webp (cwebp -q 82). */}
