@@ -73,6 +73,16 @@ type Product = {
 // The shelf now holds only repos that AREN'T featured as a card above.
 const products: Product[] = [
   {
+    name: "Beam",
+    tagline: "Peer-to-peer file transfer, no cloud",
+    blurb:
+      "Send a file straight from one machine to another — the bytes flow directly over a TCP socket, never touching a server, with no account. A pure-Rust desktop app (egui): a tiny, inspectable wire protocol and SHA-256 integrity so you only ever keep a byte-exact copy. Grew out of my 2012 data-driven P2P streaming project — the same idea, now a real tool you can download.",
+    stack: ["Rust", "egui", "TCP", "SHA-256"],
+    href: "https://github.com/sinhaankur/Beam",
+    highlight: "One self-contained binary · MIT",
+    status: "building",
+  },
+  {
     name: "WatchTower",
     tagline: "Self-hosted deployment platform",
     blurb:

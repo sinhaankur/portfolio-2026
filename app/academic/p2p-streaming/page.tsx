@@ -95,6 +95,28 @@ export default function P2PStreamingPage() {
         </CaseProse>
       </section>
 
+      <section>
+        <CaseSectionHeading>What it became</CaseSectionHeading>
+        <CaseProse>
+          Years on, that same principle — peers moving data directly, no server in
+          the middle — became a real, downloadable tool:{" "}
+          <a
+            href="https://github.com/sinhaankur/Beam"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-accent hover:underline"
+          >
+            Beam
+          </a>
+          , a pure-Rust desktop app that sends a file straight from one machine to
+          another over a plain socket — no cloud, no account, with a SHA-256 integrity
+          check so you only keep a byte-exact copy. The streaming problem here was
+          continuous chunks under a deadline; Beam is the simpler point-to-point case,
+          but it&apos;s the same lineage: your data goes where you send it and nowhere
+          else.
+        </CaseProse>
+      </section>
+
       <CaseNextLinks
         prev={{ label: "Back to work", href: "/#works" }}
         next={{ label: "Rubik Cube · OpenGL", href: "/academic/rubik-cube" }}
