@@ -1,170 +1,170 @@
 "use client"
 
-// A live visualization of the data-driven P2P streaming project. A source seeds
-// media chunks; peers PULL the chunks they're missing from neighbours that already
-// hold them (not from the server). You watch chunks propagate through the swarm and
-// each peer's buffer / availability map fill — the actual idea of the 2012 project,
-// made watchable. Dependency-free 2D canvas; no server; runs offline; static-export-safe.
+// A faithful visualization of DATA-DRIVEN (pull-based) P2P live streaming — the
+// model of the IEEE base paper the 2012 project implemented (CoolStreaming/DONet
+// lineage). The mechanism it depicts:
+//
+//  • The source emits a CONTINUOUS stream of numbered chunks in real time.
+//  • Each peer keeps a sliding BUFFER MAP: a window of recent chunk slots it either
+//    holds or is missing, advancing with a PLAYHEAD that has a deadline.
+//  • Peers gossip buffer maps to partners, then PULL missing chunks — rarest /
+//    most-urgent first — from whichever partner holds them (no central server).
+//  • If a chunk isn't fetched before the playhead reaches it, playback STALLS
+//    (a continuity miss). The paper's goal is maximizing continuity + throughput.
+//
+// Dependency-free 2D canvas; offline; static-export-safe.
 
 import { useEffect, useRef, useState, useCallback } from "react"
 
-const CHUNKS = 24 // chunks in the "live window" each peer tries to hold
+const WINDOW = 20      // buffer-map window: chunk slots each peer tracks
+const N_PEERS = 13
 
 type Peer = {
   id: number
   x: number; y: number
-  have: boolean[]            // availability map — which chunks this peer holds
-  neighbours: number[]
+  base: number          // oldest chunk index its window currently covers
+  have: Set<number>     // which chunk indices this peer holds
+  partners: number[]
   isSource: boolean
+  playhead: number      // the chunk index currently "playing"
+  stalls: number        // continuity misses (deadline passed, chunk absent)
+  played: number
 }
-type Transfer = { from: number; to: number; chunk: number; t: number } // t: 0→1 progress
+type Pull = { from: number; to: number; chunk: number; t: number }
 
-function build(nPeers: number, w: number, h: number): Peer[] {
+function build(w: number, h: number): Peer[] {
   const peers: Peer[] = []
-  // the source sits at the centre-top; peers ring around it
-  peers.push({ id: 0, x: w / 2, y: h * 0.16, have: Array(CHUNKS).fill(true), neighbours: [], isSource: true })
-  const R = Math.min(w, h) * 0.34
-  for (let i = 1; i < nPeers; i++) {
-    const a = (i / (nPeers - 1)) * Math.PI * 2 + 0.3
-    const rr = R * (0.72 + ((i * 7) % 5) / 5 * 0.5)
+  peers.push({ id: 0, x: w / 2, y: h * 0.15, base: 0, have: new Set(), partners: [], isSource: true, playhead: 0, stalls: 0, played: 0 })
+  const R = Math.min(w, h) * 0.33
+  for (let i = 1; i < N_PEERS; i++) {
+    const a = (i / (N_PEERS - 1)) * Math.PI * 2 + 0.3
+    const rr = R * (0.7 + ((i * 7) % 5) / 5 * 0.55)
     peers.push({
-      id: i,
-      x: w / 2 + Math.cos(a) * rr,
-      y: h * 0.56 + Math.sin(a) * rr * 0.72,
-      have: Array(CHUNKS).fill(false),
-      neighbours: [],
-      isSource: false,
+      id: i, x: w / 2 + Math.cos(a) * rr, y: h * 0.55 + Math.sin(a) * rr * 0.72,
+      base: 0, have: new Set(), partners: [], isSource: false, playhead: 0, stalls: 0, played: 0,
     })
   }
-  // connect each peer to its ~3 nearest others (the gossip overlay)
+  // each peer partners with its ~3 nearest (the gossip mesh — "partnership" in the paper)
   for (const p of peers) {
-    const near = peers
-      .filter((q) => q.id !== p.id)
+    const near = peers.filter((q) => q.id !== p.id)
       .sort((a, b) => (a.x - p.x) ** 2 + (a.y - p.y) ** 2 - ((b.x - p.x) ** 2 + (b.y - p.y) ** 2))
       .slice(0, p.isSource ? 4 : 3)
-    p.neighbours = near.map((q) => q.id)
+    p.partners = near.map((q) => q.id)
   }
-  // symmetrize
-  for (const p of peers) for (const n of p.neighbours)
-    if (!peers[n].neighbours.includes(p.id)) peers[n].neighbours.push(p.id)
+  for (const p of peers) for (const n of p.partners)
+    if (!peers[n].partners.includes(p.id)) peers[n].partners.push(p.id)
   return peers
 }
 
 export function P2PSwarm() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [running, setRunning] = useState(true)
-  const [mode, setMode] = useState<"p2p" | "server">("p2p")
-  const stateRef = useRef<{ peers: Peer[]; transfers: Transfer[]; w: number; h: number; tick: number }>({
-    peers: [], transfers: [], w: 0, h: 0, tick: 0,
+  const [mode, setMode] = useState<"pull" | "server">("pull")
+  const [stats, setStats] = useState({ latest: 0, continuity: 100 })
+  const runningRef = useRef(running); runningRef.current = running
+  const modeRef = useRef(mode); modeRef.current = mode
+  const sref = useRef<{ peers: Peer[]; pulls: Pull[]; w: number; h: number; tick: number; latest: number }>({
+    peers: [], pulls: [], w: 0, h: 0, tick: 0, latest: 0,
   })
-  const runningRef = useRef(running)
-  const modeRef = useRef(mode)
-  runningRef.current = running
-  modeRef.current = mode
 
   const seed = useCallback((w: number, h: number) => {
-    stateRef.current = { peers: build(14, w, h), transfers: [], w, h, tick: 0 }
+    sref.current = { peers: build(w, h), pulls: [], w, h, tick: 0, latest: 0 }
   }, [])
-
-  const reset = useCallback(() => {
-    const s = stateRef.current
-    if (s.w) seed(s.w, s.h)
-  }, [seed])
+  const reset = useCallback(() => { const s = sref.current; if (s.w) seed(s.w, s.h) }, [seed])
 
   useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
+    const canvas = canvasRef.current; if (!canvas) return
     const ctx = canvas.getContext("2d")!
     let raf = 0
     const dpr = Math.min(window.devicePixelRatio || 1, 2)
-
     const size = () => {
       const r = canvas.getBoundingClientRect()
       canvas.width = r.width * dpr; canvas.height = r.height * dpr
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-      if (!stateRef.current.peers.length || stateRef.current.w !== r.width) seed(r.width, r.height)
+      if (!sref.current.peers.length || sref.current.w !== r.width) seed(r.width, r.height)
     }
-    size()
-    window.addEventListener("resize", size)
+    size(); window.addEventListener("resize", size)
 
     const step = () => {
-      const s = stateRef.current
-      const { peers, transfers } = s
+      const s = sref.current; const { peers, pulls } = s
       s.tick++
-
       if (runningRef.current) {
-        // advance in-flight transfers; on arrival, the chunk lands in the buffer
-        for (let i = transfers.length - 1; i >= 0; i--) {
-          const tr = transfers[i]
-          tr.t += 0.02
-          if (tr.t >= 1) { peers[tr.to].have[tr.chunk] = true; transfers.splice(i, 1) }
-        }
-        // every few ticks, each peer requests ONE missing chunk from a peer that has it
-        if (s.tick % 6 === 0) {
+        // 1) the SOURCE emits a new chunk into the live stream every few ticks
+        if (s.tick % 8 === 0) { s.latest++; peers[0].have.add(s.latest) }
+
+        // 2) every peer's PLAYHEAD advances on a deadline; a missing chunk = a stall
+        if (s.tick % 8 === 0) {
           for (const p of peers) {
             if (p.isSource) continue
-            const missing = p.have.map((h, c) => (h ? -1 : c)).filter((c) => c >= 0)
-            if (!missing.length) continue
-            // rarest-first-ish: pick a random missing chunk (keeps it lively + legible)
-            const chunk = missing[Math.floor((s.tick * 7 + p.id * 13) % missing.length)]
-            // in P2P: pull from any neighbour that holds it. in server: only from source.
-            const sources = modeRef.current === "server"
-              ? [0].filter((id) => peers[id].have[chunk])
-              : p.neighbours.filter((id) => peers[id].have[chunk])
-            if (!sources.length) continue
-            // server mode throttles: the single uplink can only push a few at once
-            if (modeRef.current === "server" &&
-                transfers.filter((t) => t.from === 0).length >= 2) continue
-            if (transfers.some((t) => t.to === p.id && t.chunk === chunk)) continue
-            const from = sources[(s.tick + p.id) % sources.length]
-            transfers.push({ from, to: p.id, chunk, t: 0 })
+            const next = p.playhead + 1
+            if (next <= s.latest - WINDOW + 2) { // deadline reached for this slot
+              if (p.have.has(next)) p.played++; else p.stalls++
+              p.playhead = next
+              p.base = Math.max(0, next - 2)
+            }
           }
+        }
+
+        // 3) advance in-flight pulls; on arrival the chunk lands in the buffer map
+        for (let i = pulls.length - 1; i >= 0; i--) {
+          const pl = pulls[i]; pl.t += 0.035
+          if (pl.t >= 1) { peers[pl.to].have.add(pl.chunk); pulls.splice(i, 1) }
+        }
+
+        // 4) SCHEDULING: each peer pulls missing chunks in its window — most-urgent
+        //    (closest to the playhead) first, from a partner that holds it. This is
+        //    the data-driven pull the paper is built on.
+        if (s.tick % 3 === 0) {
+          for (const p of peers) {
+            if (p.isSource) continue
+            const lo = p.playhead + 1, hi = s.latest
+            // urgency order: nearest-to-playhead missing slots first
+            for (let chunk = lo; chunk <= hi && chunk < lo + WINDOW; chunk++) {
+              if (p.have.has(chunk)) continue
+              if (pulls.some((q) => q.to === p.id && q.chunk === chunk)) continue
+              // who has it? in pull mode: any partner. in server mode: only the source.
+              const holders = modeRef.current === "server"
+                ? [0].filter((id) => peers[id].have.has(chunk))
+                : p.partners.filter((id) => peers[id].have.has(chunk))
+              if (!holders.length) continue
+              if (modeRef.current === "server" && pulls.filter((q) => q.from === 0).length >= 3) break
+              const from = holders[(s.tick + p.id) % holders.length]
+              pulls.push({ from, to: p.id, chunk, t: 0 })
+              break // one request per peer per scheduling round (keeps it legible)
+            }
+          }
+        }
+
+        // publish stats occasionally
+        if (s.tick % 20 === 0) {
+          const viewers = peers.filter((p) => !p.isSource)
+          const totPlayed = viewers.reduce((a, p) => a + p.played, 0)
+          const totSlots = viewers.reduce((a, p) => a + p.played + p.stalls, 0)
+          setStats({ latest: s.latest, continuity: totSlots ? Math.round((totPlayed / totSlots) * 100) : 100 })
         }
       }
 
       // ---- draw ----
       ctx.clearRect(0, 0, s.w, s.h)
-      // overlay edges
+      // mesh edges
       ctx.lineWidth = 1
-      for (const p of peers) for (const n of p.neighbours) {
+      for (const p of peers) for (const n of p.partners) {
         if (n < p.id) continue
-        const q = peers[n]
-        ctx.strokeStyle = "rgba(150,170,220,0.10)"
-        ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke()
+        ctx.strokeStyle = "rgba(150,170,220,0.09)"
+        ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(peers[n].x, peers[n].y); ctx.stroke()
       }
-      // transfers — a travelling packet of light
-      for (const tr of transfers) {
-        const a = peers[tr.from], b = peers[tr.to]
-        const x = a.x + (b.x - a.x) * tr.t, y = a.y + (b.y - a.y) * tr.t
-        ctx.strokeStyle = "rgba(126,200,255,0.35)"
+      // in-flight chunk pulls — a travelling packet
+      for (const pl of pulls) {
+        const a = peers[pl.from], b = peers[pl.to]
+        const x = a.x + (b.x - a.x) * pl.t, y = a.y + (b.y - a.y) * pl.t
+        ctx.strokeStyle = "rgba(126,200,255,0.30)"
         ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(x, y); ctx.stroke()
         ctx.fillStyle = "rgba(180,225,255,0.95)"
-        ctx.beginPath(); ctx.arc(x, y, 3, 0, 7); ctx.fill()
-        ctx.fillStyle = "rgba(126,200,255,0.25)"
-        ctx.beginPath(); ctx.arc(x, y, 7, 0, 7); ctx.fill()
+        ctx.beginPath(); ctx.arc(x, y, 2.6, 0, 7); ctx.fill()
       }
-      // peers — a node with a ring buffer showing how full its availability map is
+      // peers, each drawn WITH its buffer map (the window of chunk slots)
       for (const p of peers) {
-        const got = p.have.filter(Boolean).length
-        const frac = got / CHUNKS
-        const rad = p.isSource ? 15 : 11
-        // buffer ring
-        ctx.lineWidth = 3
-        ctx.strokeStyle = "rgba(120,135,170,0.25)"
-        ctx.beginPath(); ctx.arc(p.x, p.y, rad + 4, 0, 7); ctx.stroke()
-        ctx.strokeStyle = p.isSource ? "rgba(255,214,140,0.95)" : "rgba(127,209,185,0.95)"
-        ctx.beginPath(); ctx.arc(p.x, p.y, rad + 4, -Math.PI / 2, -Math.PI / 2 + frac * Math.PI * 2); ctx.stroke()
-        // node core
-        const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, rad)
-        if (p.isSource) { g.addColorStop(0, "#ffe9b8"); g.addColorStop(1, "#e0961f") }
-        else { g.addColorStop(0, frac >= 1 ? "#bff0dd" : "#8fa2c8"); g.addColorStop(1, frac >= 1 ? "#3aa07a" : "#2a3350") }
-        ctx.fillStyle = g
-        ctx.beginPath(); ctx.arc(p.x, p.y, rad, 0, 7); ctx.fill()
-        if (p.isSource) {
-          ctx.fillStyle = "rgba(20,15,5,0.85)"; ctx.font = "600 8px ui-monospace, monospace"
-          ctx.textAlign = "center"; ctx.textBaseline = "middle"
-          ctx.fillText("SRC", p.x, p.y)
-        }
+        drawPeer(ctx, p, s.latest)
       }
       raf = requestAnimationFrame(step)
     }
@@ -176,43 +176,85 @@ export function P2PSwarm() {
     <div className="w-full">
       <div className="relative w-full aspect-[4/3] sm:aspect-[16/9] rounded-2xl overflow-hidden border border-border bg-gradient-to-b from-[#0a0b12] to-[#05060a]">
         <canvas ref={canvasRef} className="w-full h-full block" />
-        <div className="pointer-events-none absolute left-3 top-3 font-mono text-[10px] tracking-widest uppercase text-white/40">
-          {mode === "p2p" ? "data-driven P2P — peers pull from each other" : "single server — one uplink feeds everyone"}
+        <div className="pointer-events-none absolute left-3 top-3 font-mono text-[10px] leading-relaxed tracking-widest uppercase text-white/40">
+          {mode === "pull" ? "data-driven pull — peers fetch chunks from partners" : "single server — one uplink serves the stream"}
         </div>
-        {/* legend */}
+        <div className="pointer-events-none absolute right-3 top-3 text-right font-mono text-[10px] text-white/55">
+          <div>chunk #{stats.latest} live</div>
+          <div className={stats.continuity >= 90 ? "text-emerald-300/80" : stats.continuity >= 70 ? "text-amber-300/80" : "text-red-300/80"}>
+            {stats.continuity}% continuity
+          </div>
+        </div>
         <div className="pointer-events-none absolute right-3 bottom-3 flex flex-col gap-1 font-mono text-[9px] text-white/45">
-          <span><span className="inline-block w-2 h-2 rounded-full align-middle mr-1" style={{ background: "#e0961f" }} />source</span>
-          <span><span className="inline-block w-2 h-2 rounded-full align-middle mr-1" style={{ background: "#3aa07a" }} />fully buffered</span>
-          <span><span className="inline-block w-2 h-2 rounded-full align-middle mr-1" style={{ background: "#2a3350" }} />still filling</span>
+          <span><span className="inline-block w-2.5 h-2 align-middle mr-1" style={{ background: "#7ec8ff" }} />buffered</span>
+          <span><span className="inline-block w-2.5 h-2 align-middle mr-1" style={{ background: "#2a3350" }} />missing</span>
+          <span><span className="inline-block w-2.5 h-2 align-middle mr-1" style={{ background: "#e0961f" }} />playhead</span>
         </div>
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <div className="inline-flex overflow-hidden rounded-lg border border-border">
-          <button
-            onClick={() => setMode("p2p")}
-            className={`px-4 py-2 font-mono text-sm transition-colors ${mode === "p2p" ? "bg-accent/20 text-foreground" : "text-foreground/60 hover:bg-accent/10"}`}
-          >P2P (data-driven)</button>
-          <button
-            onClick={() => setMode("server")}
-            className={`px-4 py-2 font-mono text-sm border-l border-border transition-colors ${mode === "server" ? "bg-accent/20 text-foreground" : "text-foreground/60 hover:bg-accent/10"}`}
-          >Single server</button>
+          <button onClick={() => setMode("pull")} className={`px-4 py-2 font-mono text-sm transition-colors ${mode === "pull" ? "bg-accent/20 text-foreground" : "text-foreground/60 hover:bg-accent/10"}`}>
+            Data-driven pull
+          </button>
+          <button onClick={() => setMode("server")} className={`px-4 py-2 font-mono text-sm border-l border-border transition-colors ${mode === "server" ? "bg-accent/20 text-foreground" : "text-foreground/60 hover:bg-accent/10"}`}>
+            Single server
+          </button>
         </div>
         <button onClick={() => setRunning((r) => !r)} className="px-4 py-2 rounded-lg border border-border font-mono text-sm text-foreground/85 hover:bg-accent/15 transition-colors">
           {running ? "Pause" : "Play"}
         </button>
         <button onClick={reset} className="px-4 py-2 rounded-lg border border-border font-mono text-sm text-foreground/60 hover:bg-accent/15 transition-colors">
-          Reseed
+          Restart stream
         </button>
       </div>
       <p className="mt-3 font-sans text-[13px] leading-relaxed text-foreground/50">
-        Each node&apos;s ring shows how full its playback buffer is. In{" "}
-        <span className="text-foreground/70">P2P</span> mode a peer pulls missing chunks
-        from any neighbour that already holds them, so the swarm&apos;s collective upload
-        bandwidth fills everyone quickly. Switch to{" "}
-        <span className="text-foreground/70">single server</span> and watch the one uplink
-        become the bottleneck — the thing the project set out to fix.
+        Each node shows its <span className="text-foreground/70">buffer map</span> — a
+        sliding window of recent chunk slots, filled or missing, with a{" "}
+        <span className="text-foreground/70">playhead</span> that advances on a deadline.
+        Peers pull the most-urgent missing chunks from partners that hold them; if a
+        chunk misses its deadline, playback stalls, dropping the{" "}
+        <span className="text-foreground/70">continuity</span> score. Switch to a single
+        server and watch its one uplink throttle the swarm — the bottleneck the base
+        paper&apos;s data-driven design removes.
       </p>
     </div>
   )
+}
+
+/** Draw a peer node with its buffer map: a small strip of chunk-slot cells. */
+function drawPeer(ctx: CanvasRenderingContext2D, p: Peer, latest: number) {
+  const rad = p.isSource ? 8 : 6
+  // the node dot
+  const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, rad)
+  if (p.isSource) { g.addColorStop(0, "#ffe9b8"); g.addColorStop(1, "#e0961f") }
+  else { g.addColorStop(0, "#bcd0f0"); g.addColorStop(1, "#3a4668") }
+  ctx.fillStyle = g
+  ctx.beginPath(); ctx.arc(p.x, p.y, rad, 0, 7); ctx.fill()
+  if (p.isSource) {
+    ctx.fillStyle = "rgba(20,15,5,0.85)"; ctx.font = "600 7px ui-monospace, monospace"
+    ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("SRC", p.x, p.y)
+  }
+  if (p.isSource) return
+
+  // the BUFFER MAP strip — WINDOW cells centred under the node
+  const cellW = 4.4, cellH = 6, gap = 0.6
+  const total = WINDOW
+  const stripW = total * (cellW + gap)
+  const x0 = p.x - stripW / 2
+  const y0 = p.y + rad + 5
+  const start = p.playhead - 2
+  for (let i = 0; i < total; i++) {
+    const chunk = start + i
+    const cx = x0 + i * (cellW + gap)
+    const isPlayhead = chunk === p.playhead
+    if (chunk < 0 || chunk > latest) { ctx.fillStyle = "rgba(120,135,170,0.08)" }
+    else if (p.have.has(chunk)) { ctx.fillStyle = "rgba(126,200,255,0.85)" }
+    else { ctx.fillStyle = "rgba(42,51,80,0.9)" }
+    ctx.fillRect(cx, y0, cellW, cellH)
+    if (isPlayhead) {
+      ctx.fillStyle = "rgba(224,150,31,0.95)"
+      ctx.fillRect(cx, y0 - 2, cellW, 2) // the playhead marker atop its slot
+    }
+  }
 }

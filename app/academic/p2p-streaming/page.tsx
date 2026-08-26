@@ -37,12 +37,15 @@ export default function P2PStreamingPage() {
       }
     >
       <section>
-        <CaseSectionHeading>The swarm, live</CaseSectionHeading>
+        <CaseSectionHeading>The overlay, live</CaseSectionHeading>
         <CaseProse>
-          A live model of the overlay, running in your browser. A source seeds media
-          chunks and every peer pulls the chunks it&apos;s missing from neighbours that
-          already hold them — watch the buffers fill. Flip to a single server and the
-          one uplink becomes the bottleneck the project set out to remove.
+          A live model of the base paper&apos;s mechanism, running in your browser.
+          The source emits a continuous stream of numbered chunks; each peer keeps a
+          sliding <em>buffer map</em> with a <em>playhead</em> on a deadline, and pulls
+          the most-urgent missing chunks from partners that hold them. If a chunk misses
+          its deadline, playback stalls — so the <em>continuity</em> score is the number
+          the design optimizes. Flip to a single server and its one uplink throttles the
+          swarm, the bottleneck data-driven streaming removes.
         </CaseProse>
         <div className="mt-6">
           <P2PSwarm />
