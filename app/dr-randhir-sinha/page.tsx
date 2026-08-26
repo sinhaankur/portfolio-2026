@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react"
 import { canonicalPath } from "@/lib/seo"
 import { ParallaxBackdrop } from "@/components/parallax-backdrop"
 import { SilkMotif } from "@/components/silk-motif"
+import { RandhirJourneyMap } from "@/components/randhir-journey-map"
 import { Footer } from "@/components/footer"
 import {
   randhirStats,
@@ -278,6 +279,9 @@ export default function DrRandhirSinhaPage() {
           to the tropical south. Each stop, a different silkworm, a different set of farmers, the same
           patient science.
         </P>
+        <div className="my-8">
+          <RandhirJourneyMap />
+        </div>
         <CareerTimeline />
 
         <H2>The archive</H2>
