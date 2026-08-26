@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { canonicalPath } from "@/lib/seo"
+import { P2PSwarm } from "@/components/academic/p2p-swarm"
 import {
   CaseStudyLayout,
   CaseSectionHeading,
@@ -35,6 +36,19 @@ export default function P2PStreamingPage() {
         </>
       }
     >
+      <section>
+        <CaseSectionHeading>The swarm, live</CaseSectionHeading>
+        <CaseProse>
+          A live model of the overlay, running in your browser. A source seeds media
+          chunks and every peer pulls the chunks it&apos;s missing from neighbours that
+          already hold them — watch the buffers fill. Flip to a single server and the
+          one uplink becomes the bottleneck the project set out to remove.
+        </CaseProse>
+        <div className="mt-6">
+          <P2PSwarm />
+        </div>
+      </section>
+
       <section>
         <CaseSectionHeading>The problem</CaseSectionHeading>
         <CaseProse>
