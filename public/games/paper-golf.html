@@ -119,6 +119,23 @@
     const ctx = cv.getContext("2d");
     const $ = (id) => document.getElementById(id);
 
+    // Tiny WebAudio blips so putting, bouncing, and sinking have feel (no assets).
+    let audioCtx = null;
+    function beep(freq, dur, type, vol) {
+      try {
+        audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+        const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+        o.type = type || "sine"; o.frequency.value = freq;
+        g.gain.value = vol || 0.05;
+        o.connect(g); g.connect(audioCtx.destination);
+        o.start();
+        g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + (dur || 0.08));
+        o.stop(audioCtx.currentTime + (dur || 0.08));
+      } catch (e) { /* audio optional */ }
+    }
+    // a two-note plunk for a sunk putt
+    function sinkChime() { beep(520, 0.09, "sine", 0.07); setTimeout(() => beep(780, 0.14, "sine", 0.06), 90); }
+
     // ---- Course definitions (grid units; laid out to fit a portrait pad) -----
     // Each hole: par, ball start, hole pos, and obstacle "pines" + walls (as
     // fairway is the whole page; pines/water are hazards you route around).
@@ -259,6 +276,8 @@
             const dot = ball.vx * nx + ball.vy * ny;
             ball.vx = (ball.vx - 2 * dot * nx) * 0.55;
             ball.vy = (ball.vy - 2 * dot * ny) * 0.55;
+            // a dull bonk off the pine, only if moving with some pace
+            if (Math.hypot(ball.vx, ball.vy) > 1.2) beep(120, 0.06, "sawtooth", 0.04);
           }
         }
         // water — reset to just before the hazard, +1 stroke penalty
@@ -287,6 +306,7 @@
 
     function sink() {
       sunk = true; moving = false; ball.vx = ball.vy = 0;
+      sinkChime();
       total += strokes; $("total").textContent = total;
       const hl = HOLES[holeIdx];
       const d = strokes - hl.par;
@@ -346,6 +366,8 @@
         const speed = power * 0.16;
         ball.vx = Math.cos(a) * speed; ball.vy = Math.sin(a) * speed;
         moving = true; strokes += 1; $("strokes").textContent = strokes;
+        // a soft putt — pitch rises with power, so a hard hit sounds harder
+        beep(180 + power * 0.6, 0.07, "triangle", 0.06);
       }
       e.preventDefault();
     }

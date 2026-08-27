@@ -220,6 +220,22 @@ const DIFFICULTIES = {
   hard:   { cols: 6, rows: 4 },  // 24 cards = 12 pairs
 };
 
+// Tiny WebAudio blips so flip / match / miss / win have feel (no asset files).
+let audioCtx = null;
+function beep(freq, dur, type, vol) {
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = type || 'sine'; o.frequency.value = freq;
+    g.gain.value = vol || 0.05;
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start();
+    g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + (dur || 0.08));
+    o.stop(audioCtx.currentTime + (dur || 0.08));
+  } catch (e) { /* audio optional */ }
+}
+function winFanfare() { [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => beep(f, 0.16, 'sine', 0.06), i * 110)); }
+
 const boardEl = document.getElementById('board');
 const movesEl = document.getElementById('moves');
 const pairsEl = document.getElementById('pairs');
@@ -344,6 +360,7 @@ function onCardClick(card, el) {
 
   card.flipped = true;
   el.classList.add('flipped');
+  beep(440, 0.05, 'triangle', 0.04);   // soft flip
   selected.push({ card, el });
 
   if (selected.length === 2) {
@@ -357,8 +374,11 @@ function onCardClick(card, el) {
       selected = [];
       matched++;
       pairsEl.textContent = `${matched} / ${totalPairs}`;
+      // a rising two-note chime for a match
+      beep(660, 0.08, 'sine', 0.06); setTimeout(() => beep(880, 0.12, 'sine', 0.055), 80);
       if (matched === totalPairs) finish();
     } else {
+      beep(200, 0.12, 'sawtooth', 0.04);   // a low miss buzz
       lock = true;
       setTimeout(() => {
         a.card.flipped = b.card.flipped = false;
@@ -392,6 +412,7 @@ function startTimer() {
 
 function finish() {
   won = true;
+  winFanfare();
   if (timerRAF) cancelAnimationFrame(timerRAF);
   const best = loadBest();
   const rec = { moves, timeMs: Math.floor(elapsedMs) };
