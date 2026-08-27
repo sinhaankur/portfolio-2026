@@ -102,6 +102,7 @@
       <span>Hole <b id="hole">1</b></span>
       <span>Strokes <b id="strokes">0</b>/<b id="par">3</b></span>
       <span>Total <b id="total">0</b></span>
+      <span>Best <b id="best">—</b></span>
     </div>
     <div class="banner" id="banner">
       <h1 id="bTitle">Nice putt</h1>
@@ -293,7 +294,20 @@
       $("bTitle").textContent = name;
       $("bScore").textContent = strokes + (strokes === 1 ? " stroke" : " strokes");
       const last = holeIdx === HOLES.length - 1;
-      $("bMsg").textContent = last ? `Course done — ${total} total over ${HOLES.length} holes.` : "";
+      if (last) {
+        // course complete — persist the best (lowest) total, like the other games,
+        // so there's a score to beat on the next round.
+        const prev = +(localStorage.getItem("papergolf.best") || 0);
+        const beat = !prev || total < prev;
+        if (beat) { localStorage.setItem("papergolf.best", String(total)); $("best").textContent = total; }
+        const best = beat ? total : prev;
+        $("bMsg").textContent =
+          `Course done — ${total} over ${HOLES.length} holes.` +
+          (beat ? "  New best!" : `  Best: ${best}.`);
+        $("bTitle").textContent = beat ? "New best round!" : name;
+      } else {
+        $("bMsg").textContent = "";
+      }
       $("bNext").textContent = last ? "Play again ↺" : "Next hole →";
       $("banner").classList.add("show");
     }
@@ -343,6 +357,9 @@
     // spiral binding dots
     const sp = document.querySelector(".spiral");
     for (let i = 0; i < 12; i++) { const el = document.createElement("i"); sp.appendChild(el); }
+
+    // show the saved best round as a target to beat
+    { const b = localStorage.getItem("papergolf.best"); if (b) $("best").textContent = b; }
 
     window.addEventListener("resize", resize);
     resize(); draw(); requestAnimationFrame(step);
