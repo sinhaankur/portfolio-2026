@@ -9,7 +9,9 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
   <link href="css/retro.css" rel="stylesheet">
   <style>
-    html, body { margin: 0; min-height: 100dvh; overflow-x: hidden; }
+    html, body { margin: 0; min-height: 100dvh; overflow-x: hidden; overscroll-behavior: none; }
+    /* the card grid is tap-only — stop double-tap-zoom, text-select, and callout */
+    .board, .card { touch-action: manipulation; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
     body {
       display: flex; flex-direction: column; align-items: center; gap: 0.75rem;
       padding:
