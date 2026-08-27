@@ -559,6 +559,23 @@ document.addEventListener('visibilitychange', () => {
 startButton.addEventListener('click', startGame);
 restartButton.addEventListener('click', startGame);
 
+// Size the canvas backing store to its displayed size × device-pixel-ratio, so the
+// board is crisp on retina screens and re-fits when the phone rotates or the browser
+// chrome resizes. All game coords are relative to canvas.width, so nothing else changes.
+function fitCanvas() {
+  const rect = canvas.getBoundingClientRect();
+  if (!rect.width) return;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const side = Math.round(Math.min(rect.width, rect.height) * dpr);
+  if (canvas.width !== side) { canvas.width = side; canvas.height = side; }
+  draw();
+}
+let fitPending = false;
+window.addEventListener('resize', () => {
+  if (fitPending) return; fitPending = true;
+  requestAnimationFrame(() => { fitPending = false; fitCanvas(); });
+});
+
 // Boot
 snake = [
   { x: 10, y: 10 }, { x: 9, y: 10 }, { x: 8, y: 10 },
@@ -566,6 +583,7 @@ snake = [
 placeFood();
 initTheme();
 updateHud();
+fitCanvas();
 draw();
 </script>
 </body>
