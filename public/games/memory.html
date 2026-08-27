@@ -370,10 +370,18 @@ function onCardClick(card, el) {
 }
 
 function startTimer() {
+  // Accumulate elapsed time from per-frame deltas rather than (now − startedAt),
+  // so a hidden tab (which suspends rAF) doesn't snap the clock forward by the
+  // away-time — the timer only counts time the game was actually visible.
   startedAt = performance.now();
+  let lastT = startedAt;
   const tick = (t) => {
     if (won) return;
-    elapsedMs = t - startedAt;
+    const dt = t - lastT;
+    lastT = t;
+    // clamp the delta so a long background gap (or a big frame hitch) never
+    // adds bogus seconds when the tab regains focus
+    elapsedMs += Math.min(dt, 250);
     timeEl.textContent = formatTime(elapsedMs);
     timerRAF = requestAnimationFrame(tick);
   };
