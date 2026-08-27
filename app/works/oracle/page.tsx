@@ -19,6 +19,17 @@ export const metadata: Metadata = {
     "Six years of UX across OCI Database-as-a-Service and the Database Tools portfolio — provisioning, encryption, disaster recovery, developer experience, and the human-in-the-loop layer for AI-assisted database work.",
 }
 
+/** A quiet sub-heading that groups the project cards into areas — so a reader sees
+ *  the shape of the work (DBaaS · Tools · AI) before reading any single card. */
+function GroupHeading({ label, blurb }: { label: string; blurb: string }) {
+  return (
+    <div className="mt-12 mb-4 first:mt-0">
+      <h3 className="font-mono text-[11px] tracking-[0.2em] uppercase text-accent">{label}</h3>
+      <p className="font-sans text-sm text-muted-foreground mt-1.5">{blurb}</p>
+    </div>
+  )
+}
+
 export default function OracleCaseStudy() {
   return (
     <CaseStudyLayout
@@ -125,9 +136,414 @@ export default function OracleCaseStudy() {
           </p>
         </CaseProse>
 
-        <div className="mt-10 space-y-4">
+                <div className="mt-10 space-y-4">
+          <GroupHeading label="DBaaS services" blurb="The database platform itself — provisioning, security, high availability, recovery." />
           <ProjectStory
             index={0}
+            icon="key"
+            headline="Encryption & key management — KMS / TDE, OKV"
+            tagline="Bringing customer-managed encryption to VM and Bare Metal databases through OCI Vault."
+            context={
+              <>
+                Customer-managed encryption for VM and Bare Metal databases via OCI
+                Vault, plus the dedicated key-vault surface, OKV (Oracle Key Vault).
+                The full lifecycle: provisioning, switching from the host wallet to
+                KMS, key rotation, migration, backup and restore, and Data Guard.
+              </>
+            }
+            uxAngle={
+              <>
+                Encryption-key work is unforgiving — a wrong move can lock a customer
+                out of their own data. The design job is making an irreversible,
+                high-stakes operation legible and safe at every step.
+              </>
+            }
+            approach={
+              <>
+                Sequenced the lifecycle so each state — host-wallet, migrating,
+                KMS-managed — is unambiguous. Made destructive steps explicit rather
+                than incidental, and kept the dense operational detail operators rely
+                on instead of stripping it for the sake of &ldquo;clean.&rdquo;
+              </>
+            }
+            learned={
+              <>
+                On irreversible surfaces, clarity about <em>what state you&rsquo;re
+                in</em> matters more than visual polish.
+              </>
+            }
+            cta={{
+              label: "Request a walkthrough",
+              href: "mailto:sinhaankur827@gmail.com?subject=KMS%2FTDE%20encryption%20walkthrough",
+            }}
+          />
+          <ProjectStory
+            index={1}
+            icon="shield"
+            headline="Cross-Region Autonomous Data Guard"
+            tagline="Disaster recovery for Autonomous Database — the surface an operator only touches on their worst day."
+            context={
+              <>
+                Standby databases in a different region, with mandatory same-region
+                automatic failover plus operator-controlled cross-region failover,
+                and seamless reconnect afterward.
+              </>
+            }
+            uxAngle={
+              <>
+                Disaster recovery is the definition of high-stakes and irreversible.
+                The interface has to be unambiguous when someone is stressed and the
+                clock is running — and it has to separate &ldquo;the system has this
+                covered&rdquo; from &ldquo;I have to act now.&rdquo;
+              </>
+            }
+            approach={
+              <>
+                Made the protection topology and failover state readable at a glance.
+                Kept the automatic guarantees visually distinct from the
+                operator-initiated controls, so nobody confuses a system-owned
+                failover with one they must trigger.
+              </>
+            }
+            learned={
+              <>
+                Design for the tired operator mid-incident, not the one running a
+                clean demo.
+              </>
+            }
+            cta={{
+              label: "Request a walkthrough",
+              href: "mailto:sinhaankur827@gmail.com?subject=Cross-Region%20Data%20Guard%20walkthrough",
+            }}
+          />
+          <ProjectStory
+            index={2}
+            icon="database-zap"
+            headline="PDB lifecycle & Refreshable Clone"
+            tagline="One coherent lifecycle across Console, SDK, and Terraform."
+            context={
+              <>
+                Letting customers create and manage pluggable databases (DBCS /
+                ExaCS / ExaCC) from the OCI Console, SDK, and Terraform instead of by
+                hand on the host — plus Refreshable Clone (ADB) with automatic,
+                manual, and continuous refresh schedules.
+              </>
+            }
+            uxAngle={
+              <>
+                The same operation has to feel coherent across three very different
+                entry points. Consistency <em>is</em> the feature — a Console user
+                and a Terraform user should be reasoning about the same model.
+              </>
+            }
+            approach={
+              <>
+                One mental model for the lifecycle, expressed natively in each
+                surface. Made refresh schedules explicit so a clone&rsquo;s freshness
+                is never a guess.
+              </>
+            }
+            learned={
+              <>
+                When a workflow spans Console and code, the design&rsquo;s job is one
+                model, three faithful expressions.
+              </>
+            }
+            cta={{
+              label: "Request a walkthrough",
+              href: "mailto:sinhaankur827@gmail.com?subject=PDB%20lifecycle%20walkthrough",
+            }}
+          />
+          <ProjectStory
+            index={3}
+            icon="archive"
+            headline="Reliability — Backup & Recovery, snapshot archival"
+            tagline="Designing the restore, not the backup — because the restore is the moment that matters."
+            context={
+              <>
+                Recovery workflows with the Siteguard team, and VM snapshot archival
+                to Object Storage for ExaDB-XS — archival, storage management, and
+                recovery. (This year.)
+              </>
+            }
+            uxAngle={
+              <>
+                Backup is invisible until the day it isn&rsquo;t. The recovery path is
+                the real product, and it has to work for someone who&rsquo;s panicking.
+              </>
+            }
+            approach={
+              <>
+                Designed the recovery journey first and let the archival and storage
+                configuration serve it. Surfaced what&rsquo;s recoverable, and from
+                when, plainly.
+              </>
+            }
+            learned={
+              <>
+                Design the restore, not the backup. The backup is housekeeping; the
+                restore is the moment everything depends on.
+              </>
+            }
+            cta={{
+              label: "Request a walkthrough",
+              href: "mailto:sinhaankur827@gmail.com?subject=Backup%20%26%20Recovery%20walkthrough",
+            }}
+          />
+          <ProjectStory
+            index={4}
+            icon="sparkles"
+            headline="Autonomous Database Services (OCI)"
+            tagline="A prioritised pattern for surfacing applicable promotions across the DB admin journey."
+            image={{ src: "/img/case-studies/oracle/oci.png", alt: "Autonomous Database on OCI" }}
+            context={
+              <>
+                Autonomous Database has multiple promotional offers running at
+                any time — different SKUs, regions, customer tiers. The console
+                was either showing all of them (overwhelming) or none (revenue
+                left on the table). Admins kept missing things they were
+                eligible for.
+              </>
+            }
+            uxAngle={
+              <>
+                A "promotion" isn't a UI element. It's a small system with
+                eligibility, priority, dismissal state, repetition rules. Once
+                you treat it that way, the design follows; treat it as a banner
+                and you fight the same problem on every page.
+              </>
+            }
+            approach={
+              <>
+                Designed a priority + dismissal model so a high-impact offer
+                outranks a low-impact one, and the same offer doesn't shout at
+                the same admin five screens in a row. Reusable pattern, not
+                per-page custom work.
+              </>
+            }
+            learned={
+              <>
+                The hardest UX problems hide as "just a banner." Recognising
+                when a small interface element is actually a system is half the
+                job.
+              </>
+            }
+            cta={{
+              label: "Request a walkthrough",
+              href: "mailto:sinhaankur827@gmail.com?subject=Autonomous%20DB%20promotions%20walkthrough",
+            }}
+          />
+          <GroupHeading label="Database Tools" blurb="The portfolio people use to build, query, migrate, and operate those databases." />
+          <ProjectStory
+            index={5}
+            icon="git-compare"
+            headline="GoldenGate Veridata"
+            tagline="Bringing a legacy data-comparison console onto the RDS design system."
+            image={{ src: "/img/case-studies/oracle/oracleveridata.png", alt: "GoldenGate Veridata" }}
+            context={
+              <>
+                GoldenGate Veridata is the tool DBAs use to compare and reconcile
+                data between source and target databases during replication. The
+                console had been carrying years of accumulated IA — admins were
+                doing four jobs (configure, run, monitor, repair) inside one
+                undifferentiated surface.
+              </>
+            }
+            uxAngle={
+              <>
+                The interesting question wasn't "how do we modernise the look" —
+                it was "what is the admin actually trying to do, and is the IA
+                shaped around it?" Reframing the problem as four distinct jobs
+                changed everything that came after.
+              </>
+            }
+            approach={
+              <>
+                Re-anchored the IA around the four jobs instead of the legacy
+                menu. Pressure-tested every flow against the user under incident
+                conditions, not the one running a clean demo. Cleaned the visual
+                language up to RDS while keeping the dense-table affordances
+                admins actually rely on.
+              </>
+            }
+            learned={
+              <>
+                For an operator-grade tool, density isn't a problem to solve —
+                it's a feature to design around. Stripping it for the sake of
+                "clean" is a beginner move.
+              </>
+            }
+            cta={{
+              label: "View GoldenGate Veridata on Oracle",
+              href: "https://www.oracle.com/integration/goldengate/veridata/",
+              external: true,
+            }}
+          />
+          <ProjectStory
+            index={6}
+            icon="map"
+            headline="Spatial Studio"
+            tagline="Making spatial / market analysis usable for non-spatial analysts."
+            image={{ src: "/img/case-studies/oracle/Spatial.png", alt: "Spatial Studio" }}
+            context={
+              <>
+                Spatial Studio sits between the database and analysts who want
+                to ask geographic questions of their data. The catch: most users
+                aren't trained spatial analysts. They're business users with a
+                map and a question.
+              </>
+            }
+            uxAngle={
+              <>
+                The user we were designing for wasn't the spec's user. The spec
+                assumed a trained spatial analyst; the actual user was a
+                business analyst with a question and a map. Designing for that
+                gap is most of the work.
+              </>
+            }
+            approach={
+              <>
+                Simple defaults that produce a useful map in one click. Deeper
+                spatial controls hidden behind progressive disclosure for the
+                moment a user is ready for them. Familiar shell so anyone moving
+                between DB tools doesn't relearn the console.
+              </>
+            }
+            learned={
+              <>
+                Design for the user who'd never have asked for the tool. The
+                expert can find the depth; the curious user is who you lose if
+                the on-ramp is wrong.
+              </>
+            }
+            cta={{
+              label: "View Spatial Studio on Oracle",
+              href: "https://www.oracle.com/database/technologies/spatial-studio/get-started.html",
+              external: true,
+            }}
+          />
+          <ProjectStory
+            index={7}
+            icon="workflow"
+            headline="Graph Studio"
+            tagline="A graph-analytics surface for users who don't speak Cypher."
+            image={{ src: "/img/case-studies/oracle/graphstudio.png", alt: "Graph Studio" }}
+            context={
+              <>
+                Graph Studio gives analysts a way to explore graph data —
+                relationships, paths, communities — without writing graph query
+                languages by hand. The previous version asked too much technical
+                fluency from the user.
+              </>
+            }
+            uxAngle={
+              <>
+                The hard part isn't the visual canvas. It's choosing the right
+                abstraction layer between "click and explore" and "write your
+                own Cypher" — and making sure neither user feels punished for
+                landing where they did.
+              </>
+            }
+            approach={
+              <>
+                Visual canvas with progressive depth. A curious analyst gets
+                value in one click; an advanced user can drop into the
+                underlying query whenever they want. Same shell as the rest of
+                the DB tools, so the console feels like one product across
+                services.
+              </>
+            }
+            learned={
+              <>
+                The right abstraction is the one that gives value at the shallow
+                end and never traps you at the deep end. Most failed analytics
+                tools fail one of those two tests.
+              </>
+            }
+            cta={{
+              label: "View Graph on Oracle",
+              href: "https://www.oracle.com/database/integrated-graph-database/",
+              external: true,
+            }}
+          />
+          <ProjectStory
+            index={8}
+            icon="code"
+            headline="Developer experience — Database Developer Portal + VS Code"
+            tagline="Bringing database workflows into the tools developers already live in."
+            context={
+              <>
+                A Database Developer Portal, deep VS Code integration, SQL Worksheet,
+                and a VS Code plugin for MongoDB migration — meeting developers in
+                their editor instead of asking them to leave it. (This year.)
+              </>
+            }
+            uxAngle={
+              <>
+                Developers don&rsquo;t want another console; they want the database to
+                meet them where they already work. The win is removing the
+                context-switch, not building a prettier portal.
+              </>
+            }
+            approach={
+              <>
+                Mapped the developer&rsquo;s existing loop and inserted DB workflows
+                into it — migration, querying, worksheet — so the tooling comes to
+                them rather than the other way around.
+              </>
+            }
+            learned={
+              <>
+                The best enterprise tool is sometimes the one that disappears into the
+                IDE the user already has open.
+              </>
+            }
+            cta={{
+              label: "Request a walkthrough",
+              href: "mailto:sinhaankur827@gmail.com?subject=Developer%20experience%20walkthrough",
+            }}
+          />
+          <ProjectStory
+            index={9}
+            icon="package-check"
+            headline="DMS — taking over and shipping"
+            tagline="Inheriting in-flight work, understanding someone else's decisions, and bringing it live."
+            context={
+              <>
+                Took over DMS from another team member, updated it, and brought it
+                live — the &ldquo;understand the existing work, take ownership, ship
+                it&rdquo; story.
+              </>
+            }
+            uxAngle={
+              <>
+                Inheriting in-flight work is its own skill: read someone else&rsquo;s
+                decisions charitably, find what&rsquo;s still unsolved, and avoid the
+                temptation to restart from scratch.
+              </>
+            }
+            approach={
+              <>
+                Mapped what was already decided versus still open, kept what worked,
+                and pushed the remaining gaps to a shippable state rather than
+                relitigating the whole design.
+              </>
+            }
+            learned={
+              <>
+                Follow-through is a design skill. Shipping someone else&rsquo;s
+                half-built idea well is harder — and often more valuable — than
+                starting your own.
+              </>
+            }
+            cta={{
+              label: "Request a walkthrough",
+              href: "mailto:sinhaankur827@gmail.com?subject=DMS%20walkthrough",
+            }}
+          />
+          <GroupHeading label="AI &amp; agentic UX" blurb="The human-in-the-loop layer for AI that acts on production database state." />
+          <ProjectStory
+            index={10}
             icon="bot"
             headline="AI-assisted database operations"
             tagline="Designing the human-in-the-loop layer for AI agents that act on production database state."
@@ -177,382 +593,8 @@ export default function OracleCaseStudy() {
               href: "mailto:sinhaankur827@gmail.com?subject=AI-assisted%20DB%20ops%20walkthrough",
             }}
           />
-
           <ProjectStory
-            index={1}
-            icon="git-compare"
-            headline="GoldenGate Veridata"
-            tagline="Bringing a legacy data-comparison console onto the RDS design system."
-            image={{ src: "/img/case-studies/oracle/oracleveridata.png", alt: "GoldenGate Veridata" }}
-            context={
-              <>
-                GoldenGate Veridata is the tool DBAs use to compare and reconcile
-                data between source and target databases during replication. The
-                console had been carrying years of accumulated IA — admins were
-                doing four jobs (configure, run, monitor, repair) inside one
-                undifferentiated surface.
-              </>
-            }
-            uxAngle={
-              <>
-                The interesting question wasn't "how do we modernise the look" —
-                it was "what is the admin actually trying to do, and is the IA
-                shaped around it?" Reframing the problem as four distinct jobs
-                changed everything that came after.
-              </>
-            }
-            approach={
-              <>
-                Re-anchored the IA around the four jobs instead of the legacy
-                menu. Pressure-tested every flow against the user under incident
-                conditions, not the one running a clean demo. Cleaned the visual
-                language up to RDS while keeping the dense-table affordances
-                admins actually rely on.
-              </>
-            }
-            learned={
-              <>
-                For an operator-grade tool, density isn't a problem to solve —
-                it's a feature to design around. Stripping it for the sake of
-                "clean" is a beginner move.
-              </>
-            }
-            cta={{
-              label: "View GoldenGate Veridata on Oracle",
-              href: "https://www.oracle.com/integration/goldengate/veridata/",
-              external: true,
-            }}
-          />
-
-          <ProjectStory
-            index={2}
-            icon="sparkles"
-            headline="Autonomous Database Services (OCI)"
-            tagline="A prioritised pattern for surfacing applicable promotions across the DB admin journey."
-            image={{ src: "/img/case-studies/oracle/oci.png", alt: "Autonomous Database on OCI" }}
-            context={
-              <>
-                Autonomous Database has multiple promotional offers running at
-                any time — different SKUs, regions, customer tiers. The console
-                was either showing all of them (overwhelming) or none (revenue
-                left on the table). Admins kept missing things they were
-                eligible for.
-              </>
-            }
-            uxAngle={
-              <>
-                A "promotion" isn't a UI element. It's a small system with
-                eligibility, priority, dismissal state, repetition rules. Once
-                you treat it that way, the design follows; treat it as a banner
-                and you fight the same problem on every page.
-              </>
-            }
-            approach={
-              <>
-                Designed a priority + dismissal model so a high-impact offer
-                outranks a low-impact one, and the same offer doesn't shout at
-                the same admin five screens in a row. Reusable pattern, not
-                per-page custom work.
-              </>
-            }
-            learned={
-              <>
-                The hardest UX problems hide as "just a banner." Recognising
-                when a small interface element is actually a system is half the
-                job.
-              </>
-            }
-            cta={{
-              label: "Request a walkthrough",
-              href: "mailto:sinhaankur827@gmail.com?subject=Autonomous%20DB%20promotions%20walkthrough",
-            }}
-          />
-
-          <ProjectStory
-            index={3}
-            icon="map"
-            headline="Spatial Studio"
-            tagline="Making spatial / market analysis usable for non-spatial analysts."
-            image={{ src: "/img/case-studies/oracle/Spatial.png", alt: "Spatial Studio" }}
-            context={
-              <>
-                Spatial Studio sits between the database and analysts who want
-                to ask geographic questions of their data. The catch: most users
-                aren't trained spatial analysts. They're business users with a
-                map and a question.
-              </>
-            }
-            uxAngle={
-              <>
-                The user we were designing for wasn't the spec's user. The spec
-                assumed a trained spatial analyst; the actual user was a
-                business analyst with a question and a map. Designing for that
-                gap is most of the work.
-              </>
-            }
-            approach={
-              <>
-                Simple defaults that produce a useful map in one click. Deeper
-                spatial controls hidden behind progressive disclosure for the
-                moment a user is ready for them. Familiar shell so anyone moving
-                between DB tools doesn't relearn the console.
-              </>
-            }
-            learned={
-              <>
-                Design for the user who'd never have asked for the tool. The
-                expert can find the depth; the curious user is who you lose if
-                the on-ramp is wrong.
-              </>
-            }
-            cta={{
-              label: "View Spatial Studio on Oracle",
-              href: "https://www.oracle.com/database/technologies/spatial-studio/get-started.html",
-              external: true,
-            }}
-          />
-
-          <ProjectStory
-            index={4}
-            icon="workflow"
-            headline="Graph Studio"
-            tagline="A graph-analytics surface for users who don't speak Cypher."
-            image={{ src: "/img/case-studies/oracle/graphstudio.png", alt: "Graph Studio" }}
-            context={
-              <>
-                Graph Studio gives analysts a way to explore graph data —
-                relationships, paths, communities — without writing graph query
-                languages by hand. The previous version asked too much technical
-                fluency from the user.
-              </>
-            }
-            uxAngle={
-              <>
-                The hard part isn't the visual canvas. It's choosing the right
-                abstraction layer between "click and explore" and "write your
-                own Cypher" — and making sure neither user feels punished for
-                landing where they did.
-              </>
-            }
-            approach={
-              <>
-                Visual canvas with progressive depth. A curious analyst gets
-                value in one click; an advanced user can drop into the
-                underlying query whenever they want. Same shell as the rest of
-                the DB tools, so the console feels like one product across
-                services.
-              </>
-            }
-            learned={
-              <>
-                The right abstraction is the one that gives value at the shallow
-                end and never traps you at the deep end. Most failed analytics
-                tools fail one of those two tests.
-              </>
-            }
-            cta={{
-              label: "View Graph on Oracle",
-              href: "https://www.oracle.com/database/integrated-graph-database/",
-              external: true,
-            }}
-          />
-
-          <ProjectStory
-            index={5}
-            icon="key"
-            headline="Encryption & key management — KMS / TDE, OKV"
-            tagline="Bringing customer-managed encryption to VM and Bare Metal databases through OCI Vault."
-            context={
-              <>
-                Customer-managed encryption for VM and Bare Metal databases via OCI
-                Vault, plus the dedicated key-vault surface, OKV (Oracle Key Vault).
-                The full lifecycle: provisioning, switching from the host wallet to
-                KMS, key rotation, migration, backup and restore, and Data Guard.
-              </>
-            }
-            uxAngle={
-              <>
-                Encryption-key work is unforgiving — a wrong move can lock a customer
-                out of their own data. The design job is making an irreversible,
-                high-stakes operation legible and safe at every step.
-              </>
-            }
-            approach={
-              <>
-                Sequenced the lifecycle so each state — host-wallet, migrating,
-                KMS-managed — is unambiguous. Made destructive steps explicit rather
-                than incidental, and kept the dense operational detail operators rely
-                on instead of stripping it for the sake of &ldquo;clean.&rdquo;
-              </>
-            }
-            learned={
-              <>
-                On irreversible surfaces, clarity about <em>what state you&rsquo;re
-                in</em> matters more than visual polish.
-              </>
-            }
-            cta={{
-              label: "Request a walkthrough",
-              href: "mailto:sinhaankur827@gmail.com?subject=KMS%2FTDE%20encryption%20walkthrough",
-            }}
-          />
-
-          <ProjectStory
-            index={6}
-            icon="shield"
-            headline="Cross-Region Autonomous Data Guard"
-            tagline="Disaster recovery for Autonomous Database — the surface an operator only touches on their worst day."
-            context={
-              <>
-                Standby databases in a different region, with mandatory same-region
-                automatic failover plus operator-controlled cross-region failover,
-                and seamless reconnect afterward.
-              </>
-            }
-            uxAngle={
-              <>
-                Disaster recovery is the definition of high-stakes and irreversible.
-                The interface has to be unambiguous when someone is stressed and the
-                clock is running — and it has to separate &ldquo;the system has this
-                covered&rdquo; from &ldquo;I have to act now.&rdquo;
-              </>
-            }
-            approach={
-              <>
-                Made the protection topology and failover state readable at a glance.
-                Kept the automatic guarantees visually distinct from the
-                operator-initiated controls, so nobody confuses a system-owned
-                failover with one they must trigger.
-              </>
-            }
-            learned={
-              <>
-                Design for the tired operator mid-incident, not the one running a
-                clean demo.
-              </>
-            }
-            cta={{
-              label: "Request a walkthrough",
-              href: "mailto:sinhaankur827@gmail.com?subject=Cross-Region%20Data%20Guard%20walkthrough",
-            }}
-          />
-
-          <ProjectStory
-            index={7}
-            icon="database-zap"
-            headline="PDB lifecycle & Refreshable Clone"
-            tagline="One coherent lifecycle across Console, SDK, and Terraform."
-            context={
-              <>
-                Letting customers create and manage pluggable databases (DBCS /
-                ExaCS / ExaCC) from the OCI Console, SDK, and Terraform instead of by
-                hand on the host — plus Refreshable Clone (ADB) with automatic,
-                manual, and continuous refresh schedules.
-              </>
-            }
-            uxAngle={
-              <>
-                The same operation has to feel coherent across three very different
-                entry points. Consistency <em>is</em> the feature — a Console user
-                and a Terraform user should be reasoning about the same model.
-              </>
-            }
-            approach={
-              <>
-                One mental model for the lifecycle, expressed natively in each
-                surface. Made refresh schedules explicit so a clone&rsquo;s freshness
-                is never a guess.
-              </>
-            }
-            learned={
-              <>
-                When a workflow spans Console and code, the design&rsquo;s job is one
-                model, three faithful expressions.
-              </>
-            }
-            cta={{
-              label: "Request a walkthrough",
-              href: "mailto:sinhaankur827@gmail.com?subject=PDB%20lifecycle%20walkthrough",
-            }}
-          />
-
-          <ProjectStory
-            index={8}
-            icon="archive"
-            headline="Reliability — Backup & Recovery, snapshot archival"
-            tagline="Designing the restore, not the backup — because the restore is the moment that matters."
-            context={
-              <>
-                Recovery workflows with the Siteguard team, and VM snapshot archival
-                to Object Storage for ExaDB-XS — archival, storage management, and
-                recovery. (This year.)
-              </>
-            }
-            uxAngle={
-              <>
-                Backup is invisible until the day it isn&rsquo;t. The recovery path is
-                the real product, and it has to work for someone who&rsquo;s panicking.
-              </>
-            }
-            approach={
-              <>
-                Designed the recovery journey first and let the archival and storage
-                configuration serve it. Surfaced what&rsquo;s recoverable, and from
-                when, plainly.
-              </>
-            }
-            learned={
-              <>
-                Design the restore, not the backup. The backup is housekeeping; the
-                restore is the moment everything depends on.
-              </>
-            }
-            cta={{
-              label: "Request a walkthrough",
-              href: "mailto:sinhaankur827@gmail.com?subject=Backup%20%26%20Recovery%20walkthrough",
-            }}
-          />
-
-          <ProjectStory
-            index={9}
-            icon="code"
-            headline="Developer experience — Database Developer Portal + VS Code"
-            tagline="Bringing database workflows into the tools developers already live in."
-            context={
-              <>
-                A Database Developer Portal, deep VS Code integration, SQL Worksheet,
-                and a VS Code plugin for MongoDB migration — meeting developers in
-                their editor instead of asking them to leave it. (This year.)
-              </>
-            }
-            uxAngle={
-              <>
-                Developers don&rsquo;t want another console; they want the database to
-                meet them where they already work. The win is removing the
-                context-switch, not building a prettier portal.
-              </>
-            }
-            approach={
-              <>
-                Mapped the developer&rsquo;s existing loop and inserted DB workflows
-                into it — migration, querying, worksheet — so the tooling comes to
-                them rather than the other way around.
-              </>
-            }
-            learned={
-              <>
-                The best enterprise tool is sometimes the one that disappears into the
-                IDE the user already has open.
-              </>
-            }
-            cta={{
-              label: "Request a walkthrough",
-              href: "mailto:sinhaankur827@gmail.com?subject=Developer%20experience%20walkthrough",
-            }}
-          />
-
-          <ProjectStory
-            index={10}
+            index={11}
             icon="boxes"
             headline="Database Tools MCP Toolsets"
             tagline="Designing how AI agents are scoped to call real database tools — agent tooling, not agent theater."
@@ -599,46 +641,7 @@ export default function OracleCaseStudy() {
               href: "mailto:sinhaankur827@gmail.com?subject=MCP%20Toolsets%20walkthrough",
             }}
           />
-
-          <ProjectStory
-            index={11}
-            icon="package-check"
-            headline="DMS — taking over and shipping"
-            tagline="Inheriting in-flight work, understanding someone else's decisions, and bringing it live."
-            context={
-              <>
-                Took over DMS from another team member, updated it, and brought it
-                live — the &ldquo;understand the existing work, take ownership, ship
-                it&rdquo; story.
-              </>
-            }
-            uxAngle={
-              <>
-                Inheriting in-flight work is its own skill: read someone else&rsquo;s
-                decisions charitably, find what&rsquo;s still unsolved, and avoid the
-                temptation to restart from scratch.
-              </>
-            }
-            approach={
-              <>
-                Mapped what was already decided versus still open, kept what worked,
-                and pushed the remaining gaps to a shippable state rather than
-                relitigating the whole design.
-              </>
-            }
-            learned={
-              <>
-                Follow-through is a design skill. Shipping someone else&rsquo;s
-                half-built idea well is harder — and often more valuable — than
-                starting your own.
-              </>
-            }
-            cta={{
-              label: "Request a walkthrough",
-              href: "mailto:sinhaankur827@gmail.com?subject=DMS%20walkthrough",
-            }}
-          />
-        </div>
+                </div>
       </section>
 
       {/* Lessons */}
