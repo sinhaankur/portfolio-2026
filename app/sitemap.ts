@@ -20,6 +20,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   const routes: { path: string; priority: number; changeFrequency: "monthly" | "weekly" }[] = [
     { path: "/",                  priority: 1.0, changeFrequency: "monthly" },
+    { path: "/about",             priority: 0.7, changeFrequency: "monthly" },
     { path: "/lab",               priority: 0.9, changeFrequency: "weekly"  },
     { path: "/lab/unhosted",      priority: 0.9, changeFrequency: "weekly"  },
     { path: "/lab/cognitive-twin",priority: 0.8, changeFrequency: "weekly"  },
@@ -35,10 +36,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/lab/usability-engine", priority: 0.7, changeFrequency: "monthly" },
     { path: "/lab/optical-flow",  priority: 0.7, changeFrequency: "monthly" },
     { path: "/lab/helion-drift",  priority: 0.6, changeFrequency: "monthly" },
+    { path: "/lab/firmament",     priority: 0.6, changeFrequency: "monthly" },
     { path: "/framework",         priority: 0.8, changeFrequency: "monthly" },
     { path: "/skills",            priority: 0.7, changeFrequency: "monthly" },
     { path: "/writing",           priority: 0.7, changeFrequency: "weekly"  },
     { path: "/writing/universe-engine", priority: 0.7, changeFrequency: "monthly" },
+    { path: "/writing/how-its-built", priority: 0.6, changeFrequency: "monthly" },
     { path: "/usability",         priority: 0.6, changeFrequency: "monthly" },
     { path: "/upcoming",          priority: 0.5, changeFrequency: "weekly"  },
     { path: "/photos",            priority: 0.5, changeFrequency: "monthly" },
@@ -53,6 +56,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/dna/databases",     priority: 0.4, changeFrequency: "monthly" },
     { path: "/dna/tools",         priority: 0.4, changeFrequency: "monthly" },
     { path: "/dna/how-it-works",  priority: 0.5, changeFrequency: "monthly" },
+    { path: "/sky",               priority: 0.5, changeFrequency: "monthly" },
+    // Family pages — indexable by design (linked from /about); /family itself is noindex.
+    { path: "/dr-randhir-sinha",  priority: 0.5, changeFrequency: "monthly" },
+    { path: "/vera",              priority: 0.4, changeFrequency: "monthly" },
     // Short posts are generated from lib/writing-posts.ts — kept in sync here.
     ...SHORT_POSTS.map((p) => ({
       path: `/writing/${p.slug}`,

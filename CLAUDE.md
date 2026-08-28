@@ -30,9 +30,14 @@ pnpm dev          # serves on http://localhost:3000
 - `pnpm dev` — Next.js dev server (Turbopack).
 - `pnpm build` — production static export. The GitHub Pages workflow runs this.
 - `pnpm start` — serve the production build.
-
-There is no test suite. There is no separate lint command beyond Next.js's
-built-in checks.
+- `pnpm lint` — ESLint over the repo. Baseline is 0 errors; keep it there.
+- `pnpm test:site` — full-route smoke test ([`scripts/smoke-site.mjs`](./scripts/smoke-site.mjs)).
+  Serve the build first: `(cd out && python3 -m http.server 8899 &)`. It boots every
+  route as a first-time visitor and fails on any console error, asset 404, stuck
+  intro curtain, or blank page. **Adding a route? Add it to the ROUTES list there,
+  to `app/sitemap.ts` (unless the page is noindex), and to the site map below.**
+- `pnpm check:assets` — GLB/texture size budget check.
+- `pnpm test:perf` — headless perf pass (`--gpu` variant for a real GPU).
 
 ## Deployment
 
@@ -79,6 +84,37 @@ App-router routes under [`app/`](./app):
   footer ("The Math").
 - `/games/Gamelist.html` — retro neobrutalism mini-games index, served from
   `public/games/` (preserved from the previous build as a separate visual language).
+- `/games/dave-3d` — Dave 3D platformer. (`/games/star-cleaver` is a static
+  redirect stub in `public/` → `/lab/helion-drift`.)
+- `/about` — the About page (journey imagery; links the family pages below).
+- More Lab entries: `/lab/terrain` (real 3D planetary surfaces via 3D-tiles),
+  `/lab/cognitive-twin` (local-first personal AI runtime), `/lab/firmament`
+  (the Universe Engine as an iOS app), `/lab/brainrot` (feed-bias visualizer),
+  `/lab/optical-flow` (library-porting writeup).
+- `/framework` — Universal Experience Framework (Laws of UX & cognition,
+  interactive demos). Linked from the navbar.
+- `/writing` — writing index. Long posts are folder routes
+  (`/writing/universe-engine`, `/writing/how-its-built`); short posts render
+  through `/writing/[slug]` from `lib/writing-posts.ts` — a new short post means
+  updating that file plus the sitemap + smoke ROUTES.
+- `/reference/spacecraft` — spacecraft catalog; `/references` — references &
+  data sources.
+- `/photos` — photography.
+- `/dna` (+ `/dna/databases`, `/dna/tools`, `/dna/how-it-works`) — DNA/ancestry
+  pages. Only derived, encrypted data ships (`scripts/encrypt-dna.mjs`); the raw
+  genome CSV is never committed.
+- Family pages: `/family` (noindex hub), `/dr-randhir-sinha` (father —
+  sericulture research archive), `/vera` (mother — Anita Sinha). The two
+  individual pages are indexable by design and linked from `/about`.
+- `/sky` — "The Sky — a quiet place": full-screen ambient sky (webOS TV remote
+  support lives here).
+- `/ja`, `/ar` — Japanese and Arabic localized homes (`/ar` is **Arabic**, not
+  augmented reality).
+- `/academic/p2p-streaming`, `/academic/rubik-cube` — academic projects
+  (equations beside the real code).
+- `/mirofish` — unlisted project page (noindex; copy in `content/mirofish.json`).
+- Noindex utility routes: `/tv` (TV landing), `/story` (alt-home experiment),
+  `/aero` (Aero Engine 3D), `/embed/satellites` (embeddable satellite tracker).
 
 ## Component conventions
 
@@ -163,7 +199,9 @@ the home page and then scrolls. Don't revert to in-page-only `#anchor` hrefs.
 ## Things to avoid
 
 - Don't link the live site to anything in `archive/`.
-- Don't introduce a global test runner or lint script unless the user asks for it.
+- Don't add a route without registering it in `app/sitemap.ts` (unless noindex),
+  the smoke ROUTES list in `scripts/smoke-site.mjs`, and the site map above —
+  all three are hand-maintained and drift otherwise.
 - Don't put case-study images in `/public/img/*` at the root level; nest them
   under `/public/img/case-studies/<company>/` to keep things tidy.
 - Don't auto-play music. The galaxy music chip is strictly opt-in.

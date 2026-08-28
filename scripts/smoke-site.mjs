@@ -20,13 +20,17 @@ const { chromium } = await import("playwright").catch(() => import("/opt/homebre
 // long enough for what the page actually does. New route? Add it here.
 const ROUTES = [
   ["/", 14000],                       // ignition intro (~7.5s) + hero engine
+  ["/about/", 3000],
   ["/lab/", 4000],
   ["/lab/big-bang/", 8000],
+  ["/lab/brainrot/", 4000],
   ["/lab/celestial/", 9000],
   ["/lab/cognitive-twin/", 2500],
+  ["/lab/firmament/", 3000],
   ["/lab/helion-drift/", 10000],
   ["/lab/optical-flow/", 4000],
-  ["/lab/star-cleaver/", 10000],
+  ["/lab/star-cleaver/", 4000],       // legacy redirect → /lab/helion-drift (covered above)
+  ["/lab/terrain/", 8000],            // 3D tiles terrain
   ["/lab/unhosted/", 2500],
   ["/lab/universe-assistant/", 6000],
   ["/lab/usability-engine/", 2500],
@@ -40,15 +44,35 @@ const ROUTES = [
   ["/games/Gamelist.html", 3000],
   ["/writing/", 2500],
   ["/writing/universe-engine/", 2500],
+  ["/writing/how-its-built/", 2500],
+  // Short posts (lib/writing-posts.ts) — keep in sync when a post is added.
+  ["/writing/adaptive-quality/", 2500],
+  ["/writing/cinematic-descent/", 2500],
+  ["/writing/dna-deep-time/", 2500],
+  ["/writing/dna-tools/", 2500],
+  ["/writing/real-glb-bodies/", 2500],
+  ["/framework/", 3000],
   ["/skills/", 3000],
   ["/usability/", 3000],
   ["/upcoming/", 2500],
   ["/references/", 2500],
+  ["/reference/spacecraft/", 3000],
   ["/mirofish/", 3000],
+  ["/photos/", 3000],
   ["/dna/", 4000],
+  ["/dna/databases/", 2500],
+  ["/dna/how-it-works/", 2500],
+  ["/dna/tools/", 2500],
+  ["/family/", 2500],
+  ["/vera/", 3000],
+  ["/dr-randhir-sinha/", 5000],       // silk hero video + 3D silkworm
+  ["/aero/", 5000],                   // Aero Engine 3D
+  ["/sky/", 12000],                   // full-screen sky experience
+  ["/story/", 9000],                  // alt home over persistent sky
   ["/tv/", 3000],
   ["/ar/", 3000],
   ["/ja/", 3000],
+  ["/embed/satellites/", 6000],       // embeddable satellite tracker
   ["/universe-engine/math/", 2500],
   ["/definitely-not-a-page/", 3000],  // 404 page (static starfield fallback)
 ]
