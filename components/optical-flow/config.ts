@@ -9,6 +9,19 @@
 
 import type { FeaturePoint } from "./flow-core"
 
+/** Render modes. "flow" = the original motion-tracking dots; the rest turn the
+ *  whole frame into data (see pattern-render.ts). Defined here (the tunables
+ *  home) so both config and pattern-render share it without a circular import. */
+export type PatternMode = "flow" | "dataField" | "edges" | "regions" | "ascii"
+
+export const MODES: { id: PatternMode; label: string; hint: string }[] = [
+  { id: "flow", label: "Flow", hint: "Motion-tracked feature points" },
+  { id: "dataField", label: "Data", hint: "The whole image as a field of colour points" },
+  { id: "edges", label: "Edges", hint: "Contours — the structure of the scene" },
+  { id: "regions", label: "Regions", hint: "A living low-bit mosaic" },
+  { id: "ascii", label: "ASCII", hint: "Rebuilt from characters" },
+]
+
 /** Processing resolution — the CV runs on a small grayscale copy of the frame
  *  for speed (the original did the same with modest-res NumPy arrays), then the
  *  surviving points are drawn upscaled to the display canvas. */
@@ -103,12 +116,16 @@ export const DEFAULTS = {
   /** ghost the source video under the dots — OFF: the form should read from
    *  the dot field alone, floating on near-black, true to the reference. */
   ghostSource: false,
+  /** Render mode — "flow" is the original motion-tracking effect; the others
+   *  turn the whole frame into data (see pattern-render.ts). */
+  mode: "flow" as PatternMode,
 } as const
 
 export type EngineParams = {
   density: number
   paletteIdx: number
   ghostSource: boolean
+  mode: PatternMode
 }
 
 /** Re-export so consumers can type point arrays without reaching into core. */

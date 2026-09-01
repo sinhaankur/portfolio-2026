@@ -38,6 +38,13 @@ import {
   type EngineParams,
 } from "./config"
 import { mergeField, drawField } from "./renderer"
+import {
+  drawDataField,
+  drawEdges,
+  drawRegions,
+  drawAscii,
+  type Frame,
+} from "./pattern-render"
 import { FlowHud } from "./hud"
 
 type Source = "idle" | "webcam"
@@ -53,6 +60,7 @@ export function FlowCanvas() {
     density: DEFAULTS.density,
     paletteIdx: DEFAULTS.paletteIdx,
     ghostSource: DEFAULTS.ghostSource,
+    mode: DEFAULTS.mode,
   })
 
   // Per-frame state in refs so the RAF loop never re-subscribes.
@@ -82,7 +90,11 @@ export function FlowCanvas() {
     prevPyrRef.current = null
   }, [])
 
-  /** Pull the current frame as a blurred grayscale image at processing res. */
+  // Latest raw RGBA + luma of the proc-res frame, for the pattern modes.
+  const frameRef = useRef<Frame | null>(null)
+
+  /** Pull the current frame as blurred grayscale (for CV) AND stash the raw
+   *  RGBA + a luma array (for the pattern-engine render modes). */
   const grayFromVideo = useCallback((): GrayImage | null => {
     const v = videoRef.current
     const scratch = scratchRef.current
@@ -94,7 +106,15 @@ export function FlowCanvas() {
     sctx.scale(-1, 1)
     sctx.drawImage(v, 0, 0, PROC_W, PROC_H)
     sctx.restore()
-    return blur(toGray(sctx.getImageData(0, 0, PROC_W, PROC_H)))
+    const imageData = sctx.getImageData(0, 0, PROC_W, PROC_H)
+    // Stash raw RGBA + a luma array for the pattern modes (cheap single pass).
+    const rgba = imageData.data
+    const lum = new Float32Array(PROC_W * PROC_H)
+    for (let i = 0, j = 0; i < rgba.length; i += 4, j++) {
+      lum[j] = 0.299 * rgba[i] + 0.587 * rgba[i + 1] + 0.114 * rgba[i + 2]
+    }
+    frameRef.current = { rgba, gray: lum }
+    return blur(toGray(imageData))
   }, [])
 
   const loop = useCallback(() => {
@@ -102,35 +122,39 @@ export function FlowCanvas() {
     const canvas = canvasRef.current
     const gray = grayFromVideo()
     if (canvas && gray) {
-      const pyr = buildPyramid(gray, PYRAMID_LEVELS)
       frameCountRef.current++
-      const { density, paletteIdx, ghostSource } = paramsRef.current
-
-      // 1) TRACK — move existing points forward (Lucas-Kanade).
-      if (prevPyrRef.current && pointsRef.current.length) {
-        pointsRef.current = trackPoints(prevPyrRef.current, pyr, pointsRef.current, LK)
-      }
-
-      // 2) REPLENISH — re-seed via Shi-Tomasi when the field thins or on cadence,
-      //    then fold in with even spacing (renderer.mergeField kills clumping).
-      const { maxCorners, minDistance, qualityLevel } = densityToDetection(density)
-      const needTopUp =
-        pointsRef.current.length < maxCorners * REPLENISH.thinFraction ||
-        frameCountRef.current % REPLENISH.everyNFrames === 0
-      if (needTopUp) {
-        const fresh = shiTomasi(pyr[0], { maxCorners, qualityLevel, minDistance, blockSize: 3 })
-        pointsRef.current = mergeField(pointsRef.current, fresh, minDistance, maxCorners)
-      }
-
-      prevPyrRef.current = pyr
-
-      // 3) RENDER — draw the field (renderer.drawField).
+      const { density, paletteIdx, ghostSource, mode } = paramsRef.current
       const ctx = canvas.getContext("2d")
-      if (ctx) {
-        drawField(ctx, pointsRef.current, PALETTES[paletteIdx], {
-          ghost: ghostSource ? videoRef.current : null,
-          mirror: true,
-        })
+      const palette = PALETTES[paletteIdx]
+
+      if (mode === "flow") {
+        // ── Original motion engine: track + replenish + dot field ──
+        const pyr = buildPyramid(gray, PYRAMID_LEVELS)
+        if (prevPyrRef.current && pointsRef.current.length) {
+          pointsRef.current = trackPoints(prevPyrRef.current, pyr, pointsRef.current, LK)
+        }
+        const { maxCorners, minDistance, qualityLevel } = densityToDetection(density)
+        const needTopUp =
+          pointsRef.current.length < maxCorners * REPLENISH.thinFraction ||
+          frameCountRef.current % REPLENISH.everyNFrames === 0
+        if (needTopUp) {
+          const fresh = shiTomasi(pyr[0], { maxCorners, qualityLevel, minDistance, blockSize: 3 })
+          pointsRef.current = mergeField(pointsRef.current, fresh, minDistance, maxCorners)
+        }
+        prevPyrRef.current = pyr
+        if (ctx) {
+          drawField(ctx, pointsRef.current, palette, {
+            ghost: ghostSource ? videoRef.current : null,
+            mirror: true,
+          })
+        }
+      } else if (ctx && frameRef.current) {
+        // ── Pattern-engine modes: the whole frame becomes data ──
+        const frame = frameRef.current
+        if (mode === "dataField") drawDataField(ctx, frame, palette, density)
+        else if (mode === "edges") drawEdges(ctx, frame, palette, density)
+        else if (mode === "regions") drawRegions(ctx, frame, palette, density)
+        else if (mode === "ascii") drawAscii(ctx, frame, palette, density)
       }
     }
     rafRef.current = requestAnimationFrame(loop)

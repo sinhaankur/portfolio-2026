@@ -12,8 +12,6 @@ export default defineConfig([
       // Python virtualenv — bundled vendor JS (tensorboard/matplotlib/torch)
       // is NOT our source and produces dozens of false errors when crawled.
       ".venv/**",
-      "webos-tv/**",
-      "webos-tv-720p/**",
       "webos-assets/**",
       "blender/**",
       "interview-prep/**",
