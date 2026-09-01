@@ -35,6 +35,15 @@ export default function OpticalFlowPage() {
             First, how it works. Then — if you want to see it run on your own
             motion — a button drops you into the live camera version.
           </p>
+          <p>
+            The tracker was the start. It grew into a small{" "}
+            <em>pattern engine</em>: the same live frame can be captured{" "}
+            <em>as data</em> five different ways — motion-tracked points
+            (Flow), the whole image rebuilt as a field of colour points (Data),
+            its contours (Edges), a living low-bit mosaic (Regions), or
+            reconstructed out of characters (ASCII). Switch modes live from the
+            controls; every one runs on your device from the raw camera frame.
+          </p>
         </>
       }
     >
