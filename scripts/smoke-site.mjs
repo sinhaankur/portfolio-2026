@@ -72,6 +72,12 @@ const ROUTES = [
   ["/tv/", 3000],
   ["/ar/", 3000],
   ["/ja/", 3000],
+  ["/ko/", 3000],
+  ["/zh/", 3000],
+  ["/es/", 3000],
+  ["/fr/", 3000],
+  ["/de/", 3000],
+  ["/hi/", 3000],
   ["/embed/satellites/", 6000],       // embeddable satellite tracker
   ["/universe-engine/math/", 2500],
   ["/definitely-not-a-page/", 3000],  // 404 page (static starfield fallback)

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { Briefcase, FlaskConical, Layers, Gamepad2, Mail, Compass, type LucideIcon } from "lucide-react"
 import { ThemeToggle } from "./theme-toggle"
+import { LocaleSwitcher } from "./locale-switcher"
 import { DisplayMenu } from "./display-menu"
 
 // Anchor-based links use a leading "#" — when we're not on "/", clicking these
@@ -175,8 +176,9 @@ export function Navbar() {
             })}
           </ul>
 
-          {/* Theme toggle + accessibility menu */}
+          {/* Language switcher + theme toggle + accessibility menu */}
           <div className="hidden md:flex items-center gap-2">
+            <LocaleSwitcher current="en" compact />
             <DisplayMenu />
             <ThemeToggle />
           </div>
