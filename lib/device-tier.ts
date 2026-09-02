@@ -364,15 +364,27 @@ export function adaptTier(
  * (bucketed, capped at 8 GB), so we only ACT on a low reading (a present, small
  * value) and never loosen the cap when it's unknown.
  */
+// Absolute live-swarm ceiling — the most objects we EVER hold resident as
+// parsed satrecs, on any device. Each satrec is ~7 KB, so 24k ≈ 168 MB, the top
+// of what a strong desktop tab can carry without risking a kill. The old code
+// used Infinity on high/ultra, which was fine at ~18.7k but unsafe once the full
+// Space-Track debris catalogue (~41k) lands — this bounds it. The debris panels
+// still call loadFullCatalog() for the complete set on demand, so nothing loses
+// truth; only the always-resident, always-propagating swarm is bounded. The
+// per-device budgeter (budgetSwarm) keeps a representative shell of BOTH
+// payloads and debris within whatever cap this returns.
+const MAX_RESIDENT_SWARM = 24000
 export function swarmCapForDevice(tier: DeviceTier): number {
   const tierCap = qualityForTier(tier).maxSwarmSats
   const mem = deviceProfileRef.current?.memoryGB ?? null
-  if (mem == null) return tierCap // unknown → trust the tier (never loosen)
+  // Apply the absolute ceiling first — it bounds even an Infinity (high/ultra) cap.
+  const ceilinged = Math.min(tierCap, MAX_RESIDENT_SWARM)
+  if (mem == null) return ceilinged // unknown → trust the tier, still ceilinged
   // ≤2 GB: very tight — match the low floor. ≤4 GB: match the mid floor. These
   // only ever TIGHTEN (Math.min), never raise a low tier's already-small cap.
-  if (mem <= 2) return Math.min(tierCap, 5000)
-  if (mem <= 4) return Math.min(tierCap, 10000)
-  return tierCap
+  if (mem <= 2) return Math.min(ceilinged, 5000)
+  if (mem <= 4) return Math.min(ceilinged, 10000)
+  return ceilinged
 }
 
 export function qualityForTier(tier: DeviceTier): QualitySettings {

@@ -35,13 +35,15 @@ export function DebrisPanel({ onClose, onJump }: { onClose?: () => void; onJump?
     return () => { debrisFamilyFilterRef.current = -1 }
   }, [])
 
-  // Live fragment count per family from the current catalogue.
+  // Live fragment count per family from the current catalogue. Counts debris AND
+  // rocket bodies, and passes group+type so the analyst / rocket-body / catch-all
+  // families resolve with the full Space-Track catalogue too.
   const counts = useMemo(() => {
     const c = new Map<number, number>()
     if (!catalog) return c
     for (const s of catalog) {
-      if (s.type !== "DEB") continue
-      const fam = classifyDebrisFamily(s.name)
+      if (s.type !== "DEB" && s.type !== "R/B") continue
+      const fam = classifyDebrisFamily(s.name, s.group, s.type)
       if (fam >= 0) c.set(fam, (c.get(fam) ?? 0) + 1)
     }
     return c
@@ -97,11 +99,10 @@ export function DebrisPanel({ onClose, onJump }: { onClose?: () => void; onJump?
         {catalog && (
           <>
             <p className="text-[11px] leading-relaxed text-muted-foreground">
-              A handful of events created most of the tracked debris in orbit —{" "}
-              <span className="text-red-300 font-medium">{totalTracked.toLocaleString()}</span> fragments still
-              circling. Plus the <span className="text-red-300 font-medium">analyst</span> set —
-              uncorrelated objects whose parent isn&apos;t identified. Tap one to isolate
-              its cloud in the swarm and see the scale of a single collision.
+              <span className="text-red-300 font-medium">{totalTracked.toLocaleString()}</span> tracked debris
+              objects and spent rocket bodies are circling right now. A handful of
+              collisions and anti-satellite tests created most of it — tap a family
+              to isolate its cloud in the swarm and see the scale of a single event.
             </p>
 
             <ul className="mt-3 flex flex-col gap-1.5">

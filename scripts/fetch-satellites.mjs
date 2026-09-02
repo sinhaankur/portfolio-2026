@@ -24,6 +24,7 @@
 import { promises as fs } from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
+import { fetchSpaceTrackDebris } from "./spacetrack.mjs"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(__dirname, "..")
@@ -199,22 +200,40 @@ async function main() {
     }
   }
 
+  // ── Full-debris enrichment (Space-Track, credential-gated) ─────────────────
+  // If SPACETRACK_USER/PASS are set, pull the COMPLETE on-orbit debris +
+  // rocket-body catalogue (~25k) — the population CelesTrak's keyless feeds
+  // don't expose. This SUPERSEDES the small CelesTrak clouds/analyst set (a
+  // superset of them), deduped by NORAD id below. No creds → null → we keep the
+  // keyless debris. Any failure is non-fatal: log + fall back, never break the
+  // build on a third-party outage.
+  let spaceTrack = null
+  const MEMORY_SAFE_DEBRIS_CAP = 26000 // ~satrec heap guard; see the client's tiering
+  try {
+    spaceTrack = await fetchSpaceTrackDebris({ limit: MEMORY_SAFE_DEBRIS_CAP })
+  } catch (e) {
+    console.warn(`  Space-Track enrichment failed (${e.message}) — using CelesTrak keyless debris`)
+  }
+
   // Keep PAYLOADS + ROCKET BODIES + DEBRIS, so the explorer shows the real LEO
   // environment (LeoLabs-style): active satellites AND the junk around them.
   // Each carries a `type`: "PAY" | "R/B" | "DEB" so the client can colour/size
   // debris distinctly. Only objects WITH a TLE (propagatable) are kept.
   const TYPES = new Set(["PAY", "R/B", "DEB"])
   const sats = []
+  const seen = new Set() // NORAD ids already added → dedupe across sources
   const counts = { PAY: 0, "R/B": 0, DEB: 0 }
+  const add = (o) => { sats.push(o); seen.add(o.id); counts[o.type] = (counts[o.type] || 0) + 1 }
   for (const rec of satcat) {
     if (!TYPES.has(rec.OBJECT_TYPE)) continue
     if (!rec.LAUNCH_DATE) continue
     const id = rec.NORAD_CAT_ID
+    if (seen.has(id)) continue
     const t = tle.get(id)
     if (!t) continue // need TLE to propagate
     const launchMs = Date.parse(rec.LAUNCH_DATE + "T00:00:00Z")
     if (Number.isNaN(launchMs)) continue
-    sats.push({
+    add({
       id,
       name: rec.OBJECT_NAME,
       owner: rec.OWNER || "TBD",
@@ -224,17 +243,25 @@ async function main() {
       l1: t.l1,
       l2: t.l2,
     })
-    counts[rec.OBJECT_TYPE] = (counts[rec.OBJECT_TYPE] || 0) + 1
   }
 
-  // Append the directly-fetched debris fragments.
-  for (const d of debrisObjs) { sats.push(d); counts.DEB++ }
+  // Debris: prefer the Space-Track full catalogue when we have it; else the
+  // CelesTrak keyless clouds + analyst set. Dedupe by NORAD id either way.
+  const debrisSource = spaceTrack ? spaceTrack.objects : debrisObjs
+  for (const d of debrisSource) {
+    if (seen.has(d.id)) continue
+    add(d)
+  }
 
   sats.sort((a, b) => a.launchMs - b.launchMs)
 
+  const usedSpaceTrack = !!spaceTrack
   const payload = {
     snapshot: new Date().toISOString().slice(0, 10),
-    source: "CelesTrak SATCAT + GP/TLE — active payloads + rocket bodies + major tracked debris (fragmentation clouds + analyst set). Full ~40k debris catalogue is Space-Track-gated; not included.",
+    source: usedSpaceTrack
+      ? "CelesTrak (active payloads) + Space-Track GP (full on-orbit debris + rocket bodies). Complete tracked catalogue."
+      : "CelesTrak SATCAT + GP/TLE — active payloads + rocket bodies + major tracked debris (fragmentation clouds + analyst set). Full ~40k debris catalogue is Space-Track-gated; not included.",
+    debrisSource: usedSpaceTrack ? "space-track-full" : "celestrak-keyless",
     count: sats.length,
     breakdown: counts,
     // True if the live payload feed was throttled this build and payloads came

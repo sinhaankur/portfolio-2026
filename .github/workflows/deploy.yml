@@ -64,10 +64,18 @@ jobs:
         run: pnpm install --frozen-lockfile=false
 
       - name: Refresh orbital data (CelesTrak TLEs + conjunction screen)
-        # Live-ish data on a static site: re-fetch the 18k-object catalog and
+        # Live-ish data on a static site: re-fetch the object catalog and
         # re-screen the next 24h of close approaches on every deploy AND the
         # daily scheduled run. If CelesTrak is unreachable, deploy proceeds on
         # the committed snapshot — never break the site on a third-party outage.
+        #
+        # SPACETRACK_USER/PASS (optional repo secrets) unlock the FULL on-orbit
+        # debris + rocket-body catalogue from Space-Track.org — the ~25k objects
+        # CelesTrak's keyless feeds don't expose. If unset, the fetch script
+        # falls back to the CelesTrak keyless debris automatically (no failure).
+        env:
+          SPACETRACK_USER: ${{ secrets.SPACETRACK_USER }}
+          SPACETRACK_PASS: ${{ secrets.SPACETRACK_PASS }}
         run: |
           (node scripts/fetch-satellites.mjs && node scripts/bake-conjunctions.ts) || echo "::warning::orbital data refresh failed — deploying with committed snapshot"
 

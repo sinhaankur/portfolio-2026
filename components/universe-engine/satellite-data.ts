@@ -112,6 +112,12 @@ export const DEBRIS_FAMILIES = [
   // debris whose parent object isn't attributed. Matched by GROUP, not name
   // (they're catalogued "UNKNOWN"), so it carries no prefix.
   { id: 4, prefix: "", group: "analyst", label: "Unidentified", event: "Uncorrelated tracked objects", year: 0 },
+  // The full Space-Track catalogue adds thousands more. Two catch-alls so every
+  // extra object still lands in a real family (never -1): spent rocket stages,
+  // then everything else (fragments from older/smaller breakups). Order matters —
+  // classifyDebrisFamily tries the named clouds first, so these only catch the rest.
+  { id: 5, prefix: "", matchRB: true, label: "Rocket bodies", event: "Spent upper stages", year: 0 },
+  { id: 6, prefix: "", catchAll: true, label: "Other tracked debris", event: "Fragments from earlier breakups", year: 0 },
 ] as const
 
 // ── SGP4 date guard + finite check (Three-free) ──────────────────────────────
@@ -131,15 +137,30 @@ export function finitePos(
 }
 
 // ── Classification (name/TLE based) ──────────────────────────────────────────
-/** Debris fragmentation family id, or -1 if none. Matches the named clouds by
- *  name prefix; the analyst set (named "UNKNOWN") is matched by its `group`. */
-export function classifyDebrisFamily(name: string, group?: string): number {
+/** Debris fragmentation family id, or -1 if this isn't debris/junk. Precedence:
+ *  named fragmentation clouds (by name prefix) → analyst set (by `group`) →
+ *  rocket bodies (by type) → catch-all "other tracked debris". With the full
+ *  Space-Track catalogue this puts EVERY object in a real family (never -1 for
+ *  a genuine DEB/RB), so the debris panel's totals stay honest. */
+export function classifyDebrisFamily(name: string, group?: string, type?: SatType): number {
+  const n = name.toUpperCase()
+  // 1) named fragmentation clouds — most specific, always win.
+  for (const f of DEBRIS_FAMILIES) if (f.prefix && n.startsWith(f.prefix)) return f.id
+  // 2) the CelesTrak analyst set, matched by its provenance group.
   if (group) {
     const byGroup = DEBRIS_FAMILIES.find((f) => "group" in f && f.group === group)
     if (byGroup) return byGroup.id
   }
-  const n = name.toUpperCase()
-  for (const f of DEBRIS_FAMILIES) if (f.prefix && n.startsWith(f.prefix)) return f.id
+  // 3) rocket bodies (Space-Track OBJECT_TYPE = ROCKET BODY, or an "R/B" name).
+  if (type === "R/B" || n.includes(" R/B") || n.endsWith(" DEB (R/B)")) {
+    const rb = DEBRIS_FAMILIES.find((f) => "matchRB" in f && f.matchRB)
+    if (rb) return rb.id
+  }
+  // 4) everything else that's debris → the catch-all family.
+  if (type === "DEB" || type === "R/B") {
+    const other = DEBRIS_FAMILIES.find((f) => "catchAll" in f && f.catchAll)
+    if (other) return other.id
+  }
   return -1
 }
 
@@ -270,9 +291,10 @@ export function loadFullCatalog(): Promise<SatRecord[]> {
   return _fullCatalogPromise
 }
 
-/** Metadata-only view for the search box (no second download). */
+/** Metadata-only view for the search box (no second download). Keeps `group`
+ *  so the debris panel can classify the analyst / Space-Track families. */
 export function loadSatelliteCatalog(): Promise<SatMeta[]> {
   return loadFullCatalog().then((sats) =>
-    sats.map((s) => ({ id: s.id, name: s.name, owner: s.owner, type: s.type, launchMs: s.launchMs, site: s.site })),
+    sats.map((s) => ({ id: s.id, name: s.name, owner: s.owner, type: s.type, group: s.group, launchMs: s.launchMs, site: s.site })),
   )
 }

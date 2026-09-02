@@ -103,12 +103,25 @@ function budgetSwarm(list: SatRecord[], cap: number, pinnedIds?: Set<number>): {
 
   // Reserve a debris quota (its real-ish share, floored), but never more debris
   // than exist or than the room can hold.
-  const junkTarget = Math.min(
+  let junkTarget = Math.min(
     junk.length,
     room,
     Math.max(DEBRIS_QUOTA_MIN, Math.round(room * DEBRIS_QUOTA_FRAC)),
   )
-  const activeTarget = room - junkTarget
+  let activeTarget = room - junkTarget
+
+  // Hand any UNUSED budget back to the other population, so the cap is filled:
+  //  - few payloads (sparse era) → the extra goes to debris,
+  //  - few debris (keyless build) → the extra goes to payloads.
+  // With the full Space-Track set this lets a strong device show ~8k debris
+  // (a real shell of the ~25k) instead of leaving budget on the table.
+  if (active.length < activeTarget) {
+    junkTarget = Math.min(junk.length, junkTarget + (activeTarget - active.length))
+    activeTarget = active.length
+  } else if (junk.length < junkTarget) {
+    activeTarget = Math.min(active.length, activeTarget + (junkTarget - junk.length))
+    junkTarget = junk.length
+  }
 
   const keptActive = strideKeep(active, activeTarget)
   const keptJunk = strideKeep(junk, junkTarget)
@@ -1209,7 +1222,11 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     sats.forEach((sv, gi) => {
       groups[gi] = classifyGroup(sv.name, sv.type)
       regimes[gi] = classifyRegimeId(sv.l2)
-      families[gi] = sv.type === "DEB" ? classifyDebrisFamily(sv.name, sv.group) : -1
+      // Classify debris AND rocket bodies into a family (the full Space-Track
+      // set adds thousands of both); payloads never carry a family.
+      families[gi] = (sv.type === "DEB" || sv.type === "R/B")
+        ? classifyDebrisFamily(sv.name, sv.group, sv.type)
+        : -1
       // Stable per-satellite random for the overview LOD cull — hashed from the
       // NORAD id (not the index) so the visible sample never reshuffles when
       // the catalogue refreshes.
