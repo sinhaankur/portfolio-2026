@@ -70,6 +70,7 @@ const ROUTES = [
   ["/sky/", 12000],                   // full-screen sky experience
   ["/story/", 9000],                  // alt home over persistent sky
   ["/tv/", 3000],
+  ["/stats/", 3000],                  // owner-only analytics dashboard (noindex)
   ["/ar/", 3000],
   ["/ja/", 3000],
   ["/ko/", 3000],
