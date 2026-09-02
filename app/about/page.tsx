@@ -3,6 +3,7 @@ import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { canonicalPath } from "@/lib/seo"
 import { Footer } from "@/components/footer"
+import { LinkedInBadge } from "@/components/linkedin-badge"
 
 export const metadata: Metadata = {
   ...canonicalPath("/about"),
@@ -108,6 +109,12 @@ export default function AboutPage() {
               sinhaankur827@gmail.com
             </a>.
           </p>
+
+          {/* LinkedIn — an opt-in live profile card (their script loads only on
+              click), with a branded fallback + direct link. */}
+          <div className="mt-8 max-w-sm">
+            <LinkedInBadge />
+          </div>
         </div>
       </div>
 
