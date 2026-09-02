@@ -111,20 +111,41 @@ export function drawField(
       (sx / 2)
     const radius = core * RENDER.glowSpread
     const col = palette.dot(p.age, p.strength)
+    const alpha =
+      (RENDER.alphaBase + Math.min(p.strength / RENDER.alphaStrengthDiv, RENDER.alphaStrengthMax)) *
+      fade
+
+    // Soft halo — a gentle 4-stop falloff so dots bloom without hard edges.
     const grad = ctx.createRadialGradient(x, y, 0, x, y, radius)
     grad.addColorStop(0, col)
-    grad.addColorStop(0.35, col)
+    grad.addColorStop(0.18, col)
+    grad.addColorStop(0.55, withAlpha(col, 0.35))
     grad.addColorStop(1, "transparent")
     ctx.beginPath()
     ctx.fillStyle = grad
-    ctx.globalAlpha =
-      (RENDER.alphaBase + Math.min(p.strength / RENDER.alphaStrengthDiv, RENDER.alphaStrengthMax)) *
-      fade
+    ctx.globalAlpha = alpha
     ctx.arc(x, y, radius, 0, Math.PI * 2)
+    ctx.fill()
+
+    // Crisp bright pin-point core inside the halo — makes each dot read as a
+    // real light source (a jewel), lifting the whole dense field.
+    const coreR = Math.max(0.6, radius * RENDER.coreDotFraction)
+    ctx.beginPath()
+    ctx.fillStyle = col
+    ctx.globalAlpha = Math.min(1, alpha + 0.25) * fade
+    ctx.arc(x, y, coreR, 0, Math.PI * 2)
     ctx.fill()
   }
   ctx.globalAlpha = 1
   ctx.globalCompositeOperation = "source-over"
+}
+
+/** Turn an `rgb(r,g,b)` / `rgba(...)` colour string into one at a given alpha,
+ *  for the halo's mid falloff stop. Falls back to the input if unparseable. */
+function withAlpha(col: string, a: number): string {
+  const m = col.match(/(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/)
+  if (!m) return col
+  return `rgba(${m[1]},${m[2]},${m[3]},${a})`
 }
 
 /** Convenience: the proc-resolution constants, re-exported for the scratch canvas. */

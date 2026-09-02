@@ -49,11 +49,13 @@ export function densityToDetection(d: number): {
   qualityLevel: number
 } {
   return {
-    maxCorners: Math.round(220 + d * 680), // 220..900 — a full field
-    minDistance: Math.max(3, Math.round(9 - d * 5)), // even spacing, never 0
-    // low bar so weaker corners (cheeks, neck, shoulders) also register and the
-    // whole form fills, not just the few hottest spots
-    qualityLevel: 0.012,
+    // Many more points at full density — a rich, complete field (was 900).
+    maxCorners: Math.round(400 + d * 1400), // 400..1800
+    // Tighter spacing so dots pack in closely without clumping (min 2px).
+    minDistance: Math.max(2, Math.round(7 - d * 5)), // 7..2
+    // very low bar so even faint corners (cheeks, neck, background texture)
+    // register — the whole form + surroundings fill in, not just hot spots
+    qualityLevel: 0.008,
   }
 }
 
@@ -95,18 +97,22 @@ export const PALETTES: Palette[] = [
 
 /** Render tuning for the dot field — soft, varied, glowing (not flat discs). */
 export const RENDER = {
-  /** dot core radius in proc-px: base + strength-scaled bonus */
-  sizeBase: 1.4,
+  /** dot core radius in proc-px: base + strength-scaled bonus. Smaller base so
+   *  the denser field stays crisp rather than a blur. */
+  sizeBase: 1.1,
   sizeStrengthDiv: 500,
-  sizeStrengthMax: 2.6,
-  /** soft glow extends this × the core radius */
-  glowSpread: 2.2,
+  sizeStrengthMax: 2.2,
+  /** soft glow extends this × the core radius — a wider, gentler halo. */
+  glowSpread: 2.8,
   /** alpha = alphaBase + strength bonus, × age fade-in */
-  alphaBase: 0.55,
+  alphaBase: 0.5,
   alphaStrengthDiv: 900,
-  alphaStrengthMax: 0.4,
-  /** frames over which a new dot fades in */
-  fadeInFrames: 6,
+  alphaStrengthMax: 0.45,
+  /** frames over which a new dot fades in (a touch slower = smoother arrivals) */
+  fadeInFrames: 8,
+  /** bright pin-point core radius as a fraction of the glow — gives each dot a
+   *  crisp centre inside its halo, like a real light source. */
+  coreDotFraction: 0.22,
 } as const
 
 /** Default engine params on mount. */
