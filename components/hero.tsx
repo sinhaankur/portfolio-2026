@@ -482,7 +482,7 @@ export function Hero() {
           trackpad / mouse wheel). Click-to-focus + Destinations menu give
           users a way to actually fly to bodies. */}
       {interactive && !tvBrowserFallback && (
-        <p className="absolute bottom-36 md:bottom-52 lg:bottom-48 left-1/2 -translate-x-1/2 z-20 font-mono text-[10px] tracking-[0.25em] uppercase text-foreground/55 pointer-events-none whitespace-nowrap max-w-[calc(100vw-4rem)] text-center">
+        <p className="absolute bottom-28 md:bottom-52 lg:bottom-48 left-1/2 -translate-x-1/2 z-20 font-mono text-[10px] tracking-[0.25em] uppercase text-foreground/55 pointer-events-none whitespace-nowrap max-w-[calc(100vw-4rem)] text-center">
           <span className="md:hidden">Tap any body to follow its orbit</span>
           <span className="hidden md:inline">Click any body — planet, moon, comet, spacecraft — to follow its orbit</span>
         </p>
