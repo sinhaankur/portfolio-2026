@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
 import {
   DialGlyph,
@@ -9,6 +9,7 @@ import {
   SeamGlyph,
 } from "./principle-glyphs"
 import type { ComponentType } from "react"
+import { READING_LEVELS, useReadingLevel, type ReadingLevel } from "@/lib/reading-level"
 
 /**
  * Philosophy section — was a horizontal marquee of single-line statements
@@ -25,8 +26,6 @@ import type { ComponentType } from "react"
  * Fades up per item on enter (no horizontal motion). Respects
  * prefers-reduced-motion by skipping the per-item delay.
  */
-
-type ReadingLevel = "deep" | "plain" | "simple"
 
 type Principle = {
   number: string
@@ -108,36 +107,15 @@ const principles: Principle[] = [
   },
 ]
 
-const LEVELS: { id: ReadingLevel; label: string; hint: string }[] = [
-  { id: "deep", label: "Deep", hint: "My own words — dense, no compromises" },
-  { id: "plain", label: "Plain", hint: "Warm and clear, no jargon" },
-  { id: "simple", label: "Simple", hint: "One honest line each" },
-]
-
-const LEVEL_KEY = "reading-level-v1"
-
 export function About() {
   const prefersReducedMotion = useReducedMotion()
   // The childhood photo is hidden until the visitor chooses to peek — it's not
   // in the DOM (so it never loads or shows as a first image) until `revealed`.
   const [revealed, setRevealed] = useState(false)
 
-  // Reading level: the visitor picks how the principles are written. "Deep" is
-  // Ankur's own dense voice (the default — the edge stays). "Plain" is warm and
-  // clear; "Simple" is one honest line each. Remembered on-device.
-  const [level, setLevel] = useState<ReadingLevel>("deep")
-  useEffect(() => {
-    const saved = localStorage.getItem(LEVEL_KEY)
-    if (saved === "deep" || saved === "plain" || saved === "simple") setLevel(saved)
-  }, [])
-  const chooseLevel = (next: ReadingLevel) => {
-    setLevel(next)
-    try {
-      localStorage.setItem(LEVEL_KEY, next)
-    } catch {
-      /* private mode — ignore */
-    }
-  }
+  // Reading level: the visitor picks how the principles are written. Shared
+  // store, so the hero sub-headline flexes to the same choice (and vice versa).
+  const [level, chooseLevel] = useReadingLevel()
 
   const fadeUp = (i: number) => ({
     initial: prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 24 },
@@ -191,7 +169,7 @@ export function About() {
               aria-label="Reading level for the principles below"
               className="inline-flex items-center rounded-full border border-border bg-secondary/30 p-1"
             >
-              {LEVELS.map((lv) => {
+              {READING_LEVELS.map((lv) => {
                 const active = lv.id === level
                 return (
                   <button
@@ -222,7 +200,7 @@ export function About() {
             </div>
           </div>
           <p className="mt-2.5 font-sans text-[13px] text-muted-foreground/90 max-w-xl leading-relaxed">
-            {LEVELS.find((l) => l.id === level)?.hint}.
+            {READING_LEVELS.find((l) => l.id === level)?.hint}.
           </p>
         </motion.div>
 

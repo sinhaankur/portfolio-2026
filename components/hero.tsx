@@ -2,9 +2,45 @@
 
 import { useEffect, useRef, useState } from "react"
 import dynamic from "next/dynamic"
-import { motion, useScroll, useTransform, useMotionValueEvent, useReducedMotion } from "framer-motion"
+import { motion, AnimatePresence, useScroll, useTransform, useMotionValueEvent, useReducedMotion } from "framer-motion"
 import { StaticStarfield } from "./universe-engine/static-starfield"
 import { UniverseRuntimeFallback } from "./universe-engine/runtime-fallback"
+import { useReadingLevel } from "@/lib/reading-level"
+
+// Hero sub-headline at each reading level — flexes with the About toggle.
+// "deep" is the original dense line; the whole point is that it stays the default.
+const HERO_INTRO: Record<
+  "deep" | "plain" | "simple",
+  { lead: string; rest: React.ReactNode }
+> = {
+  deep: {
+    lead: "Principal UX Designer at Oracle,",
+    rest: (
+      <>
+        {" "}working at the human–AI seam. 12+ years designing enterprise
+        products — and I build my own working prototypes, not just Figma.
+      </>
+    ),
+  },
+  plain: {
+    lead: "Principal UX Designer at Oracle.",
+    rest: (
+      <>
+        {" "}I design how people and AI work together. 12+ years on enterprise
+        products — and I build the working prototypes myself, not just mockups.
+      </>
+    ),
+  },
+  simple: {
+    lead: "Lead designer at Oracle.",
+    rest: (
+      <>
+        {" "}I design apps that people and AI use together — and I build them to
+        make sure they actually work.
+      </>
+    ),
+  },
+}
 
 // The R3F universe scene is ~250 KB compressed of Three.js + drei + custom
 // shaders. Loading it eagerly blocks the home page's first paint and bloats
@@ -22,6 +58,7 @@ const UniverseEngine = dynamic(
 export function Hero() {
   const containerRef = useRef<HTMLElement>(null)
   const prefersReducedMotion = useReducedMotion()
+  const [readingLevel] = useReadingLevel()
   const [interactive, setInteractive] = useState(false)
   const [tvBrowserFallback, setTvBrowserFallback] = useState(false)
   const [infoOpen, setInfoOpen] = useState(false)
@@ -572,11 +609,19 @@ export function Hero() {
             <br />
             <span className="italic">× AI</span>
           </p>
-          <p className="mt-4 max-w-md font-sans text-sm md:text-base leading-relaxed text-foreground/90 [text-shadow:0_1px_10px_var(--background)]">
-            <span className="text-foreground font-medium">Principal UX Designer at Oracle,</span>{" "}
-            working at the human–AI seam. 12+ years designing enterprise
-            products — and I build my own working prototypes, not just Figma.
-          </p>
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.p
+              key={readingLevel}
+              initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
+              transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+              className="mt-4 max-w-md font-sans text-sm md:text-base leading-relaxed text-foreground/90 [text-shadow:0_1px_10px_var(--background)]"
+            >
+              <span className="text-foreground font-medium">{HERO_INTRO[readingLevel].lead}</span>
+              {HERO_INTRO[readingLevel].rest}
+            </motion.p>
+          </AnimatePresence>
           <p className="mt-1.5 font-mono text-[11px] tracking-[0.15em] uppercase text-foreground/70 [text-shadow:0_1px_8px_var(--background)]">
             Toronto, ON
           </p>
