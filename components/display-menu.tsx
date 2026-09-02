@@ -14,9 +14,11 @@ import { useEffect, useRef, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Accessibility } from "lucide-react"
 import { useDisplayPrefs, type DisplayPrefs } from "./display-prefs"
+import { A11yChecker } from "./a11y-checker"
 
 export function DisplayMenu() {
   const [open, setOpen] = useState(false)
+  const [checkerOpen, setCheckerOpen] = useState(false)
   const { reduceMotion, largeText, systemCursor, readingMode, fastMode, setPref, reset } = useDisplayPrefs()
   const wrapRef = useRef<HTMLDivElement>(null)
 
@@ -136,12 +138,28 @@ export function DisplayMenu() {
               />
             </ul>
 
+            {/* Live accessibility check — opens a WAVE-style report for this page. */}
+            <button
+              type="button"
+              onClick={() => { setCheckerOpen(true); setOpen(false) }}
+              data-cursor-hover
+              className="mt-3 flex w-full items-center justify-between rounded-lg border border-border bg-secondary/20 px-3 py-2.5 text-left transition-colors hover:border-accent/50"
+            >
+              <span>
+                <span className="block text-sm font-medium text-foreground">Check this page&apos;s accessibility</span>
+                <span className="block text-[11px] text-muted-foreground">A live WAVE-style report — see how it works</span>
+              </span>
+              <span className="text-accent" aria-hidden>→</span>
+            </button>
+
             <p className="mt-4 pt-3 border-t border-border font-mono text-[10px] tracking-wider text-muted-foreground/80 leading-relaxed">
               Stored on this device. Overrides your OS settings.
             </p>
           </motion.div>
         )}
       </AnimatePresence>
+
+      <A11yChecker open={checkerOpen} onClose={() => setCheckerOpen(false)} />
     </div>
   )
 }
