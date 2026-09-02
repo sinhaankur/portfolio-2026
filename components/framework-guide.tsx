@@ -19,6 +19,8 @@ import { Container } from "@/components/container"
 import { HicksDemo } from "@/components/framework-hicks-demo"
 import { FittsDemo } from "@/components/framework-fitts-demo"
 import { GestaltDemo } from "@/components/framework-gestalt-demo"
+import { MotionDemo } from "@/components/framework-motion-demo"
+import { AdaptabilityDemo } from "@/components/framework-adaptability-demo"
 import { LawModal, type ModalItem } from "@/components/framework-law-modal"
 import { PreShipChecklist } from "@/components/framework-checklist"
 import {
@@ -30,14 +32,20 @@ import {
   METHOD,
   POUR,
   CANON,
+  MOTION_LAWS,
+  MOTION_MECHANICS,
+  PERSONA_SPECTRUM,
+  AUDIENCE_FACTORS,
 } from "@/lib/framework-data"
 
 const SECTIONS = [
   { id: "principles", label: "Principles" },
   { id: "laws", label: "Laws of UX" },
   { id: "heuristics", label: "Heuristics" },
+  { id: "motion", label: "Motion & time" },
   { id: "foundations", label: "Foundations" },
   { id: "accessibility", label: "Accessibility" },
+  { id: "adaptability", label: "Adaptability" },
   { id: "method", label: "The method" },
 ]
 
@@ -241,6 +249,70 @@ export function FrameworkGuide() {
               </a>
             </section>
 
+            {/* ── MOTION & TIME ─────────────────────────────────────────── */}
+            <section id="motion" className="scroll-mt-28">
+              <p className="font-mono text-[11px] tracking-[0.3em] uppercase text-muted-foreground mb-3">Layer B · surface</p>
+              <Eyebrow no="10.0">Motion &amp; time</Eyebrow>
+              <h2 className="font-display text-3xl md:text-4xl font-light tracking-[-0.02em] mb-3">
+                Animation is a <span className="italic">language</span>, not décor.
+              </h2>
+              <p className="font-sans text-base text-foreground/70 leading-relaxed mb-8">
+                {MOTION_LAWS.lead}
+              </p>
+
+              {/* How motion actually works — the mechanics behind a declarative
+                  animation engine (this site runs on Framer Motion), so the laws
+                  below rest on a real model, not vibes. */}
+              <div className="mb-10">
+                <p className="font-mono text-[10px] tracking-[0.25em] uppercase text-accent mb-3">
+                  How motion works
+                </p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {MOTION_MECHANICS.map((m) => (
+                    <div key={m.name} className="rounded-xl border border-border bg-card/40 p-4">
+                      <h4 className="font-sans text-sm font-medium text-foreground">{m.name}</h4>
+                      <p className="mt-1 font-sans text-[13px] text-foreground/70 leading-relaxed">{m.what}</p>
+                      <p className="mt-2 font-sans text-[12px] text-foreground/55 leading-relaxed">{m.detail}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* The motion LAWS (Doherty, meaning, easing, reduced-motion) —
+                  same click-through card pattern as the cognitive laws. */}
+              <div className="flex items-baseline gap-3 mb-1.5">
+                <span className="font-mono text-[11px] text-muted-foreground tabular-nums">{MOTION_LAWS.no}</span>
+                <h3 className="font-display text-xl md:text-2xl font-light">The laws of good motion</h3>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2 mt-4">
+                {MOTION_LAWS.laws.map((law) => (
+                  <button
+                    key={law.name}
+                    type="button"
+                    onClick={() => setOpenLaw(law)}
+                    data-cursor-hover
+                    aria-haspopup="dialog"
+                    className="group rounded-xl border border-border bg-card/40 p-4 text-left transition-colors hover:border-accent/50"
+                  >
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className="h-1.5 w-1.5 rounded-sm bg-accent" />
+                      <h4 className="font-sans text-sm font-medium text-foreground">{law.name}</h4>
+                      <span className="ml-auto font-mono text-[9px] uppercase tracking-widest text-muted-foreground/60 group-hover:text-accent transition-colors">expand →</span>
+                    </div>
+                    <p className="font-sans text-[13px] text-foreground/65 leading-relaxed">{law.what}</p>
+                    {law.mnemonic && (
+                      <p className="mt-2 font-sans text-[12px] italic text-accent/90">&ldquo;{law.mnemonic}&rdquo;</p>
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              {/* Live proof — spring vs tween, and the Doherty threshold. */}
+              <div className="mt-4">
+                <MotionDemo />
+              </div>
+            </section>
+
             {/* ── FOUNDATIONS ───────────────────────────────────────────── */}
             <section id="foundations" className="scroll-mt-28">
               <p className="font-mono text-[11px] tracking-[0.3em] uppercase text-muted-foreground mb-3">Layer A · foundations</p>
@@ -302,6 +374,78 @@ export function FrameworkGuide() {
                     <p className="font-sans text-[13px] text-foreground/65 leading-relaxed">{p.what}</p>
                   </div>
                 ))}
+              </div>
+            </section>
+
+            {/* ── ADAPTABILITY — WHO IT'S FOR ───────────────────────────── */}
+            <section id="adaptability" className="scroll-mt-28">
+              <p className="font-mono text-[11px] tracking-[0.3em] uppercase text-muted-foreground mb-3">Layer B · accessibility, widened</p>
+              <Eyebrow no="11.2">Adaptability — who it&apos;s really for</Eyebrow>
+              <h2 className="font-display text-3xl md:text-4xl font-light tracking-[-0.02em] mb-3">
+                The laws are universal. Their <span className="italic">settings</span> aren&apos;t.
+              </h2>
+              <p className="font-sans text-base text-foreground/70 leading-relaxed mb-8">
+                The same cognitive law points to a different design for a
+                seven-year-old, a seventy-year-old, a screen-reader user, someone
+                reading a second language, or a person on a $40 phone over 3G.
+                Ability shifts across the lifespan and by the minute — so
+                accessibility isn&apos;t a disability checkbox, it&apos;s designing
+                to <span className="text-foreground/85">adapt to your real audience</span>.
+              </p>
+
+              {/* Persona spectrum — the intuition that reframes the whole section. */}
+              <div className="mb-10">
+                <p className="font-mono text-[10px] tracking-[0.25em] uppercase text-accent mb-2">
+                  The persona spectrum
+                </p>
+                <p className="font-sans text-[13px] text-foreground/60 leading-relaxed mb-4 max-w-2xl">
+                  Every permanent ability constraint has a temporary and a
+                  situational twin. Design for the permanent case and you help the
+                  far larger group who share it for a moment — the curb-cut effect.
+                </p>
+                <div className="overflow-hidden rounded-2xl border border-border bg-card/40">
+                  <div className="grid grid-cols-4 gap-px border-b border-border bg-border">
+                    {["", "Permanent", "Temporary", "Situational"].map((h, i) => (
+                      <div key={i} className="bg-card/60 px-3 py-2 font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
+                        {h}
+                      </div>
+                    ))}
+                  </div>
+                  {PERSONA_SPECTRUM.map((row) => (
+                    <div key={row.ability} className="grid grid-cols-4 gap-px bg-border">
+                      <div className="bg-card/40 px-3 py-2.5 font-sans text-[12px] font-medium text-foreground">{row.ability}</div>
+                      <div className="bg-card/40 px-3 py-2.5 font-sans text-[12px] text-foreground/65">{row.permanent}</div>
+                      <div className="bg-card/40 px-3 py-2.5 font-sans text-[12px] text-foreground/65">{row.temporary}</div>
+                      <div className="bg-card/40 px-3 py-2.5 font-sans text-[12px] text-foreground/65">{row.situational}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Audience factors — age, ability, culture, literacy, access, context. */}
+              <p className="font-mono text-[10px] tracking-[0.25em] uppercase text-accent mb-4">
+                Six factors to run the design through
+              </p>
+              <div className="space-y-4">
+                {AUDIENCE_FACTORS.map((f) => (
+                  <div key={f.id} className="rounded-2xl border border-border bg-card/40 p-5">
+                    <h3 className="font-sans text-base font-medium text-foreground">{f.factor}</h3>
+                    <p className="mt-1 font-sans text-[13px] text-foreground/65 leading-relaxed">{f.lead}</p>
+                    <ul className="mt-3 space-y-1.5">
+                      {f.moves.map((m, i) => (
+                        <li key={i} className="flex gap-2.5 font-sans text-[13px] text-foreground/70 leading-relaxed">
+                          <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-accent" aria-hidden />
+                          <span>{m}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+
+              {/* Live proof — the impairment-lens simulator. */}
+              <div className="mt-6">
+                <AdaptabilityDemo />
               </div>
             </section>
 

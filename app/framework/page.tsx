@@ -8,9 +8,9 @@ import { FrameworkGuide } from "@/components/framework-guide"
 
 export const metadata: Metadata = {
   ...canonicalPath("/framework"),
-  title: "Universal Experience Framework — Laws of UX & Cognition",
+  title: "Universal Experience Framework — Laws of UX, Motion & Adaptability",
   description:
-    "Ankur Sinha's working UX framework: the cognitive laws (Hick's, Fitts's, Miller's, Jakob's, Gestalt, Peak-End...), Nielsen's heuristics, the five planes, WCAG 2.2 accessibility, and a working method for any screen. The why behind good design.",
+    "Ankur Sinha's working UX framework: the cognitive laws (Hick's, Fitts's, Miller's, Jakob's, Gestalt, Peak-End...), Nielsen's heuristics, motion & time (Doherty threshold, spring vs tween), adaptability across age, ability, culture, literacy, device and context, WCAG 2.2 accessibility, and a working method for any screen. The why behind good design.",
 }
 
 export default function FrameworkPage() {
@@ -24,7 +24,7 @@ export default function FrameworkPage() {
           <Container>
             <div className="max-w-3xl">
               <p className="font-mono text-xs tracking-[0.3em] uppercase text-accent mb-6">
-                Universal Experience Framework 1.0
+                Universal Experience Framework 1.1
               </p>
               <h1 className="font-display text-5xl md:text-7xl font-light tracking-[-0.02em] leading-[1.02] text-balance">
                 Laws of UX <span className="italic">&amp;</span> Cognition.

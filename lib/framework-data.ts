@@ -366,4 +366,181 @@ export const CANON: string[] = [
   "W3C — WCAG 2.2",
   "Rodden et al. — HEART framework",
   "Citi GS+DT — Universal Experience Framework 1.0 (structural basis)",
+  "Doherty & Thadani — The economic value of rapid response time (1982)",
+  "Microsoft — Inclusive Design toolkit (persona spectrum)",
+  "W3C WAI — Older Users & Web Accessibility (WCAG-EM)",
+]
+
+/* ── LAYER B · MOTION & TIME ──────────────────────────────────────────────────
+ *
+ * Motion is part of the Surface plane, but it earns its own section because it
+ * has its own laws — of time, physics, and meaning — and because animation done
+ * without them is the fastest way to make a product feel cheap or hostile.
+ */
+
+/** How motion actually works — the model behind a declarative animation library
+ *  (Framer Motion / the Web Animations API), so the WHY of the laws is grounded.
+ *  This is the "how the tool works" companion to the laws below. */
+export const MOTION_MECHANICS: { name: string; what: string; detail: string }[] = [
+  {
+    name: "Declarative state, not frames",
+    what: "You describe the states; the engine computes the transition between them.",
+    detail: "You never write the per-frame loop. You declare where an element starts (initial), where it should be now (animate), and what to do on the way out (exit). Change the target and the library interpolates from the CURRENT value — so animations survive interruption instead of snapping.",
+  },
+  {
+    name: "Tween vs. spring",
+    what: "Two ways to get from A to B: a timed curve, or simulated physics.",
+    detail: "A tween has a fixed duration + easing curve — precise, good for opacity and entrances. A spring has no duration; it's defined by stiffness, damping and mass and settles naturally — the right model for anything the user grabs or that should feel physical (drags, toggles, a sliding indicator).",
+  },
+  {
+    name: "FLIP for layout",
+    what: "Animate the un-animatable — position changes the browser makes.",
+    detail: "First, Last, Invert, Play: measure the element before and after a re-render, then animate the difference. A shared id lets one element 'morph' into another (a tab underline sliding, a card expanding to a page). This is how you animate layout without janky top/left tweens.",
+  },
+  {
+    name: "Compositor-friendly properties",
+    what: "Animate transform and opacity; almost never width, top, or color-of-everything.",
+    detail: "transform and opacity run on the GPU compositor and don't trigger layout/paint, so they stay 60fps even when the main thread is busy. Animating width/height/top/left forces reflow every frame — the classic source of jank. Modern engines run these on the Web Animations API off the main thread where they can.",
+  },
+]
+
+export const MOTION_LAWS: FrameworkGroup = {
+  id: "motion",
+  no: "10.0",
+  title: "Motion & time",
+  lead: "Animation is not decoration — it's a language for causality, continuity and state. These laws keep it meaningful and fast.",
+  laws: [
+    {
+      name: "Doherty threshold",
+      viz: "doherty",
+      mnemonic: "Under 400ms feels like now.",
+      what: "When a system responds in under ~400ms, people stay in flow and even work faster. Past that, attention leaks and the product feels slow.",
+      deep: "Below roughly 400ms, response feels instantaneous and the user and machine enter a productive loop; above it, the user disengages between actions. This is why optimistic UI, skeleton states and instant feedback matter more than raw speed — perceived latency is the real metric.",
+      helps: "Fast, sub-400ms feedback keeps people in flow instead of context-switching away every time they wait — the difference between a tool that feels alive and one that feels like it's thinking.",
+      apply: "Acknowledge every action in <100ms (a state change), complete or show progress by ~400ms; use optimistic UI + skeletons.",
+    },
+    {
+      name: "Motion carries meaning",
+      viz: "generic",
+      mnemonic: "Animate to explain, not to impress.",
+      what: "Every animation should answer a question: where did this come from, where did it go, what changed, is it still working? Motion with no informational job is noise.",
+      deep: "The best motion is invisible-as-effect and obvious-as-meaning: an item flies to the cart so you see where it went; a panel slides from the button that opened it so the spatial model holds; a list reorders with movement so you don't lose your place. Decorative motion that carries no state costs attention and battery for nothing.",
+      helps: "Meaningful motion builds a spatial, causal model of the interface in the user's head — they always know where they are and what just happened, without reading a word.",
+      apply: "For each animation, name the state change it communicates. If you can't, cut it.",
+    },
+    {
+      name: "Natural easing",
+      viz: "generic",
+      mnemonic: "Nothing in the real world starts or stops instantly.",
+      what: "Linear motion feels robotic. Real objects accelerate and decelerate — ease things in and out so they feel physical, with entrances slightly slower than exits.",
+      deep: "A single house easing curve (this site uses cubic-bezier 0.16, 1, 0.3, 1 — a soft, confident ease-out) applied consistently makes the whole product feel like one hand made it. Durations follow a scale, not one-off numbers: ~150ms for small state, ~300ms for entrances, ~500ms for large or spatial moves.",
+      helps: "Consistent, physical easing makes an interface feel calm and trustworthy instead of twitchy — the same reason a well-damped door feels more expensive than one that slams.",
+      apply: "One shared easing curve + a small duration scale (150/300/500ms). Never ship linear except for continuous loops.",
+    },
+    {
+      name: "Respect reduced motion",
+      viz: "generic",
+      mnemonic: "Motion is opt-out for some, a barrier for others.",
+      what: "Vestibular disorders make large motion physically sickening. prefers-reduced-motion is a real user setting, not an edge case — honour it by cutting movement to a cross-fade.",
+      deep: "Reduced motion doesn't mean NO feedback — it means replace large translational / parallax / zoom motion with an opacity change, and disable auto-playing loops. It's a WCAG 2.2 requirement (Animation from Interactions), and the same switch should be reachable in-product, not only in the OS.",
+      helps: "Honouring the setting means people who get motion-sick from parallax and big transitions can still use the product comfortably — and everyone gets a calmer option.",
+      apply: "Gate every non-trivial animation on a reduced-motion check; fall back to opacity. Offer an in-app toggle too.",
+    },
+  ],
+}
+
+/* ── LAYER B · ADAPTABILITY — WHO IT'S REALLY FOR ─────────────────────────────
+ *
+ * The cognitive laws are universal, but their SETTINGS aren't: the same law
+ * points to different designs for a 7-year-old, a 70-year-old, a screen-reader
+ * user, someone reading a second language, or a person on a $40 phone over 3G.
+ * Age-related change is squarely an accessibility concern (ability shifts across
+ * the lifespan), so this lives WITH accessibility — but widened from "disability"
+ * to the full audience: age, ability, culture, literacy, device, and context.
+ */
+
+/** The persona spectrum: every "disability" has a temporary and situational
+ *  twin, so designing for the permanent case helps a far larger group. */
+export const PERSONA_SPECTRUM: { ability: string; permanent: string; temporary: string; situational: string }[] = [
+  { ability: "Vision", permanent: "Blind / low vision", temporary: "Cataract, eye surgery", situational: "Bright sunlight, small screen" },
+  { ability: "Hearing", permanent: "Deaf / hard of hearing", temporary: "Ear infection", situational: "Loud room, no headphones" },
+  { ability: "Motor", permanent: "Limb difference, tremor", temporary: "Arm in a cast", situational: "Holding a baby, on a train" },
+  { ability: "Cognitive", permanent: "Dyslexia, ADHD", temporary: "Concussion, exhaustion", situational: "Distracted, stressed, rushing" },
+]
+
+/** Audience factors — how the universal laws shift by who's actually using it.
+ *  Each is a lens you run the design through, with the concrete adjustments. */
+export const AUDIENCE_FACTORS: {
+  id: string
+  factor: string
+  lead: string
+  /** the specific, checkable design moves this factor demands. */
+  moves: string[]
+}[] = [
+  {
+    id: "age",
+    factor: "Age — across the lifespan",
+    lead: "Vision, motor control, working memory and tech familiarity all change with age — at both ends. The same screen serves a child, a busy adult, and an older user very differently.",
+    moves: [
+      "Older adults: default to larger text (respect OS text-size), ≥44px targets, higher contrast, and generous spacing — presbyopia and reduced motor precision are the norm past ~50, not an edge case.",
+      "Older adults: lean on recognition over recall, avoid time-outs, and never hide primary actions behind hover or gesture-only affordances.",
+      "Children: simple language, forgiving inputs, no dark patterns, and strong guardrails; reading and abstraction are still developing.",
+      "Everyone: don't assume tech fluency tracks age — test the real range, and make the safe path the obvious one.",
+    ],
+  },
+  {
+    id: "ability",
+    factor: "Ability — the persona spectrum",
+    lead: "Every permanent disability has a temporary and situational twin. Design for the permanent case and you catch the far larger group who share the constraint for a moment.",
+    moves: [
+      "Assistive tech: full keyboard operability, correct name/role/value, and a logical focus order — screen readers, switch access and voice control all depend on it.",
+      "Low vision: AA contrast as a floor, reflow to 320px / 400% zoom, and never meaning-by-colour-alone.",
+      "Motor: large, well-spaced targets and forgiving hit areas; no precision drags as the only path.",
+      "Cognitive: plain language, one primary action, chunked content, and errors that say what and how to fix — reduce load for everyone.",
+    ],
+  },
+  {
+    id: "culture",
+    factor: "Culture & language",
+    lead: "Layout direction, colour meaning, iconography, name and address formats, and humour don't translate. A localized product is more than swapped strings.",
+    moves: [
+      "RTL: mirror the whole layout for Arabic / Hebrew (logical properties, not left/right); this site's /ar home is fully RTL.",
+      "Colour & icons carry different meaning across cultures — don't hard-code red=bad, and avoid culturally specific metaphors (mailboxes, gestures).",
+      "Allow for text expansion (German ~+35%), and never bake grammar into string concatenation.",
+      "Formats: names, addresses, dates, numerals and currency are local — don't assume a Western default.",
+    ],
+  },
+  {
+    id: "literacy",
+    factor: "Literacy & numeracy",
+    lead: "Reading level and comfort with numbers vary enormously — often independently of intelligence or education. Dense prose and raw statistics exclude people.",
+    moves: [
+      "Write to a broad reading level; short sentences, common words, active voice. (This site ships a reading-level toggle for exactly this.)",
+      "Pair every number with plain meaning — 'high', 'about a third', a visual — not just a bare statistic.",
+      "Use plain-language labels and helper text; define jargon inline or drop it.",
+      "Support non-text comprehension: icons with labels, diagrams, and examples over abstract rules.",
+    ],
+  },
+  {
+    id: "access",
+    factor: "Device & network access",
+    lead: "Your fast laptop on office wifi is not the median. Much of the world is on a low-end Android over an expensive, intermittent mobile connection.",
+    moves: [
+      "Performance is accessibility: budget bytes, lazy-load the heavy stuff, and keep the first paint useful (this engine tiers quality by device and honours Data-Saver).",
+      "Design for small screens and one thumb first; touch targets and reachable primary actions.",
+      "Degrade gracefully offline / on flaky networks; never a blank screen on a failed fetch.",
+      "Don't gate core value behind a large download or a login the user can't complete on their connection.",
+    ],
+  },
+  {
+    id: "context",
+    factor: "Situation & context",
+    lead: "The same person has different abilities minute to minute — walking, one-handed, in sunlight, stressed, distracted. Design for the hardest realistic moment.",
+    moves: [
+      "One-handed & on the move: primary actions in thumb reach, big targets, forgiving inputs.",
+      "Sunlight & glare: high contrast and clear hierarchy survive a washed-out screen.",
+      "Stress & urgency: the critical path must be obvious under pressure — this is when clutter and ambiguity cause errors.",
+      "Interruptibility: let people leave and return without losing state (Zeigarnik / save-and-resume).",
+    ],
+  },
 ]

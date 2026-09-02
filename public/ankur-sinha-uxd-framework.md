@@ -1,10 +1,10 @@
-# Universal Experience Framework 1.0
+# Universal Experience Framework 1.1
 
-**A working guide — Laws of UX & Cognition, heuristics, standards, and an applied method.**
+**A working guide — Laws of UX & Cognition, heuristics, motion, adaptability, standards, and an applied method.**
 
 Author: **Ankur Sinha** · Design × Engineering × AI · [sinhaankur.com](https://www.sinhaankur.com)
 Live, interactive edition: [sinhaankur.com/framework](https://www.sinhaankur.com/framework)
-Generated: 2026-07-31
+Generated: 2026-09-02 · v1.1 adds Motion & Time and Adaptability (age / ability / culture / literacy / access / context)
 
 ---
 
@@ -382,6 +382,39 @@ AA is the floor, not a feature.
 - **Operable** — Everything works by keyboard with visible focus order; targets ≥ 24px (40px recommended); no traps; honour reduced-motion.
 - **Understandable** — Predictable behaviour and navigation; clear labels; inline error identification and suggestions; consistent components.
 - **Robust** — Valid, semantic markup; correct name/role/value for every control (ARIA only when native won't do); status announced.
+
+### 5.1 · Adaptability — who it's really for
+
+The cognitive laws are universal; their **settings** aren't. The same law points to a different design for a seven-year-old, a seventy-year-old, a screen-reader user, someone reading a second language, or a person on a $40 phone over 3G. Ability shifts across the lifespan and by the minute — so accessibility isn't a disability checkbox, it's designing to **adapt to your real audience**.
+
+**The persona spectrum** — every permanent constraint has a temporary and situational twin; design for the permanent case and you help the far larger group who share it for a moment (the curb-cut effect):
+
+| Ability | Permanent | Temporary | Situational |
+| --- | --- | --- | --- |
+| Vision | Blind / low vision | Cataract, eye surgery | Bright sunlight, small screen |
+| Hearing | Deaf / hard of hearing | Ear infection | Loud room, no headphones |
+| Motor | Limb difference, tremor | Arm in a cast | Holding a baby, on a train |
+| Cognitive | Dyslexia, ADHD | Concussion, exhaustion | Distracted, stressed, rushing |
+
+**Six factors to run the design through:**
+
+- **Age — across the lifespan.** Older adults: larger text (respect OS size), ≥44px targets, higher contrast, generous spacing, recognition over recall, no time-outs, no hover/gesture-only actions. Children: simple language, forgiving inputs, no dark patterns, strong guardrails. Don't assume tech fluency tracks age — test the real range.
+- **Ability — the persona spectrum.** Full keyboard operability + correct name/role/value for assistive tech; AA contrast + reflow for low vision; large, forgiving targets for motor; plain language, one primary action, chunked content for cognitive.
+- **Culture & language.** Mirror the whole layout for RTL (logical properties); colour and icons carry different meaning — don't hard-code red=bad; allow text expansion (German ~+35%); localise names, dates, numerals, currency.
+- **Literacy & numeracy.** Write to a broad reading level (short sentences, active voice); pair every number with plain meaning; plain-language labels; icons with labels, diagrams over abstract rules.
+- **Device & network access.** Performance is accessibility — budget bytes, lazy-load, keep first paint useful, honour Data-Saver; design small-screen and one-thumb first; degrade gracefully offline; don't gate core value behind a large download.
+- **Situation & context.** Design for the hardest realistic moment — one-handed, in sunlight, stressed, interruptible. Primary actions in thumb reach; high contrast; obvious critical path under pressure; save-and-resume state.
+
+### 5.2 · Motion & time
+
+Animation is a language for causality, continuity and state — not decoration. It has its own laws.
+
+**How motion works** (the model behind a declarative animation engine): you describe *states* (start, current target, exit) and the engine interpolates from the current value — so animations survive interruption. A **tween** is a timed easing curve (precise; entrances, opacity); a **spring** is simulated physics — stiffness/damping/mass, no fixed duration (anything the user grabs). **FLIP** animates layout changes by measuring before/after and tweening the difference. Animate **transform and opacity** (GPU compositor, off the main thread); almost never width/top/left (reflow every frame = jank).
+
+- **Doherty threshold** — under ~400ms, response feels instant and the user stays in flow; past it, attention leaks. Acknowledge every action in <100ms, complete or show progress by ~400ms; use optimistic UI + skeletons. Perceived latency is the real metric.
+- **Motion carries meaning** — every animation should answer *where did this come from / go, what changed, is it still working?* A panel slides from the button that opened it; an item flies to the cart. If an animation communicates no state change, cut it.
+- **Natural easing** — real objects accelerate and decelerate; linear feels robotic. One shared easing curve + a small duration scale (≈150 / 300 / 500ms) makes the whole product feel like one hand made it.
+- **Respect reduced motion** — vestibular disorders make large motion physically sickening. `prefers-reduced-motion` is a WCAG 2.2 requirement, not an edge case: replace large translational/parallax/zoom motion with an opacity change, disable auto-loops, and offer an in-app toggle too.
 
 ## 6 · The applied method — run it on every screen
 
