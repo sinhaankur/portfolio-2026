@@ -232,26 +232,46 @@ export function Footer({ hideContact = false }: { hideContact?: boolean } = {}) 
                 code? Open a channel.
               </p>
 
-              {/* Résumé link — quieter sibling. Below the intro so it
-                  doesn't compete with the tuner, but still discoverable. */}
-              <a
-                href="/ankur-sinha-resume.pdf"
-                download
-                data-cursor-hover
-                aria-label="Download résumé (PDF)"
-                className="
-                  mt-8 inline-flex items-center gap-2.5
-                  font-mono text-[11px] tracking-[0.25em] uppercase
-                  text-muted-foreground hover:text-foreground
-                  transition-colors duration-300
-                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
-                  focus-visible:ring-offset-2 focus-visible:ring-offset-background
-                  rounded
-                "
-              >
-                <Download className="w-3.5 h-3.5" aria-hidden="true" />
-                Résumé · PDF
-              </a>
+              {/* Quieter siblings below the intro — résumé + LinkedIn — so
+                  they don't compete with the tuner but stay discoverable. */}
+              <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">
+                <a
+                  href="/ankur-sinha-resume.pdf"
+                  download
+                  data-cursor-hover
+                  aria-label="Download résumé (PDF)"
+                  className="
+                    inline-flex items-center gap-2.5
+                    font-mono text-[11px] tracking-[0.25em] uppercase
+                    text-muted-foreground hover:text-foreground
+                    transition-colors duration-300
+                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+                    focus-visible:ring-offset-2 focus-visible:ring-offset-background
+                    rounded
+                  "
+                >
+                  <Download className="w-3.5 h-3.5" aria-hidden="true" />
+                  Résumé · PDF
+                </a>
+                <a
+                  href="https://www.linkedin.com/in/sinhaankur27"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-cursor-hover
+                  aria-label="Connect on LinkedIn"
+                  className="
+                    inline-flex items-center gap-2.5
+                    font-mono text-[11px] tracking-[0.25em] uppercase
+                    text-muted-foreground hover:text-foreground
+                    transition-colors duration-300
+                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+                    focus-visible:ring-offset-2 focus-visible:ring-offset-background
+                    rounded
+                  "
+                >
+                  Connect on LinkedIn ↗
+                </a>
+              </div>
             </div>
 
             <div className="md:pt-2">
