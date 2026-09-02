@@ -15,11 +15,13 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Accessibility } from "lucide-react"
 import { useDisplayPrefs, type DisplayPrefs } from "./display-prefs"
 import { A11yChecker } from "./a11y-checker"
+import { READING_LEVELS, useReadingLevel } from "@/lib/reading-level"
 
 export function DisplayMenu() {
   const [open, setOpen] = useState(false)
   const [checkerOpen, setCheckerOpen] = useState(false)
   const { reduceMotion, largeText, systemCursor, readingMode, fastMode, setPref, reset } = useDisplayPrefs()
+  const [readingLevel, setReadingLevel] = useReadingLevel()
   const wrapRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -103,6 +105,50 @@ export function DisplayMenu() {
                   Reset
                 </button>
               )}
+            </div>
+
+            {/* Reading level — how dense the writing is. Deep is Ankur's own
+                voice (default); Plain and Simple make the same points plainer.
+                Shared store: this drives the hero + About copy live. */}
+            <div className="mb-4">
+              <div className="flex items-baseline justify-between">
+                <p className="font-sans text-sm text-foreground leading-tight">Reading level</p>
+                <p className="font-mono text-[10px] tracking-wider text-muted-foreground">
+                  {READING_LEVELS.find((l) => l.id === readingLevel)?.hint}
+                </p>
+              </div>
+              <div
+                role="radiogroup"
+                aria-label="Reading level"
+                className="mt-2 flex items-center rounded-lg border border-border bg-secondary/30 p-1"
+              >
+                {READING_LEVELS.map((lv) => {
+                  const active = lv.id === readingLevel
+                  return (
+                    <button
+                      key={lv.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      onClick={() => setReadingLevel(lv.id)}
+                      data-cursor-hover
+                      title={lv.hint}
+                      className={`relative flex-1 rounded-md px-2 py-1.5 font-mono text-[10px] tracking-widest uppercase transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+                        active ? "text-background" : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {active && (
+                        <motion.span
+                          layoutId="display-reading-level-pill"
+                          transition={{ type: "spring", stiffness: 400, damping: 34 }}
+                          className="absolute inset-0 rounded-md bg-foreground"
+                        />
+                      )}
+                      <span className="relative">{lv.label}</span>
+                    </button>
+                  )
+                })}
+              </div>
             </div>
 
             <ul className="space-y-1">
