@@ -12,6 +12,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { TimeOfDayTheme } from "@/components/time-of-day-theme"
 import { DisplayPrefsProvider } from "@/components/display-prefs"
 import { VisitorAnalytics } from "@/components/analytics/visitor-analytics"
+import { ConsentBanner } from "@/components/consent-banner"
 import { Preloader } from "@/components/preloader"
 import { UpdateToast } from "@/components/update-toast"
 import "./globals.css"
@@ -244,6 +245,15 @@ export default function RootLayout({
         {/* Preconnect to GTM so the container fetch isn't gated on a fresh
             DNS + TLS handshake. */}
         <link rel="preconnect" href="https://www.googletagmanager.com" />
+        {/* Google Consent Mode v2 defaults — analytics DENIED until the visitor
+            accepts via the consent banner (GDPR/ePrivacy). Must run BEFORE the
+            GTM container so tags respect it from the first pageview. The banner
+            (ConsentBanner) flips analytics_storage to "granted" on Accept. */}
+        <Script id="consent-default" strategy="beforeInteractive">
+          {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}
+window.gtag=window.gtag||gtag;
+gtag('consent','default',{ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied',analytics_storage:'denied',wait_for_update:500});`}
+        </Script>
         {/* GTM container init — loads the container script async via
             next/script so it doesn't block first paint. Tags fire client-side
             from inside the GTM dashboard once configured (GA4, etc.). */}
@@ -371,6 +381,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
             {/* "A new version is available" prompt when the service worker has a
                 fresh deploy waiting — so visitors aren't stuck on a stale shell. */}
             <UpdateToast />
+            {/* Cookie-consent banner — analytics stay denied until Accept. */}
+            <ConsentBanner />
           </DisplayPrefsProvider>
         </ThemeProvider>
       </body>
