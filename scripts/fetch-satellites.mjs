@@ -89,22 +89,55 @@ main().catch((e) => {
 
 async function main() {
   console.log("Fetching CelesTrak SATCAT + TLE …")
-  const [satcatRaw, tleRaw] = await Promise.all([
-    getText(SATCAT_URL, process.env.SATCAT_CACHE),
-    getText(TLE_URL, process.env.TLE_CACHE),
-  ])
-  const satcat = JSON.parse(satcatRaw)
-  const tle = parseTle(tleRaw)
-  console.log(`  SATCAT records: ${satcat.length}  |  active TLE objects: ${tle.size}`)
-  // Fetch the major debris-cloud TLE groups DIRECTLY (the SATCAT 'active' query
-  // doesn't list debris, but these groups ARE debris by definition). Each entry
-  // becomes a DEB object, dated to its known fragmentation event. Best-effort:
-  // a group that fails (rate-limit) is skipped without breaking the build.
+  // Load the previous build once — used as the fallback for BOTH the payload
+  // feed (if CelesTrak throttles the main GP/SATCAT request) and each debris
+  // group. A satellite map doesn't empty out between builds just because a
+  // request 403'd, so a throttled run refreshes what it can and keeps the rest.
+  let prevBuild = null
+  try {
+    prevBuild = JSON.parse(await fs.readFile(OUT, "utf8"))
+  } catch { /* first build — no prior file */ }
+
+  // Fetch SATCAT + active TLE; if the live feed fails (403 burst), reuse the
+  // prior build's payloads so the whole catalogue never collapses to nothing.
+  let satcat, tle, usedPrevPayloads = false
+  try {
+    const [satcatRaw, tleRaw] = await Promise.all([
+      getText(SATCAT_URL, process.env.SATCAT_CACHE),
+      getText(TLE_URL, process.env.TLE_CACHE),
+    ])
+    satcat = JSON.parse(satcatRaw)
+    tle = parseTle(tleRaw)
+    console.log(`  SATCAT records: ${satcat.length}  |  active TLE objects: ${tle.size}`)
+  } catch (e) {
+    if (!prevBuild) throw new Error(`payload feed failed and no prior build to fall back to → ${e.message}`)
+    console.warn(`  payload feed failed (${e.message}) — reusing ${prevBuild.sats.filter((s) => s.type === "PAY" || s.type === "R/B").length} payloads from previous build`)
+    usedPrevPayloads = true
+    // Rebuild `satcat` + `tle` from the prior file so the merge below is uniform.
+    satcat = prevBuild.sats
+      .filter((s) => s.type === "PAY" || s.type === "R/B")
+      .map((s) => ({ NORAD_CAT_ID: s.id, OBJECT_NAME: s.name, OWNER: s.owner, OBJECT_TYPE: s.type, LAUNCH_DATE: new Date(s.launchMs).toISOString().slice(0, 10), LAUNCH_SITE: s.site }))
+    tle = new Map(prevBuild.sats.filter((s) => s.type === "PAY" || s.type === "R/B").map((s) => [s.id, { name: s.name, l1: s.l1, l2: s.l2 }]))
+  }
+  // Fetch the debris TLE groups DIRECTLY (the SATCAT 'active' query lists ONLY
+  // payloads — it excludes debris + rocket bodies by design, so those must come
+  // from the GP element groups). Each entry becomes a DEB object.
+  //
+  // Keyless honesty note: CelesTrak's public feeds expose the NAMED
+  // fragmentation clouds + the `analyst` set (uncorrelated tracked objects),
+  // NOT the full ~40k tracked-debris catalogue — that lives behind a
+  // Space-Track.org account. So this is "the major tracked debris", labeled as
+  // such in the UI, never presented as the complete population.
+  //   • fragmentation clouds — dated to their known breakup event.
+  //   • analyst — uncorrelated / unidentified tracked objects (effectively
+  //     debris whose parent isn't attributed); no single event date, so they
+  //     carry the epoch of their own TLE (dated when first tracked).
   const DEBRIS_GROUPS = [
     { id: "cosmos-1408-debris", eventMs: Date.parse("2021-11-15T00:00:00Z") }, // Russian ASAT test
     { id: "fengyun-1c-debris",  eventMs: Date.parse("2007-01-11T00:00:00Z") }, // Chinese ASAT test
     { id: "iridium-33-debris",  eventMs: Date.parse("2009-02-10T00:00:00Z") }, // Iridium-Cosmos collision
     { id: "cosmos-2251-debris", eventMs: Date.parse("2009-02-10T00:00:00Z") }, // (other half of the collision)
+    { id: "analyst",            eventMs: null }, // uncorrelated tracked objects — date from each TLE epoch
   ]
   // Load the PREVIOUS catalogue (if any) so a rate-limited debris group this run
   // falls back to the fragments we already had, instead of silently vanishing.
@@ -112,15 +145,18 @@ async function main() {
   // debris cloud doesn't disappear from the sky between builds, only from the
   // response. Merging against the prior file makes the debris set monotonic:
   // successful fetches refresh a cloud's TLEs; a failed one keeps last-known.
-  let prevByGroup = new Map() // groupId → [DEB objs from last build]
-  try {
-    const prev = JSON.parse(await fs.readFile(OUT, "utf8"))
-    for (const s of prev.sats || []) {
-      if (s.type !== "DEB" || !s.group) continue
-      if (!prevByGroup.has(s.group)) prevByGroup.set(s.group, [])
-      prevByGroup.get(s.group).push(s)
-    }
-  } catch { /* no prior file — first build */ }
+  const prevByGroup = new Map() // groupId → [DEB objs from last build]
+  for (const s of prevBuild?.sats || []) {
+    if (s.type !== "DEB" || !s.group) continue
+    if (!prevByGroup.has(s.group)) prevByGroup.set(s.group, [])
+    prevByGroup.get(s.group).push(s)
+  }
+  // Also index the prior debris by NAME prefix, so clouds saved BEFORE the
+  // `group` field existed (older builds) still back-fill a throttled group.
+  const prevByNameGuess = (groupId) => {
+    const key = groupId.replace(/-debris$/, "").replace(/-/g, " ").toUpperCase()
+    return (prevBuild?.sats || []).filter((s) => s.type === "DEB" && s.name?.toUpperCase().startsWith(key))
+  }
 
   const debrisObjs = []
   // Small retry with backoff — CelesTrak 403s on burst; a short pause often clears it.
@@ -134,14 +170,30 @@ async function main() {
       }
     }
   }
+  // TLE line-1 epoch (cols 19–32, YYDDD.DDDD…) → ms. Used when a group has no
+  // single event date (the `analyst` set) so each object still gets a real,
+  // honest appearance date for the launch-timeline gate.
+  const tleEpochMs = (l1) => {
+    const yy = parseInt(l1.slice(18, 20), 10)
+    const doy = parseFloat(l1.slice(20, 32))
+    if (!Number.isFinite(yy) || !Number.isFinite(doy)) return Date.UTC(2000, 0, 1)
+    const year = yy < 57 ? 2000 + yy : 1900 + yy
+    return Date.UTC(year, 0, 1) + (doy - 1) * 86400000
+  }
   for (const g of DEBRIS_GROUPS) {
     try {
       const m = await fetchGroup(g.id)
-      for (const [id, v] of m) debrisObjs.push({ id, name: v.name, owner: "—", type: "DEB", group: g.id, launchMs: g.eventMs, l1: v.l1, l2: v.l2 })
+      for (const [id, v] of m) {
+        const launchMs = g.eventMs ?? tleEpochMs(v.l1)
+        debrisObjs.push({ id, name: v.name, owner: "—", type: "DEB", group: g.id, launchMs, l1: v.l1, l2: v.l2 })
+      }
       console.log(`  + ${g.id}: ${m.size} fragments`)
     } catch (e) {
       // Rate-limited/failed this run → keep the fragments from the last build.
-      const kept = prevByGroup.get(g.id) || []
+      // Prefer the group-tagged copy; fall back to a name-prefix match for
+      // clouds saved before the `group` field existed.
+      let kept = prevByGroup.get(g.id) || []
+      if (kept.length === 0) kept = prevByNameGuess(g.id).map((s) => ({ ...s, group: g.id }))
       for (const s of kept) debrisObjs.push(s)
       console.warn(`  (${g.id} failed: ${e.message}) — kept ${kept.length} from previous build`)
     }
@@ -182,9 +234,12 @@ async function main() {
 
   const payload = {
     snapshot: new Date().toISOString().slice(0, 10),
-    source: "CelesTrak SATCAT + GP/TLE (payloads + rocket bodies + debris)",
+    source: "CelesTrak SATCAT + GP/TLE — active payloads + rocket bodies + major tracked debris (fragmentation clouds + analyst set). Full ~40k debris catalogue is Space-Track-gated; not included.",
     count: sats.length,
     breakdown: counts,
+    // True if the live payload feed was throttled this build and payloads came
+    // from the previous snapshot (debris groups may still be fresh).
+    payloadsFromPrevBuild: usedPrevPayloads || undefined,
     sats,
   }
   console.log(`  Payloads ${counts.PAY} · rocket bodies ${counts["R/B"]} · debris ${counts.DEB}`)

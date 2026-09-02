@@ -1209,7 +1209,7 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     sats.forEach((sv, gi) => {
       groups[gi] = classifyGroup(sv.name, sv.type)
       regimes[gi] = classifyRegimeId(sv.l2)
-      families[gi] = sv.type === "DEB" ? classifyDebrisFamily(sv.name) : -1
+      families[gi] = sv.type === "DEB" ? classifyDebrisFamily(sv.name, sv.group) : -1
       // Stable per-satellite random for the overview LOD cull — hashed from the
       // NORAD id (not the index) so the visible sample never reshuffles when
       // the catalogue refreshes.

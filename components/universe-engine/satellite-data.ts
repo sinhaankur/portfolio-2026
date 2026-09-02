@@ -36,10 +36,13 @@ export type Sgp4 = {
 }
 
 export type SatType = "PAY" | "R/B" | "DEB"
-export type Sat = { id: number; name: string; owner: string; type?: SatType; launchMs: number; l1: string; l2: string }
+// `group` — for debris, the CelesTrak GP group it came from (fragmentation
+// cloud id or "analyst"); absent on payloads. Used to classify the analyst set,
+// which is catalogued "UNKNOWN" and can't be matched by name.
+export type Sat = { id: number; name: string; owner: string; type?: SatType; group?: string; launchMs: number; l1: string; l2: string }
 
 // ── Catalogue record + metadata types ───────────────────────────────────────
-export type SatMeta = { id: number; name: string; owner: string; type?: SatType; launchMs: number; site?: string }
+export type SatMeta = { id: number; name: string; owner: string; type?: SatType; group?: string; launchMs: number; site?: string }
 export type SatRecord = SatMeta & { l1: string; l2: string }
 
 export type SatOrbit = {
@@ -105,6 +108,10 @@ export const DEBRIS_FAMILIES = [
   { id: 1, prefix: "COSMOS 2251", label: "Cosmos-2251", event: "Iridium collision", year: 2009 },
   { id: 2, prefix: "IRIDIUM 33", label: "Iridium-33", event: "Cosmos collision", year: 2009 },
   { id: 3, prefix: "COSMOS 1408", label: "Cosmos-1408", event: "Russia ASAT test", year: 2021 },
+  // Uncorrelated / unidentified tracked objects (CelesTrak `analyst` set) — real
+  // debris whose parent object isn't attributed. Matched by GROUP, not name
+  // (they're catalogued "UNKNOWN"), so it carries no prefix.
+  { id: 4, prefix: "", group: "analyst", label: "Unidentified", event: "Uncorrelated tracked objects", year: 0 },
 ] as const
 
 // ── SGP4 date guard + finite check (Three-free) ──────────────────────────────
@@ -124,9 +131,15 @@ export function finitePos(
 }
 
 // ── Classification (name/TLE based) ──────────────────────────────────────────
-export function classifyDebrisFamily(name: string): number {
+/** Debris fragmentation family id, or -1 if none. Matches the named clouds by
+ *  name prefix; the analyst set (named "UNKNOWN") is matched by its `group`. */
+export function classifyDebrisFamily(name: string, group?: string): number {
+  if (group) {
+    const byGroup = DEBRIS_FAMILIES.find((f) => "group" in f && f.group === group)
+    if (byGroup) return byGroup.id
+  }
   const n = name.toUpperCase()
-  for (const f of DEBRIS_FAMILIES) if (n.startsWith(f.prefix)) return f.id
+  for (const f of DEBRIS_FAMILIES) if (f.prefix && n.startsWith(f.prefix)) return f.id
   return -1
 }
 

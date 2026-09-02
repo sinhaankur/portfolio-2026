@@ -97,10 +97,11 @@ export function DebrisPanel({ onClose, onJump }: { onClose?: () => void; onJump?
         {catalog && (
           <>
             <p className="text-[11px] leading-relaxed text-muted-foreground">
-              Four events created most of the tracked debris in orbit —{" "}
+              A handful of events created most of the tracked debris in orbit —{" "}
               <span className="text-red-300 font-medium">{totalTracked.toLocaleString()}</span> fragments still
-              circling from just these. Tap one to isolate its cloud in the swarm and
-              see the scale of a single collision.
+              circling. Plus the <span className="text-red-300 font-medium">analyst</span> set —
+              uncorrelated objects whose parent isn&apos;t identified. Tap one to isolate
+              its cloud in the swarm and see the scale of a single collision.
             </p>
 
             <ul className="mt-3 flex flex-col gap-1.5">
@@ -126,7 +127,7 @@ export function DebrisPanel({ onClose, onJump }: { onClose?: () => void; onJump?
                         </span>
                       </div>
                       <div className="mt-0.5 font-mono text-[9px] tracking-wider text-muted-foreground">
-                        {f.event} · {f.year}
+                        {f.event}{f.year ? ` · ${f.year}` : ""}
                       </div>
                       {/* Bar = this cloud's share of the biggest — the visual scale read. */}
                       <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-border/60" aria-hidden>
