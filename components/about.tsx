@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
 import {
   DialGlyph,
@@ -26,10 +26,14 @@ import type { ComponentType } from "react"
  * prefers-reduced-motion by skipping the per-item delay.
  */
 
+type ReadingLevel = "deep" | "plain" | "simple"
+
 type Principle = {
   number: string
-  title: string
-  body: string
+  /** title per reading level */
+  title: Record<ReadingLevel, string>
+  /** body per reading level */
+  body: Record<ReadingLevel, string>
   appliedIn: string
   /** Per-principle line-art glyph — sits in the number column.
    *  Encodes the *idea*, not a generic icon: the seam, the dial,
@@ -37,46 +41,103 @@ type Principle = {
   Glyph: ComponentType<{ className?: string }>
 }
 
+// Each principle is written at three levels the reader can choose:
+//   deep   — the original, intense voice (the default; the edge stays)
+//   plain  — warm and clear, no jargon, same idea
+//   simple — one honest sentence anyone gets
 const principles: Principle[] = [
   {
     number: "01",
-    title: "The seam is the design.",
-    body:
-      "The moment of decision, override, and trust — where a human meets an AI agent — that's the surface I work on. Not the model, not the wrapper. The seam.",
+    title: {
+      deep: "The seam is the design.",
+      plain: "I design the moment you decide.",
+      simple: "I design the hand-off between you and the AI.",
+    },
+    body: {
+      deep: "The moment of decision, override, and trust — where a human meets an AI agent — that's the surface I work on. Not the model, not the wrapper. The seam.",
+      plain: "When an AI does something for you, there's a moment where you decide to trust it, correct it, or stop it. That moment is what I design — not the AI itself, but the part where you and it meet.",
+      simple: "The most important part isn't the AI — it's the moment where you're in control of it. That's what I work on.",
+    },
     appliedIn: "Unhosted · the Universe Engine · agentic-AI prototypes",
     Glyph: SeamGlyph,
   },
   {
     number: "02",
-    title: "Uncertainty must be legible.",
-    body:
-      "An AI's claim is only trustworthy if you can read how sure it is — and the basis must be checkable. Confidence without calibration is a lie with a UI on top.",
+    title: {
+      deep: "Uncertainty must be legible.",
+      plain: "You should see how sure the AI is.",
+      simple: "The AI should show you when it's guessing.",
+    },
+    body: {
+      deep: "An AI's claim is only trustworthy if you can read how sure it is — and the basis must be checkable. Confidence without calibration is a lie with a UI on top.",
+      plain: "You can only trust an answer if you can see how confident the system really is — and check why. An AI that sounds certain but isn't is just a nice-looking mistake.",
+      simple: "If the AI isn't sure, it should tell you — clearly. Confident and wrong is the worst combination.",
+    },
     appliedIn: "approval gates · diff-review surfaces",
     Glyph: DialGlyph,
   },
   {
     number: "03",
-    title: "Reversibility is the policy axis.",
-    body:
-      "Not \"safety\" — that's a category, not a control. The right question is: can the human undo what the agent just did, within how many seconds? That's the real surface area.",
+    title: {
+      deep: "Reversibility is the policy axis.",
+      plain: "The real question is: can you undo it?",
+      simple: "Everything the AI does should be undoable.",
+    },
+    body: {
+      deep: "Not \"safety\" — that's a category, not a control. The right question is: can the human undo what the agent just did, within how many seconds? That's the real surface area.",
+      plain: "\"Is it safe?\" is too vague to design for. The useful question is simpler: if the AI just did something, can you take it back — and how quickly? That's what I build around.",
+      simple: "Mistakes are fine if you can undo them fast. So I make sure you always can.",
+    },
     appliedIn: "reversibility chips · audit trails",
     Glyph: ReversibleGlyph,
   },
   {
     number: "04",
-    title: "Prototypes are the argument.",
-    body:
-      "I write my own code because a prototype is the only design document that can't be ignored. Ship the argument, then defend it in production.",
+    title: {
+      deep: "Prototypes are the argument.",
+      plain: "I build the thing to prove the point.",
+      simple: "I make it real instead of just describing it.",
+    },
+    body: {
+      deep: "I write my own code because a prototype is the only design document that can't be ignored. Ship the argument, then defend it in production.",
+      plain: "Instead of writing a document about how something should work, I build a working version. A real prototype is much harder to argue with — and I write the code myself so it actually runs.",
+      simple: "I'd rather build a working version than write a report about it. So I write my own code and ship it.",
+    },
     appliedIn: "Every Lab project · every case study",
     Glyph: PrototypeGlyph,
   },
 ]
+
+const LEVELS: { id: ReadingLevel; label: string; hint: string }[] = [
+  { id: "deep", label: "Deep", hint: "My own words — dense, no compromises" },
+  { id: "plain", label: "Plain", hint: "Warm and clear, no jargon" },
+  { id: "simple", label: "Simple", hint: "One honest line each" },
+]
+
+const LEVEL_KEY = "reading-level-v1"
 
 export function About() {
   const prefersReducedMotion = useReducedMotion()
   // The childhood photo is hidden until the visitor chooses to peek — it's not
   // in the DOM (so it never loads or shows as a first image) until `revealed`.
   const [revealed, setRevealed] = useState(false)
+
+  // Reading level: the visitor picks how the principles are written. "Deep" is
+  // Ankur's own dense voice (the default — the edge stays). "Plain" is warm and
+  // clear; "Simple" is one honest line each. Remembered on-device.
+  const [level, setLevel] = useState<ReadingLevel>("deep")
+  useEffect(() => {
+    const saved = localStorage.getItem(LEVEL_KEY)
+    if (saved === "deep" || saved === "plain" || saved === "simple") setLevel(saved)
+  }, [])
+  const chooseLevel = (next: ReadingLevel) => {
+    setLevel(next)
+    try {
+      localStorage.setItem(LEVEL_KEY, next)
+    } catch {
+      /* private mode — ignore */
+    }
+  }
 
   const fadeUp = (i: number) => ({
     initial: prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 24 },
@@ -117,6 +178,51 @@ export function About() {
             Not a manifesto, not a thesis. Four operating principles that
             decide what I build, how I ship it, and what I refuse to
             compromise on.
+          </p>
+
+          {/* Reading-level toggle. I write dense on purpose — this lets a reader
+              dial it down without me losing my voice. Choice is remembered. */}
+          <div className="mt-8 flex flex-wrap items-center gap-3">
+            <span className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground">
+              How should I say it?
+            </span>
+            <div
+              role="radiogroup"
+              aria-label="Reading level for the principles below"
+              className="inline-flex items-center rounded-full border border-border bg-secondary/30 p-1"
+            >
+              {LEVELS.map((lv) => {
+                const active = lv.id === level
+                return (
+                  <button
+                    key={lv.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    onClick={() => chooseLevel(lv.id)}
+                    data-cursor-hover
+                    title={lv.hint}
+                    className={`relative rounded-full px-3.5 py-1.5 font-mono text-[10px] tracking-widest uppercase transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+                      active
+                        ? "text-background"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {active && (
+                      <motion.span
+                        layoutId="reading-level-pill"
+                        transition={{ type: "spring", stiffness: 400, damping: 34 }}
+                        className="absolute inset-0 rounded-full bg-foreground"
+                      />
+                    )}
+                    <span className="relative">{lv.label}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+          <p className="mt-2.5 font-sans text-[13px] text-muted-foreground/90 max-w-xl leading-relaxed">
+            {LEVELS.find((l) => l.id === level)?.hint}.
           </p>
         </motion.div>
 
@@ -220,14 +326,33 @@ export function About() {
                   />
                 </div>
 
-                {/* Claim + warrant + applied */}
+                {/* Claim + warrant + applied. Text swaps with the reading level;
+                    keyed so it cross-fades rather than snapping. */}
                 <div>
-                  <h3 className="font-display text-2xl md:text-3xl lg:text-4xl font-light tracking-[-0.01em] leading-[1.15] text-foreground">
-                    {p.title}
-                  </h3>
-                  <p className="mt-4 md:mt-5 font-sans text-base md:text-lg text-foreground/80 leading-relaxed max-w-2xl">
-                    {p.body}
-                  </p>
+                  <AnimatePresence mode="wait" initial={false}>
+                    <motion.h3
+                      key={`${p.number}-title-${level}`}
+                      initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
+                      transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+                      className="font-display text-2xl md:text-3xl lg:text-4xl font-light tracking-[-0.01em] leading-[1.15] text-foreground"
+                    >
+                      {p.title[level]}
+                    </motion.h3>
+                  </AnimatePresence>
+                  <AnimatePresence mode="wait" initial={false}>
+                    <motion.p
+                      key={`${p.number}-body-${level}`}
+                      initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
+                      transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+                      className="mt-4 md:mt-5 font-sans text-base md:text-lg text-foreground/80 leading-relaxed max-w-2xl"
+                    >
+                      {p.body[level]}
+                    </motion.p>
+                  </AnimatePresence>
                   <p className="mt-4 md:mt-5 font-mono text-[10px] md:text-xs tracking-widest uppercase text-muted-foreground">
                     Applied in · {p.appliedIn}
                   </p>
