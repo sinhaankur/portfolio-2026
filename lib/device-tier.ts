@@ -408,6 +408,15 @@ export function qualityForTier(tier: DeviceTier): QualitySettings {
       // fallback). Holding all ~18.7k satrecs (~130 MB) here was a real memory
       // load; cap the live swarm to a representative 10k so the tab stays light
       // while the sky still reads as dense. The panels keep full-catalogue truth.
+      //
+      // TOUCH-AWARE: a phone/tablet that lands on "mid" (base Apple M-series,
+      // a decent Android) shares the mid GPU score but has far less thermal +
+      // memory headroom than a mid *desktop*. So on a touch device we drop the
+      // heavy post effects and halve the live swarm — the single biggest win for
+      // mobile smoothness — while a mid desktop keeps the rich scene.
+      if (deviceProfileRef.current?.touch) {
+        return { dpr: [1, 1.5], densityScale: 0.6, allowHiResTextures: false, allowHeavyEffects: false, maxSwarmSats: 5000 }
+      }
       return { dpr: [1, 1.5], densityScale: 0.7, allowHiResTextures: false, allowHeavyEffects: true, maxSwarmSats: 10000 }
     case "low":
     default:
