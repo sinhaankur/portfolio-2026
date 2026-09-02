@@ -48,23 +48,44 @@ const ENABLE_NEARFIELD = false
 // flag; re-enable only once the missing-dots path is fully verified live.
 const ENABLE_SGP4_WORKER = false
 
+/** Even, deterministic stride: keep `keep` of `src` (id-ordered), spread across
+ *  the whole population so a shell stays a shell (all altitudes/planes) instead
+ *  of a head-slice clump. */
+function strideKeep(src: SatRecord[], keep: number): SatRecord[] {
+  if (keep >= src.length) return src.slice()
+  if (keep <= 0) return []
+  const stride = src.length / keep
+  const out: SatRecord[] = []
+  for (let i = 0; out.length < keep && i < src.length; i += stride) out.push(src[Math.floor(i)])
+  return out
+}
+
 /**
  * Downsample the catalogue to a memory/CPU budget for the LIVE SWARM, honestly.
  *
  * Each object we keep becomes a parsed SGP4 satrec (~7 KB) held for the whole
  * session, so all ~18.7k is ~130 MB — the engine's single biggest RAM load, and
  * it hurts weak/low-RAM devices most. When the device tier sets a cap, we keep a
- * REPRESENTATIVE sample rather than a blind head-slice:
- *   1. every ACTIVE PAYLOAD is kept first (the working spacecraft — what people
- *      actually come to see; a satellite map that dropped the ISS would be wrong),
- *   2. the remaining budget is filled with an EVEN stride across the debris /
- *      rocket-body population, ordered by NORAD id, so the junk shell still reads
- *      as a shell (spread across altitudes/planes) instead of a clump.
+ * REPRESENTATIVE sample of BOTH populations rather than a blind head-slice.
+ *
+ * Debris is not leftover — it's a headline of the LeoLabs-style read ("the junk
+ * around the working sats"). The OLD budgeting kept EVERY active payload first
+ * (~16k) and only filled the remainder with debris; but the payloads alone blow
+ * past a mid/phone cap (4k–10k), so debris got ZERO budget and vanished on the
+ * majority of devices — "debris aren't tracked". Fixed: reserve a DEBRIS QUOTA
+ * up front (its real share of the catalogue, floored so the shell always reads),
+ * then stride BOTH populations to fit the cap. Both stay representative shells.
+ *
  * Deterministic (id-ordered stride) so the sample never reshuffles between loads.
  * `pinnedIds` always survive the cull (the famous craft — ISS/Hubble/Tiangong —
  * that also ride as real 3D hardware; dropping them would be a visible wrong).
  * Returns the (possibly capped) list plus the true total for an honest HUD note.
  */
+// Debris/rocket-body share of a capped swarm. Roughly its real fraction of the
+// catalogue (~14%), floored so the junk shell is always legible even when the
+// cap is tight — a satellite map with no debris misrepresents the sky.
+const DEBRIS_QUOTA_FRAC = 0.18
+const DEBRIS_QUOTA_MIN = 1500
 function budgetSwarm(list: SatRecord[], cap: number, pinnedIds?: Set<number>): { list: SatRecord[]; total: number } {
   const total = list.length
   if (!Number.isFinite(cap) || total <= cap) return { list, total }
@@ -73,24 +94,25 @@ function budgetSwarm(list: SatRecord[], cap: number, pinnedIds?: Set<number>): {
   const pinned: SatRecord[] = []
   const rest: SatRecord[] = []
   for (const s of list) (pinnedIds?.has(s.id) ? pinned : rest).push(s)
-  const room0 = Math.max(0, cap - pinned.length)
+  const room = Math.max(0, cap - pinned.length)
   const active: SatRecord[] = []
   const junk: SatRecord[] = []
   for (const s of rest) (isDebris(s) ? junk : active).push(s)
-  // Active payloads are the priority; if they alone exceed the room, stride THEM.
-  if (active.length >= room0) {
-    const stride = active.length / room0
-    const out: SatRecord[] = []
-    for (let i = 0; out.length < room0 && i < active.length; i += stride) out.push(active[Math.floor(i)])
-    return { list: pinned.concat(out), total }
-  }
-  // Keep all active payloads, fill the rest with an even stride across the junk.
-  const room = room0 - active.length
   junk.sort((a, b) => a.id - b.id)
-  const stride = room > 0 ? junk.length / room : Infinity
-  const keptJunk: SatRecord[] = []
-  for (let i = 0; keptJunk.length < room && i < junk.length; i += stride) keptJunk.push(junk[Math.floor(i)])
-  return { list: pinned.concat(active, keptJunk), total }
+  active.sort((a, b) => a.id - b.id)
+
+  // Reserve a debris quota (its real-ish share, floored), but never more debris
+  // than exist or than the room can hold.
+  const junkTarget = Math.min(
+    junk.length,
+    room,
+    Math.max(DEBRIS_QUOTA_MIN, Math.round(room * DEBRIS_QUOTA_FRAC)),
+  )
+  const activeTarget = room - junkTarget
+
+  const keptActive = strideKeep(active, activeTarget)
+  const keptJunk = strideKeep(junk, junkTarget)
+  return { list: pinned.concat(keptActive, keptJunk), total }
 }
 
 /** NORAD ids that must always survive the swarm cap — the famous craft that also
@@ -695,12 +717,28 @@ const FRAG = /* glsl */ `
     vec2 c = gl_PointCoord - 0.5;
     float d = length(c);
     if (d > 0.5) discard;
-    // CLEAN but VISIBLE (Ankur: 'make it better that satellites are visible' — the
-    // ultra-subtle veil read too faint). A bright, crisp core with a soft halo so
-    // each dot is a clear luminous point, while staying ONE calm tint (not the old
-    // tacky rainbow). Sweet spot: legible + elegant.
-    float coreDot = 1.0 - smoothstep(0.0, 0.32, d);  // tight bright centre
-    float halo    = (1.0 - smoothstep(0.0, 0.5, d)) * 0.35; // soft surround
+    float coreDot, halo;
+    if (vDebris > 0.5) {
+      // DEBRIS SHAPE FIX: debris is torn wreckage, not a clean spacecraft — so
+      // it shouldn't render as a tidy round dot like the payloads. Draw each
+      // fragment as an ANGULAR FLECK: a small rotated square-ish chip whose
+      // orientation is fixed per-object by its stable random (vRand), so the
+      // shell reads as scattered shards, not pin-neat points. Cheap (a Chebyshev
+      // distance in a rotated frame — no texture, no geometry).
+      float ang = vRand * 6.2831853;
+      float ca = cos(ang), sa = sin(ang);
+      vec2 r = vec2(c.x * ca - c.y * sa, c.x * sa + c.y * ca);
+      // slightly non-square (jagged plate) + off-centre so it's clearly not a disc
+      float chip = max(abs(r.x) * 1.15, abs(r.y) * 0.85);
+      if (chip > 0.42) discard;
+      coreDot = 1.0 - smoothstep(0.0, 0.30, chip);   // hard-ish lit centre
+      halo    = (1.0 - smoothstep(0.0, 0.42, chip)) * 0.28;
+    } else {
+      // Payloads: clean, crisp round point — a bright tight core + soft halo, so
+      // working spacecraft read as neat luminous dots and stand apart from junk.
+      coreDot = 1.0 - smoothstep(0.0, 0.32, d);  // tight bright centre
+      halo    = (1.0 - smoothstep(0.0, 0.5, d)) * 0.35; // soft surround
+    }
     float a = clamp(coreDot + halo, 0.0, 1.0);
     // One calm tint — a bright cool-white, with the core whitened to a hot point so
     // the dot reads clearly against Earth. Type colour survives as a faint undertone

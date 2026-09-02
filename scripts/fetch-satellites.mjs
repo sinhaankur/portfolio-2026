@@ -106,15 +106,44 @@ async function main() {
     { id: "iridium-33-debris",  eventMs: Date.parse("2009-02-10T00:00:00Z") }, // Iridium-Cosmos collision
     { id: "cosmos-2251-debris", eventMs: Date.parse("2009-02-10T00:00:00Z") }, // (other half of the collision)
   ]
+  // Load the PREVIOUS catalogue (if any) so a rate-limited debris group this run
+  // falls back to the fragments we already had, instead of silently vanishing.
+  // CelesTrak throttles hard, so any single group can fail on any run — but a
+  // debris cloud doesn't disappear from the sky between builds, only from the
+  // response. Merging against the prior file makes the debris set monotonic:
+  // successful fetches refresh a cloud's TLEs; a failed one keeps last-known.
+  let prevByGroup = new Map() // groupId → [DEB objs from last build]
+  try {
+    const prev = JSON.parse(await fs.readFile(OUT, "utf8"))
+    for (const s of prev.sats || []) {
+      if (s.type !== "DEB" || !s.group) continue
+      if (!prevByGroup.has(s.group)) prevByGroup.set(s.group, [])
+      prevByGroup.get(s.group).push(s)
+    }
+  } catch { /* no prior file — first build */ }
+
   const debrisObjs = []
+  // Small retry with backoff — CelesTrak 403s on burst; a short pause often clears it.
+  async function fetchGroup(id, tries = 3) {
+    for (let attempt = 1; ; attempt++) {
+      try {
+        return parseTle(await getText(`https://celestrak.org/NORAD/elements/gp.php?GROUP=${id}&FORMAT=tle`))
+      } catch (e) {
+        if (attempt >= tries) throw e
+        await new Promise((r) => setTimeout(r, 1500 * attempt))
+      }
+    }
+  }
   for (const g of DEBRIS_GROUPS) {
     try {
-      const txt = await getText(`https://celestrak.org/NORAD/elements/gp.php?GROUP=${g.id}&FORMAT=tle`)
-      const m = parseTle(txt)
-      for (const [id, v] of m) debrisObjs.push({ id, name: v.name, owner: "—", type: "DEB", launchMs: g.eventMs, l1: v.l1, l2: v.l2 })
+      const m = await fetchGroup(g.id)
+      for (const [id, v] of m) debrisObjs.push({ id, name: v.name, owner: "—", type: "DEB", group: g.id, launchMs: g.eventMs, l1: v.l1, l2: v.l2 })
       console.log(`  + ${g.id}: ${m.size} fragments`)
     } catch (e) {
-      console.warn(`  (skipped ${g.id}: ${e.message})`)
+      // Rate-limited/failed this run → keep the fragments from the last build.
+      const kept = prevByGroup.get(g.id) || []
+      for (const s of kept) debrisObjs.push(s)
+      console.warn(`  (${g.id} failed: ${e.message}) — kept ${kept.length} from previous build`)
     }
   }
 
