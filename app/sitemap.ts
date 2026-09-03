@@ -31,6 +31,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/lab/celestial",     priority: 0.8, changeFrequency: "monthly" },
     { path: "/lab/terrain",       priority: 0.8, changeFrequency: "monthly" },
     { path: "/reference/spacecraft", priority: 0.7, changeFrequency: "monthly" },
+    { path: "/reference/satellites", priority: 0.7, changeFrequency: "weekly" },
     { path: "/lab/big-bang",      priority: 0.7, changeFrequency: "monthly" },
     { path: "/lab/brainrot",      priority: 0.6, changeFrequency: "monthly" },
     { path: "/lab/usability-engine", priority: 0.7, changeFrequency: "monthly" },

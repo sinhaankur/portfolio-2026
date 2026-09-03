@@ -586,6 +586,9 @@ export function CelestialExplorer() {
         <MenuItem color="#c8b6ff" icon={<Rocket className="h-3.5 w-3.5" />}
           label="Spacecraft catalog"
           onClick={() => { if (typeof window !== "undefined") window.location.href = "/reference/spacecraft" }} />
+        <MenuItem color="#c8b6ff" icon={<Layers className="h-3.5 w-3.5" />}
+          label="The catalogue, readable"
+          onClick={() => { if (typeof window !== "undefined") window.location.href = "/reference/satellites" }} />
       </>
     )
   }

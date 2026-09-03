@@ -97,7 +97,10 @@ App-router routes under [`app/`](./app):
   (`/writing/universe-engine`, `/writing/how-its-built`); short posts render
   through `/writing/[slug]` from `lib/writing-posts.ts` — a new short post means
   updating that file plus the sitemap + smoke ROUTES.
-- `/reference/spacecraft` — spacecraft catalog; `/references` — references &
+- `/reference/spacecraft` — spacecraft catalog; `/reference/satellites` — the
+  readable satellite catalogue (families, debris events, sizes, TLE math; stats
+  computed at build from `public/data/satellites.json`, rows deep-link into the
+  engine via `?selectsat`); `/references` — references &
   data sources.
 - `/photos` — photography.
 - `/dna` (+ `/dna/databases`, `/dna/tools`, `/dna/how-it-works`) — DNA/ancestry

@@ -57,6 +57,7 @@ const ROUTES = [
   ["/upcoming/", 2500],
   ["/references/", 2500],
   ["/reference/spacecraft/", 3000],
+  ["/reference/satellites/", 3000],
   ["/mirofish/", 3000],
   ["/photos/", 3000],
   ["/dna/", 4000],
