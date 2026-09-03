@@ -203,6 +203,11 @@ export function MetricsPanel({ onClose }: { onClose: () => void }) {
               where its limits are.
             </p>
 
+            <p className="mt-3 font-sans text-[11px] text-foreground/70">
+              Want the whole catalogue readable — families, debris events, sizes, the TLE math?{" "}
+              <a href="/reference/satellites" className="text-accent hover:underline">The catalogue, readable →</a>
+            </p>
+
             <p className="mt-3 font-mono text-[9px] tracking-wider text-muted-foreground/70">
               Data: CelesTrak SATCAT + GP/TLE · screening baked from this exact catalogue ·
               accuracy references: LeoLabs public system metrics, ILRS

@@ -21,6 +21,21 @@ const OWNER_LABEL: Record<string, string> = {
 
 type Filter = "all" | "pay" | "deb"
 
+// Household names → catalogue designations (same aliases the engine's search
+// box and the assistant use). The machines people know aren't catalogued under
+// the names they use: searching "hubble" found only Hubble Network cubesats.
+const QUERY_ALIASES: Record<string, string> = {
+  "iss": "iss (zarya)",
+  "international space station": "iss (zarya)",
+  "space station": "iss (zarya)",
+  "hubble": "hst",
+  "hubble space telescope": "hst",
+  "hubble telescope": "hst",
+  "tiangong": "css (tianhe)",
+  "chinese space station": "css (tianhe)",
+  "gps": "navstar",
+}
+
 export function CatalogBrowser() {
   const [rows, setRows] = useState<Row[] | null>(null)
   const [failed, setFailed] = useState(false)
@@ -39,7 +54,8 @@ export function CatalogBrowser() {
   const results = useMemo(() => {
     if (!rows) return []
     const isDeb = (r: Row) => r.type === "DEB" || r.type === "R/B"
-    const query = q.trim().toLowerCase()
+    const raw = q.trim().toLowerCase()
+    const query = QUERY_ALIASES[raw.replace(/^the\s+/, "")] ?? raw
     const out: Row[] = []
     for (const r of rows) {
       if (filter === "pay" && isDeb(r)) continue
