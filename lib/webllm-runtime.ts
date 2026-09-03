@@ -207,6 +207,7 @@ export async function runWebLLMTurn(options: WebLLMTurnOptions): Promise<WebLLMT
   let flewTo: string | null = null
   let flyFailed = false
   let periResult: string | null = null
+  let flyResultLine: string | null = null
   if (flyTarget) {
     const toolName = periWhich ? "flyToBodyAtPerihelion" : "flyToBody"
     const toolInput = periWhich ? { name: flyTarget, which: periWhich } : { name: flyTarget }
@@ -218,8 +219,18 @@ export async function runWebLLMTurn(options: WebLLMTurnOptions): Promise<WebLLMT
       tool_use_id: `webllm-fly-${Date.now()}`,
       content,
     } as ContentBlockParam)
-    if (isError) flyFailed = true
-    else { flewTo = flyTarget; if (periWhich) periResult = content }
+    // HONESTY: the tool reports "not found" as a plain string, not an error —
+    // treating that as success used to produce a confident "Flying you to X
+    // now." while the camera went nowhere (the hollow-shell failure mode).
+    if (isError || /not found/i.test(content)) flyFailed = true
+    else {
+      flewTo = flyTarget
+      if (periWhich) periResult = content
+      // The tool's own line names the REAL resolved object (a satellite pick
+      // resolves "the ISS" → "ISS (ZARYA)"); the catalog search below doesn't
+      // know satellites, so keep this as the authoritative confirmation.
+      if (content.startsWith("Flying to ") || content.startsWith("At perihelion")) flyResultLine = content
+    }
   }
 
   // 3. ANSWER. If we FLEW, confirm the real action deterministically — no model,
@@ -231,9 +242,12 @@ export async function runWebLLMTurn(options: WebLLMTurnOptions): Promise<WebLLMT
     const hit = searchUniverseCatalog(flewTo, 1)[0]
     const name = hit?.name ?? flewTo
     // A perihelion jump already carries the real date + distance in its result —
-    // surface that rather than the generic "flying you to X" line.
+    // surface that rather than the generic "flying you to X" line. Likewise a
+    // satellite fly-to: the tool line names the real resolved craft.
     answer = periResult
       ? periResult
+      : flyResultLine
+      ? flyResultLine
       : `Flying you to ${name} now${hit?.subtitle ? ` — ${hit.subtitle}` : ""}.`
     // If the user asked HOW it was sent / launched / its journey, narrate the
     // real launch + gravity-assist route that took it from Earth to where it is.
@@ -249,7 +263,7 @@ export async function runWebLLMTurn(options: WebLLMTurnOptions): Promise<WebLLMT
     return { finalAssistantContent, toolResultsForHistory: toolResults, totalUsage: ZERO_USAGE }
   }
   if (flyFailed && flyTarget) {
-    answer = `I couldn't find "${flyTarget}" to fly to. Try a body name like Mars, the Orion Nebula, or Voyager 1.`
+    answer = `I couldn't find "${flyTarget}" to fly to. Try a body name like Mars, the Orion Nebula, Voyager 1 — or a satellite like the ISS or NOAA 19.`
     options.onTextDelta(answer)
     const finalAssistantContent: ContentBlock[] = [
       { type: "text", text: answer, citations: [] } as unknown as ContentBlock,

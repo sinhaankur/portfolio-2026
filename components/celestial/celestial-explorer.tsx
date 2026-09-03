@@ -430,6 +430,13 @@ export function CelestialExplorer() {
     const flyFocus = lastFlyLabelRef.current ? `planet:${lastFlyLabelRef.current}` : null
     const focus = flyFocus ?? lastFocusRef.current
     if (focus) params.set("focus", focus)
+    // A followed satellite IS the view — encode it so the link reopens the same
+    // chase (the ?selectsat reader re-selects + follows on load). Overrides the
+    // generic focus: the camera is locked on the craft, not the planet.
+    if (selectedSatRef.current != null) {
+      params.delete("focus")
+      params.set("selectsat", String(selectedSatRef.current))
+    }
     const d = new Date(getSimMs())
     if (!Number.isNaN(d.getTime())) params.set("date", d.toISOString().slice(0, 10))
     const qs = params.toString()

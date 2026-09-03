@@ -35,6 +35,8 @@ import {
   EXOPLANET_HOSTS_NEARBY,
   type ExoplanetHost,
 } from "@/lib/data/exoplanet-hosts"
+import { loadSatelliteCatalog } from "@/components/universe-engine/satellite-data"
+import { selectedSatRef } from "@/components/universe-engine/satellite-refs"
 
 /* ------------------------------------------------------------------
  * Tool definitions — sent to Claude in `tools`.
@@ -247,6 +249,59 @@ function findNamedBody(name: string): NamedBody | undefined {
     namedBodies.find((b) => b.designation.toLowerCase() === lower) ??
     namedBodies.find((b) => b.name.toLowerCase().includes(lower))
   )
+}
+
+/** Exact-only variant — used to give named bodies priority over the satellite
+ *  catalogue WITHOUT the fuzzy `.includes` stealing satellite names ("ISS"
+ *  used to substring-match into the wrong body instead of the station). */
+function findNamedBodyExact(name: string): NamedBody | undefined {
+  const lower = name.toLowerCase().trim()
+  if (!lower) return undefined
+  return (
+    namedBodies.find((b) => b.name.toLowerCase() === lower) ??
+    namedBodies.find((b) => b.designation.toLowerCase() === lower)
+  )
+}
+
+/** Household names → SATCAT designations. The machines people ask for aren't
+ *  catalogued under the names they use (same aliases as the search box). */
+const SAT_ALIASES: Record<string, string> = {
+  "iss": "iss (zarya)",
+  "the iss": "iss (zarya)",
+  "international space station": "iss (zarya)",
+  "space station": "iss (zarya)",
+  "zarya": "iss (zarya)",
+  "hubble": "hst",
+  "the hubble": "hst",
+  "hubble telescope": "hst",
+  "hubble space telescope": "hst",
+  "tiangong": "css (tianhe)",
+  "chinese space station": "css (tianhe)",
+}
+
+/** Resolve an Earth-orbit satellite from the live catalogue and select it —
+ *  the field then runs its real chase-follow (orbit line, ground track, full
+ *  record card), exactly as if the user had picked it in the search box.
+ *  Returns the confirmation line, or null when nothing matches. */
+async function flyToSatellite(name: string): Promise<string | null> {
+  const q = name.toLowerCase().trim()
+  if (!q) return null
+  const target = SAT_ALIASES[q] ?? q
+  const catalog = await loadSatelliteCatalog().catch(() => null)
+  if (!catalog || !catalog.length) return null
+  const exact = catalog.find((s) => s.name.toLowerCase() === target)
+  const starts = exact ?? catalog.find((s) => s.name.toLowerCase().startsWith(target))
+  let hit = starts
+  if (!hit && target.length >= 4) {
+    // Word-anchored contains — "starlink-32501" or "NOAA 19" style queries;
+    // ≥4 chars so short tokens can't land on arbitrary debris entries.
+    const re = new RegExp(`(^|[^a-z0-9])${target.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`)
+    hit = catalog.find((s) => re.test(s.name.toLowerCase()))
+  }
+  if (!hit) return null
+  selectedSatRef.current = hit.id
+  window.dispatchEvent(new CustomEvent("universe:sky-focus", { detail: { pointId: "planet:Earth" } }))
+  return `Flying to ${hit.name} — selecting it in the live swarm and locking the chase camera on its real orbit.`
 }
 
 function findPlanet(name: string): Planet | undefined {
@@ -562,7 +617,7 @@ export async function executeAssistantTool(
 ): Promise<{ content: string; isError: boolean }> {
   try {
     const input = (rawInput ?? {}) as ToolInput
-    const result = runTool(toolName, input)
+    const result = await runTool(toolName, input)
     return { content: typeof result === "string" ? result : JSON.stringify(result), isError: false }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
@@ -570,7 +625,9 @@ export async function executeAssistantTool(
   }
 }
 
-function runTool(toolName: string, input: ToolInput): unknown {
+// Async because the satellite fly-to resolves against the shared catalogue
+// (a cached fetch); every other tool stays synchronous inside.
+async function runTool(toolName: string, input: ToolInput): Promise<unknown> {
   switch (toolName) {
     case "listBodies": {
       const kind = input.kind as string | undefined
@@ -783,11 +840,16 @@ function runTool(toolName: string, input: ToolInput): unknown {
       const name = String(input.name ?? "")
       // The fly-to function takes (target, distance, label).
       // We compute a target in scene-local coords (origin = Sun).
-      const body = findNamedBody(name)
-      if (body) {
-        const pos = computeBodyPosition(body)
-        requestFlyTo({ x: pos.xSceneUnits, y: pos.ySceneUnits, z: pos.zSceneUnits }, 1.6, body.name)
-        return `Flying to ${body.name}.`
+      // Exact named-body matches win outright; then the SATELLITE catalogue
+      // (18k+ real craft — "ISS", "Hubble", "Starlink-…", "NOAA 19"), and only
+      // then the fuzzy named-body fallback. Fuzzy used to run first and
+      // substring-steal satellite names, so "fly to the ISS" never reached
+      // the actual station.
+      const exactBody = findNamedBodyExact(name)
+      if (exactBody) {
+        const pos = computeBodyPosition(exactBody)
+        requestFlyTo({ x: pos.xSceneUnits, y: pos.ySceneUnits, z: pos.zSceneUnits }, 1.6, exactBody.name)
+        return `Flying to ${exactBody.name}.`
       }
       const planet = findPlanet(name)
       if (planet) {
@@ -840,6 +902,20 @@ function runTool(toolName: string, input: ToolInput): unknown {
         const pos = exoplanetHostScenePos(exoHost)
         requestFlyTo(pos, 12, exoHost.name)
         return `Flying to ${exoHost.name}.`
+      }
+      // Earth-orbit satellites — the 18k+ live catalogue ("the ISS", "Hubble",
+      // "Starlink-32501", "NOAA 19"). After every exact curated match so a
+      // star like Sirius beats the SIRIUS radio satellites, but BEFORE the
+      // fuzzy named-body fallback, whose substring match used to swallow
+      // satellite names and leave "fly to the ISS" going nowhere.
+      const satResult = await flyToSatellite(name)
+      if (satResult) return satResult
+      // Loose named-body fallback (case-insensitive contains) — last resort.
+      const fuzzyBody = findNamedBody(name)
+      if (fuzzyBody) {
+        const pos = computeBodyPosition(fuzzyBody)
+        requestFlyTo({ x: pos.xSceneUnits, y: pos.ySceneUnits, z: pos.zSceneUnits }, 1.6, fuzzyBody.name)
+        return `Flying to ${fuzzyBody.name}.`
       }
       return `Body "${name}" not found. Use listBodies or listExoplanetHosts to see what's available.`
     }
