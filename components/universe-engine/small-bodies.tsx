@@ -887,16 +887,18 @@ function NamedBodyMesh({
       const activityT = Math.max(0, Math.min(1, t * cometDynamic.activityMul))
 
       const comaBoost = (0.75 + activityT * 0.25) * Math.max(0.6, comaPulse)
+      // Softer, graduated coma — the bright compact core + two much fainter,
+      // wider shells so it reads as a diffuse glow, not a hard additive ball.
       if (comaInnerMatRef.current) {
-        const base = invert ? 0.55 : 0.55
+        const base = invert ? 0.42 : 0.4
         comaInnerMatRef.current.opacity = Math.max(0, Math.min(1, base * comaBoost))
       }
       if (comaMidMatRef.current) {
-        const base = invert ? 0.45 : 0.42
+        const base = invert ? 0.24 : 0.2
         comaMidMatRef.current.opacity = Math.max(0, Math.min(1, base * comaBoost))
       }
       if (comaOuterMatRef.current) {
-        const base = invert ? 0.22 : 0.16
+        const base = invert ? 0.1 : 0.07
         comaOuterMatRef.current.opacity = Math.max(0, Math.min(1, base * comaBoost))
       }
 
@@ -905,7 +907,7 @@ function NamedBodyMesh({
         const baseHalf = config.visualRadius * 7.0 * config.tailLengthFactor
         tailMeshRef.current.position.y = baseHalf * activityT
         tailMeshRef.current.scale.y = activityT
-        const peakOpacity = invert ? 0.65 : 0.55
+        const peakOpacity = invert ? 0.52 : 0.44
         tailMatRef.current.uniforms.uOpacity.value = activityT * peakOpacity * Math.max(0.68, jetPulse)
         tailMatRef.current.uniforms.uTime.value += delta
       }
@@ -917,7 +919,7 @@ function NamedBodyMesh({
         const baseHalf = config.visualRadius * 8.0 * config.tailLengthFactor
         dustTailMeshRef.current.position.y = baseHalf * activityT
         dustTailMeshRef.current.scale.y = activityT
-        const peakOpacity = invert ? 0.55 : 0.48
+        const peakOpacity = invert ? 0.44 : 0.38
         dustTailMatRef.current.uniforms.uOpacity.value = activityT * peakOpacity * Math.max(0.72, comaPulse)
       }
       // Sunward envelope — the bright dust hood pressed against the
@@ -1099,40 +1101,43 @@ function NamedBodyMesh({
                 Real Halley and Hale-Bopp comae show this clearly through
                 a small telescope: a green core fading to cyan further out. */}
             <mesh>
-              <sphereGeometry args={[config.visualRadius * 0.85, 40, 32]} />
+              <sphereGeometry args={[config.visualRadius * 0.72, 40, 32]} />
               <meshBasicMaterial
                 ref={comaInnerMatRef as React.Ref<import("three").MeshBasicMaterial>}
                 color={invert ? "#4d8478" : "#b8ffd4"}
                 transparent
-                opacity={invert ? 0.55 : 0.55}
+                opacity={invert ? 0.42 : 0.4}
                 blending={invert ? NormalBlending : AdditiveBlending}
                 depthWrite={false}
               />
             </mesh>
 
-            {/* 3. Mid coma — cyan halo, the layer the eye reads as "the comet". */}
+            {/* 3. Mid coma — cyan halo, the layer the eye reads as "the comet".
+                Wider + much fainter than before so the coma reads as a SOFT
+                graduated glow instead of a hard bright ball (the old 0.85/1.55/
+                2.5 shells at 0.55/0.42/0.16 stacked additively into a blob). */}
             <mesh>
-              <sphereGeometry args={[config.visualRadius * 1.55, 40, 32]} />
+              <sphereGeometry args={[config.visualRadius * 1.7, 40, 32]} />
               <meshBasicMaterial
                 ref={comaMidMatRef as React.Ref<import("three").MeshBasicMaterial>}
                 color={config.shade}
                 transparent
-                opacity={invert ? 0.45 : 0.42}
+                opacity={invert ? 0.24 : 0.2}
                 blending={invert ? NormalBlending : AdditiveBlending}
                 depthWrite={false}
               />
             </mesh>
 
-            {/* 4. Outer coma — very faint diffuse glow, fades into space.
-                Suggests the immense hydrogen envelope without making
-                the comet look bloated. */}
+            {/* 4. Outer coma — a whisper of the immense hydrogen envelope. Big
+                and very faint so it fades into space rather than bloating the
+                comet into a puffball. */}
             <mesh>
-              <sphereGeometry args={[config.visualRadius * 2.5, 40, 32]} />
+              <sphereGeometry args={[config.visualRadius * 3.2, 40, 32]} />
               <meshBasicMaterial
                 ref={comaOuterMatRef as React.Ref<import("three").MeshBasicMaterial>}
                 color={config.shade}
                 transparent
-                opacity={invert ? 0.22 : 0.16}
+                opacity={invert ? 0.1 : 0.07}
                 blending={invert ? NormalBlending : AdditiveBlending}
                 depthWrite={false}
               />
