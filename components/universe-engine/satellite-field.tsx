@@ -1059,6 +1059,25 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     return m
   }, [sats])
 
+  // OUT-OF-SWARM resolution — the resident swarm is a device-tier SAMPLE of the
+  // catalogue, but selections arrive by NORAD id from everywhere: reference-page
+  // rows, share links, the assistant, baked conjunction pairs. An id outside the
+  // sample used to fail SILENTLY ("open live" did nothing, encounter overlays
+  // never appeared on weaker tiers). Resolve satrec + meta from the shared full
+  // catalogue on demand; the lookups below fall back to this side map.
+  const extraRecs = useRef(new Map<number, { rec: unknown; sat: Sat }>())
+  const extraPending = useRef(new Set<number>())
+  const resolveExtra = (id: number) => {
+    if (extraRecs.current.has(id) || extraPending.current.has(id)) return
+    extraPending.current.add(id)
+    loadFullCatalog().then((full) => {
+      const lib = sgp4.current
+      const s = full.find((x) => x.id === id)
+      if (!lib || !s) return
+      try { extraRecs.current.set(id, { rec: lib.twoline2satrec(s.l1, s.l2), sat: s as Sat }) } catch { /* bad TLE */ }
+    })
+  }
+
   // Sorted LEO launch days (days since J2000) — binary-searched each frame for
   // "how many LEO satellites exist at the current sim time", which drives the
   // cull floor (sparse eras must show everything they have).
@@ -1435,11 +1454,18 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
       const gA = encAGroupRef.current, gB = encBGroupRef.current, line = encLineRef.current
       if (foc && sats && gA && gB && line) {
         // Resolve both NORAD ids → swarm indices → satrecs. (Linear find is fine:
-        // it runs once per frame for ONE pair, not the whole catalogue.)
+        // it runs once per frame for ONE pair, not the whole catalogue.) The
+        // baked conjunction pairs are debris-heavy, so on tiers where the swarm
+        // is sampled they often fall OUTSIDE it — the out-of-swarm side map
+        // keeps the encounter overlay real everywhere.
         const iA = sats.findIndex((s) => s.id === foc.aId)
         const iB = sats.findIndex((s) => s.id === foc.bId)
-        const okA = iA >= 0 && propagateOneToScene(recs[iA], _encA)
-        const okB = iB >= 0 && propagateOneToScene(recs[iB], _encB)
+        const recA = iA >= 0 ? recs[iA] : extraRecs.current.get(foc.aId)?.rec ?? null
+        const recB = iB >= 0 ? recs[iB] : extraRecs.current.get(foc.bId)?.rec ?? null
+        if (recA == null) resolveExtra(foc.aId)
+        if (recB == null) resolveExtra(foc.bId)
+        const okA = recA != null && propagateOneToScene(recA, _encA)
+        const okB = recB != null && propagateOneToScene(recB, _encB)
         if (okA && okB) {
           gA.visible = true; gB.visible = true; line.visible = true
           gA.position.copy(_encA)
@@ -1614,13 +1640,21 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     const marker = markerRef.current
     if (sel != null && marker) {
       const idx = idToIndex.get(sel)
-      const rec = idx != null ? recs[idx] : null
+      let rec = idx != null ? recs[idx] : null
+      let selMeta = idx != null ? sats?.[idx] : undefined
+      if (rec == null) {
+        // Not in the resident sample — pull from the on-demand side map (and
+        // kick its async resolve on the first frame it's missing).
+        const ex = extraRecs.current.get(sel)
+        if (ex) { rec = ex.rec; selMeta = ex.sat }
+        else resolveExtra(sel)
+      }
       // SPACE-TIME FIDELITY: the selected craft's GLB marker is rendered
       // SEPARATELY from the point swarm (which the shader launch-gates), so it
       // must be gated too — otherwise scrubbing the clock before the object's
       // launch date left its model floating in a sky where it didn't exist yet.
       // Hide the marker (and skip its orbit/tether updates) until its launch.
-      const selLaunchMs = idx != null ? sats?.[idx]?.launchMs : undefined
+      const selLaunchMs = selMeta?.launchMs
       const notYetLaunched = selLaunchMs != null && simTimeRef.current.simMs < selLaunchMs
       // Show/hide the selected craft's orbit path + ground track with its launch.
       if (selLinesRef.current) selLinesRef.current.visible = !notYetLaunched
@@ -1812,8 +1846,9 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
           setGroundTrack(computeGroundTrack(rec))
 
           // altitude + speed (km, km/s) from a fresh propagate → drives archetype
-          // choice AND the live card readout.
-          const meta = sats.find((s) => s.id === sel)
+          // choice AND the live card readout. Falls back to the out-of-swarm
+          // side map for ids beyond the resident sample.
+          const meta = sats.find((s) => s.id === sel) ?? extraRecs.current.get(sel)?.sat
 
           // Origin → destination: draw the arc from this craft's launch site up
           // to its current orbit, if we know the site. Earth-fixed (ground-track
