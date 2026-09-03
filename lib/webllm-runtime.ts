@@ -20,7 +20,8 @@
 import type { MessageParam } from "@anthropic-ai/sdk/resources/messages"
 import type { ContentBlock, ContentBlockParam } from "@anthropic-ai/sdk/resources/messages"
 import { ZERO_USAGE, type AssistantUsage } from "@/lib/anthropic-client"
-import { searchUniverseCatalog, executeAssistantTool } from "@/lib/assistant-tools"
+import { searchUniverseCatalog, executeAssistantTool, resolveSatelliteMeta } from "@/lib/assistant-tools"
+import { loadSatelliteCatalog } from "@/components/universe-engine/satellite-data"
 import { getWebLLMEngine, isWebGPUAvailable, type WebLLMProgress } from "@/lib/webllm-engine"
 import { howWeObserve, kindFromClassification } from "@/lib/observe"
 import { answerSpaceQuestion } from "@/lib/space-qa"
@@ -66,14 +67,15 @@ const PRONOUN_TARGET = /^(there|here|it|that|this|this one|that one|them)$/i
 function detectFlyIntent(text: string): string | null {
   const t = text.trim()
   // Bare verbs with no target ("fly", "take me", "go there") → last body.
-  if (/^(?:fly|go|take me|navigate|jump|travel|warp|zoom)(?:\s+me)?(?:\s+(?:there|here|to it|to that))?[.?!]?$/i.test(t)) {
+  if (/^(?:fly|go|take me|navigate|jump|travel|warp|zoom|track|follow)(?:\s+me)?(?:\s+(?:there|here|to it|to that))?[.?!]?$/i.test(t)) {
     return "$LAST"
   }
   // A broad set of natural phrasings, all meaning "put the camera on X":
   //   fly to / go to / take me to / show me / navigate to / jump to /
-  //   I want to see / bring me to / let's see / visit / find / where is / look at
+  //   I want to see / bring me to / let's see / visit / find / where is /
+  //   look at / track / follow / watch / chase / select / lock onto
   const m = t.match(
-    /\b(?:fly|go|take me|navigate|show me|jump|travel|warp|zoom|(?:i(?:'d| would)? (?:want|like) to see)|(?:can you (?:take|show) me)|bring me|let'?s (?:see|go|visit)|visit|find|(?:where(?:'s| is)?)|look at)\s+(?:me\s+)?(?:to\s+|into\s+|toward\s+|at\s+)?(.+)/i,
+    /\b(?:fly|go|take me|navigate|show me|jump|travel|warp|zoom|track|follow|watch|chase|select|lock(?:\s+(?:on|onto))?|(?:i(?:'d| would)? (?:want|like) to see)|(?:can you (?:take|show) me)|bring me|let'?s (?:see|go|visit)|visit|find|(?:where(?:'s| is)?)|look at)\s+(?:me\s+)?(?:to\s+|into\s+|toward\s+|at\s+|on(?:to)?\s+)?(.+)/i,
   )
   if (!m) return null
   const target = m[1]
@@ -263,7 +265,7 @@ export async function runWebLLMTurn(options: WebLLMTurnOptions): Promise<WebLLMT
     return { finalAssistantContent, toolResultsForHistory: toolResults, totalUsage: ZERO_USAGE }
   }
   if (flyFailed && flyTarget) {
-    answer = `I couldn't find "${flyTarget}" to fly to. Try a body name like Mars, the Orion Nebula, Voyager 1 — or a satellite like the ISS or NOAA 19.`
+    answer = `I couldn't find "${flyTarget}" to fly to. Try a body name like Mars, the Orion Nebula, Voyager 1 — or a satellite like the ISS or NOAA 20.`
     options.onTextDelta(answer)
     const finalAssistantContent: ContentBlock[] = [
       { type: "text", text: answer, citations: [] } as unknown as ContentBlock,
@@ -296,6 +298,42 @@ export async function runWebLLMTurn(options: WebLLMTurnOptions): Promise<WebLLMT
       { type: "text", text: factAnswer, citations: [] } as unknown as ContentBlock,
     ]
     return { finalAssistantContent, toolResultsForHistory: toolResults, totalUsage: ZERO_USAGE }
+  }
+
+  // Satellite Q&A — "what is the ISS", "tell me about NOAA 19", "what's
+  // Starlink". The universe catalog doesn't know Earth satellites, so these
+  // used to reach the tiny model with NO grounding. Answer from the real
+  // SATCAT records instead: single craft get their record; a name matching
+  // many objects (a constellation) gets the honest group-level answer.
+  const aboutM = userText.trim().match(
+    /^(?:what(?:'s| is| are)?|tell me about|who (?:is|owns|operates)|about|info(?: on)?|describe)\s+(.+?)[.?!]?$/i,
+  )
+  if (aboutM && !hits.length) {
+    // The full-question search found nothing — re-search the EXTRACTED target.
+    // The universe catalog wins over satellites ("what is Mars" must answer the
+    // planet, not the MARS-1 cubesat); only then try the satellite records.
+    const targetHits = searchUniverseCatalog(aboutM[1], 6)
+    if (targetHits.length) {
+      // Exact-name hit leads: the ranked search put Deimos above Mars for the
+      // query "Mars" (subtitle mentions), which answered the wrong body.
+      const tq = aboutM[1].toLowerCase().trim().replace(/^the\s+/, "")
+      const exact = targetHits.find((h) => h.name.toLowerCase() === tq)
+      const ordered = exact ? [exact, ...targetHits.filter((h) => h !== exact)] : targetHits
+      const grounded = await groundedFallback(ordered, null)
+      options.onTextDelta(grounded)
+      const finalAssistantContent: ContentBlock[] = [
+        { type: "text", text: grounded, citations: [] } as unknown as ContentBlock,
+      ]
+      return { finalAssistantContent, toolResultsForHistory: toolResults, totalUsage: ZERO_USAGE }
+    }
+    const satAnswer = await describeSatellite(aboutM[1])
+    if (satAnswer) {
+      options.onTextDelta(satAnswer)
+      const finalAssistantContent: ContentBlock[] = [
+        { type: "text", text: satAnswer, citations: [] } as unknown as ContentBlock,
+      ]
+      return { finalAssistantContent, toolResultsForHistory: toolResults, totalUsage: ZERO_USAGE }
+    }
   }
 
   // Otherwise EXPLAIN — phrase an answer with the tiny model, streaming. If
@@ -340,6 +378,44 @@ export async function runWebLLMTurn(options: WebLLMTurnOptions): Promise<WebLLMT
   return { finalAssistantContent, toolResultsForHistory: toolResults, totalUsage: ZERO_USAGE }
 }
 
+/** Owner codes → readable operator names for the satellite answers. */
+const SAT_OWNER: Record<string, string> = {
+  US: "the United States", PRC: "China", CIS: "Russia / CIS", UK: "the United Kingdom",
+  ESA: "the European Space Agency", JPN: "Japan", IND: "India", FR: "France", GER: "Germany",
+  ISS: "an international partnership (NASA · Roscosmos · ESA · JAXA · CSA)",
+}
+
+/**
+ * A real answer about an Earth-orbit object, straight from the SATCAT records.
+ * One craft → its record (type, operator, launch year, NORAD id). A name that
+ * matches many objects (Starlink, OneWeb, Iridium…) → the honest group answer
+ * with the LIVE count from the loaded catalogue. Returns null when the name
+ * doesn't resolve — the general paths take over.
+ */
+async function describeSatellite(rawName: string): Promise<string | null> {
+  const meta = await resolveSatelliteMeta(rawName)
+  if (!meta) return null
+  const q = rawName.toLowerCase().trim().replace(/^the\s+/, "")
+  // Constellation-scale name? Count word-anchored matches in the catalogue.
+  const catalog = await loadSatelliteCatalog().catch(() => null)
+  if (catalog && q.length >= 4) {
+    const re = new RegExp(`(^|[^a-z0-9])${q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`)
+    const family = catalog.filter((s) => re.test(s.name.toLowerCase()))
+    if (family.length >= 5) {
+      const owners = new Set(family.map((s) => s.owner))
+      const owner = owners.size === 1 ? SAT_OWNER[family[0].owner] ?? family[0].owner : "several operators"
+      const years = family.map((s) => new Date(s.launchMs).getUTCFullYear())
+      return `${rawName.trim()} matches ${family.length.toLocaleString()} tracked objects in the live catalogue — a constellation operated by ${owner}, launched ${Math.min(...years)}–${Math.max(...years)}. Say "fly to ${meta.name}" and I'll lock the chase camera on one of them.`
+    }
+  }
+  const year = new Date(meta.launchMs).getUTCFullYear()
+  const kind = meta.type === "DEB" ? "a tracked debris fragment"
+    : meta.type === "R/B" ? "a spent rocket body"
+    : "an active satellite"
+  const owner = SAT_OWNER[meta.owner] ?? meta.owner
+  return `${meta.name} is ${kind} in Earth orbit — operated by ${owner}, launched ${year}, NORAD ${meta.id}. Say "fly to ${meta.name}" and I'll lock the chase camera on its real orbit.`
+}
+
 /** Pull the top hit's REAL fact from the dataset (getBodyDetails) so the no-model
  *  answer can quote a true sentence rather than just a subtitle. */
 async function realFactFor(name: string): Promise<string | null> {
@@ -366,7 +442,7 @@ async function groundedFallback(
   flyTarget: string | null,
 ): Promise<string> {
   if (!hits.length) {
-    return "I couldn't find that in the catalog. Try a planet, moon, comet, a black hole like Cygnus X-1, or a deep-sky object like the Orion Nebula."
+    return "I couldn't find that in the catalog. Try a planet, moon, comet, a black hole like Cygnus X-1, a deep-sky object like the Orion Nebula — or a satellite by its catalogue name (the ISS, NOAA 20, a Starlink)."
   }
   const top = hits[0]
   const fact = await realFactFor(top.name)

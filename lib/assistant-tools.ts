@@ -20,14 +20,18 @@ import {
   cancelFlyTo,
   constellations,
   daysSinceJ2000,
+  followRef,
   J2000_MS,
   moons,
   namedBodies,
   planetsData,
+  REALTIME_TIME_SCALE,
   requestFlyTo,
   requestFollow,
+  setSimMs,
   simTimeRef,
   skyPoints,
+  timeScaleRef,
   timeWarpRef,
 } from "@/components/universe-engine/astronomy"
 import type { MoonData, NamedBody, Planet } from "@/components/universe-engine/types"
@@ -279,29 +283,54 @@ const SAT_ALIASES: Record<string, string> = {
   "chinese space station": "css (tianhe)",
 }
 
-/** Resolve an Earth-orbit satellite from the live catalogue and select it —
- *  the field then runs its real chase-follow (orbit line, ground track, full
- *  record card), exactly as if the user had picked it in the search box.
- *  Returns the confirmation line, or null when nothing matches. */
-async function flyToSatellite(name: string): Promise<string | null> {
-  const q = name.toLowerCase().trim()
+/** Resolve an Earth-orbit satellite from the live catalogue by name. Exact →
+ *  prefix → word-anchored match (≥4 chars so short tokens can't land on
+ *  arbitrary debris entries). Exported so the assistant runtime can GROUND
+ *  informational questions ("what is the ISS") on the same records. */
+export async function resolveSatelliteMeta(name: string) {
+  const q = name.toLowerCase().trim().replace(/^the\s+/, "")
   if (!q) return null
   const target = SAT_ALIASES[q] ?? q
   const catalog = await loadSatelliteCatalog().catch(() => null)
   if (!catalog || !catalog.length) return null
-  const exact = catalog.find((s) => s.name.toLowerCase() === target)
-  const starts = exact ?? catalog.find((s) => s.name.toLowerCase().startsWith(target))
-  let hit = starts
+  let hit = catalog.find((s) => s.name.toLowerCase() === target)
+    ?? catalog.find((s) => s.name.toLowerCase().startsWith(target))
   if (!hit && target.length >= 4) {
-    // Word-anchored contains — "starlink-32501" or "NOAA 19" style queries;
-    // ≥4 chars so short tokens can't land on arbitrary debris entries.
     const re = new RegExp(`(^|[^a-z0-9])${target.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`)
     hit = catalog.find((s) => re.test(s.name.toLowerCase()))
   }
+  return hit ?? null
+}
+
+/** Resolve an Earth-orbit satellite and select it — the field then runs its
+ *  real chase-follow (orbit line, ground track, full record card), exactly as
+ *  if the user had picked it in the search box. Returns the confirmation
+ *  line, or null when nothing matches. */
+async function flyToSatellite(name: string): Promise<string | null> {
+  const hit = await resolveSatelliteMeta(name)
   if (!hit) return null
+  // Satellites are a NOW view — TLEs are only valid near today, so the whole
+  // swarm honestly hides when the clock is scrubbed away (a comet's 2061
+  // perihelion left users asking "where did all the satellites go?"). Asking
+  // for a satellite means present tense: snap the clock back to real time.
+  const clockWasAway = Math.abs(simTimeRef.current.simMs - Date.now()) > 7 * 86_400_000
+  setSimMs(Date.now())
+  timeScaleRef.current = REALTIME_TIME_SCALE
   selectedSatRef.current = hit.id
   window.dispatchEvent(new CustomEvent("universe:sky-focus", { detail: { pointId: "planet:Earth" } }))
-  return `Flying to ${hit.name} — selecting it in the live swarm and locking the chase camera on its real orbit.`
+  return `Flying to ${hit.name} — selecting it in the live swarm and locking the chase camera on its real orbit.${clockWasAway ? " (I also brought the clock back to today — satellite tracking data is only valid near now.)" : ""}`
+}
+
+/** Focus a named small body through the engine's OWN channel: small-bodies
+ *  installs a mesh-anchored follow (true world position each frame), so a fast
+ *  mover like a perihelion comet stays framed instead of outrunning a one-shot
+ *  computed fly-to. Falls back to the computed fly when no mesh is listening. */
+function focusNamedBody(body: NamedBody, distance = 1.6) {
+  window.dispatchEvent(new CustomEvent("universe:sky-focus", { detail: { pointId: `named:${body.name}` } }))
+  if (!followRef.current) {
+    const pos = computeBodyPosition(body)
+    requestFlyTo({ x: pos.xSceneUnits, y: pos.ySceneUnits, z: pos.zSceneUnits }, distance, body.name)
+  }
 }
 
 function findPlanet(name: string): Planet | undefined {
@@ -847,8 +876,7 @@ async function runTool(toolName: string, input: ToolInput): Promise<unknown> {
       // the actual station.
       const exactBody = findNamedBodyExact(name)
       if (exactBody) {
-        const pos = computeBodyPosition(exactBody)
-        requestFlyTo({ x: pos.xSceneUnits, y: pos.ySceneUnits, z: pos.zSceneUnits }, 1.6, exactBody.name)
+        focusNamedBody(exactBody)
         return `Flying to ${exactBody.name}.`
       }
       const planet = findPlanet(name)
@@ -913,8 +941,7 @@ async function runTool(toolName: string, input: ToolInput): Promise<unknown> {
       // Loose named-body fallback (case-insensitive contains) — last resort.
       const fuzzyBody = findNamedBody(name)
       if (fuzzyBody) {
-        const pos = computeBodyPosition(fuzzyBody)
-        requestFlyTo({ x: pos.xSceneUnits, y: pos.ySceneUnits, z: pos.zSceneUnits }, 1.6, fuzzyBody.name)
+        focusNamedBody(fuzzyBody)
         return `Flying to ${fuzzyBody.name}.`
       }
       return `Body "${name}" not found. Use listBodies or listExoplanetHosts to see what's available.`
@@ -933,21 +960,15 @@ async function runTool(toolName: string, input: ToolInput): Promise<unknown> {
       if (periMs == null || Number.isNaN(periMs)) {
         return `${body.name} has no computable perihelion (its orbit isn't periodic or lacks a reference epoch).`
       }
-      // 1) jump the clock to perihelion, 2) fly there, 3) follow through it.
-      simTimeRef.current.simMs = periMs
-      const pos = computeBodyPosition(body)
-      requestFlyTo({ x: pos.xSceneUnits, y: pos.ySceneUnits, z: pos.zSceneUnits }, 1.6, body.name)
-      requestFollow(
-        () => {
-          const p = computeBodyPosition(body)
-          return { x: p.xSceneUnits, y: p.ySceneUnits, z: p.zSceneUnits }
-        },
-        body.kind === "dwarf" ? 2.4 : 1.6,
-        body.name,
-      )
+      // 1) jump the clock to perihelion, 2) focus through the engine's own
+      // channel — the mesh-anchored follow keeps a fast perihelion comet
+      // framed (the old computed-position follow could miss the rendered
+      // body entirely: "I can't see the comet").
+      setSimMs(periMs)
+      focusNamedBody(body, body.kind === "dwarf" ? 2.4 : 1.6)
       const dateStr = new Date(periMs).toISOString().slice(0, 10)
       const q = body.eccentricity < 1 ? body.aAU * (1 - body.eccentricity) : body.aAU
-      return `At perihelion, ${body.name} is ${q.toFixed(3)} AU from the Sun on ${dateStr}. Jumped the clock there and following it through closest approach.`
+      return `At perihelion, ${body.name} is ${q.toFixed(3)} AU from the Sun on ${dateStr}. Jumped the clock there and following it through closest approach. (Satellites hide while the clock is away from today — their tracking data is only valid near now; ask for one and I'll bring you back.)`
     }
 
     case "followBody": {

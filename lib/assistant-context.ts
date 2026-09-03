@@ -255,6 +255,7 @@ export function buildSystemPrompt(): string {
  * that show what the assistant can do.
  */
 export const SUGGESTED_PROMPTS = [
+  "Fly to the ISS",
   "Show me every comet whose orbit crosses Earth's",
   "Take me to Halley's Comet at perihelion",
   "What's the closest exoplanet host star?",
