@@ -15,9 +15,11 @@
  * and shows its human-made orbiter shell (SatelliteShells) when the Satellites
  * toggle is on.
  *
- * Motion is date-driven: orbital longitude = a deterministic phase offset (from
- * the moon's name — stable across timeline scrubs, not a true J2000 anchor) on
- * top of `meanAnomalyAt`. Hover routes to the InfoPanel; click follows the moon.
+ * Motion is date-driven. LUNA is anchored to the real Sun–Earth–Moon elongation
+ * (Delaunay D, mean elements) so the phase shown IS the date's actual phase and
+ * the night side carries real earthshine; other moons use a deterministic
+ * name-derived phase offset on top of `meanAnomalyAt` (stable across scrubs,
+ * not a true J2000 anchor). Hover routes to the InfoPanel; click follows.
  *
  * Composed by <SolarSystem> in scene.tsx. Shared pieces (surface pins, orbiter
  * shells) come from ./scene-satellites; the day/night shader from ./shaders; the
@@ -40,6 +42,7 @@ import {
 import {
   DEG,
   SUN_OFFSET_SCENE,
+  daysSinceJ2000,
   meanAnomalyAt,
   requestFollow,
   focusDepthRef,
@@ -107,6 +110,9 @@ export function MoonBody({
       // dramatically at any sun angle, not just the gentle vertex displacement.
       uNormalStrength:      { value: 0 },
       uElevationTexel:      { value: new Vector2(1 / 4096, 1 / 2048) },
+      // Never a black void: the night side keeps a floor of the day texture.
+      // For Luna this is driven per-frame by REAL earthshine geometry below.
+      uNightFloor:          { value: 0.05 },
     }),
     [],
   )
@@ -222,7 +228,26 @@ export function MoonBody({
   useFrame((state, delta) => {
     // Date-driven so moons stay in lockstep with the scrubbable clock.
     if (orbitRef.current) {
-      orbitRef.current.rotation.y = meanAnomalyAt(startPhase, moon.periodDays, simTimeRef.current.simMs)
+      if (isLuna) {
+        // REAL PHASE — Luna's angle around Earth is anchored to the true
+        // Sun–Earth–Moon elongation (Delaunay D = 297.8501921° +
+        // 12.19074911°·d since J2000; mean elements, phase-true to a few
+        // degrees). The Moon here shows TONIGHT'S actual phase, and the
+        // timeline scrubs the real cycle — the old name-hash offset gave a
+        // stable but fictional phase. Convention: rotation.y = φ puts the
+        // moon at parent-local (cos φ, 0, −sin φ), so φ_sun + D is sunward
+        // at D = 0 (new moon) and opposite at D = 180° (full moon).
+        const parent = orbitRef.current.parent
+        if (parent) {
+          _sunWorldPos.set(SUN_OFFSET_SCENE, 0, 0)
+          parent.worldToLocal(_sunWorldPos)
+          const phiSun = Math.atan2(-_sunWorldPos.z, _sunWorldPos.x)
+          const elongD = (297.8501921 + 12.19074911 * daysSinceJ2000(simTimeRef.current.simMs)) * DEG
+          orbitRef.current.rotation.y = phiSun + elongD
+        }
+      } else {
+        orbitRef.current.rotation.y = meanAnomalyAt(startPhase, moon.periodDays, simTimeRef.current.simMs)
+      }
     }
     // Poll the satellites toggle for the Moon's orbiter shell.
     if (isLuna) {
@@ -266,6 +291,15 @@ export function MoonBody({
       _sunWorldPos.set(SUN_OFFSET_SCENE, 0, 0)
       _sunDirTmp.copy(_sunWorldPos).sub(_earthWorldPos).normalize()
       dayNightUniforms.uSunDir.value.copy(_sunDirTmp)
+      // EARTHSHINE — the Moon's night side is never black: sunlight reflected
+      // off Earth lights it ("the old Moon in the new Moon's arms"). Earth is
+      // FULL as seen from a new Moon, so the glow peaks at new moon and fades
+      // to nothing at full — (1 + cos D)/2 from the same elongation that
+      // drives the phase. Subtle by design: a whisper of the day texture.
+      if (isLuna) {
+        const elongD = (297.8501921 + 12.19074911 * daysSinceJ2000(simTimeRef.current.simMs)) * DEG
+        dayNightUniforms.uNightFloor.value = 0.02 + 0.11 * ((1 + Math.cos(elongD)) / 2)
+      }
       // Per-pixel lunar relief is a deep-zoom reward — fade uNormalStrength in
       // only when the camera is close + the moon is highlighted, so the 4 extra
       // texture fetches + derivatives cost nothing at normal distance (the fix

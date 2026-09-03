@@ -37,7 +37,8 @@ type Experience = {
   tags: string[]
   /** Only Oracle is currently active — surfaces as a small "Currently" tick
    *  on the date column. Past roles don't carry a status pill; the
-   *  "Case study →" cue at the bottom-right is the consistent affordance. */
+   *  "The work →" cue at the bottom-right is the consistent affordance
+   *  (deliberately NOT "case study" — these are work write-ups). */
   current?: boolean
   href: string
 }
@@ -234,7 +235,7 @@ export function Works() {
                         "
                         aria-hidden="true"
                       >
-                        Case study
+                        The work
                         <ArrowUpRight className="w-3 h-3 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                       </span>
                     </div>

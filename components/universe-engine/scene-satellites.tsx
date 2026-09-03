@@ -43,8 +43,14 @@ import {
   Vector3,
 } from "three"
 import { DEG, simTimeRef, requestFollow, cancelFollow, followRef } from "./astronomy"
+import { pointSprite } from "./galaxy"
 import type { HoverHandler, SurfaceFeature } from "./types"
 import "./three-line"
+
+// Round point sprite — without a map, GL points draw as hard SQUARES (the
+// orbiter shells around the Moon read as white boxes). SSR-safe like
+// small-bodies' TRAIL_SPRITE.
+const DOT_SPRITE = typeof document !== "undefined" ? pointSprite() : null
 
 /* ============================================================
  * Satellite shells — human-made orbiters around a body.
@@ -283,6 +289,7 @@ function SatelliteShellPoints({
           opacity={shell.debris ? 0.4 : 0.9}
           blending={AdditiveBlending}
           depthWrite={false}
+          map={DOT_SPRITE}
         />
       </points>
       {/* orbital-path ring — only for constellations; a debris cloud has no
@@ -765,7 +772,7 @@ export function ImpactMarker({ feature, planetRadius }: { feature: SurfaceFeatur
       </mesh>
       {/* debris plume */}
       <points ref={plumeRef} geometry={plume.geo} frustumCulled={false}>
-        <pointsMaterial size={s * 0.03} color={col} transparent opacity={0.8} depthWrite={false} blending={AdditiveBlending} sizeAttenuation />
+        <pointsMaterial size={s * 0.03} color={col} transparent opacity={0.8} depthWrite={false} blending={AdditiveBlending} sizeAttenuation map={DOT_SPRITE} />
       </points>
     </group>
   )
