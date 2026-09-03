@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import Image from "next/image"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { canonicalPath } from "@/lib/seo"
@@ -69,15 +70,17 @@ export default function VeraPage() {
             In loving memory
           </p>
 
-          {/* A haloed circle for her. When a photo is added at
-              public/img/about/anita.webp, swap the monogram for an <Image>.
-              Until then it degrades to a soft serif monogram — never a broken
-              image at the top of her page. */}
+          {/* A haloed circle for her — her real photograph, warmly lit. */}
           <figure className="mx-auto mb-8 w-40 h-40 md:w-48 md:h-48">
-            <div className="relative w-full h-full rounded-full overflow-hidden border border-accent/25 shadow-[0_0_60px_-12px_var(--accent)] bg-gradient-to-b from-secondary/40 to-secondary/10 flex items-center justify-center">
-              <span className="font-display text-6xl md:text-7xl font-light text-accent/70 select-none" aria-hidden>
-                A
-              </span>
+            <div className="relative w-full h-full rounded-full overflow-hidden border border-accent/25 shadow-[0_0_60px_-12px_var(--accent)] bg-gradient-to-b from-secondary/40 to-secondary/10">
+              <Image
+                src="/img/about/anita.webp"
+                alt="Anita Sinha"
+                fill
+                sizes="(min-width: 768px) 12rem, 10rem"
+                className="object-cover object-[50%_28%]"
+                priority
+              />
             </div>
           </figure>
 
