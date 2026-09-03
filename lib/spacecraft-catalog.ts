@@ -32,7 +32,7 @@ export interface SpacecraftEntry {
 export const SPACECRAFT: SpacecraftEntry[] = [
   // ── Space stations ──────────────────────────────────────────────────────
   {
-    id: "iss", name: "International Space Station", model: "/models/sat-iss.glb",
+    id: "iss", name: "International Space Station", model: "/models/iss.glb",
     agency: "NASA · Roscosmos · ESA · JAXA · CSA", orbit: "Low Earth orbit · ~420 km · 51.6°",
     launched: "1998 (first module)", size: "109 × 73 m", kind: "Station",
     fact: "The largest human structure in space — a continuously crewed laboratory since 2000, assembled from modules over more than a decade of spacewalks and dockings. It orbits Earth roughly every 92 minutes.",
@@ -47,7 +47,7 @@ export const SPACECRAFT: SpacecraftEntry[] = [
   },
   // ── Telescopes ──────────────────────────────────────────────────────────
   {
-    id: "hubble", name: "Hubble Space Telescope", model: "/models/sat-hubble.glb",
+    id: "hubble", name: "Hubble Space Telescope", model: "/models/craft-hubble.glb",
     agency: "NASA · ESA", orbit: "Low Earth orbit · ~535 km",
     launched: "1990 (STS-31)", size: "13.2 m long · 4.2 m dia", kind: "Telescope",
     fact: "The space telescope that rewrote astronomy — deep fields, the expansion rate, exoplanet atmospheres. Serviced five times by Shuttle crews, it is still observing after 35 years.",
@@ -69,7 +69,7 @@ export const SPACECRAFT: SpacecraftEntry[] = [
     frame: 2.6,
   },
   {
-    id: "explorer1", name: "Explorer 1", model: "/models/sat-sputnik.glb",
+    id: "explorer1", name: "Explorer 1", model: "/models/craft-explorer1.glb",
     agency: "USA (JPL · Army)", orbit: "Low Earth orbit · 358–2,550 km",
     launched: "1 Feb 1958", size: "2.0 × 0.15 m", kind: "Satellite",
     fact: "The first US satellite. Its cosmic-ray detector discovered the Van Allen radiation belts — the first major scientific discovery of the space age.",
@@ -191,7 +191,7 @@ export const SPACECRAFT: SpacecraftEntry[] = [
   },
   // ── Constellations ──────────────────────────────────────────────────────
   {
-    id: "gps", name: "GPS", model: "/models/sat-gps.glb",
+    id: "gps", name: "GPS", model: "/models/satellite-gps.glb",
     agency: "US Space Force", orbit: "Medium Earth orbit · ~20,200 km",
     launched: "1978 (first) · Block III now", size: "~2.5 m bus · ~18 m span", kind: "Constellation",
     fact: "A constellation of ~31 satellites; any point on Earth can see at least four at once, which is how your phone triangulates where it is. Its atomic clocks must account for relativity to stay accurate.",
