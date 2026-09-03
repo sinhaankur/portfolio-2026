@@ -47,3 +47,10 @@ export type ConjunctionFocus = {
   relSpeedKms: number
 }
 export const conjunctionFocusRef: { current: ConjunctionFocus | null } = { current: null }
+
+/** LAUNCH→ORBIT JOURNEY — opt-in. The animated ascent sweep (glowing head
+ *  riding the launch-pad → orbit arc) is a bright, looping element; it only
+ *  shows when the user explicitly asks to trace a craft's journey from the
+ *  selected-satellite card, never automatically on selection. The card (DOM)
+ *  writes this + dispatches `universe:journey-toggle`; the field renders it. */
+export const showJourneyRef: { current: boolean } = { current: false }

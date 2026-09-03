@@ -296,8 +296,8 @@ export function classifyArchetype(name: string, owner: string, altKm: number, ty
  * them without dragging in this file's Three.js dependency. Re-exported here so
  * the engine's internal call sites keep importing them from `./satellite-field`.
  */
-export { selectedSatRef, satGroupFilterRef, showAllSatsRef, conjunctionFocusRef } from "./satellite-refs"
-import { selectedSatRef, satGroupFilterRef, showAllSatsRef, conjunctionFocusRef } from "./satellite-refs"
+export { selectedSatRef, satGroupFilterRef, showAllSatsRef, conjunctionFocusRef, showJourneyRef } from "./satellite-refs"
+import { selectedSatRef, satGroupFilterRef, showAllSatsRef, conjunctionFocusRef, showJourneyRef } from "./satellite-refs"
 
 // The Three-FREE satellite data layer (types, bridge refs, SGP4-math helpers,
 // catalogue loading, classification) lives in ./satellite-data so the DOM chrome
@@ -1008,6 +1008,15 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
   // Earth-fixed (drawn in the ground-track group). null when no known site.
   const [originArc, setOriginArc] = useState<THREE.Vector3[] | null>(null)
   const [originLabel, setOriginLabel] = useState<{ name: string; country: string; pos: THREE.Vector3 } | null>(null)
+  // Launch→orbit journey is OPT-IN (the bright looping ascent sweep distracted
+  // from plain tracking). The selected-craft card toggles it via
+  // `universe:journey-toggle`; until then only the quiet ground track shows.
+  const [journeyOn, setJourneyOn] = useState(() => showJourneyRef.current)
+  useEffect(() => {
+    const onToggle = (e: Event) => setJourneyOn(Boolean((e as CustomEvent<{ on?: boolean }>).detail?.on))
+    window.addEventListener("universe:journey-toggle", onToggle)
+    return () => window.removeEventListener("universe:journey-toggle", onToggle)
+  }, [])
   // Ground track — the curve the sub-satellite point traces ON Earth's surface
   // over one orbit (the real "path over the ground"), + the live radial tether
   // from the current sub-point up to the craft (the honest "surface → orbit"
@@ -1973,8 +1982,14 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
   const onPointsClick = (e: {
     index?: number
     intersections?: { index?: number }[]
+    delta?: number
     stopPropagation: () => void
   }) => {
+    // Drag guard: R3F fires click on pointerup however far the pointer moved,
+    // so orbiting the camera and releasing over a dot silently re-selected a
+    // DIFFERENT satellite mid-chase. e.delta is the screen-space px travelled
+    // between down and up — a real click stays under a few px.
+    if ((e.delta ?? 0) > 5) return
     const idx = e.index ?? e.intersections?.[0]?.index
     if (idx == null || !isDotVisible(idx)) return
     e.stopPropagation()
@@ -2156,7 +2171,7 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
             current orbit + a marker + label at the launch pad. Earth-fixed, so
             the origin stays on the pad as the globe turns. Amber-to-white gives
             a clear "left here → flies there" read distinct from the cyan track. */}
-        {originArc && originArc.length > 1 && (
+        {journeyOn && originArc && originArc.length > 1 && (
           <>
             {/* The base connector — a faint dashed guide of the whole path. */}
             <Line points={originArc} color="#ff8a3a" transparent opacity={0.3} lineWidth={1.25} dashed dashSize={0.04} gapSize={0.02} />
@@ -2165,7 +2180,7 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
             <AscentJourney points={originArc} />
           </>
         )}
-        {originLabel && (
+        {journeyOn && originLabel && (
           <group position={originLabel.pos}>
             <mesh>
               <sphereGeometry args={[earthVisualRadius * 0.014, 12, 12]} />

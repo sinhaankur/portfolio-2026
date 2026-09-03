@@ -280,12 +280,21 @@ export function findNearestOverhead(atMs: number = Date.now()): NearestSat | nul
 }
 
 // ── Shared FULL-catalogue cache (fetched + parsed exactly once) ──────────────
+/** Provenance header of the baked catalogue (snapshot date, source line, type
+ *  breakdown). Filled as a side effect of loadFullCatalog so the transparency
+ *  metrics panel can show WHERE the data came from without a second download. */
+export type CatalogHeader = { snapshot?: string; source?: string; count?: number; breakdown?: Record<string, number> }
+export const catalogHeaderRef: { current: CatalogHeader | null } = { current: null }
+
 let _fullCatalogPromise: Promise<SatRecord[]> | null = null
 export function loadFullCatalog(): Promise<SatRecord[]> {
   if (!_fullCatalogPromise) {
     _fullCatalogPromise = fetch("/data/satellites.json")
       .then((r) => r.json())
-      .then((d) => d.sats as SatRecord[])
+      .then((d) => {
+        catalogHeaderRef.current = { snapshot: d.snapshot, source: d.source, count: d.count, breakdown: d.breakdown }
+        return d.sats as SatRecord[]
+      })
       .catch(() => [])
   }
   return _fullCatalogPromise

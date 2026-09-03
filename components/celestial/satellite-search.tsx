@@ -15,7 +15,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Search, X, Crosshair, Locate, Download } from "lucide-react"
 import { loadSatelliteCatalog, selectedArchetypeRef, selectedArchetypeIdRef, selectedOrbitRef, observerRef, findNearestOverhead, launchMatesFor, satTypeFilterRef, type SatMeta, type SatOrbit, type NearestSat, type LaunchMate } from "@/components/universe-engine/satellite-data"
-import { selectedSatRef } from "@/components/universe-engine/satellite-refs"
+import { selectedSatRef, showJourneyRef } from "@/components/universe-engine/satellite-refs"
 import { anatomyFor } from "@/lib/craft-anatomy"
 import { statusFromPerigee, lifetimeFromPerigee, lifetimeLabel } from "@/lib/reentry"
 import { launchSiteFor } from "@/lib/launch-sites"
@@ -98,6 +98,8 @@ export function SatelliteSearch() {
   // the chase view (the payoff) was invisible. Collapsed by default at phone
   // width: header + live one-liner, details behind a toggle. Desktop unchanged.
   const [detailsOpen, setDetailsOpen] = useState(false)
+  // Mirrors showJourneyRef — the opt-in launch→orbit ascent sweep (session-sticky).
+  const [journeyOn, setJourneyOn] = useState(() => showJourneyRef.current)
   useEffect(() => { setDetailsOpen(false) }, [selected?.id])
   // "From this launch" — the other objects that share this craft's COSPAR launch
   // designator: its spent rocket body + any tracked debris/fragments. Real
@@ -195,6 +197,23 @@ export function SatelliteSearch() {
     }, 200)
     return () => clearInterval(id)
   }, [selected])
+
+  // Scene dot-clicks land in this SAME card: the field announces any catalogued
+  // follow with a bare `celestial:sat-selected` (selectedSatRef holds the NORAD
+  // id at that point; the uncatalogued swarm card's version carries a detail and
+  // is skipped). Before this, clicking a dot in 3D gave only the HUD chip — the
+  // full record (orbit table, close approaches, journey trace, export) was
+  // reachable only through the search box.
+  useEffect(() => {
+    const onSel = (e: Event) => {
+      if ((e as CustomEvent).detail) return
+      const id = selectedSatRef.current
+      if (id == null || !catalog) return
+      setSelected((cur) => (cur?.id === id ? cur : catalog.find((s) => s.id === id) ?? cur))
+    }
+    window.addEventListener("celestial:sat-selected", onSel)
+    return () => window.removeEventListener("celestial:sat-selected", onSel)
+  }, [catalog])
 
   // This object's upcoming close approaches, pulled from the baked screen.
   const objApproaches = useMemo(() => {
@@ -510,6 +529,29 @@ export function SatelliteSearch() {
                   </div>
                 ) : null
               })()}
+              {/* Launch→orbit journey is OPT-IN: the glowing ascent sweep only
+                  plays when someone actually wants to trace the craft's path up
+                  from its pad — plain tracking stays calm. */}
+              {launchSiteFor(selected.site) && (
+                <div className="flex justify-between gap-3 items-center">
+                  <dt className="text-muted-foreground">Journey</dt>
+                  <dd className="text-right">
+                    <button
+                      type="button"
+                      data-cursor-hover
+                      onClick={() => {
+                        const on = !journeyOn
+                        setJourneyOn(on)
+                        showJourneyRef.current = on
+                        window.dispatchEvent(new CustomEvent("universe:journey-toggle", { detail: { on } }))
+                      }}
+                      className={`rounded-full border px-2.5 py-0.5 font-mono text-[9px] tracking-[0.15em] uppercase transition-colors ${journeyOn ? "border-accent/60 text-accent" : "border-border text-muted-foreground hover:text-foreground"}`}
+                    >
+                      {journeyOn ? "Hide pad → orbit" : "Trace pad → orbit"}
+                    </button>
+                  </dd>
+                </div>
+              )}
               <div className="flex justify-between gap-3">
                 <dt className="text-muted-foreground">NORAD ID</dt>
                 <dd className="text-foreground tabular-nums">{selected.id}</dd>

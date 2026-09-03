@@ -47,6 +47,9 @@ export function ConsentBanner() {
     localStorage.setItem(KEY, granted ? "granted" : "denied")
     setConsent(granted)
     setVisible(false)
+    // Let sequenced UI (the celestial first-run tour) know the bottom-center
+    // slot is free now — it waits for this so the two cards never stack.
+    window.dispatchEvent(new CustomEvent("consent:choice"))
   }
 
   return (

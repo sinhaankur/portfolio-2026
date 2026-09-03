@@ -12,7 +12,7 @@ import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import dynamic from "next/dynamic"
 import { motion, AnimatePresence } from "framer-motion"
-import { ArrowLeft, X, Rotate3d, Globe, Satellite, Sparkles, Rocket, Route, Orbit, Layers, Radio, Crosshair, Flame, Trash2, HelpCircle, MoreHorizontal, Radar, ArrowLeftRight, Image as ImageIcon, Share2, Check, Mountain } from "lucide-react"
+import { ArrowLeft, X, Rotate3d, Globe, Satellite, Sparkles, Rocket, Route, Orbit, Layers, Radio, Crosshair, Flame, Trash2, HelpCircle, MoreHorizontal, Radar, ArrowLeftRight, Image as ImageIcon, Share2, Check, Mountain, Gauge } from "lucide-react"
 import { CustomCursor } from "@/components/custom-cursor"
 import { ReportBug } from "@/components/report-bug"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -145,6 +145,12 @@ const InventoryPanel = dynamic(
   { ssr: false },
 )
 
+// System metrics — LeoLabs-style transparency on data quantity/freshness/limits.
+const MetricsPanel = dynamic(
+  () => import("./metrics-panel").then((m) => m.MetricsPanel),
+  { ssr: false },
+)
+
 const UniverseEngine = dynamic(
   () => import("@/components/universe-engine").then((m) => m.UniverseEngine),
   { ssr: false, loading: () => <StaticStarfield loading /> },
@@ -219,15 +225,26 @@ export function CelestialExplorer() {
     return () => clearTimeout(t)
   }, [])
   // First-run guided tour — open once (after the intro settles) if never seen.
+  // Sequenced AFTER the cookie-consent choice: both are bottom-center cards, and
+  // on first visit they stacked into a wall that covered half a phone screen.
   useEffect(() => {
     let cancelled = false
+    let t: ReturnType<typeof setTimeout> | null = null
+    let off: (() => void) | null = null
     import("./guided-tour").then(({ tourSeen }) => {
-      if (!cancelled && !tourSeen()) {
-        const t = setTimeout(() => setTourOpen(true), 2600)
-        return () => clearTimeout(t)
+      if (cancelled || tourSeen()) return
+      const openSoon = (delay: number) => { t = setTimeout(() => { if (!cancelled) setTourOpen(true) }, delay) }
+      let consentDecided = true
+      try { consentDecided = localStorage.getItem("cookie-consent-v1") !== null } catch { /* private mode → don't block */ }
+      if (consentDecided) {
+        openSoon(2600)
+      } else {
+        const onChoice = () => { off?.(); off = null; openSoon(1200) }
+        window.addEventListener("consent:choice", onChoice)
+        off = () => window.removeEventListener("consent:choice", onChoice)
       }
     })
-    return () => { cancelled = true }
+    return () => { cancelled = true; if (t) clearTimeout(t); off?.() }
   }, [])
   // Selecting a satellite (search pick or a dot click in the scene) means the
   // user is already driving — the tour card must not sit over their chase view.
@@ -310,6 +327,8 @@ export function CelestialExplorer() {
   const [neoOpen, setNeoOpen] = useState(false)
   // Orbital-population census.
   const [inventoryOpen, setInventoryOpen] = useState(false)
+  // System metrics — transparency on data quantity/freshness/limits.
+  const [metricsOpen, setMetricsOpen] = useState(false)
   // On-demand screening — paste any TLE, screen it vs the catalogue live.
   const [screeningOpen, setScreeningOpen] = useState(false)
   // Proximity / state comparison — two-object closest approach.
@@ -324,7 +343,7 @@ export function CelestialExplorer() {
   const [bodiesSheet, setBodiesSheet] = useState(false)
   const [toolsSheet, setToolsSheet] = useState(false)
   const [timeSheet, setTimeSheet] = useState(false)
-  const closePanels = () => { setPassesOpen(false); setWeatherOpen(false); setLaunchesOpen(false); setImageryOpen(false); setTransferOpen(false); setStationOpen(false); setIssLiveOpen(false); setPorkchopOpen(false); setNeoOpen(false); setInventoryOpen(false); setConjOpen(false); setReentryOpen(false); setDebrisOpen(false); setScreeningOpen(false); setProximityOpen(false) }
+  const closePanels = () => { setPassesOpen(false); setWeatherOpen(false); setLaunchesOpen(false); setImageryOpen(false); setTransferOpen(false); setStationOpen(false); setIssLiveOpen(false); setPorkchopOpen(false); setNeoOpen(false); setInventoryOpen(false); setMetricsOpen(false); setConjOpen(false); setReentryOpen(false); setDebrisOpen(false); setScreeningOpen(false); setProximityOpen(false) }
   // `?earth=1` auto-opens the photoreal view — for capture/testing + deep-links.
   useEffect(() => {
     try {
@@ -365,6 +384,7 @@ export function CelestialExplorer() {
       }
       if (q.has("mars")) setMarsView(true)
       if (q.has("inv")) setInventoryOpen(true) // testing: open the census panel
+      if (q.has("metrics")) setMetricsOpen(true) // testing: open system metrics
       const ss = q.get("selectsat") // testing: select a satellite by NORAD id
       if (ss) setTimeout(() => { selectedSatRef.current = parseInt(ss, 10) }, 1600)
       const g = q.get("satgroup") // testing: drive the group filter (0=Starlink…)
@@ -513,6 +533,8 @@ export function CelestialExplorer() {
           label="Ground-station tracker" onClick={go(() => setStationOpen(true))} />
         <MenuItem color="#9fe0ff" icon={<Layers className="h-3.5 w-3.5" />}
           label="Orbital census" onClick={go(() => setInventoryOpen(true))} />
+        <MenuItem color="#9fe0ff" icon={<Gauge className="h-3.5 w-3.5" />}
+          label="System metrics" onClick={go(() => setMetricsOpen(true))} />
         <MenuItem color="#ff9d6b" icon={<Crosshair className="h-3.5 w-3.5" />}
           label="Conjunction screening" onClick={go(() => setConjOpen(true))} />
         <MenuItem color="#7fd4ff" icon={<Radar className="h-3.5 w-3.5" />}
@@ -968,6 +990,11 @@ export function CelestialExplorer() {
           {inventoryOpen && (
             <div className="absolute bottom-24 left-4 md:left-6 z-40">
               <InventoryPanel onClose={() => setInventoryOpen(false)} />
+            </div>
+          )}
+          {metricsOpen && (
+            <div className="absolute bottom-24 left-4 md:left-6 z-40">
+              <MetricsPanel onClose={() => setMetricsOpen(false)} />
             </div>
           )}
           {conjOpen && (

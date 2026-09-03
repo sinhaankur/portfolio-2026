@@ -53,9 +53,12 @@ export function AssistantPanel({ onClose }: { onClose?: () => void } = {}) {
 
   /** Resolved provider config (Anthropic key + model, or local
    *  baseUrl + model). Null = no provider configured yet, chat is
-   *  locked. Re-read from localStorage on mount and after the
-   *  settings drawer saves. */
-  const [providerConfig, setProviderConfig] = useState<ProviderConfig | null>(null)
+   *  locked. Read synchronously on first render (the panel only mounts
+   *  client-side): the old `useState(null)` + effect pattern meant the
+   *  very first effect pass ALWAYS saw null and auto-opened the settings
+   *  wall — every visitor got a provider form instead of the working
+   *  keyless on-device default ("Ask AI is not working"). */
+  const [providerConfig, setProviderConfig] = useState<ProviderConfig | null>(() => readActiveConfig())
   const [settingsOpen, setSettingsOpen] = useState(false)
 
   const [messages, setMessages] = useState<UIMessage[]>([])
@@ -81,10 +84,14 @@ export function AssistantPanel({ onClose }: { onClose?: () => void } = {}) {
     refreshProviderConfig()
   }, [refreshProviderConfig])
 
-  // Auto-open settings on first load if nothing is configured.
+  // Auto-open settings only when the ACTIVE provider genuinely can't run
+  // (e.g. a stored Anthropic/local choice missing its key/model). The
+  // keyless on-device default always resolves, so first-time visitors land
+  // straight in the chat. Re-read the source of truth synchronously —
+  // reacting to the lagging state here is what used to open the wall for
+  // everyone on mount.
   useEffect(() => {
-    if (providerConfig === null) {
-      // No-op if drawer is already open; otherwise prompt the visitor.
+    if (providerConfig === null && readActiveConfig() === null) {
       setSettingsOpen((cur) => (cur ? cur : true))
     }
     // Intentional: only react to "is config present" transitions, not

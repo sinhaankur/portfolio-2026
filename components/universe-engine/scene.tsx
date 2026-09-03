@@ -176,7 +176,12 @@ function FlyToController({ interactive }: { interactive: boolean }) {
     // returns you to the overview instead of drifting into empty space.
     let zoomOutAccum = 0
     const onWheel = (e: WheelEvent) => {
-      _userGrabbing = true; _grabReleaseAt = performance.now()
+      // A wheel is a TRANSIENT input — bump the cooldown clock only. Setting
+      // _userGrabbing here left it stuck true forever (no pointerup follows a
+      // scroll), which permanently froze the chase re-engage + ambient drift
+      // after the first zoom: the camera stopped riding the craft's travel
+      // frame until the user happened to click somewhere.
+      _grabReleaseAt = performance.now()
       const follow = followRef.current
       if (follow && follow.frame) {                 // only for a satellite chase
         if (e.deltaY > 0) {                          // zoom OUT
@@ -202,10 +207,15 @@ function FlyToController({ interactive }: { interactive: boolean }) {
     }
     el.addEventListener("pointerdown", grab)
     window.addEventListener("pointerup", release)
+    // pointercancel: on touch the browser can seize the gesture (scroll,
+    // pinch-zoom handoff) and no pointerup ever fires — without this the
+    // grab flag sticks and the chase/drift never resume on mobile.
+    window.addEventListener("pointercancel", release)
     el.addEventListener("wheel", onWheel, { passive: true })
     return () => {
       el.removeEventListener("pointerdown", grab)
       window.removeEventListener("pointerup", release)
+      window.removeEventListener("pointercancel", release)
       el.removeEventListener("wheel", onWheel)
     }
   }, [gl])
