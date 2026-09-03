@@ -158,17 +158,19 @@ export function MoonBody({
     return () => clearTimeout(timer)
   }, [elevationUrl, elevationTexture])
 
-  // Stable phase offset per moon (radians). Derived deterministically from
-  // the moon's name rather than Math.random() so scrubbing the timeline
-  // lands the moon at the same place every time you revisit a date — a
-  // random phase would jump on every remount. We don't have per-moon J2000
-  // ephemerides, so this is a fixed offset on top of date-driven motion,
-  // not a true anchor: the period is real, the absolute longitude is not.
+  // Phase anchor (radians). Moons with a published J2000 mean longitude
+  // (m0Deg — λ = Ω + ω + M from JPL SSD's Planetary Satellite Mean Elements)
+  // are REAL-anchored: their configuration at any date is the real one (the
+  // Galilean Laplace resonance closes at 180.0° with these values). Moons
+  // without published anchors (Nereid, Pluto's small moons) keep a stable
+  // name-derived offset — deterministic across scrubs, honest about being
+  // an offset rather than an ephemeris.
   const startPhase = useMemo(() => {
+    if (moon.m0Deg != null) return moon.m0Deg * DEG
     let h = 0
     for (let i = 0; i < moon.name.length; i++) h = (h * 31 + moon.name.charCodeAt(i)) >>> 0
     return (h % 360) * DEG
-  }, [moon.name])
+  }, [moon.name, moon.m0Deg])
 
   // Load the moon's surface texture on mount — same always-visible treatment as
   // the planets, and PROGRESSIVE like them: show the small shipped BASE map first

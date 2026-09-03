@@ -228,6 +228,12 @@ export type MoonData = {
   visualRadius: number
   orbitRadius: number
   periodDays: number
+  /** Mean longitude at J2000 (degrees; λ = Ω + ω + M from JPL SSD Planetary
+   *  Satellite Mean Elements). When present, the moon's orbital angle is
+   *  date-anchored to the real configuration; absent → a stable name-derived
+   *  offset (period real, absolute longitude not). Luna ignores this — it is
+   *  anchored to the Sun–Earth–Moon elongation for true phases. */
+  m0Deg?: number
   shade: string
   fact: string
   /** Optional equirectangular surface texture URL — used for Luna so the
