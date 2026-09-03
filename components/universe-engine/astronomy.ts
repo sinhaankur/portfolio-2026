@@ -93,6 +93,11 @@ export const cloudsVisibleRef = { current: true }
  * Module-scoped, same pattern as cloudsVisibleRef. Off by default. */
 export const satellitesVisibleRef = { current: false }
 
+/** Minor bodies — the real 7k+ asteroid/NEO/comet catalogue layer. ON by
+ *  default: the Kuiper belt population and comet ellipses are part of the
+ *  sky's true architecture. Same module-scoped toggle pattern. */
+export const minorBodiesVisibleRef = { current: true }
+
 /* --------------------------------------------------------------------------
  * Simulation clock — date-first, scrubbable
  *

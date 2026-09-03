@@ -54,6 +54,7 @@ import {
   requestFlyTo,
   cloudsVisibleRef,
   satellitesVisibleRef,
+  minorBodiesVisibleRef,
   scaleModeRef,
   deviceTierRef,
   heavyEffectsRef,
@@ -231,9 +232,15 @@ export function UniverseEngine({
   // The solar-only explorer is all about satellites, so show them by default
   // there; the home hero keeps them off until toggled.
   const [showSatellites, setShowSatellites] = useState(solarOnly)
+  // The real asteroid/NEO/comet catalogue layer — on by default (it's the
+  // solar system's true architecture, tuned to stay quiet behind the planets).
+  const [showMinorBodies, setShowMinorBodies] = useState(true)
   useEffect(() => {
     satellitesVisibleRef.current = showSatellites
   }, [showSatellites])
+  useEffect(() => {
+    minorBodiesVisibleRef.current = showMinorBodies
+  }, [showMinorBodies])
   // Flip the whole view between the deep-space UNIVERSE and the EARTH-ORBIT /
   // solar explorer. Entering solar mode turns the satellite shells ON (that mode
   // is all about them); leaving it turns them back off so the galaxy reads clean.
@@ -1049,6 +1056,8 @@ export function UniverseEngine({
                   onToggleClouds={() => setShowClouds(v => !v)}
                   showSatellites={showSatellites}
                   onToggleSatellites={() => setShowSatellites(v => !v)}
+                  showMinorBodies={showMinorBodies}
+                  onToggleMinorBodies={() => setShowMinorBodies(v => !v)}
                   showSatGroups={Boolean(solarMode && showSatellites)}
                   trueScale={trueScale}
                   onToggleScale={() => setTrueScale(v => !v)}

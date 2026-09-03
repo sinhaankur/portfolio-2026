@@ -1310,6 +1310,8 @@ export function LayersMenu({
   onToggleClouds,
   showSatellites,
   onToggleSatellites,
+  showMinorBodies,
+  onToggleMinorBodies,
   showSatGroups,
   trueScale,
   onToggleScale,
@@ -1330,6 +1332,8 @@ export function LayersMenu({
   onToggleClouds: () => void
   showSatellites: boolean
   onToggleSatellites: () => void
+  showMinorBodies: boolean
+  onToggleMinorBodies: () => void
   /** Include the per-constellation filter chips (solar explorer + sats on). */
   showSatGroups: boolean
   trueScale: boolean
@@ -1358,7 +1362,7 @@ export function LayersMenu({
 
   // Count of active layers → a subtle badge on the chip so users know
   // something's on even while the menu is closed.
-  const activeCount = [showClouds, showSatellites, trueScale, showGravity, showDeepDive].filter(Boolean).length
+  const activeCount = [showClouds, showSatellites, showMinorBodies, trueScale, showGravity, showDeepDive].filter(Boolean).length
 
   return (
     <div ref={rootRef} className="relative">
@@ -1419,6 +1423,7 @@ export function LayersMenu({
           </div>
           <LayerToggleRow label="Clouds" active={showClouds} onToggle={onToggleClouds} />
           <LayerToggleRow label="Satellites" active={showSatellites} onToggle={onToggleSatellites} />
+          <LayerToggleRow label="Asteroids & comets" active={showMinorBodies} onToggle={onToggleMinorBodies} />
           {showSatGroups && (
             <div className="px-3 py-2">
               <SatelliteGroupChips />

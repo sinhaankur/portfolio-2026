@@ -99,6 +99,7 @@ import { GalaxyDetail, Galaxy3D, GalaxySprite, GALAXY_3D, BESPOKE_GALAXY_IDS, Pr
 import { Constellations } from "./constellations"
 import { ExoplanetSystem, PulsarDetail } from "./star-details"
 import { MilkyWay } from "./milky-way"
+import { MinorBodies } from "./minor-bodies"
 import { Belt, BeltAsteroids } from "./belt"
 import { ShootingStars, MeteorShowerLayer } from "./shooting-stars"
 
@@ -819,6 +820,12 @@ function SolarSystem({
           solarOnly={solarOnly}
         />
       ))}
+
+      {/* The REAL small-body catalogue — every large asteroid, km-class NEO
+          and catalogued comet from JPL SBDB, propagated to the current date.
+          Sits beside the painterly Belt haze: the haze suggests the million
+          faint rocks, the points ARE the known named ones. */}
+      <MinorBodies onHover={onHover} interactive={interactive} invert={invert} />
 
       {/* Asteroid Belt — 2.1–3.3 AU, radii derived from compressRadius. */}
       <Belt
