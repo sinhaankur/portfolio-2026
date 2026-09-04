@@ -90,7 +90,9 @@ App-router routes under [`app/`](./app):
 - More Lab entries: `/lab/terrain` (real 3D planetary surfaces via 3D-tiles),
   `/lab/cognitive-twin` (local-first personal AI runtime), `/lab/firmament`
   (the Universe Engine as an iOS app), `/lab/brainrot` (feed-bias visualizer),
-  `/lab/optical-flow` (library-porting writeup).
+  `/lab/optical-flow` (library-porting writeup), `/lab/wave` (Universe & Wave —
+  an AI-generated concept film; companion/opposite pole to the real-data engine;
+  video at `public/video/wave.mp4`).
 - `/framework` — Universal Experience Framework (Laws of UX & cognition,
   interactive demos). Linked from the navbar.
 - `/writing` — writing index. Long posts are folder routes

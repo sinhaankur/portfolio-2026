@@ -32,6 +32,7 @@ const ROUTES = [
   ["/lab/star-cleaver/", 4000],       // legacy redirect → /lab/helion-drift (covered above)
   ["/lab/terrain/", 8000],            // 3D tiles terrain
   ["/lab/unhosted/", 2500],
+  ["/lab/wave/", 4000],
   ["/lab/universe-assistant/", 6000],
   ["/lab/usability-engine/", 2500],
   ["/works/oracle/", 3000],
