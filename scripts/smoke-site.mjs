@@ -70,6 +70,7 @@ const ROUTES = [
   ["/dr-randhir-sinha/", 5000],       // silk hero video + 3D silkworm
   ["/aero/", 5000],                   // Aero Engine 3D
   ["/sky/", 12000],                   // full-screen sky experience
+  ["/waves/", 9000],                  // full-screen waves experience (real sky + procedural ocean)
   ["/story/", 9000],                  // alt home over persistent sky
   ["/tv/", 3000],
   ["/stats/", 3000],                  // owner-only analytics dashboard (noindex)

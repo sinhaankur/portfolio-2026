@@ -90,9 +90,14 @@ App-router routes under [`app/`](./app):
 - More Lab entries: `/lab/terrain` (real 3D planetary surfaces via 3D-tiles),
   `/lab/cognitive-twin` (local-first personal AI runtime), `/lab/firmament`
   (the Universe Engine as an iOS app), `/lab/brainrot` (feed-bias visualizer),
-  `/lab/optical-flow` (library-porting writeup), `/lab/wave` (Universe & Wave —
-  an AI-generated concept film; companion/opposite pole to the real-data engine;
-  video at `public/video/wave.mp4`).
+  `/lab/optical-flow` (library-porting writeup), `/lab/wave` (The Waves — an
+  exploration of how the sea changes; writeup that links the full-screen
+  `/waves` experience: a procedural real-time Gerstner ocean under a real
+  sun/moon from `lib/sea-astronomy.ts`, real footage as reference at
+  `public/video/wave.mp4`, wind + day-scrubber + wave sound).
+- `/waves` — full-screen living sea (like `/sky`): real footage OR our own
+  procedural WebGL ocean (`components/ocean/`), real astronomical sky, the four
+  forces (Moon/Sun/wind/climate). Ocean is 8K-native (geometry+shaders).
 - `/framework` — Universal Experience Framework (Laws of UX & cognition,
   interactive demos). Linked from the navbar.
 - `/writing` — writing index. Long posts are folder routes

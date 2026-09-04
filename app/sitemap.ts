@@ -65,6 +65,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/dna/tools",         priority: 0.4, changeFrequency: "monthly" },
     { path: "/dna/how-it-works",  priority: 0.5, changeFrequency: "monthly" },
     { path: "/sky",               priority: 0.5, changeFrequency: "monthly" },
+    { path: "/waves",             priority: 0.6, changeFrequency: "monthly" },
     // Family pages — indexable by design (linked from /about); /family itself is noindex.
     { path: "/dr-randhir-sinha",  priority: 0.5, changeFrequency: "monthly" },
     { path: "/vera",              priority: 0.4, changeFrequency: "monthly" },

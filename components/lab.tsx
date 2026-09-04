@@ -366,26 +366,26 @@ export function Lab() {
             <div className="relative flex flex-1 flex-col">
               <div className="flex flex-wrap items-center gap-2 mb-6">
                 <span className="font-mono text-[10px] tracking-[0.25em] uppercase px-2.5 py-1 border border-border text-foreground/85 rounded-full">
-                  Concept · AI video
+                  Exploration · WebGL ocean
                 </span>
                 <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 border border-border text-foreground/75 rounded-full">
-                  Companion to the engine
+                  Real sky · real forces
                 </span>
               </div>
 
               <h3 className="font-display text-2xl md:text-3xl font-light tracking-[-0.02em] leading-[1.1] text-foreground">
-                Universe &amp; Wave — <span className="italic">the cosmos as one motion.</span>
+                The Waves — <span className="italic">how the sea changes.</span>
               </h3>
 
               <p className="mt-4 flex-1 font-sans text-sm md:text-base text-foreground/80 leading-relaxed">
-                The engine renders the real sky from data; this is its opposite
-                pole — a concept film treating the whole cosmos as a single
-                flowing wave, made with AI video pushed to its current ceiling.
-                Real data vs. generated motion, side by side.
+                Our own real-time ocean, under a real sun and moon computed
+                on-device — an exploration of the four forces that actually move
+                the sea: the Moon&rsquo;s tides, the Sun, the wind, and climate.
+                Real footage as reference; the engine is the piece.
               </p>
 
               <div className="mt-7 inline-flex items-center gap-2 font-mono text-[10px] tracking-[0.25em] uppercase text-foreground/85 group-hover:text-accent transition-colors">
-                Watch the concept
+                Explore the sea
                 <motion.span
                   aria-hidden="true"
                   whileHover={prefersReducedMotion ? undefined : { rotate: 45 }}
