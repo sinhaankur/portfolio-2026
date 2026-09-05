@@ -71,21 +71,28 @@ export function WavesEngine() {
   // Wind — the force that makes the waves. Drives the procedural ocean.
   const [wind, setWind] = useState<Wind>({ dirDeg: 210, speed: 7, fetchKm: 200 })
 
-  // The date we compute the sky for: real now, or today at the scrubbed hour.
-  const when = useMemo(() => {
-    if (live) return new Date()
-    const d = new Date()
-    d.setHours(Math.floor(hour), Math.floor((hour % 1) * 60), 0, 0)
-    return d
-  }, [live, hour])
-
-  // Advance the live clock every 30s so the real sky slowly moves.
-  const [, force] = useState(0)
+  // Client-only clock. `new Date()` differs between the server render and the
+  // client hydration, so computing sky text from it during SSR throws React
+  // #418 (text mismatch). We render a stable placeholder date on the server and
+  // switch to the real now only after mount. This also drives the live tick.
+  const [nowTick, setNowTick] = useState<number | null>(null)
   useEffect(() => {
+    setNowTick(Date.now())
     if (!live) return
-    const id = setInterval(() => force((n) => n + 1), 30000)
+    const id = setInterval(() => setNowTick(Date.now()), 30000)
     return () => clearInterval(id)
   }, [live])
+  const mounted = nowTick !== null
+
+  // The date we compute the sky for: real now, or today at the scrubbed hour.
+  // Before mount (SSR + first paint) use a fixed epoch so server and client agree.
+  const when = useMemo(() => {
+    const base = mounted ? new Date(nowTick) : new Date(0)
+    if (live) return base
+    const d = new Date(base)
+    d.setHours(Math.floor(hour), Math.floor((hour % 1) * 60), 0, 0)
+    return d
+  }, [live, hour, mounted, nowTick])
 
   const sun = useMemo(() => sunPosition(when, LAT, LNG), [when])
   const moon = useMemo(() => moonPosition(when, LAT, LNG), [when])
