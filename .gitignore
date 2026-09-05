@@ -118,3 +118,7 @@ blender/randhir-silk/test_frame.png
 
 blender/silkworm/frames/
 blender/silkworm/test*.png
+
+# Large Blender source maps (pulled from celestial-assets on demand)
+blender/assets/moon_color_8k.jpg
+blender/assets/moon_height_4k.png

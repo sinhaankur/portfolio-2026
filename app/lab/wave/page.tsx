@@ -129,18 +129,60 @@ export default function WavePage() {
             where the fidelity ceiling lives.
           </p>
         </CaseProse>
-        <figure className="mt-8 overflow-hidden rounded-lg border border-border">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/img/waves-ocean-render.webp"
-            alt="Photoreal ocean rendered in Blender Cycles — deep blue-green sea with foam-capped waves breaking near a craggy pebble shore, under a low sun."
-            className="w-full"
-            loading="lazy"
-          />
-          <figcaption className="px-4 py-3 font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-            The photoreal sibling &mdash; Phillips-spectrum ocean, Cycles, our own scene.
-          </figcaption>
-        </figure>
+      </section>
+
+      {/* The day cycle — one sea, rendered through a full day */}
+      <section>
+        <CaseSectionHeading>One sea, sunrise to a star-filled night</CaseSectionHeading>
+        <CaseProse>
+          <p>
+            The same photoreal scene &mdash; identical waves, boulders and pebble
+            shore &mdash; rendered at <strong>8K</strong> through a full day. Only
+            the sky and the light change: the sun climbs from a pink dawn through
+            an overcast midday to a burning sunset, then drops below the horizon
+            and the real Moon rises, laying a moonglade across the water under a
+            field of stars. The colours are read from real beach footage; the
+            Moon carries NASA&rsquo;s real lunar map, so its maria and craters are
+            the true ones.
+          </p>
+        </CaseProse>
+        <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {[
+            { src: "dawn", label: "Dawn", note: "Sun just up — pink horizon, long light on the rock." },
+            { src: "golden", label: "Golden hour", note: "Low warm sun, strong glint on the crests." },
+            { src: "day", label: "Overcast day", note: "Footage-matched: hazy sky, muted grey-green sea." },
+            { src: "noon", label: "Noon", note: "High sun, deep blue water, sharp foam." },
+            { src: "sunset", label: "Sunset", note: "Opposite arc — orange sky, gilded boulders." },
+            { src: "night", label: "Night", note: "Real Moon + moonglade over a star-lit sea." },
+          ].map((f) => (
+            <figure key={f.src} className="overflow-hidden rounded-lg border border-border bg-card">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`/img/waves-beach/${f.src}.webp`}
+                alt={`Photoreal 8K ocean at ${f.label.toLowerCase()} — ${f.note}`}
+                className="aspect-video w-full object-cover"
+                loading="lazy"
+              />
+              <figcaption className="px-3 py-2.5">
+                <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-accent">
+                  {f.label}
+                </span>
+                <span className="mt-1 block text-xs text-muted-foreground leading-relaxed">
+                  {f.note}
+                </span>
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+        <p className="mt-4 text-sm text-muted-foreground">
+          Rendered in Blender Cycles from our own scene &mdash; Phillips-spectrum
+          ocean, craggy granite, a pebble shore &mdash; at 8K, six times of day.
+          The wave maths is the same physics the{" "}
+          <Link href="/waves/math" className="underline underline-offset-4">
+            math page
+          </Link>{" "}
+          lays out.
+        </p>
       </section>
 
       {/* Lessons */}

@@ -166,6 +166,65 @@ else:
     stars = bpy.data.objects["StarDome"]
 stars.hide_render = True
 
+# ------------------------------------------------ real textured MOON (night)
+# Uses the real 8K lunar colour map + 4K height. These are gitignored (large);
+# copy them in before rendering the night frame:
+#   cp ~/Documents/celestial-assets/maps/moon_color.jpg  blender/assets/moon_color_8k.jpg
+#   cp ~/Documents/celestial-assets/maps/moon_height.png blender/assets/moon_height_4k.png
+# (real mission data — the Moon shows its true maria/craters). If missing, the
+# night frame simply renders the star field with no textured moon.
+MOON_COLOR = os.path.join(os.path.dirname(bpy.data.filepath), "assets", "moon_color_8k.jpg")
+MOON_HEIGHT = os.path.join(os.path.dirname(bpy.data.filepath), "assets", "moon_height_4k.png")
+moon = bpy.data.objects.get("RealMoon")
+if moon is None and os.path.exists(MOON_COLOR):
+    print("building real moon...", flush=True)
+    # Build the sphere via bmesh (headless-safe; no context-dependent ops).
+    import bmesh
+    mesh = bpy.data.meshes.new("RealMoonMesh")
+    bm = bmesh.new()
+    bmesh.ops.create_uvsphere(bm, u_segments=96, v_segments=48, radius=42,
+                              calc_uvs=True)
+    for f in bm.faces:
+        f.smooth = True
+    bm.to_mesh(mesh)
+    bm.free()
+    moon = bpy.data.objects.new("RealMoon", mesh)
+    bpy.context.scene.collection.objects.link(moon)
+    mm = bpy.data.materials.new("MoonSurface")
+    mm.use_nodes = True
+    mnt = mm.node_tree
+    bsdf = mnt.nodes.get("Principled BSDF")
+    tex = mnt.nodes.new("ShaderNodeTexImage")
+    try:
+        tex.image = bpy.data.images.load(MOON_COLOR)
+    except Exception as e:
+        print("moon color load failed:", e)
+    mnt.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
+    bsdf.inputs["Roughness"].default_value = 0.95     # dusty regolith, no specular
+    if "Specular IOR Level" in bsdf.inputs:
+        bsdf.inputs["Specular IOR Level"].default_value = 0.05
+    # Make the moon self-luminous from its own texture so it always reads as a
+    # glowing disc (a real full moon is bright), independent of scene lighting.
+    if "Emission Color" in bsdf.inputs:
+        mnt.links.new(tex.outputs["Color"], bsdf.inputs["Emission Color"])
+        bsdf.inputs["Emission Strength"].default_value = 1.15  # bright but maria still show
+    # subtle real relief from the height map via a bump node
+    if os.path.exists(MOON_HEIGHT):
+        ht = mnt.nodes.new("ShaderNodeTexImage")
+        try:
+            ht.image = bpy.data.images.load(MOON_HEIGHT)
+            ht.image.colorspace_settings.name = "Non-Color"
+            bump = mnt.nodes.new("ShaderNodeBump")
+            bump.inputs["Strength"].default_value = 0.25
+            mnt.links.new(ht.outputs["Color"], bump.inputs["Height"])
+            mnt.links.new(bump.outputs["Normal"], bsdf.inputs["Normal"])
+        except Exception as e:
+            print("moon height load failed:", e)
+    moon.data.materials.append(mm)
+moon = bpy.data.objects.get("RealMoon")
+if moon:
+    moon.hide_render = True
+
 # ------------------------------------------------ the day cycle
 # name, sun_elev, sun_az, sun_energy, warm(0..1), exposure, cloud(0..1), night
 # "day" is tuned to MATCH the real footage: hazy overcast, muted grey-green sea.
@@ -197,9 +256,10 @@ def render_phase(name, elev, az, energy, warm, exposure, cloud, night):
     if sun:
         sun.rotation_euler = (math.radians(90 - elev), 0, azr)
         if night:
-            sun.data.energy = 1.6                    # brighter moon -> sea readable
-            sun.data.color = (0.55, 0.62, 0.9)     # cool moonlight
-            sun.rotation_euler = (math.radians(58), 0, math.radians(250))  # moon up, not below
+            sun.data.energy = 3.2                    # strong moonlight -> sea readable
+            sun.data.color = (0.6, 0.68, 0.95)     # cool moonlight
+            # light comes FROM the moon's direction (+Y, up) toward the scene
+            sun.rotation_euler = (math.radians(72), 0, math.radians(2))
         else:
             sun.data.energy = energy
             # warm at the horizon, neutral overhead
@@ -207,9 +267,18 @@ def render_phase(name, elev, az, energy, warm, exposure, cloud, night):
     if night:
         bg.inputs["Strength"].default_value = 0.04   # faint blue night air-glow
         stars.hide_render = False
+        # Show the real moon, placed high in the sky above the sea, in view.
+        if moon:
+            moon.hide_render = False
+            # WaveCam sits at ~(-1,-35,4) looking +Y and slightly down. Put the
+            # moon well ahead in +Y, up in the sky, so it hangs over the sea in
+            # the upper third of frame.
+            moon.location = (16, 300, 78)
     else:
         bg.inputs["Strength"].default_value = 0.30 + 0.12 * (elev / 90.0)
         stars.hide_render = True
+        if moon:
+            moon.hide_render = True
     scene.view_settings.exposure = exposure
 
     scene.render.filepath = os.path.join(OUT, f"beach_{name}.png")
