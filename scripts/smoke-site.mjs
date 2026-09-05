@@ -54,6 +54,7 @@ const ROUTES = [
   ["/writing/real-glb-bodies/", 2500],
   ["/framework/", 3000],
   ["/skills/", 3000],
+  ["/library/", 3000],
   ["/usability/", 3000],
   ["/upcoming/", 2500],
   ["/references/", 2500],

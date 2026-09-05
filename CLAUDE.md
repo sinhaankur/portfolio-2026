@@ -74,6 +74,9 @@ App-router routes under [`app/`](./app):
 - `/lab/usability-engine` — Usability Engine case study (design rationale +
   checkability framework; the live engine itself remains at `/usability`).
 - `/skills` — skills matrix with category + project filters.
+- `/library` — craft library: 9 disciplines (Design, Web Dev, Mathematics,
+  Full-Stack, DevOps, Product Mgmt, Visual Design, Video Editor, 3D Modeler),
+  each card with tools + proof links to real work. `components/capabilities-library.tsx`.
 - `/usability` — long-form usability guide (hosts the interactive engine). The
   "Usability" navbar tab was removed 2026-07 (it duplicated the Lab's presence);
   the live engine is still reachable from `/lab/usability-engine`.

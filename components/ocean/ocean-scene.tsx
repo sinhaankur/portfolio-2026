@@ -112,9 +112,10 @@ export function OceanScene({ when, lat, lng, wind }: { when: Date; lat: number; 
 
   return (
     <Canvas
-      camera={{ position: [0, 4, 18], fov: 55, near: 0.1, far: 2000 }}
+      camera={{ position: [0, 2.2, 10], fov: 60, near: 0.1, far: 2000 }}
       dpr={[1, 2]}
       gl={{ antialias: true, powerPreference: "high-performance" }}
+      onCreated={({ camera }) => camera.lookAt(0, 1.5, -60)}
     >
       <SkyDome phase={band} />
       {sunUp && <Disc dir={sunDir} color={band === "golden" ? "#ffb04a" : "#fff6e0"} size={7} glow={2.4} />}
