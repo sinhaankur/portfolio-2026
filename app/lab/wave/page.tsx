@@ -114,7 +114,28 @@ export default function WavePage() {
             steepen. Because it&rsquo;s geometry and shaders rather than a video
             file, it renders at any resolution &mdash; it&rsquo;s 8K-native.
           </p>
+          <p>
+            Alongside the real-time engine there&rsquo;s an offline,{" "}
+            <strong>photoreal</strong> sibling &mdash; the same sea built in
+            Blender with a physically-based ocean spectrum (Phillips), real wind
+            and choppiness, foam on the crests, and a craggy pebble shore,
+            rendered in Cycles under a multiple-scattering sky that carries the
+            light from sunrise through sunset to a star-filled night. It&rsquo;s
+            where the fidelity ceiling lives.
+          </p>
         </CaseProse>
+        <figure className="mt-8 overflow-hidden rounded-lg border border-border">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/img/waves-ocean-render.webp"
+            alt="Photoreal ocean rendered in Blender Cycles — deep blue-green sea with foam-capped waves breaking near a craggy pebble shore, under a low sun."
+            className="w-full"
+            loading="lazy"
+          />
+          <figcaption className="px-4 py-3 font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+            The photoreal sibling &mdash; Phillips-spectrum ocean, Cycles, our own scene.
+          </figcaption>
+        </figure>
       </section>
 
       {/* Lessons */}
