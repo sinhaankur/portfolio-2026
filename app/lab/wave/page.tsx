@@ -43,7 +43,12 @@ export default function WavePage() {
               Open the full-screen Waves experience &rarr;
             </Link>{" "}
             — real footage or the procedural engine, a day-scrubber, wind
-            controls, and the wave-breaking sound.
+            controls, and the wave-breaking sound. Or read{" "}
+            <Link href="/waves/math" className="font-medium underline underline-offset-4">
+              the math behind the waves
+            </Link>{" "}
+            — Gerstner waves, the Phillips wind spectrum, and the sun/moon
+            ephemeris, shown beside the real code.
           </p>
         </>
       }

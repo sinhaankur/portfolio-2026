@@ -72,6 +72,7 @@ const ROUTES = [
   ["/aero/", 5000],                   // Aero Engine 3D
   ["/sky/", 12000],                   // full-screen sky experience
   ["/waves/", 9000],                  // full-screen waves experience (real sky + procedural ocean)
+  ["/waves/math/", 2500],             // the math behind the waves (Gerstner/Phillips/ephemeris)
   ["/story/", 9000],                  // alt home over persistent sky
   ["/tv/", 3000],
   ["/stats/", 3000],                  // owner-only analytics dashboard (noindex)

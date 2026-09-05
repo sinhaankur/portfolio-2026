@@ -101,6 +101,11 @@ App-router routes under [`app/`](./app):
 - `/waves` — full-screen living sea (like `/sky`): real footage OR our own
   procedural WebGL ocean (`components/ocean/`), real astronomical sky, the four
   forces (Moon/Sun/wind/climate). Ocean is 8K-native (geometry+shaders).
+- `/waves/math` — **"The Math Behind the Waves"**: the real equations that drive
+  the ocean (Gerstner trochoidal waves + analytic normals, deep-water dispersion
+  `c=√(gL/2π)`, the wind→spectrum wave-train model / Phillips idea, sun & moon
+  ephemeris from `lib/sea-astronomy.ts`, spring/neap tide driver, Fresnel + sun
+  glint). Sibling to `/universe-engine/math`; code shown verbatim from source.
 - `/framework` — Universal Experience Framework (Laws of UX & cognition,
   interactive demos). Linked from the navbar.
 - `/writing` — writing index. Long posts are folder routes
