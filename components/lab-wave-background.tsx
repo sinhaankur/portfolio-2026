@@ -79,7 +79,7 @@ export function LabWaveBackground() {
         onClick={toggleSound}
         data-cursor-hover
         aria-pressed={playing}
-        className="fixed bottom-5 right-5 z-40 flex items-center gap-2 rounded-full border border-border bg-card/80 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.25em] text-foreground/80 backdrop-blur transition-colors hover:text-accent"
+        className="fixed bottom-4 left-4 md:bottom-6 md:left-6 z-40 flex items-center gap-2 rounded-full border border-border bg-card/80 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.25em] text-foreground/80 backdrop-blur transition-colors hover:text-accent"
       >
         {playing ? "🌊 the sea" : "🔇 wave sound"}
       </button>

@@ -21,7 +21,6 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import dynamic from "next/dynamic"
 import {
   sunPosition,
-  moonPosition,
   moonPhase,
   tideIndicator,
   dayPhase,
@@ -95,7 +94,6 @@ export function WavesEngine() {
   }, [live, hour, mounted, nowTick])
 
   const sun = useMemo(() => sunPosition(when, LAT, LNG), [when])
-  const moon = useMemo(() => moonPosition(when, LAT, LNG), [when])
   const phase = useMemo(() => moonPhase(when), [when])
   const tide = useMemo(() => tideIndicator(when), [when])
   const phaseBand = dayPhase(sun.altitude)
@@ -103,20 +101,9 @@ export function WavesEngine() {
 
   const localHour = live ? when.getHours() + when.getMinutes() / 60 : hour
 
-  // Project an azimuth (0=N..360) to a horizontal screen fraction. We treat the
-  // camera as looking roughly south (out to sea), so az 90..270 spans L→R.
-  const azToX = (az: number) => {
-    const rel = ((az - 90 + 360) % 360) / 180 // 0 at E(90) → 1 at W(270)
-    return Math.min(1, Math.max(0, rel))
-  }
-  // Altitude (deg, -90..90) to a vertical fraction over the top ~60% of screen.
-  const altToY = (alt: number) => {
-    const t = Math.min(1, Math.max(0, alt / 60)) // 0 at horizon → 1 at 60°+
-    return 0.62 - t * 0.5 // horizon band ~62% down; higher alt = higher up
-  }
-
+  // The real footage already contains the real sun/moon/sky; we no longer paint
+  // synthetic ones over it. We keep the sun altitude only for the data readout.
   const sunVisible = sun.altitude > -2
-  const moonVisible = moon.altitude > -2
 
   return (
     <div className="relative h-dvh w-full overflow-hidden bg-black">
@@ -127,70 +114,59 @@ export function WavesEngine() {
         </div>
       )}
 
-      {/* Sky gradient (real-footage mode only — engine draws its own sky) */}
-      {mode === "real" && (
-      <div
-        className="absolute inset-0 transition-[background] duration-1000"
-        style={{ background: `linear-gradient(to bottom, ${skyTop} 0%, ${skyHorizon} 55%, ${skyHorizon} 62%, transparent 62%)` }}
-      />
-      )}
-
+      {/* REAL MODE — the actual footage, FULL-SCREEN. It already has the real
+          sky, real sun-glitter, real rocks and pebble shore, real horizon; we
+          show it edge-to-edge and never paint a fake sky over it. The only
+          overlay is an optional, subtle day/night colour wash when the
+          day-scrubber is used, so dawn/dusk/night read differently — kept light
+          so the real footage always dominates. */}
       {mode === "real" && (<>
-      {/* Stars at night, fading in as the sun sinks */}
-      <Stars opacity={Math.max(0, Math.min(1, (-sun.altitude - 4) / 14))} />
+        <div className="absolute inset-0">
+          {videoFailed ? (
+            <div className="h-full w-full bg-gradient-to-b from-[#9fb0bd] via-[#6b7f88] to-[#123]" />
+          ) : (
+            <video
+              ref={videoRef}
+              className="h-full w-full object-cover"
+              src="/video/wave-hq.mp4"
+              poster="/video/wave-poster.jpg"
+              autoPlay
+              muted={muted}
+              loop
+              playsInline
+              preload="metadata"
+              onError={() => setVideoFailed(true)}
+            />
+          )}
 
-      {/* The real Sun */}
-      {sunVisible && (
-        <div
-          className="pointer-events-none absolute h-24 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full"
-          style={{
-            left: `${azToX(sun.azimuth) * 100}%`,
-            top: `${altToY(sun.altitude) * 100}%`,
-            background:
-              phaseBand === "golden"
-                ? "radial-gradient(circle, #fff2cc 0%, #ffb347 45%, rgba(255,140,60,0) 72%)"
-                : "radial-gradient(circle, #fffdf5 0%, #fff2cc 40%, rgba(255,240,180,0) 72%)",
-            filter: "blur(1px)",
-          }}
-        />
-      )}
-
-      {/* The real Moon — drawn with its true illuminated fraction */}
-      {moonVisible && (
-        <Moon
-          xPct={azToX(moon.azimuth) * 100}
-          yPct={altToY(moon.altitude) * 100}
-          illumination={phase.illumination}
-          waxing={phase.waxing}
-        />
-      )}
-
-      {/* The sea — real footage (8K-ready), bottom ~40% */}
-      <div className="absolute inset-x-0 bottom-0 h-[42%]">
-        {videoFailed ? (
-          <div className="h-full w-full bg-gradient-to-b from-[#123] to-[#012]" />
-        ) : (
-          <video
-            ref={videoRef}
-            className="h-full w-full object-cover"
-            src="/video/wave.mp4"
-            poster="/video/wave-poster.jpg"
-            autoPlay
-            muted={muted}
-            loop
-            playsInline
-            preload="metadata"
-            onError={() => setVideoFailed(true)}
-          />
-        )}
-        {/* Sky tint over the water so it reads day/night with the sky */}
-        <div
-          className="pointer-events-none absolute inset-0 mix-blend-multiply transition-[background] duration-1000"
-          style={{ background: `linear-gradient(to bottom, ${skyHorizon} 0%, rgba(0,0,0,0) 40%)`, opacity: phaseBand === "day" ? 0.15 : 0.55 }}
-        />
-        {/* A cooler night wash */}
-        {phaseBand === "night" && <div className="pointer-events-none absolute inset-0 bg-[#04060f]/45" />}
-      </div>
+          {/* Optional day/night colour grade — only when scrubbed away from the
+              real 'now/day' look. Real footage is daytime, so at 'day' we do
+              nothing; toward dusk/night we wash it cooler + darker. */}
+          {!live && phaseBand !== "day" && (
+            <div
+              className="pointer-events-none absolute inset-0 transition-opacity duration-1000"
+              style={{
+                background:
+                  phaseBand === "night"
+                    ? "linear-gradient(to bottom, #04060f 0%, #0a1020 60%, #06101c 100%)"
+                    : `linear-gradient(to bottom, ${skyTop} 0%, ${skyHorizon} 70%, rgba(0,0,0,0.2) 100%)`,
+                mixBlendMode: "multiply",
+                opacity: phaseBand === "night" ? 0.7 : phaseBand === "golden" ? 0.35 : 0.5,
+              }}
+            />
+          )}
+          {/* Warm golden-hour light add, subtle */}
+          {!live && phaseBand === "golden" && (
+            <div
+              className="pointer-events-none absolute inset-0"
+              style={{ background: "radial-gradient(120% 80% at 50% 30%, rgba(255,180,90,0.22), transparent 60%)" }}
+            />
+          )}
+          {/* Stars only when scrubbed to real night */}
+          {!live && phaseBand === "night" && (
+            <Stars opacity={0.8} />
+          )}
+        </div>
       </>)}
 
       {/* Top-right controls: mode toggle + (real-mode) sound */}
@@ -325,32 +301,6 @@ export function WavesEngine() {
 function moonGlyph(phase: number): string {
   const glyphs = ["🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗", "🌘"]
   return glyphs[Math.round(phase * 8) % 8]
-}
-
-function Moon({ xPct, yPct, illumination, waxing }: { xPct: number; yPct: number; illumination: number; waxing: number | boolean }) {
-  // Draw the moon as a lit disc with a terminator shadow reflecting the real
-  // illuminated fraction — the bright limb on the waxing/waning side.
-  const w = waxing ? 1 : -1
-  const k = (illumination - 0.5) * 2 // -1 (new) .. +1 (full)
-  return (
-    <div
-      className="pointer-events-none absolute h-14 w-14 -translate-x-1/2 -translate-y-1/2"
-      style={{ left: `${xPct}%`, top: `${yPct}%` }}
-    >
-      <svg viewBox="-1.1 -1.1 2.2 2.2" className="h-full w-full drop-shadow-[0_0_12px_rgba(255,255,255,0.35)]">
-        <circle cx="0" cy="0" r="1" fill="#dfe6ee" />
-        {/* Shadow: an ellipse whose width encodes the phase, on the dark side */}
-        <ellipse cx="0" cy="0" rx={Math.abs(k)} ry="1" fill="#0a0e1a"
-          transform={k * w > 0 ? "scale(1,1)" : "scale(1,1)"}
-          style={{ transformOrigin: "center" }} />
-        {/* Mask the correct half so the lit limb is on the right side (waxing) */}
-        <path
-          d={`M0,-1 A1,1 0 0,${w > 0 ? 0 : 1} 0,1 A${Math.abs(k)},1 0 0,${k >= 0 ? (w > 0 ? 1 : 0) : (w > 0 ? 0 : 1)} 0,-1 Z`}
-          fill="#0a0e1a" opacity={illumination > 0.02 ? 1 : 0}
-        />
-      </svg>
-    </div>
-  )
 }
 
 function Stars({ opacity }: { opacity: number }) {
