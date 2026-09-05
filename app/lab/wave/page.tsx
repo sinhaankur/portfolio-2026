@@ -53,6 +53,24 @@ export default function WavePage() {
         </>
       }
     >
+      {/* Real-footage hero — the actual sea, the ground truth everything else
+          is measured against. This is real; nothing here is generated. */}
+      <figure className="overflow-hidden rounded-xl border border-border bg-black">
+        <video
+          className="w-full"
+          src="/video/wave-hq.mp4"
+          poster="/video/wave-poster.jpg"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+        />
+        <figcaption className="px-4 py-3 font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+          The real sea — shot by hand, a pebble shore under a hazy sky. The ground truth.
+        </figcaption>
+      </figure>
+
       {/* The four forces */}
       <section>
         <CaseSectionHeading>What actually changes the waves</CaseSectionHeading>
@@ -120,13 +138,15 @@ export default function WavePage() {
             file, it renders at any resolution &mdash; it&rsquo;s 8K-native.
           </p>
           <p>
-            Alongside the real-time engine there&rsquo;s an offline,{" "}
-            <strong>photoreal</strong> sibling &mdash; the same sea built in
-            Blender with a physically-based ocean spectrum (Phillips), real wind
-            and choppiness, foam on the crests, and a craggy pebble shore,
-            rendered in Cycles under a multiple-scattering sky that carries the
-            light from sunrise through sunset to a star-filled night. It&rsquo;s
-            where the fidelity ceiling lives.
+            Alongside the real-time engine there&rsquo;s an offline sibling in
+            Blender &mdash; the same physics taken further: a Phillips-spectrum
+            ocean, real wind and choppiness, foam, granite, rendered in Cycles
+            under a multiple-scattering sky carried from sunrise to a star-filled
+            night. It doesn&rsquo;t yet fool the eye the way the real footage
+            above does &mdash; matching photography is brutally hard, and that gap
+            is the honest part of the exploration. What it <em>is</em>: the same
+            wave maths, ours, rendered at any resolution, at any hour, with a real
+            Moon (NASA&rsquo;s lunar map) laying a moonglade across the sea.
           </p>
         </CaseProse>
       </section>
