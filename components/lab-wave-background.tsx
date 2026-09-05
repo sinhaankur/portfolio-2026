@@ -55,7 +55,7 @@ export function LabWaveBackground() {
       <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-[#04121f]" aria-hidden>
         {!reduced ? (
           <video
-            className="h-full w-full object-cover opacity-[0.28]"
+            className="h-full w-full object-cover opacity-[0.6]"
             src="/video/wave.mp4"
             poster="/video/wave-poster.jpg"
             autoPlay
@@ -67,10 +67,11 @@ export function LabWaveBackground() {
         ) : (
           // reduced-motion: a still frame instead of moving video
           // eslint-disable-next-line @next/next/no-img-element
-          <img src="/video/wave-poster.jpg" alt="" className="h-full w-full object-cover opacity-25" />
+          <img src="/video/wave-poster.jpg" alt="" className="h-full w-full object-cover opacity-50" />
         )}
-        {/* Legibility scrim — keep the Lab text crisp over the water */}
-        <div className="absolute inset-0 bg-gradient-to-b from-background/85 via-background/70 to-background/90" />
+        {/* Legibility scrim — lighter now so the waves read clearly, but still
+            enough contrast under the text (heavier top+bottom, clear in the middle). */}
+        <div className="absolute inset-0 bg-gradient-to-b from-background/70 via-background/40 to-background/75" />
       </div>
 
       {/* The sea as soundtrack — opt-in wave noise */}
