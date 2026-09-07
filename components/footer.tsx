@@ -231,6 +231,9 @@ export function Footer({ hideContact = false }: { hideContact?: boolean } = {}) 
                 an open-source tool that needs a designer who writes their own
                 code? Open a channel.
               </p>
+              <p className="mt-2 font-sans text-base md:text-lg text-foreground/60 leading-relaxed">
+                Or just <span className="italic">say hi if you wanna chat</span>. 👋
+              </p>
 
               {/* Quieter siblings below the intro — résumé + LinkedIn — so
                   they don't compete with the tuner but stay discoverable. */}
