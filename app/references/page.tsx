@@ -197,8 +197,8 @@ export default function ReferencesPage() {
                       data-cursor-hover
                       className="group block rounded-xl border border-border bg-white/[0.02] p-4 md:p-5 transition-colors hover:border-accent/50 hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                     >
-                      <div className="flex items-baseline justify-between gap-4">
-                        <span className="font-medium text-foreground group-hover:text-accent transition-colors">
+                      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                        <span className="min-w-0 font-medium text-foreground group-hover:text-accent transition-colors">
                           {s.name}
                         </span>
                         <span className="shrink-0 font-mono text-[10px] tracking-widest uppercase text-muted-foreground">

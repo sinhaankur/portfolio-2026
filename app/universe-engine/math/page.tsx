@@ -256,13 +256,13 @@ export default function UniverseMathPage() {
 
         <div className="mx-auto w-full max-w-6xl px-6 md:px-10 mt-14 md:mt-20 space-y-16 md:space-y-24 pb-24">
           {SECTIONS.map((section) => (
-            <section key={section.heading} className="grid gap-6 md:grid-cols-[auto_1fr] md:gap-10">
-              <div className="md:w-56 md:sticky md:top-28 md:self-start">
+            <section key={section.heading} className="grid gap-6 md:grid-cols-[14rem_minmax(0,1fr)] md:gap-10">
+              <div className="min-w-0 md:sticky md:top-28 md:self-start">
                 <h2 className="font-serif text-2xl text-foreground mb-2">{section.heading}</h2>
                 <p className="text-sm text-foreground/60 leading-relaxed">{section.blurb}</p>
               </div>
 
-              <div className="space-y-8">
+              <div className="min-w-0 space-y-8">
                 {section.eqs.map((eq) => (
                   <article
                     key={eq.id}
