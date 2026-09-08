@@ -84,8 +84,17 @@ export function Hero() {
   const [chromeDimmed, setChromeDimmed] = useState(false)
 
   useEffect(() => {
-    const conn = (navigator as { connection?: { saveData?: boolean } }).connection
-    if (conn?.saveData === true) setDataSaver(true)
+    // Hold the heavy WebGL engine (a ~5.9 MB chunk + real texture megabytes) and
+    // show the light CSS starfield with an opt-in when the connection is metered
+    // OR genuinely slow (2g/3g) — not just when Data Saver is explicitly on. On
+    // a phone over a weak/expensive link, the full universe is the wrong default;
+    // "one tap streams the universe in" is the right one.
+    const conn = (navigator as {
+      connection?: { saveData?: boolean; effectiveType?: string }
+    }).connection
+    const slow = conn?.saveData === true ||
+      (conn?.effectiveType ? /(^|-)(2g|slow-2g|3g)$/.test(conn.effectiveType) : false)
+    if (slow) setDataSaver(true)
     else setEngineWanted(true)
   }, [])
 

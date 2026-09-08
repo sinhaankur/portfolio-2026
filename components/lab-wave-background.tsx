@@ -18,14 +18,24 @@ import { useEffect, useRef, useState } from "react"
 export function LabWaveBackground() {
   const audioRef = useRef<HTMLAudioElement>(null)
   const [playing, setPlaying] = useState(false)
-  const [reduced, setReduced] = useState(false)
+  // Skip the ~15 MB decorative wave VIDEO and show the light poster instead when:
+  //  · the user prefers reduced motion,
+  //  · the screen is small (phone — save the download + battery),
+  //  · or the connection is metered / slow (Save-Data, or 2g/3g).
+  // The poster (~0.2 MB) still gives the ocean feel; the video is a nice-to-have.
+  const [lite, setLite] = useState(true) // default lite until we confirm it's safe
 
   useEffect(() => {
-    const m = window.matchMedia("(prefers-reduced-motion: reduce)")
-    setReduced(m.matches)
-    const on = () => setReduced(m.matches)
-    m.addEventListener?.("change", on)
-    return () => m.removeEventListener?.("change", on)
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    const smallScreen = window.matchMedia("(max-width: 768px)").matches
+    const nav = navigator as Navigator & {
+      connection?: { saveData?: boolean; effectiveType?: string }
+    }
+    const conn = nav.connection
+    const metered = conn?.saveData === true ||
+      (conn?.effectiveType ? /(^|-)(2g|slow-2g|3g)$/.test(conn.effectiveType) : false)
+    // Only the full video on a roomy screen, good motion pref, and a good link.
+    setLite(reducedMotion || smallScreen || metered)
   }, [])
 
   function toggleSound() {
@@ -53,7 +63,7 @@ export function LabWaveBackground() {
     <>
       {/* Fixed ocean backdrop, behind the content (z-0; content sits at z-10) */}
       <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-[#04121f]" aria-hidden>
-        {!reduced ? (
+        {!lite ? (
           <video
             className="h-full w-full object-cover opacity-[0.6]"
             src="/video/wave.mp4"
@@ -65,9 +75,10 @@ export function LabWaveBackground() {
             preload="metadata"
           />
         ) : (
-          // reduced-motion: a still frame instead of moving video
+          // Lite (mobile / reduced-motion / metered): the light poster, no ~15 MB
+          // video download. Same ocean feel, a fraction of the bytes.
           // eslint-disable-next-line @next/next/no-img-element
-          <img src="/video/wave-poster.jpg" alt="" className="h-full w-full object-cover opacity-50" />
+          <img src="/video/wave-poster.jpg" alt="" className="h-full w-full object-cover opacity-50" loading="lazy" />
         )}
         {/* Legibility scrim — lighter now so the waves read clearly, but still
             enough contrast under the text (heavier top+bottom, clear in the middle). */}
