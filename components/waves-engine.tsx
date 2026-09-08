@@ -61,6 +61,18 @@ export function WavesEngine() {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [muted, setMuted] = useState(true)
   const [videoFailed, setVideoFailed] = useState(false)
+  // On a metered / slow connection, don't auto-download the ~18 MB footage —
+  // show the poster with a tap-to-play so the visitor opts in. `heavyOk` gates
+  // autoplay; a manual tap (setHeavyOk(true)) always allows it.
+  const [heavyOk, setHeavyOk] = useState(true)
+  useEffect(() => {
+    const conn = (navigator as Navigator & {
+      connection?: { saveData?: boolean; effectiveType?: string }
+    }).connection
+    const slow = conn?.saveData === true ||
+      (conn?.effectiveType ? /(^|-)(2g|slow-2g|3g)$/.test(conn.effectiveType) : false)
+    if (slow) setHeavyOk(false)
+  }, [])
   const [live, setLive] = useState(true) // true = real now; false = scrubbed
   // Hour-of-day offset (0..24) used when scrubbing.
   const [hour, setHour] = useState(12)
@@ -130,13 +142,27 @@ export function WavesEngine() {
               className="h-full w-full object-cover"
               src="/video/wave-hq.mp4"
               poster="/video/wave-poster.jpg"
-              autoPlay
+              autoPlay={heavyOk}
               muted={muted}
               loop
               playsInline
-              preload="metadata"
+              preload={heavyOk ? "metadata" : "none"}
               onError={() => setVideoFailed(true)}
             />
+          )}
+          {/* Metered/slow connection: the poster shows (above), and this
+              tap-to-play avoids auto-downloading ~18 MB of footage. */}
+          {!heavyOk && !videoFailed && (
+            <button
+              onClick={() => { setHeavyOk(true); videoRef.current?.play().catch(() => {}) }}
+              className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-black/25 text-white"
+              aria-label="Play the live sea (downloads video)"
+            >
+              <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white/90 text-2xl text-black">▶</span>
+              <span className="rounded-full bg-black/50 px-4 py-1.5 text-sm font-medium backdrop-blur">
+                Tap to play the live sea
+              </span>
+            </button>
           )}
 
           {/* Optional day/night colour grade — only when scrubbed away from the

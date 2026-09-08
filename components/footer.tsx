@@ -307,10 +307,10 @@ export function Footer({ hideContact = false }: { hideContact?: boolean } = {}) 
                 // External / mailto / download / anchor → plain <a>.
                 const useLink = !isExternal && !isDownload && !isMailto && link.href.startsWith("/") && !link.href.includes(".html")
                 const cls = `
-                        relative font-mono text-xs tracking-widest
+                        relative inline-flex min-h-11 items-center font-mono text-xs tracking-widest
                         text-muted-foreground hover:text-foreground
                         transition-colors duration-300
-                        after:absolute after:-bottom-1 after:left-0 after:h-px after:w-full
+                        after:absolute after:bottom-2 after:left-0 after:h-px after:w-full
                         after:origin-left after:scale-x-0 after:bg-accent
                         after:transition-transform after:duration-300 after:ease-out
                         hover:after:scale-x-100

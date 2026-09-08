@@ -164,13 +164,13 @@ export function CapabilitiesLibrary() {
                 </span>
               ))}
             </div>
-            <div className="mt-5 flex flex-wrap gap-x-4 gap-y-1.5 border-t border-border/60 pt-4">
+            <div className="mt-4 flex flex-wrap gap-x-2 gap-y-1 border-t border-border/60 pt-3">
               {d.proof.map((p) => (
                 <Link
                   key={p.href + p.label}
                   href={p.href}
                   data-cursor-hover
-                  className="group inline-flex items-center gap-1 font-mono text-[11px] tracking-wide text-foreground/70 transition-colors hover:text-accent"
+                  className="group inline-flex min-h-11 items-center gap-1 rounded-lg px-2 py-2 font-mono text-[11px] tracking-wide text-foreground/70 transition-colors hover:bg-foreground/[0.04] hover:text-accent"
                 >
                   {p.label}
                   <ArrowUpRight className="h-3 w-3 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
