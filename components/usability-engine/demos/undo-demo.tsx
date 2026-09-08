@@ -78,14 +78,14 @@ function ConfirmModalVersion() {
                   <button
                     type="button"
                     onClick={cancel}
-                    className="px-3 py-1.5 border border-border rounded font-mono text-[10px] tracking-widest uppercase hover:border-foreground transition-colors"
+                    className="inline-flex min-h-9 items-center px-3 py-2 border border-border rounded font-mono text-[10px] tracking-widest uppercase hover:border-foreground transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="button"
                     onClick={confirmDelete}
-                    className="px-3 py-1.5 rounded font-mono text-[10px] tracking-widest uppercase bg-red-500/90 text-white hover:bg-red-500 transition-colors"
+                    className="inline-flex min-h-9 items-center px-3 py-2 rounded font-mono text-[10px] tracking-widest uppercase bg-red-500/90 text-white hover:bg-red-500 transition-colors"
                   >
                     Delete
                   </button>

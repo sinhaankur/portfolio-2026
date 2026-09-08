@@ -47,7 +47,7 @@ export function GestaltDemo() {
             type="button"
             onClick={() => setMode(m)}
             data-cursor-hover
-            className={`rounded-full px-4 py-1 font-mono text-[10px] tracking-widest uppercase transition-colors ${
+            className={`inline-flex min-h-9 items-center rounded-full px-4 py-2 font-mono text-[10px] tracking-widest uppercase transition-colors ${
               mode === m ? "bg-accent text-white" : "text-muted-foreground hover:text-foreground"
             }`}
           >
