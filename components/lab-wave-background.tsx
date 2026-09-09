@@ -14,6 +14,7 @@
  */
 
 import { useEffect, useRef, useState } from "react"
+import { prefersLiteMedia } from "@/lib/device-tier"
 
 export function LabWaveBackground() {
   const audioRef = useRef<HTMLAudioElement>(null)
@@ -26,16 +27,10 @@ export function LabWaveBackground() {
   const [lite, setLite] = useState(true) // default lite until we confirm it's safe
 
   useEffect(() => {
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    const smallScreen = window.matchMedia("(max-width: 768px)").matches
-    const nav = navigator as Navigator & {
-      connection?: { saveData?: boolean; effectiveType?: string }
-    }
-    const conn = nav.connection
-    const metered = conn?.saveData === true ||
-      (conn?.effectiveType ? /(^|-)(2g|slow-2g|3g)$/.test(conn.effectiveType) : false)
-    // Only the full video on a roomy screen, good motion pref, and a good link.
-    setLite(reducedMotion || smallScreen || metered)
+    // One shared device+network decision (screen, tier, RAM, Save-Data, 2g/3g,
+    // reduced-motion) — the same primitive the Universe Engine uses, so the whole
+    // site adapts consistently instead of each component guessing.
+    setLite(prefersLiteMedia())
   }, [])
 
   function toggleSound() {

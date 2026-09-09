@@ -439,3 +439,25 @@ export function qualityForTier(tier: DeviceTier): QualitySettings {
       return { dpr: [0.75, 1], densityScale: 0.35, allowHiResTextures: false, allowHeavyEffects: false, maxSwarmSats: 5000 }
   }
 }
+
+/* ── Network + device → "should I load heavy media?" ──────────────────────────
+   One shared, honest decision the WHOLE site can use so it genuinely adapts to
+   the device (not just the screen width): true = prefer the LIGHT path (poster
+   instead of a big autoplay video, opt-in for the WebGL engine). Combines the
+   device tier + a small-viewport phone + a metered/slow connection (Save-Data,
+   2g/3g). Best-effort — every signal degrades gracefully to "load it". */
+export function prefersLiteMedia(profile?: DeviceProfile): boolean {
+  if (typeof navigator === "undefined") return false
+  const p = profile ?? detectDeviceProfile()
+  const conn = (navigator as Navigator & {
+    connection?: { saveData?: boolean; effectiveType?: string }
+  }).connection
+  const metered = conn?.saveData === true ||
+    (conn?.effectiveType ? /(^|-)(2g|slow-2g|3g)$/.test(conn.effectiveType) : false)
+  const reducedMotion = typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  // Light path when the network is constrained, motion is off, or the hardware
+  // is a low-tier / small phone that a big media download would just tax.
+  return metered || reducedMotion || p.tier === "low" || p.smallViewport
+}

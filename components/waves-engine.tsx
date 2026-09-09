@@ -19,6 +19,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import dynamic from "next/dynamic"
+import { prefersLiteMedia } from "@/lib/device-tier"
 import {
   sunPosition,
   moonPhase,
@@ -66,12 +67,9 @@ export function WavesEngine() {
   // autoplay; a manual tap (setHeavyOk(true)) always allows it.
   const [heavyOk, setHeavyOk] = useState(true)
   useEffect(() => {
-    const conn = (navigator as Navigator & {
-      connection?: { saveData?: boolean; effectiveType?: string }
-    }).connection
-    const slow = conn?.saveData === true ||
-      (conn?.effectiveType ? /(^|-)(2g|slow-2g|3g)$/.test(conn.effectiveType) : false)
-    if (slow) setHeavyOk(false)
+    // Same shared device+network primitive as the rest of the site: on a
+    // constrained device/link, the ~18 MB footage waits behind a tap.
+    if (prefersLiteMedia()) setHeavyOk(false)
   }, [])
   const [live, setLive] = useState(true) // true = real now; false = scrubbed
   // Hour-of-day offset (0..24) used when scrubbing.
