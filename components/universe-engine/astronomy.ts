@@ -434,11 +434,15 @@ export function surfaceTextureUrl(planet: {
    *  fallback, so it degrades gracefully if the CDN base is unset/unreachable. */
   superClearTextureUrl?: string
 }): string | undefined {
-  // SUPER CLEAR — the user opted into the highest-resolution view, so pull the
-  // CDN's 16K map when this body has one. Falls back to the base texture (the 8K
-  // hi-res tier was offloaded to R2, so don't point at a deleted local); the site
-  // still renders a real local surface if the CDN is unreachable.
-  if (superClearRef.current && deviceTierRef.current === "desktop" && planet.superClearTextureUrl) {
+  // SUPER CLEAR / 16K — the highest-resolution map. Pulled when EITHER:
+  //   (a) the user opted in via the resolution picker (superClearRef), OR
+  //   (b) the device auto-detected as the top "ultra" tier (a clearly high-end
+  //       GPU — RTX 30/40/50, high Radeon, Apple M-Max/Ultra) so we "use the
+  //       power for a good experience" without making them hunt for a toggle.
+  // Desktop-gated either way (16K on a phone globe is wasted VRAM), and the live
+  // FPS probe can still step ultra back to high if the machine can't hold it.
+  const autoUltra = perfTierRef.current === "ultra" && qualityForTier(perfTierRef.current).allowHiResTextures
+  if ((superClearRef.current || autoUltra) && deviceTierRef.current === "desktop" && planet.superClearTextureUrl) {
     return cdnAsset(planet.superClearTextureUrl, planet.textureUrl)
   }
   // Hi-res (4K/8K) surface when EITHER (a) the user explicitly picked the "High"
