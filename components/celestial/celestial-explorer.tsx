@@ -596,7 +596,10 @@ export function CelestialExplorer() {
   return (
     <>
       <CustomCursor />
-      <main className="fixed inset-0 overflow-hidden bg-background text-foreground">
+      {/* Space is space in ANY site theme — the canvas always sits on deep-space
+          black (never the light "paper" background, which washed the starfield out
+          in light mode). HUD text/panels below stay theme-aware. */}
+      <main className="dark fixed inset-0 overflow-hidden text-foreground" style={{ background: "#05060a" }}>
         {/* Live solar system fills the screen. touch-none hands all touch
             gestures to the engine's OrbitControls (the page is fixed/non-scroll
             here) so drag-to-rotate + pinch-zoom are seamless on mobile. */}
