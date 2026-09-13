@@ -791,11 +791,14 @@ export function UniverseEngine({
             hands the camera back to OrbitControls untouched. */}
         {scrollDriveRef && !interactive && <ScrollDolly driveRef={scrollDriveRef} />}
 
-        {/* Satellite-swarm clickability is owned by satellite-field.tsx, which sets
-            a VIEW-RELATIVE raycaster Points threshold (earthVisualRadius * 0.02).
-            The old fixed PointsRaycastThreshold (0.015 world units) fought it in an
-            effect and, when it won, made the tiny dots nearly unpickable — removed
-            so there's a single source of truth for the hit radius. */}
+        {/* Baseline clickability for ALL point pickers (stars, constellations,
+            minor bodies, the home galaxy) — a view-relative Points threshold that
+            tracks camera distance so a click that visually lands on a point
+            registers at any zoom. The satellite-field's own useFrame further tunes
+            this while it's mounted (Earth-orbit scale); this covers every OTHER
+            scene, incl. the home Universe Engine where the satellite field isn't
+            present. (Removing it broke point/click across both engines.) */}
+        {interactive && <PointsRaycastThreshold />}
 
         {/* NavFeel scales rotate/zoom speed by distance + gates autoRotate to
             idle so moving around the space feels predictable at every scale. */}
@@ -1266,6 +1269,27 @@ function ScrollDolly({ driveRef }: { driveRef: React.MutableRefObject<number> })
  *      stillness; any drag/zoom stamps lastInteractRef and the spin cuts out, so
  *      you never fight a drifting camera while trying to look at something.
  */
+/**
+ * Baseline raycaster Points threshold for every point-picker (stars, planets,
+ * minor bodies, the home galaxy). Set each frame relative to camera distance so a
+ * click that visually lands on a point registers at ANY zoom — a fixed world-unit
+ * value can't (points spread out in world space as you zoom in). The satellite
+ * field overrides this with its own tuned value while it's mounted; everywhere
+ * else (notably the home Universe Engine) this is what makes clicking work.
+ */
+function PointsRaycastThreshold() {
+  const raycaster = useThree((s) => s.raycaster)
+  const camera = useThree((s) => s.camera)
+  useDollyFrame(() => {
+    if (!raycaster.params.Points) raycaster.params.Points = { threshold: 1 }
+    // ~2% of viewing distance = a comfortable few-px pick halo, clamped so it's
+    // never absurdly large when the camera is very far out.
+    const camDist = camera.position.length()
+    raycaster.params.Points.threshold = Math.min(Math.max(camDist * 0.02, 0.02), camDist * 0.05 + 0.05)
+  })
+  return null
+}
+
 function NavFeel({
   controlsRef,
   lastInteractRef,
