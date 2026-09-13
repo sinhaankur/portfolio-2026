@@ -328,8 +328,8 @@ export function classifyArchetype(name: string, owner: string, altKm: number, ty
  * them without dragging in this file's Three.js dependency. Re-exported here so
  * the engine's internal call sites keep importing them from `./satellite-field`.
  */
-export { selectedSatRef, satGroupFilterRef, showAllSatsRef, conjunctionFocusRef, showJourneyRef } from "./satellite-refs"
-import { selectedSatRef, satGroupFilterRef, showAllSatsRef, conjunctionFocusRef, showJourneyRef } from "./satellite-refs"
+export { selectedSatRef, satGroupFilterRef, showAllSatsRef, conjunctionFocusRef, showJourneyRef, satelliteFieldActiveRef } from "./satellite-refs"
+import { selectedSatRef, satGroupFilterRef, showAllSatsRef, conjunctionFocusRef, showJourneyRef, satelliteFieldActiveRef } from "./satellite-refs"
 
 // The Three-FREE satellite data layer (types, bridge refs, SGP4-math helpers,
 // catalogue loading, classification) lives in ./satellite-data so the DOM chrome
@@ -1029,6 +1029,11 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
   // registers, without grabbing everything. (World units.)
   useEffect(() => {
     if (raycaster.params.Points) raycaster.params.Points.threshold = earthVisualRadius * 0.02
+    // Claim ownership of the Points threshold while the field is mounted so the
+    // engine's baseline writer yields (no per-frame flip-flop → clicks land on
+    // the dot under the cursor, not "some other place").
+    satelliteFieldActiveRef.current = true
+    return () => { satelliteFieldActiveRef.current = false }
   }, [raycaster, earthVisualRadius])
   const lastSelected = useRef<number | null>(null)
   // Selected satellite's display label ("L179: COSMOS 996"-style) — shown as an

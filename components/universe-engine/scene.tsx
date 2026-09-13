@@ -50,6 +50,7 @@ import {
   KUIPER_BELT_INFO,
   SOLAR_SYSTEM_POSITION,
   SUN_INFO,
+  SUN_OFFSET_SCENE,
   TIME_WARP_DAYS_PER_SEC,
   blackHoleHorizonGravityMetersPerSec2,
   buildScenePlanets,
@@ -633,6 +634,28 @@ function SolarSystem({
   useEffect(() => {
     sunSurfUniforms.uIntensity.value = invert ? 1.0 : 1.5
   }, [invert, sunSurfUniforms])
+
+  // Fly-to-the-Sun via the shared focus channel. The planets are <PlanetBody>s
+  // that each listen for `planet:<name>`; the Sun is rendered here (not a
+  // PlanetBody), so `planet:Sun` had NO camera handler — the body-rail chip +
+  // Destinations menu opened the Sun's info panel but the camera never moved
+  // (looked like "clicking the Sun does nothing / the view is wrong"). Fixed:
+  // listen for `planet:Sun` and fly to the Sun's real world position. Distance
+  // 3.2 matches the in-scene click handler so both paths frame it identically.
+  useEffect(() => {
+    if (!interactive) return
+    const onSkyFocus = (e: Event) => {
+      const id = (e as CustomEvent<{ pointId: string | null }>).detail?.pointId
+      if (id !== "planet:Sun") return
+      const mesh = sunSurfMeshRef.current
+      const world = new Vector3()
+      if (mesh) mesh.getWorldPosition(world)
+      else world.set(SUN_OFFSET_SCENE, 0, 0) // fallback to the known offset
+      requestFlyTo({ x: world.x, y: world.y, z: world.z }, 3.2, "Sun")
+    }
+    window.addEventListener("universe:sky-focus", onSkyFocus)
+    return () => window.removeEventListener("universe:sky-focus", onSkyFocus)
+  }, [interactive])
   // Chunky belt-rock GLBs (2.7 MB) stream in the first time the user enters
   // explore mode — at passive-backdrop distances the point-cloud belts carry
   // the look, so the rocks aren't missed. Sticky: once loaded, keep them

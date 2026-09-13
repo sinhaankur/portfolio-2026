@@ -20,6 +20,15 @@ export const satGroupFilterRef: { current: number } = { current: -1 }
 export const showAllSatsRef: { current: boolean } = { current: false }
 
 /**
+ * True while the SatelliteField is mounted (the Satellite Engine). The field
+ * owns the raycaster Points threshold with its own tuned, camera-relative value;
+ * the engine's baseline PointsRaycastThreshold YIELDS when this is set so the two
+ * don't fight each frame (which made clicks land on the wrong dot / "some other
+ * place"). Set true on the field's mount, false on unmount.
+ */
+export const satelliteFieldActiveRef: { current: boolean } = { current: false }
+
+/**
  * CONJUNCTION ENCOUNTER FOCUS — the close-approach the user tapped in the
  * Conjunction Watch panel, so the 3D scene can VISUALISE the encounter (mark both
  * objects, draw the line between them, show the miss distance tightening toward

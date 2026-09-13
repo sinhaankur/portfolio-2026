@@ -70,6 +70,7 @@ import { DestinationsMenu, InfoPanel, LayersMenu, ResetViewButton, TimelineContr
 import { TonightSky } from "./tonight-sky"
 import { LearnTicker } from "./learn-ticker"
 import { selectedSatRef } from "./satellite-field"
+import { satelliteFieldActiveRef } from "./satellite-refs"
 
 // Ride-speed presets while following a craft — honest time multiples.
 // 1× = the astronaut's window view; 60× = a full LEO orbit in ~90 s;
@@ -1302,6 +1303,11 @@ function PointsRaycastThreshold() {
   const camera = useThree((s) => s.camera)
   useDollyFrame(() => {
     if (!raycaster.params.Points) raycaster.params.Points = { threshold: 1 }
+    // Yield to the SatelliteField while it's mounted — it owns the threshold with
+    // its own tuned value. Two writers each frame made the value flip-flop, so
+    // clicks landed on whatever the OTHER writer's threshold happened to grab
+    // ("the pointer takes some other place"). One owner at a time.
+    if (satelliteFieldActiveRef.current) return
     // ~2% of viewing distance = a comfortable few-px pick halo, clamped so it's
     // never absurdly large when the camera is very far out.
     const camDist = camera.position.length()
