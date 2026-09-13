@@ -39,6 +39,7 @@ import {
   followRef,
   getSimMs,
   jumpToNow,
+  liveCloudsRef,
   setSimMs,
   simTimeRef,
   timeWarpRef,
@@ -1244,6 +1245,32 @@ function LayerToggleRow({
   )
 }
 
+/** Sub-row under "Clouds": swap the procedural cloud shell for TODAY's real
+ *  cloud cover (a live equirectangular composite from the geostationary imagers).
+ *  Self-contained — flips liveCloudsRef directly (module-scoped, no prop chain);
+ *  the Earth cloud shell lazy-loads the texture on first enable. */
+function LiveCloudsToggleRow() {
+  const [on, setOn] = useState(liveCloudsRef.current)
+  return (
+    <button
+      type="button"
+      onClick={() => { const v = !liveCloudsRef.current; liveCloudsRef.current = v; setOn(v) }}
+      aria-pressed={on}
+      className="flex w-full items-center justify-between gap-3 pl-6 pr-3 py-1.5 rounded-lg text-left hover:bg-foreground/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+    >
+      <span className={`font-mono text-[9px] tracking-[0.16em] uppercase transition-colors ${on ? "text-accent" : "text-foreground/55"}`}>
+        Live · today&apos;s weather
+      </span>
+      <span
+        aria-hidden
+        className={`grid place-items-center h-3.5 w-3.5 rounded-full border transition-colors shrink-0 ${on ? "border-accent/70 bg-accent/15" : "border-foreground/25"}`}
+      >
+        <span className={`h-1 w-1 rounded-full ${on ? "bg-accent" : "bg-foreground/30"}`} />
+      </span>
+    </button>
+  )
+}
+
 /** A three-way segmented picker for texture resolution: Standard / High / Ultra.
  *  Each maps onto the real asset tiers — Standard ~2K (adaptive), High 4K/8K where
  *  a body ships one, Ultra the HD/16K "Super Clear" maps + the engine pinned to
@@ -1422,6 +1449,7 @@ export function LayersMenu({
             Overlays
           </div>
           <LayerToggleRow label="Clouds" active={showClouds} onToggle={onToggleClouds} />
+          {showClouds && <LiveCloudsToggleRow />}
           <LayerToggleRow label="Satellites" active={showSatellites} onToggle={onToggleSatellites} />
           <LayerToggleRow label="Asteroids & comets" active={showMinorBodies} onToggle={onToggleMinorBodies} />
           {showSatGroups && (

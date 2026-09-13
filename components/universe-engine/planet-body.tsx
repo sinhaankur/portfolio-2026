@@ -62,6 +62,7 @@ import {
   requestFollow,
   simTimeRef,
   cloudsVisibleRef,
+  liveCloudsRef,
   satellitesVisibleRef,
   planetToInfo,
   timeWarpRef,
@@ -135,6 +136,13 @@ function radialUVRingGeometry(innerR: number, outerR: number, segments: number) 
   geo.computeVertexNormals()
   return geo
 }
+
+// Live cloud composite — near-real-time equirectangular cloud cover, CORS-open
+// + CC0, built from the geostationary imagers (EUMETSAT/GOES/Himawari), mirrored
+// at the poles the geostationary sats can't see. Attribution: "Contains modified
+// EUMETSAT data" via matteason/live-cloud-maps. 2048×1024 is the sweet spot for a
+// globe drape (~2 MB); refreshed ~every 3h at source. Only fetched on demand.
+const LIVE_CLOUD_URL = "https://clouds.matteason.co.uk/images/2048x1024/clouds-alpha.png"
 
 // Ring shader — keeps the texture's real band structure (C/B/Cassini/A/F) but
 // adds two physically-real details a flat unlit material can't: (1) the planet's
@@ -694,13 +702,19 @@ export function PlanetBody({
   const cloudMatRef = useRef<ShaderMaterial | null>(null)
   const cloudUniforms = useMemo(
     () => ({
-      uSunDir:   { value: new Vector3(1, 0, 0) },
-      uOpacity:  { value: 0 },
-      uTime:     { value: 0 },
-      uCoverage: { value: 0.5 },
+      uSunDir:        { value: new Vector3(1, 0, 0) },
+      uOpacity:       { value: 0 },
+      uTime:          { value: 0 },
+      uCoverage:      { value: 0.5 },
+      uUseRealClouds: { value: 0 },
+      uCloudTex:      { value: null as Texture | null },
+      uLonOffset:     { value: 0.25 }, // align composite's 0° with the day texture
     }),
     [],
   )
+  // Live cloud texture — lazy-loaded the first time real-clouds is switched on.
+  // "loading" guards against a double fetch; "ms" stamps the load for a refresh.
+  const liveCloudRef = useRef<{ tex: Texture | null; loading: boolean; ms: number }>({ tex: null, loading: false, ms: 0 })
   // Earth's polar aurora shell — night-side, high-latitude glow (deep-zoom).
   const auroraMatRef = useRef<ShaderMaterial | null>(null)
   const auroraUniforms = useMemo(
@@ -947,6 +961,31 @@ export function PlanetBody({
       const k = 1 - Math.exp(-delta * 6)
       const target = texture && cloudsVisibleRef.current ? 0.9 : 0
       cloudUniforms.uOpacity.value += (target - cloudUniforms.uOpacity.value) * k
+
+      // Live clouds — today's real weather. Lazy-load the equirectangular
+      // composite the first time it's switched on (and refresh if it's been up
+      // >3h, matching the source's refresh cadence). Falls back to procedural
+      // silently if the fetch fails, so the shell never goes blank.
+      const wantReal = liveCloudsRef.current
+      const lc = liveCloudRef.current
+      if (wantReal && !lc.tex && !lc.loading) {
+        lc.loading = true
+        loadTextureAsync(
+          LIVE_CLOUD_URL,
+          (tex) => { lc.tex = tex; lc.ms = Date.now(); lc.loading = false },
+          () => { lc.loading = false }, // keep procedural on failure
+        )
+      } else if (wantReal && lc.tex && Date.now() - lc.ms > 3 * 3600_000 && !lc.loading) {
+        lc.loading = true
+        loadTextureAsync(
+          `${LIVE_CLOUD_URL}?t=${Math.floor(Date.now() / 3600_000)}`,
+          (tex) => { lc.tex = tex; lc.ms = Date.now(); lc.loading = false },
+          () => { lc.loading = false },
+        )
+      }
+      const realReady = wantReal && !!lc.tex
+      cloudUniforms.uUseRealClouds.value = realReady ? 1 : 0
+      if (realReady && cloudUniforms.uCloudTex.value !== lc.tex) cloudUniforms.uCloudTex.value = lc.tex
     }
     // Earth's polar aurora shell — shimmers on the NIGHT side at high latitudes.
     // Fades in only on deep engagement (hover/focus) so it's a deep-zoom reward,

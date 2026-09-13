@@ -328,10 +328,13 @@ export const CLOUD_VERTEX_SHADER = `
   }
 `
 export const CLOUD_FRAGMENT_SHADER = `
-  uniform vec3  uSunDir;
-  uniform float uOpacity;   // master fade-in (hover/focus) × toggle
-  uniform float uTime;      // slow cloud drift
-  uniform float uCoverage;  // 0..1 how much of the globe is clouded
+  uniform vec3      uSunDir;
+  uniform float     uOpacity;      // master fade-in (hover/focus) × toggle
+  uniform float     uTime;         // slow cloud drift
+  uniform float     uCoverage;     // 0..1 how much of the globe is clouded
+  uniform float     uUseRealClouds; // 1 = sample the live cloud texture, 0 = procedural FBM
+  uniform sampler2D uCloudTex;     // live equirectangular cloud map (alpha = cloud)
+  uniform float     uLonOffset;    // align the texture's 0° with the globe's
   varying vec2 vUv;
   varying vec3 vWorldNormal;
 
@@ -358,12 +361,26 @@ export const CLOUD_FRAGMENT_SHADER = `
   }
 
   void main() {
-    // Drift the cloud field slowly in longitude; stretch in U so bands read
-    // as latitudinal weather systems rather than blobs.
-    vec2 p = vec2(vUv.x * 6.0 + uTime * 0.012, vUv.y * 3.0);
-    float n = fbm(p);
-    // Coverage threshold carves cloud vs. clear sky with a soft edge.
-    float clouds = smoothstep(1.0 - uCoverage, 1.0 - uCoverage + 0.22, n);
+    float clouds;
+    if (uUseRealClouds > 0.5) {
+      // REAL clouds — today's actual weather, an equirectangular composite from
+      // the geostationary imagers (EUMETSAT/GOES/Himawari). The map is a white
+      // cloud layer on transparency, so its luminance IS the cloud density. A
+      // tiny longitude offset aligns it with the globe's texture; a very slow
+      // drift keeps it from looking frozen between the 3-hourly refreshes.
+      vec2 uv = vec2(fract(vUv.x + uLonOffset + uTime * 0.0008), vUv.y);
+      vec4 tx = texture2D(uCloudTex, uv);
+      clouds = max(tx.a, dot(tx.rgb, vec3(0.333)));
+      // Gentle contrast so thin haze doesn't grey the whole globe.
+      clouds = smoothstep(0.12, 0.85, clouds);
+    } else {
+      // Procedural fallback — drift the cloud field slowly in longitude; stretch
+      // in U so bands read as latitudinal weather systems rather than blobs.
+      vec2 p = vec2(vUv.x * 6.0 + uTime * 0.012, vUv.y * 3.0);
+      float n = fbm(p);
+      // Coverage threshold carves cloud vs. clear sky with a soft edge.
+      clouds = smoothstep(1.0 - uCoverage, 1.0 - uCoverage + 0.22, n);
+    }
 
     // Day-side only: clouds catch sunlight, fade across the terminator.
     float NdotL = dot(normalize(vWorldNormal), normalize(uSunDir));

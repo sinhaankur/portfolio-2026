@@ -88,6 +88,13 @@ export const REALTIME_TIME_SCALE = 1000 / (TIME_WARP_DAYS_PER_SEC * 86_400_000)
  * Defaults to visible. */
 export const cloudsVisibleRef = { current: true }
 
+/* LIVE clouds — when true, Earth's cloud shell samples today's REAL cloud cover
+ * (an equirectangular composite from the geostationary imagers) instead of the
+ * procedural FBM shell, so the globe shows the actual weather right now. Flipped
+ * by the HUD; the shell lazy-loads the texture the first time it's turned on.
+ * Off by default (the procedural shell is instant + offline). */
+export const liveCloudsRef = { current: false }
+
 /* Satellite-shell visibility — when a body with human-made orbiters (Earth,
  * Mars…) is focused, the HUD exposes a "Satellites" toggle that flips this.
  * Module-scoped, same pattern as cloudsVisibleRef. Off by default. */
