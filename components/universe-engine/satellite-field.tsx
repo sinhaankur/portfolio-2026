@@ -824,6 +824,8 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
   // cursor; a full pass rolls next→prev. Same freshness, no single-frame stall.
   const sweepCursor = useRef(0)
   const sweepStartMs = useRef(0)
+  // Last time we recomputed the swarm's boundingSphere (for raycaster hit-tests).
+  const lastBoundsMs = useRef(0)
   // OFF-THREAD SGP4: a Worker owns a second copy of the satrecs and propagates
   // the WHOLE swarm on request, posting a transferable position buffer back — so
   // the render thread never spends its budget on 18.7k propagations. When the
@@ -1426,6 +1428,15 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
       const a = prevPos.current, b = nextPos.current
       for (let i = 0; i < arr.length; i++) arr[i] = a[i] + (b[i] - a[i]) * t
       pos.needsUpdate = true
+      // CLICKABILITY: the raycaster tests the ray against the geometry's
+      // boundingSphere FIRST and skips all points if it misses. The points move
+      // every frame (SGP4), so a stale/too-small sphere silently made the whole
+      // swarm unpickable ("unable to click a satellite"). Refresh it periodically
+      // (cheap; not every frame) so the sphere always encloses the live dots.
+      if (now - lastBoundsMs.current > 500) {
+        geometry.computeBoundingSphere()
+        lastBoundsMs.current = now
+      }
     }
 
     // SAT-3: position the notable craft on their real orbits EVERY frame (only a
@@ -2049,7 +2060,10 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     if (classifyRegimeId(sats[idx].l2) !== 0) return true
     const filtered =
       satGroupFilterRef.current >= 0 || satRegimeFilterRef.current >= 0 || selectedSatRef.current != null
-    const keep = Math.max((filtered ? 1 : 1 - 0.45 * lodRef.current) * areaScale, keepFloorRef.current)
+    // Mirror the SHADER's keep formula (mix(1.0, 0.6, lodEff) = 1 - 0.4*lod) so a
+    // dot that's visibly on screen is also click-pickable (mismatch → you click a
+    // dot you can see and nothing happens).
+    const keep = Math.max((filtered ? 1 : 1 - 0.4 * lodRef.current) * areaScale, keepFloorRef.current)
     const rand = Math.abs(Math.sin(sats[idx].id * 12.9898) * 43758.5453) % 1
     return rand <= keep - 0.04
   }
