@@ -224,9 +224,13 @@ function FlyToController({ interactive }: { interactive: boolean }) {
 
   useFrame((_, delta) => {
     if (!controls) return
-    // Drift is allowed only when the user isn't driving AND a ~2.5 s cool-down
-    // after their last input has elapsed (so it never snaps back on release).
-    const driftAllowed = !_userGrabbing && (!_grabReleaseAt || performance.now() - _grabReleaseAt > 2500)
+    // Drift is allowed only when the user isn't driving AND a LONG cool-down
+    // after their last input has elapsed. The old 2.5 s was too eager — the
+    // contemplative auto-rotate kicked back in almost immediately, so the moment
+    // you positioned the view it started drifting on its own ("won't rotate
+    // freely / fights me"). 12 s lets you actually inspect a body in the angle
+    // you chose; drift only returns once you've truly stopped touching it.
+    const driftAllowed = !_userGrabbing && (!_grabReleaseAt || performance.now() - _grabReleaseAt > 12000)
 
     // Per-focus deep-zoom: tighten the near-plane + zoom floor while a tiny body
     // (a satellite) is focused so the camera can dolly up to a true-1:1 craft;
@@ -393,7 +397,7 @@ function FlyToController({ interactive }: { interactive: boolean }) {
         // auto-rotate). Paused while the user drives + a cool-down after.
         if (interactive && driftAllowed) {
           _driftOff.copy(camera.position).sub(controls.target)
-          _driftOff.applyAxisAngle(_driftAxis, delta * 0.02) // ~0.02 rad/s = a slow drift
+          _driftOff.applyAxisAngle(_driftAxis, delta * 0.01) // ~0.01 rad/s = a barely-there breath
           camera.position.copy(controls.target).add(_driftOff)
         }
       }
