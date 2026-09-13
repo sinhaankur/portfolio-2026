@@ -338,6 +338,112 @@ export function scanOverheadSky(atMs: number = Date.now(), minElevationDeg = 0):
   return out
 }
 
+/** Az/el (radians) + range for ONE satrec index at a moment — the per-object
+ *  primitive behind the sky dome's trails and the pass predictor. Returns null
+ *  if propagation fails or the object is below the horizon. */
+export function lookAngleAt(
+  idx: number,
+  atMs: number,
+): { azimuth: number; elevation: number; rangeSat: number } | null {
+  const lib = satLibRef.current
+  const obs = observerRef.current
+  const recs = satrecsRef.current
+  if (!lib || !obs || !recs[idx]) return null
+  const date = new Date(clampToSpaceAge(atMs))
+  let gmst: number
+  try { gmst = lib.gstime(date) } catch { return null }
+  let r: { position?: Vec3 } | false = false
+  try { r = lib.propagate(recs[idx], date) } catch { r = false }
+  const p = finitePos(r)
+  if (!p) return null
+  const ecf = lib.eciToEcf(p, gmst)
+  const la = lib.ecfToLookAngles(obs, ecf)
+  return { azimuth: la.azimuth, elevation: la.elevation, rangeSat: la.rangeSat }
+}
+
+/** A predicted overhead pass: when a satellite rises above the horizon, its peak
+ *  elevation + bearing, and when it sets — the "when to go outside and look up". */
+export type SatPass = {
+  id: number
+  name: string
+  type?: SatType
+  group?: string
+  riseMs: number
+  peakMs: number
+  setMs: number
+  peakElevationDeg: number
+  riseAzimuthDeg: number
+  setAzimuthDeg: number
+}
+
+/** Predict upcoming passes for a shortlist of satellite INDICES (into satsRef /
+ *  satrecsRef) over the next `horizonMin` minutes. Stepping the whole 18k-object
+ *  catalogue for 90 min would be brutal, so the caller hands us a curated list
+ *  (e.g. what's overhead now + notable named craft). Coarse 30s step to find the
+ *  rise/set crossings, then a 5s refine around rise/peak/set so the times are
+ *  tight. minPeakDeg drops passes that never clear a useful elevation. */
+export function predictPasses(
+  indices: number[],
+  opts: { fromMs?: number; horizonMin?: number; stepSec?: number; minPeakDeg?: number } = {},
+): SatPass[] {
+  const lib = satLibRef.current
+  const obs = observerRef.current
+  const recs = satrecsRef.current
+  const sats = satsRef.current
+  if (!lib || !obs || recs.length === 0) return []
+  const fromMs = opts.fromMs ?? Date.now()
+  const horizonMs = (opts.horizonMin ?? 90) * 60_000
+  const step = (opts.stepSec ?? 30) * 1000
+  const minPeak = ((opts.minPeakDeg ?? 15) * Math.PI) / 180
+  const passes: SatPass[] = []
+
+  for (const idx of indices) {
+    if (!recs[idx]) continue
+    const s = sats[idx]
+    let prevEl = lookAngleAt(idx, fromMs)?.elevation ?? -Math.PI
+    let riseMs = prevEl > 0 ? fromMs : -1 // already up? count this window
+    let peakEl = prevEl, peakMs = fromMs, riseAz = 0, setAz = 0
+    if (riseMs > 0) { const la = lookAngleAt(idx, fromMs); riseAz = la ? la.azimuth : 0 }
+
+    for (let t = fromMs + step; t <= fromMs + horizonMs; t += step) {
+      const la = lookAngleAt(idx, t)
+      const el = la?.elevation ?? -Math.PI
+      if (el > 0 && prevEl <= 0) {
+        // rising crossing — refine to 5s
+        riseMs = t
+        for (let rt = t - step; rt <= t; rt += 5000) {
+          const rl = lookAngleAt(idx, rt)
+          if (rl && rl.elevation > 0) { riseMs = rt; riseAz = rl.azimuth; break }
+        }
+        peakEl = el; peakMs = t
+      } else if (el > 0 && riseMs > 0) {
+        if (el > peakEl) { peakEl = el; peakMs = t }
+      } else if (el <= 0 && prevEl > 0 && riseMs > 0) {
+        // setting crossing — close the window
+        let setMs = t
+        for (let st = t - step; st <= t; st += 5000) {
+          const sl = lookAngleAt(idx, st)
+          if (sl && sl.elevation <= 0) { setMs = st; setAz = sl.azimuth; break }
+        }
+        if (peakEl >= minPeak) {
+          passes.push({
+            id: s?.id ?? -1, name: s?.name ?? "Unknown", type: s?.type, group: s?.group,
+            riseMs, peakMs, setMs,
+            peakElevationDeg: (peakEl * 180) / Math.PI,
+            riseAzimuthDeg: (riseAz * 180) / Math.PI,
+            setAzimuthDeg: (setAz * 180) / Math.PI,
+          })
+        }
+        riseMs = -1; peakEl = -Math.PI // reset for a possible later pass this window
+      }
+      prevEl = el
+    }
+  }
+  // Soonest first.
+  passes.sort((a, b) => a.riseMs - b.riseMs)
+  return passes
+}
+
 // ── Shared FULL-catalogue cache (fetched + parsed exactly once) ──────────────
 /** Provenance header of the baked catalogue (snapshot date, source line, type
  *  breakdown). Filled as a side effect of loadFullCatalog so the transparency

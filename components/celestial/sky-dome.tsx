@@ -4,7 +4,11 @@ import { useEffect, useRef, useState, useCallback } from "react"
 import {
   observerRef,
   scanOverheadSky,
+  predictPasses,
+  lookAngleAt,
+  satsRef,
   type OverheadSat,
+  type SatPass,
 } from "@/components/universe-engine/satellite-data"
 import { selectedSatRef } from "@/components/universe-engine/satellite-refs"
 
@@ -56,7 +60,10 @@ export function SkyDome({ onClose }: { onClose: () => void }) {
   const [count, setCount] = useState(0)
   const [minEl, setMinEl] = useState(10) // hide horizon-huggers by default
   const [hover, setHover] = useState<OverheadSat | null>(null)
-  const satsRef = useRef<OverheadSat[]>([])
+  const [passes, setPasses] = useState<SatPass[]>([])
+  const [showTrails, setShowTrails] = useState(true)
+  const overheadRef = useRef<OverheadSat[]>([])
+  const idIndexRef = useRef<Map<number, number>>(new Map())
   const dprRef = useRef(1)
   // dot screen positions cached each draw so hover/tap hit-testing is cheap.
   const dotsRef = useRef<{ x: number; y: number; s: OverheadSat }[]>([])
@@ -96,13 +103,46 @@ export function SkyDome({ onClose }: { onClose: () => void }) {
     const run = () => {
       if (!alive) return
       const list = scanOverheadSky(Date.now(), minEl)
-      satsRef.current = list
+      overheadRef.current = list
       setCount(list.length)
     }
     run()
     const id = setInterval(run, 2000)
     return () => { alive = false; clearInterval(id) }
   }, [geo, minEl])
+
+  // Pass predictions — "when to go outside and look up". Build a curated
+  // shortlist (notable named craft + a sample of what's overhead now) and step
+  // it forward ~2h. Recomputed every 60s; the catalogue-wide sweep is too heavy
+  // to run on every object, so we predict the few worth naming.
+  useEffect(() => {
+    if (geo !== "on") return
+    let alive = true
+    const run = () => {
+      if (!alive) return
+      const all = satsRef.current
+      if (!all.length) { setPasses([]); return }
+      // Notable named craft that make a satisfying naked-eye/binocular pass.
+      const wanted = ["ISS", "ZARYA", "CSS", "TIANHE", "HST", "HUBBLE", "TIANGONG"]
+      const idxs: number[] = []
+      for (let i = 0; i < all.length; i++) {
+        const n = all[i].name.toUpperCase()
+        if (wanted.some((w) => n.includes(w))) idxs.push(i)
+      }
+      // Plus a light sample of bright LEO (Starlink/OneWeb) so the list isn't
+      // empty when no station is passing — capped so the sweep stays snappy.
+      let sampled = 0
+      for (let i = 0; i < all.length && sampled < 40; i += 37) {
+        const n = all[i].name.toUpperCase()
+        if (n.startsWith("STARLINK") || n.startsWith("ONEWEB")) { idxs.push(i); sampled++ }
+      }
+      const found = predictPasses(idxs, { horizonMin: 120, minPeakDeg: 20 })
+      setPasses(found.slice(0, 6))
+    }
+    run()
+    const id = setInterval(run, 60_000)
+    return () => { alive = false; clearInterval(id) }
+  }, [geo])
 
   // Draw loop — the dome, the compass rose, the elevation rings, and every dot.
   useEffect(() => {
@@ -163,9 +203,18 @@ export function SkyDome({ onClose }: { onClose: () => void }) {
       ctx.fillText("E", cx + R + 9 * dpr, cy)
       ctx.fillText("W", cx - R - 9 * dpr, cy)
 
-      // Plot dots.
+      // id → catalogue index, so a dot can look up its own past position for a
+      // motion trail. Rebuilt only when the catalogue length changes (cheap).
+      const cat = satsRef.current
+      if (idIndexRef.current.size !== cat.length) {
+        idIndexRef.current = new Map(cat.map((s, i) => [s.id, i]))
+      }
+      const idIndex = idIndexRef.current
+      const now = Date.now()
+
+      // Plot dots (+ motion trails so you see which way each one is crossing).
       dotsRef.current = []
-      for (const s of satsRef.current) {
+      for (const s of overheadRef.current) {
         const p = project(s.azimuthDeg, s.elevationDeg)
         const x = cx + p.x * R
         const y = cy + p.y * R
@@ -174,6 +223,30 @@ export function SkyDome({ onClose }: { onClose: () => void }) {
         const t = Math.max(0, Math.min(1, s.elevationDeg / 90))
         const rad = (1.4 + t * 2.6) * dpr
         const col = famColor(s)
+
+        // Trail: sample where it was ~24s ago and draw a fading streak toward
+        // the current dot — the direction of travel across your sky. Skipped for
+        // low dots (streak would clutter the rim) and when trails are off.
+        if (showTrails && s.elevationDeg > 8) {
+          const idx = idIndex.get(s.id)
+          if (idx != null) {
+            const past = lookAngleAt(idx, now - 24_000)
+            if (past && past.elevation > 0) {
+              const pp = project((past.azimuth * 180) / Math.PI, (past.elevation * 180) / Math.PI)
+              const px = cx + pp.x * R
+              const py = cy + pp.y * R
+              const grad = ctx.createLinearGradient(px, py, x, y)
+              grad.addColorStop(0, "rgba(255,255,255,0)")
+              grad.addColorStop(1, col)
+              ctx.strokeStyle = grad
+              ctx.lineWidth = Math.max(1, rad * 0.5)
+              ctx.globalAlpha = 0.5 + t * 0.4
+              ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(x, y); ctx.stroke()
+              ctx.globalAlpha = 1
+            }
+          }
+        }
+
         ctx.beginPath(); ctx.arc(x, y, rad, 0, Math.PI * 2)
         ctx.fillStyle = col
         ctx.globalAlpha = 0.55 + t * 0.45
@@ -195,7 +268,7 @@ export function SkyDome({ onClose }: { onClose: () => void }) {
     }
     draw()
     return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", resize) }
-  }, [hover])
+  }, [hover, showTrails])
 
   const hitTest = useCallback((clientX: number, clientY: number): OverheadSat | null => {
     const canvas = canvasRef.current
@@ -280,20 +353,67 @@ export function SkyDome({ onClose }: { onClose: () => void }) {
                   </span>
                 )}
               </div>
-              <label className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-white/45">
-                Above
-                <select
-                  value={minEl}
-                  onChange={(e) => setMinEl(Number(e.target.value))}
-                  className="rounded-md border border-white/15 bg-white/5 px-1.5 py-0.5 text-white/80"
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowTrails((v) => !v)}
+                  data-cursor-hover
+                  className={`rounded-md border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider ${
+                    showTrails ? "border-white/30 bg-white/10 text-white/85" : "border-white/12 text-white/40"
+                  }`}
                 >
-                  <option value={0}>Horizon</option>
-                  <option value={10}>10°</option>
-                  <option value={30}>30°</option>
-                  <option value={60}>60°</option>
-                </select>
-              </label>
+                  Trails
+                </button>
+                <label className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-white/45">
+                  Above
+                  <select
+                    value={minEl}
+                    onChange={(e) => setMinEl(Number(e.target.value))}
+                    className="rounded-md border border-white/15 bg-white/5 px-1.5 py-0.5 text-white/80"
+                  >
+                    <option value={0}>Horizon</option>
+                    <option value={10}>10°</option>
+                    <option value={30}>30°</option>
+                    <option value={60}>60°</option>
+                  </select>
+                </label>
+              </div>
             </div>
+
+            {/* Next passes — "when to go outside and look up". The soonest
+                notable craft rising above your horizon, with peak elevation. */}
+            {passes.length > 0 && (
+              <div className="mt-3 rounded-xl border border-white/10 bg-white/[0.03] p-2.5">
+                <div className="mb-1.5 font-mono text-[9px] uppercase tracking-widest text-white/40">
+                  Next passes (next 2h)
+                </div>
+                <div className="flex flex-col gap-1">
+                  {passes.map((pz) => {
+                    const mins = Math.max(0, Math.round((pz.riseMs - Date.now()) / 60000))
+                    return (
+                      <button
+                        key={`${pz.id}-${pz.riseMs}`}
+                        type="button"
+                        data-cursor-hover
+                        onClick={() => {
+                          if (pz.id >= 0) {
+                            selectedSatRef.current = pz.id
+                            window.dispatchEvent(new Event("celestial:sat-selected"))
+                          }
+                        }}
+                        className="flex items-center justify-between gap-2 rounded-lg px-2 py-1 text-left hover:bg-white/5"
+                      >
+                        <span className="truncate text-[12px] text-white/85">{pz.name}</span>
+                        <span className="shrink-0 font-mono text-[10px] text-white/50">
+                          {mins === 0 ? "now" : `in ${mins}m`} · {pz.peakElevationDeg.toFixed(0)}° peak
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
             <p className="mt-2 text-center font-mono text-[9px] uppercase tracking-widest text-white/30">
               Zenith at centre · horizon at rim · tap a dot to track it
             </p>
