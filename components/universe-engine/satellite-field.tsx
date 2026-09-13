@@ -328,8 +328,8 @@ export function classifyArchetype(name: string, owner: string, altKm: number, ty
  * them without dragging in this file's Three.js dependency. Re-exported here so
  * the engine's internal call sites keep importing them from `./satellite-field`.
  */
-export { selectedSatRef, satGroupFilterRef, showAllSatsRef, conjunctionFocusRef, showJourneyRef, satelliteFieldActiveRef } from "./satellite-refs"
-import { selectedSatRef, satGroupFilterRef, showAllSatsRef, conjunctionFocusRef, showJourneyRef, satelliteFieldActiveRef } from "./satellite-refs"
+export { selectedSatRef, satGroupFilterRef, showAllSatsRef, conjunctionFocusRef, showJourneyRef, satelliteFieldActiveRef, satPickAtScreenRef } from "./satellite-refs"
+import { selectedSatRef, satGroupFilterRef, showAllSatsRef, conjunctionFocusRef, showJourneyRef, satelliteFieldActiveRef, satPickAtScreenRef } from "./satellite-refs"
 
 // The Three-FREE satellite data layer (types, bridge refs, SGP4-math helpers,
 // catalogue loading, classification) lives in ./satellite-data so the DOM chrome
@@ -401,6 +401,7 @@ const _encB = new THREE.Vector3()
 // stutter — exactly the kind of micro-lag we're hunting. One shared vector = zero
 // per-frame allocation for craft orientation.
 const _aheadScratch = new THREE.Vector3()
+const _pickScratch = new THREE.Vector3() // reused for screen-space nearest-dot picking
 
 // SHELL EXPANSION (Ankur: "spacing can be expanded... like actual spacing"): at
 // true scale, LEO sits only 6–30% above the surface, so 18k objects pile into a
@@ -826,6 +827,11 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
   const sweepStartMs = useRef(0)
   // Last time we recomputed the swarm's boundingSphere (for raycaster hit-tests).
   const lastBoundsMs = useRef(0)
+  // Holds the current nearest-dot picker impl (reassigned each render once the
+  // real functions exist); the published ref delegates here. Lets the publishing
+  // hook run before the early `if (!geometry) return null` without a hook-order
+  // violation.
+  const pickerImplRef = useRef<((x: number, y: number) => boolean) | null>(null)
   // OFF-THREAD SGP4: a Worker owns a second copy of the satrecs and propagates
   // the WHOLE swarm on request, posting a transferable position buffer back — so
   // the render thread never spends its budget on 18.7k propagations. When the
@@ -1011,7 +1017,7 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     () => NOTABLE_CRAFT.map((c) => sats?.findIndex((s) => s.id === c.id) ?? -1),
     [sats],
   )
-  const { camera, raycaster, size } = useThree()
+  const { camera, raycaster, size, gl } = useThree()
   const viewportH = size.height
   // Viewport-area dot budget, relative to the 1440×900 desktop the dot density
   // was tuned on. A phone has ~25% of those pixels — it gets ~25% of the LEO
@@ -2047,6 +2053,16 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     }
   })
 
+  // Publish a STABLE nearest-dot picker into the shared ref (called by the DOM
+  // chrome on a canvas click, bypassing R3F's fragile point raycaster). The
+  // wrapper delegates to pickerImplRef, which is reassigned each render below
+  // once the real functions exist — so this hook runs UNCONDITIONALLY (before the
+  // early return), keeping hook order stable (React #310 otherwise).
+  useEffect(() => {
+    satPickAtScreenRef.current = (x: number, y: number) => pickerImplRef.current?.(x, y) ?? false
+    return () => { satPickAtScreenRef.current = null }
+  }, [])
+
   if (!geometry) return null
 
   // Is this dot actually on screen right now? The raycaster sees every point
@@ -2072,10 +2088,53 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
   // show its data). R3F raycasts the points; we take the closest hit, map its
   // buffer index back to the NORAD id, and set the selection ref. Only fires when
   // not already isolated (so clicking the followed craft doesn't re-trigger).
+  // Select a satellite by its buffer index (shared by the raycast hit + the
+  // screen-space fallback below).
+  const selectByIndex = (idx: number) => {
+    if (!sats || !sats[idx]) return
+    if (sats[idx].id === selectedSatRef.current) return
+    selectedSatRef.current = sats[idx].id
+    // Tell the DOM chrome a satellite was picked (opens its inspector card).
+    window.dispatchEvent(new Event("celestial:sat-selected"))
+  }
+
+  // SCREEN-SPACE NEAREST-DOT FALLBACK — satellites are tiny, fast-moving targets,
+  // so pixel-perfect raycasting against a moving point cloud is fragile (it often
+  // hits nothing → "I clicked a dot and nothing happened"). When the raycast
+  // misses, project every VISIBLE dot to screen and pick the closest one within a
+  // forgiving radius. This is what makes clicking actually usable — you click
+  // NEAR a satellite and get it, LeoLabs-style.
+  const pickNearestOnScreen = (clientX: number, clientY: number): number | null => {
+    const geom = pointsRef.current?.geometry
+    const posAttr = geom?.getAttribute("position") as THREE.BufferAttribute | undefined
+    if (!geom || !posAttr || !sats) return null
+    const rect = gl.domElement.getBoundingClientRect()
+    const px = clientX - rect.left
+    const py = clientY - rect.top
+    const arr = posAttr.array as Float32Array
+    const halfW = rect.width / 2
+    const halfH = rect.height / 2
+    let best = -1
+    let bestD2 = 26 * 26 // forgiving ~26px grab radius (squared)
+    const mat = pointsRef.current!.matrixWorld
+    for (let i = 0; i < sats.length; i++) {
+      if (!isDotVisible(i)) continue
+      _pickScratch.set(arr[i * 3], arr[i * 3 + 1], arr[i * 3 + 2]).applyMatrix4(mat).project(camera)
+      if (_pickScratch.z > 1) continue // behind the camera / off-screen depth
+      const sx = _pickScratch.x * halfW + halfW
+      const sy = -_pickScratch.y * halfH + halfH
+      const dx = sx - px, dy = sy - py
+      const d2 = dx * dx + dy * dy
+      if (d2 < bestD2) { bestD2 = d2; best = i }
+    }
+    return best >= 0 ? best : null
+  }
+
   const onPointsClick = (e: {
     index?: number
     intersections?: { index?: number }[]
     delta?: number
+    nativeEvent?: { clientX: number; clientY: number }
     stopPropagation: () => void
   }) => {
     // Drag guard: R3F fires click on pointerup however far the pointer moved,
@@ -2083,13 +2142,23 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     // DIFFERENT satellite mid-chase. e.delta is the screen-space px travelled
     // between down and up — a real click stays under a few px.
     if ((e.delta ?? 0) > 5) return
-    const idx = e.index ?? e.intersections?.[0]?.index
-    if (idx == null || !isDotVisible(idx)) return
     e.stopPropagation()
-    // The swarm stays visible while one craft is selected, so clicking another
-    // dot re-targets the chase — LeoLabs-style hop from object to object.
-    if (sats![idx].id === selectedSatRef.current) return
-    selectedSatRef.current = sats![idx].id
+    // 1) Trust a precise raycast hit if it landed on a visible dot.
+    const hit = e.index ?? e.intersections?.[0]?.index
+    if (hit != null && isDotVisible(hit)) { selectByIndex(hit); return }
+    // 2) Otherwise fall back to the nearest visible dot to the click point.
+    if (e.nativeEvent) {
+      const near = pickNearestOnScreen(e.nativeEvent.clientX, e.nativeEvent.clientY)
+      if (near != null) selectByIndex(near)
+    }
+  }
+
+  // Keep the picker impl current (plain assignment each render — NOT a hook, so
+  // it's safe after the early return). The stable published ref delegates here.
+  pickerImplRef.current = (clientX: number, clientY: number): boolean => {
+    const near = pickNearestOnScreen(clientX, clientY)
+    if (near != null) { selectByIndex(near); return true }
+    return false
   }
 
   return (

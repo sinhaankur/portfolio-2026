@@ -24,7 +24,7 @@ import { SatelliteSearch } from "./satellite-search"
 import { ZoomLadder } from "./zoom-ladder"
 import { SkyDome } from "./sky-dome"
 import { useIsMobile, MobileBar, BodiesSheet, Sheet } from "./mobile-controls"
-import { selectedSatRef, satGroupFilterRef, showAllSatsRef } from "@/components/universe-engine/satellite-refs"
+import { selectedSatRef, satGroupFilterRef, showAllSatsRef, satPickAtScreenRef } from "@/components/universe-engine/satellite-refs"
 import { setSimMs, getSimMs, timeScaleRef, hiResTexturesRef, cancelFollow, flyToRef } from "@/components/universe-engine/astronomy"
 import type { SatFacts } from "@/components/universe-engine/scene-satellites"
 import { hasGoogleEarthKey } from "@/components/universe-engine/google-earth-config"
@@ -619,7 +619,19 @@ export function CelestialExplorer() {
         {/* Live solar system fills the screen. touch-none hands all touch
             gestures to the engine's OrbitControls (the page is fixed/non-scroll
             here) so drag-to-rotate + pinch-zoom are seamless on mobile. */}
-        <div className="absolute inset-0 touch-none">
+        <div
+          className="absolute inset-0 touch-none"
+          onClickCapture={(e) => {
+            // DOM-level satellite picking: R3F's point-cloud raycaster is
+            // unreliable against the moving swarm (clicks near a dot kept missing
+            // → "unable to click a satellite"). The field publishes a nearest-dot
+            // picker; we call it on any canvas click. It only selects when a dot
+            // is genuinely within a few px of the click, so Earth/Sun/deep-space
+            // clicks (handled by the engine) are unaffected.
+            const pick = satPickAtScreenRef.current
+            if (pick) pick(e.clientX, e.clientY)
+          }}
+        >
           <UniverseEngine interactive showHud showMusic={false} defaultTrueScale solarOnly quietMobileChrome />
         </div>
 

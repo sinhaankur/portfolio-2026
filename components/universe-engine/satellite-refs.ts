@@ -29,6 +29,16 @@ export const showAllSatsRef: { current: boolean } = { current: false }
 export const satelliteFieldActiveRef: { current: boolean } = { current: false }
 
 /**
+ * NEAREST-DOT PICKER — the field publishes a function that, given a screen click
+ * (clientX, clientY), selects the nearest VISIBLE satellite within a forgiving
+ * pixel radius (projecting the live 3D positions to screen). The DOM chrome calls
+ * this on a canvas click so selection doesn't depend on R3F's fragile point-cloud
+ * raycaster (which kept missing → "unable to click a satellite"). Returns true if
+ * something was selected. null while the field isn't mounted.
+ */
+export const satPickAtScreenRef: { current: ((clientX: number, clientY: number) => boolean) | null } = { current: null }
+
+/**
  * CONJUNCTION ENCOUNTER FOCUS — the close-approach the user tapped in the
  * Conjunction Watch panel, so the 3D scene can VISUALISE the encounter (mark both
  * objects, draw the line between them, show the miss distance tightening toward
