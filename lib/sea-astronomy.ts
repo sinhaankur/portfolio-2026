@@ -82,6 +82,16 @@ export function sunPosition(date: Date, lat: number, lng: number): SkyPos {
   return altAz(eq.ra, eq.dec, lat, lng, d);
 }
 
+/** Real position of a fixed star (or any equatorial object) in the LOCAL sky —
+ *  altitude/azimuth for a place + time, from its catalogue RA (hours) + Dec
+ *  (deg). The same altAz math the sun/moon use, so the constellations, the Sun,
+ *  the Moon and the satellites all share ONE real sky. Precession is ignored
+ *  (arc-minutes/decade — invisible to the eye against a horizon). */
+export function starPosition(raHours: number, decDeg: number, date: Date, lat: number, lng: number): SkyPos {
+  const d = daysSinceJ2000(date);
+  return altAz(raHours * 15, decDeg, lat, lng, d); // RA hours → degrees
+}
+
 /* ── Moon ────────────────────────────────────────────────────────────────── */
 
 /** Moon ecliptic longitude + latitude (deg), low precision (Meeus simplified). */

@@ -11,6 +11,8 @@ import {
   type SatPass,
 } from "@/components/universe-engine/satellite-data"
 import { selectedSatRef } from "@/components/universe-engine/satellite-refs"
+import { constellations } from "@/components/universe-engine/astronomy"
+import { starPosition, sunPosition, moonPosition, moonPhase } from "@/lib/sea-astronomy"
 
 /**
  * SkyDome — "look up from where you're standing."
@@ -87,6 +89,13 @@ export function SkyDome({ onClose }: { onClose: () => void }) {
   const [hover, setHover] = useState<OverheadSat | null>(null)
   const [passes, setPasses] = useState<SatPass[]>([])
   const [showTrails, setShowTrails] = useState(true)
+  // Constellation overlay — the REAL stars above you, so the dome is the actual
+  // sky (not just satellites). On by default: it's the thing you came to see.
+  const [showStars, setShowStars] = useState(true)
+  const [learnCon, setLearnCon] = useState<{ name: string; fact: string } | null>(null)
+  // "Tonight from here" — sun/moon state so the panel is honest about whether
+  // it's even dark, and what the Moon is doing. Recomputed each minute.
+  const [tonight, setTonight] = useState<string | null>(null)
   // Pass alerts — a set of "armed" pass keys the user wants a heads-up for, plus
   // the browser's notification-permission state. A key is `${id}-${riseMs}` so
   // re-predicting the same pass keeps its armed state; fired keys are remembered
@@ -101,6 +110,8 @@ export function SkyDome({ onClose }: { onClose: () => void }) {
   const dprRef = useRef(1)
   // dot screen positions cached each draw so hover/tap hit-testing is cheap.
   const dotsRef = useRef<{ x: number; y: number; s: OverheadSat }[]>([])
+  // constellation label positions cached each draw for tap-to-learn.
+  const conRef = useRef<{ x: number; y: number; name: string; fact: string }[]>([])
 
   const requestLocation = useCallback(() => {
     if (typeof navigator === "undefined" || !navigator.geolocation) { setGeo("off"); return }
@@ -226,6 +237,37 @@ export function SkyDome({ onClose }: { onClose: () => void }) {
     return () => { alive = false; clearInterval(id) }
   }, [geo, armed, passes])
 
+  // "Tonight from here" — one honest line: is it dark yet, and what's the Moon
+  // doing? (The Moon is the #1 thing that spoils a dark sky — a bright gibbous
+  // washes out the stars almost as much as a city does.)
+  useEffect(() => {
+    if (geo !== "on") return
+    let alive = true
+    const run = () => {
+      if (!alive) return
+      const o = observerRef.current
+      if (!o) { setTonight(null); return }
+      const lat = (o.latitude * 180) / Math.PI
+      const lng = (o.longitude * 180) / Math.PI
+      const now = new Date()
+      const sun = sunPosition(now, lat, lng)
+      const moon = moonPosition(now, lat, lng)
+      const ph = moonPhase(now)
+      let s: string
+      if (sun.altitude > 0) s = "The Sun is up — come back after dark."
+      else if (sun.altitude > -6) s = "Twilight — the brightest stars are just appearing."
+      else if (sun.altitude > -18) s = "Getting dark — good for satellite passes and bright stars."
+      else s = "Full darkness — the best sky you'll get here."
+      const moonNote = moon.altitude > 0
+        ? ` Moon is up (${ph.name.toLowerCase()}, ${Math.round(ph.illumination * 100)}% lit)${ph.illumination > 0.6 ? " — it'll wash out faint stars." : "."}`
+        : ` Moon is below the horizon — darker skies.`
+      setTonight(s + moonNote)
+    }
+    run()
+    const id = setInterval(run, 60_000)
+    return () => { alive = false; clearInterval(id) }
+  }, [geo])
+
   // Draw loop — the dome, the compass rose, the elevation rings, and every dot.
   useEffect(() => {
     const canvas = canvasRef.current
@@ -294,6 +336,63 @@ export function SkyDome({ onClose }: { onClose: () => void }) {
       const idIndex = idIndexRef.current
       const now = Date.now()
 
+      // ── Constellation overlay ─ the REAL stars above you right now. Each
+      // catalogue star (RA/Dec) → local alt/az via starPosition, projected onto
+      // the dome; asterism edges drawn where BOTH endpoints are above the
+      // horizon. This is what turns "a dome of satellites" into "your actual
+      // sky", the thing you can learn. Tap a label to read what it is.
+      conRef.current = []
+      const obs = observerRef.current
+      if (showStars && obs) {
+        const lat = (obs.latitude * 180) / Math.PI
+        const lng = (obs.longitude * 180) / Math.PI
+        const dNow = new Date(now)
+        for (const con of constellations) {
+          // Local alt/az for each member star (cache per draw).
+          const pts = con.stars.map((st) => starPosition(st.raHours, st.decDeg, dNow, lat, lng))
+          // Skip constellations entirely below the horizon.
+          let anyUp = false
+          for (const pt of pts) if (pt.altitude > 0) { anyUp = true; break }
+          if (!anyUp) continue
+          // Asterism lines — faint, only between two above-horizon stars.
+          ctx.strokeStyle = "rgba(150,180,255,0.28)"
+          ctx.lineWidth = 1 * dpr
+          for (const [a, e] of con.edges) {
+            const pa = pts[a], pe = pts[e]
+            if (!pa || !pe || pa.altitude <= 0 || pe.altitude <= 0) continue
+            const A = project(pa.azimuth, pa.altitude)
+            const B = project(pe.azimuth, pe.altitude)
+            ctx.beginPath()
+            ctx.moveTo(cx + A.x * R, cy + A.y * R)
+            ctx.lineTo(cx + B.x * R, cy + B.y * R)
+            ctx.stroke()
+          }
+          // Star dots — size by brightness (brighter magnitude = bigger).
+          let sumX = 0, sumY = 0, nUp = 0
+          for (let si = 0; si < pts.length; si++) {
+            const pt = pts[si]
+            if (pt.altitude <= 0) continue
+            const pr = project(pt.azimuth, pt.altitude)
+            const sx = cx + pr.x * R, sy = cy + pr.y * R
+            const mag = con.stars[si].magnitude
+            const rad = Math.max(0.6, (2.4 - mag * 0.5)) * dpr
+            ctx.beginPath(); ctx.arc(sx, sy, rad, 0, Math.PI * 2)
+            ctx.fillStyle = "rgba(220,230,255,0.9)"
+            ctx.fill()
+            sumX += sx; sumY += sy; nUp++
+          }
+          // Label at the asterism's centroid — the tap target to "learn" it.
+          if (nUp > 0) {
+            const lx = sumX / nUp, ly = sumY / nUp
+            ctx.fillStyle = "rgba(160,185,255,0.55)"
+            ctx.font = `${9 * dpr}px "JetBrains Mono", monospace`
+            ctx.textAlign = "center"; ctx.textBaseline = "middle"
+            ctx.fillText(con.name.toUpperCase(), lx, ly - 10 * dpr)
+            conRef.current.push({ x: lx, y: ly, name: con.name, fact: con.fact })
+          }
+        }
+      }
+
       // Plot dots (+ motion trails so you see which way each one is crossing).
       dotsRef.current = []
       for (const s of overheadRef.current) {
@@ -350,7 +449,7 @@ export function SkyDome({ onClose }: { onClose: () => void }) {
     }
     draw()
     return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", resize) }
-  }, [hover, showTrails])
+  }, [hover, showTrails, showStars])
 
   const hitTest = useCallback((clientX: number, clientY: number): OverheadSat | null => {
     const canvas = canvasRef.current
@@ -367,6 +466,24 @@ export function SkyDome({ onClose }: { onClose: () => void }) {
       if (d <= rad * rad && (!best || d < best.d)) best = { d, s: dot.s }
     }
     return best?.s ?? null
+  }, [])
+
+  // Constellation label hit-test — a wider grab radius since labels are sparse.
+  const hitTestCon = useCallback((clientX: number, clientY: number) => {
+    const canvas = canvasRef.current
+    if (!canvas) return null
+    const rect = canvas.getBoundingClientRect()
+    const dpr = dprRef.current
+    const x = (clientX - rect.left) * dpr
+    const y = (clientY - rect.top) * dpr
+    let best: { d: number; c: { name: string; fact: string } } | null = null
+    for (const c of conRef.current) {
+      const dx = c.x - x, dy = c.y - y
+      const d = dx * dx + dy * dy
+      const rad = 34 * dpr
+      if (d <= rad * rad && (!best || d < best.d)) best = { d, c }
+    }
+    return best?.c ?? null
   }, [])
 
   return (
@@ -417,11 +534,16 @@ export function SkyDome({ onClose }: { onClose: () => void }) {
               onPointerMove={(e) => setHover(hitTest(e.clientX, e.clientY))}
               onPointerLeave={() => setHover(null)}
               onClick={(e) => {
+                // Satellite dot takes priority (it's the smaller target); else a
+                // constellation label → open the learn card.
                 const s = hitTest(e.clientX, e.clientY)
                 if (s && s.id >= 0) {
                   selectedSatRef.current = s.id
                   window.dispatchEvent(new Event("celestial:sat-selected"))
+                  return
                 }
+                const con = hitTestCon(e.clientX, e.clientY)
+                if (con) setLearnCon({ name: con.name, fact: con.fact })
               }}
             >
               <canvas ref={canvasRef} data-cursor-hover className="cursor-crosshair" />
@@ -438,6 +560,16 @@ export function SkyDome({ onClose }: { onClose: () => void }) {
                 )}
               </div>
               <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowStars((v) => !v)}
+                  data-cursor-hover
+                  className={`rounded-md border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider ${
+                    showStars ? "border-white/30 bg-white/10 text-white/85" : "border-white/12 text-white/40"
+                  }`}
+                >
+                  Stars
+                </button>
                 <button
                   type="button"
                   onClick={() => setShowTrails((v) => !v)}
@@ -463,6 +595,26 @@ export function SkyDome({ onClose }: { onClose: () => void }) {
                 </label>
               </div>
             </div>
+
+            {/* Tonight from here — is it even dark, and what's the Moon doing. */}
+            {tonight && (
+              <p className="mt-3 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-[12px] leading-snug text-white/70">
+                <span className="font-mono text-[9px] uppercase tracking-widest text-white/40">Tonight from here · </span>
+                {tonight}
+              </p>
+            )}
+
+            {/* Learn card — tap a constellation to read what it is. */}
+            {learnCon && (
+              <div className="mt-3 rounded-xl border border-[#a0b9ff]/30 bg-[#a0b9ff]/[0.06] p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="text-[13px] font-semibold text-white">{learnCon.name}</h3>
+                  <button type="button" onClick={() => setLearnCon(null)} data-cursor-hover
+                    className="shrink-0 font-mono text-[10px] text-white/50 hover:text-white/80">✕</button>
+                </div>
+                <p className="mt-1 text-[12px] leading-relaxed text-white/70">{learnCon.fact}</p>
+              </div>
+            )}
 
             {/* Heads-up banner — the fallback alert when notifications are
                 blocked, or an in-panel echo of a fired notification. */}
