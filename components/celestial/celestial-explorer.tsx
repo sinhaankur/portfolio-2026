@@ -12,7 +12,7 @@ import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import dynamic from "next/dynamic"
 import { motion, AnimatePresence } from "framer-motion"
-import { ArrowLeft, X, Rotate3d, Globe, Satellite, Sparkles, Rocket, Route, Orbit, Layers, Radio, Crosshair, Flame, Trash2, HelpCircle, MoreHorizontal, Radar, ArrowLeftRight, Image as ImageIcon, Share2, Check, Mountain, Gauge } from "lucide-react"
+import { ArrowLeft, X, Rotate3d, Globe, Satellite, Sparkles, Rocket, Route, Orbit, Layers, Radio, Crosshair, Flame, Trash2, HelpCircle, MoreHorizontal, Radar, ArrowLeftRight, Image as ImageIcon, Share2, Check, Mountain, Gauge, Compass } from "lucide-react"
 import { CustomCursor } from "@/components/custom-cursor"
 import { ReportBug } from "@/components/report-bug"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -22,6 +22,7 @@ import { TimelineControl } from "@/components/universe-engine/hud"
 import { BODIES } from "@/lib/celestial-data"
 import { SatelliteSearch } from "./satellite-search"
 import { ZoomLadder } from "./zoom-ladder"
+import { SkyDome } from "./sky-dome"
 import { useIsMobile, MobileBar, BodiesSheet, Sheet } from "./mobile-controls"
 import { selectedSatRef, satGroupFilterRef, showAllSatsRef } from "@/components/universe-engine/satellite-refs"
 import { setSimMs, getSimMs, timeScaleRef, hiResTexturesRef, cancelFollow, flyToRef } from "@/components/universe-engine/astronomy"
@@ -295,6 +296,8 @@ export function CelestialExplorer() {
   const [marsView, setMarsView] = useState(false)
   // "ISS over you" passes panel (asks for geolocation on open).
   const [passesOpen, setPassesOpen] = useState(false)
+  // "The sky above you" local planetarium dome (asks for geolocation on open).
+  const [skyDomeOpen, setSkyDomeOpen] = useState(false)
   // Live space-weather + aurora panel.
   const [weatherOpen, setWeatherOpen] = useState(false)
   // Live launch feed.
@@ -537,6 +540,8 @@ export function CelestialExplorer() {
           label="ISS live position" onClick={go(() => setIssLiveOpen(true))} />
         <MenuItem color="var(--accent)" icon={<Satellite className="h-3.5 w-3.5" />}
           label="ISS over you" onClick={go(() => setPassesOpen(true))} />
+        <MenuItem color="#ffd27a" icon={<Compass className="h-3.5 w-3.5" />}
+          label="The sky above you" onClick={go(() => setSkyDomeOpen(true))} />
         <MenuItem color="#7affd0" icon={<Radio className="h-3.5 w-3.5" />}
           label="Ground-station tracker" onClick={go(() => setStationOpen(true))} />
         <MenuItem color="#9fe0ff" icon={<Layers className="h-3.5 w-3.5" />}
@@ -1067,6 +1072,9 @@ export function CelestialExplorer() {
 
         {/* First-run guided tour (own layer — centered, above the HUD). */}
         <GuidedTour open={tourOpen} onClose={() => setTourOpen(false)} onAction={runTourAction} />
+
+        {/* "The sky above you" — local planetarium dome (centered modal). */}
+        {skyDomeOpen && <SkyDome onClose={() => setSkyDomeOpen(false)} />}
 
         {/* ── MOBILE controls ──────────────────────────────────────────────
             One slim bar + drag-dismissable sheets replace the desktop rail +

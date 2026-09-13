@@ -281,6 +281,63 @@ export function findNearestOverhead(atMs: number = Date.now()): NearestSat | nul
   return best
 }
 
+/** One satellite as seen from the observer's own patch of ground — its place on
+ *  the local sky dome (azimuth from north, elevation above the horizon). */
+export type OverheadSat = {
+  id: number
+  name: string
+  type?: SatType
+  group?: string
+  azimuthDeg: number     // 0 = due north, 90 = east, clockwise
+  elevationDeg: number   // 0 = horizon, 90 = straight up
+  slantRangeKm: number
+  altitudeKm: number
+}
+
+/** Scan the FULL live catalogue and return every object currently above the
+ *  observer's horizon, placed by real azimuth/elevation — the raw data for a
+ *  "look up from where you're standing" sky dome. Same SGP4 → ECI → ECF →
+ *  look-angles chain as findNearestOverhead, just kept for ALL passes (not the
+ *  nearest one). minElevationDeg lets the caller drop objects hugging the
+ *  horizon (atmospheric murk / below rooftops) so the dome stays honest. */
+export function scanOverheadSky(atMs: number = Date.now(), minElevationDeg = 0): OverheadSat[] {
+  const lib = satLibRef.current
+  const obs = observerRef.current
+  const recs = satrecsRef.current
+  const sats = satsRef.current
+  if (!lib || !obs || recs.length === 0) return []
+  const date = new Date(clampToSpaceAge(atMs))
+  let gmst: number
+  try { gmst = lib.gstime(date) } catch { return [] }
+  const minEl = (minElevationDeg * Math.PI) / 180
+  const out: OverheadSat[] = []
+  for (let i = 0; i < recs.length; i++) {
+    const rec = recs[i]
+    if (!rec) continue
+    let r: { position?: Vec3 } | false = false
+    try { r = lib.propagate(rec, date) } catch { r = false }
+    const p = finitePos(r)
+    if (!p) continue
+    const ecf = lib.eciToEcf(p, gmst)
+    const la = lib.ecfToLookAngles(obs, ecf)
+    if (la.elevation <= minEl) continue
+    const s = sats[i]
+    out.push({
+      id: s?.id ?? -1,
+      name: s?.name ?? "Unknown",
+      type: s?.type,
+      group: s?.group,
+      azimuthDeg: (la.azimuth * 180) / Math.PI,
+      elevationDeg: (la.elevation * 180) / Math.PI,
+      slantRangeKm: la.rangeSat,
+      altitudeKm: Math.sqrt(p.x * p.x + p.y * p.y + p.z * p.z) - EARTH_RADIUS_KM,
+    })
+  }
+  // Highest first — the closest-to-zenith passes are the ones worth naming.
+  out.sort((a, b) => b.elevationDeg - a.elevationDeg)
+  return out
+}
+
 // ── Shared FULL-catalogue cache (fetched + parsed exactly once) ──────────────
 /** Provenance header of the baked catalogue (snapshot date, source line, type
  *  breakdown). Filled as a side effect of loadFullCatalog so the transparency
