@@ -129,6 +129,12 @@ const IssLivePanel = dynamic(
   { ssr: false },
 )
 
+// "Watch live" — free public feeds (ISS cams, weather-sat Earth, all-sky cams).
+const WatchLive = dynamic(
+  () => import("./watch-live").then((m) => m.WatchLive),
+  { ssr: false },
+)
+
 // Earth→Mars porkchop plot — launch windows from a Lambert C3 grid.
 const PorkchopPlot = dynamic(
   () => import("./porkchop-plot").then((m) => m.PorkchopPlot),
@@ -325,6 +331,8 @@ export function CelestialExplorer() {
   const [showAllSats, setShowAllSats] = useState(false)
   // Live ISS position (sub-point, altitude, speed — ticks each second).
   const [issLiveOpen, setIssLiveOpen] = useState(false)
+  // "Watch live" — free public feeds (ISS cams, weather-sat Earth, all-sky cams).
+  const [watchLiveOpen, setWatchLiveOpen] = useState(false)
   // Earth→Mars porkchop plot (launch windows from a Lambert C3 grid).
   const [porkchopOpen, setPorkchopOpen] = useState(false)
   // Near-Earth asteroids.
@@ -347,7 +355,7 @@ export function CelestialExplorer() {
   const [bodiesSheet, setBodiesSheet] = useState(false)
   const [toolsSheet, setToolsSheet] = useState(false)
   const [timeSheet, setTimeSheet] = useState(false)
-  const closePanels = () => { setPassesOpen(false); setWeatherOpen(false); setLaunchesOpen(false); setImageryOpen(false); setTransferOpen(false); setStationOpen(false); setIssLiveOpen(false); setPorkchopOpen(false); setNeoOpen(false); setInventoryOpen(false); setMetricsOpen(false); setConjOpen(false); setReentryOpen(false); setDebrisOpen(false); setScreeningOpen(false); setProximityOpen(false) }
+  const closePanels = () => { setPassesOpen(false); setWeatherOpen(false); setLaunchesOpen(false); setImageryOpen(false); setTransferOpen(false); setStationOpen(false); setIssLiveOpen(false); setWatchLiveOpen(false); setPorkchopOpen(false); setNeoOpen(false); setInventoryOpen(false); setMetricsOpen(false); setConjOpen(false); setReentryOpen(false); setDebrisOpen(false); setScreeningOpen(false); setProximityOpen(false) }
   // `?earth=1` auto-opens the photoreal view — for capture/testing + deep-links.
   useEffect(() => {
     try {
@@ -538,6 +546,8 @@ export function CelestialExplorer() {
           label="Earth, satellites & the Moon" onClick={() => { viewEarthMoon(); afterPick?.() }} />
         <MenuItem color="#7affd0" icon={<Satellite className="h-3.5 w-3.5" />}
           label="ISS live position" onClick={go(() => setIssLiveOpen(true))} />
+        <MenuItem color="#8ab6ff" icon={<Radio className="h-3.5 w-3.5" />}
+          label="Watch live · free feeds" onClick={go(() => setWatchLiveOpen(true))} />
         <MenuItem color="var(--accent)" icon={<Satellite className="h-3.5 w-3.5" />}
           label="ISS over you" onClick={go(() => setPassesOpen(true))} />
         <MenuItem color="#ffd27a" icon={<Compass className="h-3.5 w-3.5" />}
@@ -1002,6 +1012,11 @@ export function CelestialExplorer() {
           {issLiveOpen && (
             <div className="absolute bottom-24 left-4 md:left-6 z-40">
               <IssLivePanel onClose={() => setIssLiveOpen(false)} />
+            </div>
+          )}
+          {watchLiveOpen && (
+            <div className="absolute bottom-24 left-4 md:left-6 z-40">
+              <WatchLive onClose={() => setWatchLiveOpen(false)} />
             </div>
           )}
           {porkchopOpen && (
