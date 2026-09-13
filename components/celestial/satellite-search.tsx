@@ -366,7 +366,7 @@ export function SatelliteSearch() {
             type="button"
             onClick={() => pickFilter(opt.k)}
             data-cursor-hover
-            className={`rounded-full border px-2.5 py-1 font-mono text-[9px] tracking-wider uppercase transition-colors ${
+            className={`rounded-full border px-3 py-1.5 min-h-[32px] font-mono text-[10px] md:text-[11px] tracking-wider uppercase transition-colors ${
               filter === opt.k
                 ? opt.k === "debris"
                   ? "border-red-400/60 bg-red-400/15 text-red-300"
