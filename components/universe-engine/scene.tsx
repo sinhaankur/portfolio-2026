@@ -415,14 +415,18 @@ function FlyToController({ interactive }: { interactive: boolean }) {
     // start by stretching the early-distance portion of the curve —
     // when targetErr is large we ramp k up gradually instead of jumping.
     _flyTargetVec.set(state.target.x, state.target.y, state.target.z)
-    const baseRate = interactive ? 3.2 : 1.6
-    // Pre-lerp distance to the waypoint — used to ease the early segment
-    // so far-away targets don't snap fast then crawl. Proximity goes 0
-    // when far → 1 when close, so the effective rate ramps up gradually
-    // toward the destination instead of front-loading the motion.
+    // Cinematic ease on BOTH modes now: an explore click should GLIDE into the
+    // body (a "flying there" shot), not snap. Interactive is still quicker than
+    // the passive journey, but no longer instant — it eases in and settles.
+    const baseRate = interactive ? 2.4 : 1.6
+    // Pre-lerp distance to the waypoint — used to ease the early segment so
+    // far-away targets don't snap fast then crawl. Proximity goes 0 when far →
+    // 1 when close, so the effective rate ramps up gradually toward arrival.
     const preLerpDistance = controls.target.distanceTo(_flyTargetVec)
-    const proximity = interactive ? 1 : Math.min(1, 1 / (1 + preLerpDistance * 0.06))
-    const k = 1 - Math.exp(-delta * baseRate * (interactive ? 1 : 0.5 + 0.7 * proximity))
+    const proximity = Math.min(1, 1 / (1 + preLerpDistance * (interactive ? 0.03 : 0.06)))
+    // Both modes get the proximity ease-in/out; interactive keeps a higher floor
+    // so it still feels responsive to the user's click.
+    const k = 1 - Math.exp(-delta * baseRate * (interactive ? 0.7 + 0.6 * proximity : 0.5 + 0.7 * proximity))
 
     controls.target.lerp(_flyTargetVec, k)
 

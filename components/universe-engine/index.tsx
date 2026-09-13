@@ -618,6 +618,23 @@ export function UniverseEngine({
     setFollowingLabel(null)
   }, [])
 
+  // Cinematic chrome-fade: when the user dives into something (flying to a body,
+  // following a craft, or a body/sat selected), the peripheral HUD recedes so the
+  // scene leads — "the experience", not the toolbar. Polls the module refs (they
+  // change outside React) on a light interval; Escape/reset brings chrome back.
+  const [immersed, setImmersed] = useState(false)
+  useEffect(() => {
+    if (!interactive) { setImmersed(false); return }
+    const id = setInterval(() => {
+      const diving =
+        followRef.current != null ||
+        flyToRef.current.active ||
+        selectedSatRef.current != null
+      setImmersed((prev) => (prev !== diving ? diving : prev))
+    }, 250)
+    return () => clearInterval(id)
+  }, [interactive])
+
   // Default journey — auto-cycles canonical sights while the user hasn't
   // entered explore mode. When `interactive` flips true the journey
   // cleans up and the in-flight fly-to is cancelled so the camera stops
@@ -928,7 +945,10 @@ export function UniverseEngine({
               timeline already own the bottom of the screen; the big fact bubble
               floating over Earth was pure clutter there. */}
           {!(quietMobileChrome && mobile) && !solarMode && (
-            <LearnTicker suppressed={Boolean(hovered) || satFollowed} />
+            /* Cinematic: the teaching ticker recedes the moment the user is
+               diving in (immersed) or hovering/following — the scene leads,
+               text is limited to when it helps, not while you're exploring. */
+            <LearnTicker suppressed={Boolean(hovered) || satFollowed || immersed} />
           )}
 
           {/* Deep Dive legend — compact key for the orbital overlays. */}
