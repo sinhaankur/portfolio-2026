@@ -126,7 +126,10 @@ export function MilkyWay({
 
     const radius = 130
     const branches = 4
-    const spin = 1.3
+    // Tighter winding so the arms actually READ as spiral arms, not a blob. The
+    // old spin (r*0.052 → ~1 turn across the disc) barely curved; ~2.5 turns
+    // (the Milky Way winds ~2–3×) gives clear sweeping arms.
+    const spin = 3.4
 
     // Chart-mode (invert) suppresses per-star colour — every star multiplies
     // through the dark uStarColor uniform, so we want a flat 1,1,1 here.
@@ -145,7 +148,9 @@ export function MilkyWay({
     //    the bulge. This is what gives the spiral structure a real palette
     //    instead of a flat white wash.
     for (let i = 0; i < armCount; i++) {
-      const r = Math.pow(Math.random(), 1.6) * radius
+      // Spread stars further OUT along the arms (pow 1.6 → 1.15) so they don't
+      // all pile into the centre and drown the arms in core glow.
+      const r = Math.pow(Math.random(), 1.15) * radius
       const branchAngle = ((i % branches) / branches) * Math.PI * 2
       const spinAngle = r * spin * 0.04
       // Arm spurs/feathering — real spiral arms aren't smooth logarithmic
@@ -156,10 +161,13 @@ export function MilkyWay({
         + Math.sin(r * 2.7) * 0.04
       const armAngle = branchAngle + spinAngle + spur
 
-      const randomness = 0.28
-      const rx = Math.pow(Math.random(), 2.6) * (Math.random() < 0.5 ? 1 : -1) * randomness * r
-      const ry = Math.pow(Math.random(), 2.6) * (Math.random() < 0.5 ? 1 : -1) * randomness * r * 0.12
-      const rz = Math.pow(Math.random(), 2.6) * (Math.random() < 0.5 ? 1 : -1) * randomness * r
+      // Scatter TIGHTENED (0.28 → 0.16) + steeper falloff (pow 2.6 → 3.2) so
+      // stars hug the arm ridge-line instead of smearing across the disc into a
+      // blob. The arms stay frayed (via spur above) but read as distinct arms.
+      const randomness = 0.16
+      const rx = Math.pow(Math.random(), 3.2) * (Math.random() < 0.5 ? 1 : -1) * randomness * r
+      const ry = Math.pow(Math.random(), 3.2) * (Math.random() < 0.5 ? 1 : -1) * randomness * r * 0.12
+      const rz = Math.pow(Math.random(), 3.2) * (Math.random() < 0.5 ? 1 : -1) * randomness * r
 
       const i3 = i * 3
       positions[i3]     = Math.cos(armAngle) * r + rx
@@ -171,9 +179,12 @@ export function MilkyWay({
       const normR = r / radius
       alphas[i] = (0.08 + (1 - normR) * 0.25) * (0.5 + Math.random() * 0.5)
 
-      // Color: bias warmer toward the centre, bluer toward the outskirts.
+      // Color: bias warmer toward the centre, bluer toward the outskirts. A
+      // strong warm-core → cool-arm gradient is the single clearest "HD" read —
+      // it's what makes the spiral look like a real galaxy photo rather than a
+      // uniform golden haze. Outer arms now go up to ~68% blue/white.
       const cRoll = Math.random()
-      const blueBias = 0.18 + normR * 0.32 // 18% inner → 50% outer chance of a blue/white star
+      const blueBias = 0.14 + normR * normR * 0.54 // 14% inner → 68% outer chance of a blue/white star
       if (cRoll < blueBias) {
         // Hot young blue-white star (O/B class)
         writeColor(i, 0.74 + Math.random() * 0.10, 0.82 + Math.random() * 0.08, 1.0)
@@ -375,14 +386,18 @@ export function MilkyWay({
           bloom. */}
       {!invert && (
         <group ref={coreGlowRef}>
-          <sprite scale={mobile ? [10, 10, 1] : [16, 16, 1]}>
-            <spriteMaterial map={coreTex} color="#ffedcf" transparent opacity={mobile ? 0.55 : 0.9} depthWrite={false} blending={AdditiveBlending} />
+          {/* Bloom PULLED BACK so the tightened spiral arms read through the
+              centre instead of being bleached out — the core stays a bright warm
+              bulge (a golden jewel) but no longer a white sun swallowing the arms.
+              Smaller hot core + lower opacities let the HD structure survive. */}
+          <sprite scale={mobile ? [7, 7, 1] : [11, 11, 1]}>
+            <spriteMaterial map={coreTex} color="#ffedcf" transparent opacity={mobile ? 0.45 : 0.62} depthWrite={false} blending={AdditiveBlending} />
           </sprite>
-          <sprite scale={mobile ? [26, 26, 1] : [34, 34, 1]}>
-            <spriteMaterial map={coreTex} color="#ffcf8a" transparent opacity={mobile ? 0.42 : 0.55} depthWrite={false} blending={AdditiveBlending} />
+          <sprite scale={mobile ? [20, 20, 1] : [26, 26, 1]}>
+            <spriteMaterial map={coreTex} color="#ffcf8a" transparent opacity={mobile ? 0.32 : 0.40} depthWrite={false} blending={AdditiveBlending} />
           </sprite>
-          <sprite scale={mobile ? [58, 58, 1] : [70, 70, 1]}>
-            <spriteMaterial map={coreTex} color="#e8a860" transparent opacity={mobile ? 0.20 : 0.22} depthWrite={false} blending={AdditiveBlending} />
+          <sprite scale={mobile ? [48, 48, 1] : [60, 60, 1]}>
+            <spriteMaterial map={coreTex} color="#e8a860" transparent opacity={mobile ? 0.16 : 0.17} depthWrite={false} blending={AdditiveBlending} />
           </sprite>
         </group>
       )}

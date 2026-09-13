@@ -892,6 +892,15 @@ export const DUST_HAZE_FRAGMENT_SHADER = /* glsl */ `
     // Centre-origin coords; the disc's own UVs run 0..1.
     vec2 c = vUv - 0.5;
 
+    // SPIRAL WARP — twist the sampling frame by an angle that grows with radius
+    // so the dust lanes sweep AROUND the core and trace the arms, instead of a
+    // straight bar. This is what makes the haze read as a spiral galaxy's dust
+    // rather than a smudge. Winding matched to the point-field arms.
+    float rad = length(c) * 2.0;
+    float swirl = rad * 3.0;               // ~matches the star arms' winding
+    float cs = cos(swirl), sn = sin(swirl);
+    vec2 cw = mat2(cs, -sn, sn, cs) * c;   // swirled coords for the lanes
+
     // A real Milky Way is a THIN bright spine, not a round blob. Squash the
     // across-plane axis so the band is elongated along its length (x), with a
     // tight bright bulge at centre. Anisotropic radius: cheap to weight y harder.
@@ -907,8 +916,8 @@ export const DUST_HAZE_FRAGMENT_SHADER = /* glsl */ `
     // Real DARK dust lanes — high-frequency filaments that actually cut to dark,
     // not a gentle mottle. Two octaves at different scales carve rifts across the
     // band (the Great Rift look). Floor is low so lanes read as true dark gaps.
-    float n1 = fbm(c * 11.0 + vec2(uTime * 0.008, 0.0));
-    float n2 = fbm(c * 23.0 - vec2(0.0, uTime * 0.005));
+    float n1 = fbm(cw * 11.0 + vec2(uTime * 0.008, 0.0));
+    float n2 = fbm(cw * 23.0 - vec2(0.0, uTime * 0.005));
     float lanes = clamp(0.18 + 1.05 * (n1 * 0.65 + n2 * 0.35), 0.0, 1.0);
     // Contrast curve — pushes the mid greys apart into bright filaments + dark rifts.
     lanes = smoothstep(0.12, 0.88, lanes);
