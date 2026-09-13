@@ -43,6 +43,31 @@ function famColor(s: OverheadSat): string {
   return "#c7ccd6"
 }
 
+// Stable key for a predicted pass — id + rise time, so re-prediction keeps the
+// armed/fired state attached to the same physical pass.
+function passKey(p: SatPass): string {
+  return `${p.id}-${p.riseMs}`
+}
+
+// Compass bearing words from an azimuth, for "look NE / low in the west".
+function bearing(azDeg: number): string {
+  const dirs = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
+  return dirs[Math.round(((azDeg % 360) / 45)) % 8]
+}
+
+// City-visibility honesty: from a light-polluted city you only see the BRIGHT
+// stuff — the ISS + big stations, spent rocket bodies, sometimes bright LEO. A
+// pass also has to climb high enough to clear rooftops/haze. This flags whether a
+// pass is realistically naked-eye from a city, so we don't promise a show that
+// the streetlights will wash out. (True magnitude needs sun-angle/phase we don't
+// model, so this is an honest heuristic, labelled as such.)
+function cityVisible(p: SatPass): boolean {
+  const n = p.name.toUpperCase()
+  const bright = n.includes("ISS") || n.includes("ZARYA") || n.includes("CSS") ||
+    n.includes("TIANHE") || n.includes("TIANGONG") || n.includes("R/B") || n.includes("ROCKET")
+  return bright && p.peakElevationDeg >= 30
+}
+
 // Az/el → x,y on a unit dome (radius 1). Zenith (el 90) at centre, horizon (el 0)
 // at the rim. Azimuth measured from north, clockwise (N up, E right) — the way you
 // actually orient looking up with a map, so it reads intuitively.
@@ -62,6 +87,15 @@ export function SkyDome({ onClose }: { onClose: () => void }) {
   const [hover, setHover] = useState<OverheadSat | null>(null)
   const [passes, setPasses] = useState<SatPass[]>([])
   const [showTrails, setShowTrails] = useState(true)
+  // Pass alerts — a set of "armed" pass keys the user wants a heads-up for, plus
+  // the browser's notification-permission state. A key is `${id}-${riseMs}` so
+  // re-predicting the same pass keeps its armed state; fired keys are remembered
+  // so we never double-notify.
+  const [armed, setArmed] = useState<Set<string>>(new Set())
+  const [notifyPerm, setNotifyPerm] = useState<NotificationPermission>(
+    typeof Notification !== "undefined" ? Notification.permission : "denied",
+  )
+  const firedRef = useRef<Set<string>>(new Set())
   const overheadRef = useRef<OverheadSat[]>([])
   const idIndexRef = useRef<Map<number, number>>(new Map())
   const dprRef = useRef(1)
@@ -143,6 +177,54 @@ export function SkyDome({ onClose }: { onClose: () => void }) {
     const id = setInterval(run, 60_000)
     return () => { alive = false; clearInterval(id) }
   }, [geo])
+
+  // Arm/disarm a pass alert. First arm asks for notification permission; if the
+  // user grants it we fire a real browser notification, otherwise we fall back to
+  // an in-panel banner (below) so the feature still works.
+  const toggleAlert = useCallback((key: string) => {
+    setArmed((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) { next.delete(key); return next }
+      next.add(key)
+      if (typeof Notification !== "undefined" && Notification.permission === "default") {
+        Notification.requestPermission().then((p) => setNotifyPerm(p))
+      }
+      return next
+    })
+  }, [])
+
+  // Alert watcher — every 15s, check armed passes and fire ~3 min before rise
+  // (enough time to walk outside). Fires once per pass (firedRef), via a browser
+  // notification if permitted, else an in-panel "heads up" banner.
+  const [banner, setBanner] = useState<string | null>(null)
+  useEffect(() => {
+    if (geo !== "on" || armed.size === 0) return
+    let alive = true
+    const LEAD_MS = 3 * 60_000
+    const check = () => {
+      if (!alive) return
+      const now = Date.now()
+      for (const pz of passes) {
+        const key = passKey(pz)
+        if (!armed.has(key) || firedRef.current.has(key)) continue
+        const untilRise = pz.riseMs - now
+        if (untilRise <= LEAD_MS && untilRise > -60_000) {
+          firedRef.current.add(key)
+          const mins = Math.max(0, Math.round(untilRise / 60000))
+          const title = `${pz.name} rising ${mins <= 0 ? "now" : `in ~${mins} min`}`
+          const body = `Peak ${pz.peakElevationDeg.toFixed(0)}° up · look ${bearing(pz.riseAzimuthDeg)}. Go outside and look up.`
+          if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+            try { new Notification(title, { body, tag: key }) } catch { setBanner(`${title} — ${body}`) }
+          } else {
+            setBanner(`${title} — ${body}`)
+          }
+        }
+      }
+    }
+    check()
+    const id = setInterval(check, 15_000)
+    return () => { alive = false; clearInterval(id) }
+  }, [geo, armed, passes])
 
   // Draw loop — the dome, the compass rose, the elevation rings, and every dot.
   useEffect(() => {
@@ -296,7 +378,9 @@ export function SkyDome({ onClose }: { onClose: () => void }) {
             <h2 className="mt-0.5 text-lg font-semibold text-white">The sky above you</h2>
             <p className="mt-1 text-[12px] leading-snug text-white/55">
               Every tracked object over your horizon, right now — plotted where it really is.
-              Your location stays on your device.
+              From a city you can&apos;t see most of these with your eyes; the amber dots
+              are the bright ones (ISS, big stations) that punch through the light. Your
+              location stays on your device.
             </p>
           </div>
           <button
@@ -380,37 +464,76 @@ export function SkyDome({ onClose }: { onClose: () => void }) {
               </div>
             </div>
 
+            {/* Heads-up banner — the fallback alert when notifications are
+                blocked, or an in-panel echo of a fired notification. */}
+            {banner && (
+              <div className="mt-3 flex items-start justify-between gap-2 rounded-xl border border-[#ffd27a]/40 bg-[#ffd27a]/10 p-2.5">
+                <span className="text-[12px] leading-snug text-[#ffe6b0]">{banner}</span>
+                <button type="button" onClick={() => setBanner(null)} data-cursor-hover
+                  className="shrink-0 font-mono text-[10px] text-white/50 hover:text-white/80">✕</button>
+              </div>
+            )}
+
             {/* Next passes — "when to go outside and look up". The soonest
-                notable craft rising above your horizon, with peak elevation. */}
+                notable craft rising above your horizon, with peak elevation, a
+                city-visibility flag, and a bell to be alerted before it rises. */}
             {passes.length > 0 && (
               <div className="mt-3 rounded-xl border border-white/10 bg-white/[0.03] p-2.5">
-                <div className="mb-1.5 font-mono text-[9px] uppercase tracking-widest text-white/40">
-                  Next passes (next 2h)
+                <div className="mb-1.5 flex items-center justify-between">
+                  <span className="font-mono text-[9px] uppercase tracking-widest text-white/40">
+                    Next passes (next 2h)
+                  </span>
+                  <span className="font-mono text-[8px] uppercase tracking-wider text-[#ffd27a]/70">
+                    ● visible from a city
+                  </span>
                 </div>
                 <div className="flex flex-col gap-1">
                   {passes.map((pz) => {
                     const mins = Math.max(0, Math.round((pz.riseMs - Date.now()) / 60000))
+                    const key = passKey(pz)
+                    const isArmed = armed.has(key)
+                    const seeable = cityVisible(pz)
                     return (
-                      <button
-                        key={`${pz.id}-${pz.riseMs}`}
-                        type="button"
-                        data-cursor-hover
-                        onClick={() => {
-                          if (pz.id >= 0) {
-                            selectedSatRef.current = pz.id
-                            window.dispatchEvent(new Event("celestial:sat-selected"))
-                          }
-                        }}
-                        className="flex items-center justify-between gap-2 rounded-lg px-2 py-1 text-left hover:bg-white/5"
-                      >
-                        <span className="truncate text-[12px] text-white/85">{pz.name}</span>
-                        <span className="shrink-0 font-mono text-[10px] text-white/50">
-                          {mins === 0 ? "now" : `in ${mins}m`} · {pz.peakElevationDeg.toFixed(0)}° peak
-                        </span>
-                      </button>
+                      <div key={key} className="flex items-center gap-2 rounded-lg px-2 py-1 hover:bg-white/5">
+                        <button
+                          type="button"
+                          data-cursor-hover
+                          onClick={() => {
+                            if (pz.id >= 0) {
+                              selectedSatRef.current = pz.id
+                              window.dispatchEvent(new Event("celestial:sat-selected"))
+                            }
+                          }}
+                          className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                        >
+                          <span aria-hidden className={`h-1.5 w-1.5 shrink-0 rounded-full ${seeable ? "bg-[#ffd27a]" : "bg-white/20"}`}
+                            title={seeable ? "Bright enough to see from a city" : "Likely too faint under city lights"} />
+                          <span className="truncate text-[12px] text-white/85">{pz.name}</span>
+                          <span className="shrink-0 font-mono text-[10px] text-white/50">
+                            {mins === 0 ? "now" : `in ${mins}m`} · {pz.peakElevationDeg.toFixed(0)}° · {bearing(pz.riseAzimuthDeg)}
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          data-cursor-hover
+                          onClick={() => toggleAlert(key)}
+                          aria-pressed={isArmed}
+                          title={isArmed ? "Alert armed — tap to cancel" : "Alert me ~3 min before it rises"}
+                          className={`shrink-0 rounded-md px-1.5 py-0.5 text-[12px] leading-none transition-colors ${
+                            isArmed ? "text-[#ffd27a]" : "text-white/35 hover:text-white/70"
+                          }`}
+                        >
+                          {isArmed ? "🔔" : "🔕"}
+                        </button>
+                      </div>
                     )
                   })}
                 </div>
+                {notifyPerm === "denied" && armed.size > 0 && (
+                  <p className="mt-1.5 px-2 text-[10px] leading-snug text-white/40">
+                    Notifications are blocked, so alerts show here in the panel instead.
+                  </p>
+                )}
               </div>
             )}
 
