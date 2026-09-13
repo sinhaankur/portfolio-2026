@@ -14,8 +14,9 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Search, X, Crosshair, Locate, Download } from "lucide-react"
-import { loadSatelliteCatalog, selectedArchetypeRef, selectedArchetypeIdRef, selectedOrbitRef, observerRef, findNearestOverhead, launchMatesFor, satTypeFilterRef, type SatMeta, type SatOrbit, type NearestSat, type LaunchMate } from "@/components/universe-engine/satellite-data"
+import { loadSatelliteCatalog, selectedArchetypeRef, selectedArchetypeIdRef, selectedOrbitRef, observerRef, findNearestOverhead, launchMatesFor, satTypeFilterRef, satCountryFilterRef, type SatMeta, type SatOrbit, type NearestSat, type LaunchMate } from "@/components/universe-engine/satellite-data"
 import { selectedSatRef, showJourneyRef } from "@/components/universe-engine/satellite-refs"
+import { SAT_COUNTRIES, classifyCountry } from "@/components/universe-engine/satellite-field"
 import { anatomyFor } from "@/lib/craft-anatomy"
 import { statusFromPerigee, lifetimeFromPerigee, lifetimeLabel } from "@/lib/reentry"
 import { launchSiteFor } from "@/lib/launch-sites"
@@ -88,7 +89,12 @@ function debrisOrigin(name: string): string | null {
 export function SatelliteSearch() {
   const [catalog, setCatalog] = useState<SatMeta[] | null>(null)
   const [q, setQ] = useState("")
+  // Scene-first on mobile: the filter chips + "what's overhead" only reveal once
+  // the user engages the search. Until then the sky leads. (Always open ≥ md.)
+  const [expanded, setExpanded] = useState(false)
   const [filter, setFilter] = useState<"all" | "active" | "debris">("all")
+  // Owner-country filter — the "who owns space" read (LeoLabs-style). -1 = all.
+  const [country, setCountry] = useState<number>(-1)
   const [selected, setSelected] = useState<SatMeta | null>(null)
   // Archetype label ("Starlink flat-pack" etc.) + live orbital readout — the R3F
   // field derives both from SGP4, so we poll the bridge refs while one is picked.
@@ -253,6 +259,7 @@ export function SatelliteSearch() {
     for (const s of catalog) {
       if (filter === "active" && isDebris(s)) continue
       if (filter === "debris" && !isDebris(s)) continue
+      if (country >= 0 && classifyCountry(s.owner) !== country) continue
       const n = s.name.toLowerCase()
       let score: number | null = null
       if (alias && n.startsWith(alias)) score = 0
@@ -263,7 +270,7 @@ export function SatelliteSearch() {
     }
     scored.sort((a, b) => a.score - b.score) // stable — catalog order within a rank
     return scored.slice(0, 40).map((x) => x.s)
-  }, [catalog, q, filter])
+  }, [catalog, q, filter, country])
 
   // Deep-space spacecraft that have LEFT Earth orbit (Voyagers, Pioneers, New
   // Horizons + the active cruisers). These aren't in the SGP4 catalogue — they
@@ -323,6 +330,16 @@ export function SatelliteSearch() {
     window.dispatchEvent(new CustomEvent("universe:sky-focus", { detail: { pointId: "planet:Earth" } }))
   }
 
+  // Pick an owner-country — drives the results list AND isolates that country's
+  // objects in the 3D swarm (the "who owns space" read). Toggling the active one
+  // clears back to all. Frames Earth so the isolation is visible.
+  function pickCountry(id: number) {
+    const next = country === id ? -1 : id
+    setCountry(next)
+    satCountryFilterRef.current = next
+    window.dispatchEvent(new CustomEvent("universe:sky-focus", { detail: { pointId: "planet:Earth" } }))
+  }
+
   function clearSel() {
     setSelected(null)
     selectedSatRef.current = null
@@ -347,15 +364,16 @@ export function SatelliteSearch() {
           type="search"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder={catalog ? `Search ${catalog.length.toLocaleString()} satellites…` : "Loading catalogue…"}
+          onFocus={() => setExpanded(true)}
+          placeholder={catalog ? "Search satellites…" : "Loading catalogue…"}
           aria-label="Search satellites by name"
           className="w-full rounded-full border border-border bg-background/80 backdrop-blur-md pl-9 pr-4 py-2.5 font-mono text-xs tracking-wider text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         />
       </div>
 
       {/* Active / debris filter — isolate the real junk cloud (LeoLabs-style).
-          flex-wrap so the chips never run off a narrow phone. */}
-      <div className="mt-2 flex flex-wrap gap-1.5">
+          Scene-first: hidden on mobile until the search is engaged; always on ≥md. */}
+      <div className={`mt-2 ${expanded ? "flex" : "hidden"} md:flex flex-wrap gap-1.5`}>
         {([
           { k: "all", label: "All" },
           { k: "active", label: `Active · ${counts.active.toLocaleString()}` },
@@ -379,8 +397,31 @@ export function SatelliteSearch() {
         ))}
       </div>
 
-      {/* What's overhead right now — nearest object to the user's own location. */}
-      <div className="mt-2">
+      {/* Owner-country filter — "who owns space". Tap a nation to isolate its
+          objects in the swarm + list (tap again = all). Real CelesTrak owner
+          data. Scene-first: hidden on mobile until the search is engaged. */}
+      <div className={`mt-2 ${expanded ? "flex" : "hidden"} md:flex flex-wrap gap-1.5`}>
+        {SAT_COUNTRIES.filter((c) => c.id !== 7).map((c) => (
+          <button
+            key={c.id}
+            type="button"
+            data-cursor-hover
+            onClick={() => pickCountry(c.id)}
+            aria-pressed={country === c.id}
+            title={`Isolate ${c.label}`}
+            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 min-h-[30px] font-mono text-[10px] tracking-wider uppercase transition-colors ${
+              country === c.id ? "border-accent/60 bg-accent/15 text-accent" : "border-border bg-background/60 text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <span aria-hidden className="h-2 w-2 rounded-full" style={{ background: c.color }} />
+            {c.label}
+          </button>
+        ))}
+      </div>
+
+      {/* What's overhead right now — nearest object to the user's own location.
+          Scene-first: revealed on mobile once the search is engaged; always ≥md. */}
+      <div className={`mt-2 ${expanded ? "block" : "hidden"} md:block`}>
         <button
           type="button"
           onClick={scanNearest}

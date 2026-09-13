@@ -97,6 +97,8 @@ export const satsRef: { current: Sat[] } = { current: [] }
 export const satTypeFilterRef: { current: number } = { current: -1 }
 export const satRegimeFilterRef: { current: number } = { current: -1 }
 export const debrisFamilyFilterRef: { current: number } = { current: -1 }
+/** -1 = all owners; else a SAT_COUNTRIES bucket id → swarm shows only that country. */
+export const satCountryFilterRef: { current: number } = { current: -1 }
 
 // ── Group + debris-family data ───────────────────────────────────────────────
 export const SAT_GROUPS = [

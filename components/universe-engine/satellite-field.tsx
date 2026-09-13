@@ -241,6 +241,38 @@ function clampSpan(trueSpan: number): { span: number; lift: number } {
 // only mounts once Earth is focused with satellites toggled on, and selecting
 // a satellite (the moment a GLB is actually shown) comes clicks later.
 
+/** Country buckets for the owner filter — real CelesTrak SATCAT owner codes
+ *  grouped into the major spacefaring nations/blocs + "Other". Index order is the
+ *  contract with the shader's uCountrySel + the UI legend. "seeing is believing":
+ *  filter/colour the swarm by who owns space, from data we already load. */
+export const SAT_COUNTRIES = [
+  { id: 0, code: "US", label: "USA", color: "#4ea3ff" },
+  { id: 1, code: "PRC", label: "China", color: "#ff4d4d" },
+  { id: 2, code: "CIS", label: "Russia", color: "#ffd24d" },
+  { id: 3, code: "ESA", label: "Europe", color: "#7c5cff" },
+  { id: 4, code: "JPN", label: "Japan", color: "#ff8ac4" },
+  { id: 5, code: "IND", label: "India", color: "#ff9a3c" },
+  { id: 6, code: "UK", label: "UK", color: "#4de0c0" },
+  { id: 7, code: "OTHER", label: "Other", color: "#9aa0aa" },
+] as const
+
+// CelesTrak owner codes → our country bucket id. European national + ESA codes
+// fold into "Europe"; ex-USSR states into "Russia" (CIS); everything else "Other".
+const OWNER_TO_COUNTRY: Record<string, number> = {
+  US: 0, USA: 0,
+  PRC: 1, CN: 1,
+  CIS: 2, RU: 2, USSR: 2,
+  ESA: 3, FR: 3, GER: 3, IT: 3, ITSO: 3, EUTE: 3, EUME: 3, SES: 3, FGER: 3, SPN: 3, NETH: 3, SWED: 3, LUXE: 3,
+  JPN: 4, JP: 4,
+  IND: 5, IN: 5,
+  UK: 6,
+}
+/** owner code → country bucket id (7 = Other/unknown). */
+export function classifyCountry(owner: string | undefined): number {
+  if (!owner) return 7
+  return OWNER_TO_COUNTRY[owner.trim().toUpperCase()] ?? 7
+}
+
 /** Pick an archetype from the satellite's type, name, operator, and orbit
  *  altitude. Debris + rocket bodies get their own shapes (not a clean sat). */
 export function classifyArchetype(name: string, owner: string, altKm: number, type?: string, launchMs?: number): ArchetypeId {
@@ -310,7 +342,7 @@ import {
   type SatOrbit, type NearestSat, type LaunchMate,
   selectedArchetypeRef, selectedArchetypeIdRef, selectedOrbitRef, observerRef,
   satLibRef, satrecsRef, satsRef,
-  satTypeFilterRef, satRegimeFilterRef, debrisFamilyFilterRef,
+  satTypeFilterRef, satRegimeFilterRef, debrisFamilyFilterRef, satCountryFilterRef,
   SAT_GROUPS, DEBRIS_FAMILIES,
   clampToSpaceAge, finitePos,
   classifyDebrisFamily, classifyRegimeId, classifyGroup, orbitRegime,
@@ -619,6 +651,7 @@ const VERT = /* glsl */ `
   attribute float aGroup;       // constellation group id (see SAT_GROUPS)
   attribute float aFamily;      // debris fragmentation-family id (see DEBRIS_FAMILIES), -1 = none
   attribute float aRegime;      // orbit regime id (0=LEO 1=MEO 2=GEO 3=HEO)
+  attribute float aCountry;     // owner-country bucket id (see SAT_COUNTRIES)
   attribute float aRand;        // stable per-sat random [0,1) → stratified LOD cull
   uniform float uTimeDay;       // current sim time, days since J2000
   uniform float uSize;
@@ -628,6 +661,7 @@ const VERT = /* glsl */ `
   uniform float uFamilySel; // -1 = no family isolate; else show ONLY this debris family
   uniform float uTypeSel;   // -1 = all · 0 = active only (hide debris) · 1 = debris only
   uniform float uRegimeSel; // -1 = all regimes; else show only this regime id
+  uniform float uCountrySel; // -1 = all owners; else show ONLY this country bucket id
   uniform float uLod;       // 0 = Earth fills the frame (full catalogue) → 1 = Earth
                             // small on screen (LEO thinned to a calm haze)
   uniform float uKeepScale; // viewport-area dot budget: 1 on desktop, ~0.25 on a
@@ -660,7 +694,7 @@ const VERT = /* glsl */ `
     // sparse and ARE the structure (nav shell, GEO belt), so they never cull.
     // Any explicit filter or isolate means the user asked for a specific
     // subset — show it in full.
-    float lodEff = (uGroupSel >= 0.0 || uRegimeSel >= 0.0 || uFamilySel >= 0.0 || uTypeSel >= 0.0 || uIsolate > 0.5) ? 0.0 : uLod;
+    float lodEff = (uGroupSel >= 0.0 || uRegimeSel >= 0.0 || uFamilySel >= 0.0 || uTypeSel >= 0.0 || uCountrySel >= 0.0 || uIsolate > 0.5) ? 0.0 : uLod;
     // Now the shell is EXPANDED (SHELL_EXPAND), LEO no longer piles into a crust —
     // so keep FAR more dots at overview (0.55 → 0.85) so the swarm is clearly
     // visible even before you click, not a faint scatter.
@@ -687,6 +721,7 @@ const VERT = /* glsl */ `
                typeHide > 0.5 ||
                (uGroupSel >= 0.0 && abs(aGroup - uGroupSel) > 0.5) ||
                (uRegimeSel >= 0.0 && abs(aRegime - uRegimeSel) > 0.5) ||
+               (uCountrySel >= 0.0 && abs(aCountry - uCountrySel) > 0.5) ||
                (uFamilySel >= 0.0 && abs(aFamily - uFamilySel) > 0.5)) ? 1.0 : 0.0;
     // Surviving LEO dots soften at overview so the band reads as a luminous
     // haze around the globe, resolving into crisp dots as you zoom in.
@@ -1245,11 +1280,13 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     const groups = new Float32Array(n)
     const regimes = new Float32Array(n)
     const families = new Float32Array(n)
+    const countries = new Float32Array(n)
     const rands = new Float32Array(n)
     const decays = new Float32Array(n)
     sats.forEach((sv, gi) => {
       groups[gi] = classifyGroup(sv.name, sv.type)
       regimes[gi] = classifyRegimeId(sv.l2)
+      countries[gi] = classifyCountry(sv.owner)
       // Classify debris AND rocket bodies into a family (the full Space-Track
       // set adds thousands of both); payloads never carry a family.
       families[gi] = (sv.type === "DEB" || sv.type === "R/B")
@@ -1280,6 +1317,7 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     g.setAttribute("aGroup", new THREE.BufferAttribute(groups, 1))
     g.setAttribute("aRegime", new THREE.BufferAttribute(regimes, 1))
     g.setAttribute("aFamily", new THREE.BufferAttribute(families, 1))
+    g.setAttribute("aCountry", new THREE.BufferAttribute(countries, 1))
     g.setAttribute("aRand", new THREE.BufferAttribute(rands, 1))
     g.setAttribute("aDecayDay", new THREE.BufferAttribute(decays, 1))
     g.boundingSphere = new THREE.Sphere(new THREE.Vector3(), earthVisualRadius * 12)
@@ -1302,6 +1340,7 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
       matRef.current.uniforms.uGroupSel.value = satGroupFilterRef.current
       matRef.current.uniforms.uRegimeSel.value = satRegimeFilterRef.current
       matRef.current.uniforms.uFamilySel.value = debrisFamilyFilterRef.current
+      matRef.current.uniforms.uCountrySel.value = satCountryFilterRef.current
       matRef.current.uniforms.uTypeSel.value = satTypeFilterRef.current
       matRef.current.uniforms.uKeepScale.value = areaScale
       matRef.current.uniforms.uMaxPx.value = maxPx
@@ -2067,6 +2106,7 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
             uIsolate: { value: 0 },
             uGroupSel: { value: -1 },
             uFamilySel: { value: -1 },
+            uCountrySel: { value: -1 },
             uTypeSel: { value: -1 },
             uRegimeSel: { value: -1 },
             uLod: { value: 1 },
