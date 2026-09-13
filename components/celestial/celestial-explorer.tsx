@@ -21,6 +21,7 @@ import { StaticStarfield } from "@/components/universe-engine/static-starfield"
 import { TimelineControl } from "@/components/universe-engine/hud"
 import { BODIES } from "@/lib/celestial-data"
 import { SatelliteSearch } from "./satellite-search"
+import { ZoomLadder } from "./zoom-ladder"
 import { useIsMobile, MobileBar, BodiesSheet, Sheet } from "./mobile-controls"
 import { selectedSatRef, satGroupFilterRef, showAllSatsRef } from "@/components/universe-engine/satellite-refs"
 import { setSimMs, getSimMs, timeScaleRef, hiResTexturesRef, cancelFollow, flyToRef } from "@/components/universe-engine/astronomy"
@@ -706,6 +707,14 @@ export function CelestialExplorer() {
             problem). Desktop keeps the top-right slot. */}
         <div className="absolute top-20 left-4 right-4 md:top-6 md:left-auto md:right-6 z-40">
           <SatelliteSearch />
+        </div>
+
+        {/* Progressive zoom ladder — the LeoLabs/CelesTrak drill-down pattern:
+            System → Earth → Shell → Surface in one tap. Right edge, vertically
+            centered, desktop only (mobile leads scene-first + has the Time/Tools
+            bar). Free 360° orbit + scroll-zoom still work; this adds named depth. */}
+        <div className="hidden md:flex absolute right-6 top-1/2 -translate-y-1/2 z-30 pointer-events-none">
+          <ZoomLadder />
         </div>
 
         {/* Swarm-point inspector — a followed dot in the shell has no catalogue

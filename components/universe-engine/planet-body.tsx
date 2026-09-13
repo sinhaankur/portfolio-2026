@@ -366,6 +366,11 @@ export function PlanetBody({
       // (with its satellite shell) AND the Moon's orbit (0.42 units out) in one
       // view — the "Earth, its satellites, and Luna" preset.
       const earthMoonView = detail?.framing === "earth-moon" && planet.raw.name === "Earth"
+      // Zoom-ladder framings (progressive drill-down): "surface" dollies right
+      // down close to the globe; "shell" frames the LEO band tight. Both are
+      // additive presets the ZoomLadder UI drives via this same focus channel.
+      const surfaceView = detail?.framing === "surface"
+      const shellView = detail?.framing === "shell"
       // This planet is the warp target — fly the camera to it. Mirrors the
       // click handler: follow the planet's live world position (read from the
       // orbital position group) so it stays framed as it orbits. This is what
@@ -385,10 +390,16 @@ export function PlanetBody({
         const followDistance = earthMoonView
           // Frame Earth + the Moon's whole orbit (Moon at 0.42) with headroom.
           ? 1.05
-          : Math.max(
-              planet.visualRadius * (earthShellFraming ? 5 : planet.raw.hasRings ? 5 : 3.5),
-              earthShellFraming ? 0.6 : 0.5,
-            )
+          : surfaceView
+            // Close approach — skim just above the surface (dramatic "you are here").
+            ? Math.max(planet.visualRadius * 1.6, 0.14)
+            : shellView
+              // Tight on the LEO shell so the ring of satellites dominates.
+              ? Math.max(planet.visualRadius * 3.2, 0.4)
+              : Math.max(
+                  planet.visualRadius * (earthShellFraming ? 5 : planet.raw.hasRings ? 5 : 3.5),
+                  earthShellFraming ? 0.6 : 0.5,
+                )
         // Arrive on the SUNLIT side (offset ~30° so the terminator + night-side
         // city lights stay in frame). Without this the camera keeps whatever
         // angle it held — often the night side, which reads as a black disc.
