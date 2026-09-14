@@ -1345,8 +1345,19 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     // a dot registers at ANY zoom. This is what made even Hubble unselectable.
     if (raycaster.params.Points) {
       const camDist = camera.position.length() // Earth is near the origin
-      // ~2.2% of the viewing distance = a comfortable few-px pick halo.
-      raycaster.params.Points.threshold = Math.max(earthVisualRadius * 0.02, camDist * 0.022)
+      // ~2.2% of the viewing distance = a comfortable few-px pick halo when the
+      // camera is at the shell. CAP it, though: this is the GLOBAL Points
+      // threshold (every point cloud reads it), so an unbounded far-zoom value
+      // grew a fat halo around the satellite dots that intercepted the ray
+      // NEARER than the Sun/planets behind them — clicking the Sun (or any body)
+      // silently landed on a stray satellite instead ("lots of things aren't
+      // clickable"). The satellite shell only reaches ~GEO, so the halo never
+      // needs to exceed a slice of that; clamp to it so far-out clicks fall
+      // through to the solid bodies. When the camera is far outside the shell we
+      // also stop widening (there are no dots to grab out there anyway).
+      const geoScene = 42164 * kmToScene // geostationary radius in scene units
+      const halo = Math.max(earthVisualRadius * 0.02, camDist * 0.022)
+      raycaster.params.Points.threshold = Math.min(halo, geoScene * 0.15)
     }
     if (matRef.current) {
       matRef.current.uniforms.uTimeDay.value = msToJ2000Day(simTimeRef.current.simMs)
@@ -2142,14 +2153,30 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     // DIFFERENT satellite mid-chase. e.delta is the screen-space px travelled
     // between down and up — a real click stays under a few px.
     if ((e.delta ?? 0) > 5) return
-    e.stopPropagation()
-    // 1) Trust a precise raycast hit if it landed on a visible dot.
+
+    // DON'T stopPropagation() yet. The Points raycast fires this handler whenever
+    // the ray passes within the (fat, zoom-scaled) threshold of ANY satellite
+    // dot — including a click aimed at the Sun/planet BEHIND the swarm. If we
+    // consumed the event unconditionally here, that body click was swallowed and
+    // "nothing was clickable" behind the dots. So: only accept + stopPropagation
+    // when the picked dot is genuinely NEAR the click on screen. Otherwise let
+    // the event fall through to the solid body under the cursor.
+    const nearIdx = e.nativeEvent
+      ? pickNearestOnScreen(e.nativeEvent.clientX, e.nativeEvent.clientY)
+      : null
+    if (nearIdx != null) {
+      // A visible dot really is under the cursor → this click is for a satellite.
+      e.stopPropagation()
+      selectByIndex(nearIdx)
+      return
+    }
+    // The raycast grazed a dot's fat halo but no dot is actually under the click
+    // (the real target is a body behind the swarm). Trust a precise index hit
+    // only if it's on a visible dot; else do nothing and let the body win.
     const hit = e.index ?? e.intersections?.[0]?.index
-    if (hit != null && isDotVisible(hit)) { selectByIndex(hit); return }
-    // 2) Otherwise fall back to the nearest visible dot to the click point.
-    if (e.nativeEvent) {
-      const near = pickNearestOnScreen(e.nativeEvent.clientX, e.nativeEvent.clientY)
-      if (near != null) selectByIndex(near)
+    if (hit != null && isDotVisible(hit) && !e.nativeEvent) {
+      e.stopPropagation()
+      selectByIndex(hit)
     }
   }
 
