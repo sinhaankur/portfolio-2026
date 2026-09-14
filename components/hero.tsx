@@ -219,6 +219,37 @@ export function Hero() {
     return () => window.removeEventListener("keydown", onKey)
   }, [interactive])
 
+  // Lock page scroll while exploring, so the wheel/trackpad zooms the SCENE
+  // instead of scrolling the document. The galaxy canvas is a `fixed inset-0
+  // z-0` backdrop under an `h-screen` hero, and nothing stopped the page from
+  // scrolling past it — so on Safari/Mac a scroll-to-zoom just scrolled the page
+  // down into the About section and OrbitControls never saw the wheel ("engages
+  // but can't zoom"). Chrome hid it because the probe had nothing below to
+  // scroll to. Locking overflow routes the gesture to the canvas; we restore the
+  // exact prior values on exit so normal page scroll returns untouched.
+  useEffect(() => {
+    if (!interactive || typeof document === "undefined") return
+    const body = document.body
+    const root = document.documentElement
+    body.style.overflow = "hidden"
+    root.style.overflow = "hidden"
+    body.style.overscrollBehavior = "none"
+    // Let OrbitControls own touch gestures (pinch-zoom / one-finger orbit) rather
+    // than the browser treating them as page pan/zoom on the locked document.
+    body.style.touchAction = "none"
+    // Clear to the empty resting value on exit rather than snapshotting the
+    // pre-lock value: a re-render while explore is active would otherwise capture
+    // the already-locked "hidden" and "restore" the page into a permanently
+    // unscrollable state. These styles are page defaults (unset), so "" is the
+    // correct off state and the hero is the only thing that touches them.
+    return () => {
+      body.style.overflow = ""
+      root.style.overflow = ""
+      body.style.overscrollBehavior = ""
+      body.style.touchAction = ""
+    }
+  }, [interactive])
+
   // Gesture affordance — shows once per session the first time the user
   // enters explore mode. Auto-dismisses after 6.5s or on any pointer/wheel
   // interaction (whichever comes first), since once you've moved the
