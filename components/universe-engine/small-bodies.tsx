@@ -45,6 +45,7 @@ import {
 } from "three"
 import {
   DEG,
+  SUN_OFFSET_SCENE,
   TIME_WARP_DAYS_PER_SEC,
   namedBodies,
   daysSinceJ2000,
@@ -79,6 +80,7 @@ const TRAIL_SPRITE = typeof document !== "undefined" ? pointSprite() : null
 const _tailFrom = new Vector3()
 const _tailTo = new Vector3()
 const _glintPos = new Vector3()
+const _clickBodyPos = new Vector3() // screen-space click-ownership check scratch
 
 /** Round additive glint sprite — one shared texture for every named-body
  *  marker (built once). Same radial-gradient look as the trail sprite. */
@@ -981,6 +983,51 @@ function NamedBodyMesh({
   // findable with a finger or cursor.
   const hitRadius = cometAffordance.hitRadius
 
+  // A click only belongs to this body when the body is VISIBLY under the
+  // cursor. The invisible hit-sphere is generous (right for hover affordance),
+  // but its onClick stopPropagation() silently STOLE clicks aimed at the
+  // Sun/planets — at overview zoom several NEOs crowd Earth on screen, so
+  // "click the Sun / a planet" kept landing on an unseen asteroid and the
+  // camera flew into empty space ("takes me to the wrong place"). Same rule
+  // as the satellite picker: within ~14px of the body's glint = yours;
+  // otherwise DON'T consume — the click falls through to what the user sees.
+  // Also drag-guarded: R3F fires click on pointerup no matter how far the
+  // pointer travelled, so orbit gestures must never select.
+  const clickIsOnBody = (e: {
+    delta?: number
+    camera: Parameters<Vector3["project"]>[0]
+    pointer: { x: number; y: number }
+    ray: { origin: Vector3; direction: Vector3 }
+    nativeEvent: { target: EventTarget | null }
+  }): boolean => {
+    if ((e.delta ?? 0) > 5) return false
+    const g = groupRef.current
+    if (!g) return false
+    g.getWorldPosition(_clickBodyPos)
+    const el = e.nativeEvent.target as HTMLElement | null
+    const w = el?.clientWidth ?? (typeof window !== "undefined" ? window.innerWidth : 1)
+    const h = el?.clientHeight ?? (typeof window !== "undefined" ? window.innerHeight : 1)
+    // The SUN'S DISC wins over a sub-pixel transit. A real Apollo NEO crossing
+    // in front of the Sun passed the 14px cursor test while rendering smaller
+    // than a pixel — the user clicked the star they could SEE and flew to an
+    // invisible rock. If the click ray hits the photosphere (r=0.705 @ Sun)
+    // while this body draws tiny (<6px), the Sun keeps the click. Zoomed close,
+    // the rock is a real target and keeps its own.
+    const fovDeg = (e.camera as unknown as { fov?: number }).fov ?? 60
+    const pxRadius =
+      (config.visualRadius / Math.max(_clickBodyPos.distanceTo(e.ray.origin), 1e-6)) *
+      (h / (2 * Math.tan((fovDeg * Math.PI) / 360)))
+    if (pxRadius < 6) {
+      const ox = SUN_OFFSET_SCENE - e.ray.origin.x, oy = -e.ray.origin.y, oz = -e.ray.origin.z
+      const t = ox * e.ray.direction.x + oy * e.ray.direction.y + oz * e.ray.direction.z
+      if (t > 0 && ox * ox + oy * oy + oz * oz - t * t < 0.705 * 0.705) return false
+    }
+    _clickBodyPos.project(e.camera)
+    const dx = ((_clickBodyPos.x - e.pointer.x) * w) / 2
+    const dy = ((_clickBodyPos.y - e.pointer.y) * h) / 2
+    return dx * dx + dy * dy <= 14 * 14
+  }
+
   return (
     // Both the trail (anchored at the Sun) and the moving body live in the
     // same parent so they share the SolarSystem's coordinate frame.
@@ -1423,6 +1470,7 @@ function NamedBodyMesh({
           onClick={
             interactive
               ? (e) => {
+                  if (!clickIsOnBody(e)) return // not visibly under the cursor — yield
                   e.stopPropagation()
                   // The getter captures groupRef.current — read fresh each
                   // frame so we always see the body's current orbital phase.
@@ -1443,6 +1491,7 @@ function NamedBodyMesh({
           onDoubleClick={
             interactive
               ? (e) => {
+                  if (!clickIsOnBody(e)) return // not visibly under the cursor — yield
                   e.stopPropagation()
                   requestFollow(
                     () => {

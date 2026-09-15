@@ -405,6 +405,7 @@ const _pickScratch = new THREE.Vector3() // reused for screen-space nearest-dot 
 const _pickWorld = new THREE.Vector3()   // candidate dot's world position (pre-projection)
 const _pickCam = new THREE.Vector3()     // camera world position for the occlusion test
 const _pickEarth = new THREE.Vector3()   // Earth centre (the field's world translation)
+const _pickRay = new THREE.Vector3()     // click ray direction (disc-aware grab radius)
 
 /** Is the segment camera→dot blocked by the Earth sphere? A dot on the far side
  *  of the planet is depth-tested away on screen, so it must never be pickable —
@@ -2163,8 +2164,6 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     const arr = posAttr.array as Float32Array
     const halfW = rect.width / 2
     const halfH = rect.height / 2
-    let best = -1
-    let bestD2 = 26 * 26 // forgiving ~26px grab radius (squared)
     const mat = pointsRef.current!.matrixWorld
     // Earth-occlusion setup: the field is mounted inside Earth's group, so the
     // points' world translation IS Earth's centre. Radius shaved a hair (0.985)
@@ -2172,6 +2171,34 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     _pickEarth.setFromMatrixPosition(mat)
     camera.getWorldPosition(_pickCam)
     const earthR2 = (earthVisualRadius * 0.985) ** 2
+    // DISC-AWARE grab radius (general-user P0): a first-timer's instinct is to
+    // tap the big blue planet — and the swarm is dense enough over the disc that
+    // a forgiving 26px halo made ~every Earth click select some Starlink instead
+    // ("clicking Earth doesn't give you Earth"). If the click RAY hits Earth's
+    // sphere, only a dot visibly UNDER the cursor (8px) may take the click; in
+    // open space the forgiving 26px reach stays (dots are small targets there).
+    _pickRay
+      .set((px / rect.width) * 2 - 1, -(py / rect.height) * 2 + 1, 0.5)
+      .unproject(camera)
+      .sub(_pickCam)
+      .normalize()
+    const ex = _pickEarth.x - _pickCam.x, ey = _pickEarth.y - _pickCam.y, ez = _pickEarth.z - _pickCam.z
+    const tAlong = ex * _pickRay.x + ey * _pickRay.y + ez * _pickRay.z
+    const perp2 = ex * ex + ey * ey + ez * ez - tAlong * tAlong
+    const clickOnDisc = tAlong > 0 && perp2 < earthVisualRadius * earthVisualRadius
+    // LOD-AWARE reach (Ankur live-testing: "click the Sun or any planet →
+    // takes me to the wrong place"). At overview zoom the whole swarm collapses
+    // to a small cluster near the bodies ON SCREEN, so a fixed 26px halo stole
+    // exactly those body clicks for some sub-pixel dot. Zoomed into the shell
+    // (lod→0) dots are real targets — keep the forgiving 26px. As Earth shrinks
+    // (lod→1) the reach eases to ZERO: the picker stands down and body clicks
+    // pass through untouched. Same smoothstep family as the shader's LOD cull.
+    const lod = lodRef.current
+    const tt = Math.min(1, Math.max(0, (lod - 0.15) / (0.55 - 0.15)))
+    const openR = 26 * (1 - tt * tt * (3 - 2 * tt))
+    if (openR < 1) return null // overview: clicks belong to the bodies
+    let best = -1
+    let bestD2 = (clickOnDisc ? Math.min(8, openR) : openR) ** 2 // squared px grab radius
     for (let i = 0; i < sats.length; i++) {
       if (!isDotVisible(i)) continue
       _pickWorld.set(arr[i * 3], arr[i * 3 + 1], arr[i * 3 + 2]).applyMatrix4(mat)

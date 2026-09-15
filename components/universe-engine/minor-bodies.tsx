@@ -27,11 +27,15 @@ import { useFrame } from "@react-three/fiber"
 import * as THREE from "three"
 import {
   DEG,
+  SUN_OFFSET_SCENE,
   simTimeRef,
   requestFollow,
   minorBodiesVisibleRef,
   orbitalElementsToCartesian,
 } from "./astronomy"
+
+// Screen-space click-ownership scratch (see the onClick guard below).
+const _mbClickPos = new THREE.Vector3()
 import { pointSprite } from "./galaxy"
 import type { BodyInfo, HoverHandler } from "./types"
 
@@ -177,6 +181,30 @@ export function MinorBodies({
         if ((e as unknown as { delta?: number }).delta && (e as unknown as { delta: number }).delta > 5) return
         const idx = e.index ?? e.intersections?.[0]?.index
         if (idx == null) return
+        // CLICK-OWNERSHIP guard (Ankur live: "click the Sun → takes me to the
+        // wrong place" — asteroid 277142 stole it). The global Points raycast
+        // threshold is sized for Earth's satellite shell but applies to THIS
+        // cloud too, so a ray crossing the ecliptic "hit" dots the user never
+        // saw. Two rules, mirroring the satellite picker + named small bodies:
+        //   1. the dot must be visibly UNDER the cursor (≤10px on screen);
+        //   2. a click landing on the Sun's photosphere belongs to the SUN —
+        //      a 1px glint transiting the bright disc is invisible there.
+        const g2 = geomRef.current
+        const posA = g2?.getAttribute("position") as THREE.BufferAttribute | undefined
+        if (!posA || !pointsRef.current) return
+        const el = e.nativeEvent?.target as HTMLElement | null
+        const vw = el?.clientWidth ?? (typeof window !== "undefined" ? window.innerWidth : 1)
+        const vh = el?.clientHeight ?? (typeof window !== "undefined" ? window.innerHeight : 1)
+        _mbClickPos
+          .set(posA.getX(idx), posA.getY(idx), posA.getZ(idx))
+          .applyMatrix4(pointsRef.current.matrixWorld)
+          .project(e.camera)
+        const pdx = ((_mbClickPos.x - e.pointer.x) * vw) / 2
+        const pdy = ((_mbClickPos.y - e.pointer.y) * vh) / 2
+        if (pdx * pdx + pdy * pdy > 10 * 10) return
+        const sox = SUN_OFFSET_SCENE - e.ray.origin.x, soy = -e.ray.origin.y, soz = -e.ray.origin.z
+        const st = sox * e.ray.direction.x + soy * e.ray.direction.y + soz * e.ray.direction.z
+        if (st > 0 && sox * sox + soy * soy + soz * soz - st * st < 0.705 * 0.705) return
         e.stopPropagation()
         selected.current = idx
         const b = bodies[idx]
