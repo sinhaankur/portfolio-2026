@@ -402,6 +402,24 @@ const _encB = new THREE.Vector3()
 // per-frame allocation for craft orientation.
 const _aheadScratch = new THREE.Vector3()
 const _pickScratch = new THREE.Vector3() // reused for screen-space nearest-dot picking
+const _pickWorld = new THREE.Vector3()   // candidate dot's world position (pre-projection)
+const _pickCam = new THREE.Vector3()     // camera world position for the occlusion test
+const _pickEarth = new THREE.Vector3()   // Earth centre (the field's world translation)
+
+/** Is the segment camera→dot blocked by the Earth sphere? A dot on the far side
+ *  of the planet is depth-tested away on screen, so it must never be pickable —
+ *  clicking Earth's face used to fly the camera to an INVISIBLE satellite. */
+function occludedByEarth(dot: THREE.Vector3, cam: THREE.Vector3, centre: THREE.Vector3, r2: number): boolean {
+  const dx = dot.x - cam.x, dy = dot.y - cam.y, dz = dot.z - cam.z
+  const len = Math.sqrt(dx * dx + dy * dy + dz * dz)
+  if (len < 1e-9) return false
+  const ux = dx / len, uy = dy / len, uz = dz / len
+  const lx = centre.x - cam.x, ly = centre.y - cam.y, lz = centre.z - cam.z
+  const t = lx * ux + ly * uy + lz * uz
+  if (t <= 0 || t >= len) return false // sphere not between camera and dot
+  const px = lx - ux * t, py = ly - uy * t, pz = lz - uz * t
+  return px * px + py * py + pz * pz < r2
+}
 
 // SHELL EXPANSION (Ankur: "spacing can be expanded... like actual spacing"): at
 // true scale, LEO sits only 6–30% above the surface, so 18k objects pile into a
@@ -2083,16 +2101,36 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
   // and the camera flies to satellites the user can't see.
   const isDotVisible = (idx: number) => {
     if (!sats || !sats[idx]) return false
-    if (simTimeRef.current.simMs < sats[idx].launchMs) return false
-    if (classifyRegimeId(sats[idx].l2) !== 0) return true
+    // Mirror the shader's FULL vHidden logic from the same attribute buffers it
+    // reads — the old mirror only knew launch date + the LEO cull, so the picker
+    // happily selected dots the shader had hidden (a filtered-out GPS sat, junk
+    // past its modeled decay day): click near "nothing", camera flies to an
+    // invisible object. Every hide rule below matches VERT one-for-one.
+    const att = (name: string) => geometry.getAttribute(name) as THREE.BufferAttribute
+    const timeDay = msToJ2000Day(simTimeRef.current.simMs)
+    if (att("aLaunchDay").getX(idx) > timeDay) return false // not launched yet
+    const deb = att("aDebris").getX(idx) > 0.5
+    if (deb && timeDay > att("aDecayDay").getX(idx)) return false // burned up
+    const typeSel = satTypeFilterRef.current
+    if (typeSel >= 0 && (typeSel < 0.5 ? deb : !deb)) return false
+    const groupSel = satGroupFilterRef.current
+    if (groupSel >= 0 && Math.abs(att("aGroup").getX(idx) - groupSel) > 0.5) return false
+    const regimeSel = satRegimeFilterRef.current
+    if (regimeSel >= 0 && Math.abs(att("aRegime").getX(idx) - regimeSel) > 0.5) return false
+    const countrySel = satCountryFilterRef.current
+    if (countrySel >= 0 && Math.abs(att("aCountry").getX(idx) - countrySel) > 0.5) return false
+    const familySel = debrisFamilyFilterRef.current
+    if (familySel >= 0 && Math.abs(att("aFamily").getX(idx) - familySel) > 0.5) return false
+    // Overview LOD cull applies to LEO only (MEO/GEO/HEO never thin).
+    if (att("aRegime").getX(idx) >= 0.5) return true
     const filtered =
-      satGroupFilterRef.current >= 0 || satRegimeFilterRef.current >= 0 || selectedSatRef.current != null
+      groupSel >= 0 || regimeSel >= 0 || familySel >= 0 || typeSel >= 0 ||
+      countrySel >= 0 || selectedSatRef.current != null
     // Mirror the SHADER's keep formula (mix(1.0, 0.6, lodEff) = 1 - 0.4*lod) so a
     // dot that's visibly on screen is also click-pickable (mismatch → you click a
     // dot you can see and nothing happens).
     const keep = Math.max((filtered ? 1 : 1 - 0.4 * lodRef.current) * areaScale, keepFloorRef.current)
-    const rand = Math.abs(Math.sin(sats[idx].id * 12.9898) * 43758.5453) % 1
-    return rand <= keep - 0.04
+    return att("aRand").getX(idx) <= keep - 0.04
   }
 
   // Click a dot in the 3D view → select that satellite (draw its orbit, follow,
@@ -2128,15 +2166,26 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     let best = -1
     let bestD2 = 26 * 26 // forgiving ~26px grab radius (squared)
     const mat = pointsRef.current!.matrixWorld
+    // Earth-occlusion setup: the field is mounted inside Earth's group, so the
+    // points' world translation IS Earth's centre. Radius shaved a hair (0.985)
+    // so dots grazing the limb — visibly beside the disc — stay pickable.
+    _pickEarth.setFromMatrixPosition(mat)
+    camera.getWorldPosition(_pickCam)
+    const earthR2 = (earthVisualRadius * 0.985) ** 2
     for (let i = 0; i < sats.length; i++) {
       if (!isDotVisible(i)) continue
-      _pickScratch.set(arr[i * 3], arr[i * 3 + 1], arr[i * 3 + 2]).applyMatrix4(mat).project(camera)
+      _pickWorld.set(arr[i * 3], arr[i * 3 + 1], arr[i * 3 + 2]).applyMatrix4(mat)
+      _pickScratch.copy(_pickWorld).project(camera)
       if (_pickScratch.z > 1) continue // behind the camera / off-screen depth
       const sx = _pickScratch.x * halfW + halfW
       const sy = -_pickScratch.y * halfH + halfH
       const dx = sx - px, dy = sy - py
       const d2 = dx * dx + dy * dy
-      if (d2 < bestD2) { bestD2 = d2; best = i }
+      if (d2 >= bestD2) continue
+      // Depth-tested away behind the planet's disc → not clickable (only checked
+      // for candidates that would win, so the whole sweep stays cheap).
+      if (occludedByEarth(_pickWorld, _pickCam, _pickEarth, earthR2)) continue
+      bestD2 = d2; best = i
     }
     return best >= 0 ? best : null
   }

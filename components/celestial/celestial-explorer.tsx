@@ -206,6 +206,11 @@ export function CelestialExplorer() {
   // no event — so the Share link reflects wherever the camera last went, even
   // after the fly animation ends and flyToRef.active resets.
   const lastFlyLabelRef = useRef<string | null>(null)
+  // Where the pointer went DOWN on the engine wrapper — the DOM satellite picker
+  // must ignore the click that ends a camera-orbit drag (down→move→up still
+  // fires a click on the common ancestor), or every rotate gesture ends by
+  // selecting a random satellite under the release point.
+  const satPickDownRef = useRef<{ x: number; y: number } | null>(null)
   const [shareState, setShareState] = useState<"idle" | "copied">("idle")
   useEffect(() => {
     function onFocus(e: Event) {
@@ -621,15 +626,28 @@ export function CelestialExplorer() {
             here) so drag-to-rotate + pinch-zoom are seamless on mobile. */}
         <div
           className="absolute inset-0 touch-none"
+          onPointerDownCapture={(e) => {
+            satPickDownRef.current = { x: e.clientX, y: e.clientY }
+          }}
           onClickCapture={(e) => {
             // DOM-level satellite picking: R3F's point-cloud raycaster is
             // unreliable against the moving swarm (clicks near a dot kept missing
             // → "unable to click a satellite"). The field publishes a nearest-dot
-            // picker; we call it on any canvas click. It only selects when a dot
-            // is genuinely within a few px of the click, so Earth/Sun/deep-space
-            // clicks (handled by the engine) are unaffected.
+            // picker; we call it on canvas clicks. Three guards keep it from
+            // hijacking everything else:
+            //  1. Canvas-target only — the HUD (panels, timeline, menus) renders
+            //     inside this wrapper too; its buttons keep their own clicks.
+            //  2. Drag guard — orbiting the camera ends in a click on mouseup;
+            //     without this every rotate gesture selected a random satellite.
+            //  3. On a real pick, stopPropagation — capture runs BEFORE the
+            //     engine's raycast, so without it the same click could ALSO fly
+            //     the camera to a body behind the dot (two selections fighting).
+            const t = e.target as HTMLElement | null
+            if (!t || t.tagName !== "CANVAS") return
+            const down = satPickDownRef.current
+            if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) > 6) return
             const pick = satPickAtScreenRef.current
-            if (pick) pick(e.clientX, e.clientY)
+            if (pick && pick(e.clientX, e.clientY)) e.stopPropagation()
           }}
         >
           <UniverseEngine interactive showHud showMusic={false} defaultTrueScale solarOnly quietMobileChrome />
