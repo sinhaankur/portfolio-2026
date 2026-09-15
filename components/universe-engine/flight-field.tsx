@@ -25,6 +25,9 @@ import { useFrame, useThree } from "@react-three/fiber"
 import * as THREE from "three"
 import { earthRotationAngle, simTimeRef } from "./astronomy"
 
+// Screen-space click-ownership scratch (see onPlaneClick).
+const _flightClickPos = new THREE.Vector3()
+
 const EARTH_RADIUS_KM = 6371
 
 // Round plane dots — the default pointsMaterial draws hard SQUARES. This shader
@@ -118,9 +121,36 @@ export function FlightField({ earthVisualRadius }: { earthVisualRadius: number }
     if (groupRef.current) groupRef.current.rotation.y = earthRotationAngle(simTimeRef.current.simMs)
   })
 
-  const onPlaneClick = (e: { index?: number; intersections?: { index?: number }[]; stopPropagation: () => void }) => {
+  const onPlaneClick = (e: {
+    index?: number
+    intersections?: { index?: number }[]
+    delta?: number
+    camera: THREE.Camera
+    pointer: { x: number; y: number }
+    nativeEvent?: { target: EventTarget | null }
+    stopPropagation: () => void
+  }) => {
+    // CLICK-OWNERSHIP guard (same rule as the satellite/minor-body pickers):
+    // the global Points threshold is fattened per-frame by the satellite field,
+    // so a drag-release or an Earth-aimed click "hit" plane dots the user never
+    // saw — flight cards kept opening uninvited and stacking over the HUD.
+    // A plane only takes the click when (1) it wasn't a drag and (2) its dot
+    // projects within ~10px of the cursor.
+    if ((e.delta ?? 0) > 5) return
     const idx = e.index ?? e.intersections?.[0]?.index
     if (idx == null || !flights || !flights[idx]) return
+    const posA = geometry?.getAttribute("position") as THREE.BufferAttribute | undefined
+    if (!posA || !pointsRef.current) return
+    const el = e.nativeEvent?.target as HTMLElement | null
+    const vw = el?.clientWidth ?? (typeof window !== "undefined" ? window.innerWidth : 1)
+    const vh = el?.clientHeight ?? (typeof window !== "undefined" ? window.innerHeight : 1)
+    _flightClickPos
+      .set(posA.getX(idx), posA.getY(idx), posA.getZ(idx))
+      .applyMatrix4(pointsRef.current.matrixWorld)
+      .project(e.camera)
+    const dx = ((_flightClickPos.x - e.pointer.x) * vw) / 2
+    const dy = ((_flightClickPos.y - e.pointer.y) * vh) / 2
+    if (dx * dx + dy * dy > 10 * 10) return
     e.stopPropagation()
     selectedFlightRef.current = flights[idx]
     window.dispatchEvent(new CustomEvent("universe:flight-selected", { detail: flights[idx] }))

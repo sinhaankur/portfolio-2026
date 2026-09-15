@@ -211,6 +211,33 @@ export function CelestialExplorer() {
   // fires a click on the common ancestor), or every rotate gesture ends by
   // selecting a random satellite under the release point.
   const satPickDownRef = useRef<{ x: number; y: number } | null>(null)
+  // First-visit hint (one line, once ever). Hydration-safe: starts false, flips
+  // on after mount only if never dismissed; any focus/selection dismisses it.
+  const [firstHint, setFirstHint] = useState(false)
+  const dismissFirstHint = () => {
+    setFirstHint(false)
+    try { localStorage.setItem("celestial-hint-seen", "1") } catch {}
+  }
+  useEffect(() => {
+    try { if (localStorage.getItem("celestial-hint-seen") !== "1") setFirstHint(true) } catch {}
+  }, [])
+  useEffect(() => {
+    if (!firstHint) return
+    const done = () => dismissFirstHint()
+    // Arm the auto-dismiss AFTER the mount settles: the page fires its own
+    // programmatic sky-focus while framing Earth on load, which killed the
+    // hint before a fresh visitor ever saw it. 5s covers the intro framing;
+    // after that, any real focus/selection clears the hint.
+    const t = setTimeout(() => {
+      window.addEventListener("universe:sky-focus", done)
+      window.addEventListener("celestial:sat-selected", done)
+    }, 5000)
+    return () => {
+      clearTimeout(t)
+      window.removeEventListener("universe:sky-focus", done)
+      window.removeEventListener("celestial:sat-selected", done)
+    }
+  }, [firstHint])
   const [shareState, setShareState] = useState<"idle" | "copied">("idle")
   useEffect(() => {
     function onFocus(e: Event) {
@@ -1114,6 +1141,28 @@ export function CelestialExplorer() {
         <div className="absolute bottom-24 left-4 md:left-6 z-40 pointer-events-none [&>*]:pointer-events-auto">
           <FlightCard />
         </div>
+
+        {/* First-run hint — one dismissible line so a first-timer knows the
+            three moves (UX audit P3: home has "tap to explore", this page
+            dropped you in cold). Gone forever once dismissed, and auto-clears
+            the moment they focus/select anything. bottom-32 = the above-
+            timeline HUD layer (engine spacing system). */}
+        {firstHint && (
+          <div className="absolute bottom-32 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 rounded-full border border-border bg-background/70 backdrop-blur-md pl-4 pr-2 py-2 max-w-[calc(100vw-2rem)]">
+            <p className="font-mono text-[10px] tracking-[0.12em] uppercase text-foreground/75 truncate">
+              Tap a planet to travel · tap near a dot for its satellite · drag to look around
+            </p>
+            <button
+              type="button"
+              onClick={dismissFirstHint}
+              data-cursor-hover
+              aria-label="Dismiss hint"
+              className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+        )}
 
         {/* First-run guided tour (own layer — centered, above the HUD). */}
         <GuidedTour open={tourOpen} onClose={() => setTourOpen(false)} onAction={runTourAction} />

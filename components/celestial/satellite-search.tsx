@@ -345,6 +345,14 @@ export function SatelliteSearch() {
     selectedSatRef.current = null
     selectedArchetypeRef.current = null
     selectedArchetypeIdRef.current = null
+    // Don't strand the camera in empty space where the chase ended — the UX
+    // audit's top "lost user" moment (Earth is a distant speck, no obvious way
+    // back). Stopping the follow flies you home; Earth+Moon is the anchor view.
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("universe:sky-focus", { detail: { pointId: "planet:Earth", framing: "earth-moon" } }),
+      )
+    }
   }
 
   // Select + fly to the nearest-overhead result. Resolve the full catalogue entry
@@ -529,7 +537,8 @@ export function SatelliteSearch() {
                   {selected.type === "DEB" ? "Debris · following" : selected.type === "R/B" ? "Rocket body · following" : "Following"}
                 </p>
               </div>
-              <button type="button" onClick={clearSel} data-cursor-hover aria-label="Stop following"
+              <button type="button" onClick={clearSel} data-cursor-hover
+                aria-label="Stop following — back to Earth" title="Stop following — back to Earth"
                 className="grid h-7 w-7 place-items-center rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors shrink-0">
                 <X className="h-3.5 w-3.5" />
               </button>
