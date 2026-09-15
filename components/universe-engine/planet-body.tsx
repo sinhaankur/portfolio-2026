@@ -60,6 +60,7 @@ import {
   meanAnomalyAt,
   earthRotationAngle,
   requestFollow,
+  sunlitApproachDir,
   simTimeRef,
   cloudsVisibleRef,
   liveCloudsRef,
@@ -411,14 +412,11 @@ export function PlanetBody({
         // Arrive on the SUNLIT side (offset ~30° so the terminator + night-side
         // city lights stay in frame). Without this the camera keeps whatever
         // angle it held — often the night side, which reads as a black disc.
-        let approachDir: { x: number; y: number; z: number } | undefined
-        if (earthShellFraming) {
-          const earthW = new Vector3()
-          obj.getWorldPosition(earthW)
-          const sunward = new Vector3(SUN_OFFSET_SCENE, 0, 0).sub(earthW).normalize()
-          const side = new Vector3().crossVectors(sunward, new Vector3(0, 1, 0)).normalize()
-          approachDir = sunward.addScaledVector(side, 0.55).add(new Vector3(0, 0.28, 0)).normalize()
-        }
+        // Was composed for the Earth-shell framing only; now EVERY planet focus
+        // arrives lit (sunlitApproachDir is the identical formula, shared).
+        const bodyW = new Vector3()
+        obj.getWorldPosition(bodyW)
+        const approachDir = sunlitApproachDir(bodyW)
         // Let the camera actually DOLLY UP to the planet's surface: without a
         // per-focus depth override the global minDistance (0.006) + near-plane
         // frame the planet but zoom-IN stalls / clips before you reach the surface.
@@ -1290,6 +1288,8 @@ export function PlanetBody({
                       // the orbit-rotated group) — its world position
                       // updates each frame as the planet orbits.
                       const obj = e.object
+                      const clickW = new Vector3()
+                      obj.getWorldPosition(clickW)
                       requestFollow(
                         () => {
                           const v = new Vector3()
@@ -1298,6 +1298,7 @@ export function PlanetBody({
                         },
                         followDistance,
                         planet.raw.name,
+                        sunlitApproachDir(clickW), // cinematic: land on the lit 3/4 view
                       )
                     }
                   : undefined
@@ -1319,6 +1320,8 @@ export function PlanetBody({
                         0.5,
                       )
                       const obj = e.object
+                      const clickW = new Vector3()
+                      obj.getWorldPosition(clickW)
                       requestFollow(
                         () => {
                           const v = new Vector3()
@@ -1327,6 +1330,7 @@ export function PlanetBody({
                         },
                         followDistance,
                         planet.raw.name,
+                        sunlitApproachDir(clickW), // cinematic: land on the lit 3/4 view
                       )
                     }
                   : undefined

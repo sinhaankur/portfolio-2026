@@ -760,6 +760,31 @@ export function cancelFollow() {
   followRef.current = null
 }
 
+/**
+ * Compose the CINEMATIC sunlit approach vantage for a body at `world`: arrive
+ * ~30° off the Sun→body axis with a slight elevation, so the fly-in lands on a
+ * lit 3/4 view (terminator in frame) instead of whatever angle the camera held —
+ * often the night side, which reads as a black disc. This is the exact formula
+ * the Earth-shell framing composed inline; shared so EVERY planet/moon focus
+ * (click, double-click, or Jump-to menu) arrives the same way. Camera work only —
+ * no body data is touched. Plain math (this module stays Three-free).
+ */
+export function sunlitApproachDir(world: { x: number; y: number; z: number }): { x: number; y: number; z: number } {
+  // sunward = normalize(Sun − body)
+  let sx = SUN_OFFSET_SCENE - world.x, sy = -world.y, sz = -world.z
+  const sLen = Math.sqrt(sx * sx + sy * sy + sz * sz)
+  if (sLen < 1e-6) return { x: 0.6, y: 0.4, z: 1 } // body AT the sun — any vantage
+  sx /= sLen; sy /= sLen; sz /= sLen
+  // side = normalize(sunward × up), up = (0,1,0)  →  (−sz, 0, sx)
+  let ax = -sz, az = sx
+  const aLen = Math.sqrt(ax * ax + az * az)
+  if (aLen > 1e-6) { ax /= aLen; az /= aLen } else { ax = 1; az = 0 }
+  // dir = normalize(sunward + side·0.55 + up·0.28)
+  const dx = sx + ax * 0.55, dy = sy + 0.28, dz = sz + az * 0.55
+  const dLen = Math.sqrt(dx * dx + dy * dy + dz * dz)
+  return { x: dx / dLen, y: dy / dLen, z: dz / dLen }
+}
+
 /** Cancel any active fly-to. Called when the user takes over via explore mode. */
 export function cancelFlyTo() {
   flyToRef.current.active = false

@@ -45,6 +45,7 @@ import {
   daysSinceJ2000,
   meanAnomalyAt,
   requestFollow,
+  sunlitApproachDir,
   focusDepthRef,
   simTimeRef,
   satellitesVisibleRef,
@@ -213,6 +214,8 @@ export function MoonBody({
         near: Math.max(moon.visualRadius * 0.02, 0.002),
         minDistance: moon.visualRadius * 1.05,
       }
+      const focusW = new Vector3()
+      obj.getWorldPosition(focusW)
       requestFollow(
         () => {
           const v = new Vector3()
@@ -221,6 +224,7 @@ export function MoonBody({
         },
         Math.max(moon.visualRadius * 3.2, 0.09),
         moon.name,
+        sunlitApproachDir(focusW), // cinematic: arrive on the lit 3/4 view (same as planets)
       )
     }
     window.addEventListener("universe:sky-focus", onFocus)
@@ -447,6 +451,8 @@ export function MoonBody({
                   near: Math.max(moon.visualRadius * 0.02, 0.002),
                   minDistance: moon.visualRadius * 1.05,
                 }
+                const clickW = new Vector3()
+                obj.getWorldPosition(clickW)
                 requestFollow(
                   () => {
                     const v = new Vector3()
@@ -455,6 +461,7 @@ export function MoonBody({
                   },
                   followDistance,
                   moon.name,
+                  sunlitApproachDir(clickW), // cinematic: land on the lit 3/4 view
                 )
               }
             : undefined
@@ -470,6 +477,8 @@ export function MoonBody({
                   near: Math.max(moon.visualRadius * 0.02, 0.002),
                   minDistance: moon.visualRadius * 1.05,
                 }
+                const clickW = new Vector3()
+                obj.getWorldPosition(clickW)
                 requestFollow(
                   () => {
                     const v = new Vector3()
@@ -478,6 +487,7 @@ export function MoonBody({
                   },
                   followDistance,
                   moon.name,
+                  sunlitApproachDir(clickW), // cinematic: land on the lit 3/4 view
                 )
               }
             : undefined

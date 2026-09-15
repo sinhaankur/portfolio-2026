@@ -145,6 +145,20 @@ const _flyCamDir = new Vector3()
 const _flyTargetVec = new Vector3()
 const _flyDesiredCamPos = new Vector3()
 const _flyApproachDir = new Vector3()
+// CINEMATIC ARC state — one journey at a time. A straight dolly along the view
+// ray reads as a zoom; sweeping a gentle lateral arc during the approach gives
+// real parallax ("flying there", not "scaling up"), and biasing the sweep toward
+// the body's sunlit side means long flights arrive on a lit 3/4 view instead of
+// whatever face — possibly the black night side — you happened to be aimed at.
+// Camera work only: no body data is touched. Solar-region targets only; sky-shell
+// / deep-sky focuses keep exact view-ray preservation (their framing is composed).
+const _flySunPos = new Vector3(SUN_OFFSET_SCENE, 0, 0)
+const _flySunDir = new Vector3()
+const _flySwingAxis = new Vector3(0, 1, 0) // world up ≈ ecliptic normal here
+const _flyCross = new Vector3()
+let _flySwingRemaining = 0 // signed radians still to sweep this journey
+let _flyPrevActive = false
+let _flyPrevLabel: string | null = null
 // Chase-frame scratch (orbital-frame follow): travel dir, radial up, sideways.
 const _chT = new Vector3()
 const _chUp = new Vector3()
@@ -407,7 +421,45 @@ function FlyToController({ interactive }: { interactive: boolean }) {
     }
 
     const state = flyToRef.current
-    if (!state.active) return
+    if (!state.active) { _flyPrevActive = false; return }
+
+    // A grab mid-flight hands the camera straight back to the user — the flight
+    // must never fight a drag (the pointer that STARTED this fly was already
+    // released before the click event fired, so a fresh fly can't self-cancel).
+    if (interactive && _userGrabbing) {
+      state.active = false
+      _flyPrevActive = false
+      // Keep the headless-test/debug readout truthful about the cancellation —
+      // without this it retains the last mid-flight frame (active: true).
+      if (typeof window !== "undefined") {
+        const dbg = (window as unknown as { __ueFly?: { active?: boolean } }).__ueFly
+        if (dbg) dbg.active = false
+      }
+      return
+    }
+
+    // New journey (fresh activation or a different destination mid-flight)?
+    // Prime the cinematic arc: total sweep scales with journey length (capped
+    // ~29°, imperceptible for short hops), signed toward the sunlit side.
+    if (!_flyPrevActive || state.label !== _flyPrevLabel) {
+      _flyPrevActive = true
+      _flyPrevLabel = state.label ?? null
+      _flySwingRemaining = 0
+      if (!state.cameraPos) {
+        _flyTargetVec.set(state.target.x, state.target.y, state.target.z)
+        const journey = controls.target.distanceTo(_flyTargetVec)
+        const inSolarRegion = _flyTargetVec.distanceTo(_flySunPos) <= KUIPER_BELT_OUTER * 1.2
+        _flySunDir.copy(_flySunPos).sub(_flyTargetVec)
+        if (inSolarRegion && journey > 1 && _flySunDir.lengthSq() > 1e-4) {
+          _flySunDir.normalize()
+          _flyCamDir.copy(camera.position).sub(controls.target).normalize()
+          // d/dθ of (dir·sun) under rotation about +Y is (Y×dir)·sun — its sign
+          // says which way the arc must bend to arrive on the lit side.
+          const sweepSign = Math.sign(_flyCross.copy(_flySwingAxis).cross(_flyCamDir).dot(_flySunDir)) || 1
+          _flySwingRemaining = sweepSign * Math.min(0.5, journey * 0.02)
+        }
+      }
+    }
 
     // Smoothing factor — auto-journey (passive) wants a slow, cinematic
     // pan in/out so the camera feels like it's traversing a scene rather
@@ -447,8 +499,11 @@ function FlyToController({ interactive }: { interactive: boolean }) {
       nextDist = camera.position.distanceTo(controls.target)
       arrivedCamera = camera.position.distanceTo(_flyDesiredCamPos) < 0.5
     } else {
-      // Default mode — move along the existing target→camera ray so the
-      // user's viewing angle is preserved; only distance changes.
+      // Default mode — move along the target→camera ray (angle preserved for
+      // short hops), PLUS the cinematic arc: sweep a share of the remaining
+      // swing each frame, eased by the same k as the travel itself so the curve
+      // settles exactly as the camera arrives. The sweep bends the approach
+      // toward the body's sunlit side (see the journey primer above).
       _flyCamDir.copy(camera.position).sub(controls.target)
       const currentDist = _flyCamDir.length()
       if (currentDist < 1e-4) {
@@ -456,6 +511,12 @@ function FlyToController({ interactive }: { interactive: boolean }) {
         _flyCamDir.set(0.6, 0.4, 1).normalize()
       } else {
         _flyCamDir.normalize()
+      }
+      if (_flySwingRemaining !== 0) {
+        const sweepStep = _flySwingRemaining * k
+        _flySwingRemaining -= sweepStep
+        if (Math.abs(_flySwingRemaining) < 1e-4) _flySwingRemaining = 0
+        _flyCamDir.applyAxisAngle(_flySwingAxis, sweepStep)
       }
       nextDist = currentDist + (state.distance - currentDist) * k
       _flyDesiredCamPos.copy(controls.target).addScaledVector(_flyCamDir, nextDist)
