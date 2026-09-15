@@ -13,8 +13,18 @@
  */
 
 import { useEffect, useState } from "react"
+import { usePathname } from "next/navigation"
 
 const KEY = "cookie-consent-v1" // "granted" | "denied"
+
+// Full-screen ENGINE routes get a compact corner toast instead of the wide
+// bottom-center card: on these pages the bottom-center is working HUD (timeline,
+// hint bar, mobile controls) and the first-visit banner sat right on top of it
+// (UX audit P2). Same text, same two choices — only the geometry changes.
+const ENGINE_ROUTES = [
+  /^\/lab\/celestial/, /^\/lab\/helion-drift/, /^\/sky/, /^\/waves$/,
+  /^\/story/, /^\/aero/, /^\/tv/, /^\/embed\//,
+]
 
 declare global {
   interface Window {
@@ -33,6 +43,8 @@ function setConsent(granted: boolean) {
 
 export function ConsentBanner() {
   const [visible, setVisible] = useState(false)
+  const pathname = usePathname()
+  const compact = ENGINE_ROUTES.some((r) => r.test(pathname ?? ""))
 
   useEffect(() => {
     const saved = localStorage.getItem(KEY)
@@ -56,9 +68,13 @@ export function ConsentBanner() {
     <div
       role="dialog"
       aria-label="Cookie consent"
-      className="fixed inset-x-3 z-[90] mx-auto max-w-2xl rounded-2xl border border-border bg-background/95 p-4 shadow-2xl backdrop-blur-md bottom-[calc(env(safe-area-inset-bottom,0px)+84px)] md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:bottom-3"
+      className={
+        compact
+          ? "fixed right-3 z-[90] w-[min(17rem,calc(100vw-1.5rem))] rounded-2xl border border-border bg-background/95 p-3 shadow-2xl backdrop-blur-md bottom-[calc(env(safe-area-inset-bottom,0px)+76px)] md:bottom-3"
+          : "fixed inset-x-3 z-[90] mx-auto max-w-2xl rounded-2xl border border-border bg-background/95 p-4 shadow-2xl backdrop-blur-md bottom-[calc(env(safe-area-inset-bottom,0px)+84px)] md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:bottom-3"
+      }
     >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className={compact ? "flex flex-col gap-2.5" : "flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"}>
         <p className="font-sans text-[13px] leading-relaxed text-foreground/75">
           This site uses privacy-friendly analytics to see which pages are useful.{" "}
           <a href="/about" className="text-accent hover:underline">Learn more</a>. No ads, ever.
