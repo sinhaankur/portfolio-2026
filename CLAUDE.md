@@ -106,6 +106,10 @@ App-router routes under [`app/`](./app):
   `c=√(gL/2π)`, the wind→spectrum wave-train model / Phillips idea, sun & moon
   ephemeris from `lib/sea-astronomy.ts`, spring/neap tide driver, Fresnel + sun
   glint). Sibling to `/universe-engine/math`; code shown verbatim from source.
+- `/rag` — **"What is a RAG system?"**: a teaching page explaining
+  Retrieval-Augmented Generation (chunk → embed → retrieve → generate) beside the
+  real code of a small, fully on-device RAG engine (lives in the separate
+  `~/Documents/rag-engine` repo). Sibling to `/universe-engine/math` + `/waves/math`.
 - `/framework` — Universal Experience Framework (Laws of UX & cognition,
   interactive demos). Linked from the navbar.
 - `/writing` — writing index. Long posts are folder routes
