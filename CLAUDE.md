@@ -133,7 +133,10 @@ App-router routes under [`app/`](./app):
 - `/ja`, `/ar` — Japanese and Arabic localized homes (`/ar` is **Arabic**, not
   augmented reality).
 - `/academic/p2p-streaming`, `/academic/rubik-cube` — academic projects
-  (equations beside the real code).
+  (equations beside the real code). `/academic/rubik-cube-graph` — **"Solving a
+  Rubik's Cube with Graph Theory"**: states=nodes, turns=edges, solve=shortest
+  path; an interactive, verified 2×2×2 BFS solver (3,674,160 states, God's Number
+  14 in QTM) beside the real code. Companion to the OpenGL rubik-cube page.
 - `/mirofish` — unlisted project page (noindex; copy in `content/mirofish.json`).
 - Noindex utility routes: `/tv` (TV landing), `/story` (alt-home experiment),
   `/aero` (Aero Engine 3D), `/embed/satellites` (embeddable satellite tracker).

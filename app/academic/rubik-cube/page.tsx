@@ -169,7 +169,7 @@ if (progress >= 1) { /* bake pos + quat, reset pivot */ }`}
 
       <CaseNextLinks
         prev={{ label: "Data-Driven P2P Streaming", href: "/academic/p2p-streaming" }}
-        next={{ label: "Back to work", href: "/#works" }}
+        next={{ label: "Solving the Cube with Graph Theory", href: "/academic/rubik-cube-graph" }}
       />
     </CaseStudyLayout>
   )
