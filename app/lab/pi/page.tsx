@@ -23,7 +23,7 @@ export default function PiPage() {
       period="2026"
       role="Interactive · real math, live"
       tags={["Mathematics", "π", "Canvas", "Irrationality", "Teaching"]}
-      backTo={{ label: "Back to the Lab", href: "/lab" }}
+      backTo={{ label: "Back to the Math collection", href: "/lab/math" }}
       intro={
         <>
           <p>

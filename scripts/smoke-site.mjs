@@ -29,6 +29,7 @@ const ROUTES = [
   ["/lab/firmament/", 3000],
   ["/lab/helion-drift/", 10000],
   ["/lab/optical-flow/", 4000],
+  ["/lab/math/", 3000],
   ["/lab/pi/", 4000],
   ["/lab/euler/", 4000],
   ["/lab/fourier/", 4000],

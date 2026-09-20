@@ -24,7 +24,7 @@ export default function BellCurvePage() {
       period="2026"
       role="Interactive · real math, live"
       tags={["Mathematics", "Probability", "Normal distribution", "Canvas", "Teaching"]}
-      backTo={{ label: "Back to the Lab", href: "/lab" }}
+      backTo={{ label: "Back to the Math collection", href: "/lab/math" }}
       intro={
         <>
           <p>

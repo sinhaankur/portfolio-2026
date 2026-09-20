@@ -4,44 +4,48 @@ import { canonicalPath } from "@/lib/seo"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { CustomCursor } from "@/components/custom-cursor"
-import { MATH_SERIES as PIECES } from "@/lib/math-series"
+import { MATH_SERIES } from "@/lib/math-series"
 
 export const metadata: Metadata = {
-  ...canonicalPath("/math"),
-  title: "Mathematics, made visible",
+  ...canonicalPath("/lab/math"),
+  title: "Lab · Math — equations, made visible",
   description:
-    "Every equation has a picture that makes it obvious. A growing set of interactive visualizations — π, Euler's identity, Fourier series, the golden ratio, Pythagoras, the bell curve, the ocean's waves — each showing the real math, live, so you can see why it's true.",
+    "The Lab's mathematics collection: interactive visualizations that make an equation obvious — π, Euler's identity, Fourier, the golden ratio, Pythagoras, the bell curve, and the engine & ocean math. Real math, live.",
 }
 
-export default function MathHubPage() {
+export default function LabMathPage() {
   return (
     <>
       <CustomCursor />
       <Navbar />
       <main id="main" className="relative min-h-screen bg-background text-foreground pt-24 md:pt-28">
         <header className="mx-auto w-full max-w-6xl px-6 md:px-10">
-          <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-muted-foreground mb-4">
-            Equations, visible
+          <Link href="/lab" data-cursor-hover className="font-mono text-[11px] text-muted-foreground hover:text-foreground">
+            ← Back to the Lab
+          </Link>
+          <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-muted-foreground mt-6 mb-4">
+            Lab · Math · Equations, visible
           </p>
           <h1 className="font-serif text-4xl md:text-6xl leading-[1.05] italic mb-6">
-            Mathematics, made visible.
+            The math collection.
           </h1>
           <p className="max-w-2xl text-foreground/75 leading-relaxed text-lg">
             Every equation has a picture that makes it <span className="italic">obvious</span>.
             Not a diagram of the answer — the thing itself, running, so you can watch
-            <em> why</em> it&apos;s true. This is a growing set of interactive
-            visualizations: real math, live, honest, and open to anyone.
+            <em> why</em> it&apos;s true. A growing set of interactive
+            visualizations: real math, live, and open to anyone.
           </p>
           <p className="max-w-2xl text-muted-foreground leading-relaxed mt-4">
-            A theme runs through them — the infinite. π never resolves, Fourier
-            never quite squares, φ is the hardest number to pin down. Seeing one
+            A theme runs through them — the infinite and the inevitable. π never
+            resolves, Fourier never quite squares, φ is the hardest number to pin
+            down, and a thousand random balls always agree on a bell. Seeing one
             makes you trust the next.
           </p>
         </header>
 
         <div className="mx-auto w-full max-w-6xl px-6 md:px-10 mt-12 md:mt-16 pb-24">
           <div className="grid gap-4 md:grid-cols-2">
-            {PIECES.map((p) => (
+            {MATH_SERIES.map((p) => (
               <Link
                 key={p.href}
                 href={p.href}
@@ -59,7 +63,7 @@ export default function MathHubPage() {
           </div>
 
           <p className="text-sm text-foreground/55 leading-relaxed border-t border-border pt-8 mt-12 max-w-2xl">
-            More to come — this set grows. It&apos;s the same instinct behind the{" "}
+            More to come — this set grows. Same instinct as the{" "}
             <Link href="/rag" data-cursor-hover className="text-accent hover:underline">RAG</Link> and{" "}
             <Link href="/llm" data-cursor-hover className="text-accent hover:underline">LLM</Link> explainers,
             and the engines themselves: make the invisible legible, from real data,
