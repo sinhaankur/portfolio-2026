@@ -32,6 +32,7 @@ const ROUTES = [
   ["/lab/pi/", 4000],
   ["/lab/euler/", 4000],
   ["/lab/fourier/", 4000],
+  ["/lab/golden-ratio/", 4000],
   ["/lab/star-cleaver/", 4000],       // legacy redirect → /lab/helion-drift (covered above)
   ["/lab/terrain/", 8000],            // 3D tiles terrain
   ["/lab/unhosted/", 2500],
