@@ -42,6 +42,12 @@ export const MATH_SERIES: MathPiece[] = [
     tag: "Probability",
   },
   {
+    href: "/lab/logarithms",
+    title: "Logarithms — adding becomes multiplying",
+    line: "On a log scale, distance is the logarithm — so laying two lengths end to end multiplies the numbers. The slide rule, and why log books ran the world.",
+    tag: "The slide rule",
+  },
+  {
     href: "/waves/math",
     title: "Waves — the ocean's real math",
     line: "Gerstner trochoidal waves: watch water particles circle to make sharp crests, then sum trains into a living sea.",
