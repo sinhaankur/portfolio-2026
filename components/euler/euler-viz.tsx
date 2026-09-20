@@ -14,141 +14,129 @@ import { useCallback, useEffect, useRef, useState } from "react"
 const TAU = Math.PI * 2
 
 export function EulerViz() {
+  const wrapRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [theta, setTheta] = useState(0)          // current angle (radians)
-  const [running, setRunning] = useState(false)
+  const [running, setRunning] = useState(true)   // auto-sweeps on load
   const rafRef = useRef<number | null>(null)
+  const thetaRef = useRef(0); thetaRef.current = theta
+  const runRef = useRef(running); runRef.current = running
+  const introRef = useRef(0)                     // cinematic slow-start ramp
 
-  // e^{iθ} = cos θ + i·sin θ  → the point (cos θ, sin θ)
   const re = Math.cos(theta)
   const im = Math.sin(theta)
 
-  const play = useCallback(() => {
-    if (rafRef.current) cancelAnimationFrame(rafRef.current)
-    setRunning(true)
-    const step = () => {
-      setTheta((t) => {
-        const nt = t + 0.012
-        if (nt >= TAU) { setRunning(false); return 0 }
-        rafRef.current = requestAnimationFrame(step)
-        return nt
-      })
-    }
-    rafRef.current = requestAnimationFrame(step)
+  const pause = useCallback(() => setRunning(false), [])
+  const play = useCallback(() => setRunning(true), [])
+
+  const fit = useCallback(() => {
+    const cv = canvasRef.current
+    if (!cv) return
+    const dpr = Math.min(window.devicePixelRatio || 1, 3)
+    const box = cv.getBoundingClientRect()
+    cv.width = Math.round(box.width * dpr)
+    cv.height = Math.round(box.height * dpr)
+    cv.getContext("2d")!.setTransform(dpr, 0, 0, dpr, 0, 0)
   }, [])
 
-  const pause = useCallback(() => {
-    if (rafRef.current) cancelAnimationFrame(rafRef.current)
-    setRunning(false)
-  }, [])
+  useEffect(() => { fit(); const r = () => fit(); window.addEventListener("resize", r); return () => window.removeEventListener("resize", r) }, [fit])
 
-  useEffect(() => () => { if (rafRef.current) cancelAnimationFrame(rafRef.current) }, [])
-
-  // draw the complex plane, unit circle, swept arc, the point, and its projections
+  // one rAF loop: advance θ (slow-start ramp) when running, and draw HD.
   useEffect(() => {
     const cv = canvasRef.current
     if (!cv) return
     const ctx = cv.getContext("2d")!
-    const W = cv.width, H = cv.height, cx = W / 2, cy = H / 2, R = Math.min(W, H) * 0.36
-    ctx.clearRect(0, 0, W, H)
 
-    // axes
-    ctx.strokeStyle = "rgba(255,255,255,0.12)"; ctx.lineWidth = 1
-    ctx.beginPath(); ctx.moveTo(20, cy); ctx.lineTo(W - 20, cy); ctx.moveTo(cx, 20); ctx.lineTo(cx, H - 20); ctx.stroke()
-    ctx.fillStyle = "rgba(255,255,255,0.35)"; ctx.font = "11px monospace"
-    ctx.fillText("real", W - 44, cy - 6)
-    ctx.fillText("imaginary", cx + 6, 26)
-    // the landmark points 1 and −1
-    ctx.fillStyle = "rgba(255,255,255,0.5)"
-    ctx.fillText("1", cx + R + 4, cy + 14)
-    ctx.fillText("−1", cx - R - 20, cy + 14)
+    const draw = () => {
+      const box = cv.getBoundingClientRect()
+      const W = box.width, H = box.height, cx = W / 2, cy = H / 2, R = Math.min(W, H) * 0.34
 
-    // the unit circle
-    ctx.strokeStyle = "rgba(124,156,255,0.55)"; ctx.lineWidth = 1.5
-    ctx.beginPath(); ctx.arc(cx, cy, R, 0, TAU); ctx.stroke()
+      // advance θ with a cinematic slow-start (eases from crawl to full sweep)
+      if (runRef.current) {
+        introRef.current = Math.min(1, introRef.current + 1 / (6 * 60))
+        const e = introRef.current * introRef.current * (3 - 2 * introRef.current)
+        let nt = thetaRef.current + (0.002 + 0.013 * e)
+        if (nt >= TAU) { nt = 0; introRef.current = 0 }
+        thetaRef.current = nt
+        setTheta(nt)
+      }
+      const th = thetaRef.current, cRe = Math.cos(th), cIm = Math.sin(th)
 
-    // the swept arc from 0 to θ (how far around we've gone)
-    ctx.strokeStyle = "rgba(255,180,80,0.9)"; ctx.lineWidth = 3
-    ctx.beginPath(); ctx.arc(cx, cy, R, 0, -theta, true); ctx.stroke()  // canvas y is down → negate
+      // deep space background + vignette
+      const bg = ctx.createRadialGradient(cx, cy, R * 0.4, cx, cy, Math.max(W, H) * 0.7)
+      bg.addColorStop(0, "#080b16"); bg.addColorStop(1, "#03040a")
+      ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H)
 
-    const px = cx + R * re, py = cy - R * im  // screen coords (y flipped)
+      // axes — faint
+      ctx.strokeStyle = "rgba(200,215,255,0.10)"; ctx.lineWidth = 1
+      ctx.beginPath(); ctx.moveTo(W * 0.08, cy); ctx.lineTo(W * 0.92, cy); ctx.moveTo(cx, H * 0.08); ctx.lineTo(cx, H * 0.92); ctx.stroke()
+      ctx.fillStyle = "rgba(220,228,255,0.4)"; ctx.font = "12px ui-monospace, monospace"
+      ctx.fillText("real", cx + R + 8, cy + 16)
+      ctx.fillText("−1", cx - R - 26, cy + 16)
+      ctx.fillText("i", cx + 8, cy - R - 6)
 
-    // radius to the point + its projections onto the axes
-    ctx.strokeStyle = "rgba(255,255,255,0.5)"; ctx.lineWidth = 1
-    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(px, py); ctx.stroke()
-    ctx.setLineDash([3, 3]); ctx.strokeStyle = "rgba(80,220,140,0.6)"
-    ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px, cy); ctx.stroke()  // → real axis (cos)
-    ctx.strokeStyle = "rgba(255,120,160,0.6)"
-    ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(cx, py); ctx.stroke()  // → imag axis (sin)
-    ctx.setLineDash([])
+      // the unit circle — luminous
+      ctx.strokeStyle = "rgba(124,156,255,0.6)"; ctx.lineWidth = 1.5
+      ctx.beginPath(); ctx.arc(cx, cy, R, 0, TAU); ctx.stroke()
+      // swept arc so far — glowing accent
+      ctx.strokeStyle = "rgba(255,205,90,0.95)"; ctx.lineWidth = 3; ctx.lineCap = "round"
+      ctx.beginPath(); ctx.arc(cx, cy, R, 0, -th, true); ctx.stroke()
 
-    // the moving point
-    ctx.fillStyle = "#ffd24d"
-    ctx.beginPath(); ctx.arc(px, py, 5, 0, TAU); ctx.fill()
+      const px = cx + R * cRe, py = cy - R * cIm
+      // radius + projections
+      ctx.strokeStyle = "rgba(230,236,255,0.55)"; ctx.lineWidth = 1.2
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(px, py); ctx.stroke()
+      ctx.setLineDash([4, 4])
+      ctx.strokeStyle = "rgba(90,225,150,0.55)"; ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px, cy); ctx.stroke()
+      ctx.strokeStyle = "rgba(255,130,170,0.55)"; ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(cx, py); ctx.stroke()
+      ctx.setLineDash([])
 
-    // highlight when we're at π (landed on −1)
-    if (Math.abs(theta - Math.PI) < 0.03) {
-      ctx.strokeStyle = "#ff6a6a"; ctx.lineWidth = 2
-      ctx.beginPath(); ctx.arc(px, py, 11, 0, TAU); ctx.stroke()
+      // the moving point — glowing bead
+      const atP = Math.abs(th - Math.PI) < 0.05
+      const g = ctx.createRadialGradient(px, py, 0, px, py, 16)
+      g.addColorStop(0, atP ? "rgba(255,150,150,0.95)" : "rgba(255,235,170,0.9)")
+      g.addColorStop(1, "rgba(255,210,90,0)")
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(px, py, 16, 0, TAU); ctx.fill()
+      ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(px, py, 3, 0, TAU); ctx.fill()
+
+      // vignette
+      const vig = ctx.createRadialGradient(cx, cy, Math.min(W, H) * 0.3, cx, cy, Math.max(W, H) * 0.72)
+      vig.addColorStop(0, "rgba(0,0,0,0)"); vig.addColorStop(1, "rgba(2,3,8,0.55)")
+      ctx.fillStyle = vig; ctx.fillRect(0, 0, W, H)
+
+      rafRef.current = requestAnimationFrame(draw)
     }
-  }, [theta, re, im])
+    rafRef.current = requestAnimationFrame(draw)
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current) }
+  }, [])
 
   const atPi = Math.abs(theta - Math.PI) < 0.05
   const turns = (theta / TAU)
+  const btn = "rounded-full px-3 py-1.5 font-mono text-[11px] tracking-wide backdrop-blur-md transition"
 
   return (
-    <div className="rounded-2xl border border-border bg-gradient-to-b from-[#0a0b12] to-[#05060a] p-4 md:p-6">
-      <div className="grid gap-5 md:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
-        <div>
-          <canvas ref={canvasRef} width={340} height={340} className="w-full max-w-[340px] rounded-lg border border-border/40 bg-black" />
-          <div className="mt-3 flex items-center gap-3">
-            <button onClick={running ? pause : play} className="rounded-lg border border-accent bg-accent/10 px-3 py-1.5 font-mono text-[12px] text-accent">
-              {running ? "Pause" : "Sweep θ"}
-            </button>
-            <button onClick={() => setTheta(Math.PI)} className="rounded-lg border border-border px-3 py-1.5 font-mono text-[12px] text-foreground/70 hover:border-accent/50">Jump to θ = π</button>
-            <button onClick={() => { pause(); setTheta(0) }} className="rounded-lg border border-border px-3 py-1.5 font-mono text-[12px] text-foreground/60">Reset</button>
-          </div>
-          {/* manual scrub */}
-          <input
-            type="range" min={0} max={TAU} step={0.001} value={theta}
-            onChange={(e) => { pause(); setTheta(parseFloat(e.target.value)) }}
-            className="mt-3 w-full max-w-[340px] accent-[color:var(--color-accent,#cf9a2c)]"
-            aria-label="angle theta"
-          />
-        </div>
-        <div>
-          <p className="font-mono text-[10px] uppercase tracking-widest text-foreground/40 mb-2">
-            e^{"{iθ}"} = cos θ + i·sin θ  —  a point on the unit circle
-          </p>
-          <div className="font-mono text-sm space-y-1">
-            <div>θ = <span className="text-accent">{theta.toFixed(3)}</span> rad
-              <span className="text-foreground/40"> ({(turns).toFixed(3)} turns · {(theta * 180 / Math.PI).toFixed(0)}°)</span></div>
-            <div>e^{"{iθ}"} = <span className="text-emerald-400">{re.toFixed(3)}</span> + <span className="text-pink-400">{im.toFixed(3)}</span>·i</div>
-          </div>
-          <p className="mt-4 text-sm text-foreground/75 leading-relaxed">
-            Raising e to an <em>imaginary</em> power sounds impossible — until you see
-            what it does: <span className="font-serif italic">e^{"{iθ}"}</span> is just
-            a point on the unit circle at angle θ. Its shadow on the
-            <span className="text-emerald-400"> real</span> axis is cos θ; on the
-            <span className="text-pink-400"> imaginary</span> axis, sin θ. Sweeping θ
-            walks the point around the circle at unit speed.
-          </p>
-          <p className={`mt-3 rounded-lg border px-3.5 py-2.5 text-[13px] leading-relaxed transition-colors ${
-            atPi ? "border-red-400/60 bg-red-400/[0.08] text-foreground/90" : "border-border/60 bg-accent/[0.05] text-foreground/70"
-          }`}>
-            At <span className="font-serif italic">θ = π</span> — exactly half a turn —
-            the point lands on <strong>−1</strong>. So{" "}
-            <span className="font-serif italic">e^{"{iπ}"} = −1</span>, which is the
-            same as <span className="font-serif italic">e^{"{iπ}"} + 1 = 0</span>.
-            {atPi ? " ← you're there now: the point is sitting on −1." : " Sweep it, or jump to π, and watch it land."}
-          </p>
-          <p className="mt-3 text-sm text-foreground/60 leading-relaxed">
-            That&apos;s the whole &ldquo;most beautiful equation.&rdquo; It isn&apos;t
-            mystical — it says a half-turn around the circle takes 1 to −1, and it
-            quietly binds the five constants: e (growth), i (rotation), π (half a
-            turn), 1 (unit), 0 (nothing).
-          </p>
-        </div>
+    <div ref={wrapRef} className="relative w-full h-full overflow-hidden bg-black">
+      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
+
+      {/* live readout — top left */}
+      <div className="absolute top-4 left-4 z-10 font-mono text-[11px] text-white/60 leading-relaxed">
+        <div>θ = <span className="text-amber-300">{theta.toFixed(3)}</span> rad
+          <span className="text-white/40"> · {(theta * 180 / Math.PI).toFixed(0)}°</span></div>
+        <div className="text-white/50">e<sup>iθ</sup> = <span className="text-emerald-300">{re.toFixed(3)}</span> + <span className="text-pink-300">{im.toFixed(3)}</span> i</div>
+        {atPi && <div className="mt-1 text-red-300">θ = π → the point is on −1 · e<sup>iπ</sup> + 1 = 0</div>}
+      </div>
+
+      {/* controls — floating glass bar, bottom */}
+      <div className="absolute bottom-0 inset-x-0 z-10 flex flex-wrap items-center justify-center gap-2 p-3 md:p-4 bg-gradient-to-t from-black/70 via-black/30 to-transparent">
+        <button onClick={running ? pause : play} className={`${btn} bg-white/12 text-white border border-white/25`}>{running ? "Pause" : "Sweep θ"}</button>
+        <button onClick={() => { thetaRef.current = Math.PI; setTheta(Math.PI); setRunning(false) }} className={`${btn} bg-black/30 text-white/70 border border-white/10 hover:text-white`}>Jump to π</button>
+        <button onClick={() => { thetaRef.current = 0; setTheta(0); introRef.current = 0 }} className={`${btn} bg-black/30 text-white/60 border border-white/10 hover:text-white`}>Reset</button>
+        <label className="flex items-center gap-2 font-mono text-[10px] text-white/55 px-2">
+          scrub θ
+          <input type="range" min={0} max={TAU} step={0.001} value={theta}
+            onChange={(e) => { setRunning(false); const v = parseFloat(e.target.value); thetaRef.current = v; setTheta(v) }}
+            className="w-32 md:w-48 accent-white" aria-label="angle theta" />
+        </label>
       </div>
     </div>
   )
