@@ -35,6 +35,7 @@ export function PiIrrational() {
   const [music, setMusic] = useState(false)      // opt-in generative bed
   const rafRef = useRef<number | null>(null)
   const tRef = useRef(0)
+  const holdRef = useRef(0)                      // 0→1 opening beat (arms at rest)
   const introRef = useRef(0)                     // 0→1 cinematic slow-start ramp
   const zoomRef = useRef(1)                       // eased current zoom factor
   const camRef = useRef({ x: 0, y: 0 })          // eased camera focus (world coords)
@@ -68,6 +69,7 @@ export function PiIrrational() {
 
   const restart = useCallback(() => {
     tRef.current = 0
+    holdRef.current = 0       // replay the opening swing
     introRef.current = 0      // replay the cinematic slow-start
     zoomRef.current = 1       // and re-do the push-in from wide
     setTurns(0)
@@ -113,16 +115,26 @@ export function PiIrrational() {
       const dpr = cv.width / W
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
       ctx.globalCompositeOperation = "source-over"
-      // fade toward a near-black with the faintest blue — filmic, not flat black
-      ctx.fillStyle = "rgba(3,4,9,0.022)"
-      ctx.fillRect(0, 0, W, H)
+      // During the OPENING beat, hard-clear to pure black each frame so you see
+      // ONLY the two bare arms (nothing leftover, no smear) — the video's clean
+      // start. After the opening, switch to the slow trailing fade so the curve
+      // accumulates into its luminous flower.
+      const inOpening = holdRef.current < 1 && runRef.current
+      if (inOpening) {
+        ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, H)
+      } else {
+        ctx.fillStyle = "rgba(3,4,9,0.022)"   // filmic trailing fade
+        ctx.fillRect(0, 0, W, H)
+      }
 
       // ---- cinematic camera, choreographed with the intro ---------------------
       // During the slow-motion opening we hold WIDE and centered so you clearly
       // read the two arms (one point orbiting on another). As the intro ramps and
       // the curve speeds up, the camera eases IN and starts trailing the tip —
       // the video's build. `iz` = intro progress (smoothstepped).
-      const iz = introRef.current * introRef.current * (3 - 2 * introRef.current)
+      // during the opening beat the camera is locked wide + centered (no push-in,
+      // no tip-follow) so the two arms read cleanly. iz stays 0 until then.
+      const iz = inOpening ? 0 : introRef.current * introRef.current * (3 - 2 * introRef.current)
       const now = tRef.current
       const [ctx0, cty0] = tip(now)
       // wide (1×) at the start → the chosen zoom target once the intro completes
@@ -143,14 +155,29 @@ export function PiIrrational() {
 
       if (runRef.current) {
         const t = tRef.current
-        // CINEMATIC INTRO RAMP (matches the reference video's direction): the
-        // animation begins in near-slow-motion so you can SEE the two-arm
-        // mechanism — one point orbiting on another — then eases up to the chosen
-        // speed over ~7s. `intro` climbs 0→1; the speed multiplier lerps from a
-        // gentle 0.12× at the start to the full user speed. Restart replays it.
-        introRef.current = Math.min(1, introRef.current + 1 / (7 * 60))  // ~7s at 60fps
+        // A DIRECTED OPENING, not a loop. The reference doesn't just spin — it
+        // (1) shows the two bare arms at rest, (2) starts them turning slowly so
+        // the curve traces from nothing, (3) accelerates into the full flower.
+        // holdRef counts a ~1.2s opening beat where the arms sit still (t doesn't
+        // advance) — so you SEE the mechanism before it moves. Then the intro
+        // ramp eases speed from a crawl up to the chosen speed over ~7s.
+        holdRef.current = Math.min(1, holdRef.current + 1 / (1.6 * 60))   // ~1.6s opening
+        const opening = holdRef.current < 1
+        if (opening) {
+          // THE WARRIOR SWING: don't sit still — the arms wind BACK then swing
+          // FORWARD with momentum, like a fighter loading a strike, before the
+          // real motion takes over. A back-then-over-then-settle easing on t.
+          const h = holdRef.current
+          // wind-up (dips negative), then a decisive forward swing past, easing in
+          const swing = -0.9 * Math.sin(h * Math.PI * 0.5) * (1 - h)      // pull back, release
+                        + 1.7 * (h * h)                                    // accelerate forward
+          tRef.current = swing
+          introRef.current = 0
+        } else {
+          introRef.current = Math.min(1, introRef.current + 1 / (7 * 60))
+        }
         const introEase = introRef.current * introRef.current * (3 - 2 * introRef.current) // smoothstep
-        const effSpeed = (0.12 + (speedRef.current - 0.12) * introEase)
+        const effSpeed = opening ? 0 : (0.10 + (speedRef.current - 0.10) * introEase)
         const dt = 0.02 * effSpeed
         // sub-steps per frame scale with speed so the curve stays SMOOTH (no gaps)
         // at any speed — quality holds throughout the ramp.
