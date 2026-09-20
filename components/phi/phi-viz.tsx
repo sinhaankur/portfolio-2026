@@ -28,6 +28,7 @@ export function PhiViz() {
   const [fs, setFs] = useState(false)
   const rafRef = useRef<number | null>(null)
   const growthRef = useRef(0)                        // eased "how much has grown"
+  const holdRef = useRef(0)                           // hold-on-reveal beat after build
   const modeRef = useRef(mode); modeRef.current = mode
   const angleRef = useRef(angleDeg); angleRef.current = angleDeg
   const runRef = useRef(running); runRef.current = running
@@ -63,8 +64,16 @@ export function PhiViz() {
       const W = box.width, H = box.height
       ctx.fillStyle = "#05060a"; ctx.fillRect(0, 0, W, H)
 
-      if (runRef.current) growthRef.current = Math.min(1, growthRef.current + 0.006)
-      const grow = growthRef.current
+      // DIRECTED ARC (not a plain fill): ease the growth with a slow-in so the
+      // pattern BUILDS gracefully, then HOLD on the completed reveal for a beat so
+      // it lands, before it just sits. growthRef 0→1 is the raw progress; `grow`
+      // is smoothstepped for a filmic build.
+      if (runRef.current) {
+        if (growthRef.current < 1) growthRef.current = Math.min(1, growthRef.current + 0.005)
+        else holdRef.current = Math.min(1, holdRef.current + 1 / (2.5 * 60)) // ~2.5s hold
+      }
+      const raw = growthRef.current
+      const grow = raw * raw * (3 - 2 * raw)   // smoothstep — slow start, ease to full
 
       if (modeRef.current === "spiral") {
         // Fibonacci squares tiling into the golden spiral

@@ -32,6 +32,7 @@ export function PiIrrational() {
   const [turns, setTurns] = useState(0)
   const [fs, setFs] = useState(false)
   const [zoomOn, setZoomOn] = useState(true)     // cinematic push-in that follows the tip
+  const [trails, setTrails] = useState(true)     // long-exposure trail vs. clean single curve
   const [music, setMusic] = useState(false)      // opt-in generative bed
   const rafRef = useRef<number | null>(null)
   const tRef = useRef(0)
@@ -46,9 +47,11 @@ export function PiIrrational() {
   const speedRef = useRef(speed)
   const runRef = useRef(running)
   const zoomOnRef = useRef(zoomOn)
+  const trailsRef = useRef(trails)
   speedRef.current = speed
   runRef.current = running
   zoomOnRef.current = zoomOn
+  trailsRef.current = trails
 
   const ratio = RATIOS[ratioIdx]
   const ratioRef = useRef(ratio)
@@ -183,10 +186,13 @@ export function PiIrrational() {
       const dCamX = Math.abs(camRef.current.x - lastCam.x)
       const dCamY = Math.abs(camRef.current.y - lastCam.y)
       const dZoom = Math.abs(zNow - lastCam.z)
-      const camSmear = inOpening || dCamX + dCamY > 0.6 || dZoom > 0.004
+      // Trails OFF → always hard-clear: a single crisp curve, zero ghosting (some
+      // find the long-exposure trail distracting). Trails ON → accumulate a filmic
+      // fade, but still hard-clear whenever the camera moves fast enough to smear.
+      const camSmear = !trailsRef.current || inOpening || dCamX + dCamY > 0.6 || dZoom > 0.004
       lastCam.x = camRef.current.x; lastCam.y = camRef.current.y; lastCam.z = zNow
       if (camSmear) {
-        ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, H)   // clean, no smear
+        ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, H)   // clean, no smear / no trail
       } else {
         ctx.fillStyle = "rgba(3,4,9,0.022)"   // filmic trailing fade (camera settled)
         ctx.fillRect(0, 0, W, H)
@@ -263,13 +269,22 @@ export function PiIrrational() {
         // rational curves get a soft mint (they'll close into a calm flower);
         // irrational π gets a cool argent white — timeless, not gaudy.
         const core = rt.rational ? "230,255,240" : "224,232,255"
+        // With trails ON we only stroke the fresh leading segment (the fade holds
+        // history). With trails OFF there's no history to hold, so we redraw the
+        // WHOLE traced curve from 0→now every frame — a clean, complete figure with
+        // no ghosting. Cap the sample count so deep runs stay smooth.
+        const noTrail = !trailsRef.current
+        const drawStart = noTrail ? 0 : t
+        const drawEnd = noTrail ? t + stepCount * seg : t + stepCount * seg
+        const drawSteps = noTrail ? Math.min(6000, Math.max(stepCount, Math.ceil((drawEnd - drawStart) / seg))) : stepCount
+        const dseg = (drawEnd - drawStart) / drawSteps
         const stroke = (w: number, a: number) => {
           ctx.globalCompositeOperation = "lighter"
           ctx.lineWidth = w / z
           ctx.strokeStyle = `rgba(${core},${a})`
           ctx.beginPath()
-          for (let i = 0; i <= stepCount; i++) {
-            const [x, y] = tip(t + i * seg)
+          for (let i = 0; i <= drawSteps; i++) {
+            const [x, y] = tip(drawStart + i * dseg)
             i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)
           }
           ctx.stroke()
@@ -409,6 +424,7 @@ export function PiIrrational() {
         <button onClick={() => setRunning((r) => !r)} className={`${btn} bg-white/12 text-white border border-white/25`}>{running ? "Pause" : "Play"}</button>
         <button onClick={restart} className={`${btn} bg-black/30 text-white/70 border border-white/10 hover:text-white`}>Restart</button>
         <button onClick={() => setZoomOn((z) => !z)} className={`${btn} ${zoomOn ? "bg-white/15 text-white border border-white/30" : "bg-black/30 text-white/60 border border-white/10 hover:text-white"}`}>{zoomOn ? "Zoom ⊙" : "Zoom off"}</button>
+        <button onClick={() => setTrails((t) => !t)} className={`${btn} ${trails ? "bg-white/15 text-white border border-white/30" : "bg-black/30 text-white/60 border border-white/10 hover:text-white"}`}>{trails ? "Trails ✦" : "Trails off"}</button>
         <button onClick={() => setMusic((m) => !m)} className={`${btn} ${music ? "bg-white/15 text-white border border-white/30" : "bg-black/30 text-white/60 border border-white/10 hover:text-white"}`}>{music ? "♪ on" : "♪ music"}</button>
         <label className="flex items-center gap-2 font-mono text-[10px] text-white/55 px-2">
           speed
