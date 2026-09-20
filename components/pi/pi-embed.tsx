@@ -14,6 +14,10 @@ const PiLab = dynamic(
   () => import("./pi-lab").then((m) => ({ default: m.PiLab })),
   { ssr: false, loading: () => <VizSkeleton label="loading the methods…" /> },
 )
+const PiDigits = dynamic(
+  () => import("./pi-digits").then((m) => ({ default: m.PiDigits })),
+  { ssr: false, loading: () => <VizSkeleton label="computing π…" /> },
+)
 
 function VizSkeleton({ label }: { label: string }) {
   return (
@@ -25,3 +29,4 @@ function VizSkeleton({ label }: { label: string }) {
 
 export function PiIrrationalEmbed() { return <PiIrrational /> }
 export function PiLabEmbed() { return <PiLab /> }
+export function PiDigitsEmbed() { return <PiDigits /> }

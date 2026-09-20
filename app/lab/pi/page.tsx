@@ -5,7 +5,7 @@ import {
   CaseSectionHeading,
   CaseProse,
 } from "@/components/case-study/case-study-layout"
-import { PiIrrationalEmbed, PiLabEmbed } from "@/components/pi/pi-embed"
+import { PiIrrationalEmbed, PiLabEmbed, PiDigitsEmbed } from "@/components/pi/pi-embed"
 
 export const metadata: Metadata = {
   ...canonicalPath("/lab/pi"),
@@ -56,6 +56,20 @@ export default function PiPage() {
           exact decimal&rdquo;: an irrational number never resolves into a clean,
           repeating whole. Switch the ratio to see rational-closes vs π-never-does.
         </CaseProse>
+      </section>
+
+      <section>
+        <CaseSectionHeading>π to the nth digit — the endlessness, literally</CaseSectionHeading>
+        <CaseProse>
+          Here it is as plainly as it gets: π&apos;s digits, computed live, streaming
+          into a ribbon you can scroll sideways forever. These aren&apos;t looked up
+          — a spigot algorithm grinds them out one at a time with exact big-integer
+          arithmetic. Let it run, drag it left and right, and watch a number that
+          never ends refuse to end.
+        </CaseProse>
+        <div className="mt-6">
+          <PiDigitsEmbed />
+        </div>
       </section>
 
       <section>
