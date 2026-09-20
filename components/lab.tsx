@@ -336,7 +336,8 @@ export function Lab() {
           </Link>
         </motion.div>
 
-        {/* Pie — how π is calculated + why it never ends (irrationality, visible) */}
+        {/* Math collection — ONE card for the whole "equations, visible" series
+            (7 pages) so the Lab index stays clear, not a wall of tiles. → /lab/math */}
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -345,72 +346,9 @@ export function Lab() {
           className="h-full"
         >
           <Link
-            href="/lab/pi"
+            href="/lab/math"
             data-cursor-hover
-            aria-label="Pie — how π is calculated and why it never ends"
-            className="
-              group relative flex h-full flex-col overflow-hidden
-              border border-border rounded-2xl
-              bg-card hover:border-accent/60 transition-colors duration-300
-              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
-              focus-visible:ring-offset-4 focus-visible:ring-offset-background
-              p-6 md:p-8
-            "
-          >
-            {/* a faint orbiting glow — the two-arm curve, hinted */}
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute -right-16 -top-16 w-64 h-64 rounded-full opacity-40 md:opacity-60 transition-transform duration-700 group-hover:scale-105"
-              style={{ background: "radial-gradient(circle, rgba(120,160,255,0.4), rgba(255,120,80,0.16) 50%, transparent 72%)" }}
-            />
-            <div className="relative flex flex-1 flex-col">
-              <div className="flex flex-wrap items-center gap-2 mb-6">
-                <span className="font-mono text-[10px] tracking-[0.25em] uppercase px-2.5 py-1 border border-border text-foreground/85 rounded-full">
-                  Interactive · Mathematics
-                </span>
-                <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 border border-border text-foreground/75 rounded-full">
-                  Real math, live
-                </span>
-              </div>
-
-              <h3 className="font-display text-2xl md:text-3xl font-light tracking-[-0.02em] leading-[1.1] text-foreground">
-                Pie — <span className="italic">how π is calculated, and why it never ends.</span>
-              </h3>
-
-              <p className="mt-4 flex-1 font-sans text-sm md:text-base text-foreground/80 leading-relaxed">
-                π is computed, never finished. A two-arm curve whose irrational
-                π-ratio never closes shows <em>why</em> it has no exact value —
-                alongside Archimedes&apos; polygons, Leibniz&apos;s infinite series,
-                and Monte-Carlo darts, each converging live and never quite arriving.
-              </p>
-
-              <div className="mt-7 inline-flex items-center gap-2 font-mono text-[10px] tracking-[0.25em] uppercase text-foreground/85 group-hover:text-accent transition-colors">
-                Watch π appear
-                <motion.span
-                  aria-hidden="true"
-                  whileHover={prefersReducedMotion ? undefined : { rotate: 45 }}
-                  transition={{ duration: 0.3 }}
-                  className="inline-flex"
-                >
-                  <ArrowUpRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                </motion.span>
-              </div>
-            </div>
-          </Link>
-        </motion.div>
-
-        {/* Euler's identity — e^{iπ}+1=0, seen: a point half-turning to −1 */}
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-60px" }}
-          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.12 }}
-          className="h-full"
-        >
-          <Link
-            href="/lab/euler"
-            data-cursor-hover
-            aria-label="Euler's identity — e to the i pi plus one equals zero, made obvious"
+            aria-label="The math collection — equations made visible"
             className="
               group relative flex h-full flex-col overflow-hidden
               border border-border rounded-2xl
@@ -423,7 +361,7 @@ export function Lab() {
             <div
               aria-hidden="true"
               className="pointer-events-none absolute -right-16 -top-16 w-64 h-64 rounded-full opacity-40 md:opacity-60 transition-transform duration-700 group-hover:scale-105"
-              style={{ background: "radial-gradient(circle, rgba(255,210,77,0.35), rgba(124,156,255,0.18) 50%, transparent 72%)" }}
+              style={{ background: "radial-gradient(circle, rgba(207,154,44,0.34), rgba(124,156,255,0.18) 50%, transparent 72%)" }}
             />
             <div className="relative flex flex-1 flex-col">
               <div className="flex flex-wrap items-center gap-2 mb-6">
@@ -431,330 +369,23 @@ export function Lab() {
                   Interactive · Mathematics
                 </span>
                 <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 border border-border text-foreground/75 rounded-full">
-                  Equations, visible
+                  A collection
                 </span>
               </div>
 
               <h3 className="font-display text-2xl md:text-3xl font-light tracking-[-0.02em] leading-[1.1] text-foreground">
-                Euler&apos;s identity — <span className="italic">e^(iπ) + 1 = 0, made obvious.</span>
+                The math collection — <span className="italic">equations you can watch.</span>
               </h3>
 
               <p className="mt-4 flex-1 font-sans text-sm md:text-base text-foreground/80 leading-relaxed">
-                The &ldquo;most beautiful equation&rdquo; is usually taught as a
-                mystery. It isn&apos;t one: e^(iθ) is a point on the unit circle, and
-                at θ = π it lands exactly on −1. Sweep the angle and watch it happen.
+                Every equation has a picture that makes it obvious. A growing set of
+                cinematic, interactive visualizations — π, Euler&apos;s identity,
+                Fourier, the golden ratio, Pythagoras, the bell curve, logarithms —
+                each showing the real math, live.
               </p>
 
               <div className="mt-7 inline-flex items-center gap-2 font-mono text-[10px] tracking-[0.25em] uppercase text-foreground/85 group-hover:text-accent transition-colors">
-                Sweep the circle
-                <motion.span
-                  aria-hidden="true"
-                  whileHover={prefersReducedMotion ? undefined : { rotate: 45 }}
-                  transition={{ duration: 0.3 }}
-                  className="inline-flex"
-                >
-                  <ArrowUpRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                </motion.span>
-              </div>
-            </div>
-          </Link>
-        </motion.div>
-
-        {/* Fourier — any wave is a sum of spinning circles */}
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-60px" }}
-          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.12 }}
-          className="h-full"
-        >
-          <Link
-            href="/lab/fourier"
-            data-cursor-hover
-            aria-label="Fourier — any wave is a sum of spinning circles"
-            className="
-              group relative flex h-full flex-col overflow-hidden
-              border border-border rounded-2xl
-              bg-card hover:border-accent/60 transition-colors duration-300
-              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
-              focus-visible:ring-offset-4 focus-visible:ring-offset-background
-              p-6 md:p-8
-            "
-          >
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute -right-16 -top-16 w-64 h-64 rounded-full opacity-40 md:opacity-60 transition-transform duration-700 group-hover:scale-105"
-              style={{ background: "radial-gradient(circle, rgba(124,156,255,0.38), rgba(255,225,120,0.16) 50%, transparent 72%)" }}
-            />
-            <div className="relative flex flex-1 flex-col">
-              <div className="flex flex-wrap items-center gap-2 mb-6">
-                <span className="font-mono text-[10px] tracking-[0.25em] uppercase px-2.5 py-1 border border-border text-foreground/85 rounded-full">
-                  Interactive · Mathematics
-                </span>
-                <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 border border-border text-foreground/75 rounded-full">
-                  Equations, visible
-                </span>
-              </div>
-
-              <h3 className="font-display text-2xl md:text-3xl font-light tracking-[-0.02em] leading-[1.1] text-foreground">
-                Fourier — <span className="italic">any wave is a sum of spinning circles.</span>
-              </h3>
-
-              <p className="mt-4 flex-1 font-sans text-sm md:text-base text-foreground/80 leading-relaxed">
-                A square wave is built from pure sines added together. Draw each as
-                a spinning circle, stack them tip-to-tip, and their combined tip
-                traces the wave — more circles, sharper corners. The idea behind
-                MP3, JPEG, radio and MRI, made visible.
-              </p>
-
-              <div className="mt-7 inline-flex items-center gap-2 font-mono text-[10px] tracking-[0.25em] uppercase text-foreground/85 group-hover:text-accent transition-colors">
-                Stack the circles
-                <motion.span
-                  aria-hidden="true"
-                  whileHover={prefersReducedMotion ? undefined : { rotate: 45 }}
-                  transition={{ duration: 0.3 }}
-                  className="inline-flex"
-                >
-                  <ArrowUpRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                </motion.span>
-              </div>
-            </div>
-          </Link>
-        </motion.div>
-
-        {/* Golden ratio — φ, and why sunflowers grow this way */}
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-60px" }}
-          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.12 }}
-          className="h-full"
-        >
-          <Link
-            href="/lab/golden-ratio"
-            data-cursor-hover
-            aria-label="The golden ratio — phi, and why sunflowers grow this way"
-            className="
-              group relative flex h-full flex-col overflow-hidden
-              border border-border rounded-2xl
-              bg-card hover:border-accent/60 transition-colors duration-300
-              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
-              focus-visible:ring-offset-4 focus-visible:ring-offset-background
-              p-6 md:p-8
-            "
-          >
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute -right-16 -top-16 w-64 h-64 rounded-full opacity-40 md:opacity-60 transition-transform duration-700 group-hover:scale-105"
-              style={{ background: "radial-gradient(circle, rgba(255,210,90,0.36), rgba(124,156,255,0.16) 50%, transparent 72%)" }}
-            />
-            <div className="relative flex flex-1 flex-col">
-              <div className="flex flex-wrap items-center gap-2 mb-6">
-                <span className="font-mono text-[10px] tracking-[0.25em] uppercase px-2.5 py-1 border border-border text-foreground/85 rounded-full">
-                  Interactive · Mathematics
-                </span>
-                <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 border border-border text-foreground/75 rounded-full">
-                  Equations, visible
-                </span>
-              </div>
-
-              <h3 className="font-display text-2xl md:text-3xl font-light tracking-[-0.02em] leading-[1.1] text-foreground">
-                The golden ratio — <span className="italic">φ, and why sunflowers grow this way.</span>
-              </h3>
-
-              <p className="mt-4 flex-1 font-sans text-sm md:text-base text-foreground/80 leading-relaxed">
-                φ = 1.618… is what Fibonacci homes in on, and the &ldquo;most
-                irrational&rdquo; number there is — which is exactly why seeds turned
-                by the golden angle pack perfectly instead of forming spokes. See the
-                spiral and the sunflower, live.
-              </p>
-
-              <div className="mt-7 inline-flex items-center gap-2 font-mono text-[10px] tracking-[0.25em] uppercase text-foreground/85 group-hover:text-accent transition-colors">
-                Grow the spiral
-                <motion.span
-                  aria-hidden="true"
-                  whileHover={prefersReducedMotion ? undefined : { rotate: 45 }}
-                  transition={{ duration: 0.3 }}
-                  className="inline-flex"
-                >
-                  <ArrowUpRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                </motion.span>
-              </div>
-            </div>
-          </Link>
-        </motion.div>
-
-        {/* Pythagoras — a²+b²=c², proven by area */}
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-60px" }}
-          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.12 }}
-          className="h-full"
-        >
-          <Link
-            href="/lab/pythagoras"
-            data-cursor-hover
-            aria-label="Pythagoras — a squared plus b squared equals c squared, proven by area"
-            className="
-              group relative flex h-full flex-col overflow-hidden
-              border border-border rounded-2xl
-              bg-card hover:border-accent/60 transition-colors duration-300
-              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
-              focus-visible:ring-offset-4 focus-visible:ring-offset-background
-              p-6 md:p-8
-            "
-          >
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute -right-16 -top-16 w-64 h-64 rounded-full opacity-40 md:opacity-60 transition-transform duration-700 group-hover:scale-105"
-              style={{ background: "radial-gradient(circle, rgba(120,235,175,0.34), rgba(255,180,120,0.16) 50%, transparent 72%)" }}
-            />
-            <div className="relative flex flex-1 flex-col">
-              <div className="flex flex-wrap items-center gap-2 mb-6">
-                <span className="font-mono text-[10px] tracking-[0.25em] uppercase px-2.5 py-1 border border-border text-foreground/85 rounded-full">
-                  Interactive · Mathematics
-                </span>
-                <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 border border-border text-foreground/75 rounded-full">
-                  Equations, visible
-                </span>
-              </div>
-
-              <h3 className="font-display text-2xl md:text-3xl font-light tracking-[-0.02em] leading-[1.1] text-foreground">
-                Pythagoras — <span className="italic">a² + b² = c², proven by moving four triangles.</span>
-              </h3>
-
-              <p className="mt-4 flex-1 font-sans text-sm md:text-base text-foreground/80 leading-relaxed">
-                No algebra — just area. Four right triangles, two arrangements of the
-                same square: one leaves holes of a² and b², the other a hole of c².
-                Slide the triangles between them and watch the theorem prove itself.
-              </p>
-
-              <div className="mt-7 inline-flex items-center gap-2 font-mono text-[10px] tracking-[0.25em] uppercase text-foreground/85 group-hover:text-accent transition-colors">
-                Rearrange the squares
-                <motion.span
-                  aria-hidden="true"
-                  whileHover={prefersReducedMotion ? undefined : { rotate: 45 }}
-                  transition={{ duration: 0.3 }}
-                  className="inline-flex"
-                >
-                  <ArrowUpRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                </motion.span>
-              </div>
-            </div>
-          </Link>
-        </motion.div>
-
-        {/* Bell curve — order out of randomness (Galton board / CLT) */}
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-60px" }}
-          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.12 }}
-          className="h-full"
-        >
-          <Link
-            href="/lab/bell-curve"
-            data-cursor-hover
-            aria-label="The bell curve — order out of pure randomness"
-            className="
-              group relative flex h-full flex-col overflow-hidden
-              border border-border rounded-2xl
-              bg-card hover:border-accent/60 transition-colors duration-300
-              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
-              focus-visible:ring-offset-4 focus-visible:ring-offset-background
-              p-6 md:p-8
-            "
-          >
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute -right-16 -top-16 w-64 h-64 rounded-full opacity-40 md:opacity-60 transition-transform duration-700 group-hover:scale-105"
-              style={{ background: "radial-gradient(circle, rgba(255,210,90,0.34), rgba(120,200,255,0.18) 50%, transparent 72%)" }}
-            />
-            <div className="relative flex flex-1 flex-col">
-              <div className="flex flex-wrap items-center gap-2 mb-6">
-                <span className="font-mono text-[10px] tracking-[0.25em] uppercase px-2.5 py-1 border border-border text-foreground/85 rounded-full">
-                  Interactive · Mathematics
-                </span>
-                <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 border border-border text-foreground/75 rounded-full">
-                  Equations, visible
-                </span>
-              </div>
-
-              <h3 className="font-display text-2xl md:text-3xl font-light tracking-[-0.02em] leading-[1.1] text-foreground">
-                The bell curve — <span className="italic">order out of pure randomness.</span>
-              </h3>
-
-              <p className="mt-4 flex-1 font-sans text-sm md:text-base text-foreground/80 leading-relaxed">
-                Drop balls through a field of pegs — each bounce a coin-flip — and
-                they pile into the same bell curve every time. The Central Limit
-                Theorem, made visible: sum enough random nudges and you always get
-                the normal distribution.
-              </p>
-
-              <div className="mt-7 inline-flex items-center gap-2 font-mono text-[10px] tracking-[0.25em] uppercase text-foreground/85 group-hover:text-accent transition-colors">
-                Drop the balls
-                <motion.span
-                  aria-hidden="true"
-                  whileHover={prefersReducedMotion ? undefined : { rotate: 45 }}
-                  transition={{ duration: 0.3 }}
-                  className="inline-flex"
-                >
-                  <ArrowUpRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                </motion.span>
-              </div>
-            </div>
-          </Link>
-        </motion.div>
-
-        {/* Logarithms — adding becomes multiplying (the slide rule) */}
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-60px" }}
-          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.12 }}
-          className="h-full"
-        >
-          <Link
-            href="/lab/logarithms"
-            data-cursor-hover
-            aria-label="Logarithms — how a log book multiplied huge numbers by hand"
-            className="
-              group relative flex h-full flex-col overflow-hidden
-              border border-border rounded-2xl
-              bg-card hover:border-accent/60 transition-colors duration-300
-              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
-              focus-visible:ring-offset-4 focus-visible:ring-offset-background
-              p-6 md:p-8
-            "
-          >
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute -right-16 -top-16 w-64 h-64 rounded-full opacity-40 md:opacity-60 transition-transform duration-700 group-hover:scale-105"
-              style={{ background: "radial-gradient(circle, rgba(120,235,175,0.32), rgba(255,205,120,0.18) 50%, transparent 72%)" }}
-            />
-            <div className="relative flex flex-1 flex-col">
-              <div className="flex flex-wrap items-center gap-2 mb-6">
-                <span className="font-mono text-[10px] tracking-[0.25em] uppercase px-2.5 py-1 border border-border text-foreground/85 rounded-full">
-                  Interactive · Mathematics
-                </span>
-                <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 border border-border text-foreground/75 rounded-full">
-                  Equations, visible
-                </span>
-              </div>
-
-              <h3 className="font-display text-2xl md:text-3xl font-light tracking-[-0.02em] leading-[1.1] text-foreground">
-                Logarithms — <span className="italic">adding becomes multiplying.</span>
-              </h3>
-
-              <p className="mt-4 flex-1 font-sans text-sm md:text-base text-foreground/80 leading-relaxed">
-                The trick behind the old &ldquo;log book&rdquo; and the slide rule: on
-                a log scale, distance is the logarithm — so laying two lengths end to
-                end multiplies the numbers. Watch a × b happen as a slide.
-              </p>
-
-              <div className="mt-7 inline-flex items-center gap-2 font-mono text-[10px] tracking-[0.25em] uppercase text-foreground/85 group-hover:text-accent transition-colors">
-                Slide the scales
+                Open the collection
                 <motion.span
                   aria-hidden="true"
                   whileHover={prefersReducedMotion ? undefined : { rotate: 45 }}
