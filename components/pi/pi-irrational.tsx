@@ -33,12 +33,15 @@ export function PiIrrational() {
   const [fs, setFs] = useState(false)
   const [zoomOn, setZoomOn] = useState(false)    // opt-in closing zoom-OUT reveal (default = full rosette)
   const [trails, setTrails] = useState(true)     // show the two moving arms + dots (the mechanism)
+  const [cinematic, setCinematic] = useState(false)  // luminous glow look vs. clean reference loops
   const [music, setMusic] = useState(false)      // opt-in generative bed
   const rafRef = useRef<number | null>(null)
   const tRef = useRef(0)
   const holdRef = useRef(0)                      // 0→1 opening beat (arms at rest)
   const introRef = useRef(0)                     // 0→1 cinematic slow-start ramp
   const outRef = useRef(0)                        // 0→1 closing zoom-OUT reveal ("never closes")
+  const cineZoomRef = useRef(0)                    // 0→1 how much cinematic breathing-zoom is engaged
+  const cinePhaseRef = useRef(0)                   // seconds phase for the breathing sine
   const zoomRef = useRef(1)                       // eased current zoom factor
   const camRef = useRef({ x: 0, y: 0 })          // eased camera focus (world coords)
   const lastCam = useRef({ x: 0, y: 0, z: 1 }).current  // prev-frame cam, for smear detect
@@ -49,10 +52,12 @@ export function PiIrrational() {
   const runRef = useRef(running)
   const zoomOnRef = useRef(zoomOn)
   const trailsRef = useRef(trails)
+  const cinematicRef = useRef(cinematic)
   speedRef.current = speed
   runRef.current = running
   zoomOnRef.current = zoomOn
   trailsRef.current = trails
+  cinematicRef.current = cinematic
 
   const ratio = RATIOS[ratioIdx]
   const ratioRef = useRef(ratio)
@@ -118,6 +123,11 @@ export function PiIrrational() {
       setExploring(true)
     }
     const onClick = (e: MouseEvent) => {
+      // ignore clicks in the bottom ~76px control strip (or top chip row) so the
+      // canvas fly-to never competes with Pause / the other buttons.
+      const box = cv.getBoundingClientRect()
+      const y = e.clientY - box.top
+      if (y > box.height - 76 || y < 52) return
       clickTargetRef.current = screenToWorld(e.clientX, e.clientY)
       setExploring(true)
     }
@@ -216,7 +226,16 @@ export function PiIrrational() {
         outRef.current = Math.max(0, outRef.current - 1 / (1.5 * 60)) // ease back in ~1.5s
       }
       const outEase = outRef.current * outRef.current * (3 - 2 * outRef.current)
-      const targetZoom = 1 - 0.78 * outEase          // 1× (full rosette) → ~0.22× (arms exceed frame)
+      // CINEMATIC breathing zoom — what you'd do on a clip in After Effects: a slow
+      // push-in then pull-out that never stops, so the frame feels alive and shot.
+      // A gentle sine (period ~22s) around 1×, ±10%, eased in only in cinematic
+      // mode; reference mode stays locked at 1×. Layers under the reveal pull-back.
+      const cineTarget = cinematicRef.current ? 1 : 0
+      cineZoomRef.current += (cineTarget - cineZoomRef.current) * 0.03   // ease the breathing in/out
+      const cineAmt = cineZoomRef.current
+      cinePhaseRef.current += 1 / 60
+      const breathe = 1 + cineAmt * 0.10 * Math.sin(cinePhaseRef.current * (TAU / 22))
+      const targetZoom = (1 - 0.78 * outEase) * breathe   // reveal pull-back × cinematic breathing
       zoomRef.current += (targetZoom - zoomRef.current) * 0.03
       // camera focus is locked to screen-center (no tip-follow) unless the user
       // clicks a point to fly there (explore mode overrides the fixed framing).
@@ -283,25 +302,37 @@ export function PiIrrational() {
         const winStart = Math.max(0, drawEnd - HISTORY)
         const drawSteps = Math.min(6000, Math.max(stepCount, Math.ceil((drawEnd - winStart) / seg)))
         const dseg = (drawEnd - winStart) / drawSteps
-        ctx.lineWidth = 0.85 / z
         ctx.lineCap = "round"; ctx.lineJoin = "round"
-        // draw in a few alpha bands so the oldest ~10% fades in from nothing
-        ctx.beginPath()
-        ctx.strokeStyle = "rgba(206,213,224,0.5)"       // soft grey-white, like the reel
-        for (let i = 0; i <= drawSteps; i++) {
-          const f = i / drawSteps
-          const [x, y] = tip(winStart + i * dseg)
-          if (i === 0) { ctx.moveTo(x, y); continue }
-          ctx.lineTo(x, y)
-          // flush + restart with a faded alpha for the oldest slice so it eases out
-          if (f < 0.12 && i % 8 === 0) {
-            ctx.globalAlpha = f / 0.12
-            ctx.stroke()
-            ctx.beginPath(); ctx.moveTo(x, y)
+        const cine = cinematicRef.current
+        // one pass over the history window; in CINEMATIC mode we stroke it a few
+        // times additively (wide faint halo → mid bloom → crisp core) for a
+        // luminous long-exposure look; in REFERENCE mode it's a single flat grey
+        // line like the reel. Both share the oldest-slice fade-in.
+        const passes = cine
+          ? [ { w: 4.2, a: 0.05, c: "224,232,255", op: "lighter" as GlobalCompositeOperation },
+              { w: 1.7, a: 0.14, c: "224,232,255", op: "lighter" as GlobalCompositeOperation },
+              { w: 0.8, a: 0.9,  c: "236,242,255", op: "lighter" as GlobalCompositeOperation } ]
+          : [ { w: 0.85, a: 0.5, c: "206,213,224", op: "source-over" as GlobalCompositeOperation } ]
+        for (const pass of passes) {
+          ctx.globalCompositeOperation = pass.op
+          ctx.lineWidth = pass.w / z
+          ctx.beginPath()
+          ctx.strokeStyle = `rgba(${pass.c},${pass.a})`
+          for (let i = 0; i <= drawSteps; i++) {
+            const f = i / drawSteps
+            const [x, y] = tip(winStart + i * dseg)
+            if (i === 0) { ctx.moveTo(x, y); continue }
+            ctx.lineTo(x, y)
+            if (f < 0.12 && i % 8 === 0) {
+              ctx.globalAlpha = f / 0.12
+              ctx.stroke()
+              ctx.beginPath(); ctx.moveTo(x, y)
+            }
           }
+          ctx.globalAlpha = 1
+          ctx.stroke()
         }
-        ctx.globalAlpha = 1
-        ctx.stroke()
+        ctx.globalCompositeOperation = "source-over"
 
         // GUIDE CIRCLES — the two clean bright rings the reel shows: the fixed
         // outer circle (first arm's reach) and the moving inner circle (centred on
@@ -349,6 +380,16 @@ export function PiIrrational() {
             ctx.fillStyle = `rgba(244,248,255,${a})`
             ctx.beginPath(); ctx.arc(bx, by, (1.0 + 0.6 * f) / z, 0, TAU); ctx.fill()
           }
+          // CINEMATIC: a luminous bloom on the leading tip (additive radial glow)
+          if (cine) {
+            ctx.globalCompositeOperation = "lighter"
+            const g = ctx.createRadialGradient(x1, y1, 0, x1, y1, 9 / z)
+            g.addColorStop(0, "rgba(255,255,255,0.95)")
+            g.addColorStop(1, "rgba(210,224,255,0)")
+            ctx.fillStyle = g
+            ctx.beginPath(); ctx.arc(x1, y1, 9 / z, 0, TAU); ctx.fill()
+            ctx.globalCompositeOperation = "source-over"
+          }
         }
 
         const t2 = t + stepCount * seg
@@ -373,9 +414,18 @@ export function PiIrrational() {
         setTurns(Math.floor(t2 / TAU))
       }
 
-      // No vignette, no bloom — the reel is a clean geometric line-drawing on flat
-      // black. Reset the transform for the next frame's screen-space clear.
+      // Reset the transform (screen space) for the next frame's clear + overlays.
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+      // CINEMATIC: a filmic vignette so the eye rests on the luminous curve. In
+      // reference mode we stay flat (a clean geometric line-drawing on black).
+      if (cinematicRef.current) {
+        ctx.globalCompositeOperation = "source-over"
+        const vig = ctx.createRadialGradient(cx, cy, Math.min(W, H) * 0.30, cx, cy, Math.max(W, H) * 0.72)
+        vig.addColorStop(0, "rgba(0,0,0,0)")
+        vig.addColorStop(1, "rgba(2,3,8,0.55)")
+        ctx.fillStyle = vig
+        ctx.fillRect(0, 0, W, H)
+      }
 
       rafRef.current = requestAnimationFrame(draw)
     }
@@ -445,8 +495,8 @@ export function PiIrrational() {
     >
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full bg-black" />
 
-      {/* ratio chips — top center, floating */}
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex flex-wrap justify-center gap-1.5">
+      {/* ratio chips — top center, floating (above the canvas click layer) */}
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 flex flex-wrap justify-center gap-1.5">
         {RATIOS.map((r, i) => (
           <button
             key={r.label}
@@ -464,11 +514,22 @@ export function PiIrrational() {
         <div className="mt-0.5 text-white/35">{ratio.rational ? "rational → the curve closes" : "irrational → it never closes"} · {turns} turns</div>
       </div>
 
-      {/* controls — bottom, floating glass bar */}
-      <div className="absolute bottom-0 inset-x-0 z-10 flex flex-wrap items-center justify-center gap-2 p-3 md:p-4
+      {/* controls — bottom, floating glass bar. z-20 keeps it ABOVE the canvas's
+          full-cover click-to-fly handler so Pause and the other buttons always
+          receive their clicks (the canvas explore click also guards against this). */}
+      <div className="absolute bottom-0 inset-x-0 z-20 flex flex-wrap items-center justify-center gap-2 p-3 md:p-4
         bg-gradient-to-t from-black/70 via-black/30 to-transparent">
-        <button onClick={() => setRunning((r) => !r)} className={`${btn} bg-white/12 text-white border border-white/25`}>{running ? "Pause" : "Play"}</button>
+        {/* Pause/Play — bigger, high-contrast, and a clear hit target so it's
+            never hard to click (it sits above the canvas at z-20). */}
+        <button
+          onClick={() => setRunning((r) => !r)}
+          aria-label={running ? "Pause" : "Play"}
+          className="rounded-full px-5 py-2 font-mono text-[12px] tracking-wide bg-white text-black border border-white hover:bg-white/90 transition shadow-lg"
+        >
+          {running ? "❚❚ Pause" : "▶ Play"}
+        </button>
         <button onClick={restart} className={`${btn} bg-black/30 text-white/70 border border-white/10 hover:text-white`}>Restart</button>
+        <button onClick={() => setCinematic((c) => !c)} className={`${btn} ${cinematic ? "bg-amber-400/20 text-amber-100 border border-amber-300/50" : "bg-black/30 text-white/60 border border-white/10 hover:text-white"}`}>{cinematic ? "✦ Cinematic" : "Cinematic view"}</button>
         <button onClick={() => setZoomOn((z) => !z)} className={`${btn} ${zoomOn ? "bg-white/15 text-white border border-white/30" : "bg-black/30 text-white/60 border border-white/10 hover:text-white"}`}>{zoomOn ? "Reveal ⊙" : "Reveal off"}</button>
         <button onClick={() => setTrails((t) => !t)} className={`${btn} ${trails ? "bg-white/15 text-white border border-white/30" : "bg-black/30 text-white/60 border border-white/10 hover:text-white"}`}>{trails ? "Arms ⊹" : "Arms off"}</button>
         <button onClick={() => setMusic((m) => !m)} className={`${btn} ${music ? "bg-white/15 text-white border border-white/30" : "bg-black/30 text-white/60 border border-white/10 hover:text-white"}`}>{music ? "♪ on" : "♪ music"}</button>
