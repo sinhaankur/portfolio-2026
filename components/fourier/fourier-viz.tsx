@@ -19,14 +19,18 @@ const TAU = Math.PI * 2
 export function FourierViz() {
   const wrapRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const [terms, setTerms] = useState(4)          // number of circles (odd harmonics)
+  const [terms, setTerms] = useState(1)          // number of circles (odd harmonics)
   const [running, setRunning] = useState(true)
   const [fs, setFs] = useState(false)
+  const [autoBuild, setAutoBuild] = useState(true) // song-arc: add circles over time
   const rafRef = useRef<number | null>(null)
   const tRef = useRef(0)
   const wave = useRef<number[]>([])              // the traced-wave history buffer
   const termsRef = useRef(terms); termsRef.current = terms
   const runRef = useRef(running); runRef.current = running
+  const autoRef = useRef(autoBuild); autoRef.current = autoBuild
+  const buildRef = useRef(1)                     // eased fractional term count during build
+  const frameRef = useRef(0)
 
   const fit = useCallback(() => {
     const cv = canvasRef.current
@@ -60,6 +64,17 @@ export function FourierViz() {
       ctx.fillStyle = "#05060a"; ctx.fillRect(0, 0, W, H)
 
       const t = tRef.current
+      frameRef.current++
+      // DIRECTED BUILD (song arc): start with 1 circle (a plain sine) and add
+      // circles over ~9s — the corners sharpen and the square wave 'drops' into
+      // focus, then holds. The manual slider takes over the moment you touch it
+      // (autoBuild off). buildRef is the eased fractional count.
+      if (autoRef.current && runRef.current) {
+        const target = 24
+        buildRef.current = Math.min(target, buildRef.current + 0.05)  // ~1→24 over ~8s
+        const nn = Math.round(buildRef.current)
+        if (nn !== termsRef.current) setTerms(nn)
+      }
       const n = termsRef.current
       // epicycle cluster sits on the left; the wave scrolls to the right
       const originX = W * 0.28, originY = H * 0.5
@@ -130,7 +145,7 @@ export function FourierViz() {
           <button onClick={toggleFs} className="rounded-lg border border-border px-3 py-1.5 font-mono text-[12px] text-foreground/70 hover:border-accent/50">{fs ? "Exit ⤢" : "Fullscreen ⛶"}</button>
           <label className="flex items-center gap-2 font-mono text-[11px] text-foreground/60">
             circles
-            <input type="range" min={1} max={40} step={1} value={terms} onChange={(e) => setTerms(parseInt(e.target.value))} className="w-32 accent-[color:var(--color-accent,#cf9a2c)]" aria-label="number of circles" />
+            <input type="range" min={1} max={40} step={1} value={terms} onChange={(e) => { setAutoBuild(false); const v = parseInt(e.target.value); buildRef.current = v; setTerms(v) }} className="w-32 accent-[color:var(--color-accent,#cf9a2c)]" aria-label="number of circles" />
             <span className="tabular-nums w-8">{terms}</span>
           </label>
         </div>
