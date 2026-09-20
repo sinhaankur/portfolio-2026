@@ -28,16 +28,17 @@ export function PiIrrational() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [ratioIdx, setRatioIdx] = useState(0)
   const [running, setRunning] = useState(true)
-  const [speed, setSpeed] = useState(1)          // multiplier, 0.1×–5×
+  const [speed, setSpeed] = useState(1.6)        // multiplier, 0.1×–5× — lively, cinematic flow
   const [turns, setTurns] = useState(0)
   const [fs, setFs] = useState(false)
-  const [zoomOn, setZoomOn] = useState(true)     // cinematic push-in that follows the tip
-  const [trails, setTrails] = useState(true)     // long-exposure trail vs. clean single curve
+  const [zoomOn, setZoomOn] = useState(false)    // opt-in closing zoom-OUT reveal (default = full rosette)
+  const [trails, setTrails] = useState(true)     // show the two moving arms + dots (the mechanism)
   const [music, setMusic] = useState(false)      // opt-in generative bed
   const rafRef = useRef<number | null>(null)
   const tRef = useRef(0)
   const holdRef = useRef(0)                      // 0→1 opening beat (arms at rest)
   const introRef = useRef(0)                     // 0→1 cinematic slow-start ramp
+  const outRef = useRef(0)                        // 0→1 closing zoom-OUT reveal ("never closes")
   const zoomRef = useRef(1)                       // eased current zoom factor
   const camRef = useRef({ x: 0, y: 0 })          // eased camera focus (world coords)
   const lastCam = useRef({ x: 0, y: 0, z: 1 }).current  // prev-frame cam, for smear detect
@@ -78,7 +79,8 @@ export function PiIrrational() {
     tRef.current = 0
     holdRef.current = 0       // replay the opening swing
     introRef.current = 0      // replay the cinematic slow-start
-    zoomRef.current = 1       // and re-do the push-in from wide
+    outRef.current = 0        // reset the closing zoom-out reveal
+    zoomRef.current = 1       // back to the centered 1× framing
     setTurns(0)
     fit()
   }, [fit])
@@ -186,47 +188,47 @@ export function PiIrrational() {
       const dCamX = Math.abs(camRef.current.x - lastCam.x)
       const dCamY = Math.abs(camRef.current.y - lastCam.y)
       const dZoom = Math.abs(zNow - lastCam.z)
-      // Trails OFF → always hard-clear: a single crisp curve, zero ghosting (some
-      // find the long-exposure trail distracting). Trails ON → accumulate a filmic
-      // fade, but still hard-clear whenever the camera moves fast enough to smear.
-      const camSmear = !trailsRef.current || inOpening || dCamX + dCamY > 0.6 || dZoom > 0.004
+      // ALWAYS hard-clear to black, then redraw the WHOLE traced curve fresh each
+      // frame (below). That is the reel's exact look: distinct thin grey loops, all
+      // history shown, but NO accumulation white-out and no smear. (The old fading
+      // long-exposure piled the grey lines into an opaque blob — wrong model.)
+      // `trails` now only chooses whether the two moving ARMS/dots are drawn.
+      void inOpening; void dCamX; void dCamY; void dZoom
       lastCam.x = camRef.current.x; lastCam.y = camRef.current.y; lastCam.z = zNow
-      if (camSmear) {
-        ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, H)   // clean, no smear / no trail
-      } else {
-        ctx.fillStyle = "rgba(3,4,9,0.022)"   // filmic trailing fade (camera settled)
-        ctx.fillRect(0, 0, W, H)
-      }
+      ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, H)
 
-      // ---- cinematic camera, choreographed with the intro ---------------------
-      // During the slow-motion opening we hold WIDE and centered so you clearly
-      // read the two arms (one point orbiting on another). As the intro ramps and
-      // the curve speeds up, the camera eases IN and starts trailing the tip —
-      // the video's build. `iz` = intro progress (smoothstepped).
-      // during the opening beat the camera is locked wide + centered (no push-in,
-      // no tip-follow) so the two arms read cleanly. iz stays 0 until then.
-      const iz = inOpening ? 0 : introRef.current * introRef.current * (3 - 2 * introRef.current)
-      const now = tRef.current
-      const [ctx0, cty0] = tip(now)
-      // wide (1×) at the start → the chosen zoom target once the intro completes
-      const targetZoom = 1 + ((zoomOnRef.current ? 2.1 : 1) - 1) * iz
-      zoomRef.current += (targetZoom - zoomRef.current) * 0.02      // slow, filmic ease
-      // follow strength also fades in with the intro (hold center during slow-mo)
-      const follow = 0.035 * iz
+      // ---- FIXED, CENTERED camera — faithful to the reference reel -------------
+      // The reel does NOT push in or follow the tip: the frame stays put and the
+      // rosette accumulates in place, centered. The only camera move is the
+      // closing payoff — a slow ZOOM-OUT that grows the two arms into enormous
+      // lines crossing the whole frame ("it never actually closes — it just keeps
+      // going"), then the loop restarts small. `outRef` (0→1) drives that reveal;
+      // it engages late in the run. Everything stays locked to screen-center.
+      // The DEFAULT resting view is the full-frame rosette (the look you endorsed).
+      // The zoom-OUT reveal ("it never closes — the arms are huge") is OPT-IN via
+      // the Reveal button, and it's a gentle ONE-WAY breath-out that then eases
+      // back, never getting stuck. It's drifted by real seconds (not turn-count) so
+      // speed doesn't blow past it. When Reveal is on, outRef rises to 1 over ~4s,
+      // holds briefly, then the button resets it; when off it always eases to 0.
+      if (zoomOnRef.current && holdRef.current >= 1) {
+        outRef.current = Math.min(1, outRef.current + 1 / (4 * 60))   // ~4s pull-back
+      } else {
+        outRef.current = Math.max(0, outRef.current - 1 / (1.5 * 60)) // ease back in ~1.5s
+      }
+      const outEase = outRef.current * outRef.current * (3 - 2 * outRef.current)
+      const targetZoom = 1 - 0.78 * outEase          // 1× (full rosette) → ~0.22× (arms exceed frame)
+      zoomRef.current += (targetZoom - zoomRef.current) * 0.03
+      // camera focus is locked to screen-center (no tip-follow) unless the user
+      // clicks a point to fly there (explore mode overrides the fixed framing).
       const clicked = clickTargetRef.current
       if (clicked) {
-        // user clicked a point → fly the camera there and HOLD (overrides the
-        // tip-follow). Ease in world space; the point they picked sits centered.
         camRef.current.x += (clicked.x - camRef.current.x) * 0.06
         camRef.current.y += (clicked.y - camRef.current.y) * 0.06
-      } else if (zoomOnRef.current) {
-        camRef.current.x += (ctx0 - camRef.current.x) * follow + (cx - camRef.current.x) * (0.04 * (1 - iz))
-        camRef.current.y += (cty0 - camRef.current.y) * follow + (cy - camRef.current.y) * (0.04 * (1 - iz))
       } else {
-        camRef.current.x += (cx - camRef.current.x) * 0.04
-        camRef.current.y += (cy - camRef.current.y) * 0.04
+        camRef.current.x += (cx - camRef.current.x) * 0.06
+        camRef.current.y += (cy - camRef.current.y) * 0.06
       }
-      // effective zoom = cinematic zoom × the user's scroll/pinch zoom
+      // effective zoom = the reveal zoom × the user's scroll/pinch zoom
       const z = zoomRef.current * userZoomRef.current
       // apply: screen-center, scale, then translate so the camera focus sits center
       ctx.setTransform(dpr * z, 0, 0, dpr * z, dpr * (cx - camRef.current.x * z), dpr * (cy - camRef.current.y * z))
@@ -252,84 +254,128 @@ export function PiIrrational() {
           tRef.current = swing
           introRef.current = 0
         } else {
-          introRef.current = Math.min(1, introRef.current + 1 / (7 * 60))
+          introRef.current = Math.min(1, introRef.current + 1 / (4 * 60))   // ~4s build
         }
         const introEase = introRef.current * introRef.current * (3 - 2 * introRef.current) // smoothstep
-        const effSpeed = opening ? 0 : (0.10 + (speedRef.current - 0.10) * introEase)
+        // build from a gentle crawl up to the chosen speed — reaches the full
+        // rosette in a few seconds, then flows, cinematic and readable.
+        const effSpeed = opening ? 0 : (0.25 + (speedRef.current - 0.25) * introEase)
         const dt = 0.02 * effSpeed
         // sub-steps per frame scale with speed so the curve stays SMOOTH (no gaps)
         // at any speed — quality holds throughout the ramp.
         const stepCount = Math.max(40, Math.round(90 * effSpeed))
         const seg = (dt * 70) / stepCount
 
-        // ELEGANT + MONOCHROME: one refined luminous line, not a rainbow. A cool
-        // silver-white core over a whisper-thin wider halo — restrained, filmic.
-        // widths divide by zoom so they stay the same visual weight as we push in.
+        // FAITHFUL TO THE REEL: clean, uniform, thin GREY-WHITE loops on black —
+        // no bloom, no rainbow, no glowing tip. Each pass lays another faint ring
+        // and they persist, building the rosette in place. One flat stroke, drawn
+        // over-source so lines stay even (not additively blown out where they
+        // cross). Width divides by zoom so it holds weight through the reveal.
         ctx.lineCap = "round"; ctx.lineJoin = "round"
-        // rational curves get a soft mint (they'll close into a calm flower);
-        // irrational π gets a cool argent white — timeless, not gaudy.
-        const core = rt.rational ? "230,255,240" : "224,232,255"
-        // With trails ON we only stroke the fresh leading segment (the fade holds
-        // history). With trails OFF there's no history to hold, so we redraw the
-        // WHOLE traced curve from 0→now every frame — a clean, complete figure with
-        // no ghosting. Cap the sample count so deep runs stay smooth.
-        const noTrail = !trailsRef.current
-        const drawStart = noTrail ? 0 : t
-        const drawEnd = noTrail ? t + stepCount * seg : t + stepCount * seg
-        const drawSteps = noTrail ? Math.min(6000, Math.max(stepCount, Math.ceil((drawEnd - drawStart) / seg))) : stepCount
-        const dseg = (drawEnd - drawStart) / drawSteps
-        const stroke = (w: number, a: number) => {
-          ctx.globalCompositeOperation = "lighter"
-          ctx.lineWidth = w / z
-          ctx.strokeStyle = `rgba(${core},${a})`
+        ctx.globalCompositeOperation = "source-over"
+        // Redraw a FIXED WINDOW of recent history (not 0→now) so the rosette holds
+        // its beautiful DISTINCT-LOOP density forever instead of piling into a solid
+        // grey mass. ~26 turns keeps exactly the clean overlapping-loops look of the
+        // reel. Older strokes gently fade out at the trailing edge of the window so
+        // there's no hard cut-off — the figure looks continuous and alive.
+        const drawEnd = t + stepCount * seg
+        const HISTORY = TAU * 26
+        const winStart = Math.max(0, drawEnd - HISTORY)
+        const drawSteps = Math.min(6000, Math.max(stepCount, Math.ceil((drawEnd - winStart) / seg)))
+        const dseg = (drawEnd - winStart) / drawSteps
+        ctx.lineWidth = 0.85 / z
+        ctx.lineCap = "round"; ctx.lineJoin = "round"
+        // draw in a few alpha bands so the oldest ~10% fades in from nothing
+        ctx.beginPath()
+        ctx.strokeStyle = "rgba(206,213,224,0.5)"       // soft grey-white, like the reel
+        for (let i = 0; i <= drawSteps; i++) {
+          const f = i / drawSteps
+          const [x, y] = tip(winStart + i * dseg)
+          if (i === 0) { ctx.moveTo(x, y); continue }
+          ctx.lineTo(x, y)
+          // flush + restart with a faded alpha for the oldest slice so it eases out
+          if (f < 0.12 && i % 8 === 0) {
+            ctx.globalAlpha = f / 0.12
+            ctx.stroke()
+            ctx.beginPath(); ctx.moveTo(x, y)
+          }
+        }
+        ctx.globalAlpha = 1
+        ctx.stroke()
+
+        // GUIDE CIRCLES — the two clean bright rings the reel shows: the fixed
+        // outer circle (first arm's reach) and the moving inner circle (centred on
+        // the elbow, second arm's reach). Quiet but crisp — they frame the figure.
+        {
+          const t2g = t + stepCount * seg
+          const ejx = cx + r1 * Math.cos(t2g), ejy = cy + r1 * Math.sin(t2g)
+          ctx.strokeStyle = "rgba(196,204,220,0.28)"; ctx.lineWidth = 0.8 / z
+          ctx.beginPath(); ctx.arc(cx, cy, r1, 0, TAU); ctx.stroke()   // outer, fixed
+          ctx.beginPath(); ctx.arc(ejx, ejy, r2, 0, TAU); ctx.stroke() // inner, moving
+        }
+
+        // THE ACTIVE LOOP — exactly like the reel: the dim grey rosette is the
+        // history; the MOST RECENT pass is picked out BRIGHTER (soft white), with
+        // small glowing beads spaced along it (the sample points). This is what
+        // makes the motion read without a heavy glow — a subtle bright leading loop
+        // over quiet grey. Length ≈ one full pass, fading in from the grey.
+        {
+          const loopLen = TAU * 1.0
+          const tStart = Math.max(0, drawEnd - loopLen)
+          const tSteps = Math.max(48, Math.ceil((drawEnd - tStart) / seg))
+          const tSeg = (drawEnd - tStart) / tSteps
+          const [x0, y0] = tip(tStart)
+          const [x1, y1] = tip(drawEnd)
+          // brighter recent loop, fading from grey→soft white toward the tip
+          const grad = ctx.createLinearGradient(x0, y0, x1, y1)
+          grad.addColorStop(0, "rgba(210,216,228,0)")
+          grad.addColorStop(1, "rgba(238,243,252,0.9)")
+          ctx.strokeStyle = grad
+          ctx.lineWidth = 1.15 / z
+          ctx.lineCap = "round"
           ctx.beginPath()
-          for (let i = 0; i <= drawSteps; i++) {
-            const [x, y] = tip(drawStart + i * dseg)
+          for (let i = 0; i <= tSteps; i++) {
+            const [x, y] = tip(tStart + i * tSeg)
             i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)
           }
           ctx.stroke()
+          // subtle beads along the active loop — small, spaced, gently brighter
+          // toward the tip. Not a bloom; just tiny nodes like the reel.
+          const beads = 22
+          for (let k = 0; k <= beads; k++) {
+            const f = k / beads
+            const [bx, by] = tip(tStart + f * (drawEnd - tStart))
+            const a = 0.12 + 0.5 * f * f          // fade in toward the tip
+            ctx.fillStyle = `rgba(244,248,255,${a})`
+            ctx.beginPath(); ctx.arc(bx, by, (1.0 + 0.6 * f) / z, 0, TAU); ctx.fill()
+          }
         }
-        stroke(4.0, 0.035)  // wide, faint atmosphere
-        stroke(1.6, 0.10)   // mid bloom
-        stroke(0.8, 0.85)   // crisp hairline core
 
         const t2 = t + stepCount * seg
         const a1 = t2, jx = cx + r1 * Math.cos(a1), jy = cy + r1 * Math.sin(a1)
         const [tx, ty] = tip(t2)
 
-        // the two guide circles + arms — barely-there, elegant scaffolding
-        ctx.globalCompositeOperation = "source-over"
-        ctx.strokeStyle = "rgba(180,200,255,0.05)"; ctx.lineWidth = 1 / z
-        ctx.beginPath(); ctx.arc(cx, cy, r1, 0, TAU); ctx.stroke()
-        ctx.beginPath(); ctx.arc(jx, jy, r2, 0, TAU); ctx.stroke()
-        ctx.strokeStyle = "rgba(210,220,255,0.18)"; ctx.lineWidth = 0.8 / z
-        ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(jx, jy); ctx.lineTo(tx, ty); ctx.stroke()
-        // pivot: a tiny, still point
-        ctx.fillStyle = "rgba(220,228,255,0.35)"
-        ctx.beginPath(); ctx.arc(cx, cy, 1.4, 0, TAU); ctx.fill()
-        // leading tip — ONE clean luminous point (no scattered beads anywhere)
-        ctx.globalCompositeOperation = "lighter"
-        const g = ctx.createRadialGradient(tx, ty, 0, tx, ty, 7 / z)
-        g.addColorStop(0, "rgba(255,255,255,0.9)")
-        g.addColorStop(1, "rgba(210,224,255,0)")
-        ctx.fillStyle = g
-        ctx.beginPath(); ctx.arc(tx, ty, 7 / z, 0, TAU); ctx.fill()
-        ctx.fillStyle = "#ffffff"
-        ctx.beginPath(); ctx.arc(tx, ty, 1.3 / z, 0, TAU); ctx.fill()
+        // the two moving ARMS (pivot → elbow → tip) + three dots — the mechanism
+        // the reel shows at rest and at the reveal. `trails` toggles them on/off so
+        // you can watch just the pure figure if the moving arms feel distracting.
+        if (trailsRef.current) {
+          ctx.strokeStyle = "rgba(150,158,172,0.55)"; ctx.lineWidth = 0.9 / z
+          ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(jx, jy); ctx.lineTo(tx, ty); ctx.stroke()
+          const dot = (x: number, y: number, r: number, fill: string) => {
+            ctx.fillStyle = fill; ctx.beginPath(); ctx.arc(x, y, r / z, 0, TAU); ctx.fill()
+          }
+          dot(cx, cy, 2.4, "rgba(210,216,228,0.85)")   // pivot
+          dot(jx, jy, 2.2, "rgba(190,197,210,0.8)")    // elbow
+          dot(tx, ty, 2.6, "rgba(240,244,250,0.95)")   // tip (plain dot, no glow)
+        }
 
         tRef.current = t2
         setTurns(Math.floor(t2 / TAU))
       }
 
-      // filmic vignette (screen space, on top) — darkens the edges so the eye
-      // rests on the luminous curve. Subtle; this is what makes it feel "shot".
+      // No vignette, no bloom — the reel is a clean geometric line-drawing on flat
+      // black. Reset the transform for the next frame's screen-space clear.
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-      ctx.globalCompositeOperation = "source-over"
-      const vig = ctx.createRadialGradient(cx, cy, Math.min(W, H) * 0.28, cx, cy, Math.max(W, H) * 0.72)
-      vig.addColorStop(0, "rgba(0,0,0,0)")
-      vig.addColorStop(1, "rgba(2,3,8,0.5)")
-      ctx.fillStyle = vig
-      ctx.fillRect(0, 0, W, H)
 
       rafRef.current = requestAnimationFrame(draw)
     }
@@ -423,8 +469,8 @@ export function PiIrrational() {
         bg-gradient-to-t from-black/70 via-black/30 to-transparent">
         <button onClick={() => setRunning((r) => !r)} className={`${btn} bg-white/12 text-white border border-white/25`}>{running ? "Pause" : "Play"}</button>
         <button onClick={restart} className={`${btn} bg-black/30 text-white/70 border border-white/10 hover:text-white`}>Restart</button>
-        <button onClick={() => setZoomOn((z) => !z)} className={`${btn} ${zoomOn ? "bg-white/15 text-white border border-white/30" : "bg-black/30 text-white/60 border border-white/10 hover:text-white"}`}>{zoomOn ? "Zoom ⊙" : "Zoom off"}</button>
-        <button onClick={() => setTrails((t) => !t)} className={`${btn} ${trails ? "bg-white/15 text-white border border-white/30" : "bg-black/30 text-white/60 border border-white/10 hover:text-white"}`}>{trails ? "Trails ✦" : "Trails off"}</button>
+        <button onClick={() => setZoomOn((z) => !z)} className={`${btn} ${zoomOn ? "bg-white/15 text-white border border-white/30" : "bg-black/30 text-white/60 border border-white/10 hover:text-white"}`}>{zoomOn ? "Reveal ⊙" : "Reveal off"}</button>
+        <button onClick={() => setTrails((t) => !t)} className={`${btn} ${trails ? "bg-white/15 text-white border border-white/30" : "bg-black/30 text-white/60 border border-white/10 hover:text-white"}`}>{trails ? "Arms ⊹" : "Arms off"}</button>
         <button onClick={() => setMusic((m) => !m)} className={`${btn} ${music ? "bg-white/15 text-white border border-white/30" : "bg-black/30 text-white/60 border border-white/10 hover:text-white"}`}>{music ? "♪ on" : "♪ music"}</button>
         <label className="flex items-center gap-2 font-mono text-[10px] text-white/55 px-2">
           speed
