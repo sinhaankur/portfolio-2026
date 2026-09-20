@@ -110,6 +110,9 @@ App-router routes under [`app/`](./app):
   Retrieval-Augmented Generation (chunk → embed → retrieve → generate) beside the
   real code of a small, fully on-device RAG engine (lives in the separate
   `~/Documents/rag-engine` repo). Sibling to `/universe-engine/math` + `/waves/math`.
+- `/llm` — **"How a language model works"**: teaching page for the LLM pipeline
+  (tokens → embeddings → attention → layers → next-token) beside the real code of
+  the LLM Internals Lab (`unhosted-core/models/llm-lab`). Sibling to `/rag`.
 - `/framework` — Universal Experience Framework (Laws of UX & cognition,
   interactive demos). Linked from the navbar.
 - `/writing` — writing index. Long posts are folder routes
