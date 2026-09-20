@@ -38,6 +38,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/lab/optical-flow",  priority: 0.7, changeFrequency: "monthly" },
     { path: "/lab/pi",            priority: 0.7, changeFrequency: "monthly" },
     { path: "/lab/euler",         priority: 0.7, changeFrequency: "monthly" },
+    { path: "/lab/fourier",       priority: 0.7, changeFrequency: "monthly" },
     { path: "/lab/wave",          priority: 0.6, changeFrequency: "monthly" },
     { path: "/lab/helion-drift",  priority: 0.6, changeFrequency: "monthly" },
     { path: "/lab/firmament",     priority: 0.6, changeFrequency: "monthly" },
