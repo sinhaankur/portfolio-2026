@@ -75,6 +75,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/waves/math",        priority: 0.6, changeFrequency: "monthly" },
     { path: "/rag",               priority: 0.6, changeFrequency: "monthly" },
     { path: "/llm",               priority: 0.6, changeFrequency: "monthly" },
+    { path: "/math",              priority: 0.7, changeFrequency: "monthly" },
     // Family pages — indexable by design (linked from /about); /family itself is noindex.
     { path: "/dr-randhir-sinha",  priority: 0.5, changeFrequency: "monthly" },
     { path: "/vera",              priority: 0.4, changeFrequency: "monthly" },

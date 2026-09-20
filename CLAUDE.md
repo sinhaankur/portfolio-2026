@@ -116,6 +116,13 @@ App-router routes under [`app/`](./app):
 - `/llm` — **"How a language model works"**: teaching page for the LLM pipeline
   (tokens → embeddings → attention → layers → next-token) beside the real code of
   the LLM Internals Lab (`unhosted-core/models/llm-lab`). Sibling to `/rag`.
+- `/math` — **"Mathematics, made visible"**: the HUB for the *equations, visible*
+  series — links `/lab/pi`, `/lab/euler`, `/lab/fourier`, `/lab/golden-ratio`,
+  `/waves/math`, `/universe-engine/math`. Each is an original interactive
+  visualization of real math (`components/{pi,euler,fourier,phi,waves}/`). More
+  Lab members of the series: `/lab/euler` (e^{iπ}+1=0 on the unit circle),
+  `/lab/fourier` (any wave = spinning circles / epicycles → square wave),
+  `/lab/golden-ratio` (φ + phyllotaxis sunflower packing).
 - `/framework` — Universal Experience Framework (Laws of UX & cognition,
   interactive demos). Linked from the navbar.
 - `/writing` — writing index. Long posts are folder routes

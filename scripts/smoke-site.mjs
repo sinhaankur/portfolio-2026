@@ -93,6 +93,7 @@ const ROUTES = [
   ["/universe-engine/math/", 2500],
   ["/rag/", 2500],                    // "What is a RAG system" teaching page
   ["/llm/", 2500],                    // "How a language model works" teaching page
+  ["/math/", 2500],
   ["/definitely-not-a-page/", 3000],  // 404 page (static starfield fallback)
 ]
 
