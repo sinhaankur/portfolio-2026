@@ -39,6 +39,7 @@ export function PiIrrational() {
   const introRef = useRef(0)                     // 0→1 cinematic slow-start ramp
   const zoomRef = useRef(1)                       // eased current zoom factor
   const camRef = useRef({ x: 0, y: 0 })          // eased camera focus (world coords)
+  const lastCam = useRef({ x: 0, y: 0, z: 1 }).current  // prev-frame cam, for smear detect
   const userZoomRef = useRef(1)                   // scroll/pinch zoom multiplier (0.5–8×)
   const clickTargetRef = useRef<{ x: number; y: number } | null>(null) // click-to-follow point
   const [exploring, setExploring] = useState(false) // user has taken the camera
@@ -167,15 +168,27 @@ export function PiIrrational() {
       const dpr = cv.width / W
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
       ctx.globalCompositeOperation = "source-over"
-      // During the OPENING beat, hard-clear to pure black each frame so you see
-      // ONLY the two bare arms (nothing leftover, no smear) — the video's clean
-      // start. After the opening, switch to the slow trailing fade so the curve
-      // accumulates into its luminous flower.
+      // CLEAR STRATEGY — the trailing fade only works when the CAMERA IS STILL.
+      // The fade is a screen-space rect, but the curve is drawn in the zoomed/
+      // panned camera space; if the camera is moving, last frame's strokes are at
+      // a different screen position, so the faint fade can't erase them and they
+      // SMEAR/drift ("the background going crazy"). So: hard-clear to black on any
+      // frame where the camera moves (opening, intro push-in, tip-follow, or the
+      // user zooming/panning). Only accumulate a trail when the camera is settled.
       const inOpening = holdRef.current < 1 && runRef.current
-      if (inOpening) {
-        ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, H)
+      // measure how much the camera actually moved THIS frame (pan + zoom). Only
+      // a fast-moving camera smears the trail; a settled one (even with the gentle
+      // tip-follow) is fine to accumulate. So: hard-clear only above a threshold.
+      const zNow = zoomRef.current * userZoomRef.current
+      const dCamX = Math.abs(camRef.current.x - lastCam.x)
+      const dCamY = Math.abs(camRef.current.y - lastCam.y)
+      const dZoom = Math.abs(zNow - lastCam.z)
+      const camSmear = inOpening || dCamX + dCamY > 0.6 || dZoom > 0.004
+      lastCam.x = camRef.current.x; lastCam.y = camRef.current.y; lastCam.z = zNow
+      if (camSmear) {
+        ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, H)   // clean, no smear
       } else {
-        ctx.fillStyle = "rgba(3,4,9,0.022)"   // filmic trailing fade
+        ctx.fillStyle = "rgba(3,4,9,0.022)"   // filmic trailing fade (camera settled)
         ctx.fillRect(0, 0, W, H)
       }
 
