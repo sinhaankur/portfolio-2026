@@ -3,6 +3,7 @@ import { canonicalPath } from "@/lib/seo"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { CustomCursor } from "@/components/custom-cursor"
+import { WaveEmbed } from "@/components/waves/wave-embed"
 
 export const metadata: Metadata = {
   ...canonicalPath("/waves/math"),
@@ -256,6 +257,12 @@ export default function WavesMathPage() {
             what&apos;s actually running.
           </p>
         </header>
+
+        {/* Live Gerstner wave — the equations below, made visible: watch the
+            particle circles make sharp crests, then sum trains into a real sea. */}
+        <div className="mx-auto w-full max-w-6xl px-6 md:px-10 mt-10">
+          <WaveEmbed />
+        </div>
 
         <div className="mx-auto w-full max-w-6xl px-6 md:px-10 mt-14 md:mt-20 space-y-16 md:space-y-24 pb-24">
           {SECTIONS.map((section) => (

@@ -31,12 +31,18 @@ export function PiIrrational() {
   const [speed, setSpeed] = useState(1)          // multiplier, 0.1×–5×
   const [turns, setTurns] = useState(0)
   const [fs, setFs] = useState(false)
+  const [zoomOn, setZoomOn] = useState(true)     // cinematic push-in that follows the tip
+  const [music, setMusic] = useState(false)      // opt-in generative bed
   const rafRef = useRef<number | null>(null)
   const tRef = useRef(0)
+  const zoomRef = useRef(1)                       // eased current zoom factor
+  const camRef = useRef({ x: 0, y: 0 })          // eased camera focus (world coords)
   const speedRef = useRef(speed)
   const runRef = useRef(running)
+  const zoomOnRef = useRef(zoomOn)
   speedRef.current = speed
   runRef.current = running
+  zoomOnRef.current = zoomOn
 
   const ratio = RATIOS[ratioIdx]
   const ratioRef = useRef(ratio)
@@ -99,10 +105,31 @@ export function PiIrrational() {
 
       // The reference's quality is ELEGANT RESTRAINT: thin luminous lines on pure
       // black, smooth continuous motion, the two guide-circles faintly visible.
-      // A very slow fade keeps a long, clean tail without smearing.
+      // A very slow fade keeps a long, clean tail without smearing. The fade runs
+      // in SCREEN space (identity transform), so the zoom below never smears it.
+      const dpr = cv.width / W
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
       ctx.globalCompositeOperation = "source-over"
       ctx.fillStyle = "rgba(0,0,0,0.020)"
       ctx.fillRect(0, 0, W, H)
+
+      // ---- cinematic camera: ease a push-in that FOLLOWS the drawing tip ------
+      // (the video's move). We compute the current tip, drift the camera toward
+      // it, and ease the zoom in — then draw the whole scene through that frame.
+      const now = tRef.current
+      const [ctx0, cty0] = tip(now)
+      const targetZoom = zoomOnRef.current ? 2.1 : 1
+      zoomRef.current += (targetZoom - zoomRef.current) * 0.02      // slow, filmic ease
+      if (zoomOnRef.current) {
+        camRef.current.x += (ctx0 - camRef.current.x) * 0.035       // trail the tip, don't snap
+        camRef.current.y += (cty0 - camRef.current.y) * 0.035
+      } else {
+        camRef.current.x += (cx - camRef.current.x) * 0.04
+        camRef.current.y += (cy - camRef.current.y) * 0.04
+      }
+      const z = zoomRef.current
+      // apply: screen-center, scale, then translate so the camera focus sits center
+      ctx.setTransform(dpr * z, 0, 0, dpr * z, dpr * (cx - camRef.current.x * z), dpr * (cy - camRef.current.y * z))
 
       if (runRef.current) {
         const t = tRef.current
@@ -112,12 +139,14 @@ export function PiIrrational() {
         const stepCount = Math.max(40, Math.round(90 * speedRef.current))
         const seg = (dt * 70) / stepCount
 
-        // the trace — a single crisp anti-aliased line, faint halo behind it
+        // the trace — a single crisp anti-aliased line, faint halo behind it.
+        // widths are divided by the zoom so lines look the same thickness however
+        // far we've pushed in (a 1px line shouldn't fatten to 2px when zoomed).
         ctx.lineCap = "round"; ctx.lineJoin = "round"
         const hue = (t * 7) % 360
         const stroke = (w: number, a: number) => {
           ctx.globalCompositeOperation = "lighter"
-          ctx.lineWidth = w
+          ctx.lineWidth = w / z
           ctx.strokeStyle = rt.rational ? `rgba(120,235,175,${a})` : `hsla(${hue},78%,66%,${a})`
           ctx.beginPath()
           for (let i = 0; i <= stepCount; i++) {
@@ -136,10 +165,10 @@ export function PiIrrational() {
         // the two guide circles + arms, very faint (like the reference frame) —
         // redrawn each frame over the fade so they stay clean, not smeared
         ctx.globalCompositeOperation = "source-over"
-        ctx.strokeStyle = "rgba(255,255,255,0.06)"; ctx.lineWidth = 1
+        ctx.strokeStyle = "rgba(255,255,255,0.06)"; ctx.lineWidth = 1 / z
         ctx.beginPath(); ctx.arc(cx, cy, r1, 0, TAU); ctx.stroke()          // first arm's circle
         ctx.beginPath(); ctx.arc(jx, jy, r2, 0, TAU); ctx.stroke()          // second arm's circle
-        ctx.strokeStyle = "rgba(255,255,255,0.22)"
+        ctx.strokeStyle = "rgba(255,255,255,0.22)"; ctx.lineWidth = 1 / z
         ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(jx, jy); ctx.lineTo(tx, ty); ctx.stroke()
         ctx.fillStyle = "rgba(255,255,255,0.5)"
         ctx.beginPath(); ctx.arc(cx, cy, 1.8, 0, TAU); ctx.fill()
@@ -164,6 +193,50 @@ export function PiIrrational() {
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current) }
   }, [])
 
+  // ---- original generative music: a slow, evolving ambient bed synthesized in
+  // Web Audio (no samples, nothing copyrighted). Opt-in; starts only on click,
+  // never autoplays. A drone + drifting overtones that swell as the curve fills —
+  // "math and music go hand in hand": the notes are a simple harmonic series,
+  // the same kind of whole-number ratios that decide whether the curve closes.
+  const audioRef = useRef<{ ac: AudioContext; master: GainNode; stop: () => void } | null>(null)
+  useEffect(() => {
+    if (!music) { audioRef.current?.stop(); audioRef.current = null; return }
+    try {
+      const AC = (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)
+      const ac = new AC()
+      const master = ac.createGain()
+      master.gain.value = 0
+      master.gain.linearRampToValueAtTime(0.14, ac.currentTime + 3)  // gentle fade-in
+      master.connect(ac.destination)
+      // a soft low drone + a few harmonics (ratios 1, 3/2, 2, 5/2) that slowly
+      // detune — consonant, calm, a little wistful
+      const base = 110 // A2
+      const partials = [1, 1.5, 2, 2.5, 3]
+      const oscs = partials.map((p, i) => {
+        const o = ac.createOscillator(); o.type = i === 0 ? "sine" : "triangle"
+        o.frequency.value = base * p
+        const g = ac.createGain(); g.gain.value = (i === 0 ? 0.5 : 0.12) / (i + 1)
+        // slow LFO on gain so each voice breathes independently
+        const lfo = ac.createOscillator(); lfo.frequency.value = 0.05 + i * 0.017
+        const lg = ac.createGain(); lg.gain.value = g.gain.value * 0.6
+        lfo.connect(lg); lg.connect(g.gain); lfo.start()
+        o.connect(g); g.connect(master); o.start()
+        return { o, lfo }
+      })
+      audioRef.current = {
+        ac, master,
+        stop: () => {
+          try {
+            master.gain.cancelScheduledValues(ac.currentTime)
+            master.gain.linearRampToValueAtTime(0, ac.currentTime + 0.8)
+            setTimeout(() => { oscs.forEach(({ o, lfo }) => { try { o.stop(); lfo.stop() } catch { /* */ } }); ac.close() }, 900)
+          } catch { /* */ }
+        },
+      }
+    } catch { /* audio unavailable — silently ignore */ }
+    return () => { audioRef.current?.stop(); audioRef.current = null }
+  }, [music])
+
   const toggleFs = useCallback(() => {
     const el = wrapRef.current
     if (!el) return
@@ -187,6 +260,14 @@ export function PiIrrational() {
             <button onClick={restart} className="rounded-lg border border-border px-3 py-1.5 font-mono text-[12px] text-foreground/60 hover:border-accent/50">Restart</button>
             <button onClick={toggleFs} className="rounded-lg border border-border px-3 py-1.5 font-mono text-[12px] text-foreground/70 hover:border-accent/50">
               {fs ? "Exit fullscreen ⤢" : "Fullscreen ⛶"}
+            </button>
+            <button onClick={() => setZoomOn((z) => !z)}
+              className={`rounded-lg px-3 py-1.5 font-mono text-[12px] transition ${zoomOn ? "border border-accent bg-accent/15 text-accent" : "border border-border text-foreground/70 hover:border-accent/50"}`}>
+              {zoomOn ? "Zoom: follow tip" : "Zoom: off"}
+            </button>
+            <button onClick={() => setMusic((m) => !m)}
+              className={`rounded-lg px-3 py-1.5 font-mono text-[12px] transition ${music ? "border border-accent bg-accent/15 text-accent" : "border border-border text-foreground/70 hover:border-accent/50"}`}>
+              {music ? "♪ Music on" : "♪ Music"}
             </button>
             <label className="flex items-center gap-2 font-mono text-[11px] text-foreground/60">
               speed
