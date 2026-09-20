@@ -38,6 +38,34 @@
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
   --radius: 0.625rem;
+
+  /* ── φ (golden-ratio) proportion system ─────────────────────────────────────
+     One number, 1.618…, drives the whole rhythm — "a proven way of making things".
+     A modular TYPE ramp (each step ×φ around a 1rem base) and a SPACING ramp
+     (each step ×φ around 1rem) so vertical rhythm, headings and gaps all share
+     the same ratio. Opt-in via the utilities exposed in @theme (text-phi-*,
+     p-phi-*, gap-phi-*, etc.); nothing changes until a component uses them. */
+  --phi: 1.618;
+  --phi-inv: 0.618;                                   /* 1/φ — the 62/38 split */
+  /* type ramp — base 1rem, ±φ steps (fifth-root of φ for finer in-between steps) */
+  --text-phi-0: 1rem;                                  /* body */
+  --text-phi-1: 1.272rem;                              /* √φ  — lead / large body */
+  --text-phi-2: 1.618rem;                              /* φ   — h4 / eyebrow-lg */
+  --text-phi-3: 2.058rem;                              /* φ^1.5 — h3 */
+  --text-phi-4: 2.618rem;                              /* φ²  — h2 */
+  --text-phi-5: 4.236rem;                              /* φ³  — h1 / display */
+  --text-phi-6: 6.854rem;                              /* φ⁴  — hero display */
+  --text-phi--1: 0.786rem;                             /* 1/√φ — small / mono labels */
+  --text-phi--2: 0.618rem;                             /* 1/φ  — fine print */
+  /* spacing ramp — base 1rem, ×φ per step (used for section rhythm + gaps) */
+  --space-phi-1: 0.618rem;
+  --space-phi-2: 1rem;
+  --space-phi-3: 1.618rem;
+  --space-phi-4: 2.618rem;
+  --space-phi-5: 4.236rem;
+  --space-phi-6: 6.854rem;
+  --space-phi-7: 11.09rem;
+
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.488 0.243 264.376);
@@ -170,6 +198,39 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  /* φ modular scale exposed as utilities:
+       text-phi-4  → font-size: var(--text-phi-4)
+       p-phi-5 / px-phi-4 / py-phi-3 / gap-phi-3 / mt-phi-4 → φ spacing
+     Vertical rhythm, headings and gaps now share the golden ratio. */
+  --text-phi--2: var(--text-phi--2);
+  --text-phi--1: var(--text-phi--1);
+  --text-phi-0: var(--text-phi-0);
+  --text-phi-1: var(--text-phi-1);
+  --text-phi-2: var(--text-phi-2);
+  --text-phi-3: var(--text-phi-3);
+  --text-phi-4: var(--text-phi-4);
+  --text-phi-5: var(--text-phi-5);
+  --text-phi-6: var(--text-phi-6);
+  --spacing-phi-1: var(--space-phi-1);
+  --spacing-phi-2: var(--space-phi-2);
+  --spacing-phi-3: var(--space-phi-3);
+  --spacing-phi-4: var(--space-phi-4);
+  --spacing-phi-5: var(--space-phi-5);
+  --spacing-phi-6: var(--space-phi-6);
+  --spacing-phi-7: var(--space-phi-7);
+}
+
+/* Golden split — a 62/38 (φ) two-column layout. `.golden-split` gives the
+   major column φ:1 against the minor. Collapses to one column on small screens. */
+@utility golden-split {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-phi-4);
+}
+@media (min-width: 768px) {
+  .golden-split { grid-template-columns: 1.618fr 1fr; }
+  .golden-split-reverse { grid-template-columns: 1fr 1.618fr; }
 }
 
 @layer base {
