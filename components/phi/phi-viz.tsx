@@ -32,6 +32,13 @@ export function PhiViz() {
   const modeRef = useRef(mode); modeRef.current = mode
   const angleRef = useRef(angleDeg); angleRef.current = angleDeg
   const runRef = useRef(running); runRef.current = running
+  // EXPLORE camera — same model as the Pi viz: scroll/pinch to zoom, click a
+  // point to fly the camera there and hold. userZoom 0.5–8×; cam is the world
+  // focus (defaults to screen-centre). Drawn via a screen-center scale transform.
+  const userZoomRef = useRef(1)
+  const camRef = useRef<{ x: number; y: number } | null>(null)   // null = centered
+  const camEaseRef = useRef({ x: 0, y: 0 })
+  const [exploring, setExploring] = useState(false)
 
   const fit = useCallback(() => {
     const cv = canvasRef.current
@@ -54,6 +61,47 @@ export function PhiViz() {
 
   useEffect(() => { growthRef.current = 0 }, [mode])
 
+  // EXPLORE: scroll/pinch to zoom, click to fly the camera to a point + hold.
+  useEffect(() => {
+    const cv = canvasRef.current
+    if (!cv) return
+    const screenToWorld = (sx: number, sy: number) => {
+      const box = cv.getBoundingClientRect()
+      const W = box.width, H = box.height
+      const z = userZoomRef.current
+      const cam = camEaseRef.current
+      return { x: cam.x + (sx - box.left - W / 2) / z, y: cam.y + (sy - box.top - H / 2) / z }
+    }
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      userZoomRef.current = Math.min(8, Math.max(0.5, userZoomRef.current * Math.exp(-e.deltaY * 0.0015)))
+      setExploring(true)
+    }
+    const onClick = (e: MouseEvent) => { camRef.current = screenToWorld(e.clientX, e.clientY); setExploring(true) }
+    let pinch0 = 0, z0 = 1
+    const dist = (t: TouchList) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY)
+    const onTS = (e: TouchEvent) => { if (e.touches.length === 2) { pinch0 = dist(e.touches); z0 = userZoomRef.current } }
+    const onTM = (e: TouchEvent) => {
+      if (e.touches.length === 2 && pinch0) {
+        e.preventDefault()
+        userZoomRef.current = Math.min(8, Math.max(0.5, z0 * (dist(e.touches) / pinch0)))
+        setExploring(true)
+      }
+    }
+    cv.addEventListener("wheel", onWheel, { passive: false })
+    cv.addEventListener("click", onClick)
+    cv.addEventListener("touchstart", onTS, { passive: false })
+    cv.addEventListener("touchmove", onTM, { passive: false })
+    return () => {
+      cv.removeEventListener("wheel", onWheel); cv.removeEventListener("click", onClick)
+      cv.removeEventListener("touchstart", onTS); cv.removeEventListener("touchmove", onTM)
+    }
+  }, [])
+
+  const resetView = useCallback(() => {
+    userZoomRef.current = 1; camRef.current = null; setExploring(false)
+  }, [])
+
   useEffect(() => {
     const cv = canvasRef.current
     if (!cv) return
@@ -62,7 +110,23 @@ export function PhiViz() {
     const draw = () => {
       const box = cv.getBoundingClientRect()
       const W = box.width, H = box.height
+      const dpr = cv.width / W
+      // clear in screen space
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
       ctx.fillStyle = "#05060a"; ctx.fillRect(0, 0, W, H)
+
+      // EXPLORE camera: ease toward the target (click point, or screen-centre) and
+      // apply a screen-centred scale so zoom/pan feels anchored. All figure drawing
+      // below happens in this transformed space; the readout text resets it first.
+      const z = userZoomRef.current
+      const targetX = camRef.current ? camRef.current.x : W / 2
+      const targetY = camRef.current ? camRef.current.y : H / 2
+      // seed the eased cam at centre on the very first frame (avoid easing in from 0,0)
+      if (camEaseRef.current.x === 0 && camEaseRef.current.y === 0) { camEaseRef.current.x = W / 2; camEaseRef.current.y = H / 2 }
+      camEaseRef.current.x += (targetX - camEaseRef.current.x) * 0.08
+      camEaseRef.current.y += (targetY - camEaseRef.current.y) * 0.08
+      const camX = camEaseRef.current.x, camY = camEaseRef.current.y
+      ctx.setTransform(dpr * z, 0, 0, dpr * z, dpr * (W / 2 - camX * z), dpr * (H / 2 - camY * z))
 
       // DIRECTED ARC (not a plain fill): ease the growth with a slow-in so the
       // pattern BUILDS gracefully, then HOLD on the completed reveal for a beat so
@@ -132,9 +196,10 @@ export function PhiViz() {
           ctx.arc(ax, ay, s, start, start + Math.PI / 2)
         }
         ctx.stroke()
-        // the converging ratio readout
+        // the converging ratio readout — screen-fixed (reset the camera transform)
         const k = Math.min(shown, fib.length - 1)
         const ratio = fib[k] / fib[k - 1]
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
         ctx.fillStyle = "rgba(255,225,150,0.95)"; ctx.font = "13px monospace"
         ctx.fillText(`${fib[k]} / ${fib[k - 1]} = ${ratio.toFixed(6)}   →  φ = ${PHI.toFixed(6)}`, 16, H - 16)
       } else {
@@ -152,6 +217,7 @@ export function PhiViz() {
           ctx.beginPath(); ctx.arc(px, py, Math.max(1.2, scale * 0.34), 0, TAU); ctx.fill()
         }
         const off = Math.abs(angleRef.current - 137.507)
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0)   // screen-fixed readout
         ctx.fillStyle = "rgba(255,225,150,0.95)"; ctx.font = "13px monospace"
         ctx.fillText(
           off < 0.2 ? "137.5° — the golden angle: perfect packing, no spokes"
@@ -175,6 +241,12 @@ export function PhiViz() {
     <div className="rounded-2xl border border-border bg-gradient-to-b from-[#0a0b12] to-[#05060a] p-4 md:p-6">
       <div ref={wrapRef} className={fs ? "relative bg-black flex flex-col h-full" : "relative"}>
         <canvas ref={canvasRef} className={fs ? "w-full flex-1 min-h-0" : "w-full aspect-square md:aspect-[4/3] rounded-lg border border-border/40 bg-black"} />
+        {/* explore hint — fades once the user takes the camera */}
+        {!exploring && (
+          <div className="pointer-events-none absolute top-3 right-3 hidden md:block text-right font-mono text-[10px] leading-relaxed text-white/35">
+            scroll to zoom<br />click a point to fly there
+          </div>
+        )}
         <div className={`flex flex-wrap items-center gap-3 ${fs ? "p-4" : "mt-3"}`}>
           <div className="flex gap-2">
             {(["spiral", "seeds"] as const).map((m) => (
@@ -187,6 +259,9 @@ export function PhiViz() {
           <button onClick={() => setRunning((r) => !r)} className="rounded-lg border border-border px-3 py-1.5 font-mono text-[12px] text-foreground/70 hover:border-accent/50">{running ? "Pause" : "Play"}</button>
           <button onClick={() => { growthRef.current = 0 }} className="rounded-lg border border-border px-3 py-1.5 font-mono text-[12px] text-foreground/60 hover:border-accent/50">Regrow</button>
           <button onClick={toggleFs} className="rounded-lg border border-border px-3 py-1.5 font-mono text-[12px] text-foreground/70 hover:border-accent/50">{fs ? "Exit ⤢" : "Fullscreen ⛶"}</button>
+          {exploring && (
+            <button onClick={resetView} className="rounded-lg border border-amber-300/40 bg-amber-400/15 px-3 py-1.5 font-mono text-[12px] text-amber-200 hover:border-amber-300/70">Reset view</button>
+          )}
           {mode === "seeds" && (
             <label className="flex items-center gap-2 font-mono text-[11px] text-foreground/60">
               angle
