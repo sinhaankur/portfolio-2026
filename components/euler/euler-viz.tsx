@@ -22,6 +22,8 @@ export function EulerViz() {
   const thetaRef = useRef(0); thetaRef.current = theta
   const runRef = useRef(running); runRef.current = running
   const introRef = useRef(0)                     // cinematic slow-start ramp
+  const holdRef = useRef(0)                      // 0→1 beat timer (holds)
+  const phaseRef = useRef(0)                     // 0 hold@0 · 1 sweep→π · 2 hold@π · 3 finish
 
   const re = Math.cos(theta)
   const im = Math.sin(theta)
@@ -52,13 +54,30 @@ export function EulerViz() {
       const W = box.width, H = box.height, cx = W / 2, cy = H / 2, R = Math.min(W, H) * 0.34
 
       // advance θ with a cinematic slow-start (eases from crawl to full sweep)
+      // A DIRECTED SEQUENCE, not a bland loop (recreate the video's pacing so the
+      // reveal lands): (1) hold at θ=0 — the bare circle + point at rest, the
+      // setup; (2) a slow sweep, easing from a crawl; (3) HOLD at θ=π — the
+      // point sitting on −1, the payoff — for a beat; (4) finish the loop and
+      // pause again at 0. phaseRef counts the beats.
       if (runRef.current) {
-        introRef.current = Math.min(1, introRef.current + 1 / (6 * 60))
-        const e = introRef.current * introRef.current * (3 - 2 * introRef.current)
-        let nt = thetaRef.current + (0.002 + 0.013 * e)
-        if (nt >= TAU) { nt = 0; introRef.current = 0 }
-        thetaRef.current = nt
-        setTheta(nt)
+        const ph = phaseRef.current
+        if (ph === 0) {                 // opening hold at 0
+          holdRef.current += 1 / (1.3 * 60)
+          if (holdRef.current >= 1) { phaseRef.current = 1; introRef.current = 0 }
+        } else if (ph === 1) {          // sweep 0 → π
+          introRef.current = Math.min(1, introRef.current + 1 / (5 * 60))
+          const e = introRef.current * introRef.current * (3 - 2 * introRef.current)
+          let nt = thetaRef.current + (0.0015 + 0.011 * e)
+          if (nt >= Math.PI) { nt = Math.PI; phaseRef.current = 2; holdRef.current = 0 }
+          thetaRef.current = nt; setTheta(nt)
+        } else if (ph === 2) {          // HOLD at π — the reveal
+          holdRef.current += 1 / (2.2 * 60)
+          if (holdRef.current >= 1) { phaseRef.current = 3 }
+        } else {                        // sweep π → 2π, then reset the sequence
+          let nt = thetaRef.current + 0.011
+          if (nt >= TAU) { nt = 0; phaseRef.current = 0; holdRef.current = 0; introRef.current = 0 }
+          thetaRef.current = nt; setTheta(nt)
+        }
       }
       const th = thetaRef.current, cRe = Math.cos(th), cIm = Math.sin(th)
 
