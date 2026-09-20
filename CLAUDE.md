@@ -93,7 +93,10 @@ App-router routes under [`app/`](./app):
 - More Lab entries: `/lab/terrain` (real 3D planetary surfaces via 3D-tiles),
   `/lab/cognitive-twin` (local-first personal AI runtime), `/lab/firmament`
   (the Universe Engine as an iOS app), `/lab/brainrot` (feed-bias visualizer),
-  `/lab/optical-flow` (library-porting writeup), `/lab/wave` (The Waves — an
+  `/lab/optical-flow` (library-porting writeup), `/lab/pi` (**Pie** — how π is
+  calculated + why it has no exact value: a two-arm harmonograph whose irrational
+  π-ratio never closes, plus live Archimedes/Leibniz/Monte-Carlo convergence;
+  `components/pi/`), `/lab/wave` (The Waves — an
   exploration of how the sea changes; writeup that links the full-screen
   `/waves` experience: a procedural real-time Gerstner ocean under a real
   sun/moon from `lib/sea-astronomy.ts`, real footage as reference at
