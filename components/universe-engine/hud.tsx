@@ -1094,6 +1094,8 @@ const JUMP_DESTINATIONS: { section: string; items: { label: string; pointId: str
       { label: "Ceres", pointId: "named:Ceres" },
       { label: "Eris", pointId: "named:Eris" },
       { label: "Makemake", pointId: "named:Makemake" },
+      { label: "Haumea", pointId: "named:Haumea" },
+      { label: "Quaoar", pointId: "named:Quaoar" },
       { label: "Sedna", pointId: "named:Sedna" },
     ],
   },
