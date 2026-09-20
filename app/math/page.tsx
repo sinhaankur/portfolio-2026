@@ -39,6 +39,18 @@ const PIECES: { href: string; title: string; line: string; tag: string }[] = [
     tag: "Nature",
   },
   {
+    href: "/lab/pythagoras",
+    title: "Pythagoras — a² + b² = c², by area",
+    line: "No algebra — four triangles, two arrangements of one square, and the theorem proves itself. A finite proof you hold in one picture.",
+    tag: "Geometry",
+  },
+  {
+    href: "/lab/bell-curve",
+    title: "The bell curve — order from randomness",
+    line: "Balls bounce through pegs on coin-flips and pile into the same bell every time. The Central Limit Theorem, made visible.",
+    tag: "Probability",
+  },
+  {
     href: "/waves/math",
     title: "Waves — the ocean's real math",
     line: "Gerstner trochoidal waves: watch water particles circle to make sharp crests, then sum trains into a living sea.",

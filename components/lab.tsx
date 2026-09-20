@@ -645,6 +645,68 @@ export function Lab() {
           </Link>
         </motion.div>
 
+        {/* Bell curve — order out of randomness (Galton board / CLT) */}
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.12 }}
+          className="h-full"
+        >
+          <Link
+            href="/lab/bell-curve"
+            data-cursor-hover
+            aria-label="The bell curve — order out of pure randomness"
+            className="
+              group relative flex h-full flex-col overflow-hidden
+              border border-border rounded-2xl
+              bg-card hover:border-accent/60 transition-colors duration-300
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+              focus-visible:ring-offset-4 focus-visible:ring-offset-background
+              p-6 md:p-8
+            "
+          >
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute -right-16 -top-16 w-64 h-64 rounded-full opacity-40 md:opacity-60 transition-transform duration-700 group-hover:scale-105"
+              style={{ background: "radial-gradient(circle, rgba(255,210,90,0.34), rgba(120,200,255,0.18) 50%, transparent 72%)" }}
+            />
+            <div className="relative flex flex-1 flex-col">
+              <div className="flex flex-wrap items-center gap-2 mb-6">
+                <span className="font-mono text-[10px] tracking-[0.25em] uppercase px-2.5 py-1 border border-border text-foreground/85 rounded-full">
+                  Interactive · Mathematics
+                </span>
+                <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 border border-border text-foreground/75 rounded-full">
+                  Equations, visible
+                </span>
+              </div>
+
+              <h3 className="font-display text-2xl md:text-3xl font-light tracking-[-0.02em] leading-[1.1] text-foreground">
+                The bell curve — <span className="italic">order out of pure randomness.</span>
+              </h3>
+
+              <p className="mt-4 flex-1 font-sans text-sm md:text-base text-foreground/80 leading-relaxed">
+                Drop balls through a field of pegs — each bounce a coin-flip — and
+                they pile into the same bell curve every time. The Central Limit
+                Theorem, made visible: sum enough random nudges and you always get
+                the normal distribution.
+              </p>
+
+              <div className="mt-7 inline-flex items-center gap-2 font-mono text-[10px] tracking-[0.25em] uppercase text-foreground/85 group-hover:text-accent transition-colors">
+                Drop the balls
+                <motion.span
+                  aria-hidden="true"
+                  whileHover={prefersReducedMotion ? undefined : { rotate: 45 }}
+                  transition={{ duration: 0.3 }}
+                  className="inline-flex"
+                >
+                  <ArrowUpRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                </motion.span>
+              </div>
+            </div>
+          </Link>
+        </motion.div>
+
         {/* Universe & Wave — an AI-generated concept film of the cosmos as one motion */}
         <motion.div
           initial={{ opacity: 0, y: 24 }}
