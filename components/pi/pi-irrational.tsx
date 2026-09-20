@@ -39,6 +39,9 @@ export function PiIrrational() {
   const introRef = useRef(0)                     // 0→1 cinematic slow-start ramp
   const zoomRef = useRef(1)                       // eased current zoom factor
   const camRef = useRef({ x: 0, y: 0 })          // eased camera focus (world coords)
+  const userZoomRef = useRef(1)                   // scroll/pinch zoom multiplier (0.5–8×)
+  const clickTargetRef = useRef<{ x: number; y: number } | null>(null) // click-to-follow point
+  const [exploring, setExploring] = useState(false) // user has taken the camera
   const speedRef = useRef(speed)
   const runRef = useRef(running)
   const zoomOnRef = useRef(zoomOn)
@@ -87,6 +90,55 @@ export function PiIrrational() {
     document.addEventListener("fullscreenchange", onFs)
     return () => { window.removeEventListener("resize", onResize); document.removeEventListener("fullscreenchange", onFs) }
   }, [fit])
+
+  // EXPLORE: scroll/pinch to zoom, click to fly the camera to a point + follow it.
+  // Converts a screen point back to WORLD coords using the current camera, so a
+  // click lands where you actually clicked regardless of zoom/pan.
+  useEffect(() => {
+    const cv = canvasRef.current
+    if (!cv) return
+    const screenToWorld = (sx: number, sy: number) => {
+      const box = cv.getBoundingClientRect()
+      const W = box.width, H = box.height
+      const z = zoomRef.current * userZoomRef.current
+      const cam = camRef.current
+      // inverse of the draw transform: world = cam + (screen - center)/z
+      return { x: cam.x + (sx - box.left - W / 2) / z, y: cam.y + (sy - box.top - H / 2) / z }
+    }
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      const f = Math.exp(-e.deltaY * 0.0015)            // smooth exponential zoom
+      userZoomRef.current = Math.min(8, Math.max(0.5, userZoomRef.current * f))
+      setExploring(true)
+    }
+    const onClick = (e: MouseEvent) => {
+      clickTargetRef.current = screenToWorld(e.clientX, e.clientY)
+      setExploring(true)
+    }
+    // pinch (two-finger) zoom on touch
+    let pinchStart = 0, pinchZoom0 = 1
+    const dist = (t: TouchList) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY)
+    const onTouchStart = (e: TouchEvent) => { if (e.touches.length === 2) { pinchStart = dist(e.touches); pinchZoom0 = userZoomRef.current } }
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 2 && pinchStart) {
+        e.preventDefault()
+        userZoomRef.current = Math.min(8, Math.max(0.5, pinchZoom0 * (dist(e.touches) / pinchStart)))
+        setExploring(true)
+      }
+    }
+    cv.addEventListener("wheel", onWheel, { passive: false })
+    cv.addEventListener("click", onClick)
+    cv.addEventListener("touchstart", onTouchStart, { passive: false })
+    cv.addEventListener("touchmove", onTouchMove, { passive: false })
+    return () => {
+      cv.removeEventListener("wheel", onWheel); cv.removeEventListener("click", onClick)
+      cv.removeEventListener("touchstart", onTouchStart); cv.removeEventListener("touchmove", onTouchMove)
+    }
+  }, [])
+
+  const resetView = useCallback(() => {
+    userZoomRef.current = 1; clickTargetRef.current = null; setExploring(false)
+  }, [])
 
   useEffect(() => {
     const cv = canvasRef.current
@@ -142,14 +194,21 @@ export function PiIrrational() {
       zoomRef.current += (targetZoom - zoomRef.current) * 0.02      // slow, filmic ease
       // follow strength also fades in with the intro (hold center during slow-mo)
       const follow = 0.035 * iz
-      if (zoomOnRef.current) {
+      const clicked = clickTargetRef.current
+      if (clicked) {
+        // user clicked a point → fly the camera there and HOLD (overrides the
+        // tip-follow). Ease in world space; the point they picked sits centered.
+        camRef.current.x += (clicked.x - camRef.current.x) * 0.06
+        camRef.current.y += (clicked.y - camRef.current.y) * 0.06
+      } else if (zoomOnRef.current) {
         camRef.current.x += (ctx0 - camRef.current.x) * follow + (cx - camRef.current.x) * (0.04 * (1 - iz))
         camRef.current.y += (cty0 - camRef.current.y) * follow + (cy - camRef.current.y) * (0.04 * (1 - iz))
       } else {
         camRef.current.x += (cx - camRef.current.x) * 0.04
         camRef.current.y += (cy - camRef.current.y) * 0.04
       }
-      const z = zoomRef.current
+      // effective zoom = cinematic zoom × the user's scroll/pinch zoom
+      const z = zoomRef.current * userZoomRef.current
       // apply: screen-center, scale, then translate so the camera focus sits center
       ctx.setTransform(dpr * z, 0, 0, dpr * z, dpr * (cx - camRef.current.x * z), dpr * (cy - camRef.current.y * z))
 
@@ -344,7 +403,17 @@ export function PiIrrational() {
           <span className="tabular-nums w-8 text-white/75">{speed.toFixed(1)}×</span>
         </label>
         <button onClick={toggleFs} className={`${btn} bg-black/30 text-white/70 border border-white/10 hover:text-white`}>{fs ? "Exit ⤢" : "Fullscreen ⛶"}</button>
+        {exploring && (
+          <button onClick={resetView} className={`${btn} bg-amber-400/15 text-amber-200 border border-amber-300/40`}>Reset view</button>
+        )}
       </div>
+
+      {/* explore hint — fades once you've taken the camera */}
+      {!exploring && (
+        <div className="absolute top-4 right-4 z-10 font-mono text-[10px] text-white/35 text-right leading-relaxed pointer-events-none hidden md:block">
+          scroll to zoom<br />click a point to fly there
+        </div>
+      )}
     </div>
   )
 }
