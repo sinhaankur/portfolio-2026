@@ -36,7 +36,7 @@ export function PiLab() {
       <div className="flex flex-wrap gap-2 mb-4">
         {([
           ["archimedes", "Archimedes — polygons"],
-          ["leibniz", "Leibniz — infinite series"],
+          ["leibniz", "Mādhava–Leibniz — infinite series"],
           ["montecarlo", "Monte-Carlo — darts"],
         ] as const).map(([k, label]) => (
           <button
@@ -182,7 +182,8 @@ function Leibniz() {
   return (
     <div>
       <p className="text-sm text-foreground/70 leading-relaxed">
-        Leibniz&apos;s series is breathtakingly simple:
+        The Mādhava–Leibniz series is breathtakingly simple (found by Mādhava in
+        Kerala c. 1400, ~300 years before Leibniz):
         <span className="font-serif italic text-accent"> π = 4 · (1 − 1/3 + 1/5 − 1/7 + 1/9 − …)</span>.
         Add the fractions forever and you get π exactly — but only at infinity. Each
         term overshoots then undershoots, so the sum <em>zig-zags</em> toward π,

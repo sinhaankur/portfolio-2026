@@ -102,6 +102,36 @@ export default function PiPage() {
           every circle that has ever existed.
         </CaseProse>
       </section>
+
+      <section>
+        <CaseSectionHeading>Where the infinite series really came from — India</CaseSectionHeading>
+        <CaseProse>
+          The &ldquo;Leibniz series&rdquo; above has the wrong name. It was found
+          around <strong>1400 CE by Mādhava of Sangamagrāma</strong>, founder of the{" "}
+          <strong>Kerala school of astronomy and mathematics</strong> — nearly{" "}
+          <em>three centuries</em> before Leibniz and Gregory in Europe. Mādhava
+          derived the infinite series π/4 = 1 − 1/3 + 1/5 − 1/7 + … (rightly the{" "}
+          <strong>Mādhava–Leibniz series</strong>), and, knowing how slowly it
+          converges, also worked out faster-converging corrections — the beginnings
+          of calculus-style analysis, done in Kerala. It&apos;s recorded in later
+          Kerala texts such as Nīlakaṇṭha&apos;s <em>Tantrasaṅgraha</em> and the{" "}
+          <em>Yuktibhāṣā</em>.
+        </CaseProse>
+        <CaseProse>
+          Five centuries on, <strong>Srinivasa Ramanujan</strong> (1887–1920) gave
+          π formulas of a completely different order — series that add roughly{" "}
+          <em>eight correct digits per term</em>. His 1914 series (and the
+          Chudnovsky formula built on the same idea) are what modern record
+          computations of π — into the tens of trillions of digits — still run
+          today. The fastest known way to compute π traces straight back to him.
+        </CaseProse>
+        <CaseProse>
+          It&apos;s worth stating plainly: the idea that π could be reached by an{" "}
+          <em>infinite process</em> — the very thing this page is about — was an
+          Indian insight first, from Kerala, long before it appeared in Europe. The
+          history of a number with no end has a beginning, and part of it is here.
+        </CaseProse>
+      </section>
     </CaseStudyLayout>
   )
 }
