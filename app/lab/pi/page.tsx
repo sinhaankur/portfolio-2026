@@ -35,23 +35,27 @@ export default function PiPage() {
         </>
       }
     >
+      {/* Full-bleed cinematic hero — the curve fills the viewport, black stage,
+          the teaching text lives below. This is the "presentation" fix. */}
+      <div className="not-prose relative -mx-6 md:-mx-10 mb-14 md:mb-20">
+        <div className="relative w-screen left-1/2 -translate-x-1/2 bg-black">
+          <PiIrrationalEmbed />
+        </div>
+      </div>
+
       <section>
         <CaseSectionHeading>Why π never completes</CaseSectionHeading>
         <CaseProse>
-          Start here, because it&apos;s the beautiful part. Give a point two arms:
-          the first turns at one speed, the second at π times that speed, and its
-          tip draws the curve. Whether the curve ever <em>closes</em> depends only
-          on that ratio. A whole-number or fraction ratio lines up after a few
-          turns and closes into a finite flower. But <strong>π is irrational</strong> —
-          no whole number of turns of one arm ever matches the other — so the tip
-          never returns to its start, and the curve draws new petals forever.
-          That&apos;s the same fact as &ldquo;π has no exact decimal&rdquo;: an
-          irrational number never resolves into a clean, repeating whole. Switch the
-          ratio and see rational-closes vs π-never-does, side by side.
+          Give a point two arms: the first turns at one speed, the second at π times
+          that speed, and its tip draws the curve above. Whether the curve ever{" "}
+          <em>closes</em> depends only on that ratio. A whole-number or fraction
+          ratio lines up after a few turns and closes into a finite flower. But{" "}
+          <strong>π is irrational</strong> — no whole number of turns of one arm ever
+          matches the other — so the tip never returns to its start, and the curve
+          draws new petals forever. That&apos;s the same fact as &ldquo;π has no
+          exact decimal&rdquo;: an irrational number never resolves into a clean,
+          repeating whole. Switch the ratio to see rational-closes vs π-never-does.
         </CaseProse>
-        <div className="mt-6">
-          <PiIrrationalEmbed />
-        </div>
       </section>
 
       <section>

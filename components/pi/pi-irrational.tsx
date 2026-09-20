@@ -110,7 +110,8 @@ export function PiIrrational() {
       const dpr = cv.width / W
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
       ctx.globalCompositeOperation = "source-over"
-      ctx.fillStyle = "rgba(0,0,0,0.020)"
+      // fade toward a near-black with the faintest blue — filmic, not flat black
+      ctx.fillStyle = "rgba(3,4,9,0.022)"
       ctx.fillRect(0, 0, W, H)
 
       // ---- cinematic camera: ease a push-in that FOLLOWS the drawing tip ------
@@ -139,15 +140,17 @@ export function PiIrrational() {
         const stepCount = Math.max(40, Math.round(90 * speedRef.current))
         const seg = (dt * 70) / stepCount
 
-        // the trace — a single crisp anti-aliased line, faint halo behind it.
-        // widths are divided by the zoom so lines look the same thickness however
-        // far we've pushed in (a 1px line shouldn't fatten to 2px when zoomed).
+        // ELEGANT + MONOCHROME: one refined luminous line, not a rainbow. A cool
+        // silver-white core over a whisper-thin wider halo — restrained, filmic.
+        // widths divide by zoom so they stay the same visual weight as we push in.
         ctx.lineCap = "round"; ctx.lineJoin = "round"
-        const hue = (t * 7) % 360
+        // rational curves get a soft mint (they'll close into a calm flower);
+        // irrational π gets a cool argent white — timeless, not gaudy.
+        const core = rt.rational ? "230,255,240" : "224,232,255"
         const stroke = (w: number, a: number) => {
           ctx.globalCompositeOperation = "lighter"
           ctx.lineWidth = w / z
-          ctx.strokeStyle = rt.rational ? `rgba(120,235,175,${a})` : `hsla(${hue},78%,66%,${a})`
+          ctx.strokeStyle = `rgba(${core},${a})`
           ctx.beginPath()
           for (let i = 0; i <= stepCount; i++) {
             const [x, y] = tip(t + i * seg)
@@ -155,37 +158,47 @@ export function PiIrrational() {
           }
           ctx.stroke()
         }
-        stroke(3.2, 0.05)   // soft halo
-        stroke(1.1, 0.7)    // crisp core
+        stroke(4.0, 0.035)  // wide, faint atmosphere
+        stroke(1.6, 0.10)   // mid bloom
+        stroke(0.8, 0.85)   // crisp hairline core
 
         const t2 = t + stepCount * seg
         const a1 = t2, jx = cx + r1 * Math.cos(a1), jy = cy + r1 * Math.sin(a1)
         const [tx, ty] = tip(t2)
 
-        // the two guide circles + arms, very faint (like the reference frame) —
-        // redrawn each frame over the fade so they stay clean, not smeared
+        // the two guide circles + arms — barely-there, elegant scaffolding
         ctx.globalCompositeOperation = "source-over"
-        ctx.strokeStyle = "rgba(255,255,255,0.06)"; ctx.lineWidth = 1 / z
-        ctx.beginPath(); ctx.arc(cx, cy, r1, 0, TAU); ctx.stroke()          // first arm's circle
-        ctx.beginPath(); ctx.arc(jx, jy, r2, 0, TAU); ctx.stroke()          // second arm's circle
-        ctx.strokeStyle = "rgba(255,255,255,0.22)"; ctx.lineWidth = 1 / z
+        ctx.strokeStyle = "rgba(180,200,255,0.05)"; ctx.lineWidth = 1 / z
+        ctx.beginPath(); ctx.arc(cx, cy, r1, 0, TAU); ctx.stroke()
+        ctx.beginPath(); ctx.arc(jx, jy, r2, 0, TAU); ctx.stroke()
+        ctx.strokeStyle = "rgba(210,220,255,0.18)"; ctx.lineWidth = 0.8 / z
         ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(jx, jy); ctx.lineTo(tx, ty); ctx.stroke()
-        ctx.fillStyle = "rgba(255,255,255,0.5)"
-        ctx.beginPath(); ctx.arc(cx, cy, 1.8, 0, TAU); ctx.fill()
-        ctx.beginPath(); ctx.arc(jx, jy, 1.8, 0, TAU); ctx.fill()
-        // leading tip — a small, clean luminous bead (subtle, not a flare)
+        // pivot: a tiny, still point
+        ctx.fillStyle = "rgba(220,228,255,0.35)"
+        ctx.beginPath(); ctx.arc(cx, cy, 1.4, 0, TAU); ctx.fill()
+        // leading tip — ONE clean luminous point (no scattered beads anywhere)
         ctx.globalCompositeOperation = "lighter"
-        const g = ctx.createRadialGradient(tx, ty, 0, tx, ty, 9)
-        g.addColorStop(0, "rgba(255,230,170,0.85)")
-        g.addColorStop(1, "rgba(255,210,90,0)")
+        const g = ctx.createRadialGradient(tx, ty, 0, tx, ty, 7 / z)
+        g.addColorStop(0, "rgba(255,255,255,0.9)")
+        g.addColorStop(1, "rgba(210,224,255,0)")
         ctx.fillStyle = g
-        ctx.beginPath(); ctx.arc(tx, ty, 9, 0, TAU); ctx.fill()
-        ctx.fillStyle = "#fff6dc"
-        ctx.beginPath(); ctx.arc(tx, ty, 1.6, 0, TAU); ctx.fill()
+        ctx.beginPath(); ctx.arc(tx, ty, 7 / z, 0, TAU); ctx.fill()
+        ctx.fillStyle = "#ffffff"
+        ctx.beginPath(); ctx.arc(tx, ty, 1.3 / z, 0, TAU); ctx.fill()
 
         tRef.current = t2
         setTurns(Math.floor(t2 / TAU))
       }
+
+      // filmic vignette (screen space, on top) — darkens the edges so the eye
+      // rests on the luminous curve. Subtle; this is what makes it feel "shot".
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+      ctx.globalCompositeOperation = "source-over"
+      const vig = ctx.createRadialGradient(cx, cy, Math.min(W, H) * 0.28, cx, cy, Math.max(W, H) * 0.72)
+      vig.addColorStop(0, "rgba(0,0,0,0)")
+      vig.addColorStop(1, "rgba(2,3,8,0.5)")
+      ctx.fillStyle = vig
+      ctx.fillRect(0, 0, W, H)
 
       rafRef.current = requestAnimationFrame(draw)
     }
@@ -244,91 +257,49 @@ export function PiIrrational() {
     else el.requestFullscreen?.().catch(() => {})
   }, [])
 
+  const btn = "rounded-full px-3 py-1.5 font-mono text-[11px] tracking-wide backdrop-blur-md transition"
   return (
-    <div className="rounded-2xl border border-border bg-gradient-to-b from-[#0a0b12] to-[#05060a] p-4 md:p-6">
-      <div className={fs ? "grid gap-0" : "grid gap-5 md:grid-cols-[minmax(0,420px)_minmax(0,1fr)]"}>
-        <div ref={wrapRef} className={fs ? "relative bg-black flex flex-col" : "relative"}>
-          <canvas
-            ref={canvasRef}
-            className={fs ? "w-full flex-1 min-h-0 bg-black" : "w-full aspect-square rounded-lg border border-border/40 bg-black"}
-          />
-          {/* controls overlay */}
-          <div className={`flex flex-wrap items-center gap-3 ${fs ? "p-4" : "mt-3"}`}>
-            <button onClick={() => setRunning((r) => !r)} className="rounded-lg border border-accent bg-accent/10 px-3 py-1.5 font-mono text-[12px] text-accent">
-              {running ? "Pause" : "Play"}
-            </button>
-            <button onClick={restart} className="rounded-lg border border-border px-3 py-1.5 font-mono text-[12px] text-foreground/60 hover:border-accent/50">Restart</button>
-            <button onClick={toggleFs} className="rounded-lg border border-border px-3 py-1.5 font-mono text-[12px] text-foreground/70 hover:border-accent/50">
-              {fs ? "Exit fullscreen ⤢" : "Fullscreen ⛶"}
-            </button>
-            <button onClick={() => setZoomOn((z) => !z)}
-              className={`rounded-lg px-3 py-1.5 font-mono text-[12px] transition ${zoomOn ? "border border-accent bg-accent/15 text-accent" : "border border-border text-foreground/70 hover:border-accent/50"}`}>
-              {zoomOn ? "Zoom: follow tip" : "Zoom: off"}
-            </button>
-            <button onClick={() => setMusic((m) => !m)}
-              className={`rounded-lg px-3 py-1.5 font-mono text-[12px] transition ${music ? "border border-accent bg-accent/15 text-accent" : "border border-border text-foreground/70 hover:border-accent/50"}`}>
-              {music ? "♪ Music on" : "♪ Music"}
-            </button>
-            <label className="flex items-center gap-2 font-mono text-[11px] text-foreground/60">
-              speed
-              <input
-                type="range" min={0.1} max={5} step={0.1} value={speed}
-                onChange={(e) => setSpeed(parseFloat(e.target.value))}
-                className="w-28 accent-[color:var(--color-accent,#cf9a2c)]"
-                aria-label="animation speed"
-              />
-              <span className="tabular-nums w-9">{speed.toFixed(1)}×</span>
-            </label>
-            <span className="font-mono text-[11px] text-foreground/45">{turns} turns</span>
-          </div>
-        </div>
+    // A cinematic black stage: the curve fills the frame; every control floats
+    // over it in glass, so nothing competes with the art. Tall on the page,
+    // taller in fullscreen. No academic box, no side column.
+    <div
+      ref={wrapRef}
+      className={`relative overflow-hidden bg-black ${fs ? "h-full" : "w-full h-[62vh] min-h-[420px] md:h-[78vh]"}`}
+    >
+      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full bg-black" />
 
-        {!fs && (
-          <div>
-            <p className="font-mono text-[10px] uppercase tracking-widest text-foreground/40 mb-2">
-              two arms · second turns at {ratio.label}× the first
-            </p>
-            <div className="flex flex-wrap gap-2 mb-3">
-              {RATIOS.map((r, i) => (
-                <button
-                  key={r.label}
-                  onClick={() => setRatioIdx(i)}
-                  className={`rounded-lg px-2.5 py-1 font-mono text-[11px] transition ${
-                    i === ratioIdx ? "border border-accent bg-accent/15 text-accent"
-                      : "border border-border text-foreground/70 hover:border-accent/50"
-                  }`}
-                >
-                  {r.label}
-                </button>
-              ))}
-            </div>
-            <p className="text-sm text-foreground/75 leading-relaxed">
-              The tip of the second arm draws the curve. Whether it ever{" "}
-              <em>closes</em> depends entirely on the ratio of the two speeds:
-            </p>
-            <ul className="mt-2 text-sm text-foreground/70 leading-relaxed space-y-1.5">
-              <li>• A <span className="text-emerald-400">rational</span> ratio (3, or 22/7)
-                lines up after a whole number of turns — the curve <strong>closes</strong>
-                into a finite flower and then just retraces itself.</li>
-              <li>• An <span className="text-accent">irrational</span> ratio like{" "}
-                <span className="font-serif italic">π</span> <strong>never</strong> lines
-                up — no whole number of turns of one arm ever matches the other — so the
-                tip never returns to its exact start. A new, slightly-offset petal on
-                every pass, <strong>forever</strong>.</li>
-            </ul>
-            <p className="mt-3 text-sm text-foreground/60 leading-relaxed">
-              {ratio.rational
-                ? <>You&apos;re watching <span className="text-emerald-400">{ratio.label}</span> — {ratio.note}. Let it run: it fills, then repeats.</>
-                : <>You&apos;re watching <span className="text-accent">{ratio.label}</span> — {ratio.note}. It will <em>never</em> repeat, no matter how long you wait.</>}
-            </p>
-            <p className="mt-3 rounded-lg border border-border/60 bg-accent/[0.06] px-3.5 py-2.5 text-[13px] text-foreground/75 leading-relaxed">
-              <strong>This is why π has no exact value.</strong> &ldquo;No exact decimal&rdquo;
-              and &ldquo;this curve never closes&rdquo; are the <em>same fact</em>: an
-              irrational number never resolves into a clean, repeating whole. It goes on
-              forever — and you can see the forever.
-            </p>
-          </div>
-        )}
+      {/* ratio chips — top center, floating */}
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex flex-wrap justify-center gap-1.5">
+        {RATIOS.map((r, i) => (
+          <button
+            key={r.label}
+            onClick={() => setRatioIdx(i)}
+            className={`${btn} ${i === ratioIdx ? "bg-white/15 text-white border border-white/30" : "bg-black/30 text-white/55 border border-white/10 hover:text-white/85"}`}
+          >
+            {r.label}
+          </button>
+        ))}
+      </div>
+
+      {/* the current-state whisper — top left */}
+      <div className="absolute top-4 left-4 z-10 font-mono text-[10px] text-white/45 leading-relaxed max-w-[42%] hidden sm:block">
+        second arm turns at <span className="text-white/80">{ratio.label}</span>× the first
+        <div className="mt-0.5 text-white/35">{ratio.rational ? "rational → the curve closes" : "irrational → it never closes"} · {turns} turns</div>
+      </div>
+
+      {/* controls — bottom, floating glass bar */}
+      <div className="absolute bottom-0 inset-x-0 z-10 flex flex-wrap items-center justify-center gap-2 p-3 md:p-4
+        bg-gradient-to-t from-black/70 via-black/30 to-transparent">
+        <button onClick={() => setRunning((r) => !r)} className={`${btn} bg-white/12 text-white border border-white/25`}>{running ? "Pause" : "Play"}</button>
+        <button onClick={restart} className={`${btn} bg-black/30 text-white/70 border border-white/10 hover:text-white`}>Restart</button>
+        <button onClick={() => setZoomOn((z) => !z)} className={`${btn} ${zoomOn ? "bg-white/15 text-white border border-white/30" : "bg-black/30 text-white/60 border border-white/10 hover:text-white"}`}>{zoomOn ? "Zoom ⊙" : "Zoom off"}</button>
+        <button onClick={() => setMusic((m) => !m)} className={`${btn} ${music ? "bg-white/15 text-white border border-white/30" : "bg-black/30 text-white/60 border border-white/10 hover:text-white"}`}>{music ? "♪ on" : "♪ music"}</button>
+        <label className="flex items-center gap-2 font-mono text-[10px] text-white/55 px-2">
+          speed
+          <input type="range" min={0.1} max={5} step={0.1} value={speed} onChange={(e) => setSpeed(parseFloat(e.target.value))} className="w-20 md:w-28 accent-white" aria-label="animation speed" />
+          <span className="tabular-nums w-8 text-white/75">{speed.toFixed(1)}×</span>
+        </label>
+        <button onClick={toggleFs} className={`${btn} bg-black/30 text-white/70 border border-white/10 hover:text-white`}>{fs ? "Exit ⤢" : "Fullscreen ⛶"}</button>
       </div>
     </div>
   )
