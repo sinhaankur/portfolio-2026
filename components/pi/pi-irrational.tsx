@@ -46,7 +46,11 @@ export function PiIrrational() {
   const fit = useCallback(() => {
     const cv = canvasRef.current, wrap = wrapRef.current
     if (!cv || !wrap) return
-    const dpr = Math.min(window.devicePixelRatio || 1, 2)
+    // HD render: honour the display's full pixel density (Retina ×2, ×3) and go
+    // higher in fullscreen where the canvas is large — crisp lines at any size,
+    // up to a sensible cap so a huge 5K/6K panel stays performant.
+    const native = window.devicePixelRatio || 1
+    const dpr = Math.min(document.fullscreenElement ? native * 1.5 : native, 4)
     const box = cv.getBoundingClientRect()
     cv.width = Math.round(box.width * dpr)
     cv.height = Math.round(box.height * dpr)
@@ -78,7 +82,9 @@ export function PiIrrational() {
     if (!cv) return
     const ctx = cv.getContext("2d")!
 
+    let frame = 0
     const draw = () => {
+      frame++
       const box = cv.getBoundingClientRect()
       const W = box.width, H = box.height, cx = W / 2, cy = H / 2
       const R = Math.min(W, H) * 0.22
@@ -91,40 +97,67 @@ export function PiIrrational() {
                 cy + r1 * Math.sin(a1) + r2 * Math.sin(a2)]
       }
 
-      // gentle fade of the whole canvas each frame → glowing trail that lingers
-      // but never fully erases; the newest stroke reads brightest.
+      // The reference's quality is ELEGANT RESTRAINT: thin luminous lines on pure
+      // black, smooth continuous motion, the two guide-circles faintly visible.
+      // A very slow fade keeps a long, clean tail without smearing.
       ctx.globalCompositeOperation = "source-over"
-      ctx.fillStyle = "rgba(5,6,10,0.045)"
+      ctx.fillStyle = "rgba(0,0,0,0.020)"
       ctx.fillRect(0, 0, W, H)
 
       if (runRef.current) {
         const t = tRef.current
-        const stepCount = 70
         const dt = 0.02 * speedRef.current
-        ctx.globalCompositeOperation = "lighter"       // additive → luminous overlaps
-        ctx.lineWidth = 1.4
-        for (let i = 0; i < stepCount; i++) {
-          const [x0, y0] = tip(t + i * dt)
-          const [x1p, y1p] = tip(t + (i + 1) * dt)
-          const hue = (t * 8) % 360
-          ctx.strokeStyle = rt.rational
-            ? "rgba(80,220,140,0.55)"
-            : `hsla(${hue}, 75%, 62%, 0.55)`
-          ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1p, y1p); ctx.stroke()
+        // sub-steps per frame scale with speed so the curve stays SMOOTH (no gaps)
+        // at any speed — quality holds from 0.1× to 5×.
+        const stepCount = Math.max(40, Math.round(90 * speedRef.current))
+        const seg = (dt * 70) / stepCount
+
+        // the trace — a single crisp anti-aliased line, faint halo behind it
+        ctx.lineCap = "round"; ctx.lineJoin = "round"
+        const hue = (t * 7) % 360
+        const stroke = (w: number, a: number) => {
+          ctx.globalCompositeOperation = "lighter"
+          ctx.lineWidth = w
+          ctx.strokeStyle = rt.rational ? `rgba(120,235,175,${a})` : `hsla(${hue},78%,66%,${a})`
+          ctx.beginPath()
+          for (let i = 0; i <= stepCount; i++) {
+            const [x, y] = tip(t + i * seg)
+            i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)
+          }
+          ctx.stroke()
         }
-        const t2 = t + stepCount * dt
-        // arms + tip, drawn fresh (source-over so they're crisp, not additive)
-        ctx.globalCompositeOperation = "source-over"
+        stroke(3.2, 0.05)   // soft halo
+        stroke(1.1, 0.7)    // crisp core
+
+        const t2 = t + stepCount * seg
         const a1 = t2, jx = cx + r1 * Math.cos(a1), jy = cy + r1 * Math.sin(a1)
         const [tx, ty] = tip(t2)
-        ctx.strokeStyle = "rgba(255,255,255,0.28)"; ctx.lineWidth = 1
+
+        // the two guide circles + arms, very faint (like the reference frame) —
+        // redrawn each frame over the fade so they stay clean, not smeared
+        ctx.globalCompositeOperation = "source-over"
+        ctx.strokeStyle = "rgba(255,255,255,0.06)"; ctx.lineWidth = 1
+        ctx.beginPath(); ctx.arc(cx, cy, r1, 0, TAU); ctx.stroke()          // first arm's circle
+        ctx.beginPath(); ctx.arc(jx, jy, r2, 0, TAU); ctx.stroke()          // second arm's circle
+        ctx.strokeStyle = "rgba(255,255,255,0.22)"
         ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(jx, jy); ctx.lineTo(tx, ty); ctx.stroke()
-        ctx.fillStyle = "#ffd24d"
-        ctx.beginPath(); ctx.arc(tx, ty, 3, 0, TAU); ctx.fill()
+        ctx.fillStyle = "rgba(255,255,255,0.5)"
+        ctx.beginPath(); ctx.arc(cx, cy, 1.8, 0, TAU); ctx.fill()
+        ctx.beginPath(); ctx.arc(jx, jy, 1.8, 0, TAU); ctx.fill()
+        // leading tip — a small, clean luminous bead (subtle, not a flare)
+        ctx.globalCompositeOperation = "lighter"
+        const g = ctx.createRadialGradient(tx, ty, 0, tx, ty, 9)
+        g.addColorStop(0, "rgba(255,230,170,0.85)")
+        g.addColorStop(1, "rgba(255,210,90,0)")
+        ctx.fillStyle = g
+        ctx.beginPath(); ctx.arc(tx, ty, 9, 0, TAU); ctx.fill()
+        ctx.fillStyle = "#fff6dc"
+        ctx.beginPath(); ctx.arc(tx, ty, 1.6, 0, TAU); ctx.fill()
 
         tRef.current = t2
         setTurns(Math.floor(t2 / TAU))
       }
+
       rafRef.current = requestAnimationFrame(draw)
     }
     rafRef.current = requestAnimationFrame(draw)
