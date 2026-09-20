@@ -35,6 +35,7 @@ export function PiIrrational() {
   const [music, setMusic] = useState(false)      // opt-in generative bed
   const rafRef = useRef<number | null>(null)
   const tRef = useRef(0)
+  const introRef = useRef(0)                     // 0→1 cinematic slow-start ramp
   const zoomRef = useRef(1)                       // eased current zoom factor
   const camRef = useRef({ x: 0, y: 0 })          // eased camera focus (world coords)
   const speedRef = useRef(speed)
@@ -67,6 +68,8 @@ export function PiIrrational() {
 
   const restart = useCallback(() => {
     tRef.current = 0
+    introRef.current = 0      // replay the cinematic slow-start
+    zoomRef.current = 1       // and re-do the push-in from wide
     setTurns(0)
     fit()
   }, [fit])
@@ -114,16 +117,22 @@ export function PiIrrational() {
       ctx.fillStyle = "rgba(3,4,9,0.022)"
       ctx.fillRect(0, 0, W, H)
 
-      // ---- cinematic camera: ease a push-in that FOLLOWS the drawing tip ------
-      // (the video's move). We compute the current tip, drift the camera toward
-      // it, and ease the zoom in — then draw the whole scene through that frame.
+      // ---- cinematic camera, choreographed with the intro ---------------------
+      // During the slow-motion opening we hold WIDE and centered so you clearly
+      // read the two arms (one point orbiting on another). As the intro ramps and
+      // the curve speeds up, the camera eases IN and starts trailing the tip —
+      // the video's build. `iz` = intro progress (smoothstepped).
+      const iz = introRef.current * introRef.current * (3 - 2 * introRef.current)
       const now = tRef.current
       const [ctx0, cty0] = tip(now)
-      const targetZoom = zoomOnRef.current ? 2.1 : 1
+      // wide (1×) at the start → the chosen zoom target once the intro completes
+      const targetZoom = 1 + ((zoomOnRef.current ? 2.1 : 1) - 1) * iz
       zoomRef.current += (targetZoom - zoomRef.current) * 0.02      // slow, filmic ease
+      // follow strength also fades in with the intro (hold center during slow-mo)
+      const follow = 0.035 * iz
       if (zoomOnRef.current) {
-        camRef.current.x += (ctx0 - camRef.current.x) * 0.035       // trail the tip, don't snap
-        camRef.current.y += (cty0 - camRef.current.y) * 0.035
+        camRef.current.x += (ctx0 - camRef.current.x) * follow + (cx - camRef.current.x) * (0.04 * (1 - iz))
+        camRef.current.y += (cty0 - camRef.current.y) * follow + (cy - camRef.current.y) * (0.04 * (1 - iz))
       } else {
         camRef.current.x += (cx - camRef.current.x) * 0.04
         camRef.current.y += (cy - camRef.current.y) * 0.04
@@ -134,10 +143,18 @@ export function PiIrrational() {
 
       if (runRef.current) {
         const t = tRef.current
-        const dt = 0.02 * speedRef.current
+        // CINEMATIC INTRO RAMP (matches the reference video's direction): the
+        // animation begins in near-slow-motion so you can SEE the two-arm
+        // mechanism — one point orbiting on another — then eases up to the chosen
+        // speed over ~7s. `intro` climbs 0→1; the speed multiplier lerps from a
+        // gentle 0.12× at the start to the full user speed. Restart replays it.
+        introRef.current = Math.min(1, introRef.current + 1 / (7 * 60))  // ~7s at 60fps
+        const introEase = introRef.current * introRef.current * (3 - 2 * introRef.current) // smoothstep
+        const effSpeed = (0.12 + (speedRef.current - 0.12) * introEase)
+        const dt = 0.02 * effSpeed
         // sub-steps per frame scale with speed so the curve stays SMOOTH (no gaps)
-        // at any speed — quality holds from 0.1× to 5×.
-        const stepCount = Math.max(40, Math.round(90 * speedRef.current))
+        // at any speed — quality holds throughout the ramp.
+        const stepCount = Math.max(40, Math.round(90 * effSpeed))
         const seg = (dt * 70) / stepCount
 
         // ELEGANT + MONOCHROME: one refined luminous line, not a rainbow. A cool
