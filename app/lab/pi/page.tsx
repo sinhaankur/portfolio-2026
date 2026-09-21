@@ -29,6 +29,11 @@ export default function PiPage() {
             <PiIrrationalEmbed />
           </div>
 
+          {/* top scrim — a soft black gradient so the navbar + title always read
+              cleanly over the figure (esp. on mobile where the rosette centres
+              behind the title). Doesn't dim the figure's lower half. */}
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-64 md:h-56 z-10 bg-gradient-to-b from-black/85 via-black/45 to-transparent" />
+
           {/* floating title, top-left, over the stage */}
           <div className="pointer-events-none absolute top-20 md:top-24 left-5 md:left-10 z-20 max-w-xl">
             <Link

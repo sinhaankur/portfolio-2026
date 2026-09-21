@@ -495,30 +495,33 @@ export function PiIrrational() {
     >
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full bg-black" />
 
-      {/* ratio chips — top center, floating (above the canvas click layer) */}
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 flex flex-wrap justify-center gap-1.5">
-        {RATIOS.map((r, i) => (
-          <button
-            key={r.label}
-            onClick={() => setRatioIdx(i)}
-            className={`${btn} ${i === ratioIdx ? "bg-white/15 text-white border border-white/30" : "bg-black/30 text-white/55 border border-white/10 hover:text-white/85"}`}
-          >
-            {r.label}
-          </button>
-        ))}
+      {/* the current-state whisper — bottom-right, clear of the navbar + title.
+          A quiet readout, never overlapping the page chrome. */}
+      <div className="absolute bottom-24 right-4 z-20 text-right font-mono text-[10px] text-white/40 leading-relaxed max-w-[46%] hidden sm:block pointer-events-none">
+        second arm turns at <span className="text-white/75">{ratio.label}</span>× the first
+        <div className="mt-0.5 text-white/30">{ratio.rational ? "rational → the curve closes" : "irrational → it never closes"} · {turns} turns</div>
       </div>
 
-      {/* the current-state whisper — top left */}
-      <div className="absolute top-4 left-4 z-10 font-mono text-[10px] text-white/45 leading-relaxed max-w-[42%] hidden sm:block">
-        second arm turns at <span className="text-white/80">{ratio.label}</span>× the first
-        <div className="mt-0.5 text-white/35">{ratio.rational ? "rational → the curve closes" : "irrational → it never closes"} · {turns} turns</div>
-      </div>
-
-      {/* controls — bottom, floating glass bar. z-20 keeps it ABOVE the canvas's
-          full-cover click-to-fly handler so Pause and the other buttons always
-          receive their clicks (the canvas explore click also guards against this). */}
-      <div className="absolute bottom-0 inset-x-0 z-20 flex flex-wrap items-center justify-center gap-2 p-3 md:p-4
-        bg-gradient-to-t from-black/70 via-black/30 to-transparent">
+      {/* controls — bottom, floating glass bar with the RATIO CHIPS on their own
+          row on top, so nothing sits behind the navbar at the top of the page.
+          z-20 keeps it ABOVE the canvas's full-cover click-to-fly handler so
+          Pause and the other buttons always receive their clicks. */}
+      <div className="absolute bottom-0 inset-x-0 z-20 flex flex-col items-center gap-2 p-3 md:p-4
+        bg-gradient-to-t from-black/80 via-black/45 to-transparent">
+        {/* ratio chips — first row of the control cluster */}
+        <div className="flex flex-wrap justify-center gap-1.5">
+          {RATIOS.map((r, i) => (
+            <button
+              key={r.label}
+              onClick={() => setRatioIdx(i)}
+              className={`${btn} ${i === ratioIdx ? "bg-white/15 text-white border border-white/30" : "bg-black/30 text-white/55 border border-white/10 hover:text-white/85"}`}
+            >
+              {r.label}
+            </button>
+          ))}
+        </div>
+        {/* main controls row */}
+        <div className="flex flex-wrap items-center justify-center gap-2">
         {/* Pause/Play — bigger, high-contrast, and a clear hit target so it's
             never hard to click (it sits above the canvas at z-20). */}
         <button
@@ -539,14 +542,15 @@ export function PiIrrational() {
           <span className="tabular-nums w-8 text-white/75">{speed.toFixed(1)}×</span>
         </label>
         <button onClick={toggleFs} className={`${btn} bg-black/30 text-white/70 border border-white/10 hover:text-white`}>{fs ? "Exit ⤢" : "Fullscreen ⛶"}</button>
-        {exploring && (
-          <button onClick={resetView} className={`${btn} bg-amber-400/15 text-amber-200 border border-amber-300/40`}>Reset view</button>
-        )}
+          {exploring && (
+            <button onClick={resetView} className={`${btn} bg-amber-400/15 text-amber-200 border border-amber-300/40`}>Reset view</button>
+          )}
+        </div>
       </div>
 
-      {/* explore hint — fades once you've taken the camera */}
+      {/* explore hint — bottom-left, clear of the navbar; fades once you explore */}
       {!exploring && (
-        <div className="absolute top-4 right-4 z-10 font-mono text-[10px] text-white/35 text-right leading-relaxed pointer-events-none hidden md:block">
+        <div className="absolute bottom-24 left-4 z-20 font-mono text-[10px] text-white/35 leading-relaxed pointer-events-none hidden md:block">
           scroll to zoom<br />click a point to fly there
         </div>
       )}
