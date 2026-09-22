@@ -15,14 +15,12 @@ import * as THREE from "three"
 import { LEVEL_1, TILE, type Level, type Hazard, type GemKind } from "./level"
 import { Atmosphere } from "./atmosphere"
 import { game } from "./state"
+import { PixelBillboard, FireSprite, WaterSprite } from "./pixel-sprites"
 
-// Blender hero props (cup / gem / door). Preload so they're ready on first frame.
-const CUP_GLB = "/models/dave/cup.glb"
-const GEM_GLB = "/models/dave/gem.glb"
+// Blender props: the door + brick panel are GLBs; gems/cup/crown are pixel
+// sprites (see pixel-sprites.tsx). Preload the GLBs so they're ready first frame.
 const DOOR_GLB = "/models/dave/door.glb"
 const BRICK_GLB = "/models/dave/brick-panel.glb"
-useGLTF.preload(CUP_GLB)
-useGLTF.preload(GEM_GLB)
 useGLTF.preload(DOOR_GLB)
 useGLTF.preload(BRICK_GLB)
 
@@ -177,133 +175,19 @@ function HazardPit({ h, brick }: { h: Hazard; brick?: string }) {
   )
 }
 
-/** Fire — per-tile clusters of two nested flame cones (additive) that flicker
- *  and sway on independent phases, over a glowing coal bed, plus rising embers. */
-function FireHazard({ h }: { h: Hazard }) {
-  const cols = Math.max(1, Math.round(h.size[0] / 0.7))
-  const flames = useRef<(THREE.Group | null)[]>([])
-  const embers = useRef<THREE.Points>(null)
-  const emberSeeds = useMemo(
-    () => Array.from({ length: cols * 3 }, () => ({
-      x: (Math.random() - 0.5) * h.size[0],
-      p: Math.random() * Math.PI * 2,
-      s: 0.6 + Math.random() * 0.8,
-    })),
-    [cols, h.size],
-  )
-  const emberGeo = useMemo(() => {
-    const g = new THREE.BufferGeometry()
-    g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(emberSeeds.length * 3), 3))
-    return g
-  }, [emberSeeds])
-
-  useFrame((st) => {
-    const t = st.clock.elapsedTime
-    flames.current.forEach((f, i) => {
-      if (!f) return
-      const w = 0.85 + Math.sin(t * 11 + i * 2.1) * 0.18 + Math.sin(t * 23 + i) * 0.07
-      f.scale.set(1 + (1 - w) * 0.5, w, 1)
-      f.rotation.z = Math.sin(t * 5 + i * 1.7) * 0.08
-    })
-    const arr = (emberGeo.attributes.position as THREE.BufferAttribute).array as Float32Array
-    emberSeeds.forEach((s, i) => {
-      const cycle = (t * 0.55 * s.s + s.p) % 1.4
-      arr[i * 3] = s.x + Math.sin(t * 2 + s.p) * 0.08
-      arr[i * 3 + 1] = h.size[1] * 0.2 + cycle * 1.1
-      arr[i * 3 + 2] = 0.2
-    })
-    ;(emberGeo.attributes.position as THREE.BufferAttribute).needsUpdate = true
-  })
-
-  return (
-    <group position={h.pos}>
-      {/* glowing coal bed */}
-      <mesh position={[0, -h.size[1] * 0.32, 0]}>
-        <boxGeometry args={[h.size[0], h.size[1] * 0.36, h.size[2]]} />
-        <meshStandardMaterial color="#1c0802" emissive="#8a2205" emissiveIntensity={0.55} roughness={0.95} />
-      </mesh>
-      {/* nested flame cones per tile-column */}
-      {Array.from({ length: cols }, (_, c) => {
-        const x = -h.size[0] / 2 + (c + 0.5) * (h.size[0] / cols)
-        return (
-          <group key={c} position={[x, h.size[1] * 0.1, 0]} ref={(el) => { flames.current[c] = el }}>
-            <mesh position={[0, 0.62, 0]}>
-              <coneGeometry args={[0.42, 1.35, 8]} />
-              <meshBasicMaterial color="#ff5a10" transparent opacity={0.8} blending={THREE.AdditiveBlending} depthWrite={false} />
-            </mesh>
-            <mesh position={[0, 0.5, 0.06]}>
-              <coneGeometry args={[0.22, 0.85, 8]} />
-              <meshBasicMaterial color="#ffd23a" transparent opacity={0.95} blending={THREE.AdditiveBlending} depthWrite={false} />
-            </mesh>
-          </group>
-        )
-      })}
-      <points ref={embers} geometry={emberGeo}>
-        <pointsMaterial color="#ffb04a" size={0.06} transparent opacity={0.85} blending={THREE.AdditiveBlending} depthWrite={false} sizeAttenuation />
-      </points>
-      <pointLight color="#ff7a1f" intensity={2.2} distance={4.5} position={[0, 0.6, 0.6]} />
-    </group>
-  )
-}
-
-/** Water — a deep translucent pool body with a bright, rippling surface strip
- *  and slow-rising bubbles, so it reads as liquid instead of a blue box. */
-function WaterHazard({ h }: { h: Hazard }) {
-  const surface = useRef<THREE.Mesh>(null)
-  const bubbles = useRef<THREE.Points>(null)
-  const seeds = useMemo(
-    () => Array.from({ length: 8 }, () => ({
-      x: (Math.random() - 0.5) * h.size[0] * 0.9,
-      p: Math.random() * Math.PI * 2,
-      s: 0.5 + Math.random() * 0.6,
-    })),
-    [h.size],
-  )
-  const bubbleGeo = useMemo(() => {
-    const g = new THREE.BufferGeometry()
-    g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(seeds.length * 3), 3))
-    return g
-  }, [seeds])
-
-  useFrame((st) => {
-    const t = st.clock.elapsedTime
-    if (surface.current) {
-      surface.current.position.y = h.size[1] / 2 + Math.sin(t * 1.7 + h.pos[0]) * 0.035
-      const m = surface.current.material as THREE.MeshStandardMaterial
-      m.opacity = 0.55 + Math.sin(t * 2.3 + h.pos[0] * 2) * 0.12
-    }
-    const arr = (bubbleGeo.attributes.position as THREE.BufferAttribute).array as Float32Array
-    seeds.forEach((s, i) => {
-      const cycle = (t * 0.35 * s.s + s.p) % 1
-      arr[i * 3] = s.x + Math.sin(t * 1.2 + s.p) * 0.06
-      arr[i * 3 + 1] = -h.size[1] / 2 + cycle * h.size[1]
-      arr[i * 3 + 2] = 0.15
-    })
-    ;(bubbleGeo.attributes.position as THREE.BufferAttribute).needsUpdate = true
-  })
-
-  return (
-    <group position={h.pos}>
-      {/* pool body */}
-      <mesh>
-        <boxGeometry args={h.size} />
-        <meshStandardMaterial color="#1a4fd6" emissive="#0a2a7a" emissiveIntensity={0.35} transparent opacity={0.6} roughness={0.15} metalness={0.1} />
-      </mesh>
-      {/* lit surface strip */}
-      <mesh ref={surface} position={[0, h.size[1] / 2, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[h.size[0] * 0.98, h.size[2] * 0.98]} />
-        <meshStandardMaterial color="#7ec2ff" emissive="#3a7ad6" emissiveIntensity={0.5} transparent opacity={0.6} roughness={0.05} depthWrite={false} />
-      </mesh>
-      <points ref={bubbles} geometry={bubbleGeo}>
-        <pointsMaterial color="#bfe4ff" size={0.045} transparent opacity={0.7} depthWrite={false} sizeAttenuation />
-      </points>
-    </group>
-  )
-}
-
 function HazardMesh({ h }: { h: Hazard }) {
-  if (h.kind === "fire") return <FireHazard h={h} />
-  if (h.kind === "water") return <WaterHazard h={h} />
+  if (h.kind === "fire")
+    return (
+      <group position={h.pos}>
+        <FireSprite width={h.size[0]} height={h.size[1]} depth={h.size[2]} />
+      </group>
+    )
+  if (h.kind === "water")
+    return (
+      <group position={h.pos}>
+        <WaterSprite width={h.size[0]} height={h.size[1]} depth={h.size[2]} />
+      </group>
+    )
   return <SpikeHazard h={h} />
 }
 
@@ -607,32 +491,11 @@ function Gems({ level }: { level: Level }) {
   const group = useRef<THREE.Group>(null)
   const got = useRef<boolean[]>(level.gems.map(() => false))
 
-  const diamondMat = useMemo(
-    () => new THREE.MeshStandardMaterial({ color: "#36e6ff", emissive: "#0bb6e8", emissiveIntensity: 0.9, roughness: 0.15, metalness: 0.4 }),
-    [],
-  )
   const ballMat = useMemo(
     () => new THREE.MeshStandardMaterial({ color: "#c23bff", emissive: "#7a1fb0", emissiveIntensity: 0.8, roughness: 0.25, metalness: 0.5 }),
     [],
   )
-  const rubyMat = useMemo(
-    () => new THREE.MeshStandardMaterial({ color: "#ff2e4e", emissive: "#b00020", emissiveIntensity: 0.8, roughness: 0.18, metalness: 0.5 }),
-    [],
-  )
   const kindOf = (i: number): GemKind => level.gemKinds?.[i] ?? "diamond"
-
-  // The Blender faceted gem GLB, cloned per kind and tinted. (Balls stay spheres.)
-  const { scene: gemScene } = useGLTF(GEM_GLB)
-  const gemFor = useMemo(() => {
-    const build = (mat: THREE.Material) => {
-      const c = SkeletonUtils.clone(gemScene) as THREE.Group
-      c.traverse((o) => {
-        if ((o as THREE.Mesh).isMesh) { (o as THREE.Mesh).material = mat; o.castShadow = true }
-      })
-      return c
-    }
-    return { diamond: build(diamondMat), ruby: build(rubyMat) }
-  }, [gemScene, diamondMat, rubyMat])
 
   useFrame((st) => {
     const t = st.clock.elapsedTime
@@ -640,14 +503,17 @@ function Gems({ level }: { level: Level }) {
     if (!g) return
     g.children.forEach((child, i) => {
       if (got.current[i]) return
-      if (kindOf(i) !== "ball") child.rotation.y = t * 1.5 + i
-      child.position.y = level.gems[i][1] + Math.sin(t * 2 + i) * 0.14
-      if (game.playerPos.distanceTo(child.position) < 1.5) {
+      // pixel-sprite gems float via their own billboard; only balls need bob here
+      if (kindOf(i) === "ball") child.position.y = level.gems[i][1] + Math.sin(t * 2 + i) * 0.14
+      const px = level.gems[i][0]
+      const py = child.position.y
+      const pz = level.gems[i][2]
+      if (game.playerPos.distanceTo(_gemV.set(px, py, pz)) < 1.5) {
         got.current[i] = true
         child.visible = false
         game.gemsGot += 1
         game.fx.collectAt = t
-        game.fx.collectPos.copy(child.position)
+        game.fx.collectPos.set(px, py, pz)
       }
     })
   })
@@ -663,17 +529,26 @@ function Gems({ level }: { level: Level }) {
             </mesh>
           )
         }
-        // diamond / ruby → the Blender faceted gem (cloned so each instance is its own node)
-        const proto = k === "ruby" ? gemFor.ruby : gemFor.diamond
+        // diamond / ruby / crown / ring → crisp pixel-art sprite (retro look)
+        const glowColor =
+          k === "ruby" ? "#ff5a6e"
+          : k === "crown" || k === "ring" ? "#ffe14a"
+          : "#7fe4ff"
         return (
-          <group key={i} position={p} scale={1.15}>
-            <primitive object={proto.clone()} />
+          <group key={i} position={p}>
+            <PixelBillboard
+              kind={k}
+              size={k === "crown" ? 1.3 : 1.1}
+              glow={0.7}
+              glowColor={glowColor}
+            />
           </group>
         )
       })}
     </group>
   )
 }
+const _gemV = new THREE.Vector3()
 
 // Decorative pipe — the iconic silver/grey tube from the original (no collision).
 function Pipes({ level }: { level: Level }) {
@@ -709,11 +584,9 @@ function Trophy({ level }: { level: Level }) {
   const flash = useRef<THREE.PointLight>(null)
   const taken = useRef(false)
   const takenAt = useRef(-1)
-  const cup = useClonedGlb(CUP_GLB)
   useFrame((st) => {
     const g = ref.current
     if (g && !taken.current) {
-      g.rotation.y = st.clock.elapsedTime * 1.2
       g.position.y = level.trophy[1] + Math.sin(st.clock.elapsedTime * 1.6) * 0.15
       if (game.playerPos.distanceTo(g.position) < 1.6) {
         taken.current = true
@@ -743,10 +616,8 @@ function Trophy({ level }: { level: Level }) {
   return (
     <>
       <group ref={ref} position={level.trophy}>
-        <group position={[0, -0.4, 0]} scale={1.15}>
-          <primitive object={cup} />
-        </group>
-        <pointLight position={[0, 0.3, 0]} color="#ffd24a" intensity={1.2} distance={6} />
+        <PixelBillboard kind="cup" size={1.4} glow={0} float={false} />
+        <pointLight position={[0, 0.3, 0]} color="#ffd24a" intensity={1.4} distance={6} />
       </group>
       {/* celebratory pickup burst — expanding gold ring + flash */}
       <group ref={burstGroup} position={level.trophy} visible={false}>
@@ -829,7 +700,11 @@ function Door({ level, onWin }: { level: Level; onWin?: () => void }) {
   })
   return (
     <group position={level.door}>
-      <group position={[0, -0.7, 0]}>
+      {/* Door GLB origin is at its BASE (y=0), 2.2u tall. The door tile centre is
+          at level.door[1]; the floor top sits TILE/2 (0.7u) below that, so drop
+          the base exactly 0.7u to stand it flush on the floor. Pull it to the
+          front face (+Z) so it reads as set into the wall, not sunk behind it. */}
+      <group position={[0, -TILE / 2, TILE / 2 - 0.18]}>
         <primitive object={door} />
       </group>
       {/* soft green portal glow */}

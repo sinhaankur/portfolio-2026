@@ -34,8 +34,9 @@ export type Hazard = {
   kind: "spike" | "fire" | "water"
 }
 
-/** gem look: cyan diamond, purple ball, or red ruby (all worth collecting). */
-export type GemKind = "diamond" | "ball" | "ruby"
+/** collectible look: cyan diamond, purple ball, red ruby, gold crown, gold ring
+ *  (all worth collecting; crown + ring are the higher-value bonus treasures). */
+export type GemKind = "diamond" | "ball" | "ruby" | "crown" | "ring"
 
 /**
  * An enemy — the real Dangerous Dave roster. `kind` drives the look + score;
@@ -138,6 +139,7 @@ export type Level = {
  *   #  brick (solid platform / wall)        space  empty
  *   .  cyan diamond (gem)                    o  purple ball gem
  *   *  ruby gem                              C  the gold cup (trophy)
+ *   K  gold crown (bonus treasure)           R  gold ring (bonus treasure)
  *   D  the exit door                         @  player spawn
  *   ^  spikes (hazard)                       F  fire (hazard)
  *   W  water (hazard)                        P  decorative pipe (no collision)
@@ -239,6 +241,8 @@ export function fromTiles(rows: string[], meta: TileMeta): Level {
         case ".": gems.push([x, y, 0]); gemKinds.push("diamond"); break
         case "o": gems.push([x, y, 0]); gemKinds.push("ball"); break
         case "*": gems.push([x, y, 0]); gemKinds.push("ruby"); break
+        case "K": gems.push([x, y, 0]); gemKinds.push("crown"); break // gold crown (bonus)
+        case "R": gems.push([x, y, 0]); gemKinds.push("ring"); break  // gold ring (bonus)
         case "C": trophy = [x, y, 0]; break
         case "D": door = [x, y, 0]; break
         case "@": spawn = [x, y + 0.05, 0]; break
@@ -302,7 +306,7 @@ const L1: Level = fromTiles(
   // 0123456789012345678   (every row is exactly 19 chars)
   [
     "###################", // 0  top wall
-    "#                 #", // 1
+    "#K               R#", // 1  gold CROWN (top-left) · gold RING (top-right)
     "#o .   .   C   . *#", // 2  ball, diamonds, CUP (centre), ruby
     "#  ##  ##  ##  ## #", // 3  upper pedestals (cup sits on the col-11 one)
     "#.   .   .   .   .#", // 4  middle gem row
