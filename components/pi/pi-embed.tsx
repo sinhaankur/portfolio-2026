@@ -27,6 +27,8 @@ function VizSkeleton({ label }: { label: string }) {
   )
 }
 
-export function PiIrrationalEmbed() { return <PiIrrational /> }
+export function PiIrrationalEmbed({ heroMode = false }: { heroMode?: boolean } = {}) {
+  return <PiIrrational heroMode={heroMode} />
+}
 export function PiLabEmbed() { return <PiLab /> }
 export function PiDigitsEmbed() { return <PiDigits /> }

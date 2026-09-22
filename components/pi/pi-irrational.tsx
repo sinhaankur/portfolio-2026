@@ -23,7 +23,11 @@ const RATIOS: { label: string; value: number; rational: boolean; note: string }[
   { label: "√2 (irrational)", value: Math.SQRT2, rational: false, note: "also never closes — irrationality isn't unique to π" },
 ]
 
-export function PiIrrational() {
+export function PiIrrational({ heroMode = false }: { heroMode?: boolean } = {}) {
+  // heroMode = the cinematic page-hero treatment: the curve alone in a black
+  // void (like the reel), controls collapsed behind a single toggle, cinematic
+  // glow + ambient music on by default. The full control deck stays available
+  // for the standalone/embedded use.
   const wrapRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [ratioIdx, setRatioIdx] = useState(0)
@@ -33,8 +37,9 @@ export function PiIrrational() {
   const [fs, setFs] = useState(false)
   const [zoomOn, setZoomOn] = useState(false)    // opt-in closing zoom-OUT reveal (default = full rosette)
   const [trails, setTrails] = useState(true)     // show the two moving arms + dots (the mechanism)
-  const [cinematic, setCinematic] = useState(false)  // luminous glow look vs. clean reference loops
-  const [music, setMusic] = useState(false)      // opt-in generative bed
+  const [cinematic, setCinematic] = useState(heroMode)  // luminous glow look vs. clean reference loops
+  const [music, setMusic] = useState(false)      // generative bed (starts on first user gesture in heroMode)
+  const [controlsOpen, setControlsOpen] = useState(!heroMode) // hero collapses the deck
   const rafRef = useRef<number | null>(null)
   const tRef = useRef(0)
   const holdRef = useRef(0)                      // 0→1 opening beat (arms at rest)
@@ -502,12 +507,33 @@ export function PiIrrational() {
         <div className="mt-0.5 text-white/30">{ratio.rational ? "rational → the curve closes" : "irrational → it never closes"} · {turns} turns</div>
       </div>
 
+      {/* heroMode: a single quiet toggle at the bottom-right instead of the full
+          deck, so the curve owns the frame like the reference reel. Tapping it
+          reveals the deck; it also kicks on the ambient music (first gesture). */}
+      {heroMode && !controlsOpen && (
+        <button
+          onClick={() => { setControlsOpen(true); setMusic(true) }}
+          className="absolute bottom-6 right-5 z-20 rounded-full px-4 py-2 font-mono text-[10px] tracking-widest uppercase bg-white/8 text-white/55 border border-white/15 backdrop-blur-sm hover:text-white hover:bg-white/15 transition"
+        >
+          ✦ controls · ♪
+        </button>
+      )}
+
       {/* controls — bottom, floating glass bar with the RATIO CHIPS on their own
           row on top, so nothing sits behind the navbar at the top of the page.
           z-20 keeps it ABOVE the canvas's full-cover click-to-fly handler so
-          Pause and the other buttons always receive their clicks. */}
-      <div className="absolute bottom-0 inset-x-0 z-20 flex flex-col items-center gap-2 p-3 md:p-4
-        bg-gradient-to-t from-black/80 via-black/45 to-transparent">
+          Pause and the other buttons always receive their clicks. In heroMode
+          this stays hidden until the viewer opts in. */}
+      <div className={`absolute bottom-0 inset-x-0 z-20 flex-col items-center gap-2 p-3 md:p-4
+        bg-gradient-to-t from-black/80 via-black/45 to-transparent ${heroMode && !controlsOpen ? "hidden" : "flex"}`}>
+        {heroMode && (
+          <button
+            onClick={() => setControlsOpen(false)}
+            className={`${btn} self-end bg-black/30 text-white/50 border border-white/10 hover:text-white`}
+          >
+            hide ✕
+          </button>
+        )}
         {/* ratio chips — first row of the control cluster */}
         <div className="flex flex-wrap justify-center gap-1.5">
           {RATIOS.map((r, i) => (

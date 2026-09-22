@@ -20,42 +20,41 @@ export default function PiPage() {
       <CustomCursor />
       <Navbar />
 
-      {/* CINEMATIC ENTRANCE — the stage is the first thing you see: a full-bleed
-          black hero with the curve, the title floating over it. No paper header
-          above it; the writeup follows below. */}
+      {/* CINEMATIC ENTRANCE — like the reference reel: the curve alone in a full
+          black void owns the frame. The title is a single quiet line that fades
+          up then lets the art breathe; controls collapse behind one toggle
+          (heroMode). Ambient music arms on the first interaction. */}
       <section className="relative bg-black">
-        <div className="relative h-[86vh] min-h-[520px] w-full">
+        <div className="relative h-screen min-h-[560px] w-full">
           <div className="absolute inset-0">
-            <PiIrrationalEmbed />
+            <PiIrrationalEmbed heroMode />
           </div>
 
-          {/* top scrim — a soft black gradient so the navbar + title always read
-              cleanly over the figure (esp. on mobile where the rosette centres
-              behind the title). Doesn't dim the figure's lower half. */}
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-64 md:h-56 z-10 bg-gradient-to-b from-black/85 via-black/45 to-transparent" />
-
-          {/* floating title, top-left, over the stage */}
-          <div className="pointer-events-none absolute top-20 md:top-24 left-5 md:left-10 z-20 max-w-xl">
+          {/* a whisper-quiet title, top-left — small, low-opacity, out of the
+              way. The reel's restraint: let the curve be the show. It fades on
+              its own so it never fights the art. */}
+          <div className="pointer-events-none absolute top-20 md:top-24 left-5 md:left-10 z-20 max-w-md animate-[piTitleIn_1.6s_ease-out_forwards]">
             <Link
               href="/lab/math"
-              className="pointer-events-auto font-mono text-[10px] tracking-widest uppercase text-white/45 hover:text-white/80 transition-colors"
+              className="pointer-events-auto font-mono text-[10px] tracking-widest uppercase text-white/40 hover:text-white/80 transition-colors"
             >
               ← Math collection
             </Link>
-            <h1 className="mt-4 font-serif italic text-4xl md:text-6xl leading-[1.02] text-white drop-shadow-[0_2px_20px_rgba(0,0,0,0.8)]">
+            <h1 className="mt-4 font-serif italic text-3xl md:text-5xl leading-[1.03] text-white/95 drop-shadow-[0_2px_24px_rgba(0,0,0,0.9)]">
               π — and why it<br />never ends.
             </h1>
-            <p className="mt-4 font-sans text-sm md:text-base text-white/70 max-w-md drop-shadow-[0_1px_10px_rgba(0,0,0,0.9)]">
-              Not looked up — computed. And because it&apos;s irrational, every
-              method only ever gets close. Watch it happen.
+            <p className="mt-3 font-sans text-xs md:text-sm text-white/55 max-w-xs drop-shadow-[0_1px_10px_rgba(0,0,0,0.9)]">
+              A visual representation of π as an irrational number — the curve
+              that never closes.
             </p>
           </div>
 
           {/* scroll cue */}
-          <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-20 font-mono text-[10px] tracking-widest uppercase text-white/40 animate-pulse pointer-events-none">
+          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 font-mono text-[10px] tracking-widest uppercase text-white/35 animate-pulse pointer-events-none">
             scroll to read ↓
           </div>
         </div>
+        <style>{`@keyframes piTitleIn{0%{opacity:0;transform:translateY(10px)}18%{opacity:1;transform:translateY(0)}70%{opacity:1}100%{opacity:.5}}`}</style>
       </section>
 
       <main id="main" className="relative bg-background text-foreground">
