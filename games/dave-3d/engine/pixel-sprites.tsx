@@ -20,7 +20,7 @@
  */
 
 import { useMemo, useRef } from "react"
-import { useFrame, useThree } from "@react-three/fiber"
+import { useFrame } from "@react-three/fiber"
 import * as THREE from "three"
 
 // ── palette (authentic Dangerous Dave VGA-ish) ──────────────────────────────
@@ -388,10 +388,13 @@ export function FireSprite({
   width,
   height,
   depth = 0.6,
+  lit = true,
 }: {
   width: number
   height: number
   depth?: number
+  /** whether this fire casts a real point light (capped per level for perf) */
+  lit?: boolean
 }) {
   const frames = useMemo(() => flipbook("fire"), [])
   const cols = Math.max(1, Math.round(width / 0.7))
@@ -472,7 +475,7 @@ export function FireSprite({
       <points ref={embers} geometry={emberGeo}>
         <pointsMaterial color="#ffb04a" size={0.06} transparent opacity={0.85} blending={THREE.AdditiveBlending} depthWrite={false} sizeAttenuation />
       </points>
-      <pointLight color="#ff7a1f" intensity={2.4} distance={5} position={[0, 0.6, 0.6]} />
+      {lit && <pointLight color="#ff7a1f" intensity={2.4} distance={5} position={[0, 0.6, 0.6]} />}
     </group>
   )
 }
@@ -569,7 +572,8 @@ export function WaterSprite({
       <points ref={steam} geometry={steamGeo}>
         <pointsMaterial color="#dff2ff" size={0.09} transparent opacity={0.35} depthWrite={false} sizeAttenuation />
       </points>
-      <pointLight color="#5ab8ff" intensity={0.8} distance={4} position={[0, 0.4, 0.6]} />
+      {/* no point light — water isn't a light source, and one per water tile
+          added up to a real frame cost on long pools; the surface is emissive. */}
     </group>
   )
 }
@@ -596,7 +600,6 @@ export function PixelBillboard({
 }) {
   const ref = useRef<THREE.Mesh>(null)
   const tex = useSpriteTexture(kind)
-  const camera = useThree((s) => s.camera)
   const mat = useMemo(
     () =>
       new THREE.MeshBasicMaterial({
@@ -608,22 +611,25 @@ export function PixelBillboard({
       }),
     [tex],
   )
+  // The camera is a fixed side-on platformer view, so the sprite quad already
+  // faces it — no per-frame billboard math needed (that forced a matrix solve
+  // on every gem, every frame). Only the gentle float remains, and only when
+  // asked. Gems are emissive (toneMapped:false) so they glow WITHOUT a real
+  // point light — dozens of dynamic lights were the main cause of the lag.
   useFrame((st) => {
     const m = ref.current
-    if (!m) return
-    // billboard: face camera on yaw only (keep the sprite upright)
-    m.rotation.y = Math.atan2(camera.position.x - m.getWorldPosition(_v).x, camera.position.z - _v.z)
-    if (float) m.position.y = y0 + Math.sin(st.clock.elapsedTime * 2 + m.id) * 0.12
+    if (!m || !float) return
+    m.position.y = y0 + Math.sin(st.clock.elapsedTime * 2 + m.id) * 0.12
   })
+  // glow/glowColor are kept in the signature so callers don't need to change,
+  // but the glow now comes from the emissive (toneMapped:false) sprite itself
+  // rather than a per-gem dynamic light — the fix for the frame-rate lag.
+  void glow; void glowColor
   return (
     <group>
-      {glow > 0 && (
-        <pointLight color={glowColor ?? "#8fe8ff"} intensity={glow} distance={4} />
-      )}
       <mesh ref={ref} position={[0, y0, 0]} material={mat}>
         <planeGeometry args={[size, size]} />
       </mesh>
     </group>
   )
 }
-const _v = new THREE.Vector3()

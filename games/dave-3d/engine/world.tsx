@@ -130,9 +130,18 @@ function Hazards({ level }: { level: Level }) {
       {level.hazards.map((h, i) =>
         h.kind === "fire" || h.kind === "water" ? <HazardPit key={`pit-${i}`} h={h} brick={level.brick} /> : null,
       )}
-      {level.hazards.map((h, i) => (
-        <HazardMesh key={i} h={h} />
-      ))}
+      {(() => {
+        // Cap real point lights: only the first few fire hazards cast a warm
+        // glow; the rest rely on their emissive flames. Dozens of dynamic
+        // lights were a real frame-rate cost on fire-heavy levels.
+        let fireLit = 0
+        const MAX_FIRE_LIGHTS = 3
+        return level.hazards!.map((h, i) => {
+          const lit = h.kind === "fire" && fireLit < MAX_FIRE_LIGHTS
+          if (lit) fireLit++
+          return <HazardMesh key={i} h={h} lit={lit} />
+        })
+      })()}
     </group>
   )
 }
@@ -175,11 +184,11 @@ function HazardPit({ h, brick }: { h: Hazard; brick?: string }) {
   )
 }
 
-function HazardMesh({ h }: { h: Hazard }) {
+function HazardMesh({ h, lit = false }: { h: Hazard; lit?: boolean }) {
   if (h.kind === "fire")
     return (
       <group position={h.pos}>
-        <FireSprite width={h.size[0]} height={h.size[1]} depth={h.size[2]} />
+        <FireSprite width={h.size[0]} height={h.size[1]} depth={h.size[2]} lit={lit} />
       </group>
     )
   if (h.kind === "water")
