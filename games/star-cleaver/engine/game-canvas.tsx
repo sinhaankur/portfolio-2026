@@ -156,6 +156,49 @@ function detectGraphicsProfile(): GraphicsProfile {
   return GRAPHICS_PROFILES.low;
 }
 
+// The initial tier is only a guess from navigator hints; a device can still be
+// stuck lagging if the guess is too high. AdaptiveQuality measures the REAL
+// frame time inside the render loop and steps the tier DOWN (ultra→high→low)
+// when frames are consistently slow — never up (avoids oscillation). This is the
+// actual fix for "it lags": whatever the device, it converges to a tier it can
+// sustain. Runs one lightweight sample per frame; downgrades at most once every
+// few seconds after a sustained slow window.
+const TIER_ORDER: GraphicsTier[] = ['low', 'high', 'ultra'];
+function AdaptiveQuality({
+  tier,
+  onDowngrade,
+}: {
+  tier: GraphicsTier;
+  onDowngrade: (next: GraphicsTier) => void;
+}) {
+  const acc = useRef({ frames: 0, time: 0, slowWindows: 0, cooldown: 0 });
+  useFrame((_s, delta) => {
+    const a = acc.current;
+    if (a.cooldown > 0) { a.cooldown -= delta; return; }
+    a.frames += 1;
+    a.time += delta;
+    // evaluate ~once a second
+    if (a.time < 1) return;
+    const fps = a.frames / a.time;
+    a.frames = 0; a.time = 0;
+    // below ~40fps counts as a slow second; 3 in a row → step the tier down
+    if (fps < 40) {
+      a.slowWindows += 1;
+      if (a.slowWindows >= 3) {
+        const idx = TIER_ORDER.indexOf(tier);
+        if (idx > 0) {
+          onDowngrade(TIER_ORDER[idx - 1]);
+          a.cooldown = 4; // let the new tier settle before judging again
+        }
+        a.slowWindows = 0;
+      }
+    } else {
+      a.slowWindows = 0; // a good second resets the strike count
+    }
+  });
+  return null;
+}
+
 type GravityHazard = {
   id: string;
   label: string;
@@ -3987,6 +4030,12 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
         }}
       >
         <CanvasReadySignal onReady={onReady} />
+        {/* Adaptive quality: if the real frame rate stays low, step the tier down
+            so the game stops lagging on devices the initial guess over-rated. */}
+        <AdaptiveQuality
+          tier={graphicsProfile.tier}
+          onDowngrade={(next) => setGraphicsProfile(GRAPHICS_PROFILES[next])}
+        />
         <color attach="background" args={['#030611']} />
 
         {/* Real Universe Engine ecosystem — same Milky Way disc, Sun, planets,
