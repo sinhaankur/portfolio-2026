@@ -18,13 +18,24 @@ import type { Theme } from "./atmosphere"
 
 export type Vec3 = [number, number, number]
 
+/** Optional motion that brings a platform to life. The controller mutates the
+ *  box's live `pos` each frame; player.tsx reads `pos` live, so collision + a
+ *  carry-along ride come for free. Anchor = the box's authored pos. */
+export type BoxDynamics =
+  | { kind: "moveX"; span: number; speed?: number; phase?: number }   // ↔ patrol
+  | { kind: "moveY"; span: number; speed?: number; phase?: number }   // ↕ lift
+  | { kind: "orbit"; radius: number; speed?: number; phase?: number } // circular
+  | { kind: "crumble"; delay?: number; respawn?: number }             // falls when stood on
+
 export type Box = {
-  /** center position */
+  /** center position (the anchor for any dynamics) */
   pos: Vec3
   /** full size (width, height, depth) */
   size: Vec3
   /** optional brick colour override (else uses the level's `brick`) */
   tint?: string
+  /** optional motion — makes the platform move/crumble (the "living world") */
+  dyn?: BoxDynamics
 }
 
 /** A hazard volume — touching it respawns the player. `kind` drives the look. */
@@ -113,6 +124,9 @@ export type Level = {
   warp?: Vec3
   /** below this Y the player has fallen and respawns */
   killY: number
+  /** optional rising hazard (water/lava flood set-piece): the surface climbs
+   *  from `fromY` to `toY` over `rise` seconds; touching it respawns you. */
+  flood?: { kind: "water" | "fire"; fromY: number; toY: number; rise: number }
   /**
    * "side" = a flat, side-on Dave screen (move left/right + jump only; camera
    * looks along -Z at the X/Y plane). "free" = the original free-roam 3D course.
@@ -145,6 +159,7 @@ export type Level = {
  *   W  water (hazard)                        P  decorative pipe (no collision)
  *   J  jetpack pickup                        X  hidden warp pad
  *   G  gun pickup (lets Dave shoot)
+ *   m  moving platform (↔)   l  lift platform (↕)   x  crumbling ledge
  * Enemies (touch = death; letter → kind, default motion in fromTiles):
  *   S spider   B blade    U sun     T baton
  *   L cloud    Y ufo      Z blobby  E disc
@@ -253,6 +268,13 @@ export function fromTiles(rows: string[], meta: TileMeta): Level {
         case "G": gun = [x, y, 0]; break
         case "X": warp = [x, y, 0]; break
         case "P": pipes.push([x, y, 0]); break
+        // ── living-world dynamic platforms (each a single-tile ledge) ──
+        case "m": // ↔ horizontally moving platform
+          platforms.push({ pos: [x, y, 0], size: [TILE * 1.4, TILE * 0.6, DEPTH], dyn: { kind: "moveX", span: TILE * 1.8, speed: 1.1 } }); break
+        case "l": // ↕ lift platform
+          platforms.push({ pos: [x, y, 0], size: [TILE * 1.4, TILE * 0.6, DEPTH], dyn: { kind: "moveY", span: TILE * 1.5, speed: 1.0 } }); break
+        case "x": // crumbling ledge (falls a moment after you land)
+          platforms.push({ pos: [x, y, 0], size: [TILE * 1.2, TILE * 0.5, DEPTH], tint: "#8a5a3a", dyn: { kind: "crumble" } }); break
         default: {
           const kind = ENEMY_CHAR[ch]
           if (kind) {
@@ -330,9 +352,9 @@ const L2: Level = fromTiles(
     "#  ==     ==       ==     ==     ==  #####", // 2  upper purple platforms + door ledge
     "#      .        o       .          .     #", // 3  gem row above the mid platforms
     "#    ==      ==      ==      ##     ==   #", // 4  mid platforms (purple + brick)
-    "#  .      .       C       o        .     #", // 5  gems + CUP (centre-right ledge below)
+    "#  .    m .       C       o      l .     #", // 5  gems + CUP + a MOVING platform + a LIFT (extras)
     "# ==    ==      ####    ==     ==     == #", // 6  low-mid ledges (cup on the brick one)
-    "#     .      .        .      *      .    #", // 7  gem row above the low platforms
+    "#     .    x .       .      *   x   .    #", // 7  gem row + two CRUMBLING ledges (optional stepping)
     "#  ==     ==     ==      ==     ==    == #", // 8  low purple platforms
     "#     @      .       .       .      .   .#", // 9  spawn (above a SAFE island — col 2 dropped onto fire = death loop) + floor gems
     "#FFFF####WWWW####FFFF####WWWW####FFFF#####", // 10 fire/water pits between floor islands

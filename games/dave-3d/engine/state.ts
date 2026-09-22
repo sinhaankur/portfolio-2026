@@ -44,6 +44,9 @@ export const game = {
   // ── jetpack (level 6) ──
   hasJetpack: false,    // picked up the jetpack this level
   jetFuel: 0,           // 0..1 remaining flight fuel (drains while flying)
+  // ── rising flood set-piece (written by FloodHazard, read by Player) ──
+  floodY: -Infinity,    // current world-Y of the rising surface (-inf = none)
+  floodKind: "water" as "water" | "fire",
   phase: "playing" as Phase,
   /** bumped to force a restart (game-canvas watches it) */
   restartToken: 0,
@@ -55,5 +58,6 @@ export function resetGame() {
   game.hasTrophy = false
   game.hasJetpack = false
   game.jetFuel = 0
+  game.floodY = -Infinity
   game.phase = "playing"
 }

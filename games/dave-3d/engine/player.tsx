@@ -18,6 +18,7 @@ import * as THREE from "three"
 import { LEVEL_1, type Level, type Hazard } from "./level"
 import { input, tickInput } from "./controls"
 import { game } from "./state"
+import { touchCrumble } from "./platform-dynamics"
 
 const DAVE_GLB = "/models/dave/dave.glb"
 useGLTF.preload(DAVE_GLB)
@@ -185,6 +186,7 @@ export function Player({ level = LEVEL_1 }: { level?: Level }) {
           p.y = boxTop + SKIN
           v.y = 0
           onGround.current = true
+          if (b.dyn?.kind === "crumble") touchCrumble(b) // starts the crumble timer
         }
       } else {
         // rising: bonk head if the head crossed the box bottom this frame
@@ -266,6 +268,13 @@ export function Player({ level = LEVEL_1 }: { level?: Level }) {
     if (p.y < level.killY) {
       game.fx.deathAt = now
       game.fx.deathPos.set(p.x, level.spawn[1] + 0.5, p.z)
+      die(p, v, level)
+    }
+
+    // --- rising flood set-piece: the surface reached the feet → death ---
+    if (level.flood && p.y < game.floodY) {
+      game.fx.deathAt = now
+      game.fx.deathPos.set(p.x, game.floodY + 0.3, p.z)
       die(p, v, level)
     }
 

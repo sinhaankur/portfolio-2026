@@ -16,6 +16,7 @@ import { LEVEL_1, TILE, type Level, type Hazard, type GemKind } from "./level"
 import { Atmosphere } from "./atmosphere"
 import { game } from "./state"
 import { PixelBillboard, FireSprite, WaterSprite } from "./pixel-sprites"
+import { tickDynamics, resetDynamics } from "./platform-dynamics"
 
 // Blender props: the door + brick panel are GLBs; gems/cup/crown are pixel
 // sprites (see pixel-sprites.tsx). Preload the GLBs so they're ready first frame.
@@ -106,8 +107,10 @@ export function World({ level = LEVEL_1, onWin }: { level?: Level; onWin?: () =>
           bounds={{ w: level.bounds?.w ?? 26, h: level.bounds?.h ?? 14 }}
         />
       )}
+      <PlatformDynamics level={level} />
       <Platforms level={level} />
       <Hazards level={level} />
+      {level.flood && <FloodHazard level={level} />}
       <Gems level={level} />
       <Pipes level={level} />
       {level.jetpack && <Jetpack level={level} />}
@@ -115,6 +118,79 @@ export function World({ level = LEVEL_1, onWin }: { level?: Level; onWin?: () =>
       <Trophy level={level} />
       <Door level={level} onWin={onWin} />
     </>
+  )
+}
+
+// PlatformDynamics — the "living world" driver. Each frame it advances every
+// dynamic platform (mutating its live pos, which collision + rendering both
+// read) and carries the player along when they're riding one. Resets its
+// per-run state whenever the level changes (the scene subtree is remounted per
+// level, so a fresh mount == a fresh run).
+function PlatformDynamics({ level }: { level: Level }) {
+  const inited = useRef<Level | null>(null)
+  if (inited.current !== level) {
+    resetDynamics(level)
+    inited.current = level
+  }
+  useFrame((st, dtRaw) => {
+    const dt = Math.min(dtRaw, 1 / 30)
+    const deltas = tickDynamics(level, dt, st.clock.elapsedTime)
+    // carry-along: if the player is standing ON a platform that moved, move them
+    // with it (feet within a small band of the platform top, horizontally over).
+    const p = game.playerPos
+    for (const d of deltas) {
+      if (d.dx === 0 && d.dy === 0) continue
+      const [bx, by, bz] = d.box.pos
+      const [sx, sy, sz] = d.box.size
+      const top = by + sy / 2
+      const onTop = Math.abs(p.y - top) < 0.35 && p.y >= top - 0.4
+      const over = Math.abs(p.x - bx) < sx / 2 + 0.4 && Math.abs(p.z - bz) < sz / 2 + 0.4
+      if (onTop && over) { p.x += d.dx; p.y += d.dy }
+    }
+  })
+  return null
+}
+
+// FloodHazard — a rising water/lava surface that climbs over time (a chase
+// set-piece: "get up before it reaches you"). The player's flood collision is
+// read from game.floodY in player.tsx; here we render + track the surface.
+function FloodHazard({ level }: { level: Level }) {
+  const f = level.flood!
+  const surf = useRef<THREE.Mesh>(null)
+  const startT = useRef(-1)
+  const width = (level.bounds?.w ?? 40) + 8
+  const mat = useMemo(
+    () =>
+      f.kind === "fire"
+        ? new THREE.MeshStandardMaterial({ color: "#ff5a10", emissive: "#e8340c", emissiveIntensity: 1.1, transparent: true, opacity: 0.85 })
+        : new THREE.MeshStandardMaterial({ color: "#1a4fd6", emissive: "#0a2a7a", emissiveIntensity: 0.5, transparent: true, opacity: 0.8, roughness: 0.1 }),
+    [f.kind],
+  )
+  useFrame((st) => {
+    if (startT.current < 0) startT.current = st.clock.elapsedTime
+    const k = Math.min(1, (st.clock.elapsedTime - startT.current) / f.rise)
+    const y = f.fromY + (f.toY - f.fromY) * k
+    game.floodY = y
+    game.floodKind = f.kind
+    if (surf.current) {
+      surf.current.position.y = y + Math.sin(st.clock.elapsedTime * 2) * 0.06
+      surf.current.position.x = 0
+      surf.current.position.z = 0
+    }
+  })
+  return (
+    <group>
+      {/* the deep body below the surface + the lit surface strip */}
+      <mesh position={[0, f.fromY - 6, 0]}>
+        <boxGeometry args={[width, 14, TILE * 1.2]} />
+        <primitive object={mat} attach="material" />
+      </mesh>
+      <mesh ref={surf} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[width, TILE * 1.2]} />
+        <meshBasicMaterial color={f.kind === "fire" ? "#ffd23a" : "#7ec2ff"} transparent opacity={0.5} toneMapped={false} depthWrite={false} />
+      </mesh>
+      {f.kind === "fire" && <pointLight color="#ff7a1f" intensity={2.5} distance={30} position={[0, 0, 4]} />}
+    </group>
   )
 }
 
@@ -353,8 +429,11 @@ function Platforms({ level }: { level: Level }) {
   }, [])
   return (
     <group>
-      {/* the box body (depth + sides + the textured back) */}
+      {/* the box body (depth + sides + the textured back). DYNAMIC platforms are
+          skipped here — they render (and follow their live pos) in
+          <DynamicPlatforms> so a moving/crumbling ledge visibly moves. */}
       {level.platforms.map((b, i) => {
+        if (b.dyn) return null
         const color = b.tint ?? brick
         const m = matFor(color).clone()
         if (m.map) {
@@ -376,8 +455,57 @@ function Platforms({ level }: { level: Level }) {
           </group>
         )
       })}
+      {/* moving / crumbling platforms — rendered live */}
+      <DynamicPlatforms level={level} />
       {/* real 3D brick relief tiled across each platform's FRONT face (-Z) */}
       <BrickRelief level={level} />
+    </group>
+  )
+}
+
+/**
+ * DynamicPlatforms — renders the moving / crumbling platforms at their LIVE pos
+ * (mutated each frame by platform-dynamics). Each is a brick-textured box + a
+ * glowing top lip that follows the box, so a moving ledge visibly moves and a
+ * crumble platform shakes then drops out from under you.
+ */
+function DynamicPlatforms({ level }: { level: Level }) {
+  const brick = level.brick ?? "#6b5a47"
+  const dyn = useMemo(() => level.platforms.filter((b) => b.dyn), [level])
+  const refs = useRef<(THREE.Group | null)[]>([])
+  useFrame(() => {
+    dyn.forEach((b, i) => {
+      const g = refs.current[i]
+      if (g) g.position.set(b.pos[0], b.pos[1], b.pos[2])
+    })
+  })
+  if (!dyn.length) return null
+  return (
+    <group>
+      {dyn.map((b, i) => {
+        const color = b.tint ?? (b.dyn?.kind === "crumble" ? "#8a5a3a" : brick)
+        const mat = new THREE.MeshStandardMaterial({ map: brickTexture(color), color: "#ffffff", roughness: 0.9, metalness: 0.05 })
+        if (mat.map) {
+          mat.map = mat.map.clone(); mat.map.needsUpdate = true
+          mat.map.repeat.set(Math.max(1, Math.round(b.size[0] / 1.4)), Math.max(1, Math.round(b.size[1] / 1.4)))
+        }
+        return (
+          <group key={i} ref={(el) => { refs.current[i] = el }} position={b.pos}>
+            <mesh castShadow receiveShadow material={mat}>
+              <boxGeometry args={b.size} />
+            </mesh>
+            {/* glowing top lip (brighter for moving platforms so they read as
+                "alive"; crumble ledges get a warning amber edge) */}
+            <mesh position={[0, b.size[1] / 2 - 0.03, b.size[2] / 2 + 0.02]}>
+              <boxGeometry args={[b.size[0] * 0.98, 0.08, 0.05]} />
+              <meshBasicMaterial
+                color={b.dyn?.kind === "crumble" ? "#ffb454" : edgeGlow(color)}
+                transparent opacity={0.7} toneMapped={false}
+              />
+            </mesh>
+          </group>
+        )
+      })}
     </group>
   )
 }
@@ -416,6 +544,7 @@ function BrickRelief({ level }: { level: Level }) {
     const s = new THREE.Vector3()
     const pos = new THREE.Vector3()
     for (const b of level.platforms) {
+      if (b.dyn) continue // dynamic platforms render live in <DynamicPlatforms>
       const [bx, by, bz] = b.pos
       const [sx, sy, sz] = b.size
       const cols = Math.max(1, Math.round(sx / T))
@@ -444,6 +573,7 @@ function BrickRelief({ level }: { level: Level }) {
     const s = new THREE.Vector3()
     const pos = new THREE.Vector3()
     for (const b of level.platforms) {
+      if (b.dyn) continue // dynamic platforms render live in <DynamicPlatforms>
       const [bx, by, bz] = b.pos
       const [sx, sy, sz] = b.size
       const cols = Math.max(1, Math.round(sx / T))
