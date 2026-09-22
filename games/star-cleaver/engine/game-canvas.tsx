@@ -536,8 +536,9 @@ const SHIP_THRUSTER_PRESETS: Record<SelectedShip, {
   nozzleZ: number;
   outerNozzleZ: number;
 }> = {
-  // Tuned mount points for the default procedural interceptor.
-  'default-vanguard': { lateral: 0.26, vertical: 0.22, coreZ: 0.78, nozzleZ: 0.98, outerNozzleZ: 1.14 },
+  // default-vanguard now loads the Kestrel hull, so its exhausts must sit on the
+  // Kestrel's tight quad-nozzle cluster (was still the old x-wing S-foil map).
+  'default-vanguard': { lateral: 0.05, vertical: 0.15, coreZ: 0.85, nozzleZ: 1.07, outerNozzleZ: 1.25 },
   // Derived from the printed GLB exhausts (KESTREL_BUILD_OK ±0.14, ±0.10, 2.187;
   // GYRFALCON_BUILD_OK ±0.62, ±0.14, 2.438) via the same preset↔GLB mapping the
   // Peregrine uses (±0.681, ±0.146, 1.997 → 0.26/0.22/0.78).
@@ -589,7 +590,10 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
   const selectedShip = (gameState.selectedShip || 'default-vanguard') as SelectedShip;
   const shipTransform = useMemo(() => getPlayerShipTransform(selectedShip, 'game'), [selectedShip]);
   const thrusterPreset = SHIP_THRUSTER_PRESETS[selectedShip] ?? SHIP_THRUSTER_PRESETS['default-vanguard'];
-  const usingDefaultMountMap = selectedShip === 'default-vanguard';
+  // The old hard-coded four-foil mount map was for the retired third-party mesh.
+  // Every ship (including the default, now the Kestrel) uses its own thruster
+  // preset instead, so plumes sit on the real nozzles.
+  const usingDefaultMountMap = false;
   const engineMounts = useMemo(
     () => {
       if (usingDefaultMountMap) {
