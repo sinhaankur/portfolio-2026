@@ -28,6 +28,79 @@ const DEFAULT_SHIP_PATH = SHIP_MODEL_PATHS['default-vanguard'];
 // per-frame flight rotation, so the ship faces the way it flies.
 export const SHIP_MODEL_BASIS_ROTATION: [number, number, number] = [Math.PI / 2, 0, 0];
 
+// ── Geometry-measured orientation ────────────────────────────────────────────
+// Instead of hard-coding a per-model rotation (which drifted out of sync every
+// time a mesh was swapped), MEASURE the ship's forward axis from its own
+// geometry and rotate THAT onto the game's forward (-Z), up (+Y). This works for
+// any fighter-shaped mesh, so new ships just drop in correctly.
+//
+// How: a strike fighter is longest along the direction it flies, and its NOSE is
+// the narrow end of that long axis. So —
+//   1. the longest bounding-box axis = the travel/forward axis,
+//   2. compare how far the geometry spreads (perpendicular extent) at each end
+//      of that axis; the narrower end is the nose,
+//   3. build a quaternion that turns [nose→tail]→-Z and the widest wing axis→X.
+const _box = new THREE.Box3();
+const _size = new THREE.Vector3();
+const _center = new THREE.Vector3();
+const _v0 = new THREE.Vector3();
+
+export function measureShipBasisQuaternion(object: THREE.Object3D): THREE.Quaternion {
+	object.updateWorldMatrix(true, true);
+	_box.setFromObject(object);
+	if (_box.isEmpty()) return new THREE.Quaternion();
+	_box.getSize(_size);
+	_box.getCenter(_center);
+
+	// 1) longest axis = forward
+	const axes: Array<{ i: number; len: number }> = [
+		{ i: 0, len: _size.x },
+		{ i: 1, len: _size.y },
+		{ i: 2, len: _size.z },
+	].sort((a, b) => b.len - a.len);
+	const fwdAxis = axes[0].i; // longest → forward
+	const upAxis = axes[2].i;  // shortest → up (a fighter is flattest top-to-bottom)
+	const wingAxis = axes[1].i; // middle → wingspan
+
+	// 2) which end of the forward axis is the NOSE? Sample every mesh vertex,
+	// split into the two halves along the forward axis, and measure the average
+	// perpendicular spread of each half. The narrower half is the pointed nose.
+	let loSpread = 0, loN = 0, hiSpread = 0, hiN = 0;
+	const mid = _center.getComponent(fwdAxis);
+	object.traverse((child) => {
+		const mesh = child as THREE.Mesh;
+		if (!mesh.isMesh || !mesh.geometry) return;
+		const pos = mesh.geometry.getAttribute('position') as THREE.BufferAttribute | undefined;
+		if (!pos) return;
+		for (let vi = 0; vi < pos.count; vi += Math.max(1, Math.floor(pos.count / 400))) {
+			_v0.fromBufferAttribute(pos, vi);
+			mesh.localToWorld(_v0);
+			const along = _v0.getComponent(fwdAxis);
+			const perp = Math.hypot(
+				_v0.getComponent(wingAxis) - _center.getComponent(wingAxis),
+				_v0.getComponent(upAxis) - _center.getComponent(upAxis),
+			);
+			if (along < mid) { loSpread += perp; loN++; } else { hiSpread += perp; hiN++; }
+		}
+	});
+	const loAvg = loN ? loSpread / loN : 0;
+	const hiAvg = hiN ? hiSpread / hiN : 0;
+	// nose points toward the NARROW end. If the low side is narrower, nose is -fwd.
+	const noseSign = loAvg <= hiAvg ? -1 : 1;
+
+	// 3) build source basis vectors from the measured axes
+	const forward = new THREE.Vector3();
+	forward.setComponent(fwdAxis, noseSign); // model-space direction the nose points
+	const up = new THREE.Vector3();
+	up.setComponent(upAxis, 1);
+	// target: nose → -Z (game forward), up → +Y
+	const from = new THREE.Matrix4().lookAt(new THREE.Vector3(), forward.clone().negate(), up);
+	const to = new THREE.Matrix4().lookAt(new THREE.Vector3(), new THREE.Vector3(0, 0, -1), new THREE.Vector3(0, 1, 0));
+	const qFrom = new THREE.Quaternion().setFromRotationMatrix(from);
+	const qTo = new THREE.Quaternion().setFromRotationMatrix(to);
+	return qTo.multiply(qFrom.invert());
+}
+
 type PlayerShipMode = 'game' | 'preview';
 type ShipVariant = SelectedShip;
 
@@ -196,6 +269,16 @@ export function PlayerShipModel({
 	const resolvedShip = shipObject ?? fallbackShip;
 	const hasGltfShip = Boolean(shipObject);
 
+	// Measure the real forward axis from the loaded geometry and orient the ship
+	// onto the game basis (nose -Z, up +Y). Replaces the hard-coded per-model
+	// rotation that kept going stale whenever a mesh changed.
+	const basisRef = useRef<THREE.Group>(null);
+	useEffect(() => {
+		if (!basisRef.current || !hasGltfShip) return;
+		const q = measureShipBasisQuaternion(resolvedShip);
+		basisRef.current.quaternion.copy(q);
+	}, [resolvedShip, hasGltfShip]);
+
 	useEffect(() => {
 		auditShipModel(playerShipGltf.scene, modelPath);
 	}, [playerShipGltf.scene, modelPath]);
@@ -215,7 +298,9 @@ export function PlayerShipModel({
 	);
 
 	const basisAdjustedVisual = hasGltfShip && applyBasisCorrection ? (
-		<group rotation={SHIP_MODEL_BASIS_ROTATION}>{shipVisual}</group>
+		// quaternion set from measured geometry in the effect above (falls back to
+		// the legacy Euler until the measure runs, so there's never a wrong frame)
+		<group ref={basisRef} rotation={SHIP_MODEL_BASIS_ROTATION}>{shipVisual}</group>
 	) : (
 		shipVisual
 	);
