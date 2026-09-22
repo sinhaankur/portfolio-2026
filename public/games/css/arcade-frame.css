@@ -1,0 +1,129 @@
+/* arcade-frame.css — the shared "phone in a frame" shell for the Simple Games.
+ *
+ * Extracted from Blockmates so every game is the SAME size and feels like the
+ * same app: on phones it fills the viewport (100dvh app frame); on a laptop it
+ * centres in a 393×852 phone-shaped card. Games keep their own board/canvas
+ * inside `.board-wrap`, but the topbar, HUD, controls and game-over card are
+ * unified here. Each game still supplies its own accent colour via --accent.
+ *
+ * Structure a page must use:
+ *   #app > #frame > (.topbar, .hud, .board-wrap, .controls, #over)
+ */
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+:root {
+  --bg: #f3f2f2; --fg: #201e1d; --rule: rgba(32,30,29,.4);
+  --empty: rgba(32,30,29,.07); --accent: #ec3013; --veil: rgba(32,30,29,.55);
+  --dark: #201e1d;
+}
+html[data-mode="dark"] {
+  --bg: #171615; --fg: #f3f2f2; --rule: rgba(243,242,242,.28);
+  --empty: rgba(243,242,242,.08); --accent: #ff5638; --veil: rgba(10,9,9,.72);
+  --dark: #201e1d;
+}
+
+html, body {
+  margin: 0; padding: 0; height: 100%;
+  background: #8f8d8a;
+  font-family: Archivo, system-ui, sans-serif;
+  overscroll-behavior: none; overflow: hidden;
+  touch-action: none; user-select: none; -webkit-user-select: none;
+}
+
+#app {
+  position: fixed; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+#frame {
+  position: relative; width: 100%; height: 100%; max-width: 480px;
+  background: var(--bg); color: var(--fg);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+@media (min-width: 500px) and (min-height: 700px) {
+  #app { padding: 24px; }
+  #frame { width: 393px; height: 852px; max-height: calc(100dvh - 48px);
+    border-radius: 20px; box-shadow: 0 24px 60px rgba(0,0,0,.35); }
+}
+
+/* ── topbar ── */
+.topbar { flex: none; display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px 6px; }
+.back { text-decoration: none; color: var(--fg); font-weight: 700; font-size: 13px;
+  letter-spacing: .02em; opacity: .8; display: inline-flex; align-items: center; gap: 6px; }
+.title { font-size: 13px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; opacity: .55; }
+.btns { display: flex; gap: 8px; }
+.icon-btn { width: 36px; height: 36px; border: 2px solid var(--rule); background: transparent;
+  color: var(--fg); font: 600 16px Archivo, sans-serif; cursor: pointer; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center; }
+.icon-btn:active { transform: scale(.92); }
+.icon-btn.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* ── HUD (score / best / anything a game wants) ── */
+.hud { flex: none; display: flex; align-items: flex-end; justify-content: space-between;
+  padding: 4px 16px 10px; }
+.hud .label { font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; opacity: .5; }
+.hud .score { font-size: 30px; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; color: var(--accent); }
+.hud .right { text-align: right; }
+.hud .best { font-size: 14px; font-weight: 700; }
+.hud .stat { display: flex; flex-direction: column; }
+.hud .stat.right { align-items: flex-end; }
+
+/* ── the game area ── */
+.board-wrap { flex: 1 1 auto; min-height: 0; display: flex; align-items: center; justify-content: center;
+  padding: 0 16px; position: relative; }
+.board-wrap canvas { max-width: 100%; max-height: 100%; display: block; }
+
+/* ── controls row ── */
+.controls { flex: none; display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px calc(14px + env(safe-area-inset-bottom)); }
+.hint { font-size: 11px; line-height: 1.35; opacity: .55; flex: 1; }
+.btn-primary { min-width: 128px; height: 56px; border: none; background: var(--accent); color: #fff;
+  font: 700 13px Archivo, sans-serif; letter-spacing: .06em; border-radius: 12px; cursor: pointer;
+  flex: none; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 0 18px; }
+.btn-primary:active { transform: scale(.95); }
+
+/* d-pad (snake) — an unobtrusive 3×2 grid that only shows when useful */
+.dpad { display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: 46px; gap: 8px;
+  width: 100%; }
+.dpad .empty { visibility: hidden; }
+.dpad button { border: 2px solid var(--rule); background: transparent; color: var(--fg);
+  border-radius: 12px; font-size: 20px; font-weight: 700; cursor: pointer; }
+.dpad button:active { transform: scale(.92); background: var(--accent); color: #fff; border-color: var(--accent); }
+
+/* ── faces (the little "mates" eyes that track your finger) ── */
+.face { display: flex; flex-direction: column; align-items: center; pointer-events: none; }
+.eyes { display: flex; gap: 3px; align-items: flex-end; transform-origin: center; }
+.eye { width: 8px; height: 8px; border-radius: 50%; background: #fff; display: flex;
+  align-items: center; justify-content: center; overflow: hidden; }
+.pupil { width: 4px; height: 4px; border-radius: 50%; background: var(--dark); will-change: transform; }
+
+/* ── game-over card ── */
+#over { position: absolute; inset: 0; z-index: 80; background: var(--veil);
+  display: none; flex-direction: column; align-items: center; justify-content: center;
+  backdrop-filter: blur(2px); padding: 24px; }
+#over.show { display: flex; animation: af-up .3s ease; }
+#over .card { background: var(--bg); color: var(--fg); border-radius: 18px; padding: 26px 22px;
+  width: 100%; max-width: 300px; text-align: center; box-shadow: 0 18px 50px rgba(0,0,0,.4); }
+#over h2 { margin: 0 0 4px; font-size: 22px; font-weight: 800; }
+#over .big { font-size: 34px; font-weight: 800; color: var(--accent); line-height: 1.1; }
+#over .note { font-size: 12px; opacity: .7; margin: 8px 0 18px; }
+#over button { width: 100%; height: 52px; border: none; background: var(--accent); color: #fff;
+  font: 700 15px Archivo, sans-serif; letter-spacing: .04em; border-radius: 12px; cursor: pointer; }
+#over button:active { transform: scale(.97); }
+
+/* ── gaze-control banner (opt-in webcam eye control) ── */
+#gazeNote { position: absolute; left: 50%; bottom: 90px; transform: translateX(-50%);
+  z-index: 60; background: var(--dark); color: #fff; font-size: 11px; font-weight: 600;
+  letter-spacing: .04em; padding: 8px 14px; border-radius: 999px; opacity: 0; transition: opacity .3s;
+  pointer-events: none; white-space: nowrap; }
+#gazeNote.show { opacity: .92; }
+#gazeDot { position: fixed; width: 22px; height: 22px; border-radius: 50%; z-index: 90;
+  border: 3px solid var(--accent); background: rgba(255,86,56,.25); pointer-events: none;
+  transform: translate(-50%,-50%); display: none; }
+#gazeDot.on { display: block; }
+
+@keyframes af-up { from { transform: translateY(14px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes af-blink { 0%,94%,100% { transform: scaleY(1); } 96%,98% { transform: scaleY(.12); } }
+@media (prefers-reduced-motion: reduce) { * { animation-duration: .001ms !important; } }

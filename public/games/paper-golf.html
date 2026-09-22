@@ -1,391 +1,347 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-mode="light">
 <head><!-- Google Tag Manager --><script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({"gtm.start":new Date().getTime(),event:"gtm.js"});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!="dataLayer"?"&l="+l:"";j.async=true;j.src="https://www.googletagmanager.com/gtm.js?id="+i+dl;f.parentNode.insertBefore(j,f);})(window,document,"script","dataLayer","GTM-N6T2NFT3");</script><!-- End Google Tag Manager -->
   <title>Paper Golf — Simple Games</title>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-  <meta name="theme-color" content="#f7f6f2">
-  <meta name="description" content="A pocket paper mini-golf. Drag to aim, flick to putt across dot-grid fairways past the pines, sink it under par. Touch-first, mobile-optimized.">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#f3f2f2">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
   <link rel="icon" href="games-logo.svg" type="image/svg+xml">
-  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="css/arcade-frame.css" rel="stylesheet">
   <style>
-    :root {
-      --paper:   #f7f6f2;   /* notepad cream */
-      --ink:     #1a1a1a;   /* pencil/print ink */
-      --dot:     #c9c7bf;   /* dot-grid */
-      --fair:    #d8d6cd;   /* printed fairway fill */
-      --fair2:   #cbc9bf;   /* fairway edge */
-      --spiral:  #2a2a2a;
-    }
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    html, body { margin: 0; height: 100%; overflow: hidden; overscroll-behavior: none; background: #ded9cc; }
-    body {
-      font-family: "Space Mono", ui-monospace, monospace;
-      color: var(--ink);
-      display: flex; flex-direction: column; align-items: center;
-      height: 100dvh; width: 100vw;
-      touch-action: none; user-select: none; -webkit-user-select: none;
-    }
-    /* the wood desk backdrop */
-    body::before {
-      content: ""; position: fixed; inset: 0; z-index: -1;
-      background:
-        repeating-linear-gradient(92deg, #cbb590 0 3px, #c6af88 3px 7px, #cdb894 7px 12px);
-      opacity: 0.9;
-    }
-    .pad {
-      position: relative; width: min(100%, 460px); flex: 1;
-      margin: 8px; display: flex; flex-direction: column;
-      background: var(--paper);
-      border-radius: 4px 4px 10px 10px;
-      box-shadow: 0 10px 30px -8px rgba(0,0,0,0.45), 0 2px 0 rgba(0,0,0,0.1);
-      padding-top: 22px;
-      overflow: hidden;
-    }
-    /* spiral binding along the top */
-    .spiral {
-      position: absolute; top: 0; left: 0; right: 0; height: 22px;
-      display: flex; justify-content: space-around; align-items: flex-start;
-      pointer-events: none;
-    }
-    .spiral i {
-      width: 8px; height: 16px; margin-top: -6px;
-      border: 2px solid var(--spiral); border-top: none;
-      border-radius: 0 0 8px 8px; background: transparent;
-    }
-    .topbar {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 4px 12px 6px; font-size: 0.7rem; letter-spacing: 0.05em;
-    }
-    .topbar a { color: var(--ink); text-decoration: none; opacity: 0.6; }
-    .topbar .brand { font-weight: 700; letter-spacing: 0.12em; opacity: 0.85; }
+    :root { --accent: #2b7fff; --paper: #f7f6f2; --ink: #1a1a1a; }
+    html[data-mode="dark"] { --accent: #4a94ff; --paper: #14161c; --ink: #e8e6df; }
+
+    /* the notepad sits inside the frame's board-wrap */
+    .board-wrap { padding: 10px 14px; }
+    .pad { position: relative; width: 100%; height: 100%; display: flex; flex-direction: column;
+      background: var(--paper); border-radius: 4px 4px 10px 10px; overflow: hidden;
+      box-shadow: 0 10px 26px -8px rgba(0,0,0,.4); padding-top: 20px; }
+    .spiral { position: absolute; top: 0; left: 0; right: 0; height: 20px;
+      display: flex; justify-content: space-around; align-items: flex-start; pointer-events: none; }
+    .spiral i { width: 8px; height: 15px; margin-top: -6px; border: 2px solid var(--ink); border-top: none;
+      border-radius: 0 0 8px 8px; background: transparent; opacity: .55; }
     #course { flex: 1; width: 100%; display: block; }
-    .foot {
-      display: flex; align-items: center; justify-content: space-between; gap: 8px;
-      padding: 8px 14px calc(10px + env(safe-area-inset-bottom));
-      font-size: 0.82rem; letter-spacing: 0.06em; border-top: 1.5px dashed var(--dot);
-    }
-    .foot b { font-weight: 700; }
-    .btn {
-      font-family: inherit; font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase;
-      background: var(--ink); color: var(--paper); border: none; border-radius: 999px;
-      padding: 8px 14px; min-height: 38px; cursor: pointer;
-    }
-    .btn.ghost { background: transparent; color: var(--ink); border: 1.5px solid var(--ink); }
-    .hint {
-      position: absolute; left: 0; right: 0; bottom: 64px; text-align: center;
-      font-size: 0.72rem; letter-spacing: 0.1em; opacity: 0.55; pointer-events: none;
-      transition: opacity 0.4s;
-    }
-    .banner {
-      position: absolute; inset: 22px 0 0; display: none; z-index: 5;
-      background: rgba(247,246,242,0.94); flex-direction: column;
-      align-items: center; justify-content: center; gap: 14px; text-align: center; padding: 20px;
-    }
-    .banner.show { display: flex; }
-    .banner h1 { margin: 0; font-size: 1.4rem; letter-spacing: 0.04em; }
-    .banner p { margin: 0; font-size: 0.85rem; opacity: 0.7; max-width: 30ch; line-height: 1.5; }
-    .banner .score { font-size: 2.2rem; font-weight: 700; }
+    .hint { position: absolute; left: 0; right: 0; bottom: 10px; text-align: center;
+      font-size: 11px; letter-spacing: .06em; opacity: .5; pointer-events: none; transition: opacity .4s; color: var(--ink); }
   </style>
 </head>
 <body>
-  <div class="pad">
-    <div class="spiral" aria-hidden="true"></div>
-    <div class="topbar">
-      <a href="Gamelist.html">← games</a>
-      <span class="brand">PAPER&nbsp;GOLF</span>
-      <a href="#" id="reset">reset</a>
-    </div>
-    <canvas id="course"></canvas>
-    <div class="hint" id="hint">Drag back from the ball, release to putt</div>
-    <div class="foot">
-      <span>Hole <b id="hole">1</b></span>
-      <span>Strokes <b id="strokes">0</b>/<b id="par">3</b></span>
-      <span>Total <b id="total">0</b></span>
-      <span>Best <b id="best">—</b></span>
-    </div>
-    <div class="banner" id="banner">
-      <h1 id="bTitle">Nice putt</h1>
-      <div class="score" id="bScore"></div>
-      <p id="bMsg"></p>
-      <button class="btn" id="bNext">Next hole →</button>
+  <div id="app">
+    <div id="frame">
+      <div class="topbar">
+        <a class="back" href="Gamelist.html">← Games</a>
+        <span class="title">Paper Golf</span>
+        <div class="btns">
+          <button class="icon-btn" id="gazeBtn" aria-label="Eye control">👁</button>
+          <button class="icon-btn" id="themeBtn" aria-label="Toggle theme">◐</button>
+          <button class="icon-btn" id="restartBtn" aria-label="Reset hole">↻</button>
+        </div>
+      </div>
+
+      <div class="hud">
+        <div class="stat">
+          <div class="label">Hole</div>
+          <div class="score"><span id="hole">1</span></div>
+          <div id="eyeHost" style="margin-top:4px"></div>
+        </div>
+        <div class="stat right">
+          <div class="label">Strokes / Par</div>
+          <div class="best"><span id="strokes">0</span> / <span id="par">3</span></div>
+          <div class="label" style="margin-top:4px">Total · Best</div>
+          <div class="best"><span id="total">0</span> · <span id="best">—</span></div>
+        </div>
+      </div>
+
+      <div class="board-wrap">
+        <div class="pad">
+          <div class="spiral" aria-hidden="true"></div>
+          <canvas id="course"></canvas>
+          <div class="hint" id="hint">Drag back from the ball, release to putt</div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <div class="hint" style="position:static">Sink it under par. Avoid the pines and water.</div>
+      </div>
+
+      <div id="gazeNote"></div>
+      <div id="gazeDot"></div>
+
+      <div id="over">
+        <div class="card">
+          <h2 id="overTitle">Nice putt</h2>
+          <div class="big" id="overScore">0</div>
+          <div class="note" id="overNote"></div>
+          <button id="nextBtn">NEXT HOLE →</button>
+        </div>
+      </div>
     </div>
   </div>
 
-  <script>
-  (() => {
-    "use strict";
-    const cv = document.getElementById("course");
-    const ctx = cv.getContext("2d");
-    const $ = (id) => document.getElementById(id);
+<script>
+/* ================================================================
+   PAPER GOLF — Simple Games (shared arcade frame)
+   A pocket notepad mini-golf. Drag to aim, release to putt across
+   dot-grid fairways past the pines, sink it under par.
+   ================================================================ */
+var store = {
+  get: function (k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } },
+  set: function (k, v) { try { window.localStorage.setItem(k, v); } catch (e) {} },
+};
+var cv = document.getElementById('course'), ctx = cv.getContext('2d');
+var $ = function (id) { return document.getElementById(id); };
 
-    // Tiny WebAudio blips so putting, bouncing, and sinking have feel (no assets).
-    let audioCtx = null;
-    function beep(freq, dur, type, vol) {
-      try {
-        audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-        const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-        o.type = type || "sine"; o.frequency.value = freq;
-        g.gain.value = vol || 0.05;
-        o.connect(g); g.connect(audioCtx.destination);
-        o.start();
-        g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + (dur || 0.08));
-        o.stop(audioCtx.currentTime + (dur || 0.08));
-      } catch (e) { /* audio optional */ }
-    }
-    // a two-note plunk for a sunk putt
-    function sinkChime() { beep(520, 0.09, "sine", 0.07); setTimeout(() => beep(780, 0.14, "sine", 0.06), 90); }
+/* theme */
+function setTheme(m) {
+  document.documentElement.setAttribute('data-mode', m);
+  store.set('golfTheme', m);
+  var meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', m === 'dark' ? '#171615' : '#f3f2f2');
+  resize && resize();
+}
 
-    // ---- Course definitions (grid units; laid out to fit a portrait pad) -----
-    // Each hole: par, ball start, hole pos, and obstacle "pines" + walls (as
-    // fairway is the whole page; pines/water are hazards you route around).
-    const HOLES = [
-      { par: 2, ball: [0.5, 0.85], hole: [0.5, 0.18],
-        pines: [[0.32,0.5],[0.4,0.5],[0.6,0.5],[0.68,0.5],[0.5,0.55]],
-        water: [] },
-      { par: 3, ball: [0.25, 0.85], hole: [0.78, 0.2],
-        pines: [[0.5,0.62],[0.58,0.62],[0.5,0.55],[0.42,0.45],[0.34,0.45]],
-        water: [[0.55,0.75,0.22,0.12]] },
-      { par: 3, ball: [0.5, 0.88], hole: [0.5, 0.14],
-        pines: [[0.3,0.62],[0.7,0.62],[0.3,0.38],[0.7,0.38],[0.5,0.5],[0.42,0.5],[0.58,0.5]],
-        water: [] },
-      { par: 4, ball: [0.18, 0.8], hole: [0.82, 0.22],
-        pines: [[0.4,0.68],[0.48,0.68],[0.56,0.6],[0.5,0.4],[0.6,0.4],[0.68,0.4],[0.34,0.5]],
-        water: [[0.2,0.35,0.28,0.14]] },
-    ];
+var audioCtx = null;
+function beep(freq, dur, type, vol) {
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    var o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = type || 'sine'; o.frequency.value = freq; g.gain.value = vol || .05;
+    o.connect(g); g.connect(audioCtx.destination); o.start();
+    g.gain.exponentialRampToValueAtTime(.0001, audioCtx.currentTime + (dur || .08));
+    o.stop(audioCtx.currentTime + (dur || .08));
+  } catch (e) {}
+}
+function sinkChime() { beep(520, .09, 'sine', .07); setTimeout(function () { beep(780, .14, 'sine', .06); }, 90); }
 
-    let holeIdx = 0, total = 0, strokes = 0;
-    let W = 0, H = 0, unit = 0, dpr = 1;
-    // physics state (in canvas px)
-    let ball = { x: 0, y: 0, vx: 0, vy: 0, r: 8 };
-    let holePos = { x: 0, y: 0, r: 11 };
-    let pines = [], water = [];
-    let dragging = false, dragX = 0, dragY = 0, moving = false, sunk = false;
+var HOLES = [
+  { par: 2, ball: [0.5, 0.85], hole: [0.5, 0.18], pines: [[0.32,0.5],[0.4,0.5],[0.6,0.5],[0.68,0.5],[0.5,0.55]], water: [] },
+  { par: 3, ball: [0.25, 0.85], hole: [0.78, 0.2], pines: [[0.5,0.62],[0.58,0.62],[0.5,0.55],[0.42,0.45],[0.34,0.45]], water: [[0.55,0.75,0.22,0.12]] },
+  { par: 3, ball: [0.5, 0.88], hole: [0.5, 0.14], pines: [[0.3,0.62],[0.7,0.62],[0.3,0.38],[0.7,0.38],[0.5,0.5],[0.42,0.5],[0.58,0.5]], water: [] },
+  { par: 4, ball: [0.18, 0.8], hole: [0.82, 0.22], pines: [[0.4,0.68],[0.48,0.68],[0.56,0.6],[0.5,0.4],[0.6,0.4],[0.68,0.4],[0.34,0.5]], water: [[0.2,0.35,0.28,0.14]] },
+];
 
-    function resize() {
-      dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const rect = cv.getBoundingClientRect();
-      W = rect.width; H = rect.height;
-      cv.width = W * dpr; cv.height = H * dpr;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      unit = Math.min(W, H);
-      layoutHole();
-    }
+var holeIdx = 0, total = 0, strokes = 0;
+var W = 0, H = 0, unit = 0, dpr = 1;
+var ball = { x: 0, y: 0, vx: 0, vy: 0, r: 8 }, holePos = { x: 0, y: 0, r: 11 };
+var pines = [], water = [], dragging = false, dragX = 0, dragY = 0, moving = false, sunk = false;
+var eyeFace = null;
 
-    function layoutHole() {
-      const hl = HOLES[holeIdx];
-      ball.x = hl.ball[0] * W; ball.y = hl.ball[1] * H; ball.vx = ball.vy = 0;
-      holePos.x = hl.hole[0] * W; holePos.y = hl.hole[1] * H;
-      ball.r = Math.max(6, unit * 0.018);
-      holePos.r = ball.r * 1.35;
-      pines = hl.pines.map(([x, y]) => ({ x: x * W, y: y * H, r: unit * 0.035 }));
-      water = hl.water.map(([x, y, w, h]) => ({ x: x * W, y: y * H, w: w * W, h: h * H }));
-      moving = false; sunk = false;
-      $("hole").textContent = holeIdx + 1;
-      $("par").textContent = hl.par;
-      strokes = 0; $("strokes").textContent = 0;
-      $("hint").style.opacity = "";
-    }
+function inkColor() { return getComputedStyle(document.documentElement).getPropertyValue('--ink').trim() || '#1a1a1a'; }
+function paperColor() { return getComputedStyle(document.documentElement).getPropertyValue('--paper').trim() || '#f7f6f2'; }
 
-    // ---- Rendering -----------------------------------------------------------
-    function drawDots() {
-      const step = Math.max(12, unit * 0.045);
-      ctx.fillStyle = "#c9c7bf";
-      for (let y = step * 0.6; y < H; y += step)
-        for (let x = step * 0.6; x < W; x += step) {
-          ctx.beginPath(); ctx.arc(x, y, 1.1, 0, 7); ctx.fill();
-        }
-    }
-    function drawPine(p) {
-      // a printed pine-tree glyph, ink monochrome
-      ctx.fillStyle = "#3a3a3a";
-      const r = p.r;
-      ctx.beginPath();
-      ctx.moveTo(p.x, p.y - r);
-      ctx.lineTo(p.x + r * 0.8, p.y + r * 0.6);
-      ctx.lineTo(p.x - r * 0.8, p.y + r * 0.6);
-      ctx.closePath(); ctx.fill();
-      ctx.fillRect(p.x - r * 0.12, p.y + r * 0.5, r * 0.24, r * 0.4);
-    }
-    function drawWater(w) {
-      ctx.save();
-      ctx.fillStyle = "rgba(120,120,120,0.14)";
-      ctx.fillRect(w.x, w.y, w.w, w.h);
-      // hatch
-      ctx.strokeStyle = "rgba(80,80,80,0.35)"; ctx.lineWidth = 1;
-      ctx.beginPath();
-      for (let i = -w.h; i < w.w; i += 7) {
-        ctx.moveTo(w.x + i, w.y + w.h); ctx.lineTo(w.x + i + w.h, w.y);
-      }
-      ctx.save(); ctx.beginPath(); ctx.rect(w.x, w.y, w.w, w.h); ctx.clip();
-      ctx.stroke(); ctx.restore(); ctx.restore();
-    }
-    function draw() {
-      ctx.clearRect(0, 0, W, H);
-      drawDots();
-      water.forEach(drawWater);
-      // hole (ring + flag)
-      ctx.fillStyle = "#1a1a1a";
-      ctx.beginPath(); ctx.arc(holePos.x, holePos.y, holePos.r, 0, 7); ctx.fill();
-      ctx.fillStyle = "#f7f6f2";
-      ctx.beginPath(); ctx.arc(holePos.x, holePos.y, holePos.r * 0.55, 0, 7); ctx.fill();
-      ctx.strokeStyle = "#1a1a1a"; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.moveTo(holePos.x, holePos.y); ctx.lineTo(holePos.x, holePos.y - unit * 0.09); ctx.stroke();
-      ctx.fillStyle = "#1a1a1a";
-      ctx.beginPath();
-      ctx.moveTo(holePos.x, holePos.y - unit * 0.09);
-      ctx.lineTo(holePos.x + unit * 0.05, holePos.y - unit * 0.075);
-      ctx.lineTo(holePos.x, holePos.y - unit * 0.06);
-      ctx.closePath(); ctx.fill();
-      pines.forEach(drawPine);
-      // aim line while dragging
-      if (dragging) {
-        const ex = ball.x - (dragX - ball.x);
-        const ey = ball.y - (dragY - ball.y);
-        ctx.strokeStyle = "#1a1a1a"; ctx.lineWidth = 2; ctx.setLineDash([5, 5]);
-        ctx.beginPath(); ctx.moveTo(ball.x, ball.y); ctx.lineTo(ex, ey); ctx.stroke();
-        ctx.setLineDash([]);
-        // power arrowhead
-        ctx.beginPath(); ctx.arc(ex, ey, 4, 0, 7); ctx.fill();
-      }
-      // ball
-      if (!sunk) {
-        ctx.fillStyle = "#f7f6f2"; ctx.strokeStyle = "#1a1a1a"; ctx.lineWidth = 2.2;
-        ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, 7); ctx.fill(); ctx.stroke();
+function resize() {
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  var rect = cv.getBoundingClientRect();
+  W = rect.width; H = rect.height;
+  if (!W || !H) return;
+  cv.width = W * dpr; cv.height = H * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  unit = Math.min(W, H);
+  layoutHole();
+}
+
+function layoutHole() {
+  var hl = HOLES[holeIdx];
+  ball.x = hl.ball[0] * W; ball.y = hl.ball[1] * H; ball.vx = ball.vy = 0;
+  holePos.x = hl.hole[0] * W; holePos.y = hl.hole[1] * H;
+  ball.r = Math.max(6, unit * .018); holePos.r = ball.r * 1.35;
+  pines = hl.pines.map(function (p) { return { x: p[0] * W, y: p[1] * H, r: unit * .035 }; });
+  water = hl.water.map(function (w) { return { x: w[0] * W, y: w[1] * H, w: w[2] * W, h: w[3] * H }; });
+  moving = false; sunk = false;
+  $('hole').textContent = holeIdx + 1; $('par').textContent = hl.par;
+  strokes = 0; $('strokes').textContent = 0; $('hint').style.opacity = '';
+  draw();
+}
+
+function drawDots() {
+  var step = Math.max(12, unit * .045);
+  ctx.fillStyle = 'rgba(120,120,120,.35)';
+  for (var y = step * .6; y < H; y += step) for (var x = step * .6; x < W; x += step) { ctx.beginPath(); ctx.arc(x, y, 1.1, 0, 7); ctx.fill(); }
+}
+function drawPine(p) {
+  ctx.fillStyle = inkColor(); var r = p.r;
+  ctx.beginPath(); ctx.moveTo(p.x, p.y - r); ctx.lineTo(p.x + r * .8, p.y + r * .6); ctx.lineTo(p.x - r * .8, p.y + r * .6);
+  ctx.closePath(); ctx.fill();
+  ctx.fillRect(p.x - r * .12, p.y + r * .5, r * .24, r * .4);
+}
+function drawWater(w) {
+  ctx.save(); ctx.fillStyle = 'rgba(90,130,220,.16)'; ctx.fillRect(w.x, w.y, w.w, w.h);
+  ctx.strokeStyle = 'rgba(80,110,200,.4)'; ctx.lineWidth = 1; ctx.beginPath();
+  for (var i = -w.h; i < w.w; i += 7) { ctx.moveTo(w.x + i, w.y + w.h); ctx.lineTo(w.x + i + w.h, w.y); }
+  ctx.save(); ctx.beginPath(); ctx.rect(w.x, w.y, w.w, w.h); ctx.clip(); ctx.stroke(); ctx.restore(); ctx.restore();
+}
+function draw() {
+  if (!W) return;
+  ctx.clearRect(0, 0, W, H);
+  drawDots(); water.forEach(drawWater);
+  var ink = inkColor(), paper = paperColor();
+  ctx.fillStyle = ink; ctx.beginPath(); ctx.arc(holePos.x, holePos.y, holePos.r, 0, 7); ctx.fill();
+  ctx.fillStyle = paper; ctx.beginPath(); ctx.arc(holePos.x, holePos.y, holePos.r * .55, 0, 7); ctx.fill();
+  ctx.strokeStyle = ink; ctx.lineWidth = 2; ctx.beginPath();
+  ctx.moveTo(holePos.x, holePos.y); ctx.lineTo(holePos.x, holePos.y - unit * .09); ctx.stroke();
+  ctx.fillStyle = '#ff5638'; ctx.beginPath();
+  ctx.moveTo(holePos.x, holePos.y - unit * .09); ctx.lineTo(holePos.x + unit * .05, holePos.y - unit * .075);
+  ctx.lineTo(holePos.x, holePos.y - unit * .06); ctx.closePath(); ctx.fill();
+  pines.forEach(drawPine);
+  if (dragging) {
+    var ex = ball.x - (dragX - ball.x), ey = ball.y - (dragY - ball.y);
+    ctx.strokeStyle = ink; ctx.lineWidth = 2; ctx.setLineDash([5, 5]);
+    ctx.beginPath(); ctx.moveTo(ball.x, ball.y); ctx.lineTo(ex, ey); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = ink; ctx.beginPath(); ctx.arc(ex, ey, 4, 0, 7); ctx.fill();
+  }
+  if (!sunk) {
+    ctx.fillStyle = paper; ctx.strokeStyle = ink; ctx.lineWidth = 2.2;
+    ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, 7); ctx.fill(); ctx.stroke();
+  }
+}
+
+var FRICTION = .985, STOP = .05;
+function stepPhys() {
+  if (moving && !sunk) {
+    ball.x += ball.vx; ball.y += ball.vy; ball.vx *= FRICTION; ball.vy *= FRICTION;
+    if (ball.x < ball.r) { ball.x = ball.r; ball.vx = -ball.vx * .7; }
+    if (ball.x > W - ball.r) { ball.x = W - ball.r; ball.vx = -ball.vx * .7; }
+    if (ball.y < ball.r) { ball.y = ball.r; ball.vy = -ball.vy * .7; }
+    if (ball.y > H - ball.r) { ball.y = H - ball.r; ball.vy = -ball.vy * .7; }
+    for (var i = 0; i < pines.length; i++) {
+      var p = pines[i], dx = ball.x - p.x, dy = ball.y - p.y, d = Math.hypot(dx, dy), min = ball.r + p.r * .55;
+      if (d < min && d > 0) {
+        var nx = dx / d, ny = dy / d; ball.x = p.x + nx * min; ball.y = p.y + ny * min;
+        var dot = ball.vx * nx + ball.vy * ny;
+        ball.vx = (ball.vx - 2 * dot * nx) * .55; ball.vy = (ball.vy - 2 * dot * ny) * .55;
+        if (Math.hypot(ball.vx, ball.vy) > 1.2) beep(120, .06, 'sawtooth', .04);
       }
     }
-
-    // ---- Physics -------------------------------------------------------------
-    const FRICTION = 0.985, STOP = 0.05;
-    function step() {
-      if (moving && !sunk) {
-        ball.x += ball.vx; ball.y += ball.vy;
-        ball.vx *= FRICTION; ball.vy *= FRICTION;
-        // walls (the paper edges) — bounce
-        if (ball.x < ball.r) { ball.x = ball.r; ball.vx = -ball.vx * 0.7; }
-        if (ball.x > W - ball.r) { ball.x = W - ball.r; ball.vx = -ball.vx * 0.7; }
-        if (ball.y < ball.r) { ball.y = ball.r; ball.vy = -ball.vy * 0.7; }
-        if (ball.y > H - ball.r) { ball.y = H - ball.r; ball.vy = -ball.vy * 0.7; }
-        // pine collisions — push out + damp
-        for (const p of pines) {
-          const dx = ball.x - p.x, dy = ball.y - p.y, d = Math.hypot(dx, dy);
-          const min = ball.r + p.r * 0.55;
-          if (d < min && d > 0) {
-            const nx = dx / d, ny = dy / d;
-            ball.x = p.x + nx * min; ball.y = p.y + ny * min;
-            const dot = ball.vx * nx + ball.vy * ny;
-            ball.vx = (ball.vx - 2 * dot * nx) * 0.55;
-            ball.vy = (ball.vy - 2 * dot * ny) * 0.55;
-            // a dull bonk off the pine, only if moving with some pace
-            if (Math.hypot(ball.vx, ball.vy) > 1.2) beep(120, 0.06, "sawtooth", 0.04);
-          }
-        }
-        // water — reset to just before the hazard, +1 stroke penalty
-        for (const w of water) {
-          if (ball.x > w.x && ball.x < w.x + w.w && ball.y > w.y && ball.y < w.y + w.h) {
-            penalty();
-            return;
-          }
-        }
-        // sink check
-        const dh = Math.hypot(ball.x - holePos.x, ball.y - holePos.y);
-        const speed = Math.hypot(ball.vx, ball.vy);
-        if (dh < holePos.r * 0.9 && speed < 6) { sink(); return; }
-        if (speed < STOP) { ball.vx = ball.vy = 0; moving = false; }
-      }
-      draw();
-      requestAnimationFrame(step);
+    for (var w = 0; w < water.length; w++) {
+      var q = water[w];
+      if (ball.x > q.x && ball.x < q.x + q.w && ball.y > q.y && ball.y < q.y + q.h) { penalty(); return; }
     }
+    var dh = Math.hypot(ball.x - holePos.x, ball.y - holePos.y), speed = Math.hypot(ball.vx, ball.vy);
+    if (dh < holePos.r * .9 && speed < 6) { sink(); return; }
+    if (speed < STOP) { ball.vx = ball.vy = 0; moving = false; }
+  }
+  draw(); requestAnimationFrame(stepPhys);
+}
 
-    function penalty() {
-      const hl = HOLES[holeIdx];
-      ball.x = hl.ball[0] * W; ball.y = hl.ball[1] * H; ball.vx = ball.vy = 0; moving = false;
-      strokes += 1; $("strokes").textContent = strokes; // water = +1 penalty
-      draw(); requestAnimationFrame(step);
-    }
+function penalty() {
+  var hl = HOLES[holeIdx];
+  ball.x = hl.ball[0] * W; ball.y = hl.ball[1] * H; ball.vx = ball.vy = 0; moving = false;
+  strokes += 1; $('strokes').textContent = strokes; beep(160, .2, 'sawtooth', .05);
+  draw(); requestAnimationFrame(stepPhys);
+}
 
-    function sink() {
-      sunk = true; moving = false; ball.vx = ball.vy = 0;
-      sinkChime();
-      total += strokes; $("total").textContent = total;
-      const hl = HOLES[holeIdx];
-      const d = strokes - hl.par;
-      const name = d <= -2 ? "Eagle!" : d === -1 ? "Birdie!" : d === 0 ? "Par" : d === 1 ? "Bogey" : "Over par";
-      $("bTitle").textContent = name;
-      $("bScore").textContent = strokes + (strokes === 1 ? " stroke" : " strokes");
-      const last = holeIdx === HOLES.length - 1;
-      if (last) {
-        // course complete — persist the best (lowest) total, like the other games,
-        // so there's a score to beat on the next round.
-        const prev = +(localStorage.getItem("papergolf.best") || 0);
-        const beat = !prev || total < prev;
-        if (beat) { localStorage.setItem("papergolf.best", String(total)); $("best").textContent = total; }
-        const best = beat ? total : prev;
-        $("bMsg").textContent =
-          `Course done — ${total} over ${HOLES.length} holes.` +
-          (beat ? "  New best!" : `  Best: ${best}.`);
-        $("bTitle").textContent = beat ? "New best round!" : name;
-      } else {
-        $("bMsg").textContent = "";
-      }
-      $("bNext").textContent = last ? "Play again ↺" : "Next hole →";
-      $("banner").classList.add("show");
-    }
+function sink() {
+  sunk = true; moving = false; ball.vx = ball.vy = 0; sinkChime();
+  total += strokes; $('total').textContent = total;
+  var hl = HOLES[holeIdx], d = strokes - hl.par;
+  var name = d <= -2 ? 'Eagle!' : d === -1 ? 'Birdie!' : d === 0 ? 'Par' : d === 1 ? 'Bogey' : 'Over par';
+  var last = holeIdx === HOLES.length - 1;
+  $('overTitle').textContent = name;
+  $('overScore').textContent = strokes + (strokes === 1 ? ' stroke' : ' strokes');
+  if (last) {
+    var prev = +(store.get('golfBest') || 0), beat = !prev || total < prev;
+    if (beat) { store.set('golfBest', String(total)); $('best').textContent = total; }
+    var best = beat ? total : prev;
+    $('overNote').textContent = 'Course done — ' + total + ' over ' + HOLES.length + ' holes.' + (beat ? '  New best!' : '  Best: ' + best + '.');
+    $('overTitle').textContent = beat ? 'New best round!' : name;
+    $('nextBtn').textContent = 'PLAY AGAIN ↺';
+  } else {
+    $('overNote').textContent = '';
+    $('nextBtn').textContent = 'NEXT HOLE →';
+  }
+  $('over').classList.add('show');
+  if (eyeFace && window.MatesEyes) MatesEyes.mood(eyeFace, 'happy');
+}
 
-    $("bNext").onclick = () => {
-      $("banner").classList.remove("show");
-      if (holeIdx === HOLES.length - 1) { holeIdx = 0; total = 0; $("total").textContent = 0; }
-      else holeIdx += 1;
-      layoutHole(); draw();
-    };
-    $("reset").onclick = (e) => { e.preventDefault(); layoutHole(); draw(); };
+$('nextBtn').onclick = function () {
+  $('over').classList.remove('show');
+  if (holeIdx === HOLES.length - 1) { holeIdx = 0; total = 0; $('total').textContent = 0; }
+  else holeIdx += 1;
+  layoutHole();
+};
+$('restartBtn').onclick = function () { $('over').classList.remove('show'); layoutHole(); };
+document.getElementById('themeBtn').addEventListener('click', function () {
+  setTheme(document.documentElement.getAttribute('data-mode') === 'dark' ? 'light' : 'dark');
+});
 
-    // ---- Input (drag to aim, release to putt) --------------------------------
-    function pt(e) {
-      const r = cv.getBoundingClientRect();
-      const t = e.touches ? e.touches[0] : e;
-      return { x: t.clientX - r.left, y: t.clientY - r.top };
-    }
-    function down(e) {
-      if (moving || sunk) return;
-      const p = pt(e);
-      if (Math.hypot(p.x - ball.x, p.y - ball.y) < ball.r * 4) {
-        dragging = true; dragX = p.x; dragY = p.y;
-        $("hint").style.opacity = "0";
-      }
-      e.preventDefault();
-    }
-    function move(e) { if (dragging) { const p = pt(e); dragX = p.x; dragY = p.y; draw(); } e.preventDefault(); }
-    function up(e) {
-      if (!dragging) return;
+/* input */
+function pt(e) { var r = cv.getBoundingClientRect(), t = e.touches ? e.touches[0] : e; return { x: t.clientX - r.left, y: t.clientY - r.top }; }
+function down(e) {
+  if (moving || sunk) return;
+  var p = pt(e);
+  if (Math.hypot(p.x - ball.x, p.y - ball.y) < ball.r * 4) { dragging = true; dragX = p.x; dragY = p.y; $('hint').style.opacity = '0'; }
+  e.preventDefault();
+}
+function move(e) { if (dragging) { var p = pt(e); dragX = p.x; dragY = p.y; draw(); } e.preventDefault(); }
+function up(e) {
+  if (!dragging) return; dragging = false;
+  var dx = ball.x - dragX, dy = ball.y - dragY, power = Math.min(Math.hypot(dx, dy), unit * .4);
+  if (power > 6) {
+    var a = Math.atan2(dy, dx), speed = power * .16;
+    ball.vx = Math.cos(a) * speed; ball.vy = Math.sin(a) * speed;
+    moving = true; strokes += 1; $('strokes').textContent = strokes;
+    beep(180 + power * .6, .07, 'triangle', .06);
+  }
+  e.preventDefault();
+}
+cv.addEventListener('mousedown', down); window.addEventListener('mousemove', move); window.addEventListener('mouseup', up);
+cv.addEventListener('touchstart', down, { passive: false });
+cv.addEventListener('touchmove', move, { passive: false });
+cv.addEventListener('touchend', up, { passive: false });
+
+/* spiral binding dots */
+var sp = document.querySelector('.spiral');
+for (var i = 0; i < 12; i++) sp.appendChild(document.createElement('i'));
+
+/* cute eyes on the hole number */
+if (window.MatesEyes) eyeFace = MatesEyes.make(document.getElementById('eyeHost'));
+
+/* opt-in gaze: aim from the ball toward the gaze cursor; smile = putt */
+var gazeBtn = document.getElementById('gazeBtn');
+var gazeNote = document.getElementById('gazeNote'), gazeDot = document.getElementById('gazeDot');
+var gazePt = null;
+function showNote(msg) { gazeNote.textContent = msg; gazeNote.classList.add('show'); setTimeout(function () { gazeNote.classList.remove('show'); }, 2600); }
+if (window.GazeControl) {
+  GazeControl.attach({
+    onMove: function (xn, yn) {
+      var r = cv.getBoundingClientRect();
+      var cx = r.left + xn * r.width, cy = r.top + yn * r.height;
+      gazePt = { x: xn * W, y: yn * H };
+      gazeDot.style.left = cx + 'px'; gazeDot.style.top = cy + 'px';
+      window.MatesEyes && MatesEyes.track(cx, cy);
+      // show an aim preview from the ball toward the gaze point
+      if (!moving && !sunk && gazePt) { dragging = true; dragX = ball.x + (ball.x - gazePt.x); dragY = ball.y + (ball.y - gazePt.y); draw(); }
+    },
+    onSmile: function () {
+      if (moving || sunk || !gazePt) return;
+      var dx = gazePt.x - ball.x, dy = gazePt.y - ball.y, power = Math.min(Math.hypot(dx, dy), unit * .4);
       dragging = false;
-      const dx = ball.x - dragX, dy = ball.y - dragY;
-      const power = Math.min(Math.hypot(dx, dy), unit * 0.4);
       if (power > 6) {
-        const a = Math.atan2(dy, dx);
-        const speed = power * 0.16;
+        var a = Math.atan2(dy, dx), speed = power * .16;
         ball.vx = Math.cos(a) * speed; ball.vy = Math.sin(a) * speed;
-        moving = true; strokes += 1; $("strokes").textContent = strokes;
-        // a soft putt — pitch rises with power, so a hard hit sounds harder
-        beep(180 + power * 0.6, 0.07, "triangle", 0.06);
+        moving = true; strokes += 1; $('strokes').textContent = strokes; beep(180 + power * .6, .07, 'triangle', .06);
       }
-      e.preventDefault();
-    }
-    cv.addEventListener("mousedown", down); window.addEventListener("mousemove", move); window.addEventListener("mouseup", up);
-    cv.addEventListener("touchstart", down, { passive: false });
-    cv.addEventListener("touchmove", move, { passive: false });
-    cv.addEventListener("touchend", up, { passive: false });
+    },
+    onStatus: function (msg, ok) { showNote(msg); gazeBtn.classList.toggle('on', ok && GazeControl.active); },
+  });
+  gazeBtn.addEventListener('click', function () {
+    GazeControl.toggle();
+    setTimeout(function () { var on = GazeControl.active; gazeBtn.classList.toggle('on', on); gazeDot.classList.toggle('on', on); }, 400);
+  });
+} else { gazeBtn.style.display = 'none'; }
 
-    // spiral binding dots
-    const sp = document.querySelector(".spiral");
-    for (let i = 0; i < 12; i++) { const el = document.createElement("i"); sp.appendChild(el); }
-
-    // show the saved best round as a target to beat
-    { const b = localStorage.getItem("papergolf.best"); if (b) $("best").textContent = b; }
-
-    window.addEventListener("resize", resize);
-    resize(); draw(); requestAnimationFrame(step);
-  })();
-  </script>
-  <script src="js/fullscreen.js" defer></script></body>
+/* boot */
+setTheme(store.get('golfTheme') || 'light');
+{ var b = store.get('golfBest'); if (b) $('best').textContent = b; }
+window.addEventListener('resize', resize);
+requestAnimationFrame(function () { resize(); requestAnimationFrame(stepPhys); });
+</script>
+  <script src="js/mates-eyes.js" defer></script>
+  <script src="js/gaze-control.js" defer></script>
+  <script src="js/fullscreen.js" defer></script>
+</body>
 </html>
