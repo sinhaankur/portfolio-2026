@@ -176,6 +176,8 @@ export type TileMeta = {
   bg?: string
   /** atmosphere theme for the decorative back-world */
   theme?: Theme
+  /** optional rising flood set-piece (see Level.flood) */
+  flood?: Level["flood"]
 }
 
 export function fromTiles(rows: string[], meta: TileMeta): Level {
@@ -292,6 +294,7 @@ export function fromTiles(rows: string[], meta: TileMeta): Level {
     brick: meta.brick,
     bg: meta.bg,
     theme: meta.theme,
+    flood: meta.flood,
     bounds: { w: w * TILE, h: h * TILE },
     spawn,
     platforms,
@@ -405,14 +408,18 @@ const L5: Level = fromTiles(
     "#                 #", // 1
     "#  .     C    .   #", // 2  gems + CUP
     "#  #     ##   #   #", // 3  thin pillars
-    "#    .      .     #", // 4
+    "#    .  l   .     #", // 4  + a LIFT platform to ride
     "#   ##      ##    #", // 5  thin pads
-    "# .     .       . #", // 6
+    "# .   m .       . #", // 6  + a MOVING platform (extra route)
     "# ###  ####  #### #", // 7  ledges
     "#P@  W     W    D #", // 8  spawn · water pools · door on the floor
     "###################", // 9  floor
   ],
-  { name: "5 — Flooded", brick: "#2f6fb0", bg: "#020710", theme: "flooded" },
+  {
+    name: "5 — Flooded", brick: "#2f6fb0", bg: "#020710", theme: "flooded",
+    // the pools rise into a slow flood — climb before it reaches the low ledges
+    flood: { kind: "water", fromY: -1.2, toY: 1.4, rise: 26 },
+  },
 )
 
 // ── LEVEL 6 — JETPACK: grab the pack on the floor, then FLY up to the high cup
@@ -439,11 +446,11 @@ const L7: Level = fromTiles(
     "###################", // 0
     "#        C        #", // 1  CUP at the very top
     "#      #####      #", // 2  summit ledge
-    "#   .         .   #", // 3
+    "#   .    l    .   #", // 3  + a LIFT to ride toward the summit
     "#  ###       ###  #", // 4
     "#      .   .      #", // 5
     "#     ##   ##     #", // 6
-    "# .            .  #", // 7
+    "# .      x     .  #", // 7  + a CRUMBLING shortcut (optional, risky)
     "# ###        ###  #", // 8
     "#          D      #", // 9  door on the low ledge
     "#P@  ^^   ####    #", // 10 spawn · spikes · door ledge
