@@ -818,9 +818,14 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
     >
       <group ref={innerGroupRef}>
         <group scale={shipTransform.scale} position={shipTransform.position} rotation={shipTransform.rotation}>
-          <group rotation={SHIP_MODEL_BASIS_ROTATION}>
+          {/* The ship model orients itself from its OWN geometry
+              (measureShipBasisQuaternion): nose → -Z, up → +Y. The old
+              hard-coded Euler wrapper + applyBasisCorrection={false} left the
+              gameplay ship on a stale basis ("positioned sad") while only the
+              preview got the fix — now gameplay uses the same measured basis. */}
+          <group>
           <Suspense fallback={<ProceduralPlayerShipModel shipId={selectedShip} mode="game" applyTransform={false} />}>
-            <PlayerShipModel shipId={selectedShip} mode="game" applyTransform={false} applyBasisCorrection={false} />
+            <PlayerShipModel shipId={selectedShip} mode="game" applyTransform={false} applyBasisCorrection={true} />
           </Suspense>
 
           <pointLight position={[0, 0.18, 1.45]} intensity={0.72} distance={16} color={0xcde6ff} />
