@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head><!-- Google Tag Manager --><script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({"gtm.start":new Date().getTime(),event:"gtm.js"});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!="dataLayer"?"&l="+l:"";j.async=true;j.src="https://www.googletagmanager.com/gtm.js?id="+i+dl;f.parentNode.insertBefore(j,f);})(window,document,"script","dataLayer","GTM-N6T2NFT3");</script><!-- End Google Tag Manager -->
+  <title>Cave Dash — Simple Games</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0a0a">
+  <meta name="description" content="A tile-based cave platformer: grab the trophy, reach the door, dodge fire and water. Precise 2D jumping — coyote-time, jump-buffer, variable height. Original levels, mobile-first with on-screen controls and fullscreen.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="icon" href="games-logo.svg" type="image/svg+xml">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    /* Cave Dash — an original single-screen tile platformer in the classic
+       collect-the-trophy-then-reach-the-door mould. All tiles/character/levels
+       are drawn procedurally here (no imported sprites). Tight 2D feel: the jump
+       uses coyote-time + jump-buffer + variable height (the crisp-platformer
+       recipe). Mobile-first: fills the screen, on-screen D-pad + jump, fullscreen. */
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      margin: 0; padding: 0; height: 100%;
+      background: #050505; color: #eee;
+      font-family: "Space Mono", ui-monospace, monospace;
+      overflow: hidden; overscroll-behavior: none;
+      touch-action: none; user-select: none; -webkit-user-select: none;
+    }
+    #wrap { position: fixed; inset: 0; display: flex; flex-direction: column;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+    .topbar { flex: none; display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 12px; font-size: 12px; }
+    .topbar a { color: #eee; text-decoration: none; font-weight: 700; opacity: .8; }
+    .hud { display: flex; gap: 14px; font-weight: 700; }
+    .hud .t { color: #f2c200; } .hud .s { color: #6cf; }
+    .stage { flex: 1 1 auto; min-height: 0; display: flex; align-items: center; justify-content: center; position: relative; }
+    canvas { image-rendering: pixelated; background: #000; max-width: 100%; max-height: 100%;
+      border: 3px solid #1a1a1a; }
+    /* on-screen controls (mobile) */
+    .pad { flex: none; display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 18px calc(14px + env(safe-area-inset-bottom)); gap: 10px; }
+    .dpad { display: flex; gap: 10px; }
+    .key { width: 62px; height: 56px; border-radius: 12px; border: 2px solid #333;
+      background: rgba(255,255,255,.06); color: #eee; font-size: 22px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; touch-action: none; }
+    .key:active, .key.on { background: rgba(242,194,0,.25); border-color: #f2c200; }
+    #jump { width: 96px; }
+    @media (min-width: 820px) { .pad { display: none; } } /* desktop uses keyboard */
+    .banner { position: absolute; left: 50%; top: 46%; transform: translate(-50%,-50%);
+      text-align: center; pointer-events: none; }
+    .banner h1 { margin: 0; font-size: clamp(22px, 6vw, 40px); color: #f2c200; text-shadow: 3px 3px 0 #000; }
+    .banner p { margin: 8px 0 0; font-size: 13px; opacity: .85; }
+    .banner .go { pointer-events: auto; margin-top: 14px; display: inline-block; padding: 10px 18px;
+      background: #f2c200; color: #000; border: none; border-radius: 10px; font: 700 14px "Space Mono"; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div id="wrap">
+    <div class="topbar">
+      <a href="Gamelist.html">← Games</a>
+      <div class="hud">
+        <span class="t">🏆 <span id="lvl">1</span>/10</span>
+        <span class="s">◆ <span id="score">0</span></span>
+        <span>♥ <span id="lives">3</span></span>
+      </div>
+    </div>
+    <div class="stage">
+      <canvas id="c" width="320" height="200"></canvas>
+      <div class="banner" id="banner">
+        <h1 id="bTitle">CAVE DASH</h1>
+        <p id="bText">Grab the trophy 🏆 — then reach the door 🚪.<br>Arrows / WASD to move, Up or Space to jump.</p>
+        <button class="go" id="bGo">START</button>
+      </div>
+    </div>
+    <div class="pad" id="pad">
+      <div class="dpad">
+        <div class="key" data-k="left">◀</div>
+        <div class="key" data-k="right">▶</div>
+      </div>
+      <div class="key" id="jump" data-k="jump">JUMP</div>
+    </div>
+  </div>
+
+  <script src="js/fullscreen.js" defer></script>
+  <script>
+  (function () {
+    "use strict";
+    var TILE = 16, COLS = 20, ROWS = 12;             // 320×192 play area (+8 hud strip)
+    var canvas = document.getElementById("c");
+    var ctx = canvas.getContext("2d");
+    ctx.imageSmoothingEnabled = false;
+
+    // ---- tile legend ----
+    // ' ' empty  '#' brick  '=' platform(one-way? no, solid)  'W' water(hazard)
+    // 'F' fire(hazard)  '^' spikes(hazard)  '.' gem  'T' trophy  'D' door
+    // 'J' jetpack pickup  'G' gun pickup  '@' start
+    // Original levels — hand-designed to teach then test the jump, in the classic
+    // "grab trophy, reach door" shape. 20×12 each. Not copied from any game.
+    var LEVELS = [
+      [ // 1 — gentle intro
+        "####################",
+        "#@       .        T#",
+        "#### ##      #######",
+        "#       .   #      #",
+        "#   ###### ###  ## D#",
+        "#  .            ## ##",
+        "# ####  ###### #### #",
+        "#          .        #",
+        "#  ###  ####   ###  #",
+        "#           .       #",
+        "#WWWW#####    #######",
+        "####################",
+      ],
+      [ // 2 — mind the water
+        "####################",
+        "#@  .          .  T#",
+        "###### ###### ######",
+        "#   .              #",
+        "# ####  ##  ####### #",
+        "#      .    .      D#",
+        "# ## ##### ### ### ##",
+        "#  .          .     #",
+        "## #### WWWW #### ###",
+        "#      #WWWW#      .#",
+        "#  ###  WWWW  ###  ##",
+        "####################",
+      ],
+      [ // 3 — fire below
+        "####################",
+        "#@        T        #",
+        "## ###### # ######  #",
+        "#     .       .    D#",
+        "# ### ## ### ## ### #",
+        "#  .            .   #",
+        "# ## FFFF ## FFFF ###",
+        "#          .        #",
+        "# ###  #####  ####  #",
+        "#   .           .   #",
+        "#FF####FFFF####FFFF #",
+        "####################",
+      ],
+      [ // 4 — the climb
+        "####################",
+        "#@                D#",
+        "# ####### ##########",
+        "#       .          #",
+        "###### ##### ###### #",
+        "#T   .              #",
+        "# ###### ##### #### #",
+        "#     .      .      #",
+        "# ## ### ### ## ### #",
+        "#  .   .    .   .   #",
+        "#WW##FF##WW##FF##WW #",
+        "####################",
+      ],
+      [ // 5 — spikes
+        "####################",
+        "#@   .    .    .   #",
+        "### ^^^ ### ^^^ ####",
+        "#        T         #",
+        "# ##### ### ##### ##",
+        "#   .          .   #",
+        "#^^ ## ^^^^ ## ^^ ^#",
+        "#         .       D#",
+        "# ### ##### ### ####",
+        "#  .    .     .    #",
+        "#WWWW^^^^WWWW^^^^WW #",
+        "####################",
+      ],
+      [ // 6 — tight corridor
+        "####################",
+        "#@#  .  #  .  #   T#",
+        "# # ### # ### # ####",
+        "# .   . .   . .    #",
+        "# ### # # # # #### D#",
+        "#   . # . # . #    #",
+        "### # # # # # # ## ##",
+        "#   . # . # . .    #",
+        "# ### # # # ##### ##",
+        "#  .  .   .    .   #",
+        "#FFWWFFWWFFWWFFWWFF #",
+        "####################",
+      ],
+      [ // 7 — long fall
+        "####################",
+        "#@ .  T  .   .    D#",
+        "#### ########## ####",
+        "#  .            .  #",
+        "# # ############ # #",
+        "# #     .        # #",
+        "# # ########### ## #",
+        "# .       .        #",
+        "# ############# ## #",
+        "#    .      .      #",
+        "#WWFFWWFFWWFFWWFFWW #",
+        "####################",
+      ],
+      [ // 8 — zigzag
+        "####################",
+        "#@      .        T #",
+        "##### ###### #### ##",
+        "#  .           .   #",
+        "# # ##### ###### ## #",
+        "# #    .        #  D#",
+        "# ##### ###### ## ###",
+        "#    .        .     #",
+        "#### ##### ###### ###",
+        "#  .    .      .    #",
+        "#^WW^^FFFF^^WW^^FF^ #",
+        "####################",
+      ],
+      [ // 9 — the pit
+        "####################",
+        "#@  .   .   .    T #",
+        "## ################ #",
+        "#         .        #",
+        "# ####### ######## D#",
+        "#  .              ###",
+        "# # ############## ##",
+        "# #      .          #",
+        "# # ############### #",
+        "#      .      .     #",
+        "#WWWWFFFFWWWWFFFFWW #",
+        "####################",
+      ],
+      [ // 10 — the gauntlet
+        "####################",
+        "#@ ^ . ^ T ^ . ^   #",
+        "## # # # # # # # ## #",
+        "# . . . . . . . .  #",
+        "# # ^ # ^ # ^ # ^ # #",
+        "#  .   .   .   .   D#",
+        "# ^ # ^ # ^ # ^ # ###",
+        "# . . . . . . . .  #",
+        "## # ^ # ^ # ^ # # ##",
+        "#  .   .   .   .    #",
+        "#WWFF^^WWFF^^WWFF^^ #",
+        "####################",
+      ],
+    ];
+
+    // ---- crisp-platformer physics (tuned from Dave 3D, in tile units) ----
+    var GRAV = 900, MOVE = 92, JUMP_V = 300, COYOTE = 0.10, BUFFER = 0.12, JUMP_CUT = 0.5;
+    var JET_THRUST = 900, JET_MAX_UP = 200, JET_FUEL = 2.2;
+
+    var grid, px, py, vx, vy, onGround, coyote, buffer, hasTrophy, jetFuel, hasJet;
+    var lvl = 0, score = 0, lives = 3, gems, trophyPos, doorPos, jetPos, running = false, dead = 0, wonAt = 0;
+    var keys = { left: false, right: false, jump: false, jumpPressed: false };
+
+    function parse(rows) {
+      grid = []; gems = []; trophyPos = null; doorPos = null; jetPos = null;
+      for (var r = 0; r < ROWS; r++) {
+        var line = rows[r], row = [];
+        for (var c = 0; c < COLS; c++) {
+          var ch = line[c] || " ";
+          if (ch === "@") { px = c * TILE + 2; py = r * TILE; ch = " "; }
+          else if (ch === ".") { gems.push({ x: c, y: r, got: false }); ch = " "; }
+          else if (ch === "T") { trophyPos = { x: c, y: r }; ch = " "; }
+          else if (ch === "D") { doorPos = { x: c, y: r }; ch = " "; }
+          else if (ch === "J") { jetPos = { x: c, y: r }; ch = " "; }
+          row.push(ch);
+        }
+        grid.push(row);
+      }
+    }
+    function solid(c, r) {
+      if (c < 0 || c >= COLS || r < 0 || r >= ROWS) return true;
+      var ch = grid[r][c];
+      return ch === "#" || ch === "=";
+    }
+    function hazardAt(c, r) {
+      if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return false;
+      var ch = grid[r][c];
+      return ch === "W" || ch === "F" || ch === "^";
+    }
+
+    function loadLevel(i) {
+      parse(LEVELS[i]);
+      vx = 0; vy = 0; onGround = false; coyote = 0; buffer = 0;
+      hasTrophy = false; jetFuel = 0; hasJet = false; dead = 0; wonAt = 0;
+      document.getElementById("lvl").textContent = (i + 1);
+      updateHud();
+    }
+    function updateHud() {
+      document.getElementById("score").textContent = score;
+      document.getElementById("lives").textContent = lives;
+    }
+
+    // ---- AABB collision resolve (axis-separated), tile-based ----
+    var PW = 12, PH = 14; // player size (px)
+    function moveAndCollide(dt) {
+      // horizontal
+      px += vx * dt;
+      var top = Math.floor(py / TILE), bot = Math.floor((py + PH - 1) / TILE);
+      if (vx > 0) {
+        var c = Math.floor((px + PW - 1) / TILE);
+        if (solid(c, top) || solid(c, bot)) { px = c * TILE - PW; vx = 0; }
+      } else if (vx < 0) {
+        var c2 = Math.floor(px / TILE);
+        if (solid(c2, top) || solid(c2, bot)) { px = (c2 + 1) * TILE; vx = 0; }
+      }
+      // vertical
+      py += vy * dt;
+      var left = Math.floor(px / TILE), right = Math.floor((px + PW - 1) / TILE);
+      onGround = false;
+      if (vy > 0) {
+        var r = Math.floor((py + PH - 1) / TILE);
+        if (solid(left, r) || solid(right, r)) { py = r * TILE - PH; vy = 0; onGround = true; }
+      } else if (vy < 0) {
+        var r2 = Math.floor(py / TILE);
+        if (solid(left, r2) || solid(right, r2)) { py = (r2 + 1) * TILE; vy = 0; }
+      }
+    }
+
+    function tileOverlap(tc, tr) {
+      var cx = px + PW / 2, cy = py + PH / 2;
+      return cx >= tc * TILE && cx < (tc + 1) * TILE && cy >= tr * TILE && cy < (tr + 1) * TILE;
+    }
+
+    function die() {
+      if (dead) return;
+      dead = performance.now();
+      lives--; updateHud();
+      beep(90, 0.3, "sawtooth", 0.08);
+      if (navigator.vibrate) try { navigator.vibrate(120); } catch (e) {}
+    }
+
+    function update(dt) {
+      if (dead) { if (performance.now() - dead > 700) { if (lives <= 0) gameOver(); else loadLevel(lvl); } return; }
+      if (wonAt) { if (performance.now() - wonAt > 700) nextLevel(); return; }
+
+      // horizontal intent
+      var want = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
+      vx = want * MOVE;
+
+      // jump: coyote + buffer + variable height
+      coyote = onGround ? COYOTE : Math.max(0, coyote - dt);
+      if (keys.jumpPressed) { buffer = BUFFER; keys.jumpPressed = false; }
+      else buffer = Math.max(0, buffer - dt);
+
+      if (hasJet && jetFuel > 0 && keys.jump) {
+        vy = Math.max(vy - JET_THRUST * dt, -JET_MAX_UP);
+        jetFuel -= dt;
+        if (Math.random() < 0.4) beep(220 + Math.random() * 80, 0.03, "square", 0.02);
+      } else if (buffer > 0 && coyote > 0) {
+        vy = -JUMP_V; buffer = 0; coyote = 0; onGround = false;
+        beep(320, 0.08, "square", 0.05);
+      }
+      // variable height: releasing jump while rising cuts it
+      if (!keys.jump && vy < 0) vy *= (1 - JUMP_CUT * Math.min(1, dt * 12));
+
+      vy += GRAV * dt;
+      if (vy > 420) vy = 420;
+      moveAndCollide(dt);
+
+      // fell out of the world
+      if (py > ROWS * TILE + 20) die();
+
+      // hazards under the player centre
+      var tc = Math.floor((px + PW / 2) / TILE), tr = Math.floor((py + PH / 2) / TILE);
+      if (hazardAt(tc, tr)) die();
+
+      // gems
+      for (var g = 0; g < gems.length; g++) {
+        if (!gems[g].got && tileOverlap(gems[g].x, gems[g].y)) {
+          gems[g].got = true; score += 10; updateHud(); beep(880, 0.06, "sine", 0.05);
+        }
+      }
+      // jetpack
+      if (jetPos && !hasJet && tileOverlap(jetPos.x, jetPos.y)) { hasJet = true; jetFuel = JET_FUEL; beep(500, 0.12, "triangle", 0.06); }
+      // trophy
+      if (trophyPos && !hasTrophy && tileOverlap(trophyPos.x, trophyPos.y)) {
+        hasTrophy = true; score += 100; updateHud();
+        beep(660, 0.1, "sine", 0.07); beep(990, 0.12, "sine", 0.06);
+      }
+      // door (only with trophy)
+      if (doorPos && hasTrophy && tileOverlap(doorPos.x, doorPos.y)) {
+        wonAt = performance.now(); beep(523, 0.1, "sine", 0.06); beep(784, 0.14, "sine", 0.06);
+      }
+    }
+
+    function nextLevel() {
+      if (lvl + 1 >= LEVELS.length) { win(); return; }
+      lvl++; loadLevel(lvl);
+    }
+    function gameOver() {
+      running = false;
+      show("GAME OVER", "You reached level " + (lvl + 1) + ". Score " + score + ".", "TRY AGAIN", function () { lvl = 0; score = 0; lives = 3; start(); });
+    }
+    function win() {
+      running = false;
+      show("YOU WIN! 🏆", "All 10 caves cleared. Score " + score + ".", "PLAY AGAIN", function () { lvl = 0; score = 0; lives = 3; start(); });
+    }
+
+    // ---- rendering (all procedural — original tile art) ----
+    function draw(t) {
+      ctx.fillStyle = "#000"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+      for (var r = 0; r < ROWS; r++) for (var c = 0; c < COLS; c++) {
+        var ch = grid[r][c], x = c * TILE, y = r * TILE;
+        if (ch === "#" || ch === "=") drawBrick(x, y);
+        else if (grid[r][c] === "W") drawWater(x, y, t);
+        else if (grid[r][c] === "F") drawFire(x, y, t);
+        else if (grid[r][c] === "^") drawSpikes(x, y);
+      }
+      // gems
+      for (var g = 0; g < gems.length; g++) if (!gems[g].got) drawGem(gems[g].x * TILE, gems[g].y * TILE, t);
+      if (jetPos && !hasJet) drawJet(jetPos.x * TILE, jetPos.y * TILE);
+      if (trophyPos && !hasTrophy) drawTrophy(trophyPos.x * TILE, trophyPos.y * TILE, t);
+      if (doorPos) drawDoor(doorPos.x * TILE, doorPos.y * TILE, hasTrophy);
+      drawHero(px, py, t);
+    }
+    function drawBrick(x, y) {
+      ctx.fillStyle = "#7a3b1e"; ctx.fillRect(x, y, TILE, TILE);
+      ctx.fillStyle = "#9a4d28"; ctx.fillRect(x + 1, y + 1, TILE - 2, 6);
+      ctx.fillRect(x + 1, y + 9, TILE - 2, 6);
+      ctx.fillStyle = "#5c2b14"; ctx.fillRect(x, y + 7, TILE, 2);
+      ctx.fillRect(x + 7, y, 2, 7); ctx.fillRect(x + 3, y + 9, 2, 6);
+    }
+    function drawWater(x, y, t) {
+      ctx.fillStyle = "#1749b0"; ctx.fillRect(x, y, TILE, TILE);
+      ctx.fillStyle = "#2f6fe0"; var w = Math.sin(t / 300 + x) * 2;
+      ctx.fillRect(x, y + 2 + w, TILE, 2);
+    }
+    function drawFire(x, y, t) {
+      ctx.fillStyle = "#3a0a00"; ctx.fillRect(x, y, TILE, TILE);
+      var f = (Math.sin(t / 90 + x) + 1) / 2;
+      ctx.fillStyle = "#ff6a00"; ctx.fillRect(x + 2, y + 6 - f * 3, 4, 10);
+      ctx.fillStyle = "#ffd000"; ctx.fillRect(x + 9, y + 8 - f * 4, 4, 8);
+      ctx.fillStyle = "#ff2a00"; ctx.fillRect(x + 6, y + 4 - f * 2, 3, 12);
+    }
+    function drawSpikes(x, y) {
+      ctx.fillStyle = "#111"; ctx.fillRect(x, y, TILE, TILE);
+      ctx.fillStyle = "#c9ccd4";
+      for (var i = 0; i < 4; i++) { ctx.beginPath(); ctx.moveTo(x + i * 4, y + TILE); ctx.lineTo(x + i * 4 + 2, y + 4); ctx.lineTo(x + i * 4 + 4, y + TILE); ctx.fill(); }
+    }
+    function drawGem(x, y, t) {
+      var b = (Math.sin(t / 200 + x) + 1) / 2;
+      ctx.fillStyle = b > 0.5 ? "#5ff" : "#3cc";
+      ctx.beginPath();
+      ctx.moveTo(x + 8, y + 3); ctx.lineTo(x + 13, y + 8); ctx.lineTo(x + 8, y + 13); ctx.lineTo(x + 3, y + 8); ctx.fill();
+    }
+    function drawTrophy(x, y, t) {
+      var b = (Math.sin(t / 250) + 1) / 2;
+      ctx.fillStyle = b > 0.5 ? "#ffe14d" : "#f2c200";
+      ctx.fillRect(x + 4, y + 3, 8, 6); ctx.fillRect(x + 3, y + 3, 2, 3); ctx.fillRect(x + 11, y + 3, 2, 3);
+      ctx.fillRect(x + 6, y + 9, 4, 3); ctx.fillRect(x + 4, y + 12, 8, 2);
+    }
+    function drawDoor(x, y, open) {
+      ctx.fillStyle = open ? "#7d5a2b" : "#3a3a3a"; ctx.fillRect(x + 2, y, 12, TILE);
+      ctx.fillStyle = open ? "#c9962f" : "#555"; ctx.fillRect(x + 3, y + 1, 10, TILE - 1);
+      ctx.fillStyle = open ? "#ffe14d" : "#222"; ctx.fillRect(x + 10, y + 7, 2, 2);
+    }
+    function drawJet(x, y) { ctx.fillStyle = "#bbb"; ctx.fillRect(x + 4, y + 4, 8, 9); ctx.fillStyle = "#e33"; ctx.fillRect(x + 5, y + 5, 6, 3); }
+    function drawHero(x, y, t) {
+      // an original little cave adventurer (not any existing character)
+      ctx.fillStyle = "#e8c37a"; ctx.fillRect(x + 3, y + 1, 6, 5);      // head
+      ctx.fillStyle = "#3a7d3a"; ctx.fillRect(x + 2, y + 6, 8, 6);      // body (green tunic)
+      ctx.fillStyle = "#2a5d2a"; ctx.fillRect(x + 2, y + 10, 8, 4);     // legs
+      ctx.fillStyle = "#000"; ctx.fillRect(x + (vx < 0 ? 4 : 6), y + 3, 1, 1); // eye
+      if (hasJet) { ctx.fillStyle = "#c33"; ctx.fillRect(x - 1, y + 6, 2, 6); }
+      if (dead) { ctx.fillStyle = "rgba(255,0,0,.4)"; ctx.fillRect(x, y, PW, PH); }
+    }
+
+    // ---- loop ----
+    var last = 0;
+    function frame(t) {
+      requestAnimationFrame(frame);
+      if (!last) last = t;
+      var dt = Math.min(0.033, (t - last) / 1000); last = t;
+      if (running) update(dt);
+      draw(t);
+    }
+
+    // ---- input ----
+    function press(k) { if (k === "jump") { keys.jump = true; keys.jumpPressed = true; } else keys[k] = true; }
+    function release(k) { if (k === "jump") keys.jump = false; else keys[k] = false; }
+    var KEYMAP = { ArrowLeft: "left", a: "left", A: "left", ArrowRight: "right", d: "right", D: "right",
+      ArrowUp: "jump", w: "jump", W: "jump", " ": "jump" };
+    window.addEventListener("keydown", function (e) { var k = KEYMAP[e.key]; if (k) { e.preventDefault(); if (!e.repeat) press(k); } });
+    window.addEventListener("keyup", function (e) { var k = KEYMAP[e.key]; if (k) { e.preventDefault(); release(k); } });
+    // on-screen buttons (pointer, both touch + mouse)
+    Array.prototype.forEach.call(document.querySelectorAll(".key"), function (el) {
+      var k = el.getAttribute("data-k");
+      el.addEventListener("pointerdown", function (e) { e.preventDefault(); el.classList.add("on"); press(k); });
+      el.addEventListener("pointerup", function (e) { e.preventDefault(); el.classList.remove("on"); release(k); });
+      el.addEventListener("pointerleave", function () { el.classList.remove("on"); release(k); });
+      el.addEventListener("pointercancel", function () { el.classList.remove("on"); release(k); });
+    });
+
+    // ---- sound ----
+    var ac = null;
+    function beep(freq, dur, type, vol) {
+      try { ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+        var o = ac.createOscillator(), g = ac.createGain(), tt = ac.currentTime;
+        o.type = type || "square"; o.frequency.value = freq; g.gain.value = vol || 0.05;
+        g.gain.exponentialRampToValueAtTime(0.0001, tt + dur);
+        o.connect(g); g.connect(ac.destination); o.start(tt); o.stop(tt + dur);
+      } catch (e) {}
+    }
+
+    // ---- banner / start ----
+    function show(title, text, btn, fn) {
+      var b = document.getElementById("banner");
+      document.getElementById("bTitle").textContent = title;
+      document.getElementById("bText").innerHTML = text;
+      var go = document.getElementById("bGo"); go.textContent = btn;
+      go.onclick = fn; b.style.display = "block";
+    }
+    function start() {
+      document.getElementById("banner").style.display = "none";
+      loadLevel(lvl); running = true; last = 0;
+    }
+    document.getElementById("bGo").onclick = start;
+
+    // boot render (so the first frame isn't black behind the banner)
+    loadLevel(0); requestAnimationFrame(frame);
+  })();
+  </script>
+</body>
+</html>
