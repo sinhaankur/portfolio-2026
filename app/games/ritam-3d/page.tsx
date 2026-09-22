@@ -24,7 +24,13 @@ const GameCanvas = dynamic(() => import("@/games/dave-3d/engine/game-canvas"), {
 
 export default function Ritam3DPage() {
   return (
-    <div className="fixed inset-0 overflow-hidden bg-[#05060c]">
+    // touch-action:none + overscroll-none lock the play area so dragging/pinching
+    // on a phone drives the game instead of scrolling or zooming the page. (The
+    // site-wide viewport still allows pinch-zoom elsewhere — this is scoped here.)
+    <div
+      className="fixed inset-0 overflow-hidden overscroll-none bg-[#05060c]"
+      style={{ touchAction: "none" }}
+    >
       <GameCanvas />
     </div>
   )

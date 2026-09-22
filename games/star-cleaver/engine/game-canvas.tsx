@@ -3669,6 +3669,21 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
     };
   };
 
+  // Touch "hold key" props: Pointer Events + capture so a button keeps its key
+  // pressed even if the thumb slides off, and multiple buttons (+ the joystick)
+  // can be held at once — the multitouch fix for the mobile flight controls.
+  const holdTouchKey = (key: string) => ({
+    onPointerDown: (e: React.PointerEvent) => {
+      e.preventDefault();
+      (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+      initEngineAudio();
+      keysPressed.current.add(key);
+    },
+    onPointerUp: () => { keysPressed.current.delete(key); },
+    onPointerCancel: () => { keysPressed.current.delete(key); },
+    onLostPointerCapture: () => { keysPressed.current.delete(key); },
+  });
+
   /**
    * Update engine audio params based on flight state.
    */
@@ -4127,28 +4142,31 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
             post-mount so it's SSR-safe and catches iPads). */}
         {isTouch && (
           <>
-            {/* Virtual joystick — bottom-left */}
+            {/* Virtual joystick — bottom-left. Uses POINTER events + capture so it
+                tracks its OWN finger by pointerId: steering keeps working while
+                the other thumb holds FIRE/BOOST (touches[0] read the wrong finger
+                on multitouch, so you couldn't steer + fire at once). */}
             <div
               className="pointer-events-auto fixed bottom-24 left-6 z-50"
-              onTouchStart={(e) => {
+              style={{ touchAction: 'none' }}
+              onPointerDown={(e) => {
                 e.preventDefault();
+                (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
                 initEngineAudio();
-                const touch = e.touches[0];
                 joystickRef.current = {
                   active: true,
-                  originX: touch.clientX,
-                  originY: touch.clientY,
+                  originX: e.clientX,
+                  originY: e.clientY,
                   dx: 0,
                   dy: 0,
                 };
               }}
-              onTouchMove={(e) => {
-                e.preventDefault();
+              onPointerMove={(e) => {
                 if (!joystickRef.current.active) return;
-                const touch = e.touches[0];
+                e.preventDefault();
                 const maxR = 48;
-                let dx = touch.clientX - joystickRef.current.originX;
-                let dy = touch.clientY - joystickRef.current.originY;
+                let dx = e.clientX - joystickRef.current.originX;
+                let dy = e.clientY - joystickRef.current.originY;
                 const dist = Math.sqrt(dx * dx + dy * dy);
                 if (dist > maxR) {
                   dx = (dx / dist) * maxR;
@@ -4156,15 +4174,18 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
                 }
                 joystickRef.current.dx = dx;
                 joystickRef.current.dy = dy;
-                // Move the knob live (DOM-direct, no React re-render) so the
-                // control has real tactile feedback.
                 if (joystickKnobRef.current) {
                   joystickKnobRef.current.style.transform =
                     `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
                 }
               }}
-              onTouchEnd={(e) => {
-                e.preventDefault();
+              onPointerUp={() => {
+                joystickRef.current = { active: false, originX: 0, originY: 0, dx: 0, dy: 0 };
+                if (joystickKnobRef.current) {
+                  joystickKnobRef.current.style.transform = 'translate(-50%, -50%)';
+                }
+              }}
+              onPointerCancel={() => {
                 joystickRef.current = { active: false, originX: 0, originY: 0, dx: 0, dy: 0 };
                 if (joystickKnobRef.current) {
                   joystickKnobRef.current.style.transform = 'translate(-50%, -50%)';
@@ -4183,58 +4204,37 @@ function GameRenderer({ onReady }: { onReady?: () => void }) {
               </div>
             </div>
 
-            {/* Thrust button — bottom-center-left */}
+            {/* action buttons — each captures its OWN pointer so it can be held
+                while the joystick steers, and a slid-off thumb can't stick a key */}
+            {/* Thrust — bottom-center */}
             <div className="pointer-events-auto fixed bottom-24 left-1/2 -translate-x-1/2 z-50">
               <button
                 type="button"
-                className="w-16 h-16 rounded-full border border-white/20 bg-black/35 backdrop-blur-sm active:bg-cyan-400/20 active:border-cyan-300/50 transition-colors"
-                onTouchStart={(e) => {
-                  e.preventDefault();
-                  initEngineAudio();
-                  keysPressed.current.add('KeyW');
-                }}
-                onTouchEnd={(e) => {
-                  e.preventDefault();
-                  keysPressed.current.delete('KeyW');
-                }}
+                className="w-16 h-16 rounded-full border border-white/20 bg-black/35 backdrop-blur-sm transition-colors active:bg-cyan-400/20 active:border-cyan-300/50"
+                style={{ touchAction: 'none' }}
+                {...holdTouchKey('KeyW')}
               >
                 <span className="block font-mono text-[8px] tracking-widest uppercase text-white/60 mt-1">THRUST</span>
               </button>
             </div>
-
-            {/* Boost button — bottom-right */}
+            {/* Boost — bottom-right, upper */}
             <div className="pointer-events-auto fixed bottom-36 right-6 z-50">
               <button
                 type="button"
-                className="w-14 h-14 rounded-full border border-white/20 bg-black/35 backdrop-blur-sm active:bg-purple-400/20 active:border-purple-300/50 transition-colors"
-                onTouchStart={(e) => {
-                  e.preventDefault();
-                  initEngineAudio();
-                  keysPressed.current.add('ShiftLeft');
-                }}
-                onTouchEnd={(e) => {
-                  e.preventDefault();
-                  keysPressed.current.delete('ShiftLeft');
-                }}
+                className="w-14 h-14 rounded-full border border-white/20 bg-black/35 backdrop-blur-sm transition-colors active:bg-purple-400/20 active:border-purple-300/50"
+                style={{ touchAction: 'none' }}
+                {...holdTouchKey('ShiftLeft')}
               >
                 <span className="block font-mono text-[7px] tracking-widest uppercase text-white/60 mt-1">BOOST</span>
               </button>
             </div>
-
-            {/* Fire button — bottom-right, above boost */}
+            {/* Fire — bottom-right, lower */}
             <div className="pointer-events-auto fixed bottom-24 right-6 z-50">
               <button
                 type="button"
-                className="w-14 h-14 rounded-full border border-white/20 bg-black/35 backdrop-blur-sm active:bg-red-400/20 active:border-red-300/50 transition-colors"
-                onTouchStart={(e) => {
-                  e.preventDefault();
-                  initEngineAudio();
-                  keysPressed.current.add('Mouse0');
-                }}
-                onTouchEnd={(e) => {
-                  e.preventDefault();
-                  keysPressed.current.delete('Mouse0');
-                }}
+                className="w-14 h-14 rounded-full border border-white/20 bg-black/35 backdrop-blur-sm transition-colors active:bg-red-400/20 active:border-red-300/50"
+                style={{ touchAction: 'none' }}
+                {...holdTouchKey('Mouse0')}
               >
                 <span className="block font-mono text-[7px] tracking-widest uppercase text-white/60 mt-1">FIRE</span>
               </button>

@@ -281,25 +281,43 @@ export function Hud({
 }
 
 function TouchControls() {
+  // Pointer Events + setPointerCapture so a held button keeps firing even if the
+  // finger slides off it, and so MOVE + JUMP can be pressed at the same time
+  // (essential for a platformer — you must run and jump together). Each button
+  // owns its own pointer via capture, so multitouch works reliably on phones.
   const hold = (key: "forward" | "back" | "left" | "right" | "jump") => ({
-    onTouchStart: (e: React.TouchEvent) => { e.preventDefault(); setInput(key, true) },
-    onTouchEnd: (e: React.TouchEvent) => { e.preventDefault(); setInput(key, false) },
-    onTouchCancel: () => setInput(key, false),
-    onMouseDown: () => setInput(key, true),
-    onMouseUp: () => setInput(key, false),
-    onMouseLeave: () => setInput(key, false),
+    onPointerDown: (e: React.PointerEvent) => {
+      e.preventDefault()
+      ;(e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId)
+      setInput(key, true)
+    },
+    onPointerUp: (e: React.PointerEvent) => {
+      e.preventDefault()
+      ;(e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId)
+      setInput(key, false)
+    },
+    onPointerCancel: () => setInput(key, false),
+    onLostPointerCapture: () => setInput(key, false),
   })
   const btn =
-    "select-none grid place-items-center h-16 w-16 rounded-full border border-white/25 bg-black/45 backdrop-blur text-white text-2xl active:bg-white/25"
+    "select-none grid place-items-center rounded-full border border-white/25 bg-black/45 backdrop-blur text-white active:bg-white/25"
   return (
-    <div className="fixed inset-x-0 bottom-0 z-30 flex items-end justify-between px-4 pb-[max(18px,env(safe-area-inset-bottom))] md:hidden">
-      {/* left/right movement */}
-      <div className="flex gap-2" style={{ touchAction: "none" }}>
-        <button className={btn} aria-label="Left" {...hold("left")}>◀</button>
-        <button className={btn} aria-label="Right" {...hold("right")}>▶</button>
+    <div
+      className="fixed inset-x-0 bottom-0 z-30 flex items-end justify-between px-4 pb-[max(18px,env(safe-area-inset-bottom))] md:hidden"
+      style={{ touchAction: "none" }}
+    >
+      {/* left/right movement — bigger tap targets (72px) for thumbs */}
+      <div className="flex gap-3" style={{ touchAction: "none" }}>
+        <button className={`${btn} h-[72px] w-[72px] text-3xl`} aria-label="Left" style={{ touchAction: "none" }} {...hold("left")}>◀</button>
+        <button className={`${btn} h-[72px] w-[72px] text-3xl`} aria-label="Right" style={{ touchAction: "none" }} {...hold("right")}>▶</button>
       </div>
-      {/* jump */}
-      <button className={`${btn} h-20 w-20 bg-red-500/70 text-sm`} aria-label="Jump" {...hold("jump")} style={{ touchAction: "none" }}>
+      {/* jump — large, thumb-reachable */}
+      <button
+        className={`${btn} h-[88px] w-[88px] bg-red-500/70 text-sm font-bold tracking-wide`}
+        aria-label="Jump"
+        style={{ touchAction: "none" }}
+        {...hold("jump")}
+      >
         JUMP
       </button>
     </div>
