@@ -17,17 +17,17 @@ export interface ShipConfig {
 
 export const SHIP_CONFIGS: Record<string, ShipConfig> = {
   // id stays 'default-vanguard' so existing saves/state keep resolving; the
-  // craft itself is now the Peregrine quad-foil strike fighter.
+  // craft itself is now our own original Kestrel interceptor (the default hull).
   'default-vanguard': {
     id: 'default-vanguard',
-    name: 'Peregrine Strike Fighter',
-    description: 'Quad-foil strike fighter — wing-root nacelles, four wingtip cannons, cockpit HUD.',
+    name: 'Kestrel Interceptor',
+    description: 'Forward-swept interceptor — canards, twin canted tails, quad micro-nozzle cluster.',
     visualSource: 'glb',
-    visualNote: 'Styled GLB',
+    visualNote: 'Original Blender hull',
     stats: {
-      speed: 3,
+      speed: 4,
       armor: 3,
-      weapons: 4,
+      weapons: 3,
     },
   },
   // Falcon family, same fleet palette (blender/space-assets/build_new_ships.py).

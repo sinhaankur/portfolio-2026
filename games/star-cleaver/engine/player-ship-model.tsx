@@ -9,23 +9,20 @@ import { auditShipModel } from './ship-model-qa';
 import type { SelectedShip } from './ship-selector';
 import { GAMEPLAY_SHIP_RENDER_SCALE, PREVIEW_SHIP_RENDER_SCALE } from './scale-contract';
 
-// Active player ship model: a detailed quad-foil strike fighter mesh. Named the
-// "Peregrine" in-game (original name; the game never claims any outside brand).
-// Model reoriented + centred + scaled to the fleet's 4.3u length in Blender so it
-// drops onto the shared [0,0,0] basis (nose -Z, up +Y) like the rest of the fleet.
-// The previous procedural Peregrine GLB stays in public/models/ so this is
-// revertible. Model credit — see MODEL-CREDITS.md (CC-BY, attribution required).
+// Active player ship model. The whole fleet is now our OWN original Blender
+// ships (Kestrel / Gyrfalcon / procedural), authored to the shared [0,0,0] basis
+// (nose -Z, up +Y). The default id stays 'default-vanguard' so existing saved
+// state keeps resolving, but it now maps to the original Kestrel hull — the
+// game ships no outside/branded designs.
 const SHIP_MODEL_PATHS: Record<SelectedShip, string> = {
-	'default-vanguard': '/models/xwing.glb',
+	'default-vanguard': '/models/kestrel.glb',
 	kestrel: '/models/kestrel.glb',
 	gyrfalcon: '/models/gyrfalcon.glb',
 };
 const DEFAULT_SHIP_PATH = SHIP_MODEL_PATHS['default-vanguard'];
-// The xwing.glb (Sketchfab "XWing 2.0") arrives NOSE-UP in three-space: its
-// fuselage runs along +Y (points up) instead of the game's forward -Z. Rotating
-// +90° about X tips the nose from +Y down to -Z (game forward) while bringing the
-// belly-up to +Y. This is the basis correction applied to the mesh before the
-// per-frame flight rotation, so the ship faces the way it flies.
+// Legacy fixed basis, kept only for the enemy GLBs (authored Y-forward). The
+// player ship now orients itself from its own geometry — see
+// measureShipBasisQuaternion below — so a swapped mesh always faces right.
 export const SHIP_MODEL_BASIS_ROTATION: [number, number, number] = [Math.PI / 2, 0, 0];
 
 // ── Geometry-measured orientation ────────────────────────────────────────────

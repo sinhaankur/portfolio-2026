@@ -1,19 +1,15 @@
 # Model credits — Helion Drift / Star Cleaver
 
 Third-party 3D assets used in the game, with their sources and licenses. Ankur's
-own Blender-authored assets (Peregrine build scripts, enemies, station, etc.) are
-his own work and are not listed here — this file credits **outside sources only**,
+own Blender-authored assets (the fleet ships, enemies, station, etc.) are his
+own work and are not listed here — this file credits **outside sources only**,
 per the project's attribution principle (always credit what we use; never omit it).
 
-## Player ship mesh — `public/models/xwing.glb`
+## Player + fleet ships — all original
 
-- **Model:** "XWing 2.0"
-- **Author:** via Sketchfab
-- **Source:** https://sketchfab.com/3d-models/xwing-20-cae716a9d92c4d56825ffb1dc1ea3525
-- **License:** Creative Commons Attribution (CC-BY) — free to use with credit.
-- **Modifications:** reoriented to the game's basis (nose −Z, up +Y), centred at
-  the origin, and uniformly scaled to the fleet's ~4.3-unit length. No mesh edits.
+The player fleet (Kestrel, Gyrfalcon, and the procedural interceptor) and all
+enemy ships are Ankur's own original Blender-authored models. The default player
+ship is the **Kestrel** hull. No third-party or branded ship designs are used.
 
-The mesh is used as the visual for the default player ship, which the game refers
-to by its own original name ("Peregrine"). The game does not claim, and is not
-affiliated with, any external brand or franchise.
+_(A previously-trialled third-party player mesh has been removed from the game;
+`public/models/xwing.glb` is no longer referenced by any code.)_
