@@ -16,10 +16,31 @@
     html[data-mode="dark"] { --accent: #4a94ff; --paper: #14161c; --ink: #e8e6df; }
 
     /* the notepad sits inside the frame's board-wrap */
-    .board-wrap { padding: 10px 14px; }
+    .board-wrap { padding: 10px 14px; perspective: 1400px; }
     .pad { position: relative; width: 100%; height: 100%; display: flex; flex-direction: column;
       background: var(--paper); border-radius: 4px 4px 10px 10px; overflow: hidden;
       box-shadow: 0 10px 26px -8px rgba(0,0,0,.4); padding-top: 20px; }
+    /* ── page-turn: a paper sheet hinged at the TOP (the spiral binding) that
+         folds up and back when you advance a hole, revealing the next one. It's
+         a separate overlay so the live canvas underneath is untouched. ── */
+    .page {
+      position: absolute; inset: 0; z-index: 6; transform-origin: top center;
+      background: var(--paper); border-radius: 4px 4px 10px 10px;
+      pointer-events: none; opacity: 0; will-change: transform;
+      backface-visibility: hidden; -webkit-backface-visibility: hidden;
+      box-shadow: 0 14px 30px -10px rgba(0,0,0,.5);
+    }
+    .page.turn { animation: pg-turn .62s cubic-bezier(.55,.06,.4,1) forwards; }
+    /* a soft shadow gradient across the sheet as it lifts, so it reads as paper */
+    .page .sheen { position: absolute; inset: 0; border-radius: inherit;
+      background: linear-gradient(180deg, rgba(0,0,0,.18), rgba(0,0,0,0) 40%); opacity: 0; }
+    .page.turn .sheen { animation: pg-sheen .62s ease forwards; }
+    @keyframes pg-turn {
+      0%   { transform: rotateX(0deg);   opacity: 1; }
+      100% { transform: rotateX(-115deg); opacity: 1; }
+    }
+    @keyframes pg-sheen { 0% { opacity: 0; } 45% { opacity: .5; } 100% { opacity: 0; } }
+    @media (prefers-reduced-motion: reduce) { .page.turn { animation-duration: .001ms; } }
     .spiral { position: absolute; top: 0; left: 0; right: 0; height: 20px;
       display: flex; justify-content: space-around; align-items: flex-start; pointer-events: none; }
     .spiral i { width: 8px; height: 15px; margin-top: -6px; border: 2px solid var(--ink); border-top: none;
@@ -61,6 +82,8 @@
           <div class="spiral" aria-hidden="true"></div>
           <canvas id="course"></canvas>
           <div class="hint" id="hint">Drag back from the ball, release to putt</div>
+          <!-- page-turn overlay: folds up from the spiral binding between holes -->
+          <div class="page" id="page" aria-hidden="true"><span class="sheen"></span></div>
         </div>
       </div>
 
@@ -257,11 +280,35 @@ function sink() {
   if (eyeFace && window.MatesEyes) MatesEyes.mood(eyeFace, 'happy');
 }
 
-$('nextBtn').onclick = function () {
-  $('over').classList.remove('show');
+function advanceHole() {
   if (holeIdx === HOLES.length - 1) { holeIdx = 0; total = 0; $('total').textContent = 0; }
   else holeIdx += 1;
   layoutHole();
+}
+// Turn the page: fold the sheet up from the spiral binding, swap the hole
+// mid-fold so the fresh page is revealed as it settles, then clear the overlay.
+function turnPage(then) {
+  var page = $('page');
+  if (!page || window.matchMedia('(prefers-reduced-motion: reduce)').matches) { then(); return; }
+  page.classList.remove('turn');
+  // force reflow so re-adding the class restarts the animation
+  void page.offsetWidth;
+  page.style.opacity = '1';
+  page.classList.add('turn');
+  var swapped = false;
+  var swap = function () { if (!swapped) { swapped = true; then(); } };
+  // reveal the next hole ~45% through the fold (page is lifted enough to hide it)
+  setTimeout(swap, 260);
+  page.addEventListener('animationend', function done() {
+    page.removeEventListener('animationend', done);
+    swap();
+    page.classList.remove('turn');
+    page.style.opacity = '0';
+  }, { once: true });
+}
+$('nextBtn').onclick = function () {
+  $('over').classList.remove('show');
+  turnPage(advanceHole);
 };
 $('restartBtn').onclick = function () { $('over').classList.remove('show'); layoutHole(); };
 document.getElementById('themeBtn').addEventListener('click', function () {
