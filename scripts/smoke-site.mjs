@@ -50,7 +50,7 @@ const ROUTES = [
   ["/academic/p2p-streaming/", 2500],
   ["/academic/rubik-cube/", 2500],
   ["/academic/rubik-cube-graph/", 3000],
-  ["/games/dave-3d/", 5000],
+  ["/games/ritam-3d/", 5000],
   ["/games/Gamelist.html", 3000],
   ["/writing/", 2500],
   ["/writing/universe-engine/", 2500],
