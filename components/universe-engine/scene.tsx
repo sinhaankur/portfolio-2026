@@ -35,6 +35,7 @@ import {
   BufferGeometry,
   Color,
   FogExp2,
+  Group,
   Mesh,
   NormalBlending,
   ShaderMaterial,
@@ -684,6 +685,13 @@ function SolarSystem({
   const coronaInnerMatRef = useRef<ShaderMaterial>(null)
   const coronaOuterMatRef = useRef<ShaderMaterial>(null)
   const [sunHovered, setSunHovered] = useState(false)
+  // "You are here" speck: when the camera pulls far back toward galaxy scale, the
+  // whole solar system eases down toward a point so its TRUE smallness reads
+  // (honest scale). A tiny marker + label fades in at the same time. Refs so the
+  // per-frame scale never triggers a React render.
+  const speckGroupRef = useRef<Group>(null)
+  const speckMarkerRef = useRef<Group>(null)
+  const speckScaleRef = useRef(1)
   // Photosphere = the baked Blender sun map (fiery, molten, real) + a light
   // live shimmer + limb darkening + an emissive boost so it glows like a star.
   const sunTexture = useMemo(() => {
@@ -741,6 +749,39 @@ function SolarSystem({
 
   useFrame((_, delta) => {
     const tw = timeWarpRef.current
+    // ── "You are here" speck ──────────────────────────────────────────────
+    // As the camera pulls far back (toward galaxy scale) the whole solar system
+    // should collapse toward a POINT so its real smallness is felt. The system
+    // spans ~50 units; the galaxy radius is 130. So: full size when the camera
+    // is within the system (< ~90 units), easing to a tiny speck once you're out
+    // at galaxy distances (> ~260). A marker + label fades in as it shrinks.
+    {
+      const camD = cameraDistanceRef.current
+      const NEAR = 90    // fully life-size at/under this distance
+      const FAR = 260    // fully a speck at/over this distance
+      const tRaw = (camD - NEAR) / (FAR - NEAR)
+      const tt = Math.max(0, Math.min(1, tRaw))
+      // smoothstep, then map to a scale that never fully vanishes (0.04 floor so
+      // the Sun stays a visible glint marking the spot)
+      const smooth = tt * tt * (3 - 2 * tt)
+      const targetScale = 1 - smooth * 0.96
+      const ease = 1 - Math.exp(-delta * 4)
+      speckScaleRef.current += (targetScale - speckScaleRef.current) * ease
+      if (speckGroupRef.current) {
+        const s = speckScaleRef.current
+        speckGroupRef.current.scale.set(s, s, s)
+      }
+      if (speckMarkerRef.current) {
+        // marker (ring) fades in over the second half of the collapse. It lives
+        // INSIDE the shrinking group, so counter-scale by 1/speckScale to hold a
+        // constant apparent size — a steady "you are here" ring on the speck.
+        const mk = Math.max(0, Math.min(1, (smooth - 0.4) / 0.6))
+        speckMarkerRef.current.visible = mk > 0.01
+        const inv = 1 / Math.max(0.04, speckScaleRef.current)
+        const ms = inv * (6 + mk * 4) // world-size ring, grows a touch as it appears
+        speckMarkerRef.current.scale.set(ms, ms, ms)
+      }
+    }
     if (sunSurfMeshRef.current) sunSurfMeshRef.current.rotation.y += delta * sunRotSpeed * tw
     if (coronaRef.current) {
       const s = 1 + Math.sin(performance.now() * 0.0008) * 0.025
@@ -816,7 +857,7 @@ function SolarSystem({
   }, [invert, coronaInnerUniforms, coronaOuterUniforms])
 
   return (
-    <group>
+    <group ref={speckGroupRef}>
       {/* Procedural photosphere — a living, seam-free Sun surface (animated
           granulation + limb darkening) replacing the old stretched sun.webp
           that read as hard blocky patches. Higher-poly sphere so the silhouette
@@ -981,6 +1022,23 @@ function SolarSystem({
           />
         </Suspense>
       )}
+
+      {/* "You are here" marker — a quiet ring centred on the Sun that fades in
+          only once the camera has pulled far enough back that the whole solar
+          system has collapsed to a speck, so the viewer can still find our place
+          in the galaxy. Counter-scaled in useFrame to hold a constant apparent
+          size against the shrinking system. */}
+      <group ref={speckMarkerRef} visible={false}>
+        <mesh rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[0.9, 1.0, 48]} />
+          <meshBasicMaterial
+            color={invert ? "#1a1a1a" : "#8fd0ff"}
+            transparent
+            opacity={0.7}
+            depthWrite={false}
+          />
+        </mesh>
+      </group>
     </group>
   )
 }
