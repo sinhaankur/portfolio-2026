@@ -20,7 +20,7 @@
 
 import { useRef, useMemo } from "react"
 import { useFrame } from "@react-three/fiber"
-import { BufferAttribute, BufferGeometry, Group, Line, LineDashedMaterial } from "three"
+import { BufferAttribute, BufferGeometry, Group, Line, LineBasicMaterial } from "three"
 import { compressRadius } from "./astronomy"
 import "./three-line"
 
@@ -81,13 +81,8 @@ export function OrbitRing({
     }
     const geo = new BufferGeometry()
     geo.setAttribute("position", new BufferAttribute(arr, 3))
-    // Line-distances so a dashed material renders "partial line" arcs rather than
-    // a solid ring — reads as delicate scaffolding, not a hard hoop.
-    const distGeo = geo
-    const line = new Line(distGeo)
-    line.computeLineDistances()
-    distGeo.setAttribute("lineDistance", line.geometry.getAttribute("lineDistance"))
-    return distGeo
+    // A clean, continuous ring (192 segments) — smooth solid hairline, no dashes.
+    return geo
   }, [radius, eccentricity])
 
   // Eccentric orbits get a softer line — the ellipse crosses neighbouring
@@ -102,25 +97,21 @@ export function OrbitRing({
   const baseOpacity = invert ? 0.22 : 0.16
   const opacity = isEccentric ? baseOpacity * 0.6 : baseOpacity
 
-  // Dashed "partial lines": dash + gap sized to the orbit so every ring shows a
-  // similar number of segments regardless of radius. Bump opacity a touch since
-  // a dashed line covers less area than a solid one.
-  const dashMat = useMemo(() => {
-    const circumference = 2 * Math.PI * radius
-    const dash = circumference / 96 // ~48 dashes around the ring
-    return new LineDashedMaterial({
+  // Clean SOLID hairline (no dashes). A continuous ring reads as smooth, precise
+  // orbital scaffolding rather than a broken dotted hoop. Opacity keeps it
+  // delicate; eccentric orbits stay a touch softer so crossings don't collide.
+  const lineMat = useMemo(() => {
+    return new LineBasicMaterial({
       color: invert ? "#0a0a0a" : "#ffffff",
       transparent: true,
-      opacity: Math.min(1, opacity * 1.35),
-      dashSize: dash * 0.55,
-      gapSize: dash * 0.45,
+      opacity,
     })
-  }, [radius, invert, opacity])
+  }, [invert, opacity])
 
   return (
     <group ref={scaleRef}>
       <group rotation={[inclination, 0, 0]}>
-        <primitive object={new Line(geometry, dashMat)} />
+        <primitive object={new Line(geometry, lineMat)} />
       </group>
     </group>
   )
