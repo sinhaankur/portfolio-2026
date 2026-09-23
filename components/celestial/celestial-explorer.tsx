@@ -80,6 +80,11 @@ const DiscoveriesPanel = dynamic(
   () => import("./discoveries-panel").then((m) => m.DiscoveriesPanel),
   { ssr: false },
 )
+// Confirmed exoplanets — the real NASA Exoplanet Archive catalog, browsable.
+const ExoplanetsPanel = dynamic(
+  () => import("./exoplanets-panel").then((m) => m.ExoplanetsPanel),
+  { ssr: false },
+)
 
 // Earth→Mars transfer calculator.
 const TransferTool = dynamic(
@@ -347,6 +352,7 @@ export function CelestialExplorer() {
   const [launchesOpen, setLaunchesOpen] = useState(false)
   const [imageryOpen, setImageryOpen] = useState(false)
   const [discoveriesOpen, setDiscoveriesOpen] = useState(false)
+  const [exoplanetsOpen, setExoplanetsOpen] = useState(false)
   // Earth→Mars transfer calculator.
   const [transferOpen, setTransferOpen] = useState(false)
   // Ground-station pass planner (ISS passes from named tracking stations).
@@ -393,7 +399,7 @@ export function CelestialExplorer() {
   const [bodiesSheet, setBodiesSheet] = useState(false)
   const [toolsSheet, setToolsSheet] = useState(false)
   const [timeSheet, setTimeSheet] = useState(false)
-  const closePanels = () => { setPassesOpen(false); setWeatherOpen(false); setLaunchesOpen(false); setImageryOpen(false); setDiscoveriesOpen(false); setTransferOpen(false); setStationOpen(false); setIssLiveOpen(false); setWatchLiveOpen(false); setPorkchopOpen(false); setNeoOpen(false); setInventoryOpen(false); setMetricsOpen(false); setConjOpen(false); setReentryOpen(false); setDebrisOpen(false); setScreeningOpen(false); setProximityOpen(false) }
+  const closePanels = () => { setPassesOpen(false); setWeatherOpen(false); setLaunchesOpen(false); setImageryOpen(false); setDiscoveriesOpen(false); setExoplanetsOpen(false); setTransferOpen(false); setStationOpen(false); setIssLiveOpen(false); setWatchLiveOpen(false); setPorkchopOpen(false); setNeoOpen(false); setInventoryOpen(false); setMetricsOpen(false); setConjOpen(false); setReentryOpen(false); setDebrisOpen(false); setScreeningOpen(false); setProximityOpen(false) }
   // `?earth=1` auto-opens the photoreal view — for capture/testing + deep-links.
   useEffect(() => {
     try {
@@ -624,6 +630,8 @@ export function CelestialExplorer() {
           label="Sky imagery · APOD" onClick={go(() => setImageryOpen(true))} />
         <MenuItem color="#ffca8a" icon={<Sparkles className="h-3.5 w-3.5" />}
           label="What's being discovered" onClick={go(() => setDiscoveriesOpen(true))} />
+        <MenuItem color="#7fd0ff" icon={<Globe className="h-3.5 w-3.5" />}
+          label="Exoplanets · confirmed" onClick={go(() => setExoplanetsOpen(true))} />
 
         <MenuHeading>Surfaces</MenuHeading>
         {hasGoogleEarthKey && (
@@ -1067,6 +1075,11 @@ export function CelestialExplorer() {
           {discoveriesOpen && (
             <div className="absolute bottom-24 left-4 md:left-6 z-40">
               <DiscoveriesPanel onClose={() => setDiscoveriesOpen(false)} />
+            </div>
+          )}
+          {exoplanetsOpen && (
+            <div className="absolute bottom-24 left-4 md:left-6 z-40">
+              <ExoplanetsPanel onClose={() => setExoplanetsOpen(false)} />
             </div>
           )}
           {transferOpen && (
