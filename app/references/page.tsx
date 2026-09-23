@@ -178,6 +178,26 @@ export default function ReferencesPage() {
             to a published dataset. The sources, their licenses, and links are
             below — credit where it's due.
           </p>
+
+          {/* Thank-you to NASA — the engine's live feeds run on NASA's free,
+              open APIs. Credit is a first principle here. */}
+          <div className="mt-6 max-w-2xl rounded-xl border border-border bg-card/40 px-5 py-4">
+            <p className="font-mono text-[10px] tracking-[0.25em] uppercase text-muted-foreground mb-2">
+              With thanks
+            </p>
+            <p className="text-foreground/80 leading-relaxed text-sm">
+              A sincere <span className="text-foreground">thank you to NASA</span>{" "}
+              for its free, open data and public APIs — the live feeds in this
+              engine (Astronomy Picture of the Day, near-Earth asteroids, space
+              weather, Mars rover imagery, the Exoplanet Archive, and more) run on
+              them. NASA data is generously made available to everyone, and this
+              project would not be possible without it.
+            </p>
+            <p className="text-foreground/60 leading-relaxed text-sm mt-2">
+              We&apos;re steadily adding more real sources over time — from ESA,
+              JPL, NOAA, and other open archives — always cited, never invented.
+            </p>
+          </div>
         </header>
 
         <div className="mx-auto w-full max-w-6xl px-6 md:px-10 mt-14 md:mt-20 space-y-14 md:space-y-20 pb-24">

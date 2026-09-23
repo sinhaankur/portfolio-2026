@@ -28,9 +28,11 @@ export type ApodItem = {
 }
 
 const APOD = "https://api.nasa.gov/planetary/apod"
-// The shared DEMO_KEY is intentional: it keeps the feed keyless and public.
-// It is rate-limited, so we cache in-memory for the session and fail softly.
-const KEY = "DEMO_KEY"
+// Use the real NASA key when one is set (higher rate limit), else the public
+// DEMO_KEY so the feed still works keyless. Same pattern as neo.ts /
+// space-weather.ts. On the static site DEMO_KEY ships publicly by design; a real
+// key set via .env.local (local) or the deploy secret raises the limit.
+const KEY = process.env.NEXT_PUBLIC_NASA_KEY || "DEMO_KEY"
 
 let cache: { at: number; today: ApodItem | null; recent: ApodItem[] } | null = null
 const TTL = 1000 * 60 * 30 // 30 min
