@@ -66,7 +66,7 @@ import { SceneContents } from "./scene"
 import {
   initDeviceTier, qualityForTier, perfTierRef, setPerfTier, superClearRef, setResolution, deviceProfileRef, adaptTier, dprForCanvas, type DeviceTier, type ResolutionLevel,
 } from "@/lib/device-tier"
-import { DestinationsMenu, InfoPanel, LayersMenu, ResetViewButton, TimelineControl } from "./hud"
+import { DestinationsMenu, InfoPanel, LayersMenu, ResetViewButton, ScaleLegend, TimelineControl } from "./hud"
 import { TonightSky } from "./tonight-sky"
 import { LearnTicker } from "./learn-ticker"
 import { selectedSatRef } from "./satellite-field"
@@ -881,6 +881,17 @@ export function UniverseEngine({
           — makes the "quality blooms with time" warmup visible instead of
           reading as jank. Real load %, fades out when done. */}
       <LoadingBar invert={invert} />
+
+      {/* Honest "you are here" scale readout — top-left, quiet, present whenever
+          the engine is explorable. Translates the (deliberately compressed)
+          camera distance into a plain-language landmark + real span so the scale
+          is easy to comprehend. Sits clear of the bottom chrome + top-right
+          panels; nudged below the safe-area/navbar. */}
+      {interactive && !(quietMobileChrome && mobile) && (
+        <div className="absolute top-16 left-4 md:top-20 md:left-6 z-20">
+          <ScaleLegend invert={invert} />
+        </div>
+      )}
 
       {/* ?perf overlay — live FPS / frame-time / tier readout for diagnosing
           real choppiness on-device. Written directly by the adaptive tick. */}

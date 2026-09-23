@@ -406,6 +406,32 @@ export const SCENE_SCALE = 6.0
 export type ScaleMode = "explore" | "true"
 export const scaleModeRef: { current: ScaleMode } = { current: "explore" }
 
+/* Live camera distance from the scene origin (scene units), written by the scene
+ * each frame and read by the HUD's ScaleLegend so it can state, honestly, what
+ * you're looking at ("1px ≈ X light-years · you are here"). Module-ref pattern,
+ * same as scaleModeRef — no prop-drilling through the R3F tree to the DOM HUD. */
+export const cameraDistanceRef: { current: number } = { current: 40 }
+
+/* ── Honest scale conversion ──────────────────────────────────────────────────
+ * The scene is sqrt-compressed for legibility, so "scene units" aren't linear
+ * with real distance. But we CAN state the truth at the current framing: how
+ * many real light-years one scene unit spans right around where the camera is
+ * looking. Earth's orbit (1 AU) sits at compressRadius(1) = SCENE_SCALE units,
+ * and 1 AU = 1.58e-5 light-years, giving a local "units → ly" anchor. Because
+ * the compression is a power curve, this is exact only near 1 AU and an honest
+ * order-of-magnitude elsewhere — which is the point: it makes the SCALE legible
+ * without pretending the geometry is linear. */
+export const AU_IN_LIGHTYEARS = 1.58125e-5
+/** Rough real light-years spanned per scene unit at the CURRENT camera framing.
+ *  Uses the local slope of compressRadius so the readout tracks zoom honestly. */
+export function sceneUnitsToLightYears(sceneDist: number): number {
+  // Invert the explore compression r_scene = rAU^0.58 * SCENE_SCALE to recover
+  // the real AU the current distance corresponds to, then → light-years.
+  const d = Math.max(sceneDist, 0.0001)
+  const rAU = Math.pow(d / SCENE_SCALE, 1 / 0.58)
+  return rAU * AU_IN_LIGHTYEARS
+}
+
 /* Device tier — set once at engine boot (index.tsx, from the same 768px media
  * query that drives every other mobile downgrade). Gates the 4K textures:
  * desktop gets hiResTextureUrl, mobile keeps the lighter 2K textureUrl, so

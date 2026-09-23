@@ -43,6 +43,8 @@ import {
   setSimMs,
   simTimeRef,
   timeWarpRef,
+  cameraDistanceRef,
+  sceneUnitsToLightYears,
 } from "./astronomy"
 
 /** Format a mass given in Earth-masses into a readable string.
@@ -75,6 +77,63 @@ function formatGee(value: number): string {
   const abs = Math.abs(gee)
   const display = abs >= 1000 || abs < 0.1 ? gee.toExponential(2) : gee.toFixed(2)
   return `${display} g`
+}
+
+/**
+ * ScaleLegend — an honest, human-readable "you are here" scale readout.
+ *
+ * The scene is sqrt-compressed for legibility (a documented, deliberate choice),
+ * so raw scene units don't mean much to a person. This translates the live
+ * camera distance into a PLAIN comparison — "roughly the inner solar system",
+ * "out past Neptune", "leaving the solar system" — plus the real span, so the
+ * viewer actually FEELS the scale instead of reading a bare number. UX rule:
+ * make it easy to comprehend. Polls the module ref on a light interval (no React
+ * churn from the render loop); bottom-left, quiet, never fights the other chrome.
+ */
+export function ScaleLegend({ invert = false }: { invert?: boolean }) {
+  const [label, setLabel] = useState("the inner solar system")
+  const [span, setSpan] = useState("")
+  useEffect(() => {
+    let raf = 0
+    let last = 0
+    const tick = (t: number) => {
+      raf = requestAnimationFrame(tick)
+      if (t - last < 250) return // ~4 Hz is plenty for a readout
+      last = t
+      const d = cameraDistanceRef.current
+      const ly = sceneUnitsToLightYears(d)          // real light-years at this framing
+      const au = ly / 1.58125e-5                     // back to AU for near-in comparisons
+      // plain-language "where am I" — anchored to real solar-system landmarks
+      let where: string
+      if (au < 2) where = "the inner solar system · around Earth's orbit"
+      else if (au < 6) where = "the inner planets · Mercury to Mars"
+      else if (au < 12) where = "the gas giants · Jupiter & Saturn"
+      else if (au < 35) where = "the outer solar system · out toward Neptune"
+      else if (au < 120) where = "past Neptune · the Kuiper Belt"
+      else if (ly < 0.5) where = "leaving the solar system · the Oort Cloud"
+      else if (ly < 30) where = "among the nearest stars"
+      else if (ly < 6000) where = "a corner of the Milky Way"
+      else where = "the galaxy at large"
+      // the real span, in units a person can hold
+      let sp: string
+      if (au < 200) sp = `≈ ${au < 10 ? au.toFixed(1) : Math.round(au)} AU across`
+      else if (ly < 1) sp = `≈ ${(ly * 63241).toFixed(0)} AU across`
+      else sp = `≈ ${ly < 100 ? ly.toFixed(1) : Math.round(ly).toLocaleString()} light-years across`
+      setLabel(where)
+      setSpan(sp)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [])
+  const fg = invert ? "text-black/60" : "text-white/60"
+  const fgDim = invert ? "text-black/40" : "text-white/40"
+  return (
+    <div className={`pointer-events-none select-none font-mono leading-tight ${fg}`}>
+      <div className={`text-[9px] tracking-[0.16em] uppercase ${fgDim}`}>You are looking at</div>
+      <div className="text-[11px] md:text-xs mt-0.5">{label}</div>
+      {span && <div className={`text-[9px] mt-0.5 ${fgDim}`}>{span}</div>}
+    </div>
+  )
 }
 
 /** Whether an orbital-elements record has any field worth displaying.

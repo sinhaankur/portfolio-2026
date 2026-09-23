@@ -56,6 +56,7 @@ import {
   buildScenePlanets,
   compressRadius,
   SCENE_SCALE,
+  cameraDistanceRef,
   cancelFollow,
   flyToRef,
   followRef,
@@ -238,6 +239,9 @@ function FlyToController({ interactive }: { interactive: boolean }) {
 
   useFrame((_, delta) => {
     if (!controls) return
+    // Publish the live camera distance (to the orbit target) so the HUD's
+    // ScaleLegend can state the current scale honestly. Cheap; every frame.
+    cameraDistanceRef.current = camera.position.distanceTo(controls.target)
     // Drift is allowed only when the user isn't driving AND a LONG cool-down
     // after their last input has elapsed. The old 2.5 s was too eager — the
     // contemplative auto-rotate kicked back in almost immediately, so the moment
