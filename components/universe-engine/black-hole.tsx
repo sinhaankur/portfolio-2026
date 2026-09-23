@@ -35,7 +35,9 @@ import {
   formatSolarMass,
   kerrHorizonRadiusMeters,
   schwarzschildRadiusMeters,
+  viewBandRef,
 } from "./astronomy"
+import { bandBrightness } from "@/lib/observe"
 import { getBlackHoleAffordance } from "./celestial-sub-engine"
 import type { SkyPoint } from "./types"
 
@@ -333,7 +335,14 @@ export function BlackHoleDetail({
   useFrame((_, delta) => {
     const k = 1 - Math.exp(-delta * 6)
     if (rootRef.current) {
-      const target = hovered ? 1.0 : 0.35
+      // Wavelength view: a black hole emits ONLY in X-ray + radio (the
+      // superheated infalling gas + polar jets); in visible/IR/UV/gamma there's
+      // effectively nothing to see. So scale the whole BH toward its shadow in
+      // those bands — the accretion disk blazes in X-ray, near-vanishes in
+      // visible — teaching exactly how we actually detect black holes.
+      const band = viewBandRef.current
+      const bandMul = band ? bandBrightness(band, "black hole") : 1
+      const target = (hovered ? 1.0 : 0.35) * (0.2 + 0.8 * bandMul)
       const s = rootRef.current.scale.x
       const next = s + (target - s) * k
       rootRef.current.scale.set(next, next, next)

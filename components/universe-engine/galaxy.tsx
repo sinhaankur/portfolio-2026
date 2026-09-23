@@ -39,7 +39,8 @@ import {
   type Texture,
 } from "three"
 
-import { DEG } from "./astronomy"
+import { DEG, viewBandRef } from "./astronomy"
+import { bandBrightness } from "@/lib/observe"
 
 // Soft radial sprite shared by every galaxy PointsMaterial. Without a map,
 // three renders points as raw SQUARES — invisible at 1–2 px, but at fly-in
@@ -358,23 +359,30 @@ export function GalaxyDetail({
       spinRef.current.rotation.y += delta * 0.02
     }
 
-    const armTarget = hovered ? (invert ? 0.45 : 0.55) : 0
+    // Wavelength view: a galaxy is bright in visible/IR/radio, faint in X-ray/UV/
+    // gamma — so multiply every material's target by its real band brightness.
+    // Its DUST specifically peaks in infrared, so lift the dust in the IR band.
+    const band = viewBandRef.current
+    const bandMul = band ? bandBrightness(band, "galaxy") : 1
+    const dustBandMul = band ? (band === "infrared" ? 1.0 : band === "radio" ? 0.8 : bandBrightness(band, "galaxy")) : 1
+
+    const armTarget = (hovered ? (invert ? 0.45 : 0.55) : 0) * bandMul
     if (armsMatRef.current) {
       armsMatRef.current.opacity += (armTarget - armsMatRef.current.opacity) * k
     }
-    const haloTarget = hovered ? (invert ? 0.18 : 0.24) : 0
+    const haloTarget = (hovered ? (invert ? 0.18 : 0.24) : 0) * bandMul
     if (haloMatRef.current) {
       haloMatRef.current.opacity += (haloTarget - haloMatRef.current.opacity) * k
     }
-    const barTarget = hovered ? (invert ? 0.38 : 0.46) : 0
+    const barTarget = (hovered ? (invert ? 0.38 : 0.46) : 0) * bandMul
     if (barMatRef.current) {
       barMatRef.current.opacity += (barTarget - barMatRef.current.opacity) * k
     }
-    const bulgeTarget = hovered ? (invert ? 0.55 : 0.75) : 0
+    const bulgeTarget = (hovered ? (invert ? 0.55 : 0.75) : 0) * bandMul
     if (bulgeMatRef.current) {
       bulgeMatRef.current.opacity += (bulgeTarget - bulgeMatRef.current.opacity) * k
     }
-    const dustTarget = isAndromeda && hovered ? (invert ? 0.5 : 0.55) : 0
+    const dustTarget = (isAndromeda && hovered ? (invert ? 0.5 : 0.55) : 0) * dustBandMul
     if (dustMatRef.current) {
       dustMatRef.current.opacity += (dustTarget - dustMatRef.current.opacity) * k
     }
