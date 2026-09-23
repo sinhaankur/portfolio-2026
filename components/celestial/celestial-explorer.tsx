@@ -75,6 +75,11 @@ const ImageryPanel = dynamic(
   () => import("./imagery-panel").then((m) => m.ImageryPanel),
   { ssr: false },
 )
+// "What's being discovered" — real recent NASA imagery/discoveries walkthrough.
+const DiscoveriesPanel = dynamic(
+  () => import("./discoveries-panel").then((m) => m.DiscoveriesPanel),
+  { ssr: false },
+)
 
 // Earth→Mars transfer calculator.
 const TransferTool = dynamic(
@@ -341,6 +346,7 @@ export function CelestialExplorer() {
   // Live launch feed.
   const [launchesOpen, setLaunchesOpen] = useState(false)
   const [imageryOpen, setImageryOpen] = useState(false)
+  const [discoveriesOpen, setDiscoveriesOpen] = useState(false)
   // Earth→Mars transfer calculator.
   const [transferOpen, setTransferOpen] = useState(false)
   // Ground-station pass planner (ISS passes from named tracking stations).
@@ -387,7 +393,7 @@ export function CelestialExplorer() {
   const [bodiesSheet, setBodiesSheet] = useState(false)
   const [toolsSheet, setToolsSheet] = useState(false)
   const [timeSheet, setTimeSheet] = useState(false)
-  const closePanels = () => { setPassesOpen(false); setWeatherOpen(false); setLaunchesOpen(false); setImageryOpen(false); setTransferOpen(false); setStationOpen(false); setIssLiveOpen(false); setWatchLiveOpen(false); setPorkchopOpen(false); setNeoOpen(false); setInventoryOpen(false); setMetricsOpen(false); setConjOpen(false); setReentryOpen(false); setDebrisOpen(false); setScreeningOpen(false); setProximityOpen(false) }
+  const closePanels = () => { setPassesOpen(false); setWeatherOpen(false); setLaunchesOpen(false); setImageryOpen(false); setDiscoveriesOpen(false); setTransferOpen(false); setStationOpen(false); setIssLiveOpen(false); setWatchLiveOpen(false); setPorkchopOpen(false); setNeoOpen(false); setInventoryOpen(false); setMetricsOpen(false); setConjOpen(false); setReentryOpen(false); setDebrisOpen(false); setScreeningOpen(false); setProximityOpen(false) }
   // `?earth=1` auto-opens the photoreal view — for capture/testing + deep-links.
   useEffect(() => {
     try {
@@ -616,6 +622,8 @@ export function CelestialExplorer() {
           label="Launches" onClick={go(() => setLaunchesOpen(true))} />
         <MenuItem color="#8ab6ff" icon={<ImageIcon className="h-3.5 w-3.5" />}
           label="Sky imagery · APOD" onClick={go(() => setImageryOpen(true))} />
+        <MenuItem color="#ffca8a" icon={<Sparkles className="h-3.5 w-3.5" />}
+          label="What's being discovered" onClick={go(() => setDiscoveriesOpen(true))} />
 
         <MenuHeading>Surfaces</MenuHeading>
         {hasGoogleEarthKey && (
@@ -1054,6 +1062,11 @@ export function CelestialExplorer() {
           {imageryOpen && (
             <div className="absolute bottom-24 left-4 md:left-6 z-40">
               <ImageryPanel onClose={() => setImageryOpen(false)} />
+            </div>
+          )}
+          {discoveriesOpen && (
+            <div className="absolute bottom-24 left-4 md:left-6 z-40">
+              <DiscoveriesPanel onClose={() => setDiscoveriesOpen(false)} />
             </div>
           )}
           {transferOpen && (
