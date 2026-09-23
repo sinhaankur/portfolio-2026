@@ -32,7 +32,9 @@ export function PiIrrational({ heroMode = false }: { heroMode?: boolean } = {}) 
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [ratioIdx, setRatioIdx] = useState(0)
   const [running, setRunning] = useState(true)
-  const [speed, setSpeed] = useState(1.6)        // multiplier, 0.1×–5× — lively, cinematic flow
+  // heroMode starts slower — the reel's hypnotic, contemplative accumulation —
+  // while the standalone stays livelier. Slider still spans 0.1×–5×.
+  const [speed, setSpeed] = useState(heroMode ? 0.85 : 1.6)
   const [turns, setTurns] = useState(0)
   const [fs, setFs] = useState(false)
   const [zoomOn, setZoomOn] = useState(false)    // opt-in closing zoom-OUT reveal (default = full rosette)
