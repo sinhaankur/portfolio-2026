@@ -230,13 +230,16 @@ export function MilkyWay({
       }
     }
 
-    // -- Central bar: the Milky Way is SBbc — an elongated stellar bar
-    //    runs through the bulge along a fixed axis. ~7000 ly half-length
-    //    in real units → ~18 scene units half-length. Aligned along X
-    //    so the disc rotation carries it naturally.
-    const barHalfLength = radius * 0.21
-    const barHalfWidth  = radius * 0.045
+    // -- Central bar: the Milky Way is SBbc — an elongated stellar bar runs
+    //    through the bulge. REAL bar is ~27,000 ly long (half-length ~13,500 ly ≈
+    //    31% of the ~44,000-ly radius) and TILTED ~30° to the Sun–centre line, a
+    //    defining, observed feature — so we rotate it in the disc plane rather
+    //    than leaving it axis-aligned.
+    const barHalfLength = radius * 0.30       // ~13,500 ly at radius 130
+    const barHalfWidth  = radius * 0.05
     const barHalfHeight = radius * 0.020
+    const BAR_TILT = (30 * Math.PI) / 180     // real ~30° to the Sun line
+    const barCos = Math.cos(BAR_TILT), barSin = Math.sin(BAR_TILT)
     for (let i = 0; i < barCount; i++) {
       const idx = armCount + bulgeCount + i
       const i3 = idx * 3
@@ -248,9 +251,10 @@ export function MilkyWay({
       const across = gauss() * barHalfWidth * 0.55
       const vert   = gauss() * barHalfHeight * 0.55
 
-      positions[i3]     = along
+      // rotate (along, across) by the real bar tilt in the xz disc plane
+      positions[i3]     = along * barCos - across * barSin
       positions[i3 + 1] = vert
-      positions[i3 + 2] = across
+      positions[i3 + 2] = along * barSin + across * barCos
 
       sizes[idx] = 2 + Math.pow(Math.random(), 2.5) * 6
       alphas[idx] = 0.32 + Math.random() * 0.22
@@ -391,18 +395,20 @@ export function MilkyWay({
           bloom. */}
       {!invert && (
         <group ref={coreGlowRef}>
-          {/* Bloom PULLED BACK so the tightened spiral arms read through the
-              centre instead of being bleached out — the core stays a bright warm
-              bulge (a golden jewel) but no longer a white sun swallowing the arms.
-              Smaller hot core + lower opacities let the HD structure survive. */}
-          <sprite scale={mobile ? [7, 7, 1] : [11, 11, 1]}>
-            <spriteMaterial map={coreTex} color="#ffedcf" transparent opacity={mobile ? 0.45 : 0.62} depthWrite={false} blending={AdditiveBlending} />
+          {/* Bulge bloom sized to the REAL galaxy: the Milky Way's bulge is the
+              innermost ~10,000 ly of a ~44,000-ly radius — about 23% of the disc.
+              At scene radius 130 that's ~30 units, so the outermost halo is
+              capped there (was 60 = 46% of radius, ~2× too big — it read as a
+              detached glowing blob swallowing the centre, disconnected from the
+              arms). Now the bulge sits INSIDE the disc it belongs to. */}
+          <sprite scale={mobile ? [5, 5, 1] : [7, 7, 1]}>
+            <spriteMaterial map={coreTex} color="#ffedcf" transparent opacity={mobile ? 0.45 : 0.60} depthWrite={false} blending={AdditiveBlending} />
           </sprite>
-          <sprite scale={mobile ? [20, 20, 1] : [26, 26, 1]}>
-            <spriteMaterial map={coreTex} color="#ffcf8a" transparent opacity={mobile ? 0.32 : 0.40} depthWrite={false} blending={AdditiveBlending} />
+          <sprite scale={mobile ? [12, 12, 1] : [16, 16, 1]}>
+            <spriteMaterial map={coreTex} color="#ffcf8a" transparent opacity={mobile ? 0.30 : 0.36} depthWrite={false} blending={AdditiveBlending} />
           </sprite>
-          <sprite scale={mobile ? [48, 48, 1] : [60, 60, 1]}>
-            <spriteMaterial map={coreTex} color="#e8a860" transparent opacity={mobile ? 0.16 : 0.17} depthWrite={false} blending={AdditiveBlending} />
+          <sprite scale={mobile ? [24, 24, 1] : [30, 30, 1]}>
+            <spriteMaterial map={coreTex} color="#e8a860" transparent opacity={mobile ? 0.15 : 0.16} depthWrite={false} blending={AdditiveBlending} />
           </sprite>
         </group>
       )}
