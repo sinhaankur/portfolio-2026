@@ -406,6 +406,16 @@ export const SCENE_SCALE = 6.0
 export type ScaleMode = "explore" | "true"
 export const scaleModeRef: { current: ScaleMode } = { current: "explore" }
 
+/* Wavelength view mode — which electromagnetic band the whole scene is rendered
+ * through (null = normal true-colour view). Set by the HUD's wavelength toggle,
+ * read by the body renderers each frame to modulate brightness/tint via
+ * lib/observe.ts bandBrightness(). Module-ref pattern, same as scaleModeRef, so
+ * flipping it re-lights the scene on the next frame with no prop-drilling. This
+ * is the engine's multi-wavelength view — the "how would this look in X-rays?"
+ * mode, grounded in the real per-body band data. */
+import type { ObserveBand } from "@/lib/observe"
+export const viewBandRef: { current: ObserveBand | null } = { current: null }
+
 /* Live camera distance from the scene origin (scene units), written by the scene
  * each frame and read by the HUD's ScaleLegend so it can state, honestly, what
  * you're looking at ("1px ≈ X light-years · you are here"). Module-ref pattern,

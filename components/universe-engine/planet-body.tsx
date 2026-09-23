@@ -70,7 +70,9 @@ import {
   eccentricToTrue,
   solveKepler,
   moons,
+  viewBandRef,
 } from "./astronomy"
+import { bandBrightness } from "@/lib/observe"
 import type { HoverHandler, ScenePlanet } from "./types"
 import {
   DAY_NIGHT_VERTEX_SHADER,
@@ -858,10 +860,18 @@ export function PlanetBody({
     }
     // Lerp the textured material's opacity to full as soon as the JPEG lands —
     // the photo-real globe is the default state now, not a hover reveal.
+    // Wavelength view: dim the body toward its REAL brightness in the selected
+    // band (planets ~vanish in X-ray/radio, hold in visible/IR) so the scene
+    // teaches "how would this look in this wavelength" from honest per-body data.
     if (texMatRef.current) {
       const k = 1 - Math.exp(-delta * 8)
-      const target = texture ? 1 : 0
+      const band = viewBandRef.current
+      const bandMul = band ? bandBrightness(band, planet.raw.classification, planet.raw.name) : 1
+      const target = (texture ? 1 : 0) * bandMul
       texMatRef.current.opacity += (target - texMatRef.current.opacity) * k
+      // in a non-visible band, also drop toward transparent so a dim planet
+      // reads as "we don't see it here", not just darkened
+      if (texMatRef.current.transparent === false) texMatRef.current.transparent = true
     }
     // Day/night shader path (Earth, Mars, and now the gas/ice giants + Venus) —
     // update opacity + the sun direction uniform each frame. Sun world position is

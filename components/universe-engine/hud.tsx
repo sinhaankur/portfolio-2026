@@ -17,7 +17,7 @@ import { SAT_GROUPS } from "./satellite-data"
 import { satGroupFilterRef } from "./satellite-refs"
 import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import type { BodyDeepFacts, BodyInfo } from "./types"
-import { observationFor, type ObserveBand } from "@/lib/observe"
+import { observationFor, BAND_WAVELENGTH, type ObserveBand } from "@/lib/observe"
 import type { ResolutionLevel } from "@/lib/device-tier"
 
 /** Band chip tints — roughly wavelength-mapped so the colours teach too:
@@ -45,6 +45,7 @@ import {
   timeWarpRef,
   cameraDistanceRef,
   sceneUnitsToLightYears,
+  viewBandRef,
 } from "./astronomy"
 
 /** Format a mass given in Earth-masses into a readable string.
@@ -90,6 +91,62 @@ function formatGee(value: number): string {
  * make it easy to comprehend. Polls the module ref on a light interval (no React
  * churn from the render loop); bottom-left, quiet, never fights the other chrome.
  */
+/**
+ * WavelengthView — the multi-wavelength toggle: view the whole scene through one
+ * electromagnetic band (radio · IR · visible · UV · X-ray · gamma) the way a
+ * space telescope would. Sets viewBandRef, which the body renderers read to dim
+ * each object toward its REAL brightness in that band (planets fade in X-ray,
+ * dust/nebulae brighten in IR, black-hole disks + the Sun's corona blaze in
+ * X-ray). "Visible" is the normal true-colour view. Grounded in lib/observe.ts —
+ * no invented imagery. A flyable multi-wavelength universe, which the flat 2D
+ * survey browsers can't do.
+ */
+const WAVE_BANDS: (ObserveBand | "off")[] = ["off", "radio", "infrared", "visible", "ultraviolet", "x-ray", "gamma"]
+const BAND_LABEL: Record<ObserveBand | "off", string> = {
+  off: "True colour",
+  radio: "Radio", infrared: "Infrared", visible: "Visible",
+  ultraviolet: "Ultraviolet", "x-ray": "X-ray", gamma: "Gamma",
+}
+export function WavelengthView({ invert = false }: { invert?: boolean }) {
+  const [band, setBand] = useState<ObserveBand | "off">("off")
+  const pick = (b: ObserveBand | "off") => {
+    setBand(b)
+    viewBandRef.current = b === "off" ? null : b
+  }
+  const fg = invert ? "text-black" : "text-white"
+  const dim = invert ? "text-black/45" : "text-white/45"
+  return (
+    <div className="pointer-events-auto select-none">
+      <div className={`mb-1 font-mono text-[9px] tracking-[0.16em] uppercase ${dim}`}>Wavelength</div>
+      <div className="flex flex-wrap gap-1 max-w-[13rem]">
+        {WAVE_BANDS.map((b) => {
+          const active = band === b
+          const tint = b !== "off" ? BAND_TINT[b] : undefined
+          return (
+            <button
+              key={b}
+              onClick={() => pick(b)}
+              data-cursor-hover
+              title={b !== "off" ? `${BAND_LABEL[b]} · ${BAND_WAVELENGTH[b]}` : "Normal true-colour view"}
+              className={`font-mono text-[9px] tracking-wider uppercase rounded-sm px-1.5 py-0.5 border transition-colors ${
+                active
+                  ? "border-transparent text-black"
+                  : `${invert ? "border-black/20" : "border-white/20"} ${fg} bg-transparent hover:bg-white/10`
+              }`}
+              style={active ? { background: tint ?? (invert ? "#0a0a0a" : "#ffffff"), color: tint ? "#0a0a0a" : (invert ? "#fff" : "#0a0a0a") } : undefined}
+            >
+              {BAND_LABEL[b]}
+            </button>
+          )
+        })}
+      </div>
+      {band !== "off" && (
+        <div className={`mt-1 font-mono text-[9px] ${dim}`}>{BAND_WAVELENGTH[band]} · dimmed to real emission</div>
+      )}
+    </div>
+  )
+}
+
 export function ScaleLegend({ invert = false }: { invert?: boolean }) {
   const [label, setLabel] = useState("the inner solar system")
   const [span, setSpan] = useState("")

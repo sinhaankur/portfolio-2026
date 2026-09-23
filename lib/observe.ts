@@ -108,3 +108,41 @@ export function kindFromClassification(classification: string | undefined): stri
 export function observationFor(classification: string | undefined, name?: string): Observation | null {
   return howWeObserve(kindFromClassification(classification), name)
 }
+
+/* ── Wavelength view mode ─────────────────────────────────────────────────────
+ * The engine can be viewed through a single electromagnetic band at a time (the
+ * "how would this look in X-rays?" mode). This returns, for a body, how BRIGHT
+ * it should render in a chosen band: 1 = a primary emitter in that band, a small
+ * residual if it's only faintly there, ~0 if effectively invisible. Derived
+ * straight from the real per-body band list (no invention) so the scene honestly
+ * lights up the objects that actually shine in each wavelength — the Sun's corona
+ * and black-hole disks in X-ray, cold dust + nebulae in infrared, planets only
+ * in visible/IR, etc. `null` band = normal full-colour view (every body 1). */
+export type ViewBand = ObserveBand | null
+
+export function bandBrightness(
+  band: ViewBand,
+  classification: string | undefined,
+  name?: string,
+): number {
+  if (!band) return 1 // normal view — everything at full brightness
+  const obs = observationFor(classification, name)
+  if (!obs) return 0.12 // unknown: a faint residual so it never fully vanishes
+  const i = obs.bands.indexOf(band)
+  if (i === 0) return 1.0 // primary band for this object — shines
+  if (i === 1) return 0.7 // strong secondary
+  if (i > 1) return 0.45 // present but minor
+  return 0.06 // not observed in this band → nearly dark (the teaching contrast)
+}
+
+/** A representative false-colour tint for each band, so the wavelength view reads
+ *  as a distinct "channel" (the way multi-wavelength astronomy images are
+ *  conventionally colour-coded: radio red → gamma violet). null = true colour. */
+export const BAND_VIEW_TINT: Record<ObserveBand, [number, number, number]> = {
+  radio: [1.0, 0.42, 0.30],       // warm red (longest λ)
+  infrared: [1.0, 0.62, 0.28],    // orange
+  visible: [1.0, 1.0, 1.0],       // true colour
+  ultraviolet: [0.72, 0.55, 1.0], // violet
+  "x-ray": [0.5, 0.72, 1.0],      // blue
+  gamma: [0.80, 0.55, 1.0],       // hot violet (shortest λ)
+}

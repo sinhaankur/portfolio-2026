@@ -66,7 +66,7 @@ import { SceneContents } from "./scene"
 import {
   initDeviceTier, qualityForTier, perfTierRef, setPerfTier, superClearRef, setResolution, deviceProfileRef, adaptTier, dprForCanvas, type DeviceTier, type ResolutionLevel,
 } from "@/lib/device-tier"
-import { DestinationsMenu, InfoPanel, LayersMenu, ResetViewButton, ScaleLegend, TimelineControl } from "./hud"
+import { DestinationsMenu, InfoPanel, LayersMenu, ResetViewButton, ScaleLegend, WavelengthView, TimelineControl } from "./hud"
 import { TonightSky } from "./tonight-sky"
 import { LearnTicker } from "./learn-ticker"
 import { selectedSatRef } from "./satellite-field"
@@ -888,8 +888,11 @@ export function UniverseEngine({
           is easy to comprehend. Sits clear of the bottom chrome + top-right
           panels; nudged below the safe-area/navbar. */}
       {interactive && !(quietMobileChrome && mobile) && (
-        <div className="absolute top-16 left-4 md:top-20 md:left-6 z-20">
+        <div className="absolute top-16 left-4 md:top-20 md:left-6 z-20 flex flex-col gap-3">
           <ScaleLegend invert={invert} />
+          {/* Multi-wavelength view — a power feature for the full explorer, kept
+              off the calm home hero (minimalControls) so the landing stays clean. */}
+          {!minimalControls && <WavelengthView invert={invert} />}
         </div>
       )}
 
