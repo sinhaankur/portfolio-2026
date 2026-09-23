@@ -166,7 +166,12 @@ export function MilkyWay({
       // blob. The arms stay frayed (via spur above) but read as distinct arms.
       const randomness = 0.16
       const rx = Math.pow(Math.random(), 3.2) * (Math.random() < 0.5 ? 1 : -1) * randomness * r
-      const ry = Math.pow(Math.random(), 3.2) * (Math.random() < 0.5 ? 1 : -1) * randomness * r * 0.12
+      // A real disc FLARES: it's thin in the core and thickens toward the rim.
+      // Give the vertical spread a mild radius-dependent flare (0.12 → up to
+      // ~0.20 at the edge) so the disc reads as a 3D volume with depth instead
+      // of a perfectly flat sheet — subtle, still astronomically thin.
+      const flare = 0.12 + (r / radius) * 0.08
+      const ry = Math.pow(Math.random(), 3.2) * (Math.random() < 0.5 ? 1 : -1) * randomness * r * flare
       const rz = Math.pow(Math.random(), 3.2) * (Math.random() < 0.5 ? 1 : -1) * randomness * r
 
       const i3 = i * 3
