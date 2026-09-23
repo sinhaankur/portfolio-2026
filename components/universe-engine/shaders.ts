@@ -123,6 +123,12 @@ export const SUN_SURFACE_FRAGMENT_SHADER = `
   uniform float uTime;
   uniform sampler2D uSunTex;  // baked Blender photosphere (equirectangular)
   uniform float uIntensity;
+  // Stellar life stage, driven by the real luminosity curve when the Sun-history
+  // timeline is scrubbed: 0 = main-sequence (today), 1 = red giant, 2 = white
+  // dwarf. 0 leaves the Sun exactly as it renders normally — the feature is
+  // inert until the timeline engages it. Colour shifts honestly with the phase
+  // (a cooler surface reddens; the white-dwarf remnant is intensely blue-white).
+  uniform float uLifeStage;
   varying vec2 vUv;
 
   // Tiny 3D value noise — used ONLY for a gentle live shimmer over the baked
@@ -148,8 +154,26 @@ export const SUN_SURFACE_FRAGMENT_SHADER = `
     float mu = clamp(abs(dot(vWorldNormal, vViewDir)), 0.0, 1.0);
     float limb = 0.55 + 0.45 * pow(mu, 0.5);
     col *= limb;
-    // Emissive boost so it reads as a light source, not a lit ball.
-    gl_FragColor = vec4(col * uIntensity, 1.0);
+
+    // ── Life-stage colour shift (honest to the physics) ──────────────────────
+    // A red giant's surface is COOLER (~3,500 K) so it reddens; the exposed
+    // white-dwarf core is very HOT (~25,000 K+) so it goes blue-white. We tint
+    // the real photosphere rather than replacing it, so it still reads as a star.
+    if (uLifeStage > 0.001) {
+      float toGiant = clamp(uLifeStage, 0.0, 1.0);        // 0→1 main→giant
+      float toDwarf = clamp(uLifeStage - 1.0, 0.0, 1.0);  // 0→1 giant→dwarf
+      // main→giant: push warm/red, slightly dim the surface (cooler)
+      vec3 giantCol = col * vec3(1.15, 0.55, 0.28);
+      col = mix(col, giantCol, toGiant);
+      // giant→dwarf: collapse to an intense blue-white ember
+      vec3 dwarfCol = vec3(0.80, 0.88, 1.0) * (0.6 + 0.4 * shimmer);
+      col = mix(col, dwarfCol, toDwarf);
+    }
+
+    // Emissive boost so it reads as a light source, not a lit ball. The white
+    // dwarf is small but fierce — lift intensity as it collapses.
+    float stageIntensity = uIntensity * (1.0 + clamp(uLifeStage - 1.0, 0.0, 1.0) * 1.6);
+    gl_FragColor = vec4(col * stageIntensity, 1.0);
   }
 `
 

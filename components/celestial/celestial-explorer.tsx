@@ -12,7 +12,7 @@ import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import dynamic from "next/dynamic"
 import { motion, AnimatePresence } from "framer-motion"
-import { ArrowLeft, X, Rotate3d, Globe, Satellite, Sparkles, Rocket, Route, Orbit, Layers, Radio, Crosshair, Flame, Trash2, HelpCircle, MoreHorizontal, Radar, ArrowLeftRight, Image as ImageIcon, Share2, Check, Mountain, Gauge, Compass } from "lucide-react"
+import { ArrowLeft, X, Rotate3d, Globe, Satellite, Sparkles, Rocket, Route, Orbit, Layers, Radio, Crosshair, Flame, Trash2, HelpCircle, MoreHorizontal, Radar, ArrowLeftRight, Image as ImageIcon, Share2, Check, Mountain, Gauge, Compass, Sun } from "lucide-react"
 import { CustomCursor } from "@/components/custom-cursor"
 import { ReportBug } from "@/components/report-bug"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -83,6 +83,11 @@ const DiscoveriesPanel = dynamic(
 // Confirmed exoplanets — the real NASA Exoplanet Archive catalog, browsable.
 const ExoplanetsPanel = dynamic(
   () => import("./exoplanets-panel").then((m) => m.ExoplanetsPanel),
+  { ssr: false },
+)
+// History & fate of the Sun — an opt-in scrub through its real life cycle.
+const SunHistoryPanel = dynamic(
+  () => import("./sun-history-panel").then((m) => m.SunHistoryPanel),
   { ssr: false },
 )
 
@@ -353,6 +358,7 @@ export function CelestialExplorer() {
   const [imageryOpen, setImageryOpen] = useState(false)
   const [discoveriesOpen, setDiscoveriesOpen] = useState(false)
   const [exoplanetsOpen, setExoplanetsOpen] = useState(false)
+  const [sunHistoryOpen, setSunHistoryOpen] = useState(false)
   // Earth→Mars transfer calculator.
   const [transferOpen, setTransferOpen] = useState(false)
   // Ground-station pass planner (ISS passes from named tracking stations).
@@ -399,7 +405,7 @@ export function CelestialExplorer() {
   const [bodiesSheet, setBodiesSheet] = useState(false)
   const [toolsSheet, setToolsSheet] = useState(false)
   const [timeSheet, setTimeSheet] = useState(false)
-  const closePanels = () => { setPassesOpen(false); setWeatherOpen(false); setLaunchesOpen(false); setImageryOpen(false); setDiscoveriesOpen(false); setExoplanetsOpen(false); setTransferOpen(false); setStationOpen(false); setIssLiveOpen(false); setWatchLiveOpen(false); setPorkchopOpen(false); setNeoOpen(false); setInventoryOpen(false); setMetricsOpen(false); setConjOpen(false); setReentryOpen(false); setDebrisOpen(false); setScreeningOpen(false); setProximityOpen(false) }
+  const closePanels = () => { setPassesOpen(false); setWeatherOpen(false); setLaunchesOpen(false); setImageryOpen(false); setDiscoveriesOpen(false); setExoplanetsOpen(false); setSunHistoryOpen(false); setTransferOpen(false); setStationOpen(false); setIssLiveOpen(false); setWatchLiveOpen(false); setPorkchopOpen(false); setNeoOpen(false); setInventoryOpen(false); setMetricsOpen(false); setConjOpen(false); setReentryOpen(false); setDebrisOpen(false); setScreeningOpen(false); setProximityOpen(false) }
   // `?earth=1` auto-opens the photoreal view — for capture/testing + deep-links.
   useEffect(() => {
     try {
@@ -632,6 +638,8 @@ export function CelestialExplorer() {
           label="What's being discovered" onClick={go(() => setDiscoveriesOpen(true))} />
         <MenuItem color="#7fd0ff" icon={<Globe className="h-3.5 w-3.5" />}
           label="Exoplanets · confirmed" onClick={go(() => setExoplanetsOpen(true))} />
+        <MenuItem color="#ffb347" icon={<Sun className="h-3.5 w-3.5" />}
+          label="History & fate of the Sun" onClick={go(() => setSunHistoryOpen(true))} />
 
         <MenuHeading>Surfaces</MenuHeading>
         {hasGoogleEarthKey && (
@@ -1080,6 +1088,11 @@ export function CelestialExplorer() {
           {exoplanetsOpen && (
             <div className="absolute bottom-24 left-4 md:left-6 z-40">
               <ExoplanetsPanel onClose={() => setExoplanetsOpen(false)} />
+            </div>
+          )}
+          {sunHistoryOpen && (
+            <div className="absolute bottom-24 left-4 md:left-6 z-40">
+              <SunHistoryPanel onClose={() => setSunHistoryOpen(false)} />
             </div>
           )}
           {transferOpen && (

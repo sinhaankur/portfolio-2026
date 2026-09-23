@@ -58,6 +58,7 @@ import {
   compressRadius,
   SCENE_SCALE,
   cameraDistanceRef,
+  sunLifeStageRef,
   cancelFollow,
   flyToRef,
   followRef,
@@ -704,6 +705,7 @@ function SolarSystem({
       uTime: { value: 0 },
       uSunTex: { value: sunTexture },
       uIntensity: { value: invert ? 1.0 : 1.5 },
+      uLifeStage: { value: 0 }, // 0=today, 1=red giant, 2=white dwarf (opt-in)
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
@@ -783,7 +785,10 @@ function SolarSystem({
       }
     }
     if (sunSurfMeshRef.current) sunSurfMeshRef.current.rotation.y += delta * sunRotSpeed * tw
-    if (coronaRef.current) {
+    // Base corona pulse — ONLY while the Sun is at its normal stage (today). Once
+    // the life-stage timeline engages, the block below scales the corona with the
+    // swelling/collapsing Sun instead, so the two don't fight.
+    if (coronaRef.current && sunLifeStageRef.current < 0.001) {
       const s = 1 + Math.sin(performance.now() * 0.0008) * 0.025
       coronaRef.current.scale.set(s, s, s)
     }
@@ -792,6 +797,26 @@ function SolarSystem({
     // orbital time-warp.
     if (sunSurfMatRef.current) {
       sunSurfMatRef.current.uniforms.uTime.value += delta
+      // Sun-history life stage (opt-in): ease the shader stage toward the target
+      // and swell/collapse the Sun mesh — main-sequence (1×) → red giant (~14×,
+      // reaching toward Earth's orbit) → white dwarf (~0.1×, an Earth-sized
+      // ember). Stays at 1× while the stage is 0 (today), so nothing changes
+      // until the user engages the timeline.
+      const stageTarget = sunLifeStageRef.current
+      const u = sunSurfMatRef.current.uniforms.uLifeStage as { value: number }
+      u.value += (stageTarget - u.value) * (1 - Math.exp(-delta * 2.5))
+      const st = u.value
+      // scale: 1 at stage 0; grow to ~14 at stage 1 (red giant); shrink to ~0.1
+      // at stage 2 (white dwarf). Piecewise on the two segments.
+      const toGiant = Math.min(st, 1)
+      const toDwarf = Math.max(0, st - 1)
+      const sunScale = (1 + toGiant * 13) * (1 - toDwarf * 0.99)
+      if (sunSurfMeshRef.current) {
+        const cur = sunSurfMeshRef.current.scale.x
+        const next = cur + (sunScale - cur) * (1 - Math.exp(-delta * 2.5))
+        sunSurfMeshRef.current.scale.setScalar(next)
+        if (coronaRef.current) coronaRef.current.scale.setScalar(next * (1 + Math.sin(performance.now() * 0.0008) * 0.025))
+      }
     }
     const flareBoost = sunHovered ? 1 : 0
     const k = 1 - Math.exp(-delta * 6)

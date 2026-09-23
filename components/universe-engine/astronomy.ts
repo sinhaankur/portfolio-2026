@@ -416,6 +416,13 @@ export const scaleModeRef: { current: ScaleMode } = { current: "explore" }
 import type { ObserveBand } from "@/lib/observe"
 export const viewBandRef: { current: ObserveBand | null } = { current: null }
 
+/* Sun life-stage — 0 = main-sequence (today, the default), 1 = red giant, 2 =
+ * white dwarf. OPT-IN: stays 0 until the user engages the Sun-history timeline,
+ * so the Sun renders exactly as normal until they choose to look. Read by the
+ * Sun renderer each frame to drive the shader colour + the mesh swell/collapse.
+ * Module-ref pattern, same as scaleModeRef/viewBandRef. */
+export const sunLifeStageRef: { current: number } = { current: 0 }
+
 /* Live camera distance from the scene origin (scene units), written by the scene
  * each frame and read by the HUD's ScaleLegend so it can state, honestly, what
  * you're looking at ("1px ≈ X light-years · you are here"). Module-ref pattern,
