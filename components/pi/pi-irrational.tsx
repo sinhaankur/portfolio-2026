@@ -244,12 +244,25 @@ export function PiIrrational({ heroMode = false }: { heroMode?: boolean } = {}) 
       const breathe = 1 + cineAmt * 0.10 * Math.sin(cinePhaseRef.current * (TAU / 22))
       const targetZoom = (1 - 0.78 * outEase) * breathe   // reveal pull-back × cinematic breathing
       zoomRef.current += (targetZoom - zoomRef.current) * 0.03
-      // camera focus is locked to screen-center (no tip-follow) unless the user
-      // clicks a point to fly there (explore mode overrides the fixed framing).
+      // camera focus. Priority: a user click-to-fly point → the moving TIP (hero
+      // mode only, a slow cinematic follow so the drawing dot stays the focus) →
+      // otherwise locked to screen-center.
       const clicked = clickTargetRef.current
       if (clicked) {
         camRef.current.x += (clicked.x - camRef.current.x) * 0.06
         camRef.current.y += (clicked.y - camRef.current.y) * 0.06
+      } else if (heroMode && runRef.current) {
+        // follow the tip, but only PART of the way (0.5) and very gently (0.025),
+        // so the frame drifts with the dot without yanking — cinematic, not jittery.
+        const tNow = tRef.current
+        const jxN = cx + r1 * Math.cos(tNow)
+        const jyN = cy + r1 * Math.sin(tNow)
+        const txN = jxN + r2 * Math.cos(tNow * ratioRef.current.value)
+        const tyN = jyN + r2 * Math.sin(tNow * ratioRef.current.value)
+        const fx = cx + (txN - cx) * 0.5   // ease toward tip, halfway (keeps rosette in view)
+        const fy = cy + (tyN - cy) * 0.5
+        camRef.current.x += (fx - camRef.current.x) * 0.025
+        camRef.current.y += (fy - camRef.current.y) * 0.025
       } else {
         camRef.current.x += (cx - camRef.current.x) * 0.06
         camRef.current.y += (cy - camRef.current.y) * 0.06
@@ -414,7 +427,22 @@ export function PiIrrational({ heroMode = false }: { heroMode?: boolean } = {}) 
           }
           dot(cx, cy, 2.4, "rgba(210,216,228,0.85)")   // pivot
           dot(jx, jy, 2.2, "rgba(190,197,210,0.8)")    // elbow
-          dot(tx, ty, 2.6, "rgba(240,244,250,0.95)")   // tip (plain dot, no glow)
+          // TIP — the focal point the eye rides. In hero mode it's a brighter,
+          // glowing dot (soft additive halo + solid core) so it clearly leads the
+          // drawing; elsewhere it stays a plain dot.
+          if (heroMode) {
+            ctx.globalCompositeOperation = "lighter"
+            const g = ctx.createRadialGradient(tx, ty, 0, tx, ty, 11 / z)
+            g.addColorStop(0, "rgba(255,255,255,0.9)")
+            g.addColorStop(0.4, "rgba(200,220,255,0.35)")
+            g.addColorStop(1, "rgba(180,205,255,0)")
+            ctx.fillStyle = g
+            ctx.beginPath(); ctx.arc(tx, ty, 11 / z, 0, TAU); ctx.fill()
+            ctx.globalCompositeOperation = "source-over"
+            dot(tx, ty, 3.2, "rgba(255,255,255,1)")     // bright solid core
+          } else {
+            dot(tx, ty, 2.6, "rgba(240,244,250,0.95)")  // plain dot, no glow
+          }
         }
 
         tRef.current = t2
