@@ -640,6 +640,13 @@ export function CelestialExplorer() {
           label="Exoplanets · confirmed" onClick={go(() => setExoplanetsOpen(true))} />
         <MenuItem color="#ffb347" icon={<Sun className="h-3.5 w-3.5" />}
           label="History & fate of the Sun" onClick={go(() => setSunHistoryOpen(true))} />
+        <MenuItem color="#5865F2"
+          icon={
+            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="currentColor" aria-hidden="true">
+              <path d="M20.317 4.369A19.79 19.79 0 0 0 16.558 3c-.2.36-.43.845-.588 1.23a18.27 18.27 0 0 0-3.94 0A12.6 12.6 0 0 0 11.44 3a19.74 19.74 0 0 0-3.76 1.37C3.6 8.058 2.65 11.66 2.98 15.211a19.9 19.9 0 0 0 6.06 3.078c.49-.667.926-1.376 1.3-2.122a12.9 12.9 0 0 1-2.05-.984c.172-.126.34-.257.502-.392a14.2 14.2 0 0 0 12.02 0c.164.14.332.27.5.392-.654.386-1.34.716-2.05.985.374.745.81 1.454 1.3 2.12a19.86 19.86 0 0 0 6.06-3.077c.386-4.116-.66-7.685-2.905-10.842ZM9.68 13.037c-.955 0-1.74-.878-1.74-1.958 0-1.08.77-1.958 1.74-1.958.98 0 1.756.886 1.74 1.958 0 1.08-.77 1.958-1.74 1.958Zm4.64 0c-.955 0-1.74-.878-1.74-1.958 0-1.08.77-1.958 1.74-1.958.98 0 1.756.886 1.74 1.958 0 1.08-.76 1.958-1.74 1.958Z" />
+            </svg>
+          }
+          label="Join our Discord" onClick={() => window.open("https://discord.gg/ptbBeMKj7", "_blank", "noopener,noreferrer")} />
 
         <MenuHeading>Surfaces</MenuHeading>
         {hasGoogleEarthKey && (

@@ -159,6 +159,7 @@ const socials: Array<{ label: string; href: string; download?: boolean }> = [
   { label: "Email", href: "mailto:sinhaankur@ymail.com" },
   { label: "LinkedIn", href: "https://www.linkedin.com/in/sinhaankur27" },
   { label: "GitHub", href: "https://github.com/sinhaankur" },
+  { label: "Discord", href: "https://discord.gg/ptbBeMKj7" },
   { label: "Writing", href: "/writing" },
   { label: "Photos", href: "/photos" },
   { label: "The Math", href: "/universe-engine/math" },
