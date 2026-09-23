@@ -153,13 +153,26 @@ function ClearCacheButton() {
   )
 }
 
-const socials: Array<{ label: string; href: string; download?: boolean }> = [
+// Simple original inline glyphs for the social links (not copyrighted logo
+// assets — plain geometric marks the render treats as decorative icons).
+const LINKEDIN_ICON = (
+  <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="currentColor" aria-hidden="true">
+    <path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5ZM3 9h4v12H3V9Zm6 0h3.8v1.64h.05c.53-1 1.83-2.05 3.76-2.05C20.6 8.59 22 10.3 22 13.6V21h-4v-6.4c0-1.53-.03-3.5-2.13-3.5-2.13 0-2.46 1.66-2.46 3.38V21H9V9Z" />
+  </svg>
+)
+const DISCORD_ICON = (
+  <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="currentColor" aria-hidden="true">
+    <path d="M20.317 4.369A19.79 19.79 0 0 0 16.558 3c-.2.36-.43.845-.588 1.23a18.27 18.27 0 0 0-3.94 0A12.6 12.6 0 0 0 11.44 3a19.74 19.74 0 0 0-3.76 1.37C3.6 8.058 2.65 11.66 2.98 15.211a19.9 19.9 0 0 0 6.06 3.078c.49-.667.926-1.376 1.3-2.122a12.9 12.9 0 0 1-2.05-.984c.172-.126.34-.257.502-.392a14.2 14.2 0 0 0 12.02 0c.164.14.332.27.5.392-.654.386-1.34.716-2.05.985.374.745.81 1.454 1.3 2.12a19.86 19.86 0 0 0 6.06-3.077c.386-4.116-.66-7.685-2.905-10.842ZM9.68 13.037c-.955 0-1.74-.878-1.74-1.958 0-1.08.77-1.958 1.74-1.958.98 0 1.756.886 1.74 1.958 0 1.08-.77 1.958-1.74 1.958Zm4.64 0c-.955 0-1.74-.878-1.74-1.958 0-1.08.77-1.958 1.74-1.958.98 0 1.756.886 1.74 1.958 0 1.08-.76 1.958-1.74 1.958Z" />
+  </svg>
+)
+
+const socials: Array<{ label: string; href: string; download?: boolean; icon?: React.ReactNode }> = [
   { label: "About", href: "/about" },
   { label: "Framework", href: "/framework" },
   { label: "Email", href: "mailto:sinhaankur@ymail.com" },
-  { label: "LinkedIn", href: "https://www.linkedin.com/in/sinhaankur27" },
+  { label: "LinkedIn", href: "https://www.linkedin.com/in/sinhaankur27", icon: LINKEDIN_ICON },
   { label: "GitHub", href: "https://github.com/sinhaankur" },
-  { label: "Discord", href: "https://discord.gg/ptbBeMKj7" },
+  { label: "Discord", href: "https://discord.gg/ptbBeMKj7", icon: DISCORD_ICON },
   { label: "Writing", href: "/writing" },
   { label: "Photos", href: "/photos" },
   { label: "The Math", href: "/universe-engine/math" },
@@ -325,6 +338,7 @@ export function Footer({ hideContact = false }: { hideContact?: boolean } = {}) 
                   <li key={link.label}>
                     {useLink ? (
                       <Link href={link.href} data-cursor-hover aria-label={label} className={cls}>
+                        {link.icon && <span className="mr-1.5 inline-flex">{link.icon}</span>}
                         {link.label.toUpperCase()}
                       </Link>
                     ) : (
@@ -336,6 +350,7 @@ export function Footer({ hideContact = false }: { hideContact?: boolean } = {}) 
                         aria-label={label}
                         className={cls}
                       >
+                        {link.icon && <span className="mr-1.5 inline-flex">{link.icon}</span>}
                         {link.label.toUpperCase()}
                       </a>
                     )}
