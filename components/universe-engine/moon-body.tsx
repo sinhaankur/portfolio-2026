@@ -113,7 +113,7 @@ export function MoonBody({
       uElevationTexel:      { value: new Vector2(1 / 4096, 1 / 2048) },
       // Never a black void: the night side keeps a floor of the day texture.
       // For Luna this is driven per-frame by REAL earthshine geometry below.
-      uNightFloor:          { value: 0.05 },
+      uNightFloor:          { value: 0.08 },
     }),
     [],
   )
@@ -304,7 +304,10 @@ export function MoonBody({
       // drives the phase. Subtle by design: a whisper of the day texture.
       if (isLuna) {
         const elongD = (297.8501921 + 12.19074911 * daysSinceJ2000(simTimeRef.current.simMs)) * DEG
-        dayNightUniforms.uNightFloor.value = 0.02 + 0.11 * ((1 + Math.cos(elongD)) / 2)
+        // Floor raised (0.08 base) so the Moon is never a black void even when the
+        // viewer faces its night hemisphere; the earthshine term still peaks at new
+        // moon and fades toward full, so real phase reads intact.
+        dayNightUniforms.uNightFloor.value = 0.08 + 0.10 * ((1 + Math.cos(elongD)) / 2)
       }
       // Per-pixel lunar relief is a deep-zoom reward — fade uNormalStrength in
       // only when the camera is close + the moon is highlighted, so the 4 extra
@@ -321,7 +324,13 @@ export function MoonBody({
     }
   })
 
-  const hitRadius = Math.max(moon.visualRadius * 3, 0.12)
+  // Hit-sphere: generous enough to tap a small moon, but NOT so oversized it
+  // engulfs its parent planet / satellite shell and steals their clicks (the
+  // "there's something to view but I can't go in" bug when Earth + Moon share
+  // the frame). Scales with the moon's size; a modest floor keeps tiny moons
+  // tappable without ballooning. Highlighted moons (parent focused) get a bit
+  // more, since that's when you're actually trying to click them.
+  const hitRadius = Math.max(moon.visualRadius * 2.0, 0.05) * (highlighted ? 1.4 : 1)
 
   return (
     <group ref={orbitRef}>
@@ -350,7 +359,7 @@ export function MoonBody({
           color={moon.shade}
           roughness={0.95}
           emissive={moon.shade}
-          emissiveIntensity={0.07}
+          emissiveIntensity={0.16}
         />
         {/* Textured-globe overlay — currently only Luna ships a real surface
             map. Uses the day/night shader so the moon shows real lunar
