@@ -929,58 +929,6 @@ export function CelestialExplorer() {
           </p>
         </div>
 
-        {/* Body rail — DESKTOP ONLY now. Vertical strip on the RIGHT edge,
-            vertically centred (the one clear band beside the engine's bottom
-            HUD). The detail tile (z-30) slides over it from the right when a
-            body is open. On MOBILE the rail is replaced by the Bodies sheet
-            (opened from the bottom bar) so scrolling can't misfire a tap. */}
-        <div
-          className={`hidden md:block absolute z-20 pointer-events-none
-            md:left-auto md:right-2 md:top-1/2 md:-translate-y-1/2
-            ${open ? "md:hidden" : ""}`}
-        >
-          <div className="pointer-events-auto w-fit max-w-full mx-auto md:mx-0 md:max-h-[64vh] overflow-x-auto md:overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <ul className="flex md:flex-col items-center gap-2.5 md:gap-3 min-w-max md:min-w-0 py-1 md:px-1">
-              {BODIES.map((b) => {
-                // Min 44px touch target (mobile-first); larger bodies a touch bigger.
-                const px = Math.max(44, 40 + (b.relSize ?? 0.6) * 16)
-                const on = b.name === openName
-                return (
-                  <li key={b.name} className="shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => pick(b.name)}
-                      data-cursor-hover
-                      title={b.name}
-                      aria-pressed={on}
-                      aria-label={`Show ${b.name} details`}
-                      className="group flex md:flex-row-reverse flex-col items-center gap-1 md:gap-2.5 focus-visible:outline-none"
-                    >
-                      <span
-                        className="rounded-full overflow-hidden border-2 transition-all duration-300 group-hover:scale-110 shrink-0"
-                        style={{
-                          width: px, height: px,
-                          borderColor: on ? "var(--accent)" : "rgba(255,255,255,0.15)",
-                          boxShadow: on ? `0 0 18px -2px ${b.accent}` : "none",
-                        }}
-                      >
-                        <img src={b.img} alt="" aria-hidden loading="lazy"
-                             className="w-full h-full object-cover" style={{ background: b.accent }} />
-                      </span>
-                      {/* Name reveals on hover/active only — by default just the
-                          elegant planet dots, so the rail reads as a clean strip of
-                          worlds, not a utilitarian labelled list. */}
-                      <span className={`font-mono text-[9px] md:text-[10px] tracking-widest uppercase transition-all duration-200 md:opacity-0 md:group-hover:opacity-100 ${on ? "text-accent md:!opacity-100" : "text-foreground/80 group-hover:text-foreground"}`}>
-                        {b.name}
-                      </span>
-                    </button>
-                  </li>
-                )
-              })}
-            </ul>
-          </div>
-        </div>
-
         {/* Detail tile. DESKTOP: slides in from the right. MOBILE: a bottom
             sheet that slides up (full-width, above the bottom bar), matching the
             Bodies/Tools sheets so the whole mobile experience is one language. */}

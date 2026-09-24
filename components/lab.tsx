@@ -647,60 +647,6 @@ export function Lab() {
           </Link>
         </motion.div>
 
-        {/* Helion Drift — the playable in-browser flight/space game */}
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-60px" }}
-          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.12 }}
-          className="h-full"
-        >
-          <Link
-            href="/lab/helion-drift"
-            data-cursor-hover
-            aria-label="Helion Drift — a playable in-browser space flight game built on the Universe Engine"
-            className="
-              group relative flex h-full flex-col
-              border border-border rounded-2xl
-              bg-card hover:border-accent/60 transition-colors duration-300
-              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
-              focus-visible:ring-offset-4 focus-visible:ring-offset-background
-              p-6 md:p-8
-            "
-          >
-            <div className="flex flex-wrap items-center gap-2 mb-6">
-              <span className="font-mono text-[10px] tracking-[0.25em] uppercase px-2.5 py-1 border border-border text-foreground/85 rounded-full">
-                Playable · WebGL
-              </span>
-              <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 border border-border text-foreground/75 rounded-full">
-                R3F game
-              </span>
-            </div>
-
-            <h3 className="font-display text-2xl md:text-3xl font-light tracking-[-0.02em] leading-[1.1] text-foreground">
-              Helion Drift — <span className="italic">fly the real sky.</span>
-            </h3>
-
-            <p className="mt-4 flex-1 font-sans text-sm md:text-base text-foreground/80 leading-relaxed">
-              A playable space-flight game built on the same Universe Engine — real
-              stars and planets around you, an X-wing you actually pilot, cruise and
-              jet gears through supersonic flight. Runs entirely in the browser.
-            </p>
-
-            <div className="mt-7 inline-flex items-center gap-2 font-mono text-[10px] tracking-[0.25em] uppercase text-foreground/85 group-hover:text-accent transition-colors">
-              Take the controls
-              <motion.span
-                aria-hidden="true"
-                whileHover={prefersReducedMotion ? undefined : { rotate: 45 }}
-                transition={{ duration: 0.3 }}
-                className="inline-flex"
-              >
-                <ArrowUpRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-              </motion.span>
-            </div>
-          </Link>
-        </motion.div>
-
         {/* Firmament — the native iOS app (Universe Engine in your pocket) */}
         <motion.div
           initial={{ opacity: 0, y: 24 }}
