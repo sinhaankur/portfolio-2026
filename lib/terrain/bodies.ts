@@ -234,6 +234,28 @@ export const TERRAIN_BODIES: TerrainBody[] = [
         tile: "/textures/terrain/mars-jezero-2k.png",
         tileOnR2: true,
       },
+      {
+        // Gale Crater — Curiosity's home; Mount Sharp (Aeolis Mons) rises ~5 km
+        // from the crater floor. Cropped from MOLA (relief −4603…3063 m).
+        id: "gale",
+        name: "Gale Crater",
+        lonW: 130,
+        lonE: 145,
+        latS: -12,
+        latN: 3,
+        tile: "/textures/terrain/mars-gale-2k.png",
+      },
+      {
+        // Hellas Planitia — the deepest point on Mars (~−8.2 km), a ~2300 km
+        // impact basin. Cropped from MOLA (relief −8188…3962 m).
+        id: "hellas",
+        name: "Hellas Planitia",
+        lonW: 45,
+        lonE: 95,
+        latS: -60,
+        latN: -25,
+        tile: "/textures/terrain/mars-hellas-2k.png",
+      },
     ],
   },
   {
