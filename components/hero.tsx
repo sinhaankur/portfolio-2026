@@ -17,8 +17,9 @@ const HERO_INTRO: Record<
     lead: "Principal UX Designer at Oracle,",
     rest: (
       <>
-        {" "}working at the human–AI seam. 12+ years designing enterprise
-        products — and I build my own working prototypes, not just Figma.
+        {" "}working at the human–AI seam — an engineer by degree who designs it
+        and builds it. My flagship is the <em>Universe Engine</em>: the real sky,
+        live, from NASA/NORAD data, running in your browser.
       </>
     ),
   },
@@ -26,17 +27,18 @@ const HERO_INTRO: Record<
     lead: "Principal UX Designer at Oracle.",
     rest: (
       <>
-        {" "}I design how people and AI work together. 12+ years on enterprise
-        products — and I build the working prototypes myself, not just mockups.
+        {" "}I design how people and AI work together — and, an engineer by
+        degree, I build the working thing myself. My flagship is the{" "}
+        <em>Universe Engine</em>: the real, live sky in your browser.
       </>
     ),
   },
   simple: {
-    lead: "Lead designer at Oracle.",
+    lead: "Designer and AI builder.",
     rest: (
       <>
-        {" "}I design apps that people and AI use together — and I build them to
-        make sure they actually work.
+        {" "}I design apps people and AI use together, and I build them for real —
+        like my <em>Universe Engine</em>, the live sky in your browser.
       </>
     ),
   },
@@ -300,7 +302,7 @@ export function Hero() {
     >
       {/* Visually-hidden semantic H1 — gives screen readers a clean page title */}
       <h1 id="hero-name" className="sr-only">
-        Ankur Sinha — UX designer by craft, exploring AI by building it. Design × Engineering × AI.
+        Ankur Sinha — Design &amp; AI. A UX designer and engineer-by-degree who builds what he designs, like the Universe Engine.
       </h1>
 
       {/* Universe engine — galaxy + solar system + constellations.
@@ -632,22 +634,22 @@ export function Hero() {
           <p className="font-mono text-xs tracking-[0.3em] text-foreground/75 mb-2 [text-shadow:0_1px_8px_var(--background)]">
             ANKUR SINHA
           </p>
-          {/* Mobile: three stacked lines at a size that fits ~360px, so
-              "ENGINEERING" never runs off-screen. */}
+          {/* Mobile: short two-word headline, comfortably within ~360px at a
+              larger size than the old three-line "ENGINEERING" ever allowed. */}
           <p
             aria-hidden="true"
-            className="md:hidden font-display text-[2rem] leading-[1.06] font-light tracking-[-0.01em] [text-shadow:0_2px_16px_var(--background)]"
+            className="md:hidden font-display text-[2.75rem] leading-[1.05] font-light tracking-[-0.02em] [text-shadow:0_2px_16px_var(--background)]"
           >
-            DESIGN ×<br />ENGINEERING<br /><span className="italic">× AI</span>
+            DESIGN<br /><span className="italic">&amp; AI</span>
           </p>
-          {/* md+: the original two-line composition. */}
+          {/* md+: the two-line composition. */}
           <p
             aria-hidden="true"
             className="hidden md:block font-display md:text-6xl lg:text-7xl font-light tracking-[-0.02em] leading-[1.02] text-balance [text-shadow:0_2px_20px_var(--background)]"
           >
-            DESIGN × ENGINEERING
+            DESIGN
             <br />
-            <span className="italic">× AI</span>
+            <span className="italic">&amp; AI</span>
           </p>
           <AnimatePresence mode="wait" initial={false}>
             <motion.p

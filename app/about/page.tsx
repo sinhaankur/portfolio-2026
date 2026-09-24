@@ -9,8 +9,8 @@ export const metadata: Metadata = {
   ...canonicalPath("/about"),
   title: "About",
   description:
-    "Ankur Sinha — Principal UX designer and engineer working on the seam where humans meet AI agents. Design × Engineering × AI. The person behind the Universe Engine and the work on this site.",
-  keywords: ["Ankur Sinha", "about", "UX designer engineer", "design engineering AI", "portfolio about"],
+    "Ankur Sinha — Design & AI. A Principal UX designer and engineer-by-degree working on the seam where humans meet AI agents. The person behind the Universe Engine and the work on this site.",
+  keywords: ["Ankur Sinha", "about", "UX designer AI", "design and AI", "portfolio about"],
 }
 
 const aboutSchema = {
@@ -89,8 +89,8 @@ export default function AboutPage() {
             This site is that idea running live. The{" "}
             <Link href="/lab/celestial" className="text-accent hover:underline">Universe Engine</Link>{" "}
             renders 18,500 real satellites, a true-scale solar system, and open-source orbital tools —
-            all from real NASA / NORAD / NOAA data, all in the browser. It&apos;s design × engineering ×
-            AI held to one standard: real over invented, resilient over clever, honest over impressive.
+            all from real NASA / NORAD / NOAA data, all in the browser. It&apos;s design &amp; AI —
+            built by an engineer — held to one standard: real over invented, resilient over clever, honest over impressive.
           </P>
 
           <div className="mt-8 flex flex-wrap gap-x-6 gap-y-2 font-mono text-[11px] tracking-wide">

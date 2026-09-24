@@ -1213,8 +1213,8 @@ export function UniverseEngine({
 
               Position depends on the surface. On the standalone explorer
               (full HUD) it sits near the TOP, where the frame is clear. On the
-              HOME HERO (minimalControls) the top-left carries the DESIGN ×
-              ENGINEERING × AI headline + Oracle line, so a top caption
+              HOME HERO (minimalControls) the top-left carries the DESIGN &
+              AI headline + Oracle line, so a top caption
               COLLIDES with it — anchor the home-hero caption to the LOWER
               third instead, above the auto-tour button, and grow it upward so
               even the long Andromeda passage stays clear of both the headline

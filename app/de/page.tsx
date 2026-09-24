@@ -4,7 +4,7 @@ import { LocalizedHome } from "@/components/localized-home"
 import { hreflangLanguages, SITE } from "@/lib/i18n-seo"
 
 export const metadata: Metadata = {
-  title: "Ankur Sinha — Design × Engineering × KI",
+  title: "Ankur Sinha — Design & KI",
   description:
     "UX-Designer von Beruf, ich erforsche KI, indem ich sie baue. Lokalisierte Übersicht der Arbeit von Ankur Sinha — die vollständige Seite ist auf Englisch.",
   alternates: { canonical: `${SITE}/de`, languages: hreflangLanguages },

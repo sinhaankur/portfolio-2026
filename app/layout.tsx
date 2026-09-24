@@ -83,9 +83,9 @@ const notoJP = Noto_Sans_JP({
 
 const SITE_URL = "https://www.sinhaankur.com"
 const SITE_NAME = "Ankur Sinha"
-const SITE_TAGLINE = "Design × Engineering × AI"
+const SITE_TAGLINE = "Design & AI"
 const SITE_DESCRIPTION =
-  "UX designer by craft, exploring AI by building it. Years of product design (Oracle, Deloitte, and more) plus a lab of human-in-the-loop AI experiments shipped as working code."
+  "Design & AI — a UX designer and engineer-by-degree who builds what he designs. Product design at Oracle, Deloitte and more, plus a lab of human-in-the-loop AI, led by the Universe Engine: the real sky, live, in your browser."
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -312,7 +312,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
                 Ankur Sinha
               </p>
               <h1 className="font-serif text-3xl md:text-5xl leading-tight mb-6">
-                Design × Engineering × AI
+                Design &amp; AI
               </h1>
               <p className="text-base md:text-lg leading-relaxed text-foreground/85 mb-8">
                 Engineer-turned-designer in Toronto. Currently Principal UX at

@@ -15,7 +15,7 @@
  *        most idiom ("the seam", "reversibility is the policy axis", "a lie with a
  *        UI on top"); my renderings are faithful but may not be the most natural.
  *      • AR name transliteration "أنكور سينها" — confirm preferred spelling.
- *      • "Design × Engineering × AI" headline phrasing in both.
+ *      • "Design & AI" headline phrasing in both.
  */
 
 export type Locale = "en" | "ar" | "ja" | "ko" | "es" | "hi" | "fr" | "de" | "zh"
@@ -67,8 +67,8 @@ export type Dict = {
   navContact: string
   // hero
   name: string
-  heroLine1: string // "DESIGN × ENGINEERING"
-  heroLine2: string // "× AI"
+  heroLine1: string // "DESIGN"
+  heroLine2: string // "& AI"
   heroValue: string // "UX designer by craft — exploring AI by building it."
   heroDomainEyebrow: string // "02 — DOMAIN"
   heroDomain1: string // "Human–AI"
@@ -101,8 +101,8 @@ const en: Dict = {
   navGames: "Games",
   navContact: "Contact",
   name: "Ankur Sinha",
-  heroLine1: "DESIGN × ENGINEERING",
-  heroLine2: "× AI",
+  heroLine1: "DESIGN",
+  heroLine2: "& AI",
   heroValue: "UX designer by craft — exploring AI by building it.",
   heroDomainEyebrow: "DOMAIN",
   heroDomain1: "Human–AI",
@@ -138,8 +138,8 @@ const ar: Dict = {
   navGames: "الألعاب",
   navContact: "تواصل",
   name: "أنكور سينها",
-  heroLine1: "تصميم × هندسة",
-  heroLine2: "× ذكاء اصطناعي",
+  heroLine1: "تصميم",
+  heroLine2: "& ذكاء اصطناعي",
   heroValue: "مصمّم تجربة مستخدم في الأساس — أستكشف الذكاء الاصطناعي ببنائه.",
   heroDomainEyebrow: "المجال",
   heroDomain1: "تفاعل الإنسان",
@@ -175,8 +175,8 @@ const ja: Dict = {
   navGames: "ゲーム",
   navContact: "連絡先",
   name: "アンクール・シンハ",
-  heroLine1: "デザイン × エンジニアリング",
-  heroLine2: "× AI",
+  heroLine1: "デザイン",
+  heroLine2: "& AI",
   heroValue: "本職はUXデザイナー。つくることでAIを探求しています。",
   heroDomainEyebrow: "領域",
   heroDomain1: "人間とAIの",
@@ -213,8 +213,8 @@ const ko: Dict = {
   navGames: "게임",
   navContact: "연락처",
   name: "안쿠르 신하",
-  heroLine1: "디자인 × 엔지니어링",
-  heroLine2: "× AI",
+  heroLine1: "디자인",
+  heroLine2: "& AI",
   heroValue: "본업은 UX 디자이너 — 직접 만들며 AI를 탐구합니다.",
   heroDomainEyebrow: "영역",
   heroDomain1: "인간과 AI의",
@@ -250,8 +250,8 @@ const es: Dict = {
   navGames: "Juegos",
   navContact: "Contacto",
   name: "Ankur Sinha",
-  heroLine1: "DISEÑO × INGENIERÍA",
-  heroLine2: "× IA",
+  heroLine1: "DISEÑO",
+  heroLine2: "& IA",
   heroValue: "Diseñador UX de oficio — exploro la IA construyéndola.",
   heroDomainEyebrow: "ÁMBITO",
   heroDomain1: "Interacción",
@@ -287,8 +287,8 @@ const hi: Dict = {
   navGames: "गेम्स",
   navContact: "संपर्क",
   name: "अंकुर सिन्हा",
-  heroLine1: "डिज़ाइन × इंजीनियरिंग",
-  heroLine2: "× एआई",
+  heroLine1: "डिज़ाइन",
+  heroLine2: "& एआई",
   heroValue: "पेशे से यूएक्स डिज़ाइनर — एआई को बनाकर समझता हूँ।",
   heroDomainEyebrow: "क्षेत्र",
   heroDomain1: "मानव–एआई",
@@ -324,8 +324,8 @@ const fr: Dict = {
   navGames: "Jeux",
   navContact: "Contact",
   name: "Ankur Sinha",
-  heroLine1: "DESIGN × INGÉNIERIE",
-  heroLine2: "× IA",
+  heroLine1: "DESIGN",
+  heroLine2: "& IA",
   heroValue: "Designer UX de métier — j'explore l'IA en la construisant.",
   heroDomainEyebrow: "DOMAINE",
   heroDomain1: "Interaction",
@@ -361,8 +361,8 @@ const de: Dict = {
   navGames: "Spiele",
   navContact: "Kontakt",
   name: "Ankur Sinha",
-  heroLine1: "DESIGN × ENGINEERING",
-  heroLine2: "× KI",
+  heroLine1: "DESIGN",
+  heroLine2: "& KI",
   heroValue: "UX-Designer von Beruf — ich erforsche KI, indem ich sie baue.",
   heroDomainEyebrow: "FELD",
   heroDomain1: "Mensch–KI-",
@@ -398,8 +398,8 @@ const zh: Dict = {
   navGames: "游戏",
   navContact: "联系",
   name: "安库尔·辛哈",
-  heroLine1: "设计 × 工程",
-  heroLine2: "× 人工智能",
+  heroLine1: "设计",
+  heroLine2: "& 人工智能",
   heroValue: "本职是 UX 设计师 —— 通过亲手构建来探索人工智能。",
   heroDomainEyebrow: "领域",
   heroDomain1: "人与 AI",

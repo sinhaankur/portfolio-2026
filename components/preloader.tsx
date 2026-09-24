@@ -260,7 +260,7 @@ export function Intro() {
                 animate={{ opacity: 1 }}
                 transition={{ duration: 1, delay: 0.3 }}
               >
-                Design × Engineering × AI
+                Design &amp; AI
               </motion.p>
               <motion.p
                 className="mt-4 font-mono text-[9px] tracking-[0.24em] uppercase text-white/30"

@@ -11,7 +11,7 @@ import { ImageResponse } from "next/og"
 
 // Generated at build time; `output: "export"` requires force-static.
 export const dynamic = "force-static"
-export const alt = "Ankur Sinha — Design × Engineering × AI"
+export const alt = "Ankur Sinha — Design & AI"
 export const size = { width: 1200, height: 630 }
 export const contentType = "image/png"
 
@@ -68,7 +68,7 @@ export default async function OGImage() {
             maxWidth: "980px",
           }}
         >
-          Design × Engineering × AI
+          Design &amp; AI
         </div>
 
         {/* Bottom row — just the URL. Clean. */}

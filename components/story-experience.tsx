@@ -108,9 +108,9 @@ export function StoryExperience() {
           Ankur Sinha · Toronto
         </p>
         <h1 className="mt-4 font-display font-light tracking-[-0.01em] leading-[1.02] text-5xl md:text-7xl lg:text-8xl">
-          Design × Engineering
+          Design
           <br />
-          <span className="italic">× AI</span>
+          <span className="italic">&amp; AI</span>
         </h1>
         <p className="mt-6 max-w-md text-sm md:text-base text-white/65 leading-relaxed">
           You&apos;re drifting through the real sky — placed from NASA, ESA and
