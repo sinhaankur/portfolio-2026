@@ -121,6 +121,12 @@ const GROUPS: { heading: string; blurb: string; sources: Source[] }[] = [
         href: "https://www.star.nesdis.noaa.gov/GOES/",
       },
       {
+        name: "NASA GIBS — daily whole-Earth true colour",
+        detail: "Global Imagery Browse Services: the entire Earth as a single daily true-colour mosaic (VIIRS), for any recent date — the flat-globe complement to the geostationary disks. Standard WMTS, keyless and CORS-open (pixels readable).",
+        license: "Public domain (NASA)",
+        href: "https://nasa-gibs.github.io/gibs-api-docs/",
+      },
+      {
         name: "CelesTrak — TLE orbital elements",
         detail: "The two-line element sets propagated by SGP4 for every tracked satellite. Keyless and CORS-open.",
         license: "Public data (Dr. T.S. Kelso / CelesTrak)",

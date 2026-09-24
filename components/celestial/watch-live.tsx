@@ -32,6 +32,7 @@ import { Radio, X, ExternalLink, MapPin } from "lucide-react"
 import { selectedSatRef } from "@/components/universe-engine/satellite-refs"
 import { satsRef } from "@/components/universe-engine/satellite-data"
 import { fetchHimawariLatest, frameAge, type HimawariFrame } from "@/lib/himawari"
+import { fetchGibsMosaic, type GibsMosaic } from "@/lib/gibs"
 
 type Tab = "iss" | "weather" | "sky"
 
@@ -64,6 +65,14 @@ const WEATHER_FEEDS = [
     // feed is reachable we swap this for the freshest timestamped frame below.
     url: "https://www.data.jma.go.jp/mscweb/data/himawari/img/fd_/fd__b13_0000.jpg",
   },
+  {
+    id: "gibs",
+    label: "Whole Earth · daily",
+    note: "NASA GIBS · VIIRS true colour",
+    // The whole globe (flat), not a single hemisphere. Filled in live from GIBS
+    // on open; this placeholder is only used until the mosaic date resolves.
+    url: "",
+  },
 ] as const
 
 // Public all-sky / observatory ground cams. These are third-party feeds; uptime
@@ -83,10 +92,13 @@ export function WatchLive({ onClose }: { onClose?: () => void }) {
   // Live Himawari-9 true-colour frame from NICT (timestamped). Null until it
   // loads or if the service is slow/offline — then the fixed JMA still is used.
   const [himawari, setHimawari] = useState<HimawariFrame | null>(null)
+  // Live NASA GIBS whole-Earth daily mosaic. Null until it resolves / if offline.
+  const [gibs, setGibs] = useState<GibsMosaic | null>(null)
 
   useEffect(() => {
     let alive = true
     fetchHimawariLatest().then((f) => { if (alive && f) setHimawari(f) })
+    fetchGibsMosaic().then((m) => { if (alive && m) setGibs(m) })
     return () => { alive = false }
   }, [])
 
@@ -189,26 +201,45 @@ export function WatchLive({ onClose }: { onClose?: () => void }) {
             {(() => {
               // Prefer NICT's live timestamped true-colour disk for Himawari.
               const liveHimawari = active.id === "himawari" && himawari
-              const imgSrc = liveHimawari ? himawari!.url : `${active.url}?t=${bust}`
+              const isGibs = active.id === "gibs"
+              // GIBS is a flat whole-Earth mosaic filled in live; wait for it.
+              if (isGibs && !gibs) {
+                return <p className="text-[11px] leading-relaxed text-muted-foreground">Fetching today&apos;s global mosaic from NASA GIBS…</p>
+              }
+              const imgSrc = liveHimawari
+                ? himawari!.url
+                : isGibs
+                ? gibs!.url
+                : `${active.url}?t=${bust}`
               return (
                 <>
                   <div className="overflow-hidden rounded-lg border border-border bg-black">
                     <img
-                      key={liveHimawari ? himawari!.url : active.id}
+                      key={liveHimawari ? himawari!.url : isGibs ? gibs!.url : active.id}
                       src={imgSrc}
-                      alt={`${active.label} full-disk Earth`}
+                      alt={isGibs ? "NASA GIBS whole-Earth true-colour mosaic" : `${active.label} full-disk Earth`}
                       className="block w-full"
                       referrerPolicy="no-referrer"
                     />
                   </div>
                   <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
-                    {active.note} — near-real-time full-disk Earth from geostationary
-                    orbit (~35,786 km up). Published free by the agencies; refreshes
-                    every ~10 min.
-                    {liveHimawari ? (
-                      <> Live true-colour frame captured <span className="text-foreground/80">{frameAge(himawari!.at)}</span> (via NICT).</>
+                    {isGibs ? (
+                      <>
+                        {active.note} — the <span className="text-foreground/80">whole</span> Earth, flat, built each day from
+                        polar-orbiter passes (not a single hemisphere). Mosaic date{" "}
+                        <span className="text-foreground/80">{gibs!.date}</span>.
+                      </>
                     ) : (
-                      <> Reopen the panel for the latest frame.</>
+                      <>
+                        {active.note} — near-real-time full-disk Earth from geostationary
+                        orbit (~35,786 km up). Published free by the agencies; refreshes
+                        every ~10 min.
+                        {liveHimawari ? (
+                          <> Live true-colour frame captured <span className="text-foreground/80">{frameAge(himawari!.at)}</span> (via NICT).</>
+                        ) : (
+                          <> Reopen the panel for the latest frame.</>
+                        )}
+                      </>
                     )}
                   </p>
                 </>
