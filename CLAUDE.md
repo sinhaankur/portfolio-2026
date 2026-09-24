@@ -123,6 +123,14 @@ App-router routes under [`app/`](./app):
   Lab members of the series: `/lab/euler` (e^{iπ}+1=0 on the unit circle),
   `/lab/fourier` (any wave = spinning circles / epicycles → square wave),
   `/lab/golden-ratio` (φ + phyllotaxis sunflower packing).
+- `/earth` — **the Earth-data HUB** (`app/earth/page.tsx`): φ-proportioned hub for
+  the "living planet from real data" theme; cards deep-link into `/lab/terrain#earth`
+  (measured 3D surface + GIBS deep-zoom imagery + **click-the-globe → live weather**),
+  the `/lab/celestial` weather/imagery/space-weather panels. Live feeds live in
+  `lib/weather.ts` (Open-Meteo, keyless), `lib/gibs.ts` (whole-Earth true-colour +
+  land-temp + deep-zoom imagery), `lib/himawari.ts`, `lib/space-weather.ts`. NORTH-STAR
+  = Google-Earth/Mars ground-level depth (roadmap: imagery deep-zoom ✓, more regional
+  DEMs, quadtree LOD).
 - `/framework` — Universal Experience Framework (Laws of UX & cognition,
   interactive demos). Linked from the navbar.
 - `/writing` — writing index. Long posts are folder routes

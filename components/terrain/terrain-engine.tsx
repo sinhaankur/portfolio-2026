@@ -23,6 +23,7 @@ import { EarthLive, currentSunDirection } from "./earth-live"
 import { DeepZoomController } from "./terrain-patch"
 import { RoverPins } from "./rover-pin"
 import { RoverImageryPanel } from "./rover-imagery-panel"
+import { EarthWeatherProbe, EarthWeatherReadout, type ProbeState } from "./earth-weather-probe"
 import { TerrainHud } from "./terrain-hud"
 
 // The body sphere renders at a fixed visual radius; real proportions live in the
@@ -44,6 +45,9 @@ export function TerrainEngine({ initialBody = "mars" }: { initialBody?: string }
   const [zoomDepth, setZoomDepth] = useState(0)
   // Name of the high-res region the camera is over (e.g. "Valles Marineris"), or null.
   const [activeRegion, setActiveRegion] = useState<string | null>(null)
+  // Live-weather probe (Earth only): the last point clicked on the globe + its
+  // fetched weather. Null when nothing is probed / on a non-live body.
+  const [probe, setProbe] = useState<ProbeState | null>(null)
   const controlsRef = useRef<OrbitControlsImpl | null>(null)
 
   const body = getTerrainBody(bodyId) ?? TERRAIN_BODIES[0]
@@ -79,6 +83,7 @@ export function TerrainEngine({ initialBody = "mars" }: { initialBody?: string }
     setHypsometricOverride(null) // follow new body's default tint
     setSelectedSite(null)
     setOceanOverride(null) // follow new body's default (Earth = water on)
+    setProbe(null) // clear any live-weather readout from the previous body
     if (typeof window !== "undefined") {
       const write = opts?.push ? "pushState" : "replaceState"
       window.history[write](null, "", `#${id}`)
@@ -102,7 +107,6 @@ export function TerrainEngine({ initialBody = "mars" }: { initialBody?: string }
     }
     window.addEventListener("hashchange", applyHash)
     return () => window.removeEventListener("hashchange", applyHash)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bodyId])
 
   // Once a body switch settles, honour a pending region from the URL.
@@ -202,6 +206,12 @@ export function TerrainEngine({ initialBody = "mars" }: { initialBody?: string }
             <EarthLive radiusUnits={RADIUS_UNITS} oceanVisible={oceanVisible} />
           )}
 
+          {/* Click anywhere on the living Earth to read its live weather. Only on
+              Earth (live) — an invisible pickable sphere at the base radius. */}
+          {body.live && (
+            <EarthWeatherProbe radiusUnits={RADIUS_UNITS} onProbe={setProbe} />
+          )}
+
           <RoverPins
             body={body}
             radiusUnits={RADIUS_UNITS}
@@ -258,6 +268,10 @@ export function TerrainEngine({ initialBody = "mars" }: { initialBody?: string }
 
       {activeSite && (
         <RoverImageryPanel site={activeSite} onClose={() => setSelectedSite(null)} />
+      )}
+
+      {body.live && probe && (
+        <EarthWeatherReadout probe={probe} onClose={() => setProbe(null)} />
       )}
     </div>
   )
