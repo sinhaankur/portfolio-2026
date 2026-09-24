@@ -36,7 +36,7 @@ import {
 } from "three"
 import { terrainFragmentShader } from "./terrain-shaders"
 import type { TerrainBody as TerrainBodyData } from "@/lib/terrain/bodies"
-import { cdnAsset } from "@/lib/asset-cdn"
+import { cdnAsset, hasAssetCdn } from "@/lib/asset-cdn"
 import { fetchImageryTile } from "@/lib/terrain/imagery-tiles"
 
 // Zoom depth band. DEPTH_FAR matches maxDistance; the NEAR end and patch-spawn
@@ -314,15 +314,30 @@ export function DeepZoomController({
     regionTexes.current = {}
     setActiveRegionId(null)
     for (const region of body.regions ?? []) {
+      // R2-only tiles (the heavy regional crops kept off the local budget) exist
+      // ONLY on the CDN — no committed copy under public/. With no CDN configured
+      // (local dev / smoke / any build missing the env), requesting the local
+      // path just 404s for a file that will never be there. Skip it and stay on
+      // the global height map, which already carries the real relief; the regional
+      // upgrade simply doesn't engage. Non-R2 tiles ship locally and always load.
+      if (region.tileOnR2 && !hasAssetCdn) continue
       const fileName = region.tile.split("/").pop() as string
       const url = region.tileOnR2 ? cdnAsset(`terrain/${fileName}`) : region.tile
-      new TextureLoader().load(url, (t) => {
-        if (!alive) return
-        t.wrapS = ClampToEdgeWrapping; t.wrapT = ClampToEdgeWrapping
-        t.minFilter = LinearFilter; t.magFilter = LinearFilter
-        t.generateMipmaps = false
-        regionTexes.current[region.id] = t
-      })
+      new TextureLoader().load(
+        url,
+        (t) => {
+          if (!alive) return
+          t.wrapS = ClampToEdgeWrapping; t.wrapT = ClampToEdgeWrapping
+          t.minFilter = LinearFilter; t.magFilter = LinearFilter
+          t.generateMipmaps = false
+          regionTexes.current[region.id] = t
+        },
+        undefined,
+        // A tile failing to load (CDN blip / CORS) is non-fatal: the patch just
+        // keeps sampling the global height map. Swallow it so it never surfaces
+        // as an uncaught console error.
+        () => {},
+      )
     }
     return () => { alive = false }
   }, [body.id, body.regions])
