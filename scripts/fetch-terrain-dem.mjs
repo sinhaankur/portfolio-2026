@@ -162,12 +162,28 @@ const REGIONS = {
     "valles-marineris": { out: "mars-valles-marineris-2k.png", lonW: -95, lonE: -35, latS: -20, latN: 10 },
     "olympus-mons": { out: "mars-olympus-mons-2k.png", lonW: -152, lonE: -116, latS: 2, latN: 34 },
     "jezero": { out: "mars-jezero-2k.png", lonW: 70, lonE: 85, latS: 12, latN: 24 },
+    // Gale Crater — Curiosity's home; ~154 km crater with Mount Sharp (Aeolis Mons)
+    // rising ~5 km from the floor. Centre ~137.4°E, -4.6°.
+    "gale": { out: "mars-gale-2k.png", lonW: 130, lonE: 145, latS: -12, latN: 3 },
+    // Hellas Planitia — the deepest point on Mars (~-8.2 km), a ~2300 km impact
+    // basin. Centre ~70°E, -42°.
+    "hellas": { out: "mars-hellas-2k.png", lonW: 45, lonE: 95, latS: -60, latN: -25 },
   },
   moon: {
     "tycho": { out: "moon-tycho-2k.png", lonW: -19, lonE: -3, latS: -51, latN: -35 },
   },
   venus: {
     "maxwell-montes": { out: "venus-maxwell-montes-2k.png", lonW: -12, lonE: 20, latS: 55, latN: 75 },
+  },
+  earth: {
+    // The Himalaya + Tibetan plateau — Everest (8849 m) and the highest relief on
+    // land. Centre ~86°E, 30°N.
+    "himalaya": { out: "earth-himalaya-2k.png", lonW: 74, lonE: 98, latS: 24, latN: 40 },
+    // The Grand Canyon / Colorado Plateau — carved relief. Centre ~-112°E, 36°N.
+    "grand-canyon": { out: "earth-grand-canyon-2k.png", lonW: -116, lonE: -108, latS: 33, latN: 39 },
+    // The Mariana Trench — the deepest point on Earth's seafloor (Challenger Deep,
+    // ~-10.9 km). Best seen with the ocean drained. Centre ~145°E, 12°N.
+    "mariana": { out: "earth-mariana-2k.png", lonW: 138, lonE: 152, latS: 5, latN: 21 },
   },
 }
 

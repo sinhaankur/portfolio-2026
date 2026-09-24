@@ -341,6 +341,40 @@ export const TERRAIN_BODIES: TerrainBody[] = [
     // default — the default should look like the Earth people know.
     tagline: "The living Earth — real water, clouds & today's sunlight",
     sites: [],
+    regions: [
+      {
+        // The Himalaya + Tibetan plateau — Everest (8849 m), the highest land
+        // relief on Earth. Cropped from ETOPO at native resolution.
+        id: "himalaya",
+        name: "The Himalaya",
+        lonW: 74,
+        lonE: 98,
+        latS: 24,
+        latN: 40,
+        tile: "/textures/terrain/earth-himalaya-2k.png",
+      },
+      {
+        // The Grand Canyon / Colorado Plateau — carved relief, ~1.8 km deep.
+        id: "grand-canyon",
+        name: "Grand Canyon",
+        lonW: -116,
+        lonE: -108,
+        latS: 33,
+        latN: 39,
+        tile: "/textures/terrain/earth-grand-canyon-2k.png",
+      },
+      {
+        // The Mariana Trench — Challenger Deep (~-10.9 km), the deepest point on
+        // Earth's seafloor. Best seen with the ocean drained.
+        id: "mariana",
+        name: "Mariana Trench",
+        lonW: 138,
+        lonE: 152,
+        latS: 5,
+        latN: 21,
+        tile: "/textures/terrain/earth-mariana-2k.png",
+      },
+    ],
     hasOcean: true,
     seaLevelM: 0,
     defaultHypsometric: false, // real colour by default, not the depth tint
