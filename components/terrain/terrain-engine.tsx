@@ -21,6 +21,7 @@ import { TERRAIN_BODIES, getTerrainBody, latLonToUnitVec } from "@/lib/terrain/b
 import { TerrainBody } from "./terrain-body"
 import { EarthLive, currentSunDirection } from "./earth-live"
 import { DeepZoomController } from "./terrain-patch"
+import { QuadtreeController } from "./quadtree"
 import { RoverPins } from "./rover-pin"
 import { RoverImageryPanel } from "./rover-imagery-panel"
 import { EarthWeatherProbe, EarthWeatherReadout, type ProbeState } from "./earth-weather-probe"
@@ -45,6 +46,8 @@ export function TerrainEngine({ initialBody = "mars" }: { initialBody?: string }
   const [zoomDepth, setZoomDepth] = useState(0)
   // Name of the high-res region the camera is over (e.g. "Valles Marineris"), or null.
   const [activeRegion, setActiveRegion] = useState<string | null>(null)
+  // Active quadtree pyramid zoom (Phase C), or -1 when no pyramid / far out.
+  const [quadZoom, setQuadZoom] = useState(-1)
   // Live-weather probe (Earth only): the last point clicked on the globe + its
   // fetched weather. Null when nothing is probed / on a non-live body.
   const [probe, setProbe] = useState<ProbeState | null>(null)
@@ -233,6 +236,19 @@ export function TerrainEngine({ initialBody = "mars" }: { initialBody?: string }
           onRegionChange={setActiveRegion}
         />
 
+        {/* Quadtree LOD (Phase C): for bodies with a baked pyramid (Earth), pull
+            real DEM tiles from the terrain-tiles CDN matched to camera altitude, so
+            the surface stays sharp anywhere — not just the named regions. No-ops on
+            bodies without a pyramid. */}
+        <QuadtreeController
+          body={body}
+          radiusUnits={RADIUS_UNITS}
+          exaggeration={exag}
+          hypsometric={hypsometric ? 1 : 0}
+          slopeShade={slopeShade ? 1 : 0}
+          onZoom={setQuadZoom}
+        />
+
         <OrbitControls
           ref={controlsRef}
           enablePan={false}
@@ -261,6 +277,7 @@ export function TerrainEngine({ initialBody = "mars" }: { initialBody?: string }
         onOcean={setOceanOverride}
         zoomDepth={zoomDepth}
         activeRegion={activeRegion}
+        quadZoom={quadZoom}
         onDive={flyToRegion}
         onShare={shareView}
         shareState={shareState}

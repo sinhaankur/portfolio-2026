@@ -123,3 +123,6 @@ blender/silkworm/test*.png
 # Large Blender source maps (pulled from celestial-assets on demand)
 blender/assets/moon_color_8k.jpg
 blender/assets/moon_height_4k.png
+
+# Phase C quadtree tiles live in the dedicated terrain-tiles repo / CDN, not here.
+public/textures/terrain/pyramid/

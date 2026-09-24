@@ -23,6 +23,8 @@ interface Props {
   onOcean: (v: boolean) => void
   zoomDepth: number
   activeRegion: string | null
+  /** Active quadtree pyramid zoom (Phase C), or -1 when inactive. */
+  quadZoom: number
   /** Fly the camera down into a named high-res region. */
   onDive: (regionId: string) => void
   /** Copy the current view as a shareable link. */
@@ -43,6 +45,7 @@ export function TerrainHud({
   onOcean,
   zoomDepth,
   activeRegion,
+  quadZoom,
   onDive,
   onShare,
   shareState,
@@ -69,13 +72,15 @@ export function TerrainHud({
         <p className="mt-2 text-[10px] leading-snug text-white/40">{body.attribution}</p>
         {/* Deep-zoom indicator: appears as you descend. Names the high-res region
             when the camera is over one (its finer DEM tile is now active). */}
-        {zoomDepth > 0.35 && (
+        {(zoomDepth > 0.35 || quadZoom >= 1) && (
           <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/40 px-2.5 py-1">
             <span className="h-1.5 w-1.5 animate-pulse rounded-full" style={{ background: body.accent }} />
             <span className="font-mono text-[10px] uppercase tracking-widest text-white/70">
               {activeRegion
                 ? `${activeRegion} · hi-res`
-                : zoomDepth > 0.8 ? "Surface detail" : "Descending"}
+                : quadZoom >= 1
+                  ? `Live tiles · LOD ${quadZoom}`
+                  : zoomDepth > 0.8 ? "Surface detail" : "Descending"}
             </span>
           </div>
         )}
