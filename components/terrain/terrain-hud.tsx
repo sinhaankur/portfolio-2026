@@ -53,7 +53,10 @@ export function TerrainHud({
   return (
     <>
       {/* Top-left: title + provenance */}
-      <div className="pointer-events-none absolute left-4 top-4 z-30 max-w-[min(90vw,22rem)] md:left-6 md:top-6">
+      {/* Cap the title's width so it never runs under the top-right body chips
+          (which wrap on narrow screens). Half the viewport on mobile leaves the
+          chip lane clear; roomier on desktop where the chips sit far right. */}
+      <div className="pointer-events-none absolute left-4 top-4 z-30 max-w-[min(48vw,14rem)] md:left-6 md:top-6 md:max-w-[22rem]">
         {/* Bridge back to the orbital Satellite Engine — the same worlds, in orbit.
             "Whatever is related should be related." */}
         <a
@@ -86,8 +89,9 @@ export function TerrainHud({
         )}
       </div>
 
-      {/* Body picker: top-right chips */}
-      <div className="pointer-events-auto absolute right-4 top-4 z-30 flex flex-wrap justify-end gap-1.5 md:right-6 md:top-6">
+      {/* Body picker: top-right chips. Capped to the right lane on mobile so the
+          wrapping chips never cross into the title column on the left. */}
+      <div className="pointer-events-auto absolute right-4 top-4 z-30 flex max-w-[48vw] flex-wrap justify-end gap-1.5 md:right-6 md:top-6 md:max-w-none">
         {visibleTerrainBodies().map((b) => {
           const active = b.id === body.id
           const baking = b.heightMap === null
