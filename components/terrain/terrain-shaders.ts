@@ -24,6 +24,9 @@ varying vec2 vUv;
 varying float vElevM;         // real elevation at this vertex, metres
 varying float vNormAmt;       // normalised 0..1 elevation (for hypsometric tint)
 varying vec3 vWorldNormal;
+varying vec2 vLonLat;         // (lon, lat) radians — kept in sync with the patch
+
+const float PI_G = 3.141592653589793;
 
 // Decode the packed height sample → normalised 0..1 relief.
 float sampleHeight(vec2 uv) {
@@ -32,6 +35,10 @@ float sampleHeight(vec2 uv) {
 
 void main() {
   vUv = uv;
+  // Equirectangular uv → (lon, lat) radians, so the shared fragment shader's
+  // imagery-tile path is always fed a defined varying (the globe leaves the
+  // tile OFF, but the varying must still be written in this program).
+  vLonLat = vec2((uv.x - 0.5) * 2.0 * PI_G, (uv.y - 0.5) * PI_G);
   float h = sampleHeight(uv);
   vNormAmt = h;
 
@@ -63,10 +70,17 @@ uniform float uSlopeShade;   // 0..1 strength of slope/relief shading
 uniform vec2 uTexel;         // 1/width, 1/height of the height map (for gradients)
 uniform float uAmbient;      // base fill so night side isn't pure black
 
+// Higher-res imagery overlay for the deep-zoom patch (Phase A). Off by default so
+// the shared globe material — which never sets these — is unaffected.
+uniform sampler2D uColorTile; // composited GIBS imagery over the patch window
+uniform float uUseColorTile;  // 0 = global colour map, 1 = imagery tile in-bounds
+uniform vec4 uColorTileBounds;// (lonW, lonE, latS, latN) in radians
+
 varying vec2 vUv;
 varying float vElevM;
 varying float vNormAmt;
 varying vec3 vWorldNormal;
+varying vec2 vLonLat;         // (lon, lat) radians — set by the patch vertex shader
 
 // Hypsometric palette: deep basins → blue-grey, lowlands → tan, highlands →
 // warm ochre, peaks → near-white. A neutral scientific ramp that works across
@@ -98,6 +112,18 @@ vec3 reliefNormal() {
 
 void main() {
   vec3 base = texture2D(uColorMap, vUv).rgb;
+
+  // Deep-zoom imagery: inside the composited GIBS tile's bounds, sample the
+  // higher-res imagery instead of the global colour map (edges fall back so the
+  // patch blends into the surrounding globe). Off unless uUseColorTile == 1.
+  if (uUseColorTile > 0.5) {
+    float tu = (vLonLat.x - uColorTileBounds.x) / (uColorTileBounds.y - uColorTileBounds.x);
+    float tv = (vLonLat.y - uColorTileBounds.z) / (uColorTileBounds.w - uColorTileBounds.z);
+    if (tu >= 0.0 && tu <= 1.0 && tv >= 0.0 && tv <= 1.0) {
+      // Canvas rows run top→bottom (north at v=1), so flip v.
+      base = texture2D(uColorTile, vec2(tu, 1.0 - tv)).rgb;
+    }
+  }
 
   // Optional hypsometric overlay (elevation-tinted), blended over true colour.
   vec3 col = mix(base, mix(base, hypsometric(vNormAmt), 0.65), uHypsometric);

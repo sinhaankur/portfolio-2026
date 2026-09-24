@@ -25,6 +25,7 @@ import { useFrame, useThree } from "@react-three/fiber"
 import {
   ShaderMaterial,
   TextureLoader,
+  CanvasTexture,
   LinearFilter,
   RepeatWrapping,
   ClampToEdgeWrapping,
@@ -36,6 +37,7 @@ import {
 import { terrainFragmentShader } from "./terrain-shaders"
 import type { TerrainBody as TerrainBodyData } from "@/lib/terrain/bodies"
 import { cdnAsset } from "@/lib/asset-cdn"
+import { fetchImageryTile } from "@/lib/terrain/imagery-tiles"
 
 // Zoom depth band. DEPTH_FAR matches maxDistance; the NEAR end and patch-spawn
 // threshold are derived per-body from the actual minDistance (which is dynamic —
@@ -76,6 +78,7 @@ varying vec2 vUv;         // equirectangular UV into the GLOBAL map (for colour)
 varying float vElevM;
 varying float vNormAmt;
 varying vec3 vWorldNormal;
+varying vec2 vLonLat;     // (lon, lat) radians — for the imagery-tile lookup
 
 const float PI = 3.141592653589793;
 
@@ -88,6 +91,7 @@ void main() {
   float u = lon / (2.0 * PI) + 0.5;
   float v = lat / PI + 0.5;
   vUv = vec2(u, v);
+  vLonLat = vec2(lon, lat);
 
   // Height: from the high-res regional tile if active + within its bounds,
   // else the global map. The tile spans [lonW,lonE]×[latS,latN], remapped to 0..1.
@@ -136,6 +140,9 @@ interface PatchProps {
   /** High-res regional tile + its bounds (radians), when the patch is over one. */
   regionTex: Texture | null
   regionBounds: [number, number, number, number] | null
+  /** Higher-res composited imagery tile + its bounds (radians), when available. */
+  colorTileTex: Texture | null
+  colorTileBounds: [number, number, number, number] | null
   /** Grid resolution (verts per side). */
   grid?: number
 }
@@ -153,6 +160,8 @@ function TerrainPatch({
   colorTex,
   regionTex,
   regionBounds,
+  colorTileTex,
+  colorTileBounds,
   grid = 384,
 }: PatchProps) {
   const matRef = useRef<ShaderMaterial>(null)
@@ -164,6 +173,9 @@ function TerrainPatch({
       uUseRegion: { value: 0 },
       uRegionBounds: { value: new Vector4(0, 0, 0, 0) },
       uColorMap: { value: null as Texture | null },
+      uColorTile: { value: null as Texture | null },
+      uUseColorTile: { value: 0 },
+      uColorTileBounds: { value: new Vector4(0, 0, 0, 0) },
       uElevMinM: { value: body.elevationMinM },
       uElevMaxM: { value: body.elevationMaxM },
       uRadiusUnits: { value: radiusUnits },
@@ -198,6 +210,11 @@ function TerrainPatch({
     m.uniforms.uUseRegion.value = useRegion ? 1 : 0
     m.uniforms.uRegionMap.value = regionTex
     if (regionBounds) m.uniforms.uRegionBounds.value.set(...regionBounds)
+    // Higher-res imagery overlay (GIBS), when composited for this patch.
+    const useColorTile = colorTileTex != null && colorTileBounds != null
+    m.uniforms.uUseColorTile.value = useColorTile ? 1 : 0
+    m.uniforms.uColorTile.value = colorTileTex
+    if (colorTileBounds) m.uniforms.uColorTileBounds.value.set(...colorTileBounds)
     const img = heightTex?.image as { width?: number; height?: number } | undefined
     if (img?.width && img?.height) m.uniforms.uTexel.value.set(1 / img.width, 1 / img.height)
   })
@@ -255,6 +272,11 @@ export function DeepZoomController({
   const lonC = useRef(0)
   const half = useRef(0.3)
   const lastDepth = useRef(-1)
+  // Higher-res imagery tile (GIBS) composited for the current patch window. We
+  // refetch only when the patch centre/size drifts enough, never per-frame.
+  const [colorTile, setColorTile] = useState<{ tex: CanvasTexture; bounds: [number, number, number, number] } | null>(null)
+  const imageryKey = useRef<string>("")
+  const imageryBusy = useRef(false)
 
   // Load the same maps the globe uses (so the patch matches exactly).
   useEffect(() => {
@@ -305,6 +327,9 @@ export function DeepZoomController({
     return () => { alive = false }
   }, [body.id, body.regions])
 
+  // Dispose the imagery CanvasTexture when the controller unmounts (body switch).
+  useEffect(() => () => { setColorTile((prev) => { prev?.tex.dispose(); return null }) }, [])
+
   const tmp = useMemo(() => new Vector3(), [])
 
   useFrame(() => {
@@ -349,10 +374,36 @@ export function DeepZoomController({
         const name = found ? (body.regions?.find((r) => r.id === found)?.name ?? null) : null
         onRegionChange?.(name)
       }
+
+      // Higher-res imagery (Earth only). Refetch only when the patch window has
+      // drifted to a new "cell" (quantised centre + zoom band) — never per-frame.
+      const halfDeg = (half.current * 180) / Math.PI
+      const key = `${latDeg.toFixed(1)}:${lonDeg.toFixed(1)}:${halfDeg.toFixed(1)}`
+      if (key !== imageryKey.current && !imageryBusy.current) {
+        imageryKey.current = key
+        imageryBusy.current = true
+        const lat0 = latC.current, lon0 = lonC.current, h0 = half.current
+        fetchImageryTile(body.id, lat0, lon0, h0)
+          .then((tile) => {
+            if (tile) {
+              const tex = new CanvasTexture(tile.canvas)
+              tex.minFilter = LinearFilter; tex.magFilter = LinearFilter
+              tex.generateMipmaps = false
+              setColorTile((prev) => { prev?.tex.dispose(); return { tex, bounds: tile.bounds } })
+            }
+          })
+          .finally(() => { imageryBusy.current = false })
+      }
     }
     if (shouldPatch !== patchOn) {
       setPatchOn(shouldPatch)
-      if (!shouldPatch && activeRegionId) { setActiveRegionId(null); onRegionChange?.(null) }
+      if (!shouldPatch) {
+        if (activeRegionId) { setActiveRegionId(null); onRegionChange?.(null) }
+        // Drop the imagery tile when we leave the surface so a stale window
+        // doesn't flash on the next descent elsewhere.
+        setColorTile((prev) => { prev?.tex.dispose(); return null })
+        imageryKey.current = ""
+      }
     }
   })
 
@@ -383,6 +434,8 @@ export function DeepZoomController({
       colorTex={colorTex}
       regionTex={regionTex}
       regionBounds={regionBounds}
+      colorTileTex={colorTile?.tex ?? null}
+      colorTileBounds={colorTile?.bounds ?? null}
     />
   )
 }

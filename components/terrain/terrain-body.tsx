@@ -24,6 +24,7 @@ import {
   ClampToEdgeWrapping,
   Vector2,
   Vector3,
+  Vector4,
   Texture,
 } from "three"
 import { terrainVertexShader, terrainFragmentShader } from "./terrain-shaders"
@@ -126,6 +127,12 @@ export function TerrainBody({
       uSlopeShade: { value: slopeShade },
       uTexel: { value: new Vector2(1 / 2048, 1 / 1024) },
       uAmbient: { value: 0.32 },
+      // The globe never uses the deep-zoom imagery overlay, but the shared
+      // fragment shader declares these — provide inert defaults so no sampler is
+      // left unbound (uUseColorTile stays 0, so the branch never runs).
+      uColorTile: { value: null as Texture | null },
+      uUseColorTile: { value: 0 },
+      uColorTileBounds: { value: new Vector4(0, 0, 0, 0) },
     }),
     // Intentionally build once; live values are pushed in useFrame below.
     // eslint-disable-next-line react-hooks/exhaustive-deps

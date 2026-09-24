@@ -121,8 +121,8 @@ const GROUPS: { heading: string; blurb: string; sources: Source[] }[] = [
         href: "https://www.star.nesdis.noaa.gov/GOES/",
       },
       {
-        name: "NASA GIBS — daily whole-Earth true colour + land temperature",
-        detail: "Global Imagery Browse Services: the entire Earth as a single daily mosaic — true colour (VIIRS) and land-surface temperature (MODIS) — for any recent date, the flat-globe complement to the geostationary disks and the seed of the Earth-data layers. Standard WMTS, keyless and CORS-open (pixels readable).",
+        name: "NASA GIBS — daily whole-Earth true colour + land temperature + deep-zoom imagery",
+        detail: "Global Imagery Browse Services: the whole Earth as a daily mosaic — true colour (VIIRS) and land-surface temperature (MODIS) — plus the tiled Blue Marble imagery the 3D-terrain deep-zoom composites over its patch for sharper surface colour as you descend (GIBS web-mercator tops out ~150 m/px, honestly bounded). Standard WMTS, keyless and CORS-open (pixels readable).",
         license: "Public domain (NASA)",
         href: "https://nasa-gibs.github.io/gibs-api-docs/",
       },
