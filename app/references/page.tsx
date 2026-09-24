@@ -159,6 +159,43 @@ const GROUPS: { heading: string; blurb: string; sources: Source[] }[] = [
     ],
   },
   {
+    heading: "Open space-tech ecosystem",
+    blurb:
+      "This engine stands on the open work of the world's space agencies — their public data, open-source code, and open programs. It's built to belong to that ecosystem: real data, credited, given back where it can be. These are the open homes of that work.",
+    sources: [
+      {
+        name: "NASA — open source (code.nasa.gov · github.com/nasa)",
+        detail: "NASA's central open-source portal + org: hundreds of public projects, from mission software to data tools. The data spine of this engine (APOD, NeoWs, DONKI, GIBS, Blue Marble, planetary/JPL ephemerides) is NASA-open.",
+        license: "Public domain / NOSA",
+        href: "https://code.nasa.gov/",
+      },
+      {
+        name: "NASA JPL — github.com/nasa-jpl",
+        detail: "The Jet Propulsion Laboratory's open-source org — the source lineage behind the solar-system dynamics, planetary fact sheets, and mission data the engine renders from.",
+        license: "Open source (various)",
+        href: "https://github.com/nasa-jpl",
+      },
+      {
+        name: "ESA — github.com/esa",
+        detail: "The European Space Agency's open-source org, incl. the Advanced Concepts Team's PyKEP (interplanetary trajectories) and pagmo (optimisation), and Gaia notebooks. The reference behind the mission-analysis lane + the planned Gaia star bake.",
+        license: "Open source / ESA Community License",
+        href: "https://github.com/esa",
+      },
+      {
+        name: "NASA GIBS — nasa-gibs.github.io",
+        detail: "Global Imagery Browse Services: the tiled Earth imagery that drives the whole-Earth mosaics + the 3D-terrain deep-zoom. Open, keyless, documented in the open on GitHub.",
+        license: "Public domain (NASA)",
+        href: "https://nasa-gibs.github.io/gibs-api-docs/",
+      },
+      {
+        name: "NASA Space Apps Challenge — the open program",
+        detail: "NASA's global open-data hackathon, with ESA, CSA, ISRO and other agency partners — the clearest open door for building on agency data alongside the community. The spirit this engine is made in.",
+        license: "Open program · NASA + partners",
+        href: "https://www.spaceappschallenge.org/",
+      },
+    ],
+  },
+  {
     heading: "Surface textures",
     blurb: "Planet, moon, and Sun surface maps applied to the bodies on close approach.",
     sources: [
