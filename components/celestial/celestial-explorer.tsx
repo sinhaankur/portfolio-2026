@@ -150,6 +150,12 @@ const WatchLive = dynamic(
   { ssr: false },
 )
 
+// Earth surface weather + air quality (Open-Meteo) + NASA land-temp layer.
+const EarthWeatherPanel = dynamic(
+  () => import("./earth-weather-panel").then((m) => m.EarthWeatherPanel),
+  { ssr: false },
+)
+
 // Earth→Mars porkchop plot — launch windows from a Lambert C3 grid.
 const PorkchopPlot = dynamic(
   () => import("./porkchop-plot").then((m) => m.PorkchopPlot),
@@ -383,6 +389,7 @@ export function CelestialExplorer() {
   const [issLiveOpen, setIssLiveOpen] = useState(false)
   // "Watch live" — free public feeds (ISS cams, weather-sat Earth, all-sky cams).
   const [watchLiveOpen, setWatchLiveOpen] = useState(false)
+  const [earthWeatherOpen, setEarthWeatherOpen] = useState(false)
   // Earth→Mars porkchop plot (launch windows from a Lambert C3 grid).
   const [porkchopOpen, setPorkchopOpen] = useState(false)
   // Near-Earth asteroids.
@@ -405,7 +412,7 @@ export function CelestialExplorer() {
   const [bodiesSheet, setBodiesSheet] = useState(false)
   const [toolsSheet, setToolsSheet] = useState(false)
   const [timeSheet, setTimeSheet] = useState(false)
-  const closePanels = () => { setPassesOpen(false); setWeatherOpen(false); setLaunchesOpen(false); setImageryOpen(false); setDiscoveriesOpen(false); setExoplanetsOpen(false); setSunHistoryOpen(false); setTransferOpen(false); setStationOpen(false); setIssLiveOpen(false); setWatchLiveOpen(false); setPorkchopOpen(false); setNeoOpen(false); setInventoryOpen(false); setMetricsOpen(false); setConjOpen(false); setReentryOpen(false); setDebrisOpen(false); setScreeningOpen(false); setProximityOpen(false) }
+  const closePanels = () => { setPassesOpen(false); setWeatherOpen(false); setLaunchesOpen(false); setImageryOpen(false); setDiscoveriesOpen(false); setExoplanetsOpen(false); setSunHistoryOpen(false); setTransferOpen(false); setStationOpen(false); setIssLiveOpen(false); setWatchLiveOpen(false); setEarthWeatherOpen(false); setPorkchopOpen(false); setNeoOpen(false); setInventoryOpen(false); setMetricsOpen(false); setConjOpen(false); setReentryOpen(false); setDebrisOpen(false); setScreeningOpen(false); setProximityOpen(false) }
   // `?earth=1` auto-opens the photoreal view — for capture/testing + deep-links.
   useEffect(() => {
     try {
@@ -598,6 +605,8 @@ export function CelestialExplorer() {
           label="ISS live position" onClick={go(() => setIssLiveOpen(true))} />
         <MenuItem color="#8ab6ff" icon={<Radio className="h-3.5 w-3.5" />}
           label="Watch live · free feeds" onClick={go(() => setWatchLiveOpen(true))} />
+        <MenuItem color="#8ad0ff" icon={<Globe className="h-3.5 w-3.5" />}
+          label="Earth weather · surface" onClick={go(() => setEarthWeatherOpen(true))} />
         <MenuItem color="var(--accent)" icon={<Satellite className="h-3.5 w-3.5" />}
           label="ISS over you" onClick={go(() => setPassesOpen(true))} />
         <MenuItem color="#ffd27a" icon={<Compass className="h-3.5 w-3.5" />}
@@ -1120,6 +1129,11 @@ export function CelestialExplorer() {
           {watchLiveOpen && (
             <div className="absolute bottom-24 left-4 md:left-6 z-40">
               <WatchLive onClose={() => setWatchLiveOpen(false)} />
+            </div>
+          )}
+          {earthWeatherOpen && (
+            <div className="absolute bottom-24 left-4 md:left-6 z-40">
+              <EarthWeatherPanel onClose={() => setEarthWeatherOpen(false)} />
             </div>
           )}
           {porkchopOpen && (

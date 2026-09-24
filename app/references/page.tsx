@@ -121,10 +121,16 @@ const GROUPS: { heading: string; blurb: string; sources: Source[] }[] = [
         href: "https://www.star.nesdis.noaa.gov/GOES/",
       },
       {
-        name: "NASA GIBS — daily whole-Earth true colour",
-        detail: "Global Imagery Browse Services: the entire Earth as a single daily true-colour mosaic (VIIRS), for any recent date — the flat-globe complement to the geostationary disks. Standard WMTS, keyless and CORS-open (pixels readable).",
+        name: "NASA GIBS — daily whole-Earth true colour + land temperature",
+        detail: "Global Imagery Browse Services: the entire Earth as a single daily mosaic — true colour (VIIRS) and land-surface temperature (MODIS) — for any recent date, the flat-globe complement to the geostationary disks and the seed of the Earth-data layers. Standard WMTS, keyless and CORS-open (pixels readable).",
         license: "Public domain (NASA)",
         href: "https://nasa-gibs.github.io/gibs-api-docs/",
+      },
+      {
+        name: "Open-Meteo — surface weather + air quality",
+        detail: "Live current conditions, a six-day forecast, and air quality (US AQI / PM2.5) for any place on Earth, plus place search (geocoding). Blends national weather-service models (ECMWF, GFS, ICON, …). Completely keyless and CORS-open — powers the Earth · weather panel.",
+        license: "CC BY 4.0 (Open-Meteo)",
+        href: "https://open-meteo.com/",
       },
       {
         name: "CelesTrak — TLE orbital elements",

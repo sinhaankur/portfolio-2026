@@ -33,16 +33,35 @@ export type GibsMosaic = {
   source: string
 }
 
-let cache: { at: number; mosaic: GibsMosaic } | null = null
 const TTL = 1000 * 60 * 60 // 1 hr — GIBS publishes at most once per day
 
 function isoDay(d: Date): string {
   return d.toISOString().slice(0, 10)
 }
 
-/** The whole-world level-0 tile URL for a given date. */
-function urlForDate(date: string): string {
-  return `${GIBS_4326}/${LAYER}/default/${date}/250m/0/0/0.jpg`
+// A GIBS raster layer we can pull the whole world for as a single L0 tile.
+// (Only raster layers work in an <img>/texture; vector layers like the fires
+// thermal-anomaly product are .mvt and are intentionally not listed here.)
+type GibsLayer = {
+  id: string
+  matrix: string // TileMatrixSet, e.g. "250m", "1km"
+  ext: "jpg" | "png"
+  source: string
+}
+
+const LAYERS: Record<string, GibsLayer> = {
+  trueColor: { id: LAYER, matrix: "250m", ext: "jpg", source: "NASA GIBS · VIIRS true colour" },
+  landTemp: {
+    id: "MODIS_Terra_Land_Surface_Temp_Day",
+    matrix: "1km",
+    ext: "png",
+    source: "NASA GIBS · MODIS land-surface temperature (day)",
+  },
+}
+
+/** The whole-world level-0 tile URL for a layer on a given date. */
+function urlForLayer(layer: GibsLayer, date: string): string {
+  return `${GIBS_4326}/${layer.id}/default/${date}/${layer.matrix}/0/0/0.${layer.ext}`
 }
 
 /** HEAD-style existence probe with a hard timeout. */
@@ -60,22 +79,41 @@ async function tileExists(url: string, ms: number): Promise<boolean> {
   }
 }
 
+const layerCache = new Map<string, { at: number; mosaic: GibsMosaic }>()
+
 /**
- * The newest available global true-colour mosaic. Today's imagery can lag a few
- * hours, so we walk back up to `maxDaysBack` days and return the first that
- * resolves. Returns null if none do (offline / all pending).
+ * The newest available whole-world mosaic for a named GIBS layer. Imagery can lag
+ * a few hours/days, so we walk back up to `maxDaysBack` days and return the first
+ * that resolves. Returns null if none do (offline / all pending).
  */
-export async function fetchGibsMosaic(maxDaysBack = 4): Promise<GibsMosaic | null> {
-  if (cache && Date.now() - cache.at < TTL) return cache.mosaic
+async function fetchLayer(key: keyof typeof LAYERS, maxDaysBack: number): Promise<GibsMosaic | null> {
+  const cached = layerCache.get(key)
+  if (cached && Date.now() - cached.at < TTL) return cached.mosaic
+  const layer = LAYERS[key]
   const now = Date.now()
   for (let i = 0; i <= maxDaysBack; i++) {
     const date = isoDay(new Date(now - i * 86_400_000))
-    const url = urlForDate(date)
+    const url = urlForLayer(layer, date)
     if (await tileExists(url, 6000)) {
-      const mosaic: GibsMosaic = { date, url, source: "NASA GIBS · VIIRS true colour" }
-      cache = { at: Date.now(), mosaic }
+      const mosaic: GibsMosaic = { date, url, source: layer.source }
+      layerCache.set(key, { at: Date.now(), mosaic })
       return mosaic
     }
   }
   return null
+}
+
+/** Newest daily whole-Earth true-colour mosaic (VIIRS). */
+export function fetchGibsMosaic(maxDaysBack = 4): Promise<GibsMosaic | null> {
+  return fetchLayer("trueColor", maxDaysBack)
+}
+
+/**
+ * Newest daily whole-Earth land-surface temperature map (MODIS). A real
+ * NASA Earth-observation layer — the "how hot is the ground" view that seeds the
+ * broader Earth-data theme. LST is measured only over cloud-free land, so oceans
+ * + cloudy areas read as gaps; that's honest, not missing data.
+ */
+export function fetchGibsLandTemp(maxDaysBack = 6): Promise<GibsMosaic | null> {
+  return fetchLayer("landTemp", maxDaysBack)
 }
