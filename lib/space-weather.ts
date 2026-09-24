@@ -131,3 +131,75 @@ export function flareSeverity(classType: string): "high" | "med" | "low" {
   if (c === "M") return "med"
   return "low"
 }
+
+// --- NOAA/SWPC: live OVATION aurora forecast + GOES X-ray flux ----------------
+// Both are keyless and served with `Access-Control-Allow-Origin: *`, so they load
+// directly from the static site. These deepen the snapshot: OVATION gives the
+// modelled aurora oval right now (not just the Kp-derived latitude), and the GOES
+// X-ray flux is the Sun's live output that flare classes are read from.
+
+export type AuroraForecast = {
+  forecastTime: string
+  /** Peak aurora probability (%) anywhere in the model grid. */
+  peakProbability: number
+  /** Peak aurora probability (%) within ±3° of the observer's latitude, if known. */
+  atUserProbability: number | null
+}
+
+/**
+ * NOAA OVATION aurora nowcast. The raw grid is ~65k [lon, lat, prob%] triples —
+ * far too heavy to surface whole, so we reduce it to the peak probability overall
+ * and (if we know the observer's latitude) the peak in their latitude band. Fails
+ * soft to null.
+ */
+export async function fetchAuroraForecast(userLatDeg: number | null): Promise<AuroraForecast | null> {
+  const j = await jsonOrNull("https://services.swpc.noaa.gov/json/ovation_aurora_latest.json")
+  const grid = (j as { coordinates?: [number, number, number][]; ["Forecast Time"]?: string } | null)
+  if (!grid || !Array.isArray(grid.coordinates)) return null
+
+  let peak = 0
+  let atUser = userLatDeg == null ? null : 0
+  for (const c of grid.coordinates) {
+    const lat = c[1]
+    const prob = c[2]
+    if (prob > peak) peak = prob
+    if (userLatDeg != null && Math.abs(lat - userLatDeg) <= 3 && prob > (atUser as number)) atUser = prob
+  }
+  return {
+    forecastTime: String(grid["Forecast Time"] ?? ""),
+    peakProbability: Math.round(peak),
+    atUserProbability: atUser == null ? null : Math.round(atUser),
+  }
+}
+
+export type XrayFlux = {
+  /** W/m² in the 0.1–0.8 nm band (the band GOES flare classes are defined on). */
+  flux: number
+  /** Derived flare-class label from the flux, e.g. "C2.4", "M1.1", "B7". */
+  classLabel: string
+  time: string
+}
+
+/** Convert a 0.1–0.8 nm flux (W/m²) to the standard A/B/C/M/X flare class. */
+export function fluxToClass(flux: number): string {
+  if (!Number.isFinite(flux) || flux <= 0) return "—"
+  const bands: [string, number][] = [
+    ["X", 1e-4], ["M", 1e-5], ["C", 1e-6], ["B", 1e-7], ["A", 1e-8],
+  ]
+  for (const [letter, base] of bands) {
+    if (flux >= base) return `${letter}${(flux / base).toFixed(1)}`
+  }
+  return "<A1"
+}
+
+/** Live GOES long-band X-ray flux — the Sun's current output right now. */
+export async function fetchXrayFlux(): Promise<XrayFlux | null> {
+  const j = await jsonOrNull("https://services.swpc.noaa.gov/json/goes/primary/xrays-1-day.json")
+  if (!Array.isArray(j) || j.length === 0) return null
+  // Take the most recent long-band (0.1–0.8 nm) sample.
+  const long = (j as { energy?: string; flux?: number; time_tag?: string }[])
+    .filter((r) => r.energy === "0.1-0.8nm" && typeof r.flux === "number")
+  const last = long[long.length - 1]
+  if (!last || typeof last.flux !== "number") return null
+  return { flux: last.flux, classLabel: fluxToClass(last.flux), time: String(last.time_tag ?? "") }
+}

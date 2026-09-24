@@ -145,7 +145,7 @@ export function PhiViz() {
         const total = fib[fib.length - 1] + fib[fib.length - 2]
         const unit = Math.min(W, H) * 0.9 / total
         // walk the squares outward, turning 90° each time (classic construction)
-        let x = W / 2, y = H / 2
+        const x = W / 2, y = H / 2
         let dir = 0                        // 0=right,1=down,2=left,3=up
         const shown = Math.max(2, Math.floor(2 + grow * (fib.length - 2)))
         // pre-place using the standard spiral-of-squares layout

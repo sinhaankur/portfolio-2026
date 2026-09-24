@@ -26,11 +26,12 @@
  * the real view line up.
  */
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { Radio, X, ExternalLink, MapPin } from "lucide-react"
 import { selectedSatRef } from "@/components/universe-engine/satellite-refs"
 import { satsRef } from "@/components/universe-engine/satellite-data"
+import { fetchHimawariLatest, frameAge, type HimawariFrame } from "@/lib/himawari"
 
 type Tab = "iss" | "weather" | "sky"
 
@@ -58,7 +59,9 @@ const WEATHER_FEEDS = [
   {
     id: "himawari",
     label: "Himawari · Asia-Pacific",
-    note: "JMA Himawari-9 · full disk",
+    note: "JAXA/JMA Himawari-9 · full disk",
+    // Fallback still (fixed-name IR frame). When NICT's real-time true-colour
+    // feed is reachable we swap this for the freshest timestamped frame below.
     url: "https://www.data.jma.go.jp/mscweb/data/himawari/img/fd_/fd__b13_0000.jpg",
   },
 ] as const
@@ -77,6 +80,15 @@ export function WatchLive({ onClose }: { onClose?: () => void }) {
   const [feed, setFeed] = useState<(typeof WEATHER_FEEDS)[number]["id"]>("goes-east")
   // Cache-bust weather images so we get a fresh frame, not a cached one.
   const [bust] = useState(() => Date.now())
+  // Live Himawari-9 true-colour frame from NICT (timestamped). Null until it
+  // loads or if the service is slow/offline — then the fixed JMA still is used.
+  const [himawari, setHimawari] = useState<HimawariFrame | null>(null)
+
+  useEffect(() => {
+    let alive = true
+    fetchHimawariLatest().then((f) => { if (alive && f) setHimawari(f) })
+    return () => { alive = false }
+  }, [])
 
   const flyToIss = () => {
     // Find the station in the loaded catalogue and select it, so the engine flies
@@ -174,20 +186,34 @@ export function WatchLive({ onClose }: { onClose?: () => void }) {
                 </button>
               ))}
             </div>
-            <div className="overflow-hidden rounded-lg border border-border bg-black">
-              <img
-                key={active.id}
-                src={`${active.url}?t=${bust}`}
-                alt={`${active.label} full-disk Earth`}
-                className="block w-full"
-                referrerPolicy="no-referrer"
-              />
-            </div>
-            <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
-              {active.note} — near-real-time full-disk Earth from geostationary
-              orbit (~35,786 km up). Published free by the agencies; refreshes every
-              few minutes. Reopen the panel for the latest frame.
-            </p>
+            {(() => {
+              // Prefer NICT's live timestamped true-colour disk for Himawari.
+              const liveHimawari = active.id === "himawari" && himawari
+              const imgSrc = liveHimawari ? himawari!.url : `${active.url}?t=${bust}`
+              return (
+                <>
+                  <div className="overflow-hidden rounded-lg border border-border bg-black">
+                    <img
+                      key={liveHimawari ? himawari!.url : active.id}
+                      src={imgSrc}
+                      alt={`${active.label} full-disk Earth`}
+                      className="block w-full"
+                      referrerPolicy="no-referrer"
+                    />
+                  </div>
+                  <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+                    {active.note} — near-real-time full-disk Earth from geostationary
+                    orbit (~35,786 km up). Published free by the agencies; refreshes
+                    every ~10 min.
+                    {liveHimawari ? (
+                      <> Live true-colour frame captured <span className="text-foreground/80">{frameAge(himawari!.at)}</span> (via NICT).</>
+                    ) : (
+                      <> Reopen the panel for the latest frame.</>
+                    )}
+                  </p>
+                </>
+              )
+            })()}
           </>
         )}
 

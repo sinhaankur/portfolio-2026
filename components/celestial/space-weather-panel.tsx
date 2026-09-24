@@ -10,12 +10,12 @@
 import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { Sparkles, X, MapPin } from "lucide-react"
-import { fetchSpaceWeather, fetchRecentFlares, kpLabel, auroraCall, flareSeverity, type SpaceWeather, type SolarFlare } from "@/lib/space-weather"
+import { fetchSpaceWeather, fetchRecentFlares, fetchAuroraForecast, fetchXrayFlux, kpLabel, auroraCall, flareSeverity, type SpaceWeather, type SolarFlare, type AuroraForecast, type XrayFlux } from "@/lib/space-weather"
 
 type State =
   | { kind: "loading" }
   | { kind: "error" }
-  | { kind: "done"; sw: SpaceWeather; userLat: number | null; flares: SolarFlare[] }
+  | { kind: "done"; sw: SpaceWeather; userLat: number | null; flares: SolarFlare[]; aurora: AuroraForecast | null; xray: XrayFlux | null }
 
 export function SpaceWeatherPanel({ onClose }: { onClose: () => void }) {
   const [state, setState] = useState<State>({ kind: "loading" })
@@ -31,11 +31,15 @@ export function SpaceWeatherPanel({ onClose }: { onClose: () => void }) {
         { timeout: 8000, maximumAge: 600000 },
       )
     })
-    Promise.all([fetchSpaceWeather(), latP, fetchRecentFlares()]).then(([sw, userLat, flares]) => {
-      if (!alive) return
-      if (!sw) { setState({ kind: "error" }); return }
-      setState({ kind: "done", sw, userLat, flares })
-    })
+    latP.then((userLat) =>
+      Promise.all([fetchSpaceWeather(), fetchRecentFlares(), fetchAuroraForecast(userLat), fetchXrayFlux()]).then(
+        ([sw, flares, aurora, xray]) => {
+          if (!alive) return
+          if (!sw) { setState({ kind: "error" }); return }
+          setState({ kind: "done", sw, userLat, flares, aurora, xray })
+        },
+      ),
+    )
     return () => { alive = false }
   }, [])
 
@@ -60,7 +64,7 @@ export function SpaceWeatherPanel({ onClose }: { onClose: () => void }) {
         {state.kind === "loading" && <p className="font-sans text-sm text-muted-foreground">Reading NOAA SWPC…</p>}
         {state.kind === "error" && <p className="font-sans text-sm text-muted-foreground">Couldn&apos;t reach NOAA right now.</p>}
         {state.kind === "done" && (() => {
-          const { sw, userLat } = state
+          const { sw, userLat, aurora, xray } = state
           const call = userLat != null ? auroraCall(userLat, sw.auroraMinLatDeg) : null
           const callColor = call === "likely" ? "text-[#7affd0]" : call === "possible" ? "text-[#ffd27a]" : "text-muted-foreground"
           return (
@@ -85,6 +89,25 @@ export function SpaceWeatherPanel({ onClose }: { onClose: () => void }) {
                   <dt className="font-mono text-[9px] tracking-widest uppercase text-muted-foreground">Aurora oval</dt>
                   <dd className="text-foreground tabular-nums">≥ {sw.auroraMinLatDeg}° lat</dd>
                 </div>
+                {xray && (
+                  <div>
+                    <dt className="font-mono text-[9px] tracking-widest uppercase text-muted-foreground">Sun · X-ray now</dt>
+                    <dd className="text-foreground tabular-nums">
+                      {xray.classLabel}
+                      <span className="text-muted-foreground text-xs"> · {flareSeverity(xray.classLabel) === "high" ? "flaring" : flareSeverity(xray.classLabel) === "med" ? "active" : "quiet"}</span>
+                    </dd>
+                  </div>
+                )}
+                {aurora && (
+                  <div>
+                    <dt className="font-mono text-[9px] tracking-widest uppercase text-muted-foreground">Oval intensity</dt>
+                    <dd className="text-foreground tabular-nums">
+                      {aurora.atUserProbability != null
+                        ? `${aurora.atUserProbability}% overhead`
+                        : `${aurora.peakProbability}% peak`}
+                    </dd>
+                  </div>
+                )}
               </dl>
 
               <div className="mt-3 rounded-lg border border-border bg-background/60 p-3">
@@ -130,7 +153,7 @@ export function SpaceWeatherPanel({ onClose }: { onClose: () => void }) {
               )}
 
               <p className="mt-3 flex items-center gap-1.5 font-mono text-[9px] tracking-wider text-muted-foreground/70">
-                <MapPin className="h-3 w-3" /> NOAA SWPC + NASA DONKI · Kp {new Date(sw.kpTime).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
+                <MapPin className="h-3 w-3" /> NOAA SWPC (Kp · OVATION · GOES X-ray) + NASA DONKI · Kp {new Date(sw.kpTime).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
               </p>
             </div>
           )

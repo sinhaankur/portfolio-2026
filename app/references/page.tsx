@@ -92,6 +92,61 @@ const GROUPS: { heading: string; blurb: string; sources: Source[] }[] = [
     ],
   },
   {
+    heading: "Live feeds & real-time data",
+    blurb:
+      "Feeds that are real and current, pulled live in your browser. The site is a static export, so every live source here is keyless and CORS-open (or gracefully degrades) — no server, no key to leak. Sources that need a key or login are noted as next-steps, not shipped.",
+    sources: [
+      {
+        name: "NASA APOD · NeoWs · DONKI",
+        detail: "Astronomy Picture of the Day, near-Earth object feed, and the solar-flare event history behind the imagery + space-weather panels. Keyless via the shared DEMO_KEY (a personal key raises the rate limit).",
+        license: "Public domain (NASA)",
+        href: "https://api.nasa.gov/",
+      },
+      {
+        name: "JAXA / JMA Himawari-9 (via NICT)",
+        detail: "Live true-colour full-disk Earth from the Himawari-9 geostationary satellite, relayed by NICT's public real-time service. A latest.json names the newest frame so we show honest freshness (\"captured X min ago\"). Display-only (no pixel read-back); falls back to the fixed JMA still.",
+        license: "JAXA/JMA imagery · NICT public feed",
+        href: "https://himawari8.nict.go.jp/",
+      },
+      {
+        name: "NOAA SWPC — Kp · OVATION · GOES X-ray · solar wind",
+        detail: "Real-time geomagnetic conditions: planetary Kp, the OVATION modelled aurora oval, live GOES X-ray flux (the Sun's current output, read as a flare class), and solar-wind speed + IMF Bz. All keyless and CORS-open.",
+        license: "Public domain (NOAA)",
+        href: "https://services.swpc.noaa.gov/",
+      },
+      {
+        name: "NOAA GOES-16/18 full-disk (NESDIS STAR)",
+        detail: "GeoColor full-disk Earth over the Americas + Pacific, near-real-time, in the Watch Live panel.",
+        license: "Public domain (NOAA)",
+        href: "https://www.star.nesdis.noaa.gov/GOES/",
+      },
+      {
+        name: "CelesTrak — TLE orbital elements",
+        detail: "The two-line element sets propagated by SGP4 for every tracked satellite. Keyless and CORS-open.",
+        license: "Public data (Dr. T.S. Kelso / CelesTrak)",
+        href: "https://celestrak.org/",
+      },
+      {
+        name: "wheretheiss.at — live ISS fix",
+        detail: "An independent live ISS position, cross-checked against the engine's own SGP4 propagation. Keyless, CORS-open.",
+        license: "Open API",
+        href: "https://wheretheiss.at/",
+      },
+      {
+        name: "ESA Gaia / Hipparcos — next-step",
+        detail: "Gaia astrometry would deepen the engine's star truth (parallax distances, proper motion). Because the payload is large and the archive isn't reliably CORS-open, it's planned as a build-time bake rather than a live browser fetch — not yet shipped.",
+        license: "CC BY 4.0 (ESA/Gaia DPAC)",
+        href: "https://www.cosmos.esa.int/web/gaia/data-access",
+      },
+      {
+        name: "Space-Track.org — next-step",
+        detail: "The authoritative US catalogue of TLEs, richer than the keyless CelesTrak subset. It requires a login, so it can't ship keyless from a static site without a proxy — documented here as a next-step, not wired in.",
+        license: "US Government · account required",
+        href: "https://www.space-track.org/",
+      },
+    ],
+  },
+  {
     heading: "Surface textures",
     blurb: "Planet, moon, and Sun surface maps applied to the bodies on close approach.",
     sources: [

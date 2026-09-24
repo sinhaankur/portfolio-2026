@@ -590,47 +590,24 @@ function PlayerShipGroup({ gameState, showForwardDebug }: { gameState: GameState
   const selectedShip = (gameState.selectedShip || 'default-vanguard') as SelectedShip;
   const shipTransform = useMemo(() => getPlayerShipTransform(selectedShip, 'game'), [selectedShip]);
   const thrusterPreset = SHIP_THRUSTER_PRESETS[selectedShip] ?? SHIP_THRUSTER_PRESETS['default-vanguard'];
-  // The old hard-coded four-foil mount map was for the retired third-party mesh.
   // Every ship (including the default, now the Kestrel) uses its own thruster
-  // preset instead, so plumes sit on the real nozzles.
-  const usingDefaultMountMap = false;
+  // preset, so plumes sit on the real nozzles measured from that hull.
   const engineMounts = useMemo(
-    () => {
-      if (usingDefaultMountMap) {
-        // Mount map aligned to the xwing.glb's FOUR S-foil engine exhausts, one
-        // plume per engine. Measured directly from the GLB in the game-render
-        // frame (after the +90° X basis rotation), rear nozzle at z≈2.15:
-        //   upper pair (±0.10, +0.11, 1.80) · lower pair (±0.13, −0.09, 1.75).
-        return [
-          [-0.105, 0.11, 1.80] as [number, number, number],
-          [0.105, 0.11, 1.80] as [number, number, number],
-          [-0.13, -0.09, 1.75] as [number, number, number],
-          [0.13, -0.09, 1.75] as [number, number, number],
-        ];
-      }
-
-      return [
-        [-thrusterPreset.lateral, thrusterPreset.vertical, thrusterPreset.coreZ] as [number, number, number],
-        [-thrusterPreset.lateral, -thrusterPreset.vertical, thrusterPreset.coreZ] as [number, number, number],
-        [thrusterPreset.lateral, thrusterPreset.vertical, thrusterPreset.coreZ] as [number, number, number],
-        [thrusterPreset.lateral, -thrusterPreset.vertical, thrusterPreset.coreZ] as [number, number, number],
-      ];
-    },
-    [thrusterPreset, usingDefaultMountMap]
+    () => [
+      [-thrusterPreset.lateral, thrusterPreset.vertical, thrusterPreset.coreZ] as [number, number, number],
+      [-thrusterPreset.lateral, -thrusterPreset.vertical, thrusterPreset.coreZ] as [number, number, number],
+      [thrusterPreset.lateral, thrusterPreset.vertical, thrusterPreset.coreZ] as [number, number, number],
+      [thrusterPreset.lateral, -thrusterPreset.vertical, thrusterPreset.coreZ] as [number, number, number],
+    ],
+    [thrusterPreset]
   );
   const rearNozzleZs = useMemo(
-    () =>
-      usingDefaultMountMap
-        ? [2.05, 2.05, 2.05, 2.05]
-        : [thrusterPreset.nozzleZ, thrusterPreset.nozzleZ, thrusterPreset.nozzleZ, thrusterPreset.nozzleZ],
-    [usingDefaultMountMap, thrusterPreset.nozzleZ]
+    () => [thrusterPreset.nozzleZ, thrusterPreset.nozzleZ, thrusterPreset.nozzleZ, thrusterPreset.nozzleZ],
+    [thrusterPreset.nozzleZ]
   );
   const rearOuterNozzleZs = useMemo(
-    () =>
-      usingDefaultMountMap
-        ? [2.21, 2.21, 2.21, 2.21]
-        : [thrusterPreset.outerNozzleZ, thrusterPreset.outerNozzleZ, thrusterPreset.outerNozzleZ, thrusterPreset.outerNozzleZ],
-    [usingDefaultMountMap, thrusterPreset.outerNozzleZ]
+    () => [thrusterPreset.outerNozzleZ, thrusterPreset.outerNozzleZ, thrusterPreset.outerNozzleZ, thrusterPreset.outerNozzleZ],
+    [thrusterPreset.outerNozzleZ]
   );
   const initialPlumeLength = 1.05;
   const initialThrusterCenters = useMemo(
