@@ -37,6 +37,12 @@ export interface TerrainRegion {
   tile: string
   /** True if the tile lives only on R2 (heavy) — loaded via the CDN. */
   tileOnR2?: boolean
+  /**
+   * This region's relief is BELOW sea level (e.g. the Mariana Trench). Diving to
+   * it with the ocean on shows only dark water — so a dive here auto-drains the
+   * ocean and turns on the elevation tint, revealing the real seafloor.
+   */
+  underwater?: boolean
 }
 
 export interface RoverSite {
@@ -395,6 +401,7 @@ export const TERRAIN_BODIES: TerrainBody[] = [
         latS: 5,
         latN: 21,
         tile: "/textures/terrain/earth-mariana-2k.png",
+        underwater: true, // deepest seafloor — drain the ocean to see it
       },
     ],
     hasOcean: true,

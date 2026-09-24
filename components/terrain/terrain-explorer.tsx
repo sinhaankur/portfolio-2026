@@ -26,8 +26,12 @@ export function TerrainExplorer() {
   const [initialBody, setInitialBody] = useState("mars")
 
   useEffect(() => {
+    // Hash may be "#body" or "#body/region" (e.g. #earth/mariana). Take only the
+    // body part — passing the whole "earth/mariana" as the id fell through to the
+    // default body (Mars), so deep-links to a region opened the wrong planet.
     const hash = window.location.hash.replace(/^#/, "")
-    if (hash) setInitialBody(hash)
+    const bodyId = hash.split("/")[0]
+    if (bodyId) setInitialBody(bodyId)
   }, [])
 
   return <TerrainEngine initialBody={initialBody} />

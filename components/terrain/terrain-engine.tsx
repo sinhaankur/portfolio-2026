@@ -128,39 +128,61 @@ export function TerrainEngine({ initialBody = "mars" }: { initialBody?: string }
   // so a cold shared link reliably lands on the region.
   useEffect(() => {
     const raw = typeof window !== "undefined" ? window.location.hash.replace(/^#/, "") : ""
-    const regionId = raw.split("/")[1]
+    const [hashBody, regionId] = raw.split("/")
     if (!regionId) return
     let tries = 0
     const iv = setInterval(() => {
       tries++
-      if (controlsRef.current) {
+      // Wait for BOTH the controls to mount AND the active body to actually be
+      // the hash's body (the Mars→Earth switch is async) — else the dive fires
+      // against the wrong planet and no-ops.
+      const ready = controlsRef.current && bodyId === hashBody
+      if (ready) {
         flyToRegion(regionId)
         clearInterval(iv)
-      } else if (tries > 40) {
-        clearInterval(iv) // give up after ~8s
+      } else if (tries > 60) {
+        clearInterval(iv) // give up after ~12s
       }
     }, 200)
     return () => clearInterval(iv)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [bodyId])
 
   // Fly the camera down into a region: point it at the region centre and pull it
   // just above the surface floor so the high-res tile engages.
   function flyToRegion(regionId: string) {
-    const region = body.regions?.find((r) => r.id === regionId)
+    // Resolve the region against the ACTIVE body. On a cold "#body/region" load
+    // this can fire while the closed-over `body` is still the default (Mars), so
+    // fall back to the current bodyId's data — else the fly-to silently no-ops and
+    // the deep-link "lands on the wrong planet / never dives".
+    const activeBody = getTerrainBody(bodyId) ?? body
+    const region = activeBody.regions?.find((r) => r.id === regionId)
     const controls = controlsRef.current
     if (!region || !controls) return
+    // Underwater regions (Mariana Trench) are just dark water with the ocean on —
+    // drain it and turn on the elevation tint so the real seafloor relief shows.
+    if (region.underwater) {
+      setOceanOverride(false)
+      setHypsometricOverride(true)
+    }
     const latC = (region.latS + region.latN) / 2
     const lonC = (region.lonW + region.lonE) / 2
     const [x, y, z] = latLonToUnitVec(latC, lonC)
-    const d = minDistance + RADIUS_UNITS * 0.12 // just above the floor
+    // Frame the region from a standoff that keeps it VISIBLE and lit — not buried
+    // at the floor (which showed a black void). Sit well above the surface and,
+    // crucially, LOOK AT the region point on the surface, not the globe centre, so
+    // the trench/mountain fills the view instead of the camera pointing through
+    // the planet at the dark far side.
+    const surf = RADIUS_UNITS
+    const d = surf + RADIUS_UNITS * 0.55 // comfortable standoff above the region
     const cam = controls.object
     cam.position.set(x * d, y * d, z * d)
-    controls.target.set(0, 0, 0)
+    // Target the surface point (region centre on the globe), not the origin.
+    controls.target.set(x * surf, y * surf, z * surf)
     controls.update()
     // Reflect the deep-dive in the URL so it's a shareable link.
     if (typeof window !== "undefined") {
-      window.history.replaceState(null, "", `#${body.id}/${regionId}`)
+      window.history.replaceState(null, "", `#${activeBody.id}/${regionId}`)
     }
   }
 
