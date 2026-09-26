@@ -3289,14 +3289,15 @@ const skyPointsCurated: SkyPoint[] = [
   {
     id: "tabbys-star",
     name: "Tabby's Star",
-    designation: "KIC 8462852 · Boyajian's Star",
-    kind: "exoplanet-host",
+    designation: "KIC 8462852 · Boyajian's Star · F3 V/IV",
+    kind: "star",
     raHours: 20.107,
     decDeg: 44.45,
     magnitude: 11.7,
     distance: "1,470 ly",
-    fact: "Famous for unprecedented and unexplained dimming events — drops of up to 22% over irregular intervals. Briefly suggested as a candidate for alien megastructures (a Dyson swarm); now most likely caused by an uneven dust ring or planetary debris. Still not fully understood.",
+    fact: "Famous for unprecedented and unexplained dimming events — drops of up to 22% over irregular intervals. Briefly suggested as a candidate for alien megastructures (a Dyson swarm); now most likely caused by an uneven dust ring or planetary debris. Despite intense scrutiny, it has NO confirmed planets — the dimming is still not fully understood.",
     visualSize: 0.5,
+    shade: "#fbf6e6",     // F-class yellow-white
   },
   // ----- Famous individual stars — bright enough to be naked-eye
   // recognised, placed at real J2000 coordinates. Colours encode
