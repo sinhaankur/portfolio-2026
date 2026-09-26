@@ -173,6 +173,7 @@ let _autoRotateSuspended = false
 // Gentle-drift scratch + a "the user is grabbing the camera" flag so the drift
 // yields to interaction and never fights a drag/zoom.
 const _driftOff = new Vector3()
+const _sunWorld = new Vector3() // scratch: Sun world pos for the cinematic focus gate
 const _driftAxis = new Vector3(0, 1, 0)
 let _userGrabbing = false
 let _grabReleaseAt = 0
@@ -706,6 +707,7 @@ function SolarSystem({
       uSunTex: { value: sunTexture },
       uIntensity: { value: invert ? 1.0 : 1.5 },
       uLifeStage: { value: 0 }, // 0=today, 1=red giant, 2=white dwarf (opt-in)
+      uFocus: { value: 0 },     // cinematic focus tier: 0=far, 1=flown-in (dist-driven)
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
@@ -749,7 +751,7 @@ function SolarSystem({
     [],
   )
 
-  useFrame((_, delta) => {
+  useFrame((state, delta) => {
     const tw = timeWarpRef.current
     // ── "You are here" speck ──────────────────────────────────────────────
     // As the camera pulls far back (toward galaxy scale) the whole solar system
@@ -797,6 +799,20 @@ function SolarSystem({
     // orbital time-warp.
     if (sunSurfMatRef.current) {
       sunSurfMatRef.current.uniforms.uTime.value += delta
+      // Cinematic focus tier: ramp uFocus by how close the camera is to the Sun.
+      // Far (≥ farD) → 0 (baseline cheap shader, byte-identical to before); flown
+      // in (≤ nearD, matching the planet:Sun fly-to distance 3.2) → 1. Lerped, so
+      // the churn/prominences fade in smoothly instead of snapping. Distance is in
+      // Sun radii so it tracks the swelling red-giant scale too.
+      const uf = sunSurfMatRef.current.uniforms.uFocus as { value: number }
+      if (sunSurfMeshRef.current) {
+        sunSurfMeshRef.current.getWorldPosition(_sunWorld)
+        const sunR = Math.max(0.001, sunSurfMeshRef.current.scale.x)
+        const dist = state.camera.position.distanceTo(_sunWorld) / sunR
+        const nearD = 3.2, farD = 12
+        const target = 1 - Math.min(1, Math.max(0, (dist - nearD) / (farD - nearD)))
+        uf.value += (target - uf.value) * (1 - Math.exp(-delta * 3))
+      }
       // Sun-history life stage (opt-in): ease the shader stage toward the target
       // and swell/collapse the Sun mesh — main-sequence (1×) → red giant (~14×,
       // reaching toward Earth's orbit) → white dwarf (~0.1×, an Earth-sized

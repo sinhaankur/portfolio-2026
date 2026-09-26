@@ -129,6 +129,12 @@ export const SUN_SURFACE_FRAGMENT_SHADER = `
   // inert until the timeline engages it. Colour shifts honestly with the phase
   // (a cooler surface reddens; the white-dwarf remnant is intensely blue-white).
   uniform float uLifeStage;
+  // Cinematic focus tier: 0 = far (the cheap baseline path below runs untouched),
+  // 1 = flown-in. Every extra effect (supergranulation, prominences, differential
+  // rotation) is multiplied by uFocus, so the far view is byte-identical to before
+  // and the expensive octaves only run on the one focused Sun. Driven by the
+  // camera→Sun distance in scene.tsx (Performance pillar — cost lives at focus).
+  uniform float uFocus;
   varying vec2 vUv;
 
   // Tiny 3D value noise — used ONLY for a gentle live shimmer over the baked
@@ -142,6 +148,22 @@ export const SUN_SURFACE_FRAGMENT_SHADER = `
                mix(mix(hash(i+vec3(0,0,1)),hash(i+vec3(1,0,1)),f.x),
                    mix(hash(i+vec3(0,1,1)),hash(i+vec3(1,1,1)),f.x),f.y),f.z);
   }
+  // Fractal (fBm) sum of vnoise — the substrate for convection cells.
+  float fbm(vec3 p){
+    float a = 0.5, s = 0.0;
+    for (int i = 0; i < 4; i++) { s += a * vnoise(p); p *= 2.02; a *= 0.5; }
+    return s;
+  }
+  // Cheap curl-like domain warp: offset the sample point by the gradient of a
+  // second noise field so cells swirl and shear like real convective flow rather
+  // than boiling in place. Two fBm lookups — only reached when uFocus > 0.
+  vec3 warp(vec3 p, float t){
+    float e = 0.15;
+    float n1 = fbm(p + vec3(t * 0.05, 0.0, 0.0));
+    float n2 = fbm(p + vec3(0.0, t * 0.04, e));
+    float n3 = fbm(p + vec3(e, 0.0, t * 0.03));
+    return p + 0.35 * vec3(n1 - n2, n2 - n3, n3 - n1);
+  }
   void main() {
     vec3 p = normalize(vPos);
     // Base: the real Blender-rendered photosphere — fiery, molten, alive.
@@ -150,8 +172,56 @@ export const SUN_SURFACE_FRAGMENT_SHADER = `
     // already carries the granulation; this just keeps it from looking frozen).
     float shimmer = vnoise(p * 9.0 + vec3(0.0, uTime * 0.25, uTime * 0.15));
     col *= 0.9 + 0.18 * shimmer;
-    // Limb darkening — the disc edge is cooler/dimmer than centre.
+
+    // ── Cinematic focus tier ────────────────────────────────────────────────
+    // Only runs as you fly in (uFocus 0→1). Adds real solar structure the flat
+    // texture can't carry: churning supergranulation, hot granule cores in cooler
+    // network lanes, latitude-dependent differential rotation, and limb
+    // prominences. All anchored to physics; nothing invented.
     float mu = clamp(abs(dot(vWorldNormal, vViewDir)), 0.0, 1.0);
+    if (uFocus > 0.001) {
+      // Differential rotation: the equator spins faster than the poles (~25 d vs
+      // ~34 d). Shear the noise domain's longitude by latitude so cells at the
+      // equator drift faster — real, and it makes the surface feel like a fluid.
+      float lat = asin(clamp(p.y, -1.0, 1.0));         // -π/2..π/2
+      float diffRot = uTime * (0.06 - 0.02 * abs(sin(lat)));
+      vec3 q = vec3(
+        p.x * cos(diffRot) - p.z * sin(diffRot),
+        p.y,
+        p.x * sin(diffRot) + p.z * cos(diffRot)
+      );
+
+      // Two convection scales: coarse supergranules (~30 Mm) + fine granules.
+      vec3 wq = warp(q * 4.0, uTime);
+      float superg = fbm(wq);                            // supergranule cells
+      float fine   = fbm(warp(q * 14.0, uTime * 1.6));   // granulation on top
+      float cells  = mix(superg, fine, 0.45);
+
+      // Hot cores / cool network lanes: sharpen the field into bright cell
+      // centres separated by darker intergranular lanes (a real Sun's texture).
+      float lanes = smoothstep(0.35, 0.62, cells);
+      vec3 hot  = vec3(1.15, 0.72, 0.34);                // ~photosphere hot core
+      vec3 cool = vec3(0.55, 0.20, 0.08);                // cooler network lane
+      vec3 gran = mix(cool, hot, lanes);
+      // Blend the procedural structure over the baked texture as we fly in, so
+      // the far view (uFocus=0) is untouched and the near view is alive.
+      col = mix(col, col * (0.7 + 0.9 * lanes) + gran * 0.22, uFocus);
+
+      // Sunspots: rare, dark, cooler pooled regions where cells suppress.
+      float spot = smoothstep(0.86, 0.94, fbm(q * 2.3 + 11.0));
+      col *= 1.0 - 0.55 * spot * uFocus;
+
+      // Limb prominences: at the very edge (mu→0), loft glowing Hα arcs off the
+      // disc. Animated ribbons, confined to a thin rim so they never bleed into
+      // the corona shells (which are separate additive geometry).
+      float rim = smoothstep(0.32, 0.0, mu);             // 1 at the limb, 0 inland
+      float arc = fbm(vec3(atan(p.z, p.x) * 3.0, lat * 4.0, uTime * 0.5));
+      float prom = smoothstep(0.55, 0.9, arc) * rim;
+      vec3 promCol = vec3(1.2, 0.35, 0.22);              // Hα red-orange
+      col += promCol * prom * uFocus * 1.4;
+    }
+
+    // Limb darkening — the disc edge is cooler/dimmer than centre.
     float limb = 0.55 + 0.45 * pow(mu, 0.5);
     col *= limb;
 
