@@ -727,7 +727,7 @@ export function CelestialExplorer() {
           <Link
             href="/lab"
             data-cursor-hover
-            className="group inline-flex items-center gap-2 font-mono text-[10px] tracking-widest uppercase text-foreground/75 hover:text-foreground bg-background/40 backdrop-blur-sm border border-border rounded-full px-3 py-2 transition-colors"
+            className="group inline-flex items-center gap-2 font-mono text-[10px] tracking-widest uppercase text-foreground/75 hover:text-foreground bg-background/40 backdrop-blur-sm border border-border rounded-none px-3 py-2 transition-colors"
           >
             <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-1" />
             The Lab
@@ -741,7 +741,7 @@ export function CelestialExplorer() {
             aria-label="AI assistant"
             title="Ask the universe assistant"
             aria-pressed={assistantOpen}
-            className={`inline-flex items-center gap-1.5 rounded-full border backdrop-blur-sm px-3 py-2 font-mono text-[10px] tracking-widest uppercase transition-colors ${
+            className={`inline-flex items-center gap-1.5 rounded-none border backdrop-blur-sm px-3 py-2 font-mono text-[10px] tracking-widest uppercase transition-colors ${
               assistantOpen
                 ? "border-accent/60 bg-accent/10 text-accent"
                 : "border-border bg-background/60 text-foreground/75 hover:text-accent hover:border-accent/60"
@@ -758,7 +758,7 @@ export function CelestialExplorer() {
               data-cursor-hover
               aria-label="More controls"
               aria-expanded={moreOpen}
-              className={`grid h-9 w-9 place-items-center rounded-full border backdrop-blur-sm transition-colors ${
+              className={`grid h-9 w-9 place-items-center rounded-none border backdrop-blur-sm transition-colors ${
                 moreOpen ? "border-accent/60 bg-accent/10 text-accent" : "border-border bg-background/60 text-foreground/75 hover:text-foreground"
               }`}
             >
@@ -856,7 +856,7 @@ export function CelestialExplorer() {
                   </p>
                 </div>
                 <button type="button" onClick={clearSwarm} data-cursor-hover aria-label="Stop following"
-                  className="grid h-7 w-7 place-items-center rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors shrink-0">
+                  className="grid h-7 w-7 place-items-center rounded-none text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors shrink-0">
                   <X className="h-3.5 w-3.5" />
                 </button>
               </div>
@@ -947,7 +947,7 @@ export function CelestialExplorer() {
               <div className="sticky top-0 flex items-center justify-between gap-3 px-5 py-3 border-b border-border bg-background/80 backdrop-blur">
                 <p className="font-mono text-[10px] tracking-[0.25em] uppercase text-accent">{open.tagline}</p>
                 <button type="button" onClick={() => setOpenName(null)} data-cursor-hover aria-label="Close"
-                  className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors shrink-0">
+                  className="grid h-8 w-8 place-items-center rounded-none text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors shrink-0">
                   <X className="h-4 w-4" />
                 </button>
               </div>
@@ -955,7 +955,7 @@ export function CelestialExplorer() {
               <div className="p-5">
                 <div className="relative aspect-square w-full rounded-lg overflow-hidden bg-secondary/20 mb-4">
                   <GlobeViewer src={open.glb} />
-                  <span className="pointer-events-none absolute bottom-2 left-1/2 -translate-x-1/2 inline-flex items-center gap-1.5 font-mono text-[9px] tracking-widest uppercase text-foreground/70 bg-background/50 backdrop-blur-sm rounded-full px-2.5 py-1">
+                  <span className="pointer-events-none absolute bottom-2 left-1/2 -translate-x-1/2 inline-flex items-center gap-1.5 font-mono text-[9px] tracking-widest uppercase text-foreground/70 bg-background/50 backdrop-blur-sm rounded-none px-2.5 py-1">
                     <Rotate3d className="h-3 w-3 text-accent" /> Drag · zoom
                   </span>
                 </div>
@@ -1013,7 +1013,7 @@ export function CelestialExplorer() {
               data-cursor-hover
               aria-expanded={menuOpen}
               aria-label="Explore tools"
-              className="inline-flex items-center gap-2 rounded-full border border-border bg-background/70 px-4 py-2.5 font-mono text-[10px] tracking-widest uppercase text-foreground/90 backdrop-blur-sm transition-colors hover:border-foreground/40"
+              className="inline-flex items-center gap-2 rounded-none border border-border bg-background/70 px-4 py-2.5 font-mono text-[10px] tracking-widest uppercase text-foreground/90 backdrop-blur-sm transition-colors hover:border-foreground/40"
             >
               <span className={`transition-transform ${menuOpen ? "rotate-45" : ""}`}>✦</span>
               {menuOpen ? "Close" : "Explore"}
@@ -1155,7 +1155,7 @@ export function CelestialExplorer() {
             the moment they focus/select anything. bottom-32 = the above-
             timeline HUD layer (engine spacing system). */}
         {firstHint && (
-          <div className="absolute bottom-32 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 rounded-full border border-border bg-background/70 backdrop-blur-md pl-4 pr-2 py-2 max-w-[calc(100vw-2rem)]">
+          <div className="absolute bottom-32 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 rounded-none border border-border bg-background/70 backdrop-blur-md pl-4 pr-2 py-2 max-w-[calc(100vw-2rem)]">
             <p className="font-mono text-[10px] tracking-[0.12em] uppercase text-foreground/75 truncate">
               Tap a planet to travel · tap near a dot for its satellite · drag to look around
             </p>
@@ -1164,7 +1164,7 @@ export function CelestialExplorer() {
               onClick={dismissFirstHint}
               data-cursor-hover
               aria-label="Dismiss hint"
-              className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
+              className="grid h-6 w-6 shrink-0 place-items-center rounded-none text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
             >
               <X className="h-3 w-3" />
             </button>
@@ -1225,12 +1225,12 @@ export function CelestialExplorer() {
           Shown only when you dive to the surface; no silent auto-launch, so credit
           is spent only on intent. */}
       {descendPrompt && !earthView && (
-        <div className="absolute bottom-28 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 rounded-full border border-accent/50 bg-background/90 backdrop-blur-md px-2 py-1.5 shadow-[0_16px_48px_-20px_rgba(0,0,0,0.7)]">
+        <div className="absolute bottom-28 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 rounded-none border border-accent/50 bg-background/90 backdrop-blur-md px-2 py-1.5 shadow-[0_16px_48px_-20px_rgba(0,0,0,0.7)]">
           <button
             type="button"
             onClick={() => { setDescendPrompt(false); setEarthView(true) }}
             data-cursor-hover
-            className="inline-flex items-center gap-1.5 rounded-full bg-accent px-3 py-1.5 font-mono text-[10px] tracking-wider uppercase text-background hover:bg-accent/90 transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-none bg-accent px-3 py-1.5 font-mono text-[10px] tracking-wider uppercase text-background hover:bg-accent/90 transition-colors"
           >
             <Globe className="h-3 w-3" /> Descend to street level
           </button>
@@ -1238,7 +1238,7 @@ export function CelestialExplorer() {
             type="button"
             onClick={() => setDescendPrompt(false)}
             aria-label="Dismiss"
-            className="grid h-6 w-6 place-items-center rounded-full text-muted-foreground hover:text-foreground transition-colors"
+            className="grid h-6 w-6 place-items-center rounded-none text-muted-foreground hover:text-foreground transition-colors"
           >
             <X className="h-3 w-3" />
           </button>
