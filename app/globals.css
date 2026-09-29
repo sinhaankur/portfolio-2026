@@ -95,6 +95,10 @@
      Foreground stays dark so 'text-on-amber' buttons remain readable. */
   --accent: oklch(0.78 0.16 78);                 /* ~#e9b545 against deep ink */
   --accent-foreground: oklch(0.145 0 0);
+  /* Deep-space scene black — darker than --background, the void the Satellite
+     Engine renders against. Named so the HUD carries no raw hex (satellite-engine-hud §3). */
+  --scene: oklch(0.05 0.008 260);                /* ~#05060a deep-space near-black */
+  --positive: oklch(0.82 0.14 155);              /* success green (e.g. "Link copied") */
   --destructive: oklch(0.396 0.141 25.723);
   --destructive-foreground: oklch(0.637 0.237 25.331);
   --border: oklch(0.269 0 0);

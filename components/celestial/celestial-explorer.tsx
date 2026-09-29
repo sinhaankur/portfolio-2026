@@ -594,63 +594,62 @@ export function CelestialExplorer() {
     return (
       <>
         <MenuHeading>Satellites &amp; ISS</MenuHeading>
-        <MenuItem color="#5affc0" icon={<Satellite className="h-3.5 w-3.5" />}
+        <MenuItem icon={<Satellite className="h-3.5 w-3.5" />}
           label="View all 18,600+ satellites" onClick={() => { viewSatellites(); afterPick?.() }} />
-        <MenuItem color={showAllSats ? "#5affc0" : "#9fe0ff"} icon={<Satellite className="h-3.5 w-3.5" />}
+        <MenuItem icon={<Satellite className="h-3.5 w-3.5" />}
           label={showAllSats ? "Showing every object · tap to thin" : "Show every object at once"}
           onClick={() => { toggleShowAll(); afterPick?.() }} />
-        <MenuItem color="#9fe0ff" icon={<Globe className="h-3.5 w-3.5" />}
+        <MenuItem icon={<Globe className="h-3.5 w-3.5" />}
           label="Earth, satellites & the Moon" onClick={() => { viewEarthMoon(); afterPick?.() }} />
-        <MenuItem color="#7affd0" icon={<Satellite className="h-3.5 w-3.5" />}
+        <MenuItem icon={<Satellite className="h-3.5 w-3.5" />}
           label="ISS live position" onClick={go(() => setIssLiveOpen(true))} />
-        <MenuItem color="#8ab6ff" icon={<Radio className="h-3.5 w-3.5" />}
+        <MenuItem icon={<Radio className="h-3.5 w-3.5" />}
           label="Watch live · free feeds" onClick={go(() => setWatchLiveOpen(true))} />
-        <MenuItem color="#8ad0ff" icon={<Globe className="h-3.5 w-3.5" />}
+        <MenuItem icon={<Globe className="h-3.5 w-3.5" />}
           label="Earth weather · surface" onClick={go(() => setEarthWeatherOpen(true))} />
-        <MenuItem color="var(--accent)" icon={<Satellite className="h-3.5 w-3.5" />}
+        <MenuItem icon={<Satellite className="h-3.5 w-3.5" />}
           label="ISS over you" onClick={go(() => setPassesOpen(true))} />
-        <MenuItem color="#ffd27a" icon={<Compass className="h-3.5 w-3.5" />}
+        <MenuItem icon={<Compass className="h-3.5 w-3.5" />}
           label="The sky above you" onClick={go(() => setSkyDomeOpen(true))} />
-        <MenuItem color="#7affd0" icon={<Radio className="h-3.5 w-3.5" />}
+        <MenuItem icon={<Radio className="h-3.5 w-3.5" />}
           label="Ground-station tracker" onClick={go(() => setStationOpen(true))} />
-        <MenuItem color="#9fe0ff" icon={<Layers className="h-3.5 w-3.5" />}
+        <MenuItem icon={<Layers className="h-3.5 w-3.5" />}
           label="Orbital census" onClick={go(() => setInventoryOpen(true))} />
-        <MenuItem color="#9fe0ff" icon={<Gauge className="h-3.5 w-3.5" />}
+        <MenuItem icon={<Gauge className="h-3.5 w-3.5" />}
           label="System metrics" onClick={go(() => setMetricsOpen(true))} />
-        <MenuItem color="#ff9d6b" icon={<Crosshair className="h-3.5 w-3.5" />}
+        <MenuItem icon={<Crosshair className="h-3.5 w-3.5" />}
           label="Conjunction screening" onClick={go(() => setConjOpen(true))} />
-        <MenuItem color="#7fd4ff" icon={<Radar className="h-3.5 w-3.5" />}
+        <MenuItem icon={<Radar className="h-3.5 w-3.5" />}
           label="Screen a TLE" onClick={go(() => setScreeningOpen(true))} />
-        <MenuItem color="#9fe0ff" icon={<ArrowLeftRight className="h-3.5 w-3.5" />}
+        <MenuItem icon={<ArrowLeftRight className="h-3.5 w-3.5" />}
           label="Proximity (2 objects)" onClick={go(() => setProximityOpen(true))} />
-        <MenuItem color="#ff7a6b" icon={<Flame className="h-3.5 w-3.5" />}
+        <MenuItem icon={<Flame className="h-3.5 w-3.5" />}
           label="Re-entry watch" onClick={go(() => setReentryOpen(true))} />
-        <MenuItem color="#ff5c5c" icon={<Trash2 className="h-3.5 w-3.5" />}
+        <MenuItem icon={<Trash2 className="h-3.5 w-3.5" />}
           label="Debris clouds" onClick={go(() => setDebrisOpen(true))} />
 
         <MenuHeading>Trajectories</MenuHeading>
-        <MenuItem color="#7affd0" icon={<Route className="h-3.5 w-3.5" />}
+        <MenuItem icon={<Route className="h-3.5 w-3.5" />}
           label="Earth → Mars transfer" onClick={go(() => setTransferOpen(true))} />
-        <MenuItem color="#7affd0" icon={<Orbit className="h-3.5 w-3.5" />}
+        <MenuItem icon={<Orbit className="h-3.5 w-3.5" />}
           label="Launch windows (porkchop)" onClick={go(() => setPorkchopOpen(true))} />
 
         <MenuHeading>Deep space</MenuHeading>
-        <MenuItem color="#ffd27a" icon={<Orbit className="h-3.5 w-3.5" />}
+        <MenuItem icon={<Orbit className="h-3.5 w-3.5" />}
           label="Asteroids near Earth" onClick={go(() => setNeoOpen(true))} />
-        <MenuItem color="#7affd0" icon={<Sparkles className="h-3.5 w-3.5" />}
+        <MenuItem icon={<Sparkles className="h-3.5 w-3.5" />}
           label="Space weather · aurora" onClick={go(() => setWeatherOpen(true))} />
-        <MenuItem color="#ffd27a" icon={<Rocket className="h-3.5 w-3.5" />}
+        <MenuItem icon={<Rocket className="h-3.5 w-3.5" />}
           label="Launches" onClick={go(() => setLaunchesOpen(true))} />
-        <MenuItem color="#8ab6ff" icon={<ImageIcon className="h-3.5 w-3.5" />}
+        <MenuItem icon={<ImageIcon className="h-3.5 w-3.5" />}
           label="Sky imagery · APOD" onClick={go(() => setImageryOpen(true))} />
-        <MenuItem color="#ffca8a" icon={<Sparkles className="h-3.5 w-3.5" />}
+        <MenuItem icon={<Sparkles className="h-3.5 w-3.5" />}
           label="What's being discovered" onClick={go(() => setDiscoveriesOpen(true))} />
-        <MenuItem color="#7fd0ff" icon={<Globe className="h-3.5 w-3.5" />}
+        <MenuItem icon={<Globe className="h-3.5 w-3.5" />}
           label="Exoplanets · confirmed" onClick={go(() => setExoplanetsOpen(true))} />
-        <MenuItem color="#ffb347" icon={<Sun className="h-3.5 w-3.5" />}
+        <MenuItem icon={<Sun className="h-3.5 w-3.5" />}
           label="History & fate of the Sun" onClick={go(() => setSunHistoryOpen(true))} />
-        <MenuItem color="#5865F2"
-          icon={
+        <MenuItem           icon={
             <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="currentColor" aria-hidden="true">
               <path d="M20.317 4.369A19.79 19.79 0 0 0 16.558 3c-.2.36-.43.845-.588 1.23a18.27 18.27 0 0 0-3.94 0A12.6 12.6 0 0 0 11.44 3a19.74 19.74 0 0 0-3.76 1.37C3.6 8.058 2.65 11.66 2.98 15.211a19.9 19.9 0 0 0 6.06 3.078c.49-.667.926-1.376 1.3-2.122a12.9 12.9 0 0 1-2.05-.984c.172-.126.34-.257.502-.392a14.2 14.2 0 0 0 12.02 0c.164.14.332.27.5.392-.654.386-1.34.716-2.05.985.374.745.81 1.454 1.3 2.12a19.86 19.86 0 0 0 6.06-3.077c.386-4.116-.66-7.685-2.905-10.842ZM9.68 13.037c-.955 0-1.74-.878-1.74-1.958 0-1.08.77-1.958 1.74-1.958.98 0 1.756.886 1.74 1.958 0 1.08-.77 1.958-1.74 1.958Zm4.64 0c-.955 0-1.74-.878-1.74-1.958 0-1.08.77-1.958 1.74-1.958.98 0 1.756.886 1.74 1.958 0 1.08-.76 1.958-1.74 1.958Z" />
             </svg>
@@ -659,22 +658,22 @@ export function CelestialExplorer() {
 
         <MenuHeading>Surfaces</MenuHeading>
         {hasGoogleEarthKey && (
-          <MenuItem color="var(--accent)" icon={<Globe className="h-3.5 w-3.5" />}
+          <MenuItem icon={<Globe className="h-3.5 w-3.5" />}
             label="Descend to Earth" onClick={go(() => setEarthView(true))} />
         )}
-        <MenuItem color="#ff9a6b" icon={<Globe className="h-3.5 w-3.5" />}
+        <MenuItem icon={<Globe className="h-3.5 w-3.5" />}
           label="Mars · what we've seen" onClick={go(() => setMarsView(true))} />
         {/* Bridge to the Terrain Engine — the same worlds, walkable at real
             elevation. "Whatever is related should be related." */}
-        <MenuItem color="#e07a4f" icon={<Mountain className="h-3.5 w-3.5" />}
+        <MenuItem icon={<Mountain className="h-3.5 w-3.5" />}
           label="Walk the surfaces · Terrain"
           onClick={() => { if (typeof window !== "undefined") window.location.href = "/lab/terrain" }} />
 
         <MenuHeading>Reference</MenuHeading>
-        <MenuItem color="#c8b6ff" icon={<Rocket className="h-3.5 w-3.5" />}
+        <MenuItem icon={<Rocket className="h-3.5 w-3.5" />}
           label="Spacecraft catalog"
           onClick={() => { if (typeof window !== "undefined") window.location.href = "/reference/spacecraft" }} />
-        <MenuItem color="#c8b6ff" icon={<Layers className="h-3.5 w-3.5" />}
+        <MenuItem icon={<Layers className="h-3.5 w-3.5" />}
           label="The catalogue, readable"
           onClick={() => { if (typeof window !== "undefined") window.location.href = "/reference/satellites" }} />
       </>
@@ -687,7 +686,7 @@ export function CelestialExplorer() {
       {/* Space is space in ANY site theme — the canvas always sits on deep-space
           black (never the light "paper" background, which washed the starfield out
           in light mode). HUD text/panels below stay theme-aware. */}
-      <main className="dark fixed inset-0 overflow-hidden text-foreground" style={{ background: "#05060a" }}>
+      <main className="dark fixed inset-0 overflow-hidden text-foreground" style={{ background: "var(--scene)" }}>
         {/* Live solar system fills the screen. touch-none hands all touch
             gestures to the engine's OrbitControls (the page is fixed/non-scroll
             here) so drag-to-rotate + pinch-zoom are seamless on mobile. */}
@@ -776,7 +775,7 @@ export function CelestialExplorer() {
                     className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 font-mono text-[10px] tracking-widest uppercase text-foreground/80 hover:bg-accent/10 hover:text-accent transition-colors"
                   >
                     {shareState === "copied"
-                      ? <><Check className="h-4 w-4 text-[#7ee0a5]" /> Link copied</>
+                      ? <><Check className="h-4 w-4" style={{ color: "var(--positive)" }} /> Link copied</>
                       : <><Share2 className="h-4 w-4" /> Share this view</>}
                   </button>
                   <button
@@ -1275,17 +1274,20 @@ function MenuHeading({ children }: { children: React.ReactNode }) {
 }
 
 /** One item in the Explore launcher menu. */
-function MenuItem({ color, icon, label, onClick }: { color: string; icon: React.ReactNode; label: string; onClick: () => void }) {
+// One accent, square corners, ≥11px mono label — per the satellite-engine-hud
+// skill (§3). The old per-item `color` hex was the §10 "per-item accent hex on
+// menu rows" anti-pattern; every row now carries the single --accent. The prop is
+// kept optional + ignored so existing call sites don't need to change in lockstep.
+function MenuItem({ icon, label, onClick }: { color?: string; icon: React.ReactNode; label: string; onClick: () => void }) {
   return (
     <button
       type="button"
       onClick={onClick}
       data-cursor-hover
       aria-label={label}
-      className="inline-flex items-center gap-2 rounded-full border bg-background/70 px-4 py-2.5 font-mono text-[10px] tracking-widest uppercase text-foreground/85 backdrop-blur-sm transition-colors hover:text-foreground"
-      style={{ borderColor: `color-mix(in srgb, ${color} 45%, transparent)` }}
+      className="inline-flex items-center gap-2 rounded-none border border-foreground/20 bg-background/70 px-4 py-2.5 font-mono text-[11px] tracking-widest uppercase text-foreground/85 backdrop-blur-sm transition-colors hover:border-foreground/40 hover:text-foreground"
     >
-      <span style={{ color }}>{icon}</span>
+      <span style={{ color: "var(--accent)" }}>{icon}</span>
       {label}
     </button>
   )
