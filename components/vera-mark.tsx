@@ -29,7 +29,10 @@ export function VeraMark({
   const cy = 100
   const rim = 86
   const hub = 10
-  const gold = "#f0dca6"
+  // a warm BRONZE for the chakra lines — reads as a crisp 24-spoke wheel on top
+  // of the gold sphere (the old pale gold on gold was near-invisible, so the orb
+  // looked like a plain ball). Matches the Ashokan sandstone palette.
+  const gold = "#8a5a28"
   // 24-spoke chakra geometry (matches the reference).
   const spokes = Array.from({ length: 24 }, (_, i) => {
     const a = (i * 15) * (Math.PI / 180)
@@ -122,7 +125,11 @@ export function VeraMark({
         }
         .vera-chakra {
           position:absolute; inset:14%; width:72%; height:72%; pointer-events:none;
-          filter:drop-shadow(0 0 2px rgba(255,217,160,.4)); mix-blend-mode:overlay; opacity:.8;
+          /* readable on BOTH light + dark pages: a soft dark line keeps the chakra
+             visible on the cream background (overlay alone washed it out → the orb
+             looked like a plain ball). */
+          filter: drop-shadow(0 0 1.5px rgba(120,80,30,.55));
+          opacity:.9;
         }
 
         .vera-orb--on .vera-bloom,

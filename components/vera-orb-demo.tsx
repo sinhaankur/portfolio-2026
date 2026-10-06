@@ -42,14 +42,57 @@ export function VeraOrbDemo() {
   const [aProgress, setAProgress] = useState(0)
   const timers = useRef<ReturnType<typeof setTimeout>[]>([])
 
+  const [sound, setSound] = useState(true)
+
   const clearTimers = () => {
     timers.current.forEach(clearTimeout)
     timers.current = []
   }
-  useEffect(() => () => clearTimers(), [])
+  useEffect(() => () => {
+    clearTimers()
+    if (typeof window !== "undefined") window.speechSynthesis?.cancel()
+  }, [])
+
+  // Browsers load voices asynchronously — nudge them so pickVoice() has a list.
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.speechSynthesis) return
+    const warm = () => window.speechSynthesis.getVoices()
+    warm()
+    window.speechSynthesis.addEventListener("voiceschanged", warm)
+    return () => window.speechSynthesis.removeEventListener("voiceschanged", warm)
+  }, [])
+
+  // Pick the warmest available browser voice (a female English one if present).
+  function pickVoice(): SpeechSynthesisVoice | null {
+    if (typeof window === "undefined" || !window.speechSynthesis) return null
+    const voices = window.speechSynthesis.getVoices().filter((v) => v.lang.startsWith("en"))
+    if (!voices.length) return null
+    const warm = ["Samantha", "Ava", "Allison", "Zoe", "Serena", "Karen",
+      "Moira", "Tessa", "Google US English", "Google UK English Female"]
+    for (const name of warm) {
+      const v = voices.find((x) => x.name.includes(name))
+      if (v) return v
+    }
+    // any voice whose name hints female, else the first English voice
+    return voices.find((v) => /female|woman/i.test(v.name)) ?? voices[0]
+  }
+
+  // Speak the reply aloud with the browser's own neural-ish voice. On-device,
+  // nothing sent anywhere. Honest to the page's promise that she "speaks aloud".
+  function speak(text: string) {
+    if (!sound || typeof window === "undefined" || !window.speechSynthesis) return
+    window.speechSynthesis.cancel()
+    const u = new SpeechSynthesisUtterance(text)
+    const v = pickVoice()
+    if (v) u.voice = v
+    u.rate = 0.96       // a touch slower — warmer, more present
+    u.pitch = 1.05
+    window.speechSynthesis.speak(u)
+  }
 
   function run(q: string, a: string) {
     clearTimers()
+    if (typeof window !== "undefined") window.speechSynthesis?.cancel()
     setShownQ(q)
     setShownA("")
     setAProgress(0)
@@ -60,6 +103,7 @@ export function VeraOrbDemo() {
       setTimeout(() => {
         setPhase("speaking")
         setShownA(a)
+        speak(a)                              // ← she actually talks now
         // reveal the reply word-by-word
         const words = a.split(" ")
         words.forEach((_, i) => {
@@ -112,6 +156,20 @@ export function VeraOrbDemo() {
         <span className="font-mono text-[10px] tracking-[0.2em] uppercase text-accent/80">
           · a feel, not the real brain
         </span>
+        <div className="ml-auto">
+          <button
+            onClick={() => {
+              const next = !sound
+              setSound(next)
+              if (!next && typeof window !== "undefined") window.speechSynthesis?.cancel()
+            }}
+            data-cursor-hover
+            aria-label={sound ? "Mute her voice" : "Let her speak"}
+            className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {sound ? "🔊 voice on" : "🔇 voice off"}
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-col items-center gap-5">
@@ -202,8 +260,8 @@ export function VeraOrbDemo() {
       </form>
 
       <p className="mt-5 text-center text-xs text-muted-foreground">
-        The real Vera speaks this aloud in a warm neural voice, on your machine —
-        nothing here is sent anywhere.
+        This demo speaks with your browser&rsquo;s built-in voice. The real Vera
+        speaks in a warm neural voice (Kokoro) on your machine — nothing is sent anywhere.
       </p>
     </div>
   )
