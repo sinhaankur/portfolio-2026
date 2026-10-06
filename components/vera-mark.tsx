@@ -3,15 +3,15 @@
 import { useReducedMotion } from "framer-motion"
 
 /**
- * VeraMark — Vera's emblem, an Ashokan GOLD ORB.
+ * VeraMark — Vera's orb, matching the macOS app's SiriOrb.
  *
- * A warm sandstone/gold sphere (the crowning orb of the Lion Capital of Sarnath):
- * soft blobs swirl inside under soft-light, an ember glows, a bright core pulses,
- * a glass highlight sits top-left, and a faint 24-spoke gold Ashoka Chakra turns
- * over it. Matches Ankur's ashoka-orb reference — circular, gold, alive. Not a
- * Siri rainbow orb; the palette is Mauryan sandstone + ember.
+ * A soft, multicolor iridescent sphere: a dark base with blurred color blobs
+ * (pink / purple / blue / cyan / orange) swirling inside a circular mask over a
+ * bright bloom, a white-hot core, a glassy top-left highlight, and a crisp rim.
+ * It breathes at rest. Pure CSS/SVG, reduced-motion safe. (No chakra — this is
+ * the same orb the app shows in the chat and menubar.)
  *
- * Pure SVG/CSS + a little inline style, reduced-motion safe. `size` in px.
+ * `size` in px. `active` toggles the living animation.
  */
 export function VeraMark({
   size = 96,
@@ -25,130 +25,97 @@ export function VeraMark({
   const reduce = useReducedMotion()
   const on = active && !reduce
 
-  const cx = 100
-  const cy = 100
-  const rim = 86
-  const hub = 10
-  // a warm BRONZE for the chakra lines — reads as a crisp 24-spoke wheel on top
-  // of the gold sphere (the old pale gold on gold was near-invisible, so the orb
-  // looked like a plain ball). Matches the Ashokan sandstone palette.
-  const gold = "#8a5a28"
-  // 24-spoke chakra geometry (matches the reference).
-  const spokes = Array.from({ length: 24 }, (_, i) => {
-    const a = (i * 15) * (Math.PI / 180)
-    const s = Math.sin(a)
-    const c = Math.cos(a)
-    return {
-      x1: cx + s * hub, y1: cy - c * hub,
-      x2: cx + s * (rim - 4), y2: cy - c * (rim - 4),
-      bx: cx + s * (rim - 10), by: cy - c * (rim - 10),
-    }
-  })
-
   return (
     <div
-      className={`vera-orb ${on ? "vera-orb--on" : ""} ${className}`}
+      className={`vera-siri ${on ? "vera-siri--on" : ""} ${className}`}
       style={{ width: size, height: size, position: "relative", isolation: "isolate" }}
       role="img"
       aria-label="Vera"
     >
-      {/* warm bloom behind the orb */}
-      <span className="vera-bloom" aria-hidden />
+      {/* outer bloom (spills beyond the sphere) */}
+      <span className="vs-bloom" aria-hidden />
 
-      {/* the orb sphere with swirling interior */}
-      <span className="vera-sphere" aria-hidden>
-        <span className="vera-blob vera-b1" />
-        <span className="vera-blob vera-b2" />
-        <span className="vera-blob vera-b3" />
-        <span className="vera-ember" />
-        <span className="vera-core" />
-        <span className="vera-gloss" />
+      {/* the orb body: swirling color blobs inside a circular mask */}
+      <span className="vs-body" aria-hidden>
+        <span className="vs-blob vs-pink" />
+        <span className="vs-blob vs-purple" />
+        <span className="vs-blob vs-blue" />
+        <span className="vs-blob vs-cyan" />
+        <span className="vs-blob vs-orange" />
+        <span className="vs-core" />
       </span>
 
-      {/* faint 24-spoke gold chakra over the orb */}
-      <svg
-        viewBox="0 0 200 200"
-        className="vera-chakra"
-        aria-hidden
-        fill="none"
-      >
-        <circle cx={cx} cy={cy} r={rim} stroke={gold} strokeWidth="1.4" opacity="0.85" />
-        {spokes.map((s, i) => (
-          <line key={i} x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2}
-            stroke={gold} strokeWidth="1" strokeLinecap="round" opacity="0.8" />
-        ))}
-        {spokes.map((s, i) => (
-          <circle key={`b${i}`} cx={s.bx} cy={s.by} r="1.5" fill={gold} opacity="0.75" />
-        ))}
-        <circle cx={cx} cy={cy} r={hub} stroke={gold} strokeWidth="1.3" />
-      </svg>
+      {/* glassy specular highlight (top-left) */}
+      <span className="vs-gloss" aria-hidden />
+      {/* crisp rim */}
+      <span className="vs-rim" aria-hidden />
 
       <style>{`
-        .vera-orb { display: inline-block; }
-        .vera-bloom {
-          position: absolute; top: -8%; left: 50%; transform: translateX(-50%);
-          width: 96%; height: 96%; border-radius: 50%;
-          background: radial-gradient(circle at 50% 46%,
-            rgba(232,147,78,.34) 0%, rgba(217,179,102,.14) 34%, rgba(0,0,0,0) 70%);
-          filter: blur(18px);
+        .vera-siri { display:inline-block; border-radius:50%; }
+        .vs-bloom {
+          position:absolute; inset:-14%; border-radius:50%;
+          background: radial-gradient(circle at 50% 50%,
+            rgba(255,255,255,.28) 0%, rgba(158,77,255,.34) 32%, rgba(0,0,0,0) 70%);
+          filter: blur(14px);
         }
-        .vera-sphere {
-          position: absolute; inset: 0; border-radius: 50%; overflow: hidden;
-          box-shadow:
-            inset 0 0 22px rgba(74,51,64,.5),
-            inset -8px -10px 26px rgba(28,19,15,.6),
-            inset 7px 8px 22px rgba(230,199,154,.2),
-            0 0 26px rgba(232,147,78,.3),
-            0 8px 22px rgba(0,0,0,.5);
+        .vs-body {
+          position:absolute; inset:0; border-radius:50%; overflow:hidden;
+          background:#0b0b12;                 /* dark base → colors read as luminous */
+          box-shadow: inset 0 0 20px rgba(0,0,0,.6), 0 6px 22px rgba(20,8,40,.5);
         }
-        .vera-sphere::before {
-          content:""; position:absolute; inset:0; border-radius:50%;
-          background: radial-gradient(circle at 42% 34%, #e6c79a 0%, #c99a6b 36%, #7a5c50 68%, #33251f 100%);
+        .vs-blob {
+          position:absolute; width:78%; height:78%; border-radius:50%;
+          filter: blur(10px); mix-blend-mode:screen; opacity:.85;
+          top:11%; left:11%;
+          transform-origin:center;
         }
-        .vera-blob { position:absolute; border-radius:50%; filter:blur(12px); mix-blend-mode:soft-light; }
-        .vera-b1 { inset:-18%; background:radial-gradient(circle at 38% 40%, #e6c79a 0%, rgba(230,199,154,0) 60%); }
-        .vera-b2 { inset:-24%; background:radial-gradient(circle at 62% 44%, #4a3340 0%, rgba(74,51,64,0) 60%); }
-        .vera-b3 { inset:-16%; background:radial-gradient(circle at 50% 68%, #5f7570 0%, rgba(95,117,112,0) 58%); }
-        .vera-ember {
-          position:absolute; inset:-8%; border-radius:50%;
-          background:radial-gradient(circle at 48% 58%, #e8934e 0%, rgba(232,147,78,0) 46%);
-          mix-blend-mode:screen; opacity:.85;
-        }
-        .vera-core {
+        /* each blob orbits from a different start angle via its own wrapper spin */
+        .vs-pink   { background: radial-gradient(circle, #ff4590 0%, rgba(255,69,144,0) 62%); }
+        .vs-purple { background: radial-gradient(circle, #9e4dff 0%, rgba(158,77,255,0) 62%); }
+        .vs-blue   { background: radial-gradient(circle, #3385ff 0%, rgba(51,133,255,0) 62%); }
+        .vs-cyan   { background: radial-gradient(circle, #2ed9f2 0%, rgba(46,217,242,0) 62%); }
+        .vs-orange { background: radial-gradient(circle, #ff9e33 0%, rgba(255,158,51,0) 62%); }
+        .vs-core {
           position:absolute; inset:34%; border-radius:50%;
-          background:radial-gradient(circle at 46% 56%, rgba(255,244,224,.92) 0%, rgba(255,217,160,.55) 34%, rgba(232,147,78,0) 72%);
-          filter:blur(4px); mix-blend-mode:screen;
+          background: radial-gradient(circle at 50% 48%,
+            rgba(255,255,255,.9) 0%, rgba(255,255,255,0) 68%);
+          mix-blend-mode:screen; filter:blur(3px);
         }
-        .vera-gloss {
+        .vs-gloss {
           position:absolute; inset:0; border-radius:50%; pointer-events:none;
-          background:radial-gradient(52% 40% at 36% 24%, rgba(240,236,225,.25) 0%, rgba(240,236,225,0) 60%);
+          background: radial-gradient(42% 34% at 34% 28%,
+            rgba(255,255,255,.5) 0%, rgba(255,255,255,0) 60%);
+          mix-blend-mode:screen;
         }
-        .vera-chakra {
-          position:absolute; inset:14%; width:72%; height:72%; pointer-events:none;
-          /* readable on BOTH light + dark pages: a soft dark line keeps the chakra
-             visible on the cream background (overlay alone washed it out → the orb
-             looked like a plain ball). */
-          filter: drop-shadow(0 0 1.5px rgba(120,80,30,.55));
-          opacity:.9;
+        .vs-rim {
+          position:absolute; inset:0; border-radius:50%; pointer-events:none;
+          box-shadow: inset 0 0 0 1px rgba(255,255,255,.22);
         }
 
-        .vera-orb--on .vera-bloom,
-        .vera-orb--on .vera-sphere { animation: vera-breathe 7.5s ease-in-out infinite; }
-        .vera-orb--on .vera-core   { animation: vera-pulse 4s ease-in-out infinite; }
-        .vera-orb--on .vera-b1     { animation: vera-spin1 16s linear infinite; }
-        .vera-orb--on .vera-b2     { animation: vera-spin2 20s linear infinite; }
-        .vera-orb--on .vera-b3     { animation: vera-spin1 13s linear infinite; }
-        .vera-orb--on .vera-ember  { animation: vera-spin2 22s linear infinite; }
-        .vera-orb--on .vera-chakra { animation: vera-spin1 70s linear infinite; }
+        .vera-siri--on .vs-body,
+        .vera-siri--on .vs-bloom { animation: vs-breathe 7s ease-in-out infinite; }
+        .vera-siri--on .vs-core  { animation: vs-pulse 3.6s ease-in-out infinite; }
+        /* distinct speeds + directions → a rich, never-repeating swirl */
+        .vera-siri--on .vs-pink   { animation: vs-orbit1 9s  linear infinite; }
+        .vera-siri--on .vs-purple { animation: vs-orbit2 11s linear infinite; }
+        .vera-siri--on .vs-blue   { animation: vs-orbit1 13s linear infinite; }
+        .vera-siri--on .vs-cyan   { animation: vs-orbit2 8s  linear infinite; }
+        .vera-siri--on .vs-orange { animation: vs-orbit1 15s linear infinite; }
 
-        @keyframes vera-breathe { 0%,100%{transform:scale(1)} 50%{transform:scale(1.04)} }
-        @keyframes vera-pulse   { 0%,100%{opacity:.72;transform:scale(1)} 50%{opacity:.95;transform:scale(1.1)} }
-        @keyframes vera-spin1   { to { transform: rotate(360deg); } }
-        @keyframes vera-spin2   { to { transform: rotate(-360deg); } }
+        @keyframes vs-breathe { 0%,100%{transform:scale(1)} 50%{transform:scale(1.035)} }
+        @keyframes vs-pulse   { 0%,100%{opacity:.7} 50%{opacity:1} }
+        /* orbit = translate out, spin around center, so blobs sweep the body */
+        @keyframes vs-orbit1 {
+          0%   { transform: rotate(0deg)   translateX(12%) rotate(0deg); }
+          100% { transform: rotate(360deg) translateX(12%) rotate(-360deg); }
+        }
+        @keyframes vs-orbit2 {
+          0%   { transform: rotate(0deg)   translateX(14%) rotate(0deg); }
+          100% { transform: rotate(-360deg) translateX(14%) rotate(360deg); }
+        }
         @media (prefers-reduced-motion: reduce) {
-          .vera-orb--on .vera-bloom, .vera-orb--on .vera-sphere, .vera-orb--on .vera-core,
-          .vera-orb--on .vera-b1, .vera-orb--on .vera-b2, .vera-orb--on .vera-b3,
-          .vera-orb--on .vera-ember, .vera-orb--on .vera-chakra { animation: none; }
+          .vera-siri--on .vs-body, .vera-siri--on .vs-bloom, .vera-siri--on .vs-core,
+          .vera-siri--on .vs-blob { animation: none; }
         }
       `}</style>
     </div>
