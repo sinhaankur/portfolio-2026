@@ -1,384 +1,302 @@
 import type { Metadata } from "next"
 import { canonicalPath } from "@/lib/seo"
-import { Github, ExternalLink } from "lucide-react"
+import { Github, ExternalLink, Download, Bug } from "lucide-react"
 import { VeraMark } from "@/components/vera-mark"
+import { VeraOrbDemo } from "@/components/vera-orb-demo"
 import {
   CaseStudyLayout,
   CaseSectionHeading,
   CaseProse,
-  CaseLessons,
   CasePullQuote,
 } from "@/components/case-study/case-study-layout"
 
 export const metadata: Metadata = {
   ...canonicalPath("/lab/cognitive-twin"),
-  title: "Cognitive Twin Agent — a local-first personal AI runtime",
+  title: "Vera — an on-device AI companion with its own brain",
   description:
-    "An open-source (MIT) local-first personal AI agent: a local Ollama model, a skill system, and a bounded tool-calling loop that turns 'do X' into real actions — privately, on hardware you own. Built in the spirit of local-first agent research like OpenJarvis.",
+    "Vera is a private, on-device AI companion: its own brain engine (feeling, memory and judgment computed locally, not just an LLM), an editable persona, a warm neural voice (Kokoro), and everything sealed on a machine you own. Open source. What's built, and what's being explored.",
 }
 
-type RuntimeRow = {
-  layer: string
-  detail: string
-  why: string
-}
+const REPO = "https://github.com/sinhaankur/cognitive-twin-agent"
 
-const runtimeRows: RuntimeRow[] = [
+/* ── BUILT: shipped + verified ─────────────────────────────────────────────── */
+const built: { title: string; body: string }[] = [
   {
-    layer: "Local model",
-    detail: "Ollama over its HTTP API (stdlib only), any tool-capable model",
-    why: "Reasoning stays on-device by default — no cloud dependency for the core loop.",
+    title: "Its own brain engine — not just an LLM",
+    body: "Vera's feeling, stance, memory and judgment are computed by her own on-device logic. The language model is one organ (words), never the source of her mind — so she has a point of view, reads a heavy moment vs a bright one, and paces herself, rather than echoing a prompt.",
   },
   {
-    layer: "Persona",
-    detail: "system_dna.md drives voice and behaviour",
-    why: "The twin reasons in a consistent, owned character rather than a generic assistant.",
+    title: "A warm, human neural voice",
+    body: "She speaks with an expressive on-device neural voice (Kokoro) that sounds like a person, not a readout — warm, present, a little unhurried. It's bundled, so there's no system voice to download; the brain synthesizes, the app plays, nothing leaves the machine.",
   },
   {
-    layer: "Skill system",
-    detail: "Skill contract + registry → tool specs (now · list_dir · read_file · daily_digest)",
-    why: "Turns “do X” into real, typed actions the model can call; new skills are a few lines.",
+    title: "Runs as a resilient local service",
+    body: "The brain runs as a background service the OS keeps alive — it restarts on crash, starts at login, and is always reachable. The app just connects. No fragile spawning, no 'brain not reachable'.",
   },
   {
-    layer: "Agent loop",
-    detail: "persona + tools → model → run tool → feed result back → repeat, with a step limit",
-    why: "A bounded loop where skill errors are fed back to recover — guardrails over autonomy.",
+    title: "Remembers the conversation",
+    body: "She carries the thread of what you just said, so short follow-ups ('now try', 'and the travel?') make sense — a conversation, not isolated one-shots.",
   },
   {
-    layer: "Model routing",
-    detail: "A policy file picks a local model per request by task complexity, risk, and device state",
-    why: "The right local model for the job — fast one for quick asks, a deeper one for risky planning — never the cloud.",
+    title: "Persona creation",
+    body: "An editable character — warm companion by default, precise and technical only when you ask for code. Who she is is a file you own and can change; she reasons as that specific someone, never a generic assistant.",
   },
   {
-    layer: "Local context",
-    detail: "Workspace tasks.md + a dropped-in .ics fold into the daily digest (no OAuth)",
-    why: "Useful day-mapping today without sending anything off-device.",
+    title: "Senses, all opt-in",
+    body: "Photos (metadata + places you've been), your active app, music, the camera (face cues only), the room (sound types only) — each is a switch that's OFF until you turn it on. She learns how you work and where you've been, locally.",
   },
   {
-    layer: "Future layers",
-    detail: "OAuth connectors, IPC, menubar, multimodal sensing (scaffolding in src/)",
-    why: "Kept as the next layers to harden onto the working core, not yet wired into the agent.",
+    title: "Private by construction",
+    body: "Everything personal is sealed at rest (ChaCha20-Poly1305, a device-bound Keychain key). One fenced network door with an allow-list, a global kill switch, no telemetry. A one-command 'security doctor' proves the posture green.",
+  },
+  {
+    title: "Light on the machine",
+    body: "One right-sized local model chosen for your RAM (not a heavyweight by default), idle models evicted — so she's a catalyst, not a tax. Freed ~15 GB and most of the machine's memory in the last pass.",
+  },
+  {
+    title: "Text-first chat, your call on voice",
+    body: "Replies are text by default (markdown-rendered), and she speaks only when you ask — or when you talk to her by voice. Attach a file (PDF, text, code) and it's read on-device as context.",
   },
 ]
 
-const shipped: { title: string; body: string }[] = [
+/* ── EXPLORING: in progress / next ─────────────────────────────────────────── */
+const exploring: { title: string; body: string }[] = [
   {
-    title: "Speaks in a loved one's actual voice",
-    body: "Clones a real voice on-device with Coqui XTTS-v2 — from a recording cleaned by a companion Voice Harvester (ffmpeg + Demucs vocal isolation). The sample never leaves the machine; a warm-loaded worker keeps replies fast. Built to keep a person's warmth close, never for impersonation.",
+    title: "Every device, cross-platform",
+    body: "A portable core so the same companion lives on Mac, iPhone, Windows, Linux, Android and the web — one brain, many surfaces.",
   },
   {
-    title: "A floating Ashokan gold orb on Mac and iPhone",
-    body: "An always-present, borderless mark (no Dock icon) — a warm sandstone-gold orb — the crowning sphere of the Ashokan Lion Capital, not a Siri rainbow orb. Tap it and a chat opens; type or talk. The orb breathes, its sand-gold interior swirls, and a faint 24-spoke Ashoka Chakra turns over it as she listens. Same SwiftUI front end on macOS and iOS.",
+    title: "An iPhone companion",
+    body: "A movement/places-aware subset on the phone, syncing privately with your Mac brain — Vera with you, on the go.",
   },
   {
-    title: "One Rust core, every device",
-    body: "The portable brain — persona, memory, routing, the agent loop — is a Rust crate that compiles to macOS, iOS, Windows, Linux, Android, and WebAssembly. The iOS app links it through a C ABI; verified building + running on the simulator.",
+    title: "Her own model, trained over time",
+    body: "An on-device 'empathia' model tuned for warmth and presence, with a training loop so she keeps getting more herself — uploaded and updated openly.",
   },
   {
-    title: "Personalization that grows",
-    body: "An editable persona (likes, dislikes, values, voice) so it reasons as a specific person; private on-device memory of how you actually behave; an evolving personality and life-rhythm awareness (timezone, sleep/work) that sharpen over time. It even keeps a thought about your projects for when you return.",
+    title: "Mesh of your own devices",
+    body: "Private, per-device-keyed sync across the machines you own — no cloud account, Unhosted-style.",
   },
   {
-    title: "Local model client",
-    body: "Talks to Ollama over its HTTP API using only the Python standard library — no heavy SDK, no API key, no cloud round-trip for the core loop.",
-  },
-  {
-    title: "Skill system",
-    body: "A small Skill contract + registry compiles Python functions into tool specs the model can call. Built-ins: now, list_dir, read_file (sandboxed), and daily_digest. Adding one is a decorator and a few lines.",
-  },
-  {
-    title: "Bounded tool-calling loop",
-    body: "Persona + tools → model → run the tool → feed the result back → repeat, under a step limit. Skill errors are returned to the model to recover from rather than crashing the run — deterministic guardrails over an autonomous loop.",
-  },
-  {
-    title: "Policy-driven model routing",
-    body: "A JSON policy picks a local model per request — a small heuristic classifies each prompt by complexity and risk, then the first matching rule wins (a fast model for quick asks, a deeper one for risky planning, a low-power one on battery). Routing never leaves the machine, and --route-explain shows exactly why each model was chosen.",
-  },
-  {
-    title: "Local day-mapping",
-    body: "daily_digest folds a workspace tasks.md and a dropped-in .ics calendar into a summary of your day — useful context with zero OAuth and nothing leaving the machine.",
-  },
-  {
-    title: "CLI + tested plumbing",
-    body: "One-shot and interactive REPL entrypoints (python -m cognitive_twin), model selection, and a pytest suite that drives the loop with a mock client so the tool-calling plumbing is provable without a live model.",
-  },
-]
-
-const journeySteps: { stage: string; detail: string }[] = [
-  {
-    stage: "Install a model",
-    detail:
-      "Pull a tool-capable model with Ollama (e.g. qwen2.5:3b or llama3.2) — local-first from the very first run.",
-  },
-  {
-    stage: "Run the agent",
-    detail:
-      "python -m cognitive_twin \"…\" for a one-shot, or no args for an interactive REPL. The core needs no Python dependencies.",
-  },
-  {
-    stage: "Give it local context",
-    detail:
-      "Drop a tasks.md and a .ics into the workspace; daily_digest folds them into a summary of your day — no OAuth, nothing off-device.",
-  },
-  {
-    stage: "Teach it skills",
-    detail:
-      "Add a skill with a decorator and a small JSON schema; the registry exposes it to the model as a callable tool.",
-  },
-  {
-    stage: "Ahead",
-    detail:
-      "Harden the scaffolded layers onto the core — OAuth connectors, a menubar shell, and multimodal sensing — with consent and trust made explicit as each lands.",
+    title: "Richer multimodal presence",
+    body: "Deeper 'read the room' awareness and a more expressive, animated presence so the exchange feels real.",
   },
 ]
 
 export default function CognitiveTwinPage() {
   return (
     <CaseStudyLayout
-      eyebrow="Lab — AI Systems · 2026 · in progress"
-      title="Cognitive Twin Agent"
-      subtitle="A local-first personal AI twin that can speak in a loved one's actual voice — running as a floating Ashokan gold orb on Mac and iPhone, entirely on a machine I control."
+      eyebrow="Lab — AI Companion · 2026 · active"
+      title="Vera"
+      subtitle="A private, on-device AI companion with its own brain, an editable persona, and a warm neural voice — living as a gold orb on your Mac, entirely on a machine you control."
       period="2026 · active build"
       role="Architect · Designer · Engineer"
-      tags={["Agent systems", "Local-first", "Multimodal", "Privacy", "Work in progress"]}
+      tags={["AI companion", "On-device", "Neural voice", "Privacy", "Open source"]}
       backTo={{ label: "Back to The Lab", href: "/lab" }}
       intro={
         <>
-          {/* Vera's emblem — a faceted hexagon (Ashokan geometric discipline),
-              deliberately NOT a Siri-style orb. Keeps the breathing/listening
-              animation. */}
           <div className="mb-8 flex justify-center md:justify-start">
             <VeraMark size={104} />
           </div>
           <p>
-            This project started as a digital-twin prompt architecture and evolved into
-            an application runtime: an always-on daemon, multimodal perception, and
-            day-mapping connectors. The goal is no longer just response style — it&rsquo;s{" "}
-            <strong>reliable operational behavior</strong> on a machine I control,
-            calling the cloud only when it&rsquo;s genuinely the better tool.
+            Vera is a companion that runs <strong>on your own machine</strong> —
+            the on-device presence of someone you could love. She has a brain of
+            her own: her feeling, her memory, her judgment are computed locally;
+            the language model is just the part that finds the words. She speaks
+            in a warm, human voice, remembers your conversation, and keeps
+            everything sealed on hardware you control.
           </p>
           <p>
-            It sits in the same lineage as recent local-first agent research — work like
-            Stanford&rsquo;s{" "}
-            <a
-              href="https://github.com/open-jarvis/OpenJarvis"
-              target="_blank"
-              rel="noreferrer noopener"
-            >
-              OpenJarvis
-            </a>
-            , whose benchmarks show local models already handling the large majority of
-            everyday queries. That&rsquo;s the bet this build is making too: keep context,
-            sensing, and trust on-device by default.
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Working MVP, open source under MIT — a local model, a skill system, and a
-            bounded agent loop you can run today. What follows is where the architecture
-            stands, and the layers still ahead.
+            The aim isn&rsquo;t another assistant that routes your life through a
+            cloud API. It&rsquo;s presence — warm, private, yours — the kind of
+            quiet <em>&ldquo;someone&rsquo;s here&rdquo;</em> that a good companion
+            gives. What follows is honest about where she stands:{" "}
+            <strong>what&rsquo;s built</strong> and <strong>what&rsquo;s being
+            explored</strong>.
           </p>
         </>
       }
     >
-      <section aria-label="Project links" className="-mt-8 md:-mt-12">
+      {/* Links: download, source, report a problem */}
+      <section aria-label="Get Vera" className="-mt-8 md:-mt-12">
         <div className="flex flex-wrap items-center gap-3">
           <a
-            href="https://github.com/sinhaankur/cognitive-twin-agent"
+            href={`${REPO}/releases`}
             target="_blank"
             rel="noreferrer noopener"
             data-cursor-hover
-            className="
-              inline-flex items-center gap-2.5
-              px-5 py-3 rounded-full
-              border border-border bg-secondary/30 hover:border-accent/60
-              transition-colors duration-300
-              font-mono text-xs tracking-[0.2em] uppercase text-foreground/85
-              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
-              focus-visible:ring-offset-4 focus-visible:ring-offset-background
-            "
+            className="inline-flex items-center gap-2.5 px-5 py-3 rounded-full border border-accent/50 bg-accent/10 hover:border-accent transition-colors duration-300 font-mono text-xs tracking-[0.2em] uppercase text-foreground"
           >
-            <Github className="w-4 h-4" aria-hidden="true" />
-            cognitive-twin-agent · open source (MIT)
+            <Download className="w-4 h-4" aria-hidden="true" />
+            Download &amp; use Vera
             <ExternalLink className="w-3 h-3 opacity-60" aria-hidden="true" />
           </a>
           <a
-            href="https://github.com/open-jarvis/OpenJarvis"
+            href={REPO}
             target="_blank"
             rel="noreferrer noopener"
             data-cursor-hover
-            className="
-              inline-flex items-center gap-2
-              px-4 py-2.5 rounded-full
-              border border-border bg-background hover:border-accent/60
-              transition-colors duration-300
-              font-mono text-[10px] tracking-[0.2em] uppercase text-foreground/85
-              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
-              focus-visible:ring-offset-4 focus-visible:ring-offset-background
-            "
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-border bg-secondary/30 hover:border-accent/60 transition-colors duration-300 font-mono text-[10px] tracking-[0.2em] uppercase text-foreground/85"
           >
-            <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />
-            Prior art: OpenJarvis
+            <Github className="w-4 h-4" aria-hidden="true" />
+            Source (open)
+          </a>
+          <a
+            href={`${REPO}/issues/new`}
+            target="_blank"
+            rel="noreferrer noopener"
+            data-cursor-hover
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-border bg-background hover:border-accent/60 transition-colors duration-300 font-mono text-[10px] tracking-[0.2em] uppercase text-foreground/85"
+          >
+            <Bug className="w-3.5 h-3.5" aria-hidden="true" />
+            Report a problem
           </a>
         </div>
       </section>
 
+      {/* LIVE ORB DEMO */}
       <section>
-        <CaseSectionHeading>Why local-first</CaseSectionHeading>
+        <CaseSectionHeading>Meet her</CaseSectionHeading>
         <CaseProse>
           <p>
-            Most personal assistants route everything through a cloud API. That is the
-            wrong default for something that watches your screen, hears your room, and
-            reads your calendar. The thesis here — shared with local-first agent research
-            like{" "}
-            <a
-              href="https://github.com/open-jarvis/OpenJarvis"
-              target="_blank"
-              rel="noreferrer noopener"
-            >
-              OpenJarvis
-            </a>{" "}
-            — is that on-device models are now good enough to handle the large majority of
-            everyday work, so the cloud should be the exception, not the rule.
-          </p>
-          <p>
-            This is my own build, not a fork of any framework — an original implementation
-            in the same spirit. OpenJarvis is prior art I point to for the local-first case;
-            the persona, skill system, and bounded agent loop below are mine. The aim is a
-            daily companion where context and reasoning stay on a machine I control.
-          </p>
-          <p>
-            One idea I took directly from that line of research is <strong>routing the
-            right local model to each task</strong> instead of sending everything to one
-            big model. Here that&rsquo;s a JSON policy: a quick model for simple asks, a
-            deeper one when a request is complex and risky, a low-power one on battery — and
-            an explicit guardrail that keeps it all on-device. The classifier behind it is a
-            transparent heuristic, not a black box, so every routing decision is inspectable.
+            The real Vera runs on-device, so this page can&rsquo;t reach her
+            brain — but here&rsquo;s the feel. Tap a prompt or type your own, and
+            watch the orb listen, think, and speak.
           </p>
         </CaseProse>
-      </section>
-
-      <section>
-        <CaseSectionHeading>What it is now</CaseSectionHeading>
-        <CaseProse>
-          <p>
-            Today it&rsquo;s a working command-line agent: a local model (via Ollama), a
-            persona loaded from <code>system_dna.md</code>, a registry of skills the model
-            can call, and a bounded loop that turns a request into real actions. You can run{" "}
-            <code>python -m cognitive_twin &quot;summarize my day&quot;</code> and it reads a
-            local <code>tasks.md</code> and calendar file to answer — nothing leaves the
-            machine.
-          </p>
-          <p>
-            The runnable core lives in the <code>cognitive_twin/</code> package. An earlier{" "}
-            <code>src/</code> tree holds scaffolding for the layers ahead — OAuth connectors,
-            IPC, a menubar, and multimodal sensing — kept deliberately so the working agent
-            can stay small while those harden on top of it.
-          </p>
-        </CaseProse>
-      </section>
-
-      <section>
-        <CaseSectionHeading>Runtime stack</CaseSectionHeading>
-        <div className="mt-8 overflow-hidden rounded-md border border-border">
-          <table className="w-full text-sm">
-            <thead className="bg-secondary/40">
-              <tr>
-                <th className="text-left font-mono text-[10px] tracking-[0.25em] uppercase text-muted-foreground px-4 py-3">
-                  Layer
-                </th>
-                <th className="text-left font-mono text-[10px] tracking-[0.25em] uppercase text-muted-foreground px-4 py-3">
-                  Detail
-                </th>
-                <th className="text-left font-mono text-[10px] tracking-[0.25em] uppercase text-muted-foreground px-4 py-3">
-                  Why it matters
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {runtimeRows.map((row, idx) => (
-                <tr
-                  key={row.layer}
-                  className={
-                    idx % 2 === 1
-                      ? "border-t border-border/60 bg-secondary/10"
-                      : "border-t border-border/60"
-                  }
-                >
-                  <td className="font-medium text-foreground px-4 py-3 align-top">{row.layer}</td>
-                  <td className="text-muted-foreground leading-relaxed px-4 py-3 align-top">
-                    {row.detail}
-                  </td>
-                  <td className="text-muted-foreground leading-relaxed px-4 py-3 align-top">
-                    {row.why}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="mt-8">
+          <VeraOrbDemo />
         </div>
       </section>
 
+      {/* WHAT'S BUILT */}
       <section>
-        <CaseSectionHeading>Trust &amp; safety</CaseSectionHeading>
+        <CaseSectionHeading>What&rsquo;s built</CaseSectionHeading>
         <CaseProse>
-          <p>
-            The trust story starts with where the work happens: on-device, against a local
-            model, with no cloud round-trip and no API key for the core loop. File-reading
-            skills are sandboxed to the workspace, and the only &ldquo;integrations&rdquo;
-            today are local files you place yourself — a <code>tasks.md</code> and a{" "}
-            <code>.ics</code> — so there are no third-party tokens to leak.
-          </p>
-          <p>
-            The agent loop is the other half: it&rsquo;s bounded by a step limit, and a
-            failing skill returns its error to the model to recover from instead of crashing
-            the run. The heavier trust machinery for the connector era — explicit per-connector
-            consent, authenticated runs, keychain-backed secrets — is scaffolded for when
-            those layers land, not claimed as shipped.
-          </p>
+          <p>Shipped and working today — each verified on-device.</p>
         </CaseProse>
-        <CasePullQuote>
-          A personal assistant is only personal when the work — and the trust boundary — stays local.
-        </CasePullQuote>
-      </section>
-
-      <section>
-        <CaseSectionHeading>What works today</CaseSectionHeading>
-        <CaseLessons lessons={shipped} />
-      </section>
-
-      <section>
-        <CaseSectionHeading>Journey map</CaseSectionHeading>
-        <div className="mt-8 grid gap-3">
-          {journeySteps.map((step, idx) => (
+        <div className="mt-8 grid gap-3 md:grid-cols-2">
+          {built.map((item) => (
             <article
-              key={step.stage}
-              className="rounded-md border border-border bg-secondary/20 px-4 py-4"
+              key={item.title}
+              className="rounded-md border border-border bg-secondary/20 px-5 py-4"
             >
-              <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground">
-                Stage {String(idx + 1).padStart(2, "0")}
-              </p>
-              <h3 className="mt-2 text-sm md:text-base font-semibold text-foreground">{step.stage}</h3>
-              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{step.detail}</p>
+              <div className="flex items-start gap-2.5">
+                <span
+                  className="mt-0.5 shrink-0 text-accent font-semibold"
+                  aria-hidden
+                >
+                  ✓
+                </span>
+                <div>
+                  <h3 className="text-sm md:text-base font-semibold text-foreground">
+                    {item.title}
+                  </h3>
+                  <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                    {item.body}
+                  </p>
+                </div>
+              </div>
             </article>
           ))}
         </div>
       </section>
 
+      {/* WHAT'S BEING EXPLORED */}
+      <section>
+        <CaseSectionHeading>What&rsquo;s being explored</CaseSectionHeading>
+        <CaseProse>
+          <p>
+            Direction, not yet shipped — honestly marked so it&rsquo;s clear
+            what&rsquo;s real today versus what&rsquo;s ahead.
+          </p>
+        </CaseProse>
+        <div className="mt-8 grid gap-3 md:grid-cols-2">
+          {exploring.map((item) => (
+            <article
+              key={item.title}
+              className="rounded-md border border-dashed border-border/70 bg-background px-5 py-4"
+            >
+              <div className="flex items-start gap-2.5">
+                <span
+                  className="mt-0.5 shrink-0 text-muted-foreground"
+                  aria-hidden
+                >
+                  ○
+                </span>
+                <div>
+                  <h3 className="text-sm md:text-base font-semibold text-foreground/90">
+                    {item.title}
+                  </h3>
+                  <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                    {item.body}
+                  </p>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      {/* PRIVACY */}
+      <section>
+        <CaseSectionHeading>Private by construction</CaseSectionHeading>
+        <CaseProse>
+          <p>
+            A companion that can see your photos, hear your room, and read your
+            days has to earn trust in its architecture, not a promise. So
+            everything personal is sealed at rest with a device-bound key, network
+            egress happens through one fenced door with an allow-list, there&rsquo;s
+            a global kill switch, and there is no telemetry of any kind. Every
+            sense is opt-in and reversible. A single <code>security doctor</code>{" "}
+            command audits the whole posture.
+          </p>
+        </CaseProse>
+        <CasePullQuote>
+          A companion is only personal when the work — and the trust boundary —
+          stays on a machine you own.
+        </CasePullQuote>
+      </section>
+
+      {/* HOW IT WORKS / DOCS */}
       <section>
         <CaseSectionHeading>How it works</CaseSectionHeading>
         <CaseProse>
           <p>
-            A request goes to the local model together with the persona and the list of
-            available skills as tool specs. If the model calls a tool, the loop runs it,
-            feeds the result back, and lets the model continue — repeating until it has an
-            answer or hits the step limit. A skill that errors returns its message to the
-            model to recover from rather than ending the run.
+            A message goes to her local brain. First her own faculties run —
+            on-device, no model: how she feels about it, what she remembers of
+            you, what she&rsquo;s retrieved from your notes and documents. That
+            becomes the context the language model writes <em>within</em> — so the
+            words are warm and grounded, never the source of her judgment. She
+            replies in text, and speaks it in her neural voice if you want her to.
           </p>
           <p>
-            The result is a small, legible loop: local reasoning, typed tools, and bounded
-            autonomy — the kind of predictable behaviour you want before adding sensing and
-            connectors on top.
+            Full setup, the privacy model, and the architecture live in the
+            documentation alongside the code:
           </p>
         </CaseProse>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <a
+            href={`${REPO}#readme`}
+            target="_blank"
+            rel="noreferrer noopener"
+            data-cursor-hover
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-border bg-secondary/30 hover:border-accent/60 transition-colors duration-300 font-mono text-[10px] tracking-[0.2em] uppercase text-foreground/85"
+          >
+            <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />
+            Documentation
+          </a>
+          <a
+            href={`${REPO}/blob/main/PRIVACY.md`}
+            target="_blank"
+            rel="noreferrer noopener"
+            data-cursor-hover
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-border bg-background hover:border-accent/60 transition-colors duration-300 font-mono text-[10px] tracking-[0.2em] uppercase text-foreground/85"
+          >
+            <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />
+            Privacy
+          </a>
+        </div>
       </section>
     </CaseStudyLayout>
   )
