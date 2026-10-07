@@ -88,6 +88,7 @@ export function SiteAI() {
   const [open, setOpen] = useState(false)
   const [typed, setTyped] = useState("")
   const [msgs, setMsgs] = useState<Msg[]>([GREETING])
+  const [thinking, setThinking] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -97,7 +98,7 @@ export function SiteAI() {
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })
-  }, [msgs])
+  }, [msgs, thinking])
 
   function send(e?: React.FormEvent) {
     e?.preventDefault()
@@ -105,7 +106,13 @@ export function SiteAI() {
     if (!q) return
     setTyped("")
     setMsgs((m) => [...m, { role: "you", text: q }])
-    setTimeout(() => setMsgs((m) => [...m, answer(q)]), 280)
+    // a brief "typing" beat so the reply feels considered, with visible feedback
+    // (dots) rather than a dead pause — matches the app's thinking indicator.
+    setThinking(true)
+    setTimeout(() => {
+      setThinking(false)
+      setMsgs((m) => [...m, answer(q)])
+    }, 420)
   }
 
   return (
@@ -167,6 +174,19 @@ export function SiteAI() {
                   )}
                 </div>
               ))}
+              {thinking && (
+                <div className="text-left" aria-label="thinking">
+                  <span className="inline-flex items-center gap-1 rounded-2xl px-1 py-1.5">
+                    {[0, 1, 2].map((i) => (
+                      <span
+                        key={i}
+                        className="inline-block h-1.5 w-1.5 rounded-full bg-accent/70 animate-pulse"
+                        style={{ animationDelay: `${i * 160}ms` }}
+                      />
+                    ))}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* input */}
