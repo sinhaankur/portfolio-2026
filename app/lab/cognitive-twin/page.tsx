@@ -121,14 +121,14 @@ export default function CognitiveTwinPage() {
       <section aria-label="Get Vera" className="-mt-8 md:-mt-12">
         <div className="flex flex-wrap items-center gap-3">
           <a
-            href={`${REPO}/releases`}
+            href={`${REPO}/releases/latest`}
             target="_blank"
             rel="noreferrer noopener"
             data-cursor-hover
             className="inline-flex items-center gap-2.5 px-5 py-3 rounded-full border border-accent/50 bg-accent/10 hover:border-accent transition-colors duration-300 font-mono text-xs tracking-[0.2em] uppercase text-foreground"
           >
             <Download className="w-4 h-4" aria-hidden="true" />
-            Download &amp; use Vera
+            Download Vera (macOS)
             <ExternalLink className="w-3 h-3 opacity-60" aria-hidden="true" />
           </a>
           <a
@@ -151,6 +151,32 @@ export default function CognitiveTwinPage() {
             <Bug className="w-3.5 h-3.5" aria-hidden="true" />
             Report a problem
           </a>
+        </div>
+
+        {/* How to run — honest about the one-time setup (free, no App Store). */}
+        <div className="mt-6 rounded-lg border border-border bg-secondary/20 p-4 md:p-5">
+          <p className="font-mono text-[10px] tracking-[0.25em] uppercase text-muted-foreground mb-3">
+            Running her — macOS (Apple Silicon)
+          </p>
+          <ol className="space-y-2 text-sm text-foreground/80 leading-relaxed">
+            <li>
+              <span className="text-accent">1.</span> Download, unzip, and move{" "}
+              <strong>Vera.app</strong> to Applications. First launch:{" "}
+              <strong>right-click → Open</strong> (it&rsquo;s open-source &amp;
+              ad-hoc signed, not notarized).
+            </li>
+            <li>
+              <span className="text-accent">2.</span> Set up her brain with one line
+              (clones the brain, pulls a small local model, sets up her voice):
+            </li>
+          </ol>
+          <pre className="mt-3 overflow-x-auto rounded-md border border-border bg-background px-3 py-2.5 text-[11px] md:text-xs text-foreground/90">
+            <code>curl -fsSL https://raw.githubusercontent.com/sinhaankur/cognitive-twin-agent/main/scripts/install-vera.sh | bash</code>
+          </pre>
+          <p className="mt-3 text-xs text-muted-foreground">
+            Needs <a href="https://ollama.com" target="_blank" rel="noreferrer noopener">Ollama</a>{" "}
+            for the local model. Everything runs on your machine — nothing is uploaded.
+          </p>
         </div>
       </section>
 
