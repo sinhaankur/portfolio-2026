@@ -631,6 +631,15 @@ export function Hero() {
             className="md:hidden pointer-events-none absolute -inset-x-6 -inset-y-4 z-[-1]"
             style={{ background: "radial-gradient(130% 95% at 22% 42%, var(--background) 38%, color-mix(in oklch, var(--background) 60%, transparent) 64%, transparent 100%)" }}
           />
+          {/* Desktop legibility scrim: a soft, wide radial anchored top-left where
+              the DESIGN & AI headline + name block live, so they read crisply even
+              when the bright Milky Way band passes behind them — grand + clean,
+              without hiding the scene. Very gentle so the galaxy still glows. */}
+          <div
+            aria-hidden
+            className="hidden md:block pointer-events-none fixed left-0 top-0 h-[70vh] w-[55vw] z-[-1]"
+            style={{ background: "radial-gradient(90% 80% at 18% 34%, color-mix(in oklch, var(--background) 55%, transparent) 0%, color-mix(in oklch, var(--background) 28%, transparent) 42%, transparent 72%)" }}
+          />
           <p className="font-mono text-xs tracking-[0.3em] text-foreground/75 mb-2 [text-shadow:0_1px_8px_var(--background)]">
             ANKUR SINHA
           </p>
