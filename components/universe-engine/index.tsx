@@ -1219,7 +1219,12 @@ export function UniverseEngine({
               third instead, above the auto-tour button, and grow it upward so
               even the long Andromeda passage stays clear of both the headline
               and the bottom chrome. */}
-          {caption && (
+          {/* The narration caption is lovely, but on the home hero at REST it's a
+              third text layer competing with the DESIGN & AI headline. Clean-first:
+              only show it once the visitor has chosen to explore (interactive), so
+              the landing stays calm + grand. In the full /lab/celestial engine
+              (not minimalControls) it always shows. */}
+          {caption && (!minimalControls || interactive) && (
             <div
               key={caption.text}
               className={`

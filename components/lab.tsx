@@ -447,6 +447,10 @@ export function Lab() {
                 Real footage as reference; the engine is the piece.
               </p>
 
+              <p className="mt-3 font-mono text-[10px] tracking-[0.2em] uppercase text-foreground/45">
+                Filmed at Balmy Beach, Toronto
+              </p>
+
               <div className="mt-7 inline-flex items-center gap-2 font-mono text-[10px] tracking-[0.25em] uppercase text-foreground/85 group-hover:text-accent transition-colors">
                 Explore the sea
                 <motion.span
