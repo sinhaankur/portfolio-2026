@@ -3,7 +3,7 @@
 /**
  * Reading level — the visitor picks how dense the prose is.
  *
- *   deep   — Ankur's own words: dense, no compromises (the default; the edge stays)
+ *   deep   — Ankur's own words: dense, no compromises (one toggle away; the edge stays)
  *   plain  — warm and clear, no jargon, same idea
  *   simple — one honest line, anyone gets it
  *
@@ -35,10 +35,14 @@ function isLevel(v: unknown): v is ReadingLevel {
 /**
  * Shared reading-level state. Returns the current level and a setter that
  * persists + broadcasts so every other `useReadingLevel()` on the page follows.
- * SSR-safe: starts at "deep" and hydrates from storage on mount.
+ * SSR-safe: starts at the default and hydrates from storage on mount.
+ *
+ * Default is "simple" — a first-time visitor sees the shortest, punchiest copy
+ * (clean + scannable, so people engage rather than bounce) and can expand to
+ * "plain" / "deep" any time. Returning visitors keep their saved choice.
  */
 export function useReadingLevel(): [ReadingLevel, (next: ReadingLevel) => void] {
-  const [level, setLevelState] = useState<ReadingLevel>("deep")
+  const [level, setLevelState] = useState<ReadingLevel>("simple")
 
   useEffect(() => {
     try {
