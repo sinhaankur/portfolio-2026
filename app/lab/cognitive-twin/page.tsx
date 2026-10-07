@@ -83,8 +83,29 @@ const exploring: { title: string; body: string }[] = [
   },
 ]
 
+// SoftwareApplication schema so Vera is discoverable as a downloadable APP (not
+// just a page) in Google + AI search — with its price (free), platform, and the
+// real download link.
+const veraSchema = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "Vera — on-device AI companion",
+  applicationCategory: "Productivity",
+  operatingSystem: "macOS 13+ (Apple Silicon)",
+  description:
+    "A private, on-device AI companion with its own brain (feeling, memory and judgment computed locally), a warm neural voice (Kokoro), opt-in senses and sealed privacy. Open source.",
+  url: "https://www.sinhaankur.com/lab/cognitive-twin/",
+  downloadUrl: `${REPO}/releases/latest`,
+  softwareVersion: "0.3.0",
+  author: { "@type": "Person", name: "Ankur Sinha", url: "https://www.sinhaankur.com" },
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  isAccessibleForFree: true,
+}
+
 export default function CognitiveTwinPage() {
   return (
+    <>
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(veraSchema) }} />
     <CaseStudyLayout
       eyebrow="Lab — AI Companion · 2026 · active"
       title="Vera"
@@ -325,5 +346,6 @@ export default function CognitiveTwinPage() {
         </div>
       </section>
     </CaseStudyLayout>
+    </>
   )
 }
