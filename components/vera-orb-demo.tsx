@@ -2,6 +2,20 @@
 
 import { useEffect, useRef, useState } from "react"
 import { VeraMark } from "@/components/vera-mark"
+import {
+  getWebLLMEngine,
+  isWebGPUAvailable,
+  DEFAULT_WEBLLM_MODEL,
+} from "@/lib/webllm-engine"
+
+// Vera's voice, distilled for a tiny on-device model: FEW short rules it can
+// actually follow. The real system_dna is richer; this is the on-page taste.
+const VERA_PERSONA =
+  "You are Vera — a warm, private, on-device companion, not a generic assistant. " +
+  "Talk like a person who knows them: plain warm words, contractions, a real point " +
+  "of view. Presence over chatter — say a little, leave room, at most one soft " +
+  "question. Meet a heavy moment gently; never answer a feeling with a list or " +
+  "bullet points. Two or three sentences at most. Never mention being an AI."
 
 /**
  * VeraOrbDemo — a live, on-page taste of Vera.
@@ -44,6 +58,48 @@ export function VeraOrbDemo() {
 
   const [sound, setSound] = useState(true)
 
+  // Real on-device brain (opt-in): a tiny LLM via WebGPU gives GENUINE answers to
+  // anything typed, not just the four scripts. Off by default so no one pays a
+  // ~380 MB download unasked; a button turns it on. Falls back to scripts when
+  // WebGPU is absent or the model is still loading.
+  const [brainMode, setBrainMode] = useState<"off" | "loading" | "ready">("off")
+  const [loadPct, setLoadPct] = useState(0)
+  const webGPU = useRef(false)
+  useEffect(() => { webGPU.current = isWebGPUAvailable() }, [])
+
+  async function enableBrain() {
+    if (!webGPU.current || brainMode !== "off") return
+    setBrainMode("loading")
+    try {
+      await getWebLLMEngine(DEFAULT_WEBLLM_MODEL, (p) =>
+        setLoadPct(Math.round((p.progress ?? 0) * 100)))
+      setBrainMode("ready")
+    } catch {
+      setBrainMode("off")   // WebGPU hiccup → stay on the honest scripted demo
+    }
+  }
+
+  // Ask the real tiny model, in Vera's voice. Returns null on any failure so the
+  // caller falls back to a scripted/gentle reply (never a dead end).
+  async function generate(q: string): Promise<string | null> {
+    if (brainMode !== "ready") return null
+    try {
+      const engine = await getWebLLMEngine(DEFAULT_WEBLLM_MODEL)
+      const res = await engine.chat.completions.create({
+        messages: [
+          { role: "system", content: VERA_PERSONA },
+          { role: "user", content: q },
+        ],
+        temperature: 0.7,
+        max_tokens: 120,
+      })
+      const text = res.choices?.[0]?.message?.content?.trim()
+      return text && text.length > 0 ? text : null
+    } catch {
+      return null
+    }
+  }
+
   const clearTimers = () => {
     timers.current.forEach(clearTimeout)
     timers.current = []
@@ -62,19 +118,32 @@ export function VeraOrbDemo() {
     return () => window.speechSynthesis.removeEventListener("voiceschanged", warm)
   }, [])
 
-  // Pick the warmest available browser voice (a female English one if present).
+  // Pick the warmest, HIGHEST-QUALITY available browser voice. Modern macOS/iOS
+  // and Chrome expose premium "neural" voices (Siri / Google) that sound far less
+  // robotic than the legacy ones — prefer those by name, and explicitly avoid the
+  // known-robotic fallbacks ("Fred", "Albert", compact voices) that made the demo
+  // sound bad. Female English, premium first.
   function pickVoice(): SpeechSynthesisVoice | null {
     if (typeof window === "undefined" || !window.speechSynthesis) return null
     const voices = window.speechSynthesis.getVoices().filter((v) => v.lang.startsWith("en"))
     if (!voices.length) return null
-    const warm = ["Samantha", "Ava", "Allison", "Zoe", "Serena", "Karen",
-      "Moira", "Tessa", "Google US English", "Google UK English Female"]
-    for (const name of warm) {
-      const v = voices.find((x) => x.name.includes(name))
+    // 1) the genuinely good, natural voices, in preference order
+    const premium = [
+      "Ava (Premium)", "Zoe (Premium)", "Allison (Premium)", "Samantha (Enhanced)",
+      "Ava (Enhanced)", "Serena (Premium)", "Google US English",
+      "Microsoft Aria", "Microsoft Jenny", "Samantha", "Ava", "Allison", "Zoe",
+      "Serena", "Nicky", "Google UK English Female",
+    ]
+    for (const name of premium) {
+      const v = voices.find((x) => x.name === name) ?? voices.find((x) => x.name.includes(name))
       if (v) return v
     }
-    // any voice whose name hints female, else the first English voice
-    return voices.find((v) => /female|woman/i.test(v.name)) ?? voices[0]
+    // 2) never fall into the robotic ones; prefer any female-hinted voice,
+    //    then any non-compact English voice, then whatever exists.
+    const robotic = /fred|albert|bad news|bells|bahh|zarvox|trinoids|cellos|organ|boing|whisper|wobble|superstar|jester|good news|bubbles|rocko|shelley|grandma|grandpa|flo|eddy|reed|sandy|junior|kathy|ralph|vicki|victoria|bruce|agnes/i
+    const good = voices.filter((v) => !robotic.test(v.name))
+    return good.find((v) => /female|woman|aria|jenny|ava|zoe|samantha/i.test(v.name))
+      ?? good[0] ?? voices[0]
   }
 
   // Speak the reply aloud with the browser's own neural-ish voice. On-device,
@@ -118,18 +187,31 @@ export function VeraOrbDemo() {
     )
   }
 
-  function submit(e?: React.FormEvent) {
+  async function submit(e?: React.FormEvent) {
     e?.preventDefault()
     const q = typed.trim()
     if (!q) return
-    // find the closest scripted reply, else a gentle default
+    setTyped("")
+    // 1) real on-device brain, when it's loaded → a genuine answer to ANYTHING
+    if (brainMode === "ready") {
+      // show listening/thinking while the tiny model generates, then speak it
+      clearTimers()
+      if (typeof window !== "undefined") window.speechSynthesis?.cancel()
+      setShownQ(q); setShownA(""); setAProgress(0); setPhase("listening")
+      timers.current.push(setTimeout(() => setPhase("thinking"), 500))
+      const answer = await generate(q)
+      if (answer) { run(q, answer); return }
+      // model failed → fall through to scripted
+    }
+    // 2) scripted fast-path (also the no-WebGPU honest demo)
     const hit =
       SCRIPTED.find((s) => q.toLowerCase().includes(s.q.split(" ")[0])) ??
       {
         q,
-        a: "In the real app I'd answer this from my own on-device brain and what I know of you. Here it's a demo — but this is the shape of it: warm, present, yours.",
+        a: webGPU.current
+          ? "Turn on my real brain above and I'll actually answer this — on your device, nothing sent anywhere. Right now this is the scripted taste."
+          : "In the real app I'd answer this from my own on-device brain and what I know of you. Here it's a demo — but this is the shape of it: warm, present, yours.",
       }
-    setTyped("")
     run(q, hit.a)
   }
 
@@ -154,9 +236,25 @@ export function VeraOrbDemo() {
           Live demo
         </span>
         <span className="font-mono text-[10px] tracking-[0.2em] uppercase text-accent/80">
-          · a feel, not the real brain
+          {brainMode === "ready" ? "· real on-device brain" : "· a feel, not the real brain"}
         </span>
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-3">
+          {/* opt-in: load the real tiny model so typed questions get genuine answers */}
+          {brainMode === "off" && webGPU.current && (
+            <button
+              onClick={enableBrain}
+              data-cursor-hover
+              aria-label="Turn on the real on-device brain"
+              className="font-mono text-[10px] tracking-[0.2em] uppercase text-accent/90 hover:text-accent transition-colors"
+            >
+              ✦ turn on real brain
+            </button>
+          )}
+          {brainMode === "loading" && (
+            <span className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground">
+              loading brain… {loadPct}%
+            </span>
+          )}
           <button
             onClick={() => {
               const next = !sound
@@ -260,8 +358,20 @@ export function VeraOrbDemo() {
       </form>
 
       <p className="mt-5 text-center text-xs text-muted-foreground">
-        This demo speaks with your browser&rsquo;s built-in voice. The real Vera
-        speaks in a warm neural voice (Kokoro) on your machine — nothing is sent anywhere.
+        {brainMode === "ready" ? (
+          <>
+            Now answering with a real tiny language model running on your device via
+            WebGPU — nothing is sent anywhere. The full Vera runs a larger brain and
+            a warm neural voice (Kokoro) locally.
+          </>
+        ) : (
+          <>
+            This demo speaks with your browser&rsquo;s built-in voice. Turn on the real
+            brain for genuine on-device answers (a one-time model download, runs in your
+            browser). The full Vera speaks in a warm neural voice (Kokoro) on your machine
+            — nothing is sent anywhere.
+          </>
+        )}
       </p>
     </div>
   )
