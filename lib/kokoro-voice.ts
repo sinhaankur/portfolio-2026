@@ -1,5 +1,5 @@
 /**
- * Vera's real voice in the browser — Kokoro (af_bella), the SAME model + voice
+ * Vera's real voice in the browser — Kokoro (af_heart), the SAME model + voice
  * the native app uses, running fully on-device via kokoro-js (ONNX/WASM, WebGPU
  * when available). So the "Meet her" demo sounds like Vera herself, not the
  * generic browser voice.
@@ -18,7 +18,10 @@
  * If anything fails, callers fall back to speechSynthesis — the demo always talks.
  */
 
-const VERA_VOICE = "af_bella" // Vera's voice in the native app (scripts/setup-kokoro.sh)
+// Vera's canonical voice — matches the native app's default (kokoro_tts.py:
+// _DEFAULT_VOICE = "af_heart", "warm, natural, clear — the best for her presence").
+// Keep these in lock-step so she sounds like the SAME Vera on the site + the app.
+const VERA_VOICE = "af_heart"
 
 type RawAudio = { toBlob: () => Blob; audio?: Float32Array; sampling_rate?: number }
 type KokoroTTS = {
