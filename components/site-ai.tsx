@@ -3,94 +3,75 @@
 import { useEffect, useRef, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { VeraMark } from "@/components/vera-mark"
+import { answerFromSite, groundingFor } from "@/lib/site-knowledge"
+import {
+  getWebLLMEngine,
+  isWebGPUAvailable,
+  DEFAULT_WEBLLM_MODEL,
+  type WebLLMProgress,
+} from "@/lib/webllm-engine"
 
 /**
- * SiteAI — a small, quiet assistant orb in the corner of the site.
+ * SiteAI — a small, quiet guide orb in the corner of the site.
  *
- * Click the orb → a compact panel opens. It answers questions about Ankur's work
- * from a CURATED, grounded knowledge base (so it's instant + reliable, and always
- * links to the real tool/page). This is the seed of the "site AI"; the on-device
- * webLLM runtime can slot in later behind the same panel.
+ * TWO LAYERS, matching the project's "deterministic core, LLM for phrasing" rule:
+ *
+ *   1. GROUNDED BRAIN (always, instant, works everywhere) — every answer is
+ *      resolved by lib/site-knowledge.ts: it understands the question (intent +
+ *      entity) and returns a TRUE fact plus a link to the RIGHT page. So "oracle
+ *      work" lands on /works/oracle, not a generic roster. No download, no WebGPU.
+ *
+ *   2. ON-DEVICE TINY LLM (opt-in) — when the visitor turns on "warmer answers",
+ *      a small model (~380 MB, cached after first load) runs entirely in their
+ *      browser via WebGPU and PHRASES the grounded facts conversationally. The
+ *      facts and the link still come from the brain, so it can't hallucinate a
+ *      page or a claim. If WebGPU is absent or the model errors, we fall straight
+ *      back to the grounded sentence — the guide never breaks.
  *
  * Deliberately small and unobtrusive — present, not intrusive.
  */
 
 type Msg = { role: "you" | "vera"; text: string; href?: string; cta?: string }
 
-// curated, grounded answers — each points to a real page/tool.
-const KB: { q: string[]; a: string; href?: string; cta?: string }[] = [
-  {
-    q: ["who", "ankur", "about", "you"],
-    a: "Ankur is a UX designer and engineer-by-degree who builds what he designs — product design at Oracle & Deloitte, plus a lab of human-in-the-loop AI tools you can actually use.",
-    href: "/about", cta: "About Ankur",
-  },
-  {
-    q: ["vera", "companion", "on-device ai", "assistant", "download"],
-    a: "Vera is a private, on-device AI companion for macOS — its own brain (feeling + memory computed locally), a warm neural voice, sealed privacy. Open source, free to download.",
-    href: "/lab/cognitive-twin", cta: "Meet Vera",
-  },
-  {
-    q: ["universe", "satellite", "space", "sky", "stars", "engine"],
-    a: "The Universe / Satellite Engine is a real-time, date-accurate solar system with 18,600+ real satellite orbits, Mars/Moon imaging and live space data — built from real NASA/JPL data, running in your browser.",
-    href: "/lab/celestial", cta: "Open the engine",
-  },
-  {
-    q: ["wave", "ocean", "sea", "water"],
-    a: "The Waves is our own real-time procedural ocean under a real sun and moon, driven by tides, sun, wind and climate — all computed on-device.",
-    href: "/waves", cta: "Explore the sea",
-  },
-  {
-    q: ["math", "equation", "pi", "fourier", "euler", "golden"],
-    a: "Mathematics, made visible — π, Euler's identity, Fourier epicycles, the golden ratio, the waves and the universe, each an original interactive visualization of the real math.",
-    href: "/math", cta: "See the math",
-  },
-  {
-    q: ["work", "case", "oracle", "deloitte", "project", "design"],
-    a: "The work spans Oracle, Deloitte, Snowtint and Rage — real product design case studies, plus The Lab of experiments.",
-    href: "/lab", cta: "The Lab",
-  },
-  {
-    q: ["usability", "framework", "ux", "heuristic"],
-    a: "There's a live Usability Engine and a Universal Experience Framework — the Laws of UX & cognition with interactive demos.",
-    href: "/framework", cta: "The framework",
-  },
-  {
-    q: ["skill", "library", "craft", "stack", "tool"],
-    a: "A skills matrix and a craft library — nine disciplines, each with the tools and proof links to real work.",
-    href: "/skills", cta: "Skills & craft",
-  },
-]
-
 const GREETING: Msg = {
   role: "vera",
-  text: "Hi — I'm the guide to Ankur's work. Ask about Vera, the Universe Engine, the waves, the math, or the work.",
+  text: "Hi — I'm the guide to Ankur's work. Ask about the work (Oracle, Deloitte…), Vera, the Universe Engine, the waves, or the math.",
 }
 
-function answer(q: string): Msg {
-  const t = q.toLowerCase()
-  let best: (typeof KB)[number] | null = null
-  let bestScore = 0
-  for (const item of KB) {
-    const score = item.q.reduce((s, kw) => (t.includes(kw) ? s + 1 : s), 0)
-    if (score > bestScore) { bestScore = score; best = item }
-  }
-  if (best && bestScore > 0) {
-    return { role: "vera", text: best.a, href: best.href, cta: best.cta }
-  }
-  return {
-    role: "vera",
-    text: "I can point you to the real thing — try 'Vera', 'the universe engine', 'the waves', 'the math', or 'the work'.",
-    href: "/lab", cta: "Browse The Lab",
-  }
-}
+// The tiny model follows EXAMPLES better than rules, so the prompt is few-shot:
+// it must answer using ONLY the grounded context, warmly, in 1–2 sentences.
+const SYSTEM = `You are the warm, precise guide to Ankur Sinha's portfolio — a UX designer and engineer who builds what he designs.
+
+Rules:
+- Answer in 1–2 short, friendly sentences. No preamble, no "As an AI", no lists.
+- Use ONLY the facts in the provided Context. NEVER invent a project, number, or claim.
+- If the Context doesn't cover it, say briefly what Ankur does have and invite them to explore.
+
+Example:
+Context:
+- the Oracle case study: At Oracle, Ankur designed enterprise product experiences — turning dense, high-stakes workflows into interfaces people could actually move through.
+User: oracle work
+Answer: At Oracle, Ankur designed enterprise product experiences — taking dense, high-stakes workflows and making them something people could actually move through. There's a full case study.`
 
 export function SiteAI() {
   const [open, setOpen] = useState(false)
   const [typed, setTyped] = useState("")
   const [msgs, setMsgs] = useState<Msg[]>([GREETING])
   const [thinking, setThinking] = useState(false)
+  // Opt-in on-device LLM for warmer phrasing. Off by default (the grounded brain
+  // already answers correctly); turning it on streams the first model download.
+  const [llmOn, setLlmOn] = useState(false)
+  const [llmProgress, setLlmProgress] = useState<WebLLMProgress | null>(null)
+  const [llmReady, setLlmReady] = useState(false)
+  const webgpu = useRef(false)
+
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const abortRef = useRef<AbortController | null>(null)
+
+  useEffect(() => {
+    webgpu.current = isWebGPUAvailable()
+  }, [])
 
   useEffect(() => {
     if (open) setTimeout(() => inputRef.current?.focus(), 120)
@@ -98,7 +79,72 @@ export function SiteAI() {
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })
-  }, [msgs, thinking])
+  }, [msgs, thinking, llmProgress])
+
+  // Warm the on-device model when the visitor opts in (first time only).
+  async function enableLLM() {
+    setLlmOn(true)
+    if (!webgpu.current) return // no WebGPU → stays on the grounded brain
+    try {
+      await getWebLLMEngine(DEFAULT_WEBLLM_MODEL, (p) => setLlmProgress(p))
+      setLlmReady(true)
+      setLlmProgress(null)
+    } catch {
+      setLlmReady(false)
+      setLlmProgress(null)
+    }
+  }
+
+  /** Phrase the grounded answer with the on-device model, streaming into `msgs`. */
+  async function phraseWithLLM(query: string): Promise<boolean> {
+    if (!llmOn || !webgpu.current) return false
+    const { context, link } = groundingFor(query)
+    try {
+      const engine = await getWebLLMEngine(DEFAULT_WEBLLM_MODEL, (p) => setLlmProgress(p))
+      setLlmReady(true)
+      setLlmProgress(null)
+      abortRef.current = new AbortController()
+      const prompt = `Context:\n${context}\n\nUser: ${query}\n\nAnswer:`
+      const stream = (await engine.chat.completions.create({
+        messages: [
+          { role: "system", content: SYSTEM },
+          { role: "user", content: prompt },
+        ],
+        temperature: 0.4,
+        max_tokens: 160,
+        stream: true,
+      })) as unknown as AsyncIterable<{ choices: { delta?: { content?: string } }[] }>
+
+      // Push an empty assistant message we append streamed tokens into.
+      setThinking(false)
+      setMsgs((m) => [...m, { role: "vera", text: "", href: link?.href, cta: link?.cta }])
+      let acc = ""
+      for await (const chunk of stream) {
+        const delta = chunk.choices?.[0]?.delta?.content ?? ""
+        if (!delta) continue
+        acc += delta
+        setMsgs((m) => {
+          const copy = m.slice()
+          const last = copy[copy.length - 1]
+          if (last && last.role === "vera") copy[copy.length - 1] = { ...last, text: acc.trim() }
+          return copy
+        })
+      }
+      // Guard against an empty model reply — fall back to the grounded sentence.
+      if (!acc.trim()) {
+        const g = answerFromSite(query)
+        setMsgs((m) => {
+          const copy = m.slice()
+          copy[copy.length - 1] = { role: "vera", text: g.text, href: g.href, cta: g.cta }
+          return copy
+        })
+      }
+      return true
+    } catch {
+      setLlmProgress(null)
+      return false // fall back to the grounded sentence
+    }
+  }
 
   function send(e?: React.FormEvent) {
     e?.preventDefault()
@@ -106,13 +152,22 @@ export function SiteAI() {
     if (!q) return
     setTyped("")
     setMsgs((m) => [...m, { role: "you", text: q }])
-    // a brief "typing" beat so the reply feels considered, with visible feedback
-    // (dots) rather than a dead pause — matches the app's thinking indicator.
     setThinking(true)
-    setTimeout(() => {
-      setThinking(false)
-      setMsgs((m) => [...m, answer(q)])
-    }, 420)
+
+    // Try the on-device model first (if opted in); otherwise — or on any
+    // failure — answer instantly from the grounded brain. Either way the answer
+    // is TRUE and links to the right page.
+    ;(async () => {
+      const phrased = await phraseWithLLM(q)
+      if (!phrased) {
+        // a brief considered beat, then the grounded answer
+        setTimeout(() => {
+          setThinking(false)
+          const a = answerFromSite(q)
+          setMsgs((m) => [...m, { role: "vera", text: a.text, href: a.href, cta: a.cta }])
+        }, 360)
+      }
+    })()
   }
 
   return (
@@ -140,12 +195,32 @@ export function SiteAI() {
             {/* header */}
             <div className="flex items-center gap-2.5 border-b border-border/60 px-4 py-3">
               <VeraMark size={24} active />
-              <div className="leading-tight">
+              <div className="leading-tight flex-1">
                 <div className="text-[13px] font-semibold">Ask the guide</div>
                 <div className="font-mono text-[9px] tracking-[0.18em] uppercase text-muted-foreground">
                   about Ankur&rsquo;s work
                 </div>
               </div>
+              {/* warmer-answers toggle — opt-in on-device model */}
+              {webgpu.current && (
+                <button
+                  onClick={() => (llmOn ? setLlmOn(false) : enableLLM())}
+                  data-cursor-hover
+                  aria-pressed={llmOn}
+                  title={
+                    llmOn
+                      ? "On-device AI on — answers phrased by a tiny model in your browser"
+                      : "Turn on warmer answers (a tiny AI runs on your device, ~380 MB first load)"
+                  }
+                  className={`rounded-full border px-2 py-1 font-mono text-[9px] tracking-wider transition-colors ${
+                    llmOn
+                      ? "border-accent/60 bg-accent/15 text-foreground"
+                      : "border-border text-muted-foreground hover:border-accent/50"
+                  }`}
+                >
+                  {llmReady ? "AI ✓" : llmOn ? "AI…" : "AI"}
+                </button>
+              )}
             </div>
 
             {/* messages */}
@@ -161,7 +236,7 @@ export function SiteAI() {
                   >
                     {m.text}
                   </span>
-                  {m.href && (
+                  {m.href && m.text && (
                     <div className="mt-1.5">
                       <a
                         href={m.href}
@@ -174,6 +249,14 @@ export function SiteAI() {
                   )}
                 </div>
               ))}
+              {/* model download progress (first opt-in only) */}
+              {llmProgress && (
+                <div className="text-left">
+                  <span className="inline-block rounded-2xl font-mono text-[10px] text-muted-foreground">
+                    loading on-device AI… {Math.round((llmProgress.progress || 0) * 100)}%
+                  </span>
+                </div>
+              )}
               {thinking && (
                 <div className="text-left" aria-label="thinking">
                   <span className="inline-flex items-center gap-1 rounded-2xl px-1 py-1.5">
