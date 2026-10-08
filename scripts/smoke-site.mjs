@@ -96,6 +96,7 @@ const ROUTES = [
   ["/embed/satellites/", 6000],       // embeddable satellite tracker
   ["/universe-engine/math/", 2500],
   ["/rag/", 2500],                    // "What is a RAG system" teaching page
+  ["/rag/vera/", 2500],               // "How Vera's RAG works + benchmark" teaching page
   ["/llm/", 2500],                    // "How a language model works" teaching page
   ["/math/", 2500],
   ["/earth/", 2500],

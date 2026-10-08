@@ -78,6 +78,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/waves",             priority: 0.6, changeFrequency: "monthly" },
     { path: "/waves/math",        priority: 0.6, changeFrequency: "monthly" },
     { path: "/rag",               priority: 0.6, changeFrequency: "monthly" },
+    { path: "/rag/vera",          priority: 0.6, changeFrequency: "monthly" },
     { path: "/llm",               priority: 0.6, changeFrequency: "monthly" },
     { path: "/math",              priority: 0.7, changeFrequency: "monthly" },
     { path: "/earth",             priority: 0.7, changeFrequency: "monthly" },
