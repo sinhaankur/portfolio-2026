@@ -18,6 +18,7 @@ export const game = {
   playerYaw: 0, // facing, radians
   // motion signals for procedural character + camera juice (written by Player):
   playerSpeed: 0,       // horizontal speed (units/s)
+  playerVel: new THREE.Vector3(), // full velocity (units/s) — camera look-ahead
   playerVY: 0,          // vertical velocity (units/s)
   playerAir: false,     // true while airborne
   landImpact: 0,        // 0..1 spike on landing, decays — drives squash + cam shake

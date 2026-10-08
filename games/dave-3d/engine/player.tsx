@@ -90,6 +90,10 @@ export function Player({ level = LEVEL_1 }: { level?: Level }) {
 
   const sideOn = level.style === "side"
 
+  // priority 0 (default): physics runs FIRST each frame, before the camera
+  // (priority 1) reads game.playerPos — so the camera tracks the player in the
+  // SAME frame. Without this the camera used last frame's position → a 1-frame
+  // lag that read as stutter during fast movement. This is the core clunk fix.
   useFrame((state, dtRaw) => {
     // Freeze physics + input while not actively running (start screen / paused) or
     // when the level is cleared / won.
@@ -338,6 +342,7 @@ export function Player({ level = LEVEL_1 }: { level?: Level }) {
     // motion signals (read by the character animator + camera juice)
     const hSpeed = Math.hypot(v.x, v.z)
     game.playerSpeed = hSpeed
+    game.playerVel.copy(v)        // full velocity → camera look-ahead
     game.playerVY = v.y
     game.playerAir = !onGround.current
 

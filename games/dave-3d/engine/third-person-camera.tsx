@@ -26,6 +26,9 @@ export function ThirdPersonCamera() {
   const pinch = useRef(0)          // last 2-touch distance
   const tmp = useRef(new THREE.Vector3())
   const lookAt = useRef(new THREE.Vector3())
+  // smoothed velocity look-ahead aim (so the camera leads the motion, not trails)
+  const ahead = useRef(new THREE.Vector3())
+  const aheadTarget = useRef(new THREE.Vector3())
   // On side-on Dave screens we START with a flat, straight-on view that frames the
   // WHOLE room (1:1 with the original). The moment the user drags/zooms, we hand
   // over to the free-orbit follow camera so they can explore in 3D.
@@ -96,6 +99,8 @@ export function ThirdPersonCamera() {
     }
   }, [gl])
 
+  // priority 1: run AFTER the player's physics (priority 0) so the camera reads
+  // THIS frame's player position, not last frame's — the core fix for the stutter.
   useFrame((state, dt) => {
     const target = game.playerPos
 
@@ -145,13 +150,15 @@ export function ThirdPersonCamera() {
     const k = 1 - Math.exp(-8 * dt)
     camera.position.lerp(desired, k)
 
-    // --- juice: a short shake on hard landings (driven by landImpact). ---
+    // --- juice: a short shake on hard landings (driven by landImpact). Damped
+    //     sine so it eases out instead of cutting abruptly — a landing THUD that
+    //     settles, not a flicker. Applied as a small offset after the follow lerp. ---
     const land = game.landImpact
     if (land > 0.02) {
       const t = state.clock.elapsedTime
-      const amp = land * 0.18
-      camera.position.y += Math.sin(t * 90) * amp
-      camera.position.x += Math.sin(t * 73 + 1.3) * amp * 0.6
+      const amp = land * land * 0.16          // quadratic → softer at the tail
+      camera.position.y += Math.sin(t * 46) * amp
+      camera.position.x += Math.sin(t * 38 + 1.3) * amp * 0.5
     }
 
     // --- juice: subtle FOV kick with horizontal speed → sense of pace. ---
@@ -166,10 +173,19 @@ export function ThirdPersonCamera() {
       }
     }
 
-    // look slightly above the player's feet, with a touch of velocity look-ahead
-    lookAt.current.set(target.x, target.y + 1.2, target.z)
-    camera.lookAt(lookAt.current)
-  })
+    // look slightly above the player's feet, with REAL velocity look-ahead: lead
+    // the aim toward where the player is heading, so fast movement doesn't feel
+    // like the camera is chasing from behind. Smoothed, and capped so it never
+    // overshoots jarringly. (The comment used to promise this; now it's real.)
+    const vel = game.playerVel
+    aheadTarget.current.set(
+      target.x + THREE.MathUtils.clamp(vel.x * 0.18, -2.2, 2.2),
+      target.y + 1.2 + THREE.MathUtils.clamp(vel.y * 0.05, -0.8, 0.8),
+      target.z + THREE.MathUtils.clamp(vel.z * 0.18, -2.2, 2.2),
+    )
+    ahead.current.lerp(aheadTarget.current, 1 - Math.exp(-6 * dt))
+    camera.lookAt(ahead.current)
+  }, 1)
 
   return null
 }
