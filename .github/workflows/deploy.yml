@@ -61,7 +61,12 @@ jobs:
           cache: pnpm
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile=false
+        # --ignore-scripts: kokoro-js pulls onnxruntime-node (a Node-native dep
+        # the browser never uses — it runs the WASM path). pnpm 11 fails the
+        # install over its skipped build script; skipping lifecycle scripts is
+        # safe here because the site is a static export (no runtime image/native
+        # work), and it keeps the Pages deploy green.
+        run: pnpm install --frozen-lockfile=false --ignore-scripts
 
       - name: Refresh orbital data (CelesTrak TLEs + conjunction screen)
         # Live-ish data on a static site: re-fetch the object catalog and

@@ -106,7 +106,20 @@ export function VeraOrbDemo() {
   }
   useEffect(() => () => {
     clearTimers()
-    if (typeof window !== "undefined") window.speechSynthesis?.cancel()
+    if (typeof window !== "undefined") {
+      window.speechSynthesis?.cancel()
+      import("@/lib/kokoro-voice").then((m) => m.stopKokoro()).catch(() => {})
+    }
+  }, [])
+
+  // Preload Vera's real voice (Kokoro) in the background once mounted, so the
+  // first time she speaks there's no wait — she just sounds like herself.
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const t = setTimeout(() => {
+      import("@/lib/kokoro-voice").then((m) => m.loadKokoro()).catch(() => {})
+    }, 1200) // after first paint, not blocking it
+    return () => clearTimeout(t)
   }, [])
 
   // Browsers load voices asynchronously — nudge them so pickVoice() has a list.
@@ -146,15 +159,22 @@ export function VeraOrbDemo() {
       ?? good[0] ?? voices[0]
   }
 
-  // Speak the reply aloud with the browser's own neural-ish voice. On-device,
-  // nothing sent anywhere. Honest to the page's promise that she "speaks aloud".
-  function speak(text: string) {
-    if (!sound || typeof window === "undefined" || !window.speechSynthesis) return
-    window.speechSynthesis.cancel()
+  // Speak the reply aloud in VERA'S REAL voice — Kokoro (af_bella), the same
+  // model the native app uses, running on-device in the browser. Falls back to
+  // the browser's own voice if Kokoro can't load (offline, unsupported), so she
+  // always speaks. Nothing is sent anywhere either way.
+  async function speak(text: string) {
+    if (!sound || typeof window === "undefined") return
+    window.speechSynthesis?.cancel()
+    const { speakKokoro } = await import("@/lib/kokoro-voice")
+    const spokeInHerVoice = await speakKokoro(text, 0.92)
+    if (spokeInHerVoice) return
+    // fallback: the browser's best neural-ish voice
+    if (!window.speechSynthesis) return
     const u = new SpeechSynthesisUtterance(text)
     const v = pickVoice()
     if (v) u.voice = v
-    u.rate = 0.96       // a touch slower — warmer, more present
+    u.rate = 0.96
     u.pitch = 1.05
     window.speechSynthesis.speak(u)
   }
@@ -366,10 +386,10 @@ export function VeraOrbDemo() {
           </>
         ) : (
           <>
-            This demo speaks with your browser&rsquo;s built-in voice. Turn on the real
-            brain for genuine on-device answers (a one-time model download, runs in your
-            browser). The full Vera speaks in a warm neural voice (Kokoro) on your machine
-            — nothing is sent anywhere.
+            This demo speaks in Vera&rsquo;s real voice — Kokoro (Bella), the same
+            neural voice the app uses, running on-device in your browser (a one-time
+            voice download). Turn on the real brain for genuine on-device answers
+            too. Nothing is ever sent anywhere.
           </>
         )}
       </p>

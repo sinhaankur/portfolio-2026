@@ -1,8 +1,9 @@
 import type { Metadata } from "next"
 import { canonicalPath } from "@/lib/seo"
-import { Github, ExternalLink, Download, Bug } from "lucide-react"
+import { ExternalLink } from "lucide-react"
 import { VeraMark } from "@/components/vera-mark"
 import { VeraOrbDemo } from "@/components/vera-orb-demo"
+import { VeraDownload } from "@/components/vera-download"
 import {
   CaseStudyLayout,
   CaseSectionHeading,
@@ -138,67 +139,69 @@ export default function CognitiveTwinPage() {
         </>
       }
     >
-      {/* Links: download, source, report a problem */}
+      {/* Links: download (device-aware), source, report a problem */}
       <section aria-label="Get Vera" className="-mt-8 md:-mt-12">
-        <div className="flex flex-wrap items-center gap-3">
-          <a
-            href={`${REPO}/releases/latest`}
-            target="_blank"
-            rel="noreferrer noopener"
-            data-cursor-hover
-            className="inline-flex items-center gap-2.5 px-5 py-3 rounded-full border border-accent/50 bg-accent/10 hover:border-accent transition-colors duration-300 font-mono text-xs tracking-[0.2em] uppercase text-foreground"
-          >
-            <Download className="w-4 h-4" aria-hidden="true" />
-            Download Vera (macOS)
-            <ExternalLink className="w-3 h-3 opacity-60" aria-hidden="true" />
-          </a>
-          <a
-            href={REPO}
-            target="_blank"
-            rel="noreferrer noopener"
-            data-cursor-hover
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-border bg-secondary/30 hover:border-accent/60 transition-colors duration-300 font-mono text-[10px] tracking-[0.2em] uppercase text-foreground/85"
-          >
-            <Github className="w-4 h-4" aria-hidden="true" />
-            Source (open)
-          </a>
-          <a
-            href={`${REPO}/issues/new`}
-            target="_blank"
-            rel="noreferrer noopener"
-            data-cursor-hover
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-border bg-background hover:border-accent/60 transition-colors duration-300 font-mono text-[10px] tracking-[0.2em] uppercase text-foreground/85"
-          >
-            <Bug className="w-3.5 h-3.5" aria-hidden="true" />
-            Report a problem
-          </a>
-        </div>
+        <VeraDownload />
 
-        {/* How to run — honest about the one-time setup (free, no App Store). */}
-        <div className="mt-6 rounded-lg border border-border bg-secondary/20 p-4 md:p-5">
-          <p className="font-mono text-[10px] tracking-[0.25em] uppercase text-muted-foreground mb-3">
-            Running her — macOS (Apple Silicon)
-          </p>
-          <ol className="space-y-2 text-sm text-foreground/80 leading-relaxed">
-            <li>
-              <span className="text-accent">1.</span> Download, unzip, and move{" "}
-              <strong>Vera.app</strong> to Applications. First launch:{" "}
-              <strong>right-click → Open</strong> (it&rsquo;s open-source &amp;
-              ad-hoc signed, not notarized).
-            </li>
-            <li>
-              <span className="text-accent">2.</span> Set up her brain with one line
-              (clones the brain, pulls a small local model, sets up her voice):
-            </li>
-          </ol>
-          <pre className="mt-3 overflow-x-auto rounded-md border border-border bg-background px-3 py-2.5 text-[11px] md:text-xs text-foreground/90">
-            <code>curl -fsSL https://raw.githubusercontent.com/sinhaankur/cognitive-twin-agent/main/scripts/install-vera.sh | bash</code>
-          </pre>
-          <p className="mt-3 text-xs text-muted-foreground">
-            Needs <a href="https://ollama.com" target="_blank" rel="noreferrer noopener">Ollama</a>{" "}
-            for the local model. Everything runs on your machine — nothing is uploaded.
-          </p>
+        {/* How to install — TWO clearly-separated paths, each to its audience.
+            Everything is free; nothing uploaded. macOS Apple Silicon. */}
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
+          {/* EASIEST — for anyone, no Terminal */}
+          <div className="rounded-lg border border-accent/30 bg-accent/5 p-4 md:p-5">
+            <p className="font-mono text-[10px] tracking-[0.25em] uppercase text-accent mb-3">
+              Easiest · for anyone
+            </p>
+            <ol className="space-y-2.5 text-sm text-foreground/80 leading-relaxed">
+              <li>
+                <span className="text-accent">1.</span> Download the app above and{" "}
+                <strong>unzip</strong> it. Drag <strong>Vera</strong> into your{" "}
+                <strong>Applications</strong> folder.
+              </li>
+              <li>
+                <span className="text-accent">2.</span> The first time,{" "}
+                <strong>right-click Vera → Open</strong> (then click Open). A normal
+                double-click won&rsquo;t work the <em>first</em> time — macOS asks
+                once because Vera is free &amp; open-source, not App&nbsp;Store&ndash;signed.
+                Nothing is hidden. Every time after, double-click works.
+              </li>
+              <li>
+                <span className="text-accent">3.</span> She sets up her own brain on
+                first launch (a few minutes, all on your Mac). Then click the orb to
+                talk — no Terminal, ever.
+              </li>
+            </ol>
+          </div>
+
+          {/* FOR DEVELOPERS — one clean command, zero warnings */}
+          <div className="rounded-lg border border-border bg-secondary/20 p-4 md:p-5">
+            <p className="font-mono text-[10px] tracking-[0.25em] uppercase text-muted-foreground mb-3">
+              For developers · one command
+            </p>
+            <p className="text-sm text-foreground/80 leading-relaxed">
+              Prefer Homebrew? This installs with <strong>no Gatekeeper prompt</strong>{" "}
+              at all (Homebrew handles it) — fully free, no Apple certificate:
+            </p>
+            <pre className="mt-2 overflow-x-auto rounded-md border border-border bg-background px-3 py-2.5 text-[11px] md:text-xs text-foreground/90">
+              <code>{`brew tap sinhaankur/vera https://github.com/sinhaankur/cognitive-twin-agent
+brew install --cask vera`}</code>
+            </pre>
+            <p className="mt-3 text-sm text-foreground/70 leading-relaxed">
+              Or the one-line setup script (installs everything + the right-sized
+              model for your Mac, then download the app above):
+            </p>
+            <pre className="mt-2 overflow-x-auto rounded-md border border-border bg-background px-3 py-2.5 text-[11px] md:text-xs text-foreground/90">
+              <code>curl -fsSL https://raw.githubusercontent.com/sinhaankur/cognitive-twin-agent/main/scripts/install-vera.sh | bash</code>
+            </pre>
+          </div>
         </div>
+        <p className="mt-3 text-xs text-muted-foreground">
+          Everything runs on your machine — nothing is uploaded. Needs Apple
+          Silicon. Full details in the{" "}
+          <a href={`${REPO}#readme`} target="_blank" rel="noreferrer noopener">
+            README
+          </a>
+          .
+        </p>
       </section>
 
       {/* LIVE ORB DEMO */}

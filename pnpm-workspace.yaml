@@ -2,6 +2,8 @@
 # sharp builds a native binding; without this, pnpm 10+ blocks the script and
 # next/image — even with images.unoptimized: true — emits a warning at build.
 allowBuilds:
+  onnxruntime-node: set this to true or false
+  protobufjs: set this to true or false
   sharp: true
   unrs-resolver: true
 
