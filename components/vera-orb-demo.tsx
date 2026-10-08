@@ -60,6 +60,10 @@ export function VeraOrbDemo() {
   const timers = useRef<ReturnType<typeof setTimeout>[]>([])
 
   const [sound, setSound] = useState(true)
+  // true while her real voice (Kokoro) is loading for the FIRST time, so the UI
+  // can say "warming her voice…" instead of a silent gap before she first speaks.
+  const [voiceWarming, setVoiceWarming] = useState(false)
+  const voiceReady = useRef(false)
 
   // Real on-device brain (opt-in): a tiny LLM via WebGPU gives GENUINE answers to
   // anything typed, not just the four scripts. Off by default so no one pays a
@@ -169,8 +173,12 @@ export function VeraOrbDemo() {
   async function speak(text: string) {
     if (!sound || typeof window === "undefined") return
     window.speechSynthesis?.cancel()
+    // first time only: her voice model may still be downloading — show a gentle
+    // "warming her voice" hint so the gap before she first speaks isn't silent.
+    if (!voiceReady.current) setVoiceWarming(true)
     const spokeInHerVoice = await speakKokoro(text, 0.92)
-    if (spokeInHerVoice) return
+    setVoiceWarming(false)
+    if (spokeInHerVoice) { voiceReady.current = true; return }
     // fallback: the browser's best neural-ish voice
     if (!window.speechSynthesis) return
     const u = new SpeechSynthesisUtterance(text)
@@ -319,7 +327,7 @@ export function VeraOrbDemo() {
           className="font-mono text-[11px] tracking-[0.18em] uppercase text-muted-foreground"
           aria-live="polite"
         >
-          {label}
+          {voiceWarming ? "warming her voice…" : label}
         </p>
       </div>
 
