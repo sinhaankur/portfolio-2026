@@ -85,7 +85,11 @@ export function kokoroReady(): boolean {
  * on a reusable <audio> element (robust resume behaviour). unlockAudio() should
  * have been called in the triggering gesture.
  */
-export async function speakKokoro(text: string, speed = 0.92): Promise<boolean> {
+export async function speakKokoro(
+  text: string,
+  speed = 0.92,
+  onStart?: () => void,
+): Promise<boolean> {
   try {
     const tts = await loadKokoro()
     if (!tts) return false
@@ -102,6 +106,9 @@ export async function speakKokoro(text: string, speed = 0.92): Promise<boolean> 
     audioEl.src = url
     audioEl.muted = false
     audioEl.onended = () => URL.revokeObjectURL(url)
+    // fire onStart the instant playback actually begins, so a caller can sync
+    // its UI (e.g. the text reveal) to the voice rather than to the request.
+    if (onStart) audioEl.onplaying = () => onStart()
     await audioEl.play()
     return true
   } catch {

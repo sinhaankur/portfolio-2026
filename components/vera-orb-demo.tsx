@@ -170,23 +170,37 @@ export function VeraOrbDemo() {
   // model the native app uses, running on-device in the browser. Falls back to
   // the browser's own voice if Kokoro can't load (offline, unsupported), so she
   // always speaks. Nothing is sent anywhere either way.
-  async function speak(text: string) {
+  async function speak(text: string, onAudioStart?: () => void) {
     if (!sound || typeof window === "undefined") return
     window.speechSynthesis?.cancel()
     // first time only: her voice model may still be downloading — show a gentle
     // "warming her voice" hint so the gap before she first speaks isn't silent.
     if (!voiceReady.current) setVoiceWarming(true)
-    const spokeInHerVoice = await speakKokoro(text, 0.92)
+    // onAudioStart fires the instant audio begins → the caller starts the text
+    // reveal then, keeping text and voice in lock-step even on a slow first load.
+    const spokeInHerVoice = await speakKokoro(text, 0.92, onAudioStart)
     setVoiceWarming(false)
     if (spokeInHerVoice) { voiceReady.current = true; return }
     // fallback: the browser's best neural-ish voice
-    if (!window.speechSynthesis) return
+    if (!window.speechSynthesis) { onAudioStart?.(); return }
     const u = new SpeechSynthesisUtterance(text)
     const v = pickVoice()
     if (v) u.voice = v
     u.rate = 0.96
     u.pitch = 1.05
+    u.onstart = () => onAudioStart?.()
     window.speechSynthesis.speak(u)
+  }
+
+  // reveal the reply word-by-word (called once the voice is actually speaking, so
+  // text and voice stay in sync instead of the text racing ahead of a loading voice)
+  function revealWords(a: string) {
+    setShownA(a)
+    const words = a.split(" ")
+    words.forEach((_, i) => {
+      timers.current.push(setTimeout(() => setAProgress(i + 1), 60 * i))
+    })
+    timers.current.push(setTimeout(() => setPhase("idle"), 700 + words.length * 60))
   }
 
   function run(q: string, a: string) {
@@ -194,31 +208,32 @@ export function VeraOrbDemo() {
     if (typeof window !== "undefined") window.speechSynthesis?.cancel()
     // UNLOCK audio synchronously in this click gesture, BEFORE any async work —
     // so Vera's voice can actually play later (generation is async; if we unlock
-    // after it, the gesture window is gone and nothing sounds). This was the
-    // reason the audio didn't work. unlockAudio is a tiny sync fn (statically
-    // imported); the heavy Kokoro model still loads lazily.
+    // after it, the gesture window is gone and nothing sounds). unlockAudio is a
+    // tiny sync fn (statically imported); the heavy Kokoro model loads lazily.
     if (sound) unlockAudio()
     setShownQ(q)
     setShownA("")
     setAProgress(0)
     setPhase("listening")
-    // listening → thinking → speaking, timed to feel alive
+    // listening → thinking → speaking
     timers.current.push(setTimeout(() => setPhase("thinking"), 700))
     timers.current.push(
       setTimeout(() => {
         setPhase("speaking")
-        setShownA(a)
-        speak(a)                              // ← she actually talks now
-        // reveal the reply word-by-word
-        const words = a.split(" ")
-        words.forEach((_, i) => {
-          timers.current.push(
-            setTimeout(() => setAProgress(i + 1), 60 * i),
-          )
-        })
-        timers.current.push(
-          setTimeout(() => setPhase("idle"), 700 + words.length * 60),
-        )
+        // SYNC text to voice: start speaking, and begin the word reveal the moment
+        // audio actually starts (so a slow-loading voice doesn't fall behind the
+        // text). If voice is off or can't play, reveal immediately — never wait
+        // on something that won't come.
+        let revealed = false
+        const startReveal = () => { if (!revealed) { revealed = true; revealWords(a) } }
+        if (sound) {
+          speak(a, startReveal)
+          // safety net: if audio hasn't started within 2.5s (e.g. still loading
+          // on a slow line), reveal the text anyway so she's never stuck silent.
+          timers.current.push(setTimeout(startReveal, 2500))
+        } else {
+          startReveal()
+        }
       }, 1700),
     )
   }
