@@ -32,6 +32,9 @@ type StackGroup = {
   items: string[]
   description?: string
   Glyph: ComponentType<{ className?: string }>
+  /** Where this stack is actually used — so the tools point at real work, not
+   *  a decorative list. "Seeing is believing": every group earns its chips. */
+  proof?: { label: string; href: string }
 }
 
 const stack: StackGroup[] = [
@@ -40,36 +43,42 @@ const stack: StackGroup[] = [
     description: "Where most of the prototyping happens.",
     items: ["React 19", "TypeScript", "Next.js", "Tailwind v4", "Framer Motion", "Three.js"],
     Glyph: FrontendGlyph,
+    proof: { label: "How this site is built", href: "/writing/how-its-built" },
   },
   {
     label: "Graphics & 3D",
     description: "What the Universe Engine actually runs on.",
     items: ["WebGL", "GLSL", "React Three Fiber", "KTX2 / Basis", "Draco", "Cloudflare R2"],
     Glyph: FrontendGlyph,
+    proof: { label: "The Satellite Engine", href: "/lab/celestial" },
   },
   {
     label: "Native",
     description: "When the surface needs to feel native.",
     items: ["SwiftUI", "Jetpack Compose", "Tauri", "Electron"],
     Glyph: NativeGlyph,
+    proof: { label: "Firmament (iOS)", href: "/lab/firmament" },
   },
   {
     label: "Languages",
     description: "What I write directly — not via Copilot.",
     items: ["TypeScript", "Python", "Rust", "Go", "Swift", "Kotlin"],
     Glyph: LanguagesGlyph,
+    proof: { label: "The Lab", href: "/lab" },
   },
   {
     label: "AI & runtime",
     description: "Where the agent-side of the interface lives.",
     items: ["Claude", "Anthropic SDK", "MCP", "llama.cpp", "Ollama", "On-device AI"],
     Glyph: AIGlyph,
+    proof: { label: "On-device AI copilot", href: "/lab/celestial" },
   },
   {
     label: "Design",
     description: "Specs and tokens, when the prototype isn't enough.",
     items: ["Figma", "FigJam", "Storybook", "Token Studio"],
     Glyph: DesignGlyph,
+    proof: { label: "The craft library", href: "/library" },
   },
 ]
 
@@ -138,6 +147,25 @@ export function TechMarquee() {
                   <p className="mt-3 font-sans text-xs md:text-sm text-muted-foreground leading-snug max-w-xs">
                     {group.description}
                   </p>
+                )}
+                {group.proof && (
+                  <a
+                    href={group.proof.href}
+                    className="
+                      group/proof mt-3 inline-flex items-center gap-1.5
+                      font-mono text-[10px] md:text-[11px] tracking-wider
+                      text-foreground/55 hover:text-accent
+                      transition-colors duration-300
+                    "
+                  >
+                    <span>{group.proof.label}</span>
+                    <span
+                      aria-hidden="true"
+                      className="transition-transform duration-300 group-hover/proof:translate-x-0.5"
+                    >
+                      →
+                    </span>
+                  </a>
                 )}
               </dt>
               <dd>
