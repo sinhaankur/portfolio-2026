@@ -977,6 +977,64 @@ export const DUST_HAZE_VERTEX_SHADER = /* glsl */ `
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
   }
 `
+
+/* ── DARK DUST LANES (the Great Rift) ─────────────────────────────────────────
+ * The additive haze above can only ADD light, so it can't make a real galaxy's
+ * depth: the dark absorption lanes that cut across the bright arms. This layer
+ * does that — it renders IN FRONT of the star field with NORMAL (over) blending
+ * and paints near-black where the dust is dense, so the stars behind are actually
+ * occluded. That light-AND-dark structure is the single biggest "this looks like
+ * a real galaxy photo" cue. Alpha is strongest along the galactic plane spine and
+ * eased away from the core (the bulge shines through); it's zero everywhere the
+ * lanes are thin, so it only darkens where real dust would. */
+export const DUST_LANE_FRAGMENT_SHADER = /* glsl */ `
+  precision highp float;
+  varying vec2 vUv;
+  uniform float uTime;
+  uniform float uOpacity;     // overall strength of the dark lanes
+  uniform vec3  uDustColor;   // cool, slightly brown-blue absorbing dust
+
+  float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+  float vnoise(vec2 p){
+    vec2 i = floor(p); vec2 f = fract(p);
+    vec2 u = f * f * (3.0 - 2.0 * f);
+    return mix(mix(hash(i), hash(i + vec2(1,0)), u.x),
+               mix(hash(i + vec2(0,1)), hash(i + vec2(1,1)), u.x), u.y);
+  }
+  float fbm(vec2 p){
+    float v = 0.0, a = 0.5;
+    for (int i = 0; i < 5; i++){ v += a * vnoise(p); p *= 2.02; a *= 0.5; }
+    return v;
+  }
+
+  void main() {
+    vec2 c = vUv - 0.5;
+
+    // Swirl the sampling frame so the lanes wind around the core like the arms.
+    float rad = length(c) * 2.0;
+    float swirl = rad * 3.0;                 // matches the arm winding
+    float cs = cos(swirl), sn = sin(swirl);
+    vec2 cw = mat2(cs, -sn, sn, cs) * c;
+
+    // Thin bright spine: confine the dust to the galactic plane (squash across).
+    float rAcross = abs(c.y) * 2.0;
+    float spine = smoothstep(0.85, 0.0, rAcross * 1.25);   // 1 on the plane → 0 off it
+    float along = smoothstep(1.15, 0.0, abs(c.x) * 2.0);   // fade to the ends
+
+    // Dense filamentary dust — high-frequency fbm carved hard so it reads as
+    // discrete rifts, not a smudge.
+    float d = fbm(cw * 9.0 + vec2(uTime * 0.006, 0.0)) * 0.6
+            + fbm(cw * 19.0 - vec2(0.0, uTime * 0.004)) * 0.4;
+    float lane = smoothstep(0.52, 0.80, d);                // only the dense cores absorb
+
+    // Let the bulge shine through — ease the dust away from the very centre so
+    // the core stays a luminous jewel, with a classic lane crossing just in front.
+    float coreClear = smoothstep(0.0, 0.42, length(c) * 2.0);
+
+    float a = lane * spine * along * coreClear * uOpacity;
+    gl_FragColor = vec4(uDustColor, a);
+  }
+`
 export const DUST_HAZE_FRAGMENT_SHADER = /* glsl */ `
   precision highp float;
   varying vec2 vUv;

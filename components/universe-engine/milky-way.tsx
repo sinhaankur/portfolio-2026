@@ -31,7 +31,7 @@ import {
   ShaderMaterial,
 } from "three"
 
-import { GALAXY_VERTEX_SHADER, GALAXY_FRAGMENT_SHADER, DUST_HAZE_VERTEX_SHADER, DUST_HAZE_FRAGMENT_SHADER } from "./shaders"
+import { GALAXY_VERTEX_SHADER, GALAXY_FRAGMENT_SHADER, DUST_HAZE_VERTEX_SHADER, DUST_HAZE_FRAGMENT_SHADER, DUST_LANE_FRAGMENT_SHADER } from "./shaders"
 import { MILKY_WAY_INFO, SGR_A_INFO, gauss, timeWarpRef } from "./astronomy"
 import { makeFocusHandler } from "./scene-shared"
 import { NebulaClouds } from "./nebula"
@@ -97,6 +97,19 @@ export function MilkyWay({
       uBrightness: { value: 0.72 }, // richer dust glow for a clearer band
       uCoreColor: { value: new Color("#ffc089") }, // warm amber bulge
       uArmColor: { value: new Color("#5a6b9c") },  // cool dusty blue arms
+    }),
+    [],
+  )
+
+  // DARK DUST LANES (the Great Rift) — rendered IN FRONT of the stars with normal
+  // blending so they actually occlude, giving the galaxy real light-and-dark depth
+  // instead of an all-emissive haze. A cool brown-blue absorbing dust.
+  const laneMatRef = useRef<ShaderMaterial>(null)
+  const laneUniforms = useMemo(
+    () => ({
+      uTime: { value: 0 },
+      uOpacity: { value: 0.0 },                      // eased in after mount (set in useFrame)
+      uDustColor: { value: new Color("#0b0a10") },   // near-black, faint cool tint
     }),
     [],
   )
@@ -358,6 +371,15 @@ export function MilkyWay({
     if (dustMatRef.current) {
       ;(dustMatRef.current.uniforms.uTime as { value: number }).value += delta
     }
+    if (laneMatRef.current) {
+      const u = laneMatRef.current.uniforms
+      ;(u.uTime as { value: number }).value += delta
+      // ease the dark lanes in so they don't pop on first paint; target strength
+      // is tuned so the rifts read clearly without crushing the arms to black.
+      const target = mobile ? 0.55 : 0.72
+      const o = u.uOpacity as { value: number }
+      o.value += (target - o.value) * Math.min(1, delta * 1.5)
+    }
   })
 
   return (
@@ -426,6 +448,26 @@ export function MilkyWay({
           blending={invert ? NormalBlending : AdditiveBlending}
         />
       </points>
+
+      {/* DARK DUST LANES — the Great Rift. Rendered AFTER the point field with
+          normal blending so the dense dust actually occludes the stars behind it,
+          giving the disc real depth (light bright arms cut by dark rifts), the way
+          every long-exposure galaxy photo looks. Same plane + scale as the haze.
+          Dark theme only — the ink-on-paper chart mode stays clean. */}
+      {!invert && (
+        <mesh rotation={[-Math.PI / 2, 0, 0]} scale={[58, 34, 1]} renderOrder={2}>
+          <planeGeometry args={[1, 1]} />
+          <shaderMaterial
+            ref={laneMatRef}
+            vertexShader={DUST_HAZE_VERTEX_SHADER}
+            fragmentShader={DUST_LANE_FRAGMENT_SHADER}
+            uniforms={laneUniforms}
+            transparent
+            depthWrite={false}
+            blending={NormalBlending}
+          />
+        </mesh>
+      )}
 
       {/* Diffuse nebula / dust haze — soft glowing gas clouds tracing the
           arms (Hα-pink, dusty blue, amber). Skipped in chart mode. */}
