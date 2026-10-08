@@ -17,21 +17,27 @@ export function VeraMark({
   size = 96,
   className = "",
   active = true,
+  phase = "idle",
 }: {
   size?: number
   className?: string
   active?: boolean
+  /** Drives phase-specific motion so the orb visibly LISTENS, THINKS, SPEAKS. */
+  phase?: "idle" | "listening" | "thinking" | "speaking"
 }) {
   const reduce = useReducedMotion()
   const on = active && !reduce
 
   return (
     <div
-      className={`vera-siri ${on ? "vera-siri--on" : ""} ${className}`}
+      className={`vera-siri ${on ? "vera-siri--on" : ""} vera-siri--${phase} ${className}`}
       style={{ width: size, height: size, position: "relative", isolation: "isolate" }}
       role="img"
       aria-label="Vera"
     >
+      {/* phase auras: a listening ripple ring + a speaking glow, below the orb */}
+      <span className="vs-ripple" aria-hidden />
+      <span className="vs-ripple vs-ripple-2" aria-hidden />
       {/* outer bloom (spills beyond the sphere) */}
       <span className="vs-bloom" aria-hidden />
 
@@ -113,9 +119,54 @@ export function VeraMark({
           0%   { transform: rotate(0deg)   translateX(14%) rotate(0deg); }
           100% { transform: rotate(-360deg) translateX(14%) rotate(360deg); }
         }
+        /* ── phase auras: ripple rings that emanate when she's active ── */
+        .vs-ripple {
+          position:absolute; inset:0; border-radius:50%; pointer-events:none;
+          border:1.5px solid rgba(158,77,255,.45);
+          opacity:0; transform:scale(1);
+        }
+        .vs-ripple-2 { border-color: rgba(46,217,242,.4); }
+
+        /* LISTENING — gentle ripples radiate outward, like she's receiving you */
+        .vera-siri--listening .vs-ripple  { animation: vs-ring 1.9s ease-out infinite; }
+        .vera-siri--listening .vs-ripple-2 { animation: vs-ring 1.9s ease-out .95s infinite; }
+        .vera-siri--listening .vs-bloom   { animation: vs-breathe 2.6s ease-in-out infinite; }
+
+        /* THINKING — the swirl slows and dims a touch, the core flickers softly,
+           a quiet 'turning it over' feel */
+        .vera-siri--thinking .vs-body { animation: vs-breathe 3.4s ease-in-out infinite; }
+        .vera-siri--thinking .vs-core { animation: vs-think-flicker 1.1s ease-in-out infinite; }
+        .vera-siri--thinking .vs-pink,
+        .vera-siri--thinking .vs-purple,
+        .vera-siri--thinking .vs-blue,
+        .vera-siri--thinking .vs-cyan,
+        .vera-siri--thinking .vs-orange { animation-duration: 22s; opacity:.6; }
+
+        /* SPEAKING — everything quickens + brightens: the colours swirl fast, the
+           bloom pulses with her voice, the core glows hot */
+        .vera-siri--speaking .vs-bloom { animation: vs-speak-glow 0.9s ease-in-out infinite; }
+        .vera-siri--speaking .vs-core  { animation: vs-pulse 0.7s ease-in-out infinite; }
+        .vera-siri--speaking .vs-pink   { animation-duration: 4.2s; }
+        .vera-siri--speaking .vs-purple { animation-duration: 5s; }
+        .vera-siri--speaking .vs-blue   { animation-duration: 5.8s; }
+        .vera-siri--speaking .vs-cyan   { animation-duration: 3.6s; }
+        .vera-siri--speaking .vs-orange { animation-duration: 6.4s; }
+
+        @keyframes vs-ring {
+          0%   { opacity:.7; transform:scale(1); }
+          100% { opacity:0;  transform:scale(1.45); }
+        }
+        @keyframes vs-think-flicker {
+          0%,100% { opacity:.55; } 40% { opacity:.9; } 70% { opacity:.4; }
+        }
+        @keyframes vs-speak-glow {
+          0%,100% { transform:scale(1);    opacity:.85; }
+          50%     { transform:scale(1.09); opacity:1; }
+        }
+
         @media (prefers-reduced-motion: reduce) {
           .vera-siri--on .vs-body, .vera-siri--on .vs-bloom, .vera-siri--on .vs-core,
-          .vera-siri--on .vs-blob { animation: none; }
+          .vera-siri--on .vs-blob, .vs-ripple { animation: none; }
         }
       `}</style>
     </div>

@@ -7,6 +7,9 @@ import {
   isWebGPUAvailable,
   DEFAULT_WEBLLM_MODEL,
 } from "@/lib/webllm-engine"
+// unlockAudio is a tiny sync helper — the heavy Kokoro model it belongs to is
+// still loaded lazily (dynamic import inside the module's own functions).
+import { unlockAudio, speakKokoro, stopKokoro } from "@/lib/kokoro-voice"
 
 // Vera's voice, distilled for a tiny on-device model: FEW short rules it can
 // actually follow. The real system_dna is richer; this is the on-page taste.
@@ -108,7 +111,7 @@ export function VeraOrbDemo() {
     clearTimers()
     if (typeof window !== "undefined") {
       window.speechSynthesis?.cancel()
-      import("@/lib/kokoro-voice").then((m) => m.stopKokoro()).catch(() => {})
+      stopKokoro()
     }
   }, [])
 
@@ -166,7 +169,6 @@ export function VeraOrbDemo() {
   async function speak(text: string) {
     if (!sound || typeof window === "undefined") return
     window.speechSynthesis?.cancel()
-    const { speakKokoro } = await import("@/lib/kokoro-voice")
     const spokeInHerVoice = await speakKokoro(text, 0.92)
     if (spokeInHerVoice) return
     // fallback: the browser's best neural-ish voice
@@ -182,6 +184,12 @@ export function VeraOrbDemo() {
   function run(q: string, a: string) {
     clearTimers()
     if (typeof window !== "undefined") window.speechSynthesis?.cancel()
+    // UNLOCK audio synchronously in this click gesture, BEFORE any async work —
+    // so Vera's voice can actually play later (generation is async; if we unlock
+    // after it, the gesture window is gone and nothing sounds). This was the
+    // reason the audio didn't work. unlockAudio is a tiny sync fn (statically
+    // imported); the heavy Kokoro model still loads lazily.
+    if (sound) unlockAudio()
     setShownQ(q)
     setShownA("")
     setAProgress(0)
@@ -211,6 +219,7 @@ export function VeraOrbDemo() {
     e?.preventDefault()
     const q = typed.trim()
     if (!q) return
+    if (sound) unlockAudio()   // unlock in the gesture, before any await
     setTyped("")
     // 1) real on-device brain, when it's loaded → a genuine answer to ANYTHING
     if (brainMode === "ready") {
@@ -291,20 +300,20 @@ export function VeraOrbDemo() {
       </div>
 
       <div className="flex flex-col items-center gap-5">
-        {/* the orb — brighter/scaled while active */}
+        {/* the orb — it now LISTENS, THINKS and SPEAKS with its own phase motion
+            (ripples / shimmer / fast glow), with a gentle scale on top for presence */}
         <div
           style={{
             transform:
               phase === "speaking"
-                ? "scale(1.06)"
+                ? "scale(1.05)"
                 : phase === "listening"
-                  ? "scale(1.03)"
+                  ? "scale(1.025)"
                   : "scale(1)",
-            transition: "transform 420ms cubic-bezier(.16,1,.3,1)",
-            filter: phase === "thinking" ? "saturate(.8) brightness(.92)" : "none",
+            transition: "transform 520ms cubic-bezier(.16,1,.3,1)",
           }}
         >
-          <VeraMark size={120} active />
+          <VeraMark size={120} active phase={phase} />
         </div>
         <p
           className="font-mono text-[11px] tracking-[0.18em] uppercase text-muted-foreground"

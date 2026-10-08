@@ -4,26 +4,53 @@
  * when available). So the "Meet her" demo sounds like Vera herself, not the
  * generic browser voice.
  *
- * Everything here is lazy + client-only: the library (and its ~80 MB model) is
+ * Everything here is lazy + client-only: the library (and its model) is
  * dynamic-imported on first use, never on page load, and never during SSR (the
- * site is a static export). One shared pipeline per tab; callers await speak().
+ * site is a static export).
  *
- * If anything fails (no WebGPU path, model won't load, offline), callers fall
- * back to the browser's speechSynthesis — the demo always talks.
+ * The audio pitfall this handles: generating speech is async and can take a
+ * while on first run (model download + inference). If we only create/unlock the
+ * AudioContext *after* that, the browser's user-gesture window is gone and
+ * nothing plays. So we UNLOCK the context synchronously on the user's click
+ * (unlockAudio), and then play back a Blob via a plain <audio> element, which
+ * browsers resume far more reliably than a manually-started buffer source.
+ *
+ * If anything fails, callers fall back to speechSynthesis — the demo always talks.
  */
 
 const VERA_VOICE = "af_bella" // Vera's voice in the native app (scripts/setup-kokoro.sh)
 
+type RawAudio = { toBlob: () => Blob; audio?: Float32Array; sampling_rate?: number }
 type KokoroTTS = {
-  generate: (text: string, opts: { voice: string; speed?: number }) => Promise<{
-    toBlob?: () => Blob
-    toWav?: () => ArrayBuffer
-    audio?: Float32Array
-    sampling_rate?: number
-  }>
+  generate: (text: string, opts: { voice: string; speed?: number }) => Promise<RawAudio>
 }
 
 let ttsPromise: Promise<KokoroTTS | null> | null = null
+let audioEl: HTMLAudioElement | null = null
+let unlocked = false
+
+/**
+ * Call this SYNCHRONOUSLY inside a user gesture (click/tap) BEFORE any await, so
+ * the browser lets us play audio later even though generation is async. Creates a
+ * reusable <audio> element and primes it. Safe to call repeatedly.
+ */
+export function unlockAudio() {
+  if (typeof window === "undefined") return
+  if (!audioEl) {
+    audioEl = new Audio()
+    audioEl.preload = "auto"
+  }
+  // a muted, near-silent play() inside the gesture flips the "allowed" bit
+  try {
+    audioEl.muted = true
+    const p = audioEl.play()
+    if (p && typeof p.then === "function") p.then(() => { audioEl!.pause(); audioEl!.muted = false }).catch(() => { audioEl!.muted = false })
+    else { audioEl.pause(); audioEl.muted = false }
+    unlocked = true
+  } catch {
+    audioEl.muted = false
+  }
+}
 
 /** Load (once) the on-device Kokoro pipeline. Returns null if unavailable. */
 export function loadKokoro(onProgress?: (p: number) => void): Promise<KokoroTTS | null> {
@@ -33,7 +60,6 @@ export function loadKokoro(onProgress?: (p: number) => void): Promise<KokoroTTS 
     try {
       const mod = await import("kokoro-js")
       const KokoroTTSClass = (mod as unknown as { KokoroTTS: { from_pretrained: (id: string, o: object) => Promise<KokoroTTS> } }).KokoroTTS
-      // WebGPU where present (fast), else wasm (works everywhere).
       const device = "gpu" in navigator ? "webgpu" : "wasm"
       const tts = await KokoroTTSClass.from_pretrained("onnx-community/Kokoro-82M-v1.0-ONNX", {
         dtype: device === "webgpu" ? "fp32" : "q8",
@@ -48,44 +74,35 @@ export function loadKokoro(onProgress?: (p: number) => void): Promise<KokoroTTS 
   return ttsPromise
 }
 
-let audioCtx: AudioContext | null = null
-let current: AudioBufferSourceNode | null = null
-
-/** True once Kokoro has finished loading for this tab. */
+/** True once Kokoro has finished (or started) loading for this tab. */
 export function kokoroReady(): boolean {
   return ttsPromise !== null
 }
 
 /**
  * Speak `text` in Vera's real voice. Returns true if Kokoro spoke, false if it
- * couldn't (so the caller can fall back to the browser voice). Cancels any
- * in-flight utterance first.
+ * couldn't (so the caller can fall back to the browser voice). Plays via a Blob
+ * on a reusable <audio> element (robust resume behaviour). unlockAudio() should
+ * have been called in the triggering gesture.
  */
 export async function speakKokoro(text: string, speed = 0.92): Promise<boolean> {
   try {
     const tts = await loadKokoro()
     if (!tts) return false
     const out = await tts.generate(text, { voice: VERA_VOICE, speed })
-    const pcm = out.audio
-    const sr = out.sampling_rate ?? 24000
-    if (!pcm) return false
+    const blob = out.toBlob()
+    if (!blob) return false
 
-    audioCtx = audioCtx ?? new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
-    // resume if the tab gated it until a user gesture
-    if (audioCtx.state === "suspended") await audioCtx.resume()
+    if (!audioEl) {
+      audioEl = new Audio()
+      audioEl.preload = "auto"
+    }
     stopKokoro()
-
-    const buf = audioCtx.createBuffer(1, pcm.length, sr)
-    // copy into a fresh Float32Array backed by a plain ArrayBuffer (the model's
-    // output may be backed by a SharedArrayBuffer, which copyToChannel rejects).
-    const channel = new Float32Array(pcm.length)
-    channel.set(pcm)
-    buf.copyToChannel(channel, 0)
-    const src = audioCtx.createBufferSource()
-    src.buffer = buf
-    src.connect(audioCtx.destination)
-    src.start()
-    current = src
+    const url = URL.createObjectURL(blob)
+    audioEl.src = url
+    audioEl.muted = false
+    audioEl.onended = () => URL.revokeObjectURL(url)
+    await audioEl.play()
     return true
   } catch {
     return false
@@ -95,9 +112,16 @@ export async function speakKokoro(text: string, speed = 0.92): Promise<boolean> 
 /** Stop any Kokoro audio currently playing. */
 export function stopKokoro() {
   try {
-    current?.stop()
+    if (audioEl) {
+      audioEl.pause()
+      audioEl.currentTime = 0
+    }
   } catch {
     /* already stopped */
   }
-  current = null
+}
+
+/** Whether the audio output has been unlocked by a gesture yet. */
+export function audioUnlocked(): boolean {
+  return unlocked
 }
