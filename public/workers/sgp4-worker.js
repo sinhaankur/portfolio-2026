@@ -22,6 +22,14 @@
  *   ECI(km) → shell-expand (SHELL_EXPAND=4) → axis map (x, z, -y) → × kmToScene.
  * If expandR / the axis map / kmToScene change in satellite-field.tsx, mirror here.
  *
+ * WASM? — assessed 2026-10 and DELIBERATELY NOT DONE. Measured: a full 18.7k-sat
+ * SGP4 pass is ~9.8ms (0.52µs/sat) and runs HERE, off the render thread, once per
+ * refresh window — ~10ms/s of background CPU, imperceptible. A WASM port would
+ * shave a few ms on a thread nobody waits on (zero perceived gain) while adding an
+ * emscripten/Rust toolchain to the build and real correctness risk to the engine's
+ * Truth pillar (a wrong orbit is worse than a slow one). Not worth it. Revisit only
+ * if the catalogue grows ~10× or the refresh must run many times per frame.
+ *
  * ── USER JOURNEY ──
  *   1. User opens /lab/celestial → the field posts every TLE here ("init").
  *   2. This worker parses them into satrecs (heavy — off the render thread).
