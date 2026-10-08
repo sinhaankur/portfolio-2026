@@ -119,14 +119,21 @@ export function VeraOrbDemo() {
     }
   }, [])
 
-  // Preload Vera's real voice (Kokoro) in the background once mounted, so the
-  // first time she speaks there's no wait — she just sounds like herself.
+  // EAGERLY preload Vera's real voice (Kokoro) as soon as the demo mounts, so by
+  // the time anyone taps a prompt it's already warm and there's no lag. Kicks off
+  // right after first paint (a tiny delay so it never blocks the paint itself),
+  // and flips voiceReady when the model has loaded — so a click before it's ready
+  // shows "warming her voice…" rather than a frozen wait.
   useEffect(() => {
     if (typeof window === "undefined") return
+    let cancelled = false
     const t = setTimeout(() => {
-      import("@/lib/kokoro-voice").then((m) => m.loadKokoro()).catch(() => {})
-    }, 1200) // after first paint, not blocking it
-    return () => clearTimeout(t)
+      import("@/lib/kokoro-voice")
+        .then((m) => m.loadKokoro())
+        .then((tts) => { if (!cancelled && tts) voiceReady.current = true })
+        .catch(() => {})
+    }, 300) // just past first paint — start downloading the ~80MB model early
+    return () => { cancelled = true; clearTimeout(t) }
   }, [])
 
   // Browsers load voices asynchronously — nudge them so pickVoice() has a list.
@@ -228,9 +235,11 @@ export function VeraOrbDemo() {
         const startReveal = () => { if (!revealed) { revealed = true; revealWords(a) } }
         if (sound) {
           speak(a, startReveal)
-          // safety net: if audio hasn't started within 2.5s (e.g. still loading
-          // on a slow line), reveal the text anyway so she's never stuck silent.
-          timers.current.push(setTimeout(startReveal, 2500))
+          // safety net so the text is never frozen waiting on audio: if her voice
+          // is already WARM, give it a short beat to start (stays in sync); if it's
+          // still LOADING, reveal the text quickly and let the voice catch up — so
+          // the lag never makes the response feel stuck.
+          timers.current.push(setTimeout(startReveal, voiceReady.current ? 900 : 600))
         } else {
           startReveal()
         }
