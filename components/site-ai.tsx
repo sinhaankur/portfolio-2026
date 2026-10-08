@@ -31,7 +31,13 @@ import {
  * Deliberately small and unobtrusive — present, not intrusive.
  */
 
-type Msg = { role: "you" | "vera"; text: string; href?: string; cta?: string }
+type Msg = {
+  role: "you" | "vera"
+  text: string
+  href?: string
+  cta?: string
+  followups?: { label: string; href: string }[]
+}
 
 const GREETING: Msg = {
   role: "vera",
@@ -45,7 +51,9 @@ const SYSTEM = `You are the warm, precise guide to Ankur Sinha's portfolio — a
 Rules:
 - Answer in 1–2 short, friendly sentences. No preamble, no "As an AI", no lists.
 - Use ONLY the facts in the provided Context. NEVER invent a project, number, or claim.
-- If the Context doesn't cover it, say briefly what Ankur does have and invite them to explore.
+- IMPORTANT distinction: his PROFESSIONAL work is the case studies — Oracle, Deloitte, Snowtint, Rage. The Lab (Vera, the engines, the math, the games) is IDEAS AND EXPLORATION — never call a Lab project client work, a job, or a professional engagement. If the Context frames something as a Lab exploration, keep that framing.
+- Never mention when or how much he works, or anything personal that could be misread.
+- If the Context doesn't cover it, say briefly what he does have and invite them to explore.
 
 Example:
 Context:
@@ -98,7 +106,30 @@ export function SiteAI() {
   /** Phrase the grounded answer with the on-device model, streaming into `msgs`. */
   async function phraseWithLLM(query: string): Promise<boolean> {
     if (!llmOn || !webgpu.current) return false
-    const { context, link } = groundingFor(query)
+    let { context, link, followups } = groundingFor(query)
+    // SEMANTIC boost: if the loaded model has an embedding head, fold the best
+    // semantic matches into the context so a paraphrase ("the thing that tracks
+    // space junk") still grounds on the right project. Keyword grounding above is
+    // always kept; this only adds. Fails silent → keyword-only, as before.
+    try {
+      const { semanticTop } = await import("@/lib/site-semantic")
+      const sem = await semanticTop(query, 3)
+      if (sem.length) {
+        const extra = sem
+          .map((s) => `- ${s.entry.topic}: ${s.entry.text}`)
+          .filter((line) => !context.includes(line))
+          .join("\n")
+        if (extra) context = `${context}\n${extra}`.trim()
+        // if keyword found nothing, let semantics drive the link + follow-ups
+        if (!link?.href || link.href === "/lab") {
+          const top = sem[0].entry
+          link = { text: top.text, href: top.href, cta: top.cta }
+          followups = top.followups
+        }
+      }
+    } catch {
+      /* semantic unavailable → keyword grounding stands */
+    }
     try {
       const engine = await getWebLLMEngine(DEFAULT_WEBLLM_MODEL, (p) => setLlmProgress(p))
       setLlmReady(true)
@@ -117,7 +148,7 @@ export function SiteAI() {
 
       // Push an empty assistant message we append streamed tokens into.
       setThinking(false)
-      setMsgs((m) => [...m, { role: "vera", text: "", href: link?.href, cta: link?.cta }])
+      setMsgs((m) => [...m, { role: "vera", text: "", href: link?.href, cta: link?.cta, followups }])
       let acc = ""
       for await (const chunk of stream) {
         const delta = chunk.choices?.[0]?.delta?.content ?? ""
@@ -164,7 +195,7 @@ export function SiteAI() {
         setTimeout(() => {
           setThinking(false)
           const a = answerFromSite(q)
-          setMsgs((m) => [...m, { role: "vera", text: a.text, href: a.href, cta: a.cta }])
+          setMsgs((m) => [...m, { role: "vera", text: a.text, href: a.href, cta: a.cta, followups: a.followups }])
         }, 360)
       }
     })()
@@ -245,6 +276,21 @@ export function SiteAI() {
                       >
                         {m.cta ?? "Open"} →
                       </a>
+                    </div>
+                  )}
+                  {/* follow-up chips — real next taps, so the guide invites more */}
+                  {m.followups && m.text && m.followups.length > 0 && (
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      {m.followups.map((f, fi) => (
+                        <a
+                          key={fi}
+                          href={f.href}
+                          data-cursor-hover
+                          className="inline-flex items-center rounded-full border border-border px-2 py-0.5 text-[10px] text-muted-foreground hover:border-accent/50 hover:text-foreground transition-colors"
+                        >
+                          {f.label}
+                        </a>
+                      ))}
                     </div>
                   )}
                 </div>
