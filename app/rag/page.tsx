@@ -133,16 +133,18 @@ order = np.argsort(-final)[:k]`,
       {
         id: "prompt",
         title: "Ground the model in the retrieved context",
-        formula: "answer = LLM( system: “use only this context” + context + question )",
+        formula: "answer = LLM( system: “talk like a person, but only from this context” + context + question )",
         what:
-          "Build the prompt from the top chunks (each tagged with a source marker), tell the model to answer strictly from them and to cite the [n] markers, and run it on a local LLM. The system instruction is doing real work: it's the leash that keeps the answer inside your documents.",
-        code: `# rag/ask.py
-_SYSTEM = ("You answer strictly from the provided context. If the answer is not "
-           "in the context, say you don't know from these documents. Be concise "
-           "and cite the sources you used by their [n] markers.")
-
-payload = {"model": _llm_model(), "prompt":
-           f"{_SYSTEM}\\n\\nContext:\\n{context}\\n\\nQuestion: {question}\\n\\nAnswer:"}`,
+          "Build the prompt from the top chunks (each tagged with a source marker) and instruct the model to answer from them, citing the [n] markers. The system prompt does double duty: it's the leash that keeps the answer inside your documents AND the voice — grounded doesn't have to mean robotic. The goal is a knowledgeable colleague explaining your own notes, not a search engine dumping results, with a kind \"I couldn't find that in your documents\" instead of an invented fact.",
+        code: `# rag/ask.py — grounded, but human
+_SYSTEM = (
+  "You're a thoughtful, friendly assistant helping someone understand their "
+  "own documents. Answer naturally — like a knowledgeable colleague explaining "
+  "something over coffee, not a search engine dumping results. Ground everything "
+  "in the provided context; weave a [n] marker in where you use a source. If the "
+  "answer genuinely isn't in these documents, say so kindly and point to the "
+  "closest thing that is. Never invent facts — a warm \\"I don't know from this\\" "
+  "beats a confident guess.")`,
       },
       {
         id: "cite",
@@ -155,6 +157,50 @@ lines = [self.text, "", "Sources:"]
 for i, h in enumerate(self.hits, 1):
     lines.append(f"  [{i}] {h.source}#{h.ordinal}  (score {h.score:.2f})")
 return "\\n".join(lines)`,
+      },
+    ],
+  },
+  {
+    heading: "5 · Make it a conversation",
+    blurb:
+      "A single question is easy. A conversation is where RAG earns its keep — and where most of the “human” lives. Three small pieces turn the loop above into something you can actually talk to: a gate, a rewrite, and streaming.",
+    steps: [
+      {
+        id: "gate",
+        title: "Decide when to even look",
+        formula: "turn → gate → (retrieve  |  just reply)",
+        what:
+          "Not every turn needs the documents — “thanks!” doesn't. But the dangerous mistake runs the other way: letting the model answer “what is X?” from its own memory instead of your files. That quietly defeats the whole point of RAG. So the gate is biased toward retrieving — anything shaped like a real question gets grounded; only clear chit-chat skips.",
+        code: `# rag/chat.py — bias toward grounding, not guessing
+if _CHITCHAT.match(q):          # "hi", "thanks" → no lookup
+    return False
+if _QUESTIONY.search(q):        # "what/how/why…?" → always ground it,
+    return True                 #   even if the model "knows" the answer
+# otherwise ask the LLM, framed so "I happen to know this" is NOT
+# a reason to skip — the documents are the source of truth here.`,
+      },
+      {
+        id: "rewrite",
+        title: "Resolve the follow-up",
+        formula: "“and in Germany?” + history → “revenue in Germany in 2024”",
+        what:
+          "Follow-ups lean on pronouns — “why?”, “what about the other one?” — which retrieval can't search for directly. So a rewrite step turns the last turn into a standalone query using earlier turns ONLY to resolve references, never to add facts. It's the difference between a chatbot that forgets and one that follows along.",
+        code: `# rag/chat.py — references in, standalone query out
+"Rewrite the user's last turn into ONE standalone search query. Use
+ earlier turns ONLY to resolve pronouns/references. Keep domain terms.
+ Do NOT answer, do NOT add facts. Output only the rewritten query."`,
+      },
+      {
+        id: "stream",
+        title: "Answer as it's written",
+        formula: "gen = stream() → yield piece, piece, …  → Answer(text, sources)",
+        what:
+          "A long silent wait, then a wall of text, is the least human part of a chat. Streaming yields the reply token-by-token as the model produces it, so it appears the way a person types — then hands back the finished answer with its real sources. All of this still degrades gracefully: no LLM, and it falls back to the most relevant passage, warmly, still cited.",
+        code: `# rag/chat.py — stream the reply, keep the citations
+for piece in stream_raw(_CHAT_SYSTEM, prompt):
+    pieces.append(piece)
+    yield piece                      # ← appears live, as it's written
+return Answer("".join(pieces), hits, grounded=True)   # ← sources intact`,
       },
     ],
   },
