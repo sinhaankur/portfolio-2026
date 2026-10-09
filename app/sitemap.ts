@@ -24,6 +24,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/lab",               priority: 0.9, changeFrequency: "weekly"  },
     { path: "/lab/unhosted",      priority: 0.9, changeFrequency: "weekly"  },
     { path: "/lab/cognitive-twin",priority: 0.8, changeFrequency: "weekly"  },
+    { path: "/lab/cognitive-twin/brain", priority: 0.6, changeFrequency: "monthly" },
     { path: "/works/oracle",      priority: 0.8, changeFrequency: "monthly" },
     { path: "/works/deloitte",    priority: 0.8, changeFrequency: "monthly" },
     { path: "/works/snowtint",    priority: 0.8, changeFrequency: "monthly" },

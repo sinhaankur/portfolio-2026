@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
+import Link from "next/link"
 import { canonicalPath } from "@/lib/seo"
-import { ExternalLink } from "lucide-react"
+import { ExternalLink, ArrowUpRight } from "lucide-react"
 import { VeraMark } from "@/components/vera-mark"
 import { VeraOrbDemo } from "@/components/vera-orb-demo"
 import { VeraDownload } from "@/components/vera-download"
@@ -321,11 +322,29 @@ brew install --cask vera`}</code>
             replies in text, and speaks it in her neural voice if you want her to.
           </p>
           <p>
+            Want to see it, not just read it?{" "}
+            <Link href="/lab/cognitive-twin/brain" data-cursor-hover className="text-accent hover:underline">
+              Vera&rsquo;s brain, made visible
+            </Link>{" "}
+            walks the nine regions and runs the <em>real</em> neural network that
+            reads a feeling — trained with backprop, firing live in your browser —
+            beside the retrieval (RAG) that keeps her words grounded in her own
+            convictions.
+          </p>
+          <p>
             Full setup, the privacy model, and the architecture live in the
             documentation alongside the code:
           </p>
         </CaseProse>
         <div className="mt-6 flex flex-wrap gap-3">
+          <Link
+            href="/lab/cognitive-twin/brain"
+            data-cursor-hover
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-accent/50 bg-accent/10 hover:border-accent transition-colors duration-300 font-mono text-[10px] tracking-[0.2em] uppercase text-foreground"
+          >
+            <ArrowUpRight className="w-3.5 h-3.5" aria-hidden="true" />
+            The brain, made visible
+          </Link>
           <a
             href={`${REPO}#readme`}
             target="_blank"

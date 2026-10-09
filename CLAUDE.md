@@ -91,7 +91,11 @@ App-router routes under [`app/`](./app):
   redirect stub in `public/` → `/lab/helion-drift`.)
 - `/about` — the About page (journey imagery; links the family pages below).
 - More Lab entries: `/lab/terrain` (real 3D planetary surfaces via 3D-tiles),
-  `/lab/cognitive-twin` (local-first personal AI runtime), `/lab/firmament`
+  `/lab/cognitive-twin` (local-first personal AI runtime; sub-page
+  `/lab/cognitive-twin/brain` = **"Vera's brain, made visible"** — the 9
+  anatomical regions + the REAL limbic neural net (trained-with-backprop weights
+  ported from the Human Brain Engine, forward pass runs in-browser via
+  `components/vera-brain/`) + the RAG retrieval stage), `/lab/firmament`
   (the Universe Engine as an iOS app), `/lab/brainrot` (feed-bias visualizer),
   `/lab/optical-flow` (library-porting writeup), `/lab/pi` (**Pie** — how π is
   calculated + why it has no exact value: a two-arm harmonograph whose irrational

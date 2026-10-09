@@ -26,6 +26,7 @@ const ROUTES = [
   ["/lab/brainrot/", 4000],
   ["/lab/celestial/", 9000],
   ["/lab/cognitive-twin/", 2500],
+  ["/lab/cognitive-twin/brain/", 2500],  // "Vera's brain, made visible" — interactive net + RAG
   ["/lab/firmament/", 3000],
   ["/lab/helion-drift/", 10000],
   ["/lab/optical-flow/", 4000],
