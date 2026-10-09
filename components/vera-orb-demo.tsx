@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { VeraMark } from "@/components/vera-mark"
+import { VeraForm } from "@/components/vera-tet/vera-form"
 import {
   getWebLLMEngine,
   isWebGPUAvailable,
@@ -345,7 +345,7 @@ export function VeraOrbDemo() {
             transition: "transform 520ms cubic-bezier(.16,1,.3,1)",
           }}
         >
-          <VeraMark size={120} active phase={phase} />
+          <VeraForm size={120} phase={phase} />
         </div>
         <p
           className="font-mono text-[11px] tracking-[0.18em] uppercase text-muted-foreground"
