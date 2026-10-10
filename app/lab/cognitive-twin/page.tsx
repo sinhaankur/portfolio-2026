@@ -37,6 +37,10 @@ const built: { title: string; body: string }[] = [
     body: "The brain runs as a background service the OS keeps alive — it restarts on crash, starts at login, and is always reachable. The app just connects. No fragile spawning, no 'brain not reachable'.",
   },
   {
+    title: "The same Vera across your devices — through your own iCloud",
+    body: "Mac and iPhone stay one companion by passing a sealed bundle of her memory through your private iCloud Drive — no server of mine, nothing public. It's encrypted before it ever touches iCloud, so Apple only holds ciphertext; the trust is your own Apple ID, inherited not invented; each device keeps its own key (keys never move); and syncing is a merge, never an overwrite — both devices' edits survive. No iCloud, no problem — she just stays local.",
+  },
+  {
     title: "Remembers the conversation",
     body: "She carries the thread of what you just said, so short follow-ups ('now try', 'and the travel?') make sense — a conversation, not isolated one-shots.",
   },
@@ -77,8 +81,8 @@ const exploring: { title: string; body: string }[] = [
     body: "An on-device 'empathia' model tuned for warmth and presence, with a training loop so she keeps getting more herself — uploaded and updated openly.",
   },
   {
-    title: "Mesh of your own devices",
-    body: "Private, per-device-keyed sync across the machines you own — no cloud account, Unhosted-style.",
+    title: "A keyless device mesh",
+    body: "Beyond the iCloud path (already built), a direct per-device-keyed mesh across the machines you own — no cloud account at all, Unhosted-style.",
   },
   {
     title: "Richer multimodal presence",
