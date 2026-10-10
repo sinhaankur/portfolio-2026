@@ -9,6 +9,7 @@
 
 import { useMemo, useState } from "react"
 import { readFeeling, feelingLabel, type NetReading } from "./affect-net"
+import { NetField } from "./net-field"
 
 const PRESETS = [
   "I feel so lonely and tired today",
@@ -66,7 +67,17 @@ export function NetViz() {
         ))}
       </div>
 
-      {/* the network */}
+      {/* THE LIVING FIELD — the net as an instrument: signal falling through the
+          layers, neurons glowing with their real activation, particles tracing
+          where the signal actually flows. Driven by the same reading below. */}
+      <div className="mt-6">
+        <NetField text={text} height={460} />
+        <p className="mt-2 text-center font-mono text-[8px] tracking-widest uppercase text-foreground/35">
+          input cues → hidden neurons → felt output · particles trace the live signal · warm = high activation
+        </p>
+      </div>
+
+      {/* the network — the precise readouts beneath the field */}
       <div className="mt-7 grid gap-6 md:grid-cols-[1fr_auto_1fr] md:items-center">
         {/* input cues that fired */}
         <div>

@@ -4,7 +4,6 @@ import { canonicalPath } from "@/lib/seo"
 import { ExternalLink, ArrowUpRight } from "lucide-react"
 import { VeraMark } from "@/components/vera-mark"
 import { VeraOrbDemo } from "@/components/vera-orb-demo"
-import { VeraFormSwitcher } from "@/components/vera-tet/vera-form"
 import { VeraDownload } from "@/components/vera-download"
 import {
   CaseStudyLayout,
@@ -217,17 +216,9 @@ brew install --cask vera`}</code>
           <p>
             The real Vera runs on-device, so this page can&rsquo;t reach her
             brain — but here&rsquo;s the feel. Tap a prompt or type your own, and
-            watch her listen, think, and speak. She can wear more than one form —
-            switch between her warm orb and a faceted prism, and she&rsquo;ll
-            remember your choice.
+            watch her listen, think, and speak.
           </p>
         </CaseProse>
-        <div className="mt-6 flex items-center gap-3">
-          <span className="font-mono text-[10px] tracking-[0.2em] uppercase text-foreground/45">
-            Her form
-          </span>
-          <VeraFormSwitcher />
-        </div>
         <div className="mt-6">
           <VeraOrbDemo />
         </div>
