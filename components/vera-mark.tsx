@@ -35,24 +35,38 @@ export function VeraMark({
       role="img"
       aria-label="Vera"
     >
+      {/* soft outer halo that tints with her phase — the first thing you feel */}
+      <span className="vs-halo" aria-hidden />
       {/* phase auras: a listening ripple ring + a speaking glow, below the orb */}
       <span className="vs-ripple" aria-hidden />
       <span className="vs-ripple vs-ripple-2" aria-hidden />
+      <span className="vs-ripple vs-ripple-3" aria-hidden />
       {/* outer bloom (spills beyond the sphere) */}
       <span className="vs-bloom" aria-hidden />
 
       {/* the orb body: swirling color blobs inside a circular mask */}
       <span className="vs-body" aria-hidden>
+        {/* slow iridescent conic wash behind the blobs — adds depth + motion */}
+        <span className="vs-iris" />
         <span className="vs-blob vs-pink" />
         <span className="vs-blob vs-purple" />
         <span className="vs-blob vs-blue" />
         <span className="vs-blob vs-cyan" />
         <span className="vs-blob vs-orange" />
+        {/* counter-rotating inner layer so the swirl never reads as plain circles */}
+        <span className="vs-blob vs-inner vs-magenta" />
+        <span className="vs-blob vs-inner vs-teal" />
         <span className="vs-core" />
+        {/* a faint spark that orbits the core while she's thinking */}
+        <span className="vs-spark" />
+        {/* fine grain/shimmer — the texture that makes it feel lit, not flat */}
+        <span className="vs-grain" />
       </span>
 
       {/* glassy specular highlight (top-left) */}
       <span className="vs-gloss" aria-hidden />
+      {/* a soft secondary highlight bottom-right (fresnel fill) */}
+      <span className="vs-gloss vs-gloss-2" aria-hidden />
       {/* crisp rim */}
       <span className="vs-rim" aria-hidden />
 
@@ -95,8 +109,56 @@ export function VeraMark({
         }
         .vs-rim {
           position:absolute; inset:0; border-radius:50%; pointer-events:none;
-          box-shadow: inset 0 0 0 1px rgba(255,255,255,.22);
+          box-shadow: inset 0 0 0 1px rgba(255,255,255,.22),
+                      inset 0 0 14px 2px rgba(120,80,255,.10);
         }
+
+        /* soft outer halo — a diffuse glow that spills well beyond the sphere and
+           picks up the current phase's tint. Gives the orb real presence on the
+           page instead of ending abruptly at its rim. */
+        .vs-halo {
+          position:absolute; inset:-40%; border-radius:50%; pointer-events:none;
+          background: radial-gradient(circle at 50% 50%,
+            rgba(158,77,255,.22) 0%, rgba(51,133,255,.12) 38%, rgba(0,0,0,0) 68%);
+          filter: blur(22px); opacity:.9;
+          transition: background 800ms ease;
+        }
+
+        /* iridescent conic wash behind the blobs — slow sweep adds depth/motion */
+        .vs-iris {
+          position:absolute; inset:-10%; border-radius:50%;
+          background: conic-gradient(from 0deg,
+            rgba(255,69,144,.5), rgba(158,77,255,.5), rgba(51,133,255,.5),
+            rgba(46,217,242,.5), rgba(255,158,51,.45), rgba(255,69,144,.5));
+          filter: blur(16px); mix-blend-mode:screen; opacity:.55;
+        }
+
+        /* inner counter-layer: smaller, tighter blobs so the swirl has two scales */
+        .vs-inner { width:52%; height:52%; top:24%; left:24%; filter:blur(8px); opacity:.8; }
+        .vs-magenta { background: radial-gradient(circle, #ff5ec4 0%, rgba(255,94,196,0) 60%); }
+        .vs-teal    { background: radial-gradient(circle, #28f0c8 0%, rgba(40,240,200,0) 60%); }
+
+        /* a faint spark that rides around the core (most visible while thinking) */
+        .vs-spark {
+          position:absolute; width:8%; height:8%; top:46%; left:46%; border-radius:50%;
+          background: radial-gradient(circle, #fff 0%, rgba(255,255,255,0) 70%);
+          mix-blend-mode:screen; opacity:0;
+        }
+
+        /* fine grain + a traveling sheen — the premium "it's lit" texture */
+        .vs-grain {
+          position:absolute; inset:0; border-radius:50%; pointer-events:none;
+          mix-blend-mode:overlay; opacity:.10;
+          background-image:
+            radial-gradient(rgba(255,255,255,.9) .5px, rgba(0,0,0,0) .5px);
+          background-size: 3px 3px;
+        }
+
+        .vs-gloss-2 {
+          background: radial-gradient(34% 26% at 70% 76%,
+            rgba(120,180,255,.30) 0%, rgba(120,180,255,0) 60%);
+        }
+        .vs-ripple-3 { border-color: rgba(255,158,51,.3); }
 
         .vera-siri--on .vs-body,
         .vera-siri--on .vs-bloom { animation: vs-breathe 7s ease-in-out infinite; }
@@ -107,6 +169,12 @@ export function VeraMark({
         .vera-siri--on .vs-blue   { animation: vs-orbit1 13s linear infinite; }
         .vera-siri--on .vs-cyan   { animation: vs-orbit2 8s  linear infinite; }
         .vera-siri--on .vs-orange { animation: vs-orbit1 15s linear infinite; }
+        /* inner layer counter-rotates (different sign + speed) for a two-scale swirl */
+        .vera-siri--on .vs-magenta { animation: vs-orbit2 7s  linear infinite; }
+        .vera-siri--on .vs-teal    { animation: vs-orbit1 6s  linear infinite reverse; }
+        /* the conic wash turns slowly; the grain sheen drifts across the face */
+        .vera-siri--on .vs-iris  { animation: vs-spin 26s linear infinite; }
+        .vera-siri--on .vs-grain { animation: vs-sheen 6s ease-in-out infinite; }
 
         @keyframes vs-breathe { 0%,100%{transform:scale(1)} 50%{transform:scale(1.035)} }
         @keyframes vs-pulse   { 0%,100%{opacity:.7} 50%{opacity:1} }
@@ -163,10 +231,44 @@ export function VeraMark({
           0%,100% { transform:scale(1);    opacity:.85; }
           50%     { transform:scale(1.09); opacity:1; }
         }
+        @keyframes vs-spin  { to { transform: rotate(360deg); } }
+        @keyframes vs-sheen { 0%,100%{opacity:.06; transform:translateX(-4%)}
+                              50%{opacity:.16; transform:translateX(4%)} }
+        /* spark orbiting the core */
+        @keyframes vs-spark-orbit {
+          0%   { opacity:0;   transform: rotate(0deg)   translateX(120%) rotate(0deg); }
+          20%  { opacity:.95; }
+          80%  { opacity:.95; }
+          100% { opacity:0;   transform: rotate(360deg) translateX(120%) rotate(-360deg); }
+        }
+        @keyframes vs-third-ring {
+          0%   { opacity:.5; transform:scale(1); }
+          100% { opacity:0;  transform:scale(1.7); }
+        }
+
+        /* ── phase tinting of the outer halo (what you sense first) ── */
+        .vera-siri--listening .vs-halo {
+          background: radial-gradient(circle at 50% 50%,
+            rgba(46,217,242,.30) 0%, rgba(51,133,255,.14) 40%, rgba(0,0,0,0) 70%); }
+        .vera-siri--thinking .vs-halo {
+          background: radial-gradient(circle at 50% 50%,
+            rgba(158,77,255,.26) 0%, rgba(120,80,255,.12) 40%, rgba(0,0,0,0) 70%); }
+        .vera-siri--speaking .vs-halo {
+          background: radial-gradient(circle at 50% 50%,
+            rgba(255,110,160,.30) 0%, rgba(255,158,51,.16) 42%, rgba(0,0,0,0) 72%); }
+
+        /* THINKING extras: the spark rides around the core */
+        .vera-siri--thinking .vs-spark { animation: vs-spark-orbit 2.6s linear infinite; }
+        /* LISTENING extra: a third, slower outer ring */
+        .vera-siri--listening .vs-ripple-3 { animation: vs-third-ring 2.6s ease-out .4s infinite; }
+        /* SPEAKING extra: inner blobs quicken with the voice */
+        .vera-siri--speaking .vs-magenta { animation-duration: 3.4s; }
+        .vera-siri--speaking .vs-teal    { animation-duration: 3s; }
 
         @media (prefers-reduced-motion: reduce) {
           .vera-siri--on .vs-body, .vera-siri--on .vs-bloom, .vera-siri--on .vs-core,
-          .vera-siri--on .vs-blob, .vs-ripple { animation: none; }
+          .vera-siri--on .vs-blob, .vera-siri--on .vs-iris, .vera-siri--on .vs-grain,
+          .vs-ripple, .vs-spark { animation: none !important; }
         }
       `}</style>
     </div>
