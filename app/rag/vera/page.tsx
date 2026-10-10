@@ -125,6 +125,38 @@ best = max(results, key=lambda r: (r.hit1, r.mrr))
       },
     ],
   },
+  {
+    heading: "Next: learning the fusion, not guessing it",
+    blurb:
+      "Semantic and keyword scores are blended to rank. That blend was a hand-guessed dial (a weight, nudged by query length) plus a fixed relevance floor. The honest next step: stop guessing it — TRAIN a tiny model to learn the fusion from the labelled set, and only ship it if it measurably wins.",
+    steps: [
+      {
+        id: "reranker",
+        title: "A trained reranker beat the guess — and said why",
+        formula:
+          "hand-tuned blend:   41.7%  hit@1   MRR 0.649\ntrained reranker:   75.0%  hit@1   MRR 0.875",
+        what:
+          "A small logistic model (cognitive_twin/rerank.py) scores each (query, conviction) pair from five honest features — semantic cosine, keyword tf-idf, exact-term overlap, query length, and the topic tags. Trained with gradient descent on the same labelled set, it lifted hit@1 from 41.7% to 75.0% and got perfect top-3. More interesting than the number: the learned weights showed WHY — the topic tags (which the old blend ignored entirely) were the single strongest signal. The model found a feature we were leaving on the floor.",
+        code: `# learned weights (what the model decided matters):
+about_overlap  9.65   ← the topic tags — ignored before!
+semantic       6.53
+exact_overlap  5.13
+keyword        0.47
+query_short   -0.02`,
+      },
+      {
+        id: "honest",
+        title: "…but it's opt-in, because honesty beats a flattering number",
+        formula: "trained on 12 queries, tested on the same 12 → not yet proven to generalise",
+        what:
+          "The catch, stated plainly: the corpus is tiny (six convictions, twelve queries) and the reranker trained on the very set it was scored on. That's a real proof-of-concept — the idea works and the features are right — but not proof it generalises to a stranger's phrasing. So it ships OFF by default (CTWIN_RERANK=1 to try it); the hand-tuned blend stays the shipped path until the reranker earns its place on a larger, held-out set. A model that looks great on its own homework isn't trusted with the real thing yet.",
+        code: `def active() -> bool:
+    # trained AND opted in — never a silent change
+    return is_trained() and _opted_in()
+# default path stays the measured, safe blend`,
+      },
+    ],
+  },
 ]
 
 export default function VeraRagPage() {

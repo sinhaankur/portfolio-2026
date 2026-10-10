@@ -31,28 +31,69 @@ type KokoroTTS = {
 let ttsPromise: Promise<KokoroTTS | null> | null = null
 let audioEl: HTMLAudioElement | null = null
 let unlocked = false
+let audioCtx: AudioContext | null = null
 
 /**
  * Call this SYNCHRONOUSLY inside a user gesture (click/tap) BEFORE any await, so
- * the browser lets us play audio later even though generation is async. Creates a
- * reusable <audio> element and primes it. Safe to call repeatedly.
+ * the browser lets us play audio later even though generation is async.
+ *
+ * Generation is slow on first run, so by the time audio is ready the gesture is
+ * long gone — which is exactly when iOS Safari and Chrome refuse to start sound.
+ * We defend against that THREE ways, all inside this gesture:
+ *   1. resume a real AudioContext (the authoritative "audio is allowed" bit) and
+ *      tick a silent oscillator through it,
+ *   2. prime the reusable <audio> element with a tiny silent play, and
+ *   3. prime speechSynthesis with an empty utterance, so the browser-voice
+ *      fallback can also speak later even outside a fresh gesture.
+ * Safe to call repeatedly.
  */
 export function unlockAudio() {
   if (typeof window === "undefined") return
+  // (1) the AudioContext is the real gate — resume it and make a silent tick
+  try {
+    const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+    if (Ctx) {
+      if (!audioCtx) audioCtx = new Ctx()
+      if (audioCtx.state === "suspended") audioCtx.resume().catch(() => {})
+      const osc = audioCtx.createOscillator()
+      const gain = audioCtx.createGain()
+      gain.gain.value = 0.0001 // effectively silent
+      osc.connect(gain).connect(audioCtx.destination)
+      osc.start()
+      osc.stop(audioCtx.currentTime + 0.03)
+    }
+  } catch {
+    /* no AudioContext — the <audio> primes below are the fallback */
+  }
+  // (2) prime the reusable <audio> element with a silent data-URI play
   if (!audioEl) {
     audioEl = new Audio()
     audioEl.preload = "auto"
   }
-  // a muted, near-silent play() inside the gesture flips the "allowed" bit
   try {
     audioEl.muted = true
     const p = audioEl.play()
-    if (p && typeof p.then === "function") p.then(() => { audioEl!.pause(); audioEl!.muted = false }).catch(() => { audioEl!.muted = false })
-    else { audioEl.pause(); audioEl.muted = false }
-    unlocked = true
+    if (p && typeof p.then === "function") {
+      p.then(() => { audioEl!.pause(); audioEl!.muted = false }).catch(() => { audioEl!.muted = false })
+    } else {
+      audioEl.pause(); audioEl.muted = false
+    }
   } catch {
     audioEl.muted = false
   }
+  // (3) prime speechSynthesis so the browser-voice fallback can speak later
+  try {
+    const synth = window.speechSynthesis
+    if (synth) {
+      const u = new SpeechSynthesisUtterance("")
+      u.volume = 0
+      synth.speak(u)
+      synth.cancel()
+    }
+  } catch {
+    /* no speechSynthesis — Kokoro is the primary path anyway */
+  }
+  unlocked = true
 }
 
 /** Load (once) the on-device Kokoro pipeline. Returns null if unavailable. */
@@ -105,14 +146,24 @@ export async function speakKokoro(
       audioEl.preload = "auto"
     }
     stopKokoro()
+    // generation took a while; the AudioContext may have suspended again. Resume
+    // it so playback isn't silently blocked when we finally have the audio.
+    try { if (audioCtx && audioCtx.state === "suspended") await audioCtx.resume() } catch { /* best effort */ }
     const url = URL.createObjectURL(blob)
     audioEl.src = url
     audioEl.muted = false
+    audioEl.volume = 1
     audioEl.onended = () => URL.revokeObjectURL(url)
     // fire onStart the instant playback actually begins, so a caller can sync
     // its UI (e.g. the text reveal) to the voice rather than to the request.
     if (onStart) audioEl.onplaying = () => onStart()
-    await audioEl.play()
+    try {
+      await audioEl.play()
+    } catch {
+      // one retry after a resume — Safari sometimes needs the context nudged
+      try { await audioCtx?.resume() } catch { /* ignore */ }
+      try { await audioEl.play() } catch { return false }
+    }
     return true
   } catch {
     return false

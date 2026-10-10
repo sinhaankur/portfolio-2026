@@ -64,6 +64,13 @@ export function VeraOrbDemo() {
   // can say "warming her voice…" instead of a silent gap before she first speaks.
   const [voiceWarming, setVoiceWarming] = useState(false)
   const voiceReady = useRef(false)
+  // the visible load state of her real voice, so the user is never left guessing
+  // why she's silent: loading (downloading the on-device model) → ready, or
+  // "browser" (Kokoro unavailable, using the system voice) / "unavailable".
+  const [voiceStatus, setVoiceStatus] = useState<
+    "loading" | "ready" | "browser" | "unavailable"
+  >("loading")
+  const [voicePct, setVoicePct] = useState(0)
 
   // Real on-device brain (opt-in): a tiny LLM via WebGPU gives GENUINE answers to
   // anything typed, not just the four scripts. Off by default so no one pays a
@@ -128,10 +135,27 @@ export function VeraOrbDemo() {
     if (typeof window === "undefined") return
     let cancelled = false
     const t = setTimeout(() => {
+      setVoiceStatus("loading")
       import("@/lib/kokoro-voice")
-        .then((m) => m.loadKokoro())
-        .then((tts) => { if (!cancelled && tts) voiceReady.current = true })
-        .catch(() => {})
+        .then((m) => m.loadKokoro((p: number) => {
+          // real download progress 0..1 from the model loader → a visible %
+          if (!cancelled) setVoicePct(Math.round(Math.max(0, Math.min(1, p)) * 100))
+        }))
+        .then((tts) => {
+          if (cancelled) return
+          if (tts) {
+            voiceReady.current = true
+            setVoiceStatus("ready")
+            setVoicePct(100)
+          } else {
+            // Kokoro couldn't load — fall back to the browser's own voice if it
+            // exists, so the user knows she'll still speak (just not in her voice).
+            setVoiceStatus(window.speechSynthesis ? "browser" : "unavailable")
+          }
+        })
+        .catch(() => {
+          if (!cancelled) setVoiceStatus(window.speechSynthesis ? "browser" : "unavailable")
+        })
     }, 300) // just past first paint — start downloading the ~80MB model early
     return () => { cancelled = true; clearTimeout(t) }
   }, [])
@@ -187,16 +211,33 @@ export function VeraOrbDemo() {
     // reveal then, keeping text and voice in lock-step even on a slow first load.
     const spokeInHerVoice = await speakKokoro(text, 0.92, onAudioStart)
     setVoiceWarming(false)
-    if (spokeInHerVoice) { voiceReady.current = true; return }
-    // fallback: the browser's best neural-ish voice
-    if (!window.speechSynthesis) { onAudioStart?.(); return }
-    const u = new SpeechSynthesisUtterance(text)
-    const v = pickVoice()
-    if (v) u.voice = v
-    u.rate = 0.96
-    u.pitch = 1.05
-    u.onstart = () => onAudioStart?.()
-    window.speechSynthesis.speak(u)
+    if (spokeInHerVoice) { voiceReady.current = true; setVoiceStatus("ready"); return }
+    // her real voice didn't play — reflect the fallback in the status so the user
+    // understands why she sounds like the system voice (or stays silent).
+    setVoiceStatus(window.speechSynthesis ? "browser" : "unavailable")
+    // fallback: the browser's best neural-ish voice. Kokoro's generation took a
+    // while, so the original gesture is gone — the unlockAudio() priming is what
+    // keeps this allowed. Nudge speechSynthesis (Chrome can leave it paused) and
+    // reveal text on start OR on error, so the UI never waits on silent audio.
+    const synth = window.speechSynthesis
+    if (!synth) { onAudioStart?.(); return }
+    try {
+      synth.cancel()
+      synth.resume()
+      const u = new SpeechSynthesisUtterance(text)
+      const v = pickVoice()
+      if (v) u.voice = v
+      u.rate = 0.96
+      u.pitch = 1.05
+      u.volume = 1
+      u.onstart = () => onAudioStart?.()
+      u.onerror = () => onAudioStart?.()   // don't strand the text if speech fails
+      synth.speak(u)
+      // if nothing starts within a beat (dropped silently), reveal anyway
+      setTimeout(() => onAudioStart?.(), 500)
+    } catch {
+      onAudioStart?.()
+    }
   }
 
   // reveal the reply word-by-word (called once the voice is actually speaking, so
@@ -316,6 +357,45 @@ export function VeraOrbDemo() {
               loading brain… {loadPct}%
             </span>
           )}
+          {/* VOICE STATUS — so the user is never left guessing why she's silent:
+              loading her real on-device voice, ready, using the browser voice, or
+              unavailable. Only shown while sound is on. */}
+          {sound && (
+            <span
+              className="font-mono text-[10px] tracking-[0.2em] uppercase inline-flex items-center gap-1.5"
+              aria-live="polite"
+              title={
+                voiceStatus === "loading"
+                  ? "Downloading her real voice model to run on your device"
+                  : voiceStatus === "ready"
+                    ? "Her real on-device voice is ready"
+                    : voiceStatus === "browser"
+                      ? "Her voice model couldn't load — using your browser's voice"
+                      : "No speech available in this browser"
+              }
+            >
+              <span
+                className={`inline-block w-1.5 h-1.5 rounded-full ${
+                  voiceStatus === "ready"
+                    ? "bg-emerald-400"
+                    : voiceStatus === "loading"
+                      ? "bg-amber-400 animate-pulse"
+                      : voiceStatus === "browser"
+                        ? "bg-sky-400"
+                        : "bg-muted-foreground/50"
+                }`}
+              />
+              <span className="text-muted-foreground">
+                {voiceStatus === "loading"
+                  ? `voice loading… ${voicePct}%`
+                  : voiceStatus === "ready"
+                    ? "voice ready"
+                    : voiceStatus === "browser"
+                      ? "browser voice"
+                      : "voice unavailable"}
+              </span>
+            </span>
+          )}
           <button
             onClick={() => {
               const next = !sound
@@ -333,19 +413,33 @@ export function VeraOrbDemo() {
 
       <div className="flex flex-col items-center gap-5">
         {/* the orb — it now LISTENS, THINKS and SPEAKS with its own phase motion
-            (ripples / shimmer / fast glow), with a gentle scale on top for presence */}
+            (ripples / shimmer / fast glow). It's built to GLOW on dark, so we sit
+            it on a dark circular stage — otherwise it reads as a murky sphere on
+            the section's light background. The stage makes her presence legible. */}
         <div
+          className="relative grid place-items-center rounded-full"
           style={{
-            transform:
-              phase === "speaking"
-                ? "scale(1.05)"
-                : phase === "listening"
-                  ? "scale(1.025)"
-                  : "scale(1)",
-            transition: "transform 520ms cubic-bezier(.16,1,.3,1)",
+            width: 220,
+            height: 220,
+            background:
+              "radial-gradient(circle at 50% 45%, #15131f 0%, #0b0a12 55%, #07060c 100%)",
+            boxShadow:
+              "inset 0 0 40px rgba(0,0,0,.6), 0 10px 40px -12px rgba(80,40,160,.45)",
           }}
         >
-          <VeraForm size={120} phase={phase} />
+          <div
+            style={{
+              transform:
+                phase === "speaking"
+                  ? "scale(1.05)"
+                  : phase === "listening"
+                    ? "scale(1.025)"
+                    : "scale(1)",
+              transition: "transform 520ms cubic-bezier(.16,1,.3,1)",
+            }}
+          >
+            <VeraForm size={120} phase={phase} />
+          </div>
         </div>
         <p
           className="font-mono text-[11px] tracking-[0.18em] uppercase text-muted-foreground"
