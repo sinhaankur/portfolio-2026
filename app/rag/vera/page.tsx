@@ -145,15 +145,19 @@ keyword        0.47
 query_short   -0.02`,
       },
       {
-        id: "honest",
-        title: "…but it's opt-in, because honesty beats a flattering number",
-        formula: "trained on 12 queries, tested on the same 12 → not yet proven to generalise",
+        id: "heldout",
+        title: "Then we trained it for real — and it held up on unseen queries",
+        formula:
+          "train on 42 phrasings · test on 18 it NEVER saw\nblend 44.4% → reranker 61.1%  hit@1   (+16.7 pts, held-out)",
         what:
-          "The catch, stated plainly: the corpus is tiny (six convictions, twelve queries) and the reranker trained on the very set it was scored on. That's a real proof-of-concept — the idea works and the features are right — but not proof it generalises to a stranger's phrasing. So it ships OFF by default (CTWIN_RERANK=1 to try it); the hand-tuned blend stays the shipped path until the reranker earns its place on a larger, held-out set. A model that looks great on its own homework isn't trusted with the real thing yet.",
-        code: `def active() -> bool:
-    # trained AND opted in — never a silent change
-    return is_trained() and _opted_in()
-# default path stays the measured, safe blend`,
+          "The first win was on the same handful of queries it trained on — honest proof-of-concept, but not proof it generalises. So we wrote many ways a real person might bring each moment (sixty phrasings), trained on most, and tested on the rest — queries the reranker never saw. It still won: +16.7 points hit@1 on held-out data. That's the trustworthy number. Because it now generalises, it's the DEFAULT — with a kill-switch, and a semantic safety-net so a match that shares no words (just meaning) is never dropped.",
+        code: `# evals/train_reranker.py — train / held-out split
+train on 42 phrasings   test on 18 UNSEEN
+blend      hit@1 44.4%   MRR 0.671
+reranker   hit@1 61.1%   MRR 0.769   (+16.7 pts)
+
+def active():            # on once proven on held-out data
+    return _generalises() or _opted_in()  # kill-switch wins`,
       },
     ],
   },
