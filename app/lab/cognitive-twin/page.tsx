@@ -5,6 +5,7 @@ import { ExternalLink, ArrowUpRight } from "lucide-react"
 import { VeraMark } from "@/components/vera-mark"
 import { VeraOrbDemo } from "@/components/vera-orb-demo"
 import { VeraDownload } from "@/components/vera-download"
+import { HowItWorksDiagram } from "@/components/vera-brain/how-it-works-diagram"
 import {
   CaseStudyLayout,
   CaseSectionHeading,
@@ -25,7 +26,15 @@ const REPO = "https://github.com/sinhaankur/cognitive-twin-agent"
 const built: { title: string; body: string }[] = [
   {
     title: "Its own brain engine — not just an LLM",
-    body: "Vera's feeling, stance, memory and judgment are computed by her own on-device logic. The language model is one organ (words), never the source of her mind — so she has a point of view, reads a heavy moment vs a bright one, and paces herself, rather than echoing a prompt.",
+    body: "Vera's feeling, stance, memory and judgment are computed by her own on-device logic, modelled on real neuroanatomy: nine region-engines wired in anatomical order (parietal → limbic → hippocampus → frontal → cortex → temporal → cerebellum). The language model is one organ (the cortex — words), never the source of her mind — so she has a point of view, reads a heavy moment vs a bright one, and paces herself, rather than echoing a prompt. Pull the model out and she still feels, decides, and speaks.",
+  },
+  {
+    title: "A real neural network reads the feeling",
+    body: "The limbic read isn't a keyword lookup — it's a genuine neural net (a small MLP: 43 affective cues → 8 hidden ReLU neurons → valence + arousal), trained with backprop on labelled moments. It runs in pure numpy, with a hand-written pure-Python forward pass as a fallback so it never even depends on numpy — the brain feels with or without it. Its hidden neurons are exposed so you can watch the amygdala fire for a phrase. Same weights run live in your browser on the 'brain, made visible' page.",
+  },
+  {
+    title: "Grounded in her own convictions (RAG)",
+    body: "Before the model writes a word, a retrieval step (RAG) pulls the most relevant pieces of what she knows — your notes, documents, and her own sealed memories — and that becomes the context the model writes within. Chunk → embed → retrieve → generate, all on-device (a local embedding model), so her words stay grounded in real recalled material instead of inventing. A learned reranker can sharpen which memories surface.",
   },
   {
     title: "A warm, human neural voice",
@@ -42,6 +51,10 @@ const built: { title: string; body: string }[] = [
   {
     title: "Remembers the conversation",
     body: "She carries the thread of what you just said, so short follow-ups ('now try', 'and the travel?') make sense — a conversation, not isolated one-shots.",
+  },
+  {
+    title: "Talks like a person — interrupt her, ramble, pause",
+    body: "Real turn-taking: your words appear as you speak; a snappy pause ends the turn, but a long continuous thought is let to finish instead of being chopped mid-sentence. Speak over her and she stops mid-word and listens — a fast, self-calibrating barge-in (RMS-only, no cloud, crash-safe) that learns the room + her own voice bleed so it yields to you without cutting herself off on noise. If she doesn't catch something she says so, rather than going silent.",
   },
   {
     title: "Persona creation",
@@ -316,7 +329,22 @@ brew install --cask vera`}</code>
       {/* HOW IT WORKS / DOCS */}
       <section>
         <CaseSectionHeading>How it works</CaseSectionHeading>
+
+        {/* The whole architecture at a glance: Mac brain · Tailscale link ·
+            iCloud sealed sync · you, from either device. */}
+        <HowItWorksDiagram />
+
         <CaseProse>
+          <p>
+            Your <strong>Mac</strong> runs her brain — it thinks entirely
+            on-device. Your <strong>iPhone</strong> is a window onto the same
+            companion, connecting to the Mac over your private{" "}
+            <strong>Tailscale</strong> link: encrypted, device-to-device, never
+            the open internet. And the two stay one Vera by passing a{" "}
+            <strong>sealed memory bundle through your own iCloud</strong> —
+            encrypted before it ever leaves, so Apple only holds ciphertext. No
+            server of mine, no account of mine, nothing readable in the middle.
+          </p>
           <p>
             A message goes to her local brain. First her own faculties run —
             on-device, no model: how she feels about it, what she remembers of
