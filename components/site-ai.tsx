@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import { usePathname } from "next/navigation"
 import { AnimatePresence, motion } from "framer-motion"
 import { VeraMark } from "@/components/vera-mark"
 import { answerFromSite, groundingFor } from "@/lib/site-knowledge"
@@ -61,7 +62,48 @@ Context:
 User: oracle work
 Answer: At Oracle, Ankur designed enterprise product experiences — taking dense, high-stakes workflows and making them something people could actually move through. There's a full case study.`
 
+// Routes that have their OWN on-page AI (the ✦ orb copilot, or a full-screen
+// experience). The global guide must NOT appear there — two AIs overlapping is
+// confusing, and Vera/the orb is the true AI of those pages. The site guide is
+// for NAVIGATION across the portfolio, not for competing with the page's own AI.
+const ROUTES_WITHOUT_GUIDE = [
+  "/lab/celestial",   // the Satellite Engine's ✦ copilot (the orb) lives here
+  "/sky",             // full-screen ambient experiences
+  "/waves",
+  "/tv",
+  "/embed",           // embeddable widgets
+]
+
+// Is a model reply actually grounded (usable), or did the tiny model drift into
+// confused/garbage territory? Cheap, deterministic checks — no model needed.
+function isGroundedReply(reply: string, context: string): boolean {
+  const r = reply.toLowerCase()
+  // 1) Known-bad drift: confusing the VISITOR with Ankur, or meta-nonsense.
+  const BAD = [
+    "you are at oracle", "you are ankur", "you're ankur", "you can be",
+    "you are the one", "you're the one", "as an ai", "i am an ai language model",
+    "contribute to your portfolio", "your portfolio", "you work at",
+  ]
+  if (BAD.some((p) => r.includes(p))) return false
+  // 2) It should share real vocabulary with the grounded context (not invent).
+  const ctxWords = new Set(
+    context.toLowerCase().match(/[a-z]{4,}/g) || [],
+  )
+  const replyWords = (r.match(/[a-z]{4,}/g) || [])
+  if (replyWords.length === 0) return false
+  const overlap = replyWords.filter((w) => ctxWords.has(w)).length
+  // require a modest grounding overlap — a reply that shares almost nothing with
+  // the real facts is the model making things up.
+  return overlap / replyWords.length >= 0.25
+}
+
 export function SiteAI() {
+  const pathname = usePathname()
+  // Hide the global guide on pages that own their AI / are full-screen.
+  const hidden = ROUTES_WITHOUT_GUIDE.some(
+    (r) => pathname === r || pathname.startsWith(r + "/"),
+  )
+
   const [open, setOpen] = useState(false)
   const [typed, setTyped] = useState("")
   const [msgs, setMsgs] = useState<Msg[]>([GREETING])
@@ -141,7 +183,7 @@ export function SiteAI() {
           { role: "system", content: SYSTEM },
           { role: "user", content: prompt },
         ],
-        temperature: 0.4,
+        temperature: 0.2,   // low: it should REPHRASE the facts, not free-associate
         max_tokens: 160,
         stream: true,
       })) as unknown as AsyncIterable<{ choices: { delta?: { content?: string } }[] }>
@@ -161,12 +203,19 @@ export function SiteAI() {
           return copy
         })
       }
-      // Guard against an empty model reply — fall back to the grounded sentence.
-      if (!acc.trim()) {
+      // QUALITY GUARD. The tiny model sometimes free-associates garbage that
+      // undermines the whole site ("Yes, you are at Oracle", "you can be!") — for
+      // real visitors, a wrong/weird answer is worse than a plain correct one. So
+      // if the streamed reply is empty, OR drifts (confuses the VISITOR with
+      // Ankur, or doesn't actually use the grounded facts), replace it with the
+      // reliable grounded sentence. The grounded brain is the source of truth; the
+      // model only gets to REPHRASE it, never override it.
+      const out = acc.trim()
+      if (!out || !isGroundedReply(out, context)) {
         const g = answerFromSite(query)
         setMsgs((m) => {
           const copy = m.slice()
-          copy[copy.length - 1] = { role: "vera", text: g.text, href: g.href, cta: g.cta }
+          copy[copy.length - 1] = { role: "vera", text: g.text, href: g.href, cta: g.cta, followups: g.followups }
           return copy
         })
       }
@@ -200,6 +249,10 @@ export function SiteAI() {
       }
     })()
   }
+
+  // On pages with their own AI (the orb copilot) or full-screen experiences,
+  // the global guide stays out of the way — one AI per context.
+  if (hidden) return null
 
   return (
     <>
