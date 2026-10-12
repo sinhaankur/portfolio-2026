@@ -46,7 +46,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/lab/bell-curve",    priority: 0.7, changeFrequency: "monthly" },
     { path: "/lab/logarithms",    priority: 0.7, changeFrequency: "monthly" },
     { path: "/lab/wave",          priority: 0.6, changeFrequency: "monthly" },
-    { path: "/lab/helion-drift",  priority: 0.6, changeFrequency: "monthly" },
+    // /lab/helion-drift is hidden (noindex) while its rendering is improved — kept out of the sitemap on purpose.
     { path: "/lab/firmament",     priority: 0.6, changeFrequency: "monthly" },
     { path: "/framework",         priority: 0.8, changeFrequency: "monthly" },
     { path: "/skills",            priority: 0.7, changeFrequency: "monthly" },

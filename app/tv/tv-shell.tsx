@@ -40,12 +40,6 @@ export function TvShell() {
         kind: "engine",
       },
       {
-        label: "Open Helion Drift",
-        description: "Jump into the lab-side game experience.",
-        href: "/lab/helion-drift",
-        kind: "route",
-      },
-      {
         label: "Open the Satellite Engine",
         description: "Explore the sky — with a built-in AI copilot to steer it in plain language.",
         href: "/lab/celestial",

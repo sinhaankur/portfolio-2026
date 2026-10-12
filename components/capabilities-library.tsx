@@ -121,7 +121,6 @@ const DISCIPLINES: Discipline[] = [
     proof: [
       { label: "The Waves ocean", href: "/lab/wave" },
       { label: "Terrain (3D tiles)", href: "/lab/terrain" },
-      { label: "Helion Drift", href: "/lab/helion-drift" },
     ],
   },
 ]
