@@ -87,8 +87,15 @@ App-router routes under [`app/`](./app):
   footer ("The Math").
 - `/games/Gamelist.html` — retro neobrutalism mini-games index, served from
   `public/games/` (preserved from the previous build as a separate visual language).
-- `/games/dave-3d` — Dave 3D platformer. (`/games/star-cleaver` is a static
-  redirect stub in `public/` → `/lab/helion-drift`.)
+- `/games/ritam-3d` — Ritam 3D platformer. Served as a **self-contained static
+  bundle** at `public/games/ritam-3d/index.html` (not an app route — the former
+  `app/games/ritam-3d` route was removed 2026-10-12 so the static file serves
+  without a build collision). The bundle inlines its own game modules and loads
+  three.js r160 from `public/vendor/three-0.160.0.module.js` (vendored locally via
+  `window.__resources.three`, no external CDN). `/games/dave-3d` is a legacy
+  redirect → `/games/ritam-3d`. (`/games/star-cleaver` is a static redirect stub
+  in `public/` → `/lab/helion-drift`.) The old R3F engine under
+  `games/dave-3d/engine/` is now orphaned (nothing imports it).
 - `/about` — the About page (journey imagery; links the family pages below).
 - More Lab entries: `/lab/terrain` (real 3D planetary surfaces via 3D-tiles),
   `/lab/cognitive-twin` (local-first personal AI runtime; sub-page
