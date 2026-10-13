@@ -161,11 +161,12 @@
 }
 
 @theme inline {
-  --font-sans: var(--font-inter), "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
-  --font-serif: var(--font-instrument), "Instrument Serif", "Georgia", serif;
+  /* Body/UI: Figtree (humanist grotesque — deliberately not Inter). */
+  --font-sans: var(--font-inter), "Figtree", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-serif: var(--font-instrument), "Spectral", "Georgia", serif;
   --font-mono: var(--font-jetbrains), "JetBrains Mono", ui-monospace, "SFMono-Regular", "Menlo", monospace;
-  /* Editorial display face — used on case-study headlines and the big section h2s. */
-  --font-display: var(--font-fraunces), "Fraunces", "Instrument Serif", "Georgia", serif;
+  /* Editorial display face: Spectral — calm humanist serif on headlines + h2s. */
+  --font-display: var(--font-fraunces), "Spectral", "Georgia", serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -284,17 +285,12 @@
     background-size: 320px 320px;
   }
 
-  /* Fraunces — tune the variable axes per usage so display text picks up
-     the SOFT + WONK character that makes it editorial rather than generic.
-     Plain Inter inherits no variation. */
+  /* Spectral is the display face now. It has no SOFT/WONK axes, so display
+     text just uses its natural letterforms; a light weight reads more
+     editorial at large sizes than the default. */
   .font-display {
-    font-variation-settings: "opsz" 96, "SOFT" 80, "WONK" 1;
-  }
-  .font-display.italic,
-  .font-display em,
-  em.font-display {
-    /* Italic moments lean further into the soft, wonky cut. */
-    font-variation-settings: "opsz" 96, "SOFT" 100, "WONK" 1;
+    font-weight: 400;
+    letter-spacing: -0.012em;
   }
 }
 

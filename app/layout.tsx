@@ -7,7 +7,7 @@
 import type React from "react"
 import type { Metadata, Viewport } from "next"
 import Script from "next/script"
-import { Inter, Instrument_Serif, JetBrains_Mono, Fraunces, Noto_Sans_Arabic, Noto_Sans_JP } from "next/font/google"
+import { Figtree, Spectral, JetBrains_Mono, Noto_Sans_Arabic, Noto_Sans_JP } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
 import { TimeOfDayTheme } from "@/components/time-of-day-theme"
 import { DisplayPrefsProvider } from "@/components/display-prefs"
@@ -30,29 +30,32 @@ const GTM_ID = "GTM-N6T2NFT3"
 // ship). Set NEXT_PUBLIC_CF_ANALYTICS_TOKEN to enable; empty = beacon omitted.
 const CF_ANALYTICS_TOKEN = process.env.NEXT_PUBLIC_CF_ANALYTICS_TOKEN ?? ""
 
-const inter = Inter({
+// Body / UI type: Figtree — a warm, humanist grotesque. Deliberately NOT Inter
+// (the default AI-portfolio body face). Keeps the --font-inter variable name so
+// every existing `font-inter` class picks it up without a site-wide rename.
+const inter = Figtree({
   subsets: ["latin"],
   variable: "--font-inter",
   display: "swap",
 })
 
-// Editorial display font with real optical character at large sizes.
-// Used on case-study headlines and section h2s — anywhere Inter Light
-// was feeling generic at display size.
-const fraunces = Fraunces({
+// Display type: Spectral — a refined, calm humanist serif with real character
+// at large sizes and genuine italics. Replaces Fraunces (kept the
+// --font-fraunces variable so headlines/h2s/case-study titles inherit it).
+const fraunces = Spectral({
   subsets: ["latin"],
-  variable: "--font-fraunces",
-  // Variable axes — keeps the file count down while giving us weight + opsz.
-  axes: ["opsz", "SOFT", "WONK"],
+  weight: ["300", "400", "500", "600"],
   style: ["normal", "italic"],
+  variable: "--font-fraunces",
   display: "swap",
 })
 
-// Instrument Serif still appears for short inline italic moments
-// (single-word emphasis like "collaborate"). Fraunces handles the big stuff.
-const instrument = Instrument_Serif({
+// Short inline italic moments (single-word emphasis) — also Spectral italic,
+// so the italic voice matches the display face. Keeps the --font-instrument
+// variable name for the existing `font-instrument` usages.
+const instrument = Spectral({
   subsets: ["latin"],
-  weight: "400",
+  weight: ["400"],
   style: ["normal", "italic"],
   variable: "--font-instrument",
   display: "swap",
