@@ -28,7 +28,6 @@ const ROUTES = [
   ["/lab/cognitive-twin/", 2500],
   ["/lab/cognitive-twin/brain/", 2500],  // "Vera's brain, made visible" — interactive net + RAG
   ["/lab/firmament/", 3000],
-  ["/lab/helion-drift/", 10000],
   ["/lab/optical-flow/", 4000],
   ["/lab/math/", 3000],
   ["/lab/pi/", 4000],
@@ -38,7 +37,7 @@ const ROUTES = [
   ["/lab/pythagoras/", 4000],
   ["/lab/bell-curve/", 4000],
   ["/lab/logarithms/", 4000],
-  ["/lab/star-cleaver/", 4000],       // legacy redirect → /lab/helion-drift (covered above)
+  ["/lab/star-cleaver/", 4000],       // legacy redirect → /lab (helion-drift removed 2026-10-12)
   ["/lab/terrain/", 8000],            // 3D tiles terrain
   ["/lab/unhosted/", 2500],
   ["/lab/wave/", 4000],

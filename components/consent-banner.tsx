@@ -22,7 +22,7 @@ const KEY = "cookie-consent-v1" // "granted" | "denied"
 // hint bar, mobile controls) and the first-visit banner sat right on top of it
 // (UX audit P2). Same text, same two choices — only the geometry changes.
 const ENGINE_ROUTES = [
-  /^\/lab\/celestial/, /^\/lab\/helion-drift/, /^\/sky/, /^\/waves$/,
+  /^\/lab\/celestial/, /^\/sky/, /^\/waves$/,
   /^\/story/, /^\/aero/, /^\/tv/, /^\/embed\//,
 ]
 

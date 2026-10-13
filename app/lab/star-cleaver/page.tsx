@@ -3,12 +3,13 @@
 import { useEffect } from 'react';
 
 /**
- * Legacy redirect: /lab/star-cleaver → /lab/helion-drift. The game moved to the
- * Helion Drift name; this keeps old links working. Static export can't do a
- * server redirect, so we redirect client-side (replace, so Back doesn't bounce)
- * with a <meta http-equiv> fallback for no-JS. noindex is set in layout.tsx.
+ * Legacy redirect: /lab/star-cleaver → /lab. Previously pointed at
+ * /lab/helion-drift, but that game is hidden while its rendering is improved
+ * (route removed 2026-10-12), so old Star Cleaver links now land on the Lab
+ * index. Static export can't do a server redirect, so we redirect client-side
+ * (replace, so Back doesn't bounce) with a <meta http-equiv> fallback for no-JS.
  */
-const TARGET = '/lab/helion-drift/';
+const TARGET = '/lab/';
 
 export default function StarCleaverRedirect() {
   useEffect(() => {
@@ -32,7 +33,7 @@ export default function StarCleaverRedirect() {
           textTransform: 'uppercase',
         }}
       >
-        Redirecting to Helion Drift…{' '}
+        Redirecting to the Lab…{' '}
         <a href={TARGET} style={{ color: '#7fbfff', marginLeft: 8 }}>
           Continue
         </a>

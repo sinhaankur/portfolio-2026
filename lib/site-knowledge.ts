@@ -188,22 +188,16 @@ const ENTRIES: Entry[] = [
   },
 
   // ——— Games ———
-  {
-    id: "helion", group: "game",
-    topic: "Helion Drift — the space flight game",
-    names: ["helion", "helion drift", "star cleaver", "space game", "flight game", "game"],
-    topics: ["3d game", "flight", "spaceship"],
-    text: "Helion Drift is a Lab exploration — a real-time space-flight game where you fly a cruiser through a solar system with cinematic supersonic flight feel, built in the browser.",
-    href: "/lab/helion-drift", cta: "Fly Helion Drift",
-    followups: [{ label: "More games", href: "/games/Gamelist.html" }],
-  },
+  // Helion Drift is hidden while its rendering is improved (route removed
+  // 2026-10-12), so it's intentionally not surfaced by the copilot.
   {
     id: "games", group: "game",
     topic: "the games",
-    names: ["games", "mini games", "arcade", "dave", "dave 3d"],
-    topics: ["play", "retro"],
-    text: "There's a set of games — Helion Drift (space flight), a Dave 3D platformer, and a retro neobrutalism mini-games index.",
+    names: ["games", "mini games", "arcade", "dave", "dave 3d", "ritam", "ritam 3d", "game"],
+    topics: ["play", "retro", "platformer"],
+    text: "There's a set of games — Ritam 3D (a side-on 3D platformer with a real 3D hero), and a retro neobrutalism mini-games index.",
     href: "/games/Gamelist.html", cta: "Play the games",
+    followups: [{ label: "Play Ritam 3D", href: "/games/ritam-3d" }],
   },
 
   // ——— Math, made visible ———
