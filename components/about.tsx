@@ -144,18 +144,18 @@ export function About() {
           className="mb-14 md:mb-20 max-w-3xl"
         >
           <p className="font-mono text-xs tracking-[0.3em] text-muted-foreground mb-4">
-            03 — PHILOSOPHY
+            03 — A BIT ABOUT ME
           </p>
           <h2
             id="about-heading"
             className="font-display text-3xl md:text-5xl lg:text-6xl font-light italic tracking-[-0.01em] leading-[1.05]"
           >
-            Four things I keep coming back to.
+            I&apos;ve been taking things apart since I was a kid.
           </h2>
           <p className="mt-6 font-sans text-base md:text-lg text-foreground/75 max-w-2xl leading-relaxed">
-            Not a manifesto — just the handful of ideas I actually use when I'm
-            deciding what to build and how to ship it. You can dial how I say
-            them below.
+            That never really stopped — it just turned into a job. Below is the
+            photo that started it, and the handful of ideas I actually use now
+            when I&apos;m deciding what to build. You can dial how I say them.
           </p>
 
           {/* Reading-level toggle. I write dense on purpose — this lets a reader
