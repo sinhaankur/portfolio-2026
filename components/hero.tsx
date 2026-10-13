@@ -14,31 +14,34 @@ const HERO_INTRO: Record<
   { lead: string; rest: React.ReactNode }
 > = {
   deep: {
-    lead: "Principal UX Designer at Oracle,",
+    lead: "I'm a Principal UX Designer at Oracle,",
     rest: (
       <>
-        {" "}working at the human–AI seam — an engineer by degree who designs it
-        and builds it. My flagship is the <em>Universe Engine</em>: the real sky,
-        live, from NASA/NORAD data, running in your browser.
+        {" "}but I never stopped being an engineer — so I design the thing and
+        build it myself. Right now that means figuring out how people and AI
+        actually work together, not in theory but in software you can click. My
+        favorite thing I've made is the <em>Universe Engine</em>: the real night
+        sky, live from NASA data, running in your browser.
       </>
     ),
   },
   plain: {
-    lead: "Principal UX Designer at Oracle.",
+    lead: "I'm a Principal UX Designer at Oracle.",
     rest: (
       <>
-        {" "}I design how people and AI work together — and, an engineer by
-        degree, I build the working thing myself. My flagship is the{" "}
-        <em>Universe Engine</em>: the real, live sky in your browser.
+        {" "}I design how people and AI work together — and because I'm an
+        engineer too, I build the real thing, not just the picture of it. My
+        favorite is the <em>Universe Engine</em>: the real, live sky in your
+        browser.
       </>
     ),
   },
   simple: {
-    lead: "Designer and AI builder.",
+    lead: "I design things, and I build them.",
     rest: (
       <>
-        {" "}I design apps people and AI use together, and I build them for real —
-        like my <em>Universe Engine</em>, the live sky in your browser.
+        {" "}Mostly apps where people and AI work side by side — and I make them
+        for real, like my <em>Universe Engine</em>, the live sky in your browser.
       </>
     ),
   },

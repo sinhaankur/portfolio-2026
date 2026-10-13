@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   ...canonicalPath("/about"),
   title: "About",
   description:
-    "Ankur Sinha — Design & AI. A Principal UX designer and engineer-by-degree working on the seam where humans meet AI agents. The person behind the Universe Engine and the work on this site.",
+    "I'm Ankur — a Principal UX designer who's also an engineer, so I design the way people and AI work together and then actually build it. The person behind the Universe Engine and everything on this site.",
   keywords: ["Ankur Sinha", "about", "UX designer AI", "design and AI", "portfolio about"],
 }
 

@@ -48,12 +48,12 @@ const principles: Principle[] = [
   {
     number: "01",
     title: {
-      deep: "The seam is the design.",
+      deep: "I design the moment you decide.",
       plain: "I design the moment you decide.",
       simple: "I design the hand-off between you and the AI.",
     },
     body: {
-      deep: "The moment of decision, override, and trust — where a human meets an AI agent — that's the surface I work on. Not the model, not the wrapper. The seam.",
+      deep: "When an AI does something for you, there's a split second where you choose to trust it, fix it, or stop it. That moment is the whole job for me — not the model, not the wrapper, the part where you and it meet. I think we get it wrong a lot, and it's fixable.",
       plain: "When an AI does something for you, there's a moment where you decide to trust it, correct it, or stop it. That moment is what I design — not the AI itself, but the part where you and it meet.",
       simple: "The most important part isn't the AI — it's the moment where you're in control of it. That's what I work on.",
     },
@@ -63,12 +63,12 @@ const principles: Principle[] = [
   {
     number: "02",
     title: {
-      deep: "Uncertainty must be legible.",
+      deep: "You should see how sure the AI really is.",
       plain: "You should see how sure the AI is.",
       simple: "The AI should show you when it's guessing.",
     },
     body: {
-      deep: "An AI's claim is only trustworthy if you can read how sure it is — and the basis must be checkable. Confidence without calibration is a lie with a UI on top.",
+      deep: "I only trust an answer if I can see how confident the thing actually is — and check why. An AI that sounds certain but isn't is just a nice-looking mistake, and most of them are built to sound certain. So I try to make the doubt visible.",
       plain: "You can only trust an answer if you can see how confident the system really is — and check why. An AI that sounds certain but isn't is just a nice-looking mistake.",
       simple: "If the AI isn't sure, it should tell you — clearly. Confident and wrong is the worst combination.",
     },
@@ -78,12 +78,12 @@ const principles: Principle[] = [
   {
     number: "03",
     title: {
-      deep: "Reversibility is the policy axis.",
+      deep: "The real question is: can you undo it?",
       plain: "The real question is: can you undo it?",
       simple: "Everything the AI does should be undoable.",
     },
     body: {
-      deep: "Not \"safety\" — that's a category, not a control. The right question is: can the human undo what the agent just did, within how many seconds? That's the real surface area.",
+      deep: "\"Is it safe?\" is too vague to actually build for. The question I can design around is simpler: if the AI just did something, can you take it back — and how fast? Mistakes are fine when they're reversible. So I spend my time making sure they are.",
       plain: "\"Is it safe?\" is too vague to design for. The useful question is simpler: if the AI just did something, can you take it back — and how quickly? That's what I build around.",
       simple: "Mistakes are fine if you can undo them fast. So I make sure you always can.",
     },
@@ -93,12 +93,12 @@ const principles: Principle[] = [
   {
     number: "04",
     title: {
-      deep: "Prototypes are the argument.",
+      deep: "I build the thing to prove the point.",
       plain: "I build the thing to prove the point.",
       simple: "I make it real instead of just describing it.",
     },
     body: {
-      deep: "I write my own code because a prototype is the only design document that can't be ignored. Ship the argument, then defend it in production.",
+      deep: "I'd rather build a working version than write a document about how it should work — a real prototype is a lot harder to argue with. And I write the code myself, so it actually runs in front of you instead of living in a slide. Everything in the Lab below is me doing exactly that.",
       plain: "Instead of writing a document about how something should work, I build a working version. A real prototype is much harder to argue with — and I write the code myself so it actually runs.",
       simple: "I'd rather build a working version than write a report about it. So I write my own code and ship it.",
     },
@@ -150,12 +150,12 @@ export function About() {
             id="about-heading"
             className="font-display text-3xl md:text-5xl lg:text-6xl font-light italic tracking-[-0.01em] leading-[1.05]"
           >
-            Four principles I keep returning to.
+            Four things I keep coming back to.
           </h2>
           <p className="mt-6 font-sans text-base md:text-lg text-foreground/75 max-w-2xl leading-relaxed">
-            Not a manifesto, not a thesis. Four operating principles that
-            decide what I build, how I ship it, and what I refuse to
-            compromise on.
+            Not a manifesto — just the handful of ideas I actually use when I'm
+            deciding what to build and how to ship it. You can dial how I say
+            them below.
           </p>
 
           {/* Reading-level toggle. I write dense on purpose — this lets a reader
