@@ -80,13 +80,13 @@ export function VeraMark({
         }
         .vs-body {
           position:absolute; inset:0; border-radius:50%; overflow:hidden;
-          background:#0b0b12;                 /* dark base → colors read as luminous */
-          box-shadow: inset 0 0 20px rgba(0,0,0,.6), 0 6px 22px rgba(20,8,40,.5);
+          background:#07060e;                 /* darker base → colors read as luminous */
+          box-shadow: inset 0 0 26px rgba(0,0,0,.72), 0 6px 22px rgba(20,8,40,.5);
         }
         .vs-blob {
-          position:absolute; width:78%; height:78%; border-radius:50%;
-          filter: blur(10px); mix-blend-mode:screen; opacity:.85;
-          top:11%; left:11%;
+          position:absolute; width:64%; height:64%; border-radius:50%;
+          filter: blur(9px); mix-blend-mode:screen; opacity:1;
+          top:18%; left:18%;
           transform-origin:center;
         }
         /* each blob orbits from a different start angle via its own wrapper spin */
@@ -96,10 +96,10 @@ export function VeraMark({
         .vs-cyan   { background: radial-gradient(circle, #2ed9f2 0%, rgba(46,217,242,0) 62%); }
         .vs-orange { background: radial-gradient(circle, #ff9e33 0%, rgba(255,158,51,0) 62%); }
         .vs-core {
-          position:absolute; inset:34%; border-radius:50%;
+          position:absolute; inset:40%; border-radius:50%;
           background: radial-gradient(circle at 50% 48%,
-            rgba(255,255,255,.9) 0%, rgba(255,255,255,0) 68%);
-          mix-blend-mode:screen; filter:blur(3px);
+            rgba(255,250,255,.7) 0%, rgba(255,240,255,0) 70%);
+          mix-blend-mode:screen; filter:blur(4px);
         }
         .vs-gloss {
           position:absolute; inset:0; border-radius:50%; pointer-events:none;
@@ -146,13 +146,9 @@ export function VeraMark({
         }
 
         /* fine grain + a traveling sheen — the premium "it's lit" texture */
-        .vs-grain {
-          position:absolute; inset:0; border-radius:50%; pointer-events:none;
-          mix-blend-mode:overlay; opacity:.10;
-          background-image:
-            radial-gradient(rgba(255,255,255,.9) .5px, rgba(0,0,0,0) .5px);
-          background-size: 3px 3px;
-        }
+        /* grain removed — the dot pattern read as noise over the swirl, not texture.
+           A smooth glowing orb is the identity; the moving blobs are the texture. */
+        .vs-grain { display:none; }
 
         .vs-gloss-2 {
           background: radial-gradient(34% 26% at 70% 76%,
@@ -161,17 +157,17 @@ export function VeraMark({
         .vs-ripple-3 { border-color: rgba(255,158,51,.3); }
 
         .vera-siri--on .vs-body,
-        .vera-siri--on .vs-bloom { animation: vs-breathe 7s ease-in-out infinite; }
-        .vera-siri--on .vs-core  { animation: vs-pulse 3.6s ease-in-out infinite; }
-        /* distinct speeds + directions → a rich, never-repeating swirl */
-        .vera-siri--on .vs-pink   { animation: vs-orbit1 9s  linear infinite; }
-        .vera-siri--on .vs-purple { animation: vs-orbit2 11s linear infinite; }
-        .vera-siri--on .vs-blue   { animation: vs-orbit1 13s linear infinite; }
-        .vera-siri--on .vs-cyan   { animation: vs-orbit2 8s  linear infinite; }
-        .vera-siri--on .vs-orange { animation: vs-orbit1 15s linear infinite; }
+        .vera-siri--on .vs-bloom { animation: vs-breathe 5s ease-in-out infinite; }
+        .vera-siri--on .vs-core  { animation: vs-pulse 2.8s ease-in-out infinite; }
+        /* distinct speeds + directions → a rich, never-repeating swirl (quicker so it reads as alive) */
+        .vera-siri--on .vs-pink   { animation: vs-orbit1 5s   linear infinite; }
+        .vera-siri--on .vs-purple { animation: vs-orbit2 6.5s linear infinite; }
+        .vera-siri--on .vs-blue   { animation: vs-orbit1 7.5s linear infinite; }
+        .vera-siri--on .vs-cyan   { animation: vs-orbit2 4.5s linear infinite; }
+        .vera-siri--on .vs-orange { animation: vs-orbit1 8.5s linear infinite; }
         /* inner layer counter-rotates (different sign + speed) for a two-scale swirl */
-        .vera-siri--on .vs-magenta { animation: vs-orbit2 7s  linear infinite; }
-        .vera-siri--on .vs-teal    { animation: vs-orbit1 6s  linear infinite reverse; }
+        .vera-siri--on .vs-magenta { animation: vs-orbit2 4s   linear infinite; }
+        .vera-siri--on .vs-teal    { animation: vs-orbit1 3.5s linear infinite reverse; }
         /* the conic wash turns slowly; the grain sheen drifts across the face */
         .vera-siri--on .vs-iris  { animation: vs-spin 26s linear infinite; }
         .vera-siri--on .vs-grain { animation: vs-sheen 6s ease-in-out infinite; }
@@ -180,12 +176,12 @@ export function VeraMark({
         @keyframes vs-pulse   { 0%,100%{opacity:.7} 50%{opacity:1} }
         /* orbit = translate out, spin around center, so blobs sweep the body */
         @keyframes vs-orbit1 {
-          0%   { transform: rotate(0deg)   translateX(12%) rotate(0deg); }
-          100% { transform: rotate(360deg) translateX(12%) rotate(-360deg); }
+          0%   { transform: rotate(0deg)   translateX(26%) rotate(0deg); }
+          100% { transform: rotate(360deg) translateX(26%) rotate(-360deg); }
         }
         @keyframes vs-orbit2 {
-          0%   { transform: rotate(0deg)   translateX(14%) rotate(0deg); }
-          100% { transform: rotate(-360deg) translateX(14%) rotate(360deg); }
+          0%   { transform: rotate(0deg)   translateX(30%) rotate(0deg); }
+          100% { transform: rotate(-360deg) translateX(30%) rotate(360deg); }
         }
         /* ── phase auras: ripple rings that emanate when she's active ── */
         .vs-ripple {

@@ -128,7 +128,7 @@ export default function CognitiveTwinPage() {
     <CaseStudyLayout
       eyebrow="Lab — AI Companion · 2026 · active"
       title="Vera"
-      subtitle="A private, on-device AI companion with its own brain, an editable persona, and a warm neural voice — living as a gold orb on your Mac, entirely on a machine you control."
+      subtitle="A private, on-device AI companion with its own brain, an editable persona, and a warm neural voice — living as a softly glowing iridescent orb on your Mac, entirely on a machine you control."
       period="2026 · active build"
       role="Architect · Designer · Engineer"
       tags={["AI companion", "On-device", "Neural voice", "Privacy", "Open source"]}
