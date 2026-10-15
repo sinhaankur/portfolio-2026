@@ -136,9 +136,9 @@ export function About() {
       className="relative py-24 md:py-32"
     >
       <div className="mx-auto w-full max-w-6xl px-6 md:px-10">
-        {/* Section header — gentle scroll-depth (drifts slower than the body
-            below), so About reads as layered space like Works. */}
-        <Parallax speed={-56}>
+        {/* Section header — strong scroll-depth (drifts up noticeably), so About
+            reads as clearly layered space like Works. */}
+        <Parallax speed={-120}>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
