@@ -27,6 +27,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { motion, useReducedMotion } from "framer-motion"
 import { ArrowUpRight } from "lucide-react"
+import { Parallax } from "./parallax"
 
 type Experience = {
   company: string
@@ -105,7 +106,9 @@ export function Works() {
       className="relative scroll-mt-24 py-24 md:py-32 px-6 md:px-12"
     >
       <div className="mx-auto w-full max-w-6xl">
-        {/* Section header */}
+        {/* Section header — given gentle scroll-depth: it drifts up slower than
+            the cards below, so the section reads as layered space (see Parallax). */}
+        <Parallax speed={-56}>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -128,6 +131,7 @@ export function Works() {
             e-commerce, and cloud database tooling.
           </p>
         </motion.div>
+        </Parallax>
 
         {/* Timeline — desktop adds a vertical rail with a year-marker dot
             per role on the right edge of the period column. The rail

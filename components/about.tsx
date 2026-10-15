@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
+import { Parallax } from "./parallax"
 import {
   DialGlyph,
   PrototypeGlyph,
@@ -135,7 +136,9 @@ export function About() {
       className="relative py-24 md:py-32"
     >
       <div className="mx-auto w-full max-w-6xl px-6 md:px-10">
-        {/* Section header */}
+        {/* Section header — gentle scroll-depth (drifts slower than the body
+            below), so About reads as layered space like Works. */}
+        <Parallax speed={-56}>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -203,6 +206,7 @@ export function About() {
             {READING_LEVELS.find((l) => l.id === level)?.hint}.
           </p>
         </motion.div>
+        </Parallax>
 
         {/* Origin — the through-line from that kid at the CRT to the work now.
             The photo is HIDDEN by default (never loads / never a first image);
