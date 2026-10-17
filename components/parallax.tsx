@@ -43,6 +43,7 @@ export function Parallax({
 }) {
   const reduce = useReducedMotion()
   const ref = useRef<HTMLDivElement>(null)
+  const drift = speed
 
   // progress 0 (element entering bottom) → 1 (leaving top)
   const { scrollYProgress } = useScroll({
@@ -52,9 +53,9 @@ export function Parallax({
   // smooth the raw scroll so the drift glides instead of snapping to the wheel
   const smooth = useSpring(scrollYProgress, { stiffness: 90, damping: 30, mass: 0.3 })
   // map 0..1 → +half .. -half of the drift (centred so it's neutral mid-view)
-  const y = useTransform(smooth, [0, 1], [speed / 2, -speed / 2])
+  const y = useTransform(smooth, [0, 1], [drift / 2, -drift / 2])
 
-  // Reduced motion (or SSR/first paint): render static, no transform.
+  // Reduced motion or SSR/first paint: render static, no transform.
   if (reduce) {
     return (
       <div ref={ref} className={className} style={style as React.CSSProperties}>

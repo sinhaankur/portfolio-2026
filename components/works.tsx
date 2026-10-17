@@ -106,10 +106,10 @@ export function Works() {
       className="relative scroll-mt-24 py-24 md:py-32 px-6 md:px-12"
     >
       <div className="mx-auto w-full max-w-6xl">
-        {/* Section header — strong scroll-depth: it drifts up noticeably while the
-            timeline below counter-drifts, so the section reads as clearly layered
-            space you move through (see Parallax). */}
-        <Parallax speed={-120}>
+        {/* Section header — a whisper of scroll-depth: it drifts up a touch slower
+            than the timeline below. Deliberately subtle — restraint reads as craft,
+            not a template with every effect turned on. */}
+        <Parallax speed={-44}>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -137,10 +137,7 @@ export function Works() {
         {/* Timeline — desktop adds a vertical rail with a year-marker dot
             per role on the right edge of the period column. The rail
             visualises the 12+ years as a continuous spine instead of a
-            stack of independent rows.
-            Wrapped in a gentle counter-drift (opposite the heading) so the
-            heading and cards visibly separate in depth as you scroll. */}
-        <Parallax speed={40}>
+            stack of independent rows. */}
         <ol className="border-t border-border md:relative">
           {/* Vertical rail — sits at the column boundary on md+. Hidden on
               mobile because the layout collapses to single column there. */}
@@ -266,7 +263,6 @@ export function Works() {
             </motion.li>
           ))}
         </ol>
-        </Parallax>
 
         {/* Origin — IBM. Renders as a small footer-style line, not a row,
             since there's no case study to link to. */}

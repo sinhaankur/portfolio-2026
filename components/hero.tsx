@@ -14,34 +14,34 @@ const HERO_INTRO: Record<
   { lead: string; rest: React.ReactNode }
 > = {
   deep: {
-    lead: "I'm a Principal UX Designer at Oracle,",
+    lead: "This is a real galaxy —",
     rest: (
       <>
-        {" "}but I never stopped being an engineer — so I design the thing and
-        build it myself. Right now that means figuring out how people and AI
-        actually work together, not in theory but in software you can click. My
-        favorite thing I've made is the <em>Universe Engine</em>: the real night
-        sky, live from NASA data, running in your browser.
+        {" "}live, from NASA data, running in your browser. Reach in and move it.
+        It's one of a few dozen worlds I've built to be explored: a brain you can
+        watch think, an ocean driven by the real moon, the whole cosmic timeline.
+        I'm <em>Ankur</em> — a designer and engineer at Oracle who builds the real
+        thing, not the picture of it. Have a look around.
       </>
     ),
   },
   plain: {
-    lead: "I'm a Principal UX Designer at Oracle.",
+    lead: "This is a real galaxy you can touch —",
     rest: (
       <>
-        {" "}I design how people and AI work together — and because I'm an
-        engineer too, I build the real thing, not just the picture of it. My
-        favorite is the <em>Universe Engine</em>: the real, live sky in your
-        browser.
+        {" "}live, from NASA data, in your browser. It's one of a few dozen worlds
+        I've built to be explored. I'm <em>Ankur</em>, a designer and engineer at
+        Oracle; I build the real thing, not just a picture of it. Have a look around.
       </>
     ),
   },
   simple: {
-    lead: "I design things, and I build them.",
+    lead: "This is a real galaxy — touch it.",
     rest: (
       <>
-        {" "}Mostly apps where people and AI work side by side — and I make them
-        for real, like my <em>Universe Engine</em>, the live sky in your browser.
+        {" "}It's live, from real NASA data. I build worlds like this you can
+        actually open and explore. I'm <em>Ankur</em> — I design things and build
+        them for real. Come in.
       </>
     ),
   },
@@ -303,9 +303,10 @@ export function Hero() {
       // bg-background is what the sky dissolves into.
       className="relative h-screen w-full text-foreground"
     >
-      {/* Visually-hidden semantic H1 — gives screen readers a clean page title */}
+      {/* Visually-hidden semantic H1 — gives screen readers + crawlers a clean,
+          first-person page title (matches the rest of the site's voice). */}
       <h1 id="hero-name" className="sr-only">
-        Ankur Sinha — Design &amp; AI. A UX designer and engineer-by-degree who builds what he designs, like the Universe Engine.
+        Ankur Sinha — Design &amp; AI. I&apos;m a designer and engineer who builds the real thing, like the Universe Engine: a live galaxy in your browser.
       </h1>
 
       {/* Universe engine — galaxy + solar system + constellations.
@@ -692,9 +693,10 @@ export function Hero() {
           transition={{ duration: 0.8, delay: 0.6, ease: [0.16, 1, 0.3, 1] }}
           className="absolute bottom-12 left-8 md:bottom-20 md:left-12 z-20 pointer-events-auto flex flex-col items-start gap-3 sm:flex-row sm:flex-wrap sm:items-center"
         >
-          {/* Primary — high-contrast, obvious. The one thing to do next. */}
+          {/* Primary — the invitation to explore the universe (the Lab), not the
+              résumé. Leads with wonder: the wondrous work is the front door. */}
           <motion.a
-            href="#works"
+            href="/lab"
             data-cursor-hover
             whileHover={prefersReducedMotion ? undefined : { x: 4 }}
             whileTap={prefersReducedMotion ? undefined : { scale: 0.97 }}
@@ -711,7 +713,7 @@ export function Hero() {
               min-h-11
             "
           >
-            View my work
+            Explore the work
             <span
               aria-hidden="true"
               className="transition-transform duration-300 group-hover:translate-x-1"

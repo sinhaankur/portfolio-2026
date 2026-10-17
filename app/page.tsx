@@ -5,7 +5,7 @@ import { ScrollCinema } from "@/components/scroll-cinema"
 import { PRINCIPLE_TITLES } from "@/lib/principles"
 import { CustomCursor } from "@/components/custom-cursor"
 import { SmoothScroll } from "@/components/smooth-scroll"
-import { UpcomingBadge } from "@/components/upcoming-badge"
+// import { UpcomingBadge } from "@/components/upcoming-badge" // hidden 2026-10-17
 import { HomeBelowFold } from "@/components/home-below-fold"
 import { LocaleRedirect } from "@/components/locale-redirect"
 
@@ -34,7 +34,10 @@ export default function Home() {
           <HomeBelowFold />
         </div>
       </main>
-      <UpcomingBadge href="/upcoming" label="Upcoming" />
+      {/* Upcoming badge hidden for now (2026-10-17) — it crowded the hero's
+          bottom-right chrome. Re-enable by uncommenting; the /upcoming route
+          still exists.
+      <UpcomingBadge href="/upcoming" label="Upcoming" /> */}
       {/* Automatic location-based language: Arabic/Japanese visitors are routed to
           /ar or /ja (browser language → geo-IP fallback). No manual switcher; the
           localized pages keep a small "English" link as the escape hatch. */}

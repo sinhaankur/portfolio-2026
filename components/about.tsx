@@ -136,9 +136,9 @@ export function About() {
       className="relative py-24 md:py-32"
     >
       <div className="mx-auto w-full max-w-6xl px-6 md:px-10">
-        {/* Section header — strong scroll-depth (drifts up noticeably), so About
-            reads as clearly layered space like Works. */}
-        <Parallax speed={-120}>
+        {/* Section header — a gentle scroll-drift so About reads as layered
+            space without the motion calling attention to itself. */}
+        <Parallax speed={-44}>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -210,7 +210,10 @@ export function About() {
 
         {/* Origin — the through-line from that kid at the CRT to the work now.
             The photo is HIDDEN by default (never loads / never a first image);
-            the visitor peeks at it deliberately. Caption is Ankur's to refine. */}
+            the visitor peeks at it deliberately. Caption is Ankur's to refine.
+            Given a touch of scroll-depth (drifts down, opposite the heading
+            above) so the photo + its story feel like a distinct plane. */}
+        <Parallax speed={28}>
         <motion.figure
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -282,6 +285,7 @@ export function About() {
             </p>
           </div>
         </motion.figure>
+        </Parallax>
 
         {/* Principles — single column, generously spaced. Each is a row with
             number on the left, claim + warrant + "applied in" on the right. */}

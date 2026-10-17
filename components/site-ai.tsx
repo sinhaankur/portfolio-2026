@@ -108,6 +108,11 @@ export function SiteAI() {
   const [typed, setTyped] = useState("")
   const [msgs, setMsgs] = useState<Msg[]>([GREETING])
   const [thinking, setThinking] = useState(false)
+  // The orb's living state — same idle/listening/thinking/speaking arc as the big
+  // Vera orb, so the small guide visibly reacts: it listens as you type, thinks
+  // while it works, glows while it answers, then settles.
+  const [phase, setPhase] = useState<"idle" | "listening" | "thinking" | "speaking">("idle")
+  const speakTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Opt-in on-device LLM for warmer phrasing. Off by default (the grounded brain
   // already answers correctly); turning it on streams the first model download.
   const [llmOn, setLlmOn] = useState(false)
@@ -190,6 +195,7 @@ export function SiteAI() {
 
       // Push an empty assistant message we append streamed tokens into.
       setThinking(false)
+      setPhase("speaking") // the orb glows while the answer streams in
       setMsgs((m) => [...m, { role: "vera", text: "", href: link?.href, cta: link?.cta, followups }])
       let acc = ""
       for await (const chunk of stream) {
@@ -219,11 +225,20 @@ export function SiteAI() {
           return copy
         })
       }
+      speakThenIdle() // settle the orb after the answer lands
       return true
     } catch {
       setLlmProgress(null)
       return false // fall back to the grounded sentence
     }
+  }
+
+  // Hold the "speaking" glow for a moment after an answer lands, then settle to
+  // idle — the same gentle settle the big orb has.
+  function speakThenIdle() {
+    setPhase("speaking")
+    if (speakTimer.current) clearTimeout(speakTimer.current)
+    speakTimer.current = setTimeout(() => setPhase("idle"), 2600)
   }
 
   function send(e?: React.FormEvent) {
@@ -233,6 +248,7 @@ export function SiteAI() {
     setTyped("")
     setMsgs((m) => [...m, { role: "you", text: q }])
     setThinking(true)
+    setPhase("thinking")
 
     // Try the on-device model first (if opted in); otherwise — or on any
     // failure — answer instantly from the grounded brain. Either way the answer
@@ -245,6 +261,7 @@ export function SiteAI() {
           setThinking(false)
           const a = answerFromSite(q)
           setMsgs((m) => [...m, { role: "vera", text: a.text, href: a.href, cta: a.cta, followups: a.followups }])
+          speakThenIdle() // orb glows as the answer lands, then settles
         }, 360)
       }
     })()
@@ -264,7 +281,7 @@ export function SiteAI() {
         className="fixed bottom-5 right-5 z-[60] rounded-full p-0 transition-transform duration-300 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         style={{ width: 46, height: 46 }}
       >
-        <VeraMark size={46} active={!open} />
+        <VeraMark size={46} active phase={phase} />
       </button>
 
       <AnimatePresence>
@@ -278,7 +295,7 @@ export function SiteAI() {
           >
             {/* header */}
             <div className="flex items-center gap-2.5 border-b border-border/60 px-4 py-3">
-              <VeraMark size={24} active />
+              <VeraMark size={24} active phase={phase} />
               <div className="leading-tight flex-1">
                 <div className="text-[13px] font-semibold">Ask the guide</div>
                 <div className="font-mono text-[9px] tracking-[0.18em] uppercase text-muted-foreground">
@@ -376,7 +393,12 @@ export function SiteAI() {
               <input
                 ref={inputRef}
                 value={typed}
-                onChange={(e) => setTyped(e.target.value)}
+                onChange={(e) => {
+                  setTyped(e.target.value)
+                  // orb listens while you type, settles when the field is empty
+                  if (phase === "idle" || phase === "listening")
+                    setPhase(e.target.value ? "listening" : "idle")
+                }}
                 placeholder="Ask about the work…"
                 className="flex-1 rounded-full border border-border bg-background px-3.5 py-2 text-[13px] focus:outline-none focus:border-accent/60"
               />
