@@ -535,7 +535,7 @@ function conversationalReply(query: string): (SiteAnswer & { topic: string }) | 
   if (has("what can you do", "what do you do", "help me", "can you help", "how does this work", "what should i ask", "options")) {
     return {
       topic: "help",
-      text: "I can take you to any part of Ankur's site. Try: “show me the Oracle work”, “what's the Universe Engine?”, “your AI projects”, “the math visualizers”, or “the games”. Name a topic and I'll point you at the real thing.",
+      text: "Two things: I answer questions about anything here (the work, Vera, the galaxy, the moon, the waves, the math), and I can DO things — “show me the moon” or “fly to Mars” flies the engine there, “take me to the works” and “go back” navigate, “dark mode” / “light mode” switches the theme. Tap ♪ and I'll say it all out loud too.",
       followups: [{ label: "The work", href: "/#works" }, { label: "The Lab", href: "/lab" }, { label: "Skills", href: "/skills" }],
     }
   }

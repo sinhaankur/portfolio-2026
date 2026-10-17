@@ -44,7 +44,7 @@ type Msg = {
 
 const GREETING: Msg = {
   role: "vera",
-  text: "Hi — I'm the guide to Ankur's work. Ask about the work (Oracle, Deloitte…), Vera, the Universe Engine, the waves, or the math.",
+  text: "Hi — I'm your guide. Ask about anything here (the work, Vera, the galaxy, the moon, the waves, the math), or tell me what to do: “show me the moon”, “fly to Mars”, “take me to the works”, “dark mode”. Tap ♪ and I'll speak.",
 }
 
 // The tiny model follows EXAMPLES better than rules, so the prompt is few-shot:
