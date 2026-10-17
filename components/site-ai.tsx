@@ -1,10 +1,11 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { AnimatePresence, motion } from "framer-motion"
 import { VeraMark } from "@/components/vera-mark"
-import { answerFromSite, groundingFor } from "@/lib/site-knowledge"
+import { useVeraVoice } from "@/components/use-vera-voice"
+import { answerFromSite, groundingFor, navIntent } from "@/lib/site-knowledge"
 import {
   getWebLLMEngine,
   isWebGPUAvailable,
@@ -113,6 +114,14 @@ export function SiteAI() {
   // while it works, glows while it answers, then settles.
   const [phase, setPhase] = useState<"idle" | "listening" | "thinking" | "speaking">("idle")
   const speakTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // SHARED voice — the same on-device Kokoro voice the big Vera orb uses, so the
+  // guide speaks its answers in Vera's real voice. Opt-in (a speaker toggle),
+  // off by default; never talks unasked. One voice path for every orb.
+  const [sound, setSound] = useState(false)
+  const voice = useVeraVoice(sound)
+  // live voice loudness (0..1) → feeds the orb's wave so it rides the real audio.
+  const [level, setLevel] = useState(0)
+  const rafRef = useRef<number | null>(null)
   // Opt-in on-device LLM for warmer phrasing. Off by default (the grounded brain
   // already answers correctly); turning it on streams the first model download.
   const [llmOn, setLlmOn] = useState(false)
@@ -124,13 +133,40 @@ export function SiteAI() {
   const inputRef = useRef<HTMLInputElement>(null)
   const abortRef = useRef<AbortController | null>(null)
 
+  const router = useRouter()
+  // Remember where we were, so "go back" / "take me back" works (handheld feel).
+  const prevPath = useRef<string | null>(null)
+
   useEffect(() => {
     webgpu.current = isWebGPUAvailable()
+    // SMART BY DEFAULT: if the browser can run the on-device model, warm it
+    // automatically so answers are intelligent out of the box (this is the
+    // "loading LLM" you remember). Falls back to the instant grounded brain
+    // where WebGPU is absent — the guide is never broken, just plainer.
+    if (webgpu.current) enableLLM()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
     if (open) setTimeout(() => inputRef.current?.focus(), 120)
   }, [open])
+
+  // While the orb is speaking with sound on, sample the live voice loudness each
+  // frame so the orb's wave rides the REAL audio (like the Vera app). Idle otherwise.
+  useEffect(() => {
+    if (phase !== "speaking" || !sound) { setLevel(0); return }
+    let alive = true
+    const tick = async () => {
+      if (!alive) return
+      try {
+        const { getVoiceLevel } = await import("@/lib/kokoro-voice")
+        setLevel(getVoiceLevel())
+      } catch { /* ignore */ }
+      rafRef.current = requestAnimationFrame(tick)
+    }
+    rafRef.current = requestAnimationFrame(tick)
+    return () => { alive = false; if (rafRef.current) cancelAnimationFrame(rafRef.current) }
+  }, [phase, sound])
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })
@@ -216,16 +252,17 @@ export function SiteAI() {
       // Ankur, or doesn't actually use the grounded facts), replace it with the
       // reliable grounded sentence. The grounded brain is the source of truth; the
       // model only gets to REPHRASE it, never override it.
-      const out = acc.trim()
+      let out = acc.trim()
       if (!out || !isGroundedReply(out, context)) {
         const g = answerFromSite(query)
+        out = g.text
         setMsgs((m) => {
           const copy = m.slice()
           copy[copy.length - 1] = { role: "vera", text: g.text, href: g.href, cta: g.cta, followups: g.followups }
           return copy
         })
       }
-      speakThenIdle() // settle the orb after the answer lands
+      speakThenIdle(out) // Vera speaks the final answer, then settles
       return true
     } catch {
       setLlmProgress(null)
@@ -234,19 +271,58 @@ export function SiteAI() {
   }
 
   // Hold the "speaking" glow for a moment after an answer lands, then settle to
-  // idle — the same gentle settle the big orb has.
-  function speakThenIdle() {
+  // idle — the same gentle settle the big orb has. When sound is on, Vera's real
+  // voice SPEAKS the answer (same Kokoro voice as the big orb) and the glow holds
+  // for roughly how long she talks.
+  function speakThenIdle(text?: string) {
     setPhase("speaking")
     if (speakTimer.current) clearTimeout(speakTimer.current)
-    speakTimer.current = setTimeout(() => setPhase("idle"), 2600)
+    if (sound && text) {
+      voice.speak(text)
+      // settle a little after she'd finish (~ reading time), min 2.6s
+      const dur = Math.max(2600, text.split(/\s+/).length * 360)
+      speakTimer.current = setTimeout(() => setPhase("idle"), dur)
+    } else {
+      speakTimer.current = setTimeout(() => setPhase("idle"), 2600)
+    }
   }
 
   function send(e?: React.FormEvent) {
     e?.preventDefault()
     const q = typed.trim()
     if (!q) return
+    // unlock audio inside this click/submit gesture so Vera's voice can play
+    // later (generation is async; priming now keeps playback allowed).
+    if (sound) voice.unlock()
     setTyped("")
     setMsgs((m) => [...m, { role: "you", text: q }])
+
+    // NAVIGATION — "take me to / show me / go to X" should actually walk the
+    // visitor there (handheld), and "go back" returns. The orb announces the
+    // move, then routes. This runs before the Q&A brain.
+    const lower = q.toLowerCase()
+    if (/\b(go back|take me back|back again|previous page|return)\b/.test(lower) && prevPath.current) {
+      const dest = prevPath.current
+      const line = "Taking you back — here we go."
+      setMsgs((m) => [...m, { role: "vera", text: line }])
+      speakThenIdle(line)
+      setTimeout(() => { prevPath.current = pathname; router.push(dest) }, 650)
+      return
+    }
+    const nav = navIntent(q)
+    if (nav && nav.href !== pathname) {
+      setMsgs((m) => [...m, { role: "vera", text: nav.text, href: nav.href, cta: `Go to ${nav.topic}` }])
+      speakThenIdle(nav.text)
+      setTimeout(() => {
+        prevPath.current = pathname
+        if (nav.href.startsWith("/#")) {
+          // same-page anchor from home, or route home then scroll
+          router.push(nav.href)
+        } else router.push(nav.href)
+      }, 700)
+      return
+    }
+
     setThinking(true)
     setPhase("thinking")
 
@@ -261,7 +337,7 @@ export function SiteAI() {
           setThinking(false)
           const a = answerFromSite(q)
           setMsgs((m) => [...m, { role: "vera", text: a.text, href: a.href, cta: a.cta, followups: a.followups }])
-          speakThenIdle() // orb glows as the answer lands, then settles
+          speakThenIdle(a.text) // orb glows + Vera speaks the answer, then settles
         }, 360)
       }
     })()
@@ -281,7 +357,7 @@ export function SiteAI() {
         className="fixed bottom-5 right-5 z-[60] rounded-full p-0 transition-transform duration-300 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         style={{ width: 46, height: 46 }}
       >
-        <VeraMark size={46} active phase={phase} />
+        <VeraMark size={46} active phase={phase} level={level} />
       </button>
 
       <AnimatePresence>
@@ -295,13 +371,32 @@ export function SiteAI() {
           >
             {/* header */}
             <div className="flex items-center gap-2.5 border-b border-border/60 px-4 py-3">
-              <VeraMark size={24} active phase={phase} />
+              <VeraMark size={24} active phase={phase} level={level} />
               <div className="leading-tight flex-1">
                 <div className="text-[13px] font-semibold">Ask the guide</div>
                 <div className="font-mono text-[9px] tracking-[0.18em] uppercase text-muted-foreground">
                   about Ankur&rsquo;s work
                 </div>
               </div>
+              {/* voice toggle — speak answers in Vera's real on-device voice
+                  (same Kokoro voice as the big orb). Opt-in; off by default. */}
+              <button
+                onClick={() => {
+                  const next = !sound
+                  setSound(next)
+                  if (next) { voice.unlock(); voice.preload() } else voice.stop()
+                }}
+                data-cursor-hover
+                aria-pressed={sound}
+                title={sound
+                  ? (voice.status === "loading" ? `Warming Vera's voice… ${voice.pct}%` : "Voice on — Vera speaks her answers (on-device). Click to mute.")
+                  : "Turn on voice — Vera speaks her answers in her real on-device voice"}
+                className={`rounded-full border px-2 py-1 font-mono text-[9px] tracking-wider transition-colors ${
+                  sound ? "border-accent/60 bg-accent/15 text-foreground" : "border-border text-muted-foreground hover:border-accent/50"
+                }`}
+              >
+                {sound ? (voice.warming || voice.status === "loading" ? "♪…" : "♪ ✓") : "♪"}
+              </button>
               {/* warmer-answers toggle — opt-in on-device model */}
               {webgpu.current && (
                 <button

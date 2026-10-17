@@ -146,9 +146,11 @@ const ENTRIES: Entry[] = [
   {
     id: "universe", group: "engine",
     topic: "the Universe / Satellite Engine",
-    names: ["universe engine", "satellite engine", "satellites", "satellite", "celestial", "solar system", "orbit", "orbits", "space junk", "space debris"],
-    topics: ["space", "sky", "stars", "nasa", "engine", "planets"],
-    text: "The Satellite Engine is a Lab exploration — a real-time, date-accurate solar system with 18,600+ real satellite orbits, Mars and Moon imaging, and live space data, built entirely from real NASA/JPL/ESA data and running in your browser.",
+    names: ["universe engine", "satellite engine", "satellites", "satellite", "celestial", "solar system", "orbit", "orbits", "space junk", "space debris",
+      "moon", "the moon", "sun", "the sun", "mars", "jupiter", "saturn", "venus", "mercury", "neptune", "uranus", "pluto",
+      "planet", "planets", "stars", "star", "galaxy", "milky way", "iss", "space station", "space", "night sky", "constellation", "constellations", "black hole", "sagittarius"],
+    topics: ["space", "sky", "stars", "nasa", "engine", "planets", "moon", "sun", "mars"],
+    text: "The Satellite Engine is a Lab exploration — a real-time, date-accurate solar system you can fly through: the Sun, every planet, the Moon, real constellations and 18,600+ real satellite orbits, plus Mars/Moon imaging and live space data, all built from real NASA/JPL/ESA data and running in your browser. Click any body to fly to it.",
     href: "/lab/celestial", cta: "Open the engine",
     followups: [{ label: "The math behind it", href: "/universe-engine/math" }, { label: "The AI copilot", href: "/lab/celestial" }],
   },
@@ -399,6 +401,35 @@ function rankKeyword(query: string): { entry: Entry; score: number }[] {
 /** The single best match (back-compat for the instant deterministic answer). */
 export function matchSiteEntry(query: string): { entry: Entry; score: number } | null {
   return rankKeyword(query)[0] ?? null
+}
+
+/* ── Navigation intent ─────────────────────────────────────────────────────
+ * "take me to the satellites", "show me the moon", "open the galaxy", "go to
+ * the waves" → the guide should actually TAKE you there, not just describe it.
+ * Returns the destination (href + a warm line + what to say) or null when the
+ * query isn't a navigation request. "go back" is handled in the component. */
+const NAV_TRIGGERS =
+  /\b(take me|bring me|go to|goto|navigate|open|show me|show|let'?s see|lets see|visit|head to|jump to|take us|see the|view the|i want to see|can i see|pull up)\b/i
+
+export type NavResult = {
+  href: string
+  /** What the orb says as it walks you there. */
+  text: string
+  /** The thing it's taking you to, for the follow-up offer. */
+  topic: string
+}
+
+export function navIntent(query: string): NavResult | null {
+  if (!NAV_TRIGGERS.test(query)) return null
+  // Rank by keyword so "show me the moon" resolves the Universe Engine, etc.
+  const best = rankKeyword(query)[0]
+  if (!best || !best.entry.href) return null
+  const e = best.entry
+  return {
+    href: e.href!,
+    topic: e.topic,
+    text: `Taking you to ${e.topic} now — here we go.`,
+  }
 }
 
 /* ── Conversational layer ─────────────────────────────────────────────────

@@ -18,20 +18,30 @@ export function VeraMark({
   className = "",
   active = true,
   phase = "idle",
+  level,
 }: {
   size?: number
   className?: string
   active?: boolean
   /** Drives phase-specific motion so the orb visibly LISTENS, THINKS, SPEAKS. */
   phase?: "idle" | "listening" | "thinking" | "speaking"
+  /** 0..1 live voice loudness — when provided (while speaking), the inner wave
+   *  rides the REAL audio amplitude instead of a fixed loop, like the Vera app. */
+  level?: number
 }) {
   const reduce = useReducedMotion()
   const on = active && !reduce
+  // When a live level is supplied, feed it to the wave height var; the CSS wave
+  // keeps flowing (translateX) but its amplitude now tracks the actual voice.
+  const liveWave =
+    typeof level === "number" && phase === "speaking"
+      ? ({ ["--wv" as string]: (0.4 + level * 1.4).toFixed(2) } as React.CSSProperties)
+      : undefined
 
   return (
     <div
-      className={`vera-siri ${on ? "vera-siri--on" : ""} vera-siri--${phase} ${className}`}
-      style={{ width: size, height: size, position: "relative", isolation: "isolate" }}
+      className={`vera-siri ${on ? "vera-siri--on" : ""} vera-siri--${phase} ${liveWave ? "vera-siri--live-wave" : ""} ${className}`}
+      style={{ width: size, height: size, position: "relative", isolation: "isolate", ...liveWave }}
       role="img"
       aria-label="Vera"
     >
@@ -246,6 +256,10 @@ export function VeraMark({
           animation: vs-wave-flow 3.4s linear infinite;
         }
         .vs-wave-scroll-2 { --wv: 0.5; animation-duration: 2.5s; animation-direction: reverse; }
+        /* live voice: the inline --wv on the root drives the amplitude, overriding
+           the per-phase presets so the wave rides the REAL audio loudness. */
+        .vera-siri--live-wave .vs-wave-scroll,
+        .vera-siri--live-wave .vs-wave-scroll-2 { --wv: inherit; }
         @keyframes vs-wave-flow {
           from { transform: translateX(0)    scaleY(var(--wv, 0.4)); }
           to   { transform: translateX(-25%) scaleY(var(--wv, 0.4)); }

@@ -186,3 +186,46 @@ export function stopKokoro() {
 export function audioUnlocked(): boolean {
   return unlocked
 }
+
+/* ── Live voice level (for an audio-reactive orb) ──────────────────────────
+ * Tap the Kokoro audio element with a Web Audio AnalyserNode so the orb's wave
+ * can move with the REAL speech amplitude (loud = tall, quiet = flat). Lazily
+ * wired on first read; shared across every orb so there's one analyser, not one
+ * per component. Returns 0 when nothing is playing. */
+let analyser: AnalyserNode | null = null
+let levelData: Uint8Array<ArrayBuffer> | null = null
+let srcNode: MediaElementAudioSourceNode | null = null
+
+function ensureAnalyser() {
+  if (analyser || !audioEl) return
+  try {
+    const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+    if (!audioCtx) audioCtx = new Ctx()
+    // createMediaElementSource can only be called once per element — guard it.
+    if (!srcNode) srcNode = audioCtx.createMediaElementSource(audioEl)
+    analyser = audioCtx.createAnalyser()
+    analyser.fftSize = 256
+    analyser.smoothingTimeConstant = 0.75
+    levelData = new Uint8Array(new ArrayBuffer(analyser.frequencyBinCount))
+    // keep audible: source → analyser → speakers
+    srcNode.connect(analyser)
+    analyser.connect(audioCtx.destination)
+  } catch {
+    analyser = null // tapping failed (some browsers block it) → level stays 0
+  }
+}
+
+/** Current voice loudness, 0..1 (RMS of the waveform). 0 when silent. */
+export function getVoiceLevel(): number {
+  if (!audioEl || audioEl.paused) return 0
+  if (!analyser) ensureAnalyser()
+  if (!analyser || !levelData) return 0
+  analyser.getByteTimeDomainData(levelData)
+  let sum = 0
+  for (let i = 0; i < levelData.length; i++) {
+    const v = (levelData[i] - 128) / 128
+    sum += v * v
+  }
+  const rms = Math.sqrt(sum / levelData.length)
+  return Math.min(1, rms * 2.4) // scale so normal speech reaches ~0.6–0.9
+}
