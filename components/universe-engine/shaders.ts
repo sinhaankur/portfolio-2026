@@ -1104,3 +1104,86 @@ export const DUST_HAZE_FRAGMENT_SHADER = /* glsl */ `
     gl_FragColor = vec4(col * a, a);
   }
 `
+
+/* ── INK-ON-PAPER MILKY WAY (light / chart mode) ─────────────────────────────
+ * The additive haze + glow above only works on a dark sky: it ADDS light, which
+ * bleaches to nothing on cream paper. In the light theme the galaxy was left as
+ * a bare point field, which reads as a grey scattered smudge — a "blob", not a
+ * galaxy. This shader gives the light theme its own faithful treatment: a real
+ * Milky Way drawn in INK. Same band + core + swirled dust-lane math as the glow
+ * version, but it outputs DARK ink with alpha for NormalBlending, so on cream it
+ * paints a galaxy that DEEPENS toward the spine and core and is broken up by the
+ * pale rifts of the Great Rift — the look of a fine astronomy print / engraving.
+ * One quad, no per-star cost. The faithful complement to DUST_HAZE_FRAGMENT. */
+export const DUST_HAZE_INK_FRAGMENT_SHADER = /* glsl */ `
+  precision highp float;
+  varying vec2 vUv;
+  uniform float uTime;
+  uniform float uStrength;   // overall ink density (0..1)
+  uniform vec3  uInkColor;   // deep ink (near-black, faint cool tint)
+  uniform vec3  uCoreColor;  // slightly warm ink for the bulge so the core reads
+
+  float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+  float vnoise(vec2 p){
+    vec2 i = floor(p); vec2 f = fract(p);
+    vec2 u = f * f * (3.0 - 2.0 * f);
+    return mix(mix(hash(i), hash(i + vec2(1,0)), u.x),
+               mix(hash(i + vec2(0,1)), hash(i + vec2(1,1)), u.x), u.y);
+  }
+  float fbm(vec2 p){
+    float v = 0.0, a = 0.5;
+    for (int i = 0; i < 5; i++){ v += a * vnoise(p); p *= 2.02; a *= 0.5; }
+    return v;
+  }
+
+  void main() {
+    vec2 c = vUv - 0.5;
+
+    // SPIRAL WARP — twist the sampling frame with radius so the dust lanes sweep
+    // AROUND the core and trace the arms, exactly like the glow haze. This is
+    // what keeps the ink reading as a spiral galaxy, not a straight bar.
+    float rad = length(c) * 2.0;
+    float swirl = rad * 3.0;
+    float cs = cos(swirl), sn = sin(swirl);
+    vec2 cw = mat2(cs, -sn, sn, cs) * c;
+
+    // A THIN bright spine, not a round blob — squash the across-plane axis so the
+    // band is elongated along its length with a tight dense bulge at centre.
+    float rAlong  = abs(c.x) * 2.0;
+    float rAcross = abs(c.y) * 2.0;
+    float r = length(vec2(rAlong * 0.62, rAcross * 1.35));
+
+    // The elongated band + a concentrated central bulge.
+    float band  = pow(smoothstep(1.05, 0.0, r), 1.9);
+    // A true dense CORE: a tight almost-solid bulge so the galaxy reads as having
+    // a bright heavy centre (densest ink), the single clearest "this is a galaxy".
+    float bulge = pow(smoothstep(0.42, 0.0, length(c) * 2.0), 2.2);
+
+    // SPIRAL ARMS — a two-arm density wave along the swirled angle so the band
+    // isn't a uniform streak: brighter (denser-ink) ridges where the arms pass,
+    // lighter lanes between. This is what makes the ink read as spiral structure.
+    float ang = atan(cw.y, cw.x);
+    float arms = 0.5 + 0.5 * cos(ang * 2.0);          // two-arm wave
+    arms = mix(0.55, 1.0, pow(arms, 1.4));            // ridges denser than gaps
+
+    // Dust lanes — high-frequency filaments that LIGHTEN the band (the pale rifts
+    // of the Great Rift, where dust blocks the starlight that would lay down ink).
+    float n1 = fbm(cw * 10.0 + vec2(uTime * 0.008, 0.0));
+    float n2 = fbm(cw * 22.0 - vec2(0.0, uTime * 0.005));
+    float lanes = clamp(0.15 + 1.1 * (n1 * 0.62 + n2 * 0.38), 0.0, 1.0);
+    lanes = smoothstep(0.08, 0.9, lanes);             // carve hard: true rifts
+
+    // Ink amount: band × arms, modulated by lanes (rifts lift toward paper), with
+    // the bulge laid down nearly solid so the core is the heaviest, defined ink.
+    float bandInk = band * arms * mix(lanes, 1.0, bulge * 0.8);
+    float ink = (bandInk + bulge * 1.5) * uStrength;
+
+    // Fade the quad edge to zero so the boundary is never visible.
+    ink *= smoothstep(1.2, 0.5, r);
+    ink = clamp(ink, 0.0, 0.96);
+
+    // Warm the ink slightly in the bulge so the core isn't a flat grey disc.
+    vec3 col = mix(uInkColor, uCoreColor, clamp(bulge * 1.15, 0.0, 1.0));
+    gl_FragColor = vec4(col, ink);
+  }
+`

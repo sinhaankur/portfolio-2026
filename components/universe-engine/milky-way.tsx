@@ -31,7 +31,7 @@ import {
   ShaderMaterial,
 } from "three"
 
-import { GALAXY_VERTEX_SHADER, GALAXY_FRAGMENT_SHADER, DUST_HAZE_VERTEX_SHADER, DUST_HAZE_FRAGMENT_SHADER, DUST_LANE_FRAGMENT_SHADER } from "./shaders"
+import { GALAXY_VERTEX_SHADER, GALAXY_FRAGMENT_SHADER, DUST_HAZE_VERTEX_SHADER, DUST_HAZE_FRAGMENT_SHADER, DUST_HAZE_INK_FRAGMENT_SHADER, DUST_LANE_FRAGMENT_SHADER } from "./shaders"
 import { MILKY_WAY_INFO, SGR_A_INFO, gauss, timeWarpRef } from "./astronomy"
 import { makeFocusHandler } from "./scene-shared"
 import { NebulaClouds } from "./nebula"
@@ -97,6 +97,21 @@ export function MilkyWay({
       uBrightness: { value: 0.72 }, // richer dust glow for a clearer band
       uCoreColor: { value: new Color("#ffc089") }, // warm amber bulge
       uArmColor: { value: new Color("#5a6b9c") },  // cool dusty blue arms
+    }),
+    [],
+  )
+
+  // INK-on-paper haze uniforms — the light/chart-mode counterpart to the glow
+  // haze above. Paints the band + core + dust lanes as DARK ink that deepens
+  // toward the spine, so on cream the galaxy reads as a real astronomy print
+  // instead of a bare point-field smudge. NormalBlending (over), light only.
+  const inkMatRef = useRef<ShaderMaterial>(null)
+  const inkUniforms = useMemo(
+    () => ({
+      uTime: { value: 0 },
+      uStrength: { value: 0.0 }, // eased in after mount (set in useFrame)
+      uInkColor: { value: new Color("#232838") }, // deep cool ink for the band
+      uCoreColor: { value: new Color("#3a3226") }, // warm-tinted ink for the bulge
     }),
     [],
   )
@@ -350,7 +365,7 @@ export function MilkyWay({
       // On phones the galaxy fills a narrow frame, so the additive point field
       // stacked into a white wash that drowned the hero copy — dial the gain
       // back on mobile so the band stays luminous but the arms/colour read.
-      uBrightness: { value: invert ? 1.0 : mobile ? 1.75 : 2.3 },
+      uBrightness: { value: invert ? 0.82 : mobile ? 1.75 : 2.3 },
     }),
     [gl, invert, mobile],
   )
@@ -370,6 +385,14 @@ export function MilkyWay({
     }
     if (dustMatRef.current) {
       ;(dustMatRef.current.uniforms.uTime as { value: number }).value += delta
+    }
+    if (inkMatRef.current) {
+      const u = inkMatRef.current.uniforms
+      ;(u.uTime as { value: number }).value += delta
+      // ease the ink in so the galaxy fades up on paper rather than popping.
+      const target = mobile ? 0.82 : 0.95
+      const s = u.uStrength as { value: number }
+      s.value += (target - s.value) * Math.min(1, delta * 1.5)
     }
     if (laneMatRef.current) {
       const u = laneMatRef.current.uniforms
@@ -400,6 +423,27 @@ export function MilkyWay({
             transparent
             depthWrite={false}
             blending={AdditiveBlending}
+          />
+        </mesh>
+      )}
+
+      {/* INK-on-paper band — the light/chart-mode galaxy. Same plane + scale as
+          the glow haze, but it lays down DARK ink that deepens toward the spine
+          and core, broken by the pale rifts of the dust lanes. This is what turns
+          the light-mode galaxy from a bare dotted smudge into a real astronomy
+          print. Rendered behind the point field so the ink stars sit on the band.
+          Light theme only — dark theme keeps the additive glow above. */}
+      {invert && (
+        <mesh rotation={[-Math.PI / 2, 0, 0]} scale={[58, 34, 1]}>
+          <planeGeometry args={[1, 1]} />
+          <shaderMaterial
+            ref={inkMatRef}
+            vertexShader={DUST_HAZE_VERTEX_SHADER}
+            fragmentShader={DUST_HAZE_INK_FRAGMENT_SHADER}
+            uniforms={inkUniforms}
+            transparent
+            depthWrite={false}
+            blending={NormalBlending}
           />
         </mesh>
       )}
