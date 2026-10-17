@@ -265,6 +265,15 @@ export function SkillsBreakdown() {
       className="relative min-h-screen overflow-hidden"
       style={{ backgroundColor: INK, color: CREAM }}
     >
+      {/* the motif tiles breathe gently so the whole wall feels alive */}
+      <style>{`
+        @keyframes sk-motif-breathe {
+          0%,100% { transform: scale(1); }
+          50%     { transform: scale(1.03); }
+        }
+        .sk-motif-breathe { animation: sk-motif-breathe 7s ease-in-out infinite; }
+        @media (prefers-reduced-motion: reduce) { .sk-motif-breathe { animation: none; } }
+      `}</style>
       {/* Deconstructed-grid motif — faint cream hairlines + a few hot-accent
           tiles drifting behind the content, echoing Warhol's mosaic reveal. */}
       <GridMotif reduce={!!reduce} />
@@ -358,25 +367,54 @@ export function SkillsBreakdown() {
                 transition={{ duration: 0.6, delay: reduce ? 0 : di * 0.04, ease: EASE }}
                 aria-labelledby={`disc-${d.id}`}
               >
-                {/* Exhibit header — big index number + title */}
+                {/* Exhibit header — big index number + title. The number slides in
+                    from the left + the accent rule draws across, so each exhibit
+                    announces itself as you scroll to it (the Webflow-style reveal). */}
                 <header className="mb-8 flex items-end gap-5 md:gap-8">
-                  <span
+                  <motion.span
                     className="font-display font-light leading-none tracking-tight"
                     style={{ fontSize: "clamp(2.2rem, 7vw, 5rem)", color: ACCENT }}
+                    initial={reduce ? false : { opacity: 0, x: -24, filter: "blur(6px)" }}
+                    whileInView={{ opacity: 1, x: 0, filter: "blur(0px)" }}
+                    viewport={{ once: true, margin: "-80px" }}
+                    transition={{ duration: 0.7, ease: EASE }}
                   >
                     {String(DISCIPLINES.findIndex((x) => x.id === d.id) + 1).padStart(2, "0")}
-                  </span>
-                  <div className="pb-1 md:pb-2">
-                    <h2 id={`disc-${d.id}`} className="font-display text-2xl font-light tracking-tight md:text-4xl">
+                  </motion.span>
+                  <div className="overflow-hidden pb-1 md:pb-2">
+                    <motion.h2
+                      id={`disc-${d.id}`}
+                      className="font-display text-2xl font-light tracking-tight md:text-4xl"
+                      initial={reduce ? false : { y: "110%" }}
+                      whileInView={{ y: "0%" }}
+                      viewport={{ once: true, margin: "-80px" }}
+                      transition={{ duration: 0.7, ease: EASE }}
+                    >
                       {d.title}
-                    </h2>
-                    <p className="mt-1 font-sans text-sm md:text-base" style={{ color: MUTE }}>
+                    </motion.h2>
+                    <motion.p
+                      className="mt-1 font-sans text-sm md:text-base"
+                      style={{ color: MUTE }}
+                      initial={reduce ? false : { opacity: 0 }}
+                      whileInView={{ opacity: 1 }}
+                      viewport={{ once: true, margin: "-80px" }}
+                      transition={{ duration: 0.6, delay: 0.2, ease: EASE }}
+                    >
                       {d.line}
-                    </p>
+                    </motion.p>
                   </div>
                 </header>
 
-                <div className="grid grid-cols-1 gap-px md:grid-cols-2" style={{ backgroundColor: "rgba(255,229,213,0.1)" }}>
+                {/* Cards rise in sequence (stagger) rather than all at once — the
+                    gallery fills in like a wall being hung. */}
+                <motion.div
+                  className="grid grid-cols-1 gap-px md:grid-cols-2"
+                  style={{ backgroundColor: "rgba(255,229,213,0.1)" }}
+                  initial="hidden"
+                  whileInView="show"
+                  viewport={{ once: true, margin: "-40px" }}
+                  variants={{ show: { transition: { staggerChildren: reduce ? 0 : 0.08 } } }}
+                >
                   {d.skills.map((s) => (
                     <GProofCard
                       key={s.name}
@@ -386,7 +424,7 @@ export function SkillsBreakdown() {
                       reduce={!!reduce}
                     />
                   ))}
-                </div>
+                </motion.div>
               </motion.section>
             ))}
           </div>
@@ -483,13 +521,30 @@ function GProofCard({
   const primary = skill.proof[0]
   const extra = skill.proof.slice(1)
   return (
-    <div
+    <motion.div
       className="group relative flex flex-col transition-colors duration-300"
       style={{ backgroundColor: open ? "rgba(251,78,43,0.05)" : INK }}
+      variants={{
+        hidden: reduce ? { opacity: 0 } : { opacity: 0, y: 26 },
+        show: reduce
+          ? { opacity: 1 }
+          : { opacity: 1, y: 0, transition: { duration: 0.6, ease: EASE } },
+      }}
     >
-      {/* Visual tile — the work SHOWS. A crafted motif in the gallery palette. */}
-      <div className="relative h-36 overflow-hidden border-b md:h-44" style={{ borderColor: "rgba(255,229,213,0.1)" }}>
-        <SkillMotif motif={skill.motif} reduce={reduce} />
+      {/* Visual tile — the work SHOWS. A crafted motif in the gallery palette.
+          The motif gently breathes (so every tile has life), scales up a touch
+          on hover, and a hot-accent sweep crosses it on hover — the card reacts
+          to you, Webflow-style. */}
+      <div className="relative h-36 overflow-hidden border-b md:h-44 transition-[filter] duration-500 group-hover:brightness-125" style={{ borderColor: "rgba(255,229,213,0.1)" }}>
+        <div className={`absolute inset-0 transition-transform duration-700 ease-out group-hover:scale-[1.07] ${reduce ? "" : "sk-motif-breathe"}`}>
+          <SkillMotif motif={skill.motif} reduce={reduce} />
+        </div>
+        {/* accent sweep on hover */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 -translate-x-full opacity-0 transition-all duration-700 ease-out group-hover:translate-x-0 group-hover:opacity-100"
+          style={{ background: "linear-gradient(105deg, transparent 40%, rgba(251,78,43,0.12) 50%, transparent 60%)" }}
+        />
         {/* ink vignette so the title below sits on solid ground */}
         <div
           aria-hidden
@@ -591,7 +646,7 @@ function GProofCard({
           </>
         )}
       </div>
-    </div>
+    </motion.div>
   )
 }
 
