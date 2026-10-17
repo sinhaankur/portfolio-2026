@@ -932,7 +932,7 @@ export function UniverseEngine({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-              className="absolute top-28 right-4 md:top-16 md:right-6 z-30 pointer-events-none max-w-[16rem] md:max-w-72 rounded-lg border border-white/10 bg-black/70 px-4 py-3 backdrop-blur-sm"
+              className="absolute top-28 right-4 md:top-24 md:right-6 z-30 pointer-events-none max-w-[16rem] md:max-w-72 rounded-lg border border-white/10 bg-black/70 px-4 py-3 backdrop-blur-sm"
             >
               <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-amber-300/90">
                 <span>✦ Meteor shower tonight</span>
