@@ -123,9 +123,18 @@ function FeedView({
 }) {
   const topics = profile.topics.filter((t) => t.topic !== "other").slice(0, 5)
   const manips = profile.manipulations.slice(0, 8)
+  // "Biased vs balanced" — each dimension as a 0..1 bias score, shown against
+  // where a balanced feed would sit. All from the real engine numbers.
+  const biasBars = [
+    { label: "How engineered", bias: profile.meanHook, lo: "organic", hi: "engineered to hook" },
+    { label: "Echo chamber", bias: profile.echoChamber, lo: "diverse topics", hi: "one lane" },
+    { label: "Emotional pull", bias: Math.min(1, Math.abs(profile.meanSentiment) / 0.5), lo: "level-headed", hi: "emotionally charged" },
+  ]
   return (
     <div className="space-y-5">
       <Bolded text={profile.mirror} className="text-base leading-relaxed text-foreground" />
+
+      <BiasVsBalanced bars={biasBars} />
 
       <div className="grid grid-cols-3 gap-2">
         <Stat n={`${PCT(profile.meanHook)}%`} label="engineered" />
@@ -180,9 +189,19 @@ function FeedView({
 }
 
 function ArticleView({ a }: { a: ReturnType<typeof analyzeArticle> }) {
+  // "Biased vs balanced" for an article — loaded language, headline hype, and
+  // how one-sided the framing is (distance from balanced; direction aside).
+  // frameLean is −1…+1 (0 = balanced), so its magnitude is the one-sidedness.
+  const biasBars = [
+    { label: "Loaded language", bias: a.loadedDensity, lo: "neutral wording", hi: "telling you how to feel" },
+    { label: "Headline hype", bias: a.sensationalHeadline ? 0.85 : 0.15, lo: "plain", hi: "clickbait" },
+    { label: "One-sidedness", bias: Math.min(1, Math.abs(a.frameLean)), lo: "both sides", hi: "one side" },
+  ]
   return (
     <div className="space-y-5">
       <Bolded text={a.mirror} className="text-base leading-relaxed text-foreground" />
+
+      <BiasVsBalanced bars={biasBars} />
 
       <div className="grid grid-cols-3 gap-2">
         <Stat n={`${PCT(a.loadedDensity)}%`} label="loaded language" />
@@ -214,6 +233,63 @@ function ArticleView({ a }: { a: ReturnType<typeof analyzeArticle> }) {
           </div>
         </Lens>
       )}
+    </div>
+  )
+}
+
+/* — "Biased vs balanced" — the answer to "biased vs what". Each dimension is a
+   track from balanced (left) to heavily biased (right); the dot is where this
+   content lands, the faint band on the left is what a balanced read looks like. */
+function BiasVsBalanced({
+  bars,
+}: {
+  bars: { label: string; bias: number; lo: string; hi: string }[]
+}) {
+  const overall = bars.reduce((s, b) => s + b.bias, 0) / bars.length
+  const verdict = overall > 0.55 ? "Heavily skewed" : overall > 0.33 ? "Leaning" : "Fairly balanced"
+  const verdictTone = overall > 0.55 ? "text-red-300" : overall > 0.33 ? "text-amber-200" : "text-emerald-300"
+  return (
+    <div className="rounded-xl border border-border bg-background/40 p-4">
+      <div className="mb-3 flex items-center justify-between">
+        <span className="font-mono text-[9px] tracking-[0.16em] uppercase text-muted-foreground">
+          Biased vs balanced
+        </span>
+        <span className={`font-mono text-[10px] tracking-wide uppercase ${verdictTone}`}>{verdict}</span>
+      </div>
+      <div className="space-y-3">
+        {bars.map((b) => {
+          const pct = Math.round(Math.min(1, Math.max(0, b.bias)) * 100)
+          const tone = b.bias > 0.55 ? "bg-red-400" : b.bias > 0.33 ? "bg-amber-300" : "bg-emerald-400"
+          const dot = b.bias > 0.55 ? "#f87171" : b.bias > 0.33 ? "#fcd34d" : "#34d399"
+          return (
+            <div key={b.label}>
+              <div className="mb-1 flex items-center justify-between font-mono text-[10px] uppercase tracking-wide">
+                <span className="text-foreground/80">{b.label}</span>
+                <span className="text-muted-foreground">{pct}%</span>
+              </div>
+              <div className="relative h-2 rounded-full bg-foreground/10 overflow-hidden">
+                {/* the "balanced" zone — the first third is what balanced looks like */}
+                <span className="absolute inset-y-0 left-0 w-1/3 bg-emerald-400/10" />
+                <span aria-hidden className="absolute inset-y-0 left-1/3 w-px bg-foreground/20" />
+                {/* bias fill + marker */}
+                <span className={`block h-full rounded-full ${tone}`} style={{ width: `${pct}%` }} />
+                <span
+                  aria-hidden
+                  className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-background"
+                  style={{ left: `${pct}%`, backgroundColor: dot }}
+                />
+              </div>
+              <div className="mt-1 flex items-center justify-between font-mono text-[8px] uppercase tracking-wide text-muted-foreground/70">
+                <span>{b.lo}</span>
+                <span>{b.hi}</span>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+      <p className="mt-3 font-mono text-[9px] leading-relaxed text-muted-foreground/70">
+        The green zone is what a balanced read looks like. The dot is where this lands.
+      </p>
     </div>
   )
 }

@@ -401,16 +401,96 @@ export function matchSiteEntry(query: string): { entry: Entry; score: number } |
   return rankKeyword(query)[0] ?? null
 }
 
+/* ── Conversational layer ─────────────────────────────────────────────────
+ * Greetings, meta ("who are you", "do you understand me"), small talk and
+ * thanks don't name a project, so keyword matching used to dump the same
+ * "Happy to point you…" boilerplate every time — which read as broken. This
+ * layer gives those a real, varied, interviewer-safe reply so the guide
+ * actually CONVERSES. Returns null when the query isn't conversational, so
+ * the keyword brain still handles real questions about the work. */
+function conversationalReply(query: string): (SiteAnswer & { topic: string }) | null {
+  const q = query.toLowerCase().trim().replace(/[!.?]+$/g, "")
+  const has = (...words: string[]) => words.some((w) => q.includes(w))
+  const pick = <T,>(arr: T[]) => arr[Math.floor(Math.random() * arr.length)]
+  const workLinks = [{ label: "The work", href: "/#works" }, { label: "The Lab", href: "/lab" }]
+
+  // greeting
+  if (/^(hi|hey|hello|yo|hiya|howdy|sup|hola|namaste|good (morning|afternoon|evening))\b/.test(q)) {
+    return {
+      topic: "greeting",
+      text: pick([
+        "Hey — glad you're here. I'm the guide to Ankur's work. Ask me about the professional projects (Oracle, Deloitte, Snowtint, Rage) or the Lab experiments (Vera, the Universe Engine, the Waves, the math).",
+        "Hi! I can point you to anything on the site — the design case studies, or the things Ankur built for fun in the Lab. What are you curious about?",
+      ]),
+      followups: workLinks,
+    }
+  }
+  // how are you / what's up
+  if (has("how are you", "how r u", "how's it going", "hows it going", "how you doing", "whats up", "what's up")) {
+    return {
+      topic: "small talk",
+      text: "Running smoothly, thanks — and entirely in your browser, nothing sent anywhere. I'm here to help you find your way around Ankur's work. Want the professional projects, or the Lab experiments?",
+      followups: workLinks,
+    }
+  }
+  // who/what are you + "do you understand me"
+  if (has("who are you", "what are you", "are you real", "are you ai", "are you a bot", "do you understand", "understand me", "can you understand", "are you human")) {
+    return {
+      topic: "about the guide",
+      text: pick([
+        "I'm a small guide to this site — a deterministic brain that reads your question and points you at the real thing. I run on-device (optionally with a tiny in-browser model for warmer phrasing), so nothing you type leaves your browser. Ask me about any project and I'll take you straight there.",
+        "Good question — I'm the site's guide, not a general chatbot. I understand questions about Ankur's work and send you to the right page. Try me: ask about the Universe Engine, Vera, or the Oracle case study.",
+      ]),
+      href: "/lab/cognitive-twin", cta: "How the AI works",
+      followups: [{ label: "Vera — on-device AI", href: "/lab/cognitive-twin" }, { label: "The work", href: "/#works" }],
+    }
+  }
+  // capabilities / help
+  if (has("what can you do", "what do you do", "help me", "can you help", "how does this work", "what should i ask", "options")) {
+    return {
+      topic: "help",
+      text: "I can take you to any part of Ankur's site. Try: “show me the Oracle work”, “what's the Universe Engine?”, “your AI projects”, “the math visualizers”, or “the games”. Name a topic and I'll point you at the real thing.",
+      followups: [{ label: "The work", href: "/#works" }, { label: "The Lab", href: "/lab" }, { label: "Skills", href: "/skills" }],
+    }
+  }
+  // thanks
+  if (has("thank", "thanks", "thx", "ty ", "appreciate", "cheers")) {
+    return {
+      topic: "thanks",
+      text: pick(["Anytime — enjoy looking around.", "You're welcome! Shout if you want me to find anything else."]),
+      followups: workLinks,
+    }
+  }
+  // bye
+  if (/^(bye|goodbye|see ya|see you|cya|later|good night)\b/.test(q)) {
+    return { topic: "farewell", text: "Take care — come back anytime.", followups: [] }
+  }
+  // who is ankur
+  if (has("who is ankur", "about ankur", "tell me about ankur", "who's ankur", "about him", "about you ankur")) {
+    return {
+      topic: "about Ankur",
+      text: "Ankur Sinha is a product designer and engineer — he designs enterprise UX (Oracle, Deloitte, Snowtint, Rage) and builds the real thing too: live 3D worlds from real NASA data, on-device AI, and interactive math. A designer who ships what he designs.",
+      href: "/about", cta: "About Ankur",
+      followups: [{ label: "The work", href: "/#works" }, { label: "The Lab", href: "/lab" }],
+    }
+  }
+  return null
+}
+
 /** The grounded answer for a query, or the honest no-match fallback. */
 export function answerFromSite(query: string): SiteAnswer & { topic: string } {
+  // Real project question? Keyword brain wins. Otherwise try the conversational
+  // layer before the generic fallback, so greetings/meta get a real reply.
   const best = rankKeyword(query)[0]
   if (best) {
     const { text, href, cta, topic, followups } = best.entry
     return { text, href, cta, topic, followups }
   }
+  const chat = conversationalReply(query)
+  if (chat) return chat
   return {
     topic: "general guidance",
-    text: "Happy to point you to the right place. For professional work, ask about Oracle, Deloitte, Snowtint or Rage. For ideas and experiments, there's The Lab — Vera, the Satellite Engine, the Waves, the math visualizers and more.",
+    text: "I didn't catch a specific project in that — try naming one. For professional work, ask about Oracle, Deloitte, Snowtint or Rage. For ideas and experiments, there's The Lab — Vera, the Universe Engine, the Waves, the math visualizers and more.",
     href: "/#works", cta: "See the work",
     followups: [{ label: "The work", href: "/#works" }, { label: "The Lab (explorations)", href: "/lab" }],
   }

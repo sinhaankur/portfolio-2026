@@ -61,6 +61,22 @@ export function VeraMark({
         <span className="vs-spark" />
         {/* fine grain/shimmer — the texture that makes it feel lit, not flat */}
         <span className="vs-grain" />
+        {/* phase tint wash — blue idle · pink listening · amber speaking, so the
+            state reads at a glance exactly like the Vera app's orb */}
+        <span className="vs-tint" />
+        {/* reactive voice wave — the "alive" layer from the app: luminous ripples
+            swelling in the middle, tapering at the edges. The path is a full sine
+            train twice the orb's width; sliding it left scrolls real peaks through
+            the orb (clipped by the body), so it reads as a flowing wave — the
+            Siri-style ripple, pure SVG, portable everywhere. */}
+        <svg className="vs-wave" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden>
+          <g className="vs-wave-scroll">
+            <path className="vs-wave-a" d="M-100 50 Q -87 38 -75 50 T -50 50 T -25 50 T 0 50 T 25 50 T 50 50 T 75 50 T 100 50 T 125 50 T 150 50 T 175 50 T 200 50" />
+          </g>
+          <g className="vs-wave-scroll vs-wave-scroll-2">
+            <path className="vs-wave-b" d="M-100 50 Q -89 58 -78 50 T -56 50 T -34 50 T -12 50 T 10 50 T 32 50 T 54 50 T 76 50 T 98 50 T 120 50 T 142 50 T 164 50 T 200 50" />
+          </g>
+        </svg>
       </span>
 
       {/* glassy specular highlight (top-left) */}
@@ -80,8 +96,10 @@ export function VeraMark({
         }
         .vs-body {
           position:absolute; inset:0; border-radius:50%; overflow:hidden;
-          background:#07060e;                 /* darker base → colors read as luminous */
-          box-shadow: inset 0 0 26px rgba(0,0,0,.72), 0 6px 22px rgba(20,8,40,.5);
+          background:#0a0714;                 /* dark base → colors read as luminous */
+          /* lighter inner shadow so the vivid swirl isn't eaten at small sizes;
+             keep a soft outer drop for presence on the page. */
+          box-shadow: inset 0 0 18px rgba(0,0,0,.55), 0 6px 24px rgba(30,12,60,.55);
         }
         .vs-blob {
           position:absolute; width:64%; height:64%; border-radius:50%;
@@ -119,8 +137,8 @@ export function VeraMark({
         .vs-halo {
           position:absolute; inset:-40%; border-radius:50%; pointer-events:none;
           background: radial-gradient(circle at 50% 50%,
-            rgba(158,77,255,.22) 0%, rgba(51,133,255,.12) 38%, rgba(0,0,0,0) 68%);
-          filter: blur(22px); opacity:.9;
+            rgba(158,77,255,.30) 0%, rgba(51,133,255,.16) 38%, rgba(0,0,0,0) 68%);
+          filter: blur(22px); opacity:1;
           transition: background 800ms ease;
         }
 
@@ -128,9 +146,9 @@ export function VeraMark({
         .vs-iris {
           position:absolute; inset:-10%; border-radius:50%;
           background: conic-gradient(from 0deg,
-            rgba(255,69,144,.5), rgba(158,77,255,.5), rgba(51,133,255,.5),
-            rgba(46,217,242,.5), rgba(255,158,51,.45), rgba(255,69,144,.5));
-          filter: blur(16px); mix-blend-mode:screen; opacity:.55;
+            rgba(255,69,144,.65), rgba(158,77,255,.65), rgba(51,133,255,.65),
+            rgba(46,217,242,.65), rgba(255,158,51,.6), rgba(255,69,144,.65));
+          filter: blur(16px); mix-blend-mode:screen; opacity:.75;
         }
 
         /* inner counter-layer: smaller, tighter blobs so the swirl has two scales */
@@ -191,10 +209,60 @@ export function VeraMark({
         }
         .vs-ripple-2 { border-color: rgba(46,217,242,.4); }
 
+        /* ── phase tint wash (matches the Vera app: blue idle · pink listening ·
+           amber speaking). A soft-light circle over the swirl so the STATE reads
+           at a glance while the iridescence still shows underneath. ── */
+        .vs-tint {
+          position:absolute; inset:0; border-radius:50%; pointer-events:none;
+          mix-blend-mode:screen; opacity:.7; transition: background 600ms ease, opacity 600ms ease;
+          background: radial-gradient(circle at 50% 45%, rgba(45,110,255,.6), rgba(25,60,170,.3) 68%, rgba(0,0,0,0) 82%);
+        }
+        .vera-siri--listening .vs-tint {
+          background: radial-gradient(circle at 50% 45%, rgba(255,60,135,.72), rgba(195,35,105,.35) 68%, rgba(0,0,0,0) 82%); opacity:.82; }
+        .vera-siri--thinking .vs-tint {
+          background: radial-gradient(circle at 50% 45%, rgba(150,75,255,.6), rgba(95,45,185,.3) 68%, rgba(0,0,0,0) 82%); opacity:.7; }
+        .vera-siri--speaking .vs-tint {
+          mix-blend-mode: screen;
+          background: radial-gradient(circle at 50% 45%, rgba(255,150,40,.7), rgba(220,110,20,.35) 68%, rgba(0,0,0,0) 82%); opacity:.85; }
+
+        /* ── reactive voice wave — the app's "alive" layer. Two luminous ripples
+           across the middle, swelling in the centre, tapering at the edges. At
+           idle it's a calm low ripple; listening/speaking make it taller + faster. ── */
+        .vs-wave {
+          position:absolute; inset:0; width:100%; height:100%; pointer-events:none;
+          mix-blend-mode:plus-lighter; overflow:visible;
+          opacity:.5; transition: opacity 500ms ease;
+        }
+        .vs-wave path { fill:none; stroke-linecap:round; vector-effect:non-scaling-stroke; }
+        .vs-wave-a { stroke: rgba(255,255,255,.85); stroke-width:1.6; }
+        .vs-wave-b { stroke: rgba(180,210,255,.7); stroke-width:1.1; }
+        /* the sine train slides left so real peaks scroll through the orb; the
+           group's own vertical scale sets the wave height (calm at idle, tall when
+           active). One slide cycle = 100 units = one wavelength, so it loops
+           seamlessly. */
+        .vs-wave-scroll {
+          --wv: 0.5;                 /* idle wave height; phases raise it */
+          transform-origin:center;
+          animation: vs-wave-flow 3.4s linear infinite;
+        }
+        .vs-wave-scroll-2 { --wv: 0.5; animation-duration: 2.5s; animation-direction: reverse; }
+        @keyframes vs-wave-flow {
+          from { transform: translateX(0)    scaleY(var(--wv, 0.4)); }
+          to   { transform: translateX(-25%) scaleY(var(--wv, 0.4)); }
+        }
+
         /* LISTENING — gentle ripples radiate outward, like she's receiving you */
         .vera-siri--listening .vs-ripple  { animation: vs-ring 1.9s ease-out infinite; }
         .vera-siri--listening .vs-ripple-2 { animation: vs-ring 1.9s ease-out .95s infinite; }
         .vera-siri--listening .vs-bloom   { animation: vs-breathe 2.6s ease-in-out infinite; }
+        /* wave jumps tall + quick while receiving you */
+        .vera-siri--listening .vs-wave { opacity:1; }
+        .vera-siri--listening .vs-wave-scroll   { --wv: 1.1; animation-duration: 1.4s; }
+        .vera-siri--listening .vs-wave-scroll-2 { --wv: 1.1; animation-duration: 1.0s; }
+        /* bias warm/cool balance toward PINK while listening */
+        .vera-siri--listening .vs-orange { opacity:.3; }
+        .vera-siri--listening .vs-pink,
+        .vera-siri--listening .vs-magenta { opacity:1; transform:scale(1.1); }
 
         /* THINKING — the swirl slows and dims a touch, the core flickers softly,
            a quiet 'turning it over' feel */
@@ -210,6 +278,21 @@ export function VeraMark({
            bloom pulses with her voice, the core glows hot */
         .vera-siri--speaking .vs-bloom { animation: vs-speak-glow 0.9s ease-in-out infinite; }
         .vera-siri--speaking .vs-core  { animation: vs-pulse 0.7s ease-in-out infinite; }
+        /* wave flows fast + bright + tall while speaking */
+        .vera-siri--speaking .vs-wave { opacity:1; }
+        .vera-siri--speaking .vs-wave-scroll   { --wv: 1.4; animation-duration: 1.0s; }
+        .vera-siri--speaking .vs-wave-scroll-2 { --wv: 1.4; animation-duration: 0.75s; }
+        /* bias the swirl WARM when speaking (dim cool blobs, lift the orange) so
+           the orb actually reads amber like the app, not just a warm wash on top */
+        .vera-siri--speaking .vs-blue,
+        .vera-siri--speaking .vs-cyan,
+        .vera-siri--speaking .vs-teal   { opacity:.25; }
+        .vera-siri--speaking .vs-orange { opacity:1; transform:scale(1.15); }
+        .vera-siri--speaking .vs-pink   { opacity:.8; }
+        /* thinking — wave settles to a slow low ripple */
+        .vera-siri--thinking .vs-wave { opacity:.5; }
+        .vera-siri--thinking .vs-wave-scroll   { --wv: 0.45; animation-duration: 5s; }
+        .vera-siri--thinking .vs-wave-scroll-2 { --wv: 0.45; animation-duration: 4s; }
         .vera-siri--speaking .vs-pink   { animation-duration: 4.2s; }
         .vera-siri--speaking .vs-purple { animation-duration: 5s; }
         .vera-siri--speaking .vs-blue   { animation-duration: 5.8s; }
