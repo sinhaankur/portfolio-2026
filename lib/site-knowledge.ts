@@ -432,6 +432,61 @@ export function navIntent(query: string): NavResult | null {
   }
 }
 
+/* ── Site commands ─────────────────────────────────────────────────────────
+ * The orb can DO things in the browser, not just answer: switch theme, fly to a
+ * planet in the engine, scroll to a section. (Real day-to-day automation lives
+ * in the native Vera app — a browser is sandboxed — but the orb fully drives the
+ * SITE.) Returns a structured command the component executes, or null. */
+export type SiteCommand =
+  | { kind: "theme"; value: "light" | "dark"; text: string }
+  | { kind: "fly"; pointId: string; body: string; text: string }
+  | { kind: "scroll"; anchor: string; label: string; text: string }
+
+// Bodies you can fly to in the engine, by the names people say → the engine's
+// pointId. Planets use "planet:Name"; the Moon + Sun + Sgr A* are special.
+const FLYABLE: { aliases: string[]; pointId: string; body: string }[] = [
+  { aliases: ["mercury"], pointId: "planet:Mercury", body: "Mercury" },
+  { aliases: ["venus"], pointId: "planet:Venus", body: "Venus" },
+  { aliases: ["earth", "home", "our planet"], pointId: "planet:Earth", body: "Earth" },
+  { aliases: ["mars", "red planet"], pointId: "planet:Mars", body: "Mars" },
+  { aliases: ["jupiter"], pointId: "planet:Jupiter", body: "Jupiter" },
+  { aliases: ["saturn", "rings"], pointId: "planet:Saturn", body: "Saturn" },
+  { aliases: ["uranus"], pointId: "planet:Uranus", body: "Uranus" },
+  { aliases: ["neptune"], pointId: "planet:Neptune", body: "Neptune" },
+  { aliases: ["the moon", "moon", "luna"], pointId: "moon:Moon", body: "the Moon" },
+  { aliases: ["the sun", "sun", "sol"], pointId: "planet:Sun", body: "the Sun" },
+]
+
+const SECTIONS: { aliases: string[]; anchor: string; label: string }[] = [
+  { aliases: ["works", "work", "projects", "case studies"], anchor: "#works", label: "the work" },
+  { aliases: ["contact", "get in touch", "email", "reach"], anchor: "#contact", label: "contact" },
+]
+
+export function siteCommand(query: string, onEngine: boolean): SiteCommand | null {
+  const q = query.toLowerCase().trim()
+  // theme
+  if (/\b(dark mode|dark theme|turn.*dark|go dark|lights off|night mode)\b/.test(q))
+    return { kind: "theme", value: "dark", text: "Switching to dark — easier on the eyes." }
+  if (/\b(light mode|light theme|turn.*light|go light|lights on|day mode|bright)\b/.test(q))
+    return { kind: "theme", value: "light", text: "Switching to light." }
+  // fly to a body — only meaningful while the engine is on screen
+  if (onEngine && /\b(fly|go|take me|show me|zoom|visit|look at|focus)\b/.test(q)) {
+    for (const f of FLYABLE) {
+      if (f.aliases.some((a) => (a.includes(" ") ? q.includes(a) : new RegExp(`\\b${a}\\b`).test(q)))) {
+        return { kind: "fly", pointId: f.pointId, body: f.body, text: `Flying to ${f.body} — watch the sky.` }
+      }
+    }
+  }
+  // scroll to a home section
+  if (/\b(scroll|take me|go|jump|show)\b/.test(q)) {
+    for (const s of SECTIONS) {
+      if (s.aliases.some((a) => q.includes(a)))
+        return { kind: "scroll", anchor: s.anchor, label: s.label, text: `Scrolling to ${s.label}.` }
+    }
+  }
+  return null
+}
+
 /* ── Conversational layer ─────────────────────────────────────────────────
  * Greetings, meta ("who are you", "do you understand me"), small talk and
  * thanks don't name a project, so keyword matching used to dump the same

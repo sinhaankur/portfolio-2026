@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import { AnimatePresence, motion } from "framer-motion"
+import { useTheme } from "next-themes"
 import { VeraMark } from "@/components/vera-mark"
 import { useVeraVoice } from "@/components/use-vera-voice"
-import { answerFromSite, groundingFor, navIntent } from "@/lib/site-knowledge"
+import { answerFromSite, groundingFor, navIntent, siteCommand } from "@/lib/site-knowledge"
 import {
   getWebLLMEngine,
   isWebGPUAvailable,
@@ -134,8 +135,12 @@ export function SiteAI() {
   const abortRef = useRef<AbortController | null>(null)
 
   const router = useRouter()
+  const { setTheme } = useTheme()
   // Remember where we were, so "go back" / "take me back" works (handheld feel).
   const prevPath = useRef<string | null>(null)
+  // true when the Universe Engine is on screen (home hero or /lab/celestial) —
+  // gates "fly to Mars" so it only runs where there's a sky to fly in.
+  const onEngine = pathname === "/" || pathname.startsWith("/lab/celestial")
 
   useEffect(() => {
     webgpu.current = isWebGPUAvailable()
@@ -296,6 +301,22 @@ export function SiteAI() {
     if (sound) voice.unlock()
     setTyped("")
     setMsgs((m) => [...m, { role: "you", text: q }])
+
+    // SITE COMMANDS — the orb DOES things: switch theme, fly to a planet in the
+    // engine, scroll to a section. Checked first (most specific).
+    const cmd = siteCommand(q, onEngine)
+    if (cmd) {
+      setMsgs((m) => [...m, { role: "vera", text: cmd.text }])
+      speakThenIdle(cmd.text)
+      if (cmd.kind === "theme") setTheme(cmd.value)
+      else if (cmd.kind === "fly" && typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("universe:sky-focus", { detail: { pointId: cmd.pointId } }))
+      } else if (cmd.kind === "scroll") {
+        if (pathname === "/") document.querySelector(cmd.anchor)?.scrollIntoView({ behavior: "smooth" })
+        else { prevPath.current = pathname; router.push("/" + cmd.anchor) }
+      }
+      return
+    }
 
     // NAVIGATION — "take me to / show me / go to X" should actually walk the
     // visitor there (handheld), and "go back" returns. The orb announces the
