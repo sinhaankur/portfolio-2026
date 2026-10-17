@@ -1,496 +1,527 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { motion, useReducedMotion } from "framer-motion"
+import Link from "next/link"
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
+
+/* =========================================================================
+   SKILLS — a gallery, not a resume.
+
+   Proof-first content (no self-scored stars / meters / "years" dots — those
+   are theatre), dressed as a dark exhibition in the spirit of the Warhol-Arts
+   concept: a pure-black room, warm-cream type, ONE hot burnt-orange accent,
+   enormous display headline, technical filing notation (00_1), each discipline
+   an "exhibit". Every skill earns its wall space by pointing at REAL work you
+   can open. "Don't rate yourself. Show the receipts."
+
+   This page runs its own fixed dark palette regardless of site theme — it's a
+   room you step into, like a gallery.
+========================================================================= */
+
+type Proof = {
+  label: string
+  href: string
+  kind: "case" | "live"
+}
 
 type Skill = {
   name: string
-  category: SkillCategory
-  proficiency: 1 | 2 | 3 | 4 | 5
-  years: number
-  projects: string[]
-  evidence: string
+  what: string
+  proof: Proof[]
 }
 
-type SkillCategory =
-  | "Strategy"
-  | "UX Core"
-  | "Systems"
-  | "Research"
-  | "Leadership"
-  | "Build"
-  | "Quality"
-  | "Innovation"
-  | "Craft"
+type Discipline = {
+  id: string
+  title: string
+  line: string
+  skills: Skill[]
+}
 
-// Projects on this page are restricted to company experience only —
-// independent / lab / portfolio work is showcased on the Lab section, not here.
-const skills: Skill[] = [
-  { name: "Enterprise UX Strategy",      category: "Strategy",   proficiency: 5, years: 8,  projects: ["Oracle", "Deloitte"],                       evidence: "Shaped console-level flows for high-complexity enterprise workflows." },
-  { name: "Product Thinking",            category: "Strategy",   proficiency: 5, years: 9,  projects: ["Oracle", "Deloitte"],                       evidence: "Balanced user value and platform constraints to prioritize roadmap outcomes." },
-  { name: "Information Architecture",    category: "UX Core",    proficiency: 5, years: 9,  projects: ["Oracle", "Snowtint", "Deloitte"],            evidence: "Improved discoverability and task success by restructuring dense navigation systems." },
-  { name: "Interaction Design",          category: "UX Core",    proficiency: 5, years: 10, projects: ["Oracle", "Rage", "Deloitte"],                evidence: "Designed patterns for edge states, progressive disclosure, and safer destructive actions." },
-  { name: "Design Systems",              category: "Systems",    proficiency: 4, years: 7,  projects: ["Oracle"],                                    evidence: "Created reusable patterns on HgDS/RDS for consistency across DBaaS surfaces." },
-  { name: "Usability Testing",           category: "Research",   proficiency: 4, years: 8,  projects: ["Deloitte", "Snowtint", "Rage"],              evidence: "Used feedback loops from test sessions to prune friction and improve completion rates." },
-  { name: "Stakeholder Facilitation",    category: "Leadership", proficiency: 5, years: 9,  projects: ["Oracle", "Deloitte"],                       evidence: "Aligned product, engineering, and business goals in highly constrained timelines." },
-  { name: "Mentorship & Coaching",       category: "Leadership", proficiency: 4, years: 5,  projects: ["Oracle", "Deloitte"],                       evidence: "Mentored designers and codified critique cadence within enterprise design teams." },
-  { name: "Front-end Prototyping",       category: "Build",      proficiency: 4, years: 6,  projects: ["Oracle", "Snowtint"],                       evidence: "Built interactive prototypes in HTML/CSS/JS to validate behavior before implementation." },
-  { name: "Inclusive Design",            category: "Quality",    proficiency: 4, years: 7,  projects: ["Oracle", "Deloitte"],                       evidence: "Applied accessible structures, contrast and language clarity to reduce exclusion." },
-  { name: "AI-assisted Workflow Design", category: "Innovation", proficiency: 4, years: 3,  projects: ["Oracle"],                                    evidence: "Introduced practical AI interactions without adding cognitive overhead." },
-  { name: "Visual Communication",        category: "Craft",      proficiency: 4, years: 10, projects: ["Snowtint", "Rage"],                          evidence: "Used visual hierarchy and tone to make complex information easier to scan." },
+// Every proof href is a real route (app/works/*, app/lab/*, /usability,
+// /framework, /library, /math, /llm). Nothing links to work that doesn't exist.
+const DISCIPLINES: Discipline[] = [
+  {
+    id: "strategy",
+    title: "Strategy & product",
+    line: "Deciding what to build, for whom, under real constraints.",
+    skills: [
+      {
+        name: "Enterprise UX strategy",
+        what: "Shaping console-level flows for high-complexity systems where a wrong default costs real money.",
+        proof: [
+          { label: "Oracle — database console", href: "/works/oracle", kind: "case" },
+          { label: "Deloitte — enterprise platform", href: "/works/deloitte", kind: "case" },
+        ],
+      },
+      {
+        name: "Product thinking",
+        what: "Weighing user value against platform constraints to decide what ships — and what waits.",
+        proof: [
+          { label: "Oracle case study", href: "/works/oracle", kind: "case" },
+          { label: "The Lab — shipped solo", href: "/lab", kind: "live" },
+        ],
+      },
+      {
+        name: "Framework thinking",
+        what: "Turning scattered UX intuition into a teachable system — laws of cognition you can apply.",
+        proof: [{ label: "The Universal Experience Framework", href: "/framework", kind: "live" }],
+      },
+    ],
+  },
+  {
+    id: "ux-core",
+    title: "UX craft",
+    line: "The core moves — structure, interaction, the states nobody else designs.",
+    skills: [
+      {
+        name: "Information architecture",
+        what: "Restructuring dense navigation so people find things — measured by task success, not taste.",
+        proof: [
+          { label: "Oracle — restructured DBaaS", href: "/works/oracle", kind: "case" },
+          { label: "Snowtint", href: "/works/snowtint", kind: "case" },
+        ],
+      },
+      {
+        name: "Interaction design",
+        what: "Designing the edge states — progressive disclosure, empty states, safer destructive actions.",
+        proof: [
+          { label: "Rage — interaction patterns", href: "/works/rage", kind: "case" },
+          { label: "Oracle", href: "/works/oracle", kind: "case" },
+        ],
+      },
+      {
+        name: "Design systems",
+        what: "Reusable patterns so a hundred screens stay consistent without a hundred decisions.",
+        proof: [
+          { label: "Oracle — RDS / HgDS", href: "/works/oracle", kind: "case" },
+          { label: "My craft library", href: "/library", kind: "live" },
+        ],
+      },
+      {
+        name: "Usability engineering",
+        what: "Making usability checkable — a framework and a live engine, not a gut-feel checklist.",
+        proof: [
+          { label: "The Usability Engine — open it", href: "/usability", kind: "live" },
+          { label: "Why it's built this way", href: "/lab/usability-engine", kind: "case" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "build",
+    title: "Build",
+    line: "A designer who writes the real thing — not a mockup of it.",
+    skills: [
+      {
+        name: "Front-end engineering",
+        what: "Shipping production React / WebGL — this whole site, and a live galaxy in your browser.",
+        proof: [
+          { label: "The Universe Engine — live", href: "/lab/celestial", kind: "live" },
+          { label: "Unhosted — open-source flagship", href: "/lab/unhosted", kind: "case" },
+        ],
+      },
+      {
+        name: "Real-time 3D / graphics",
+        what: "Pure-GLSL worlds built from real NASA/JPL data — stars rendered from their measured physics.",
+        proof: [
+          { label: "The galaxy, from real data", href: "/lab/celestial", kind: "live" },
+          { label: "Real planetary terrain", href: "/lab/terrain", kind: "live" },
+        ],
+      },
+      {
+        name: "On-device AI",
+        what: "Keyless, in-browser models — a copilot that runs on your machine, not someone's server.",
+        proof: [
+          { label: "The on-device copilot", href: "/lab/celestial", kind: "live" },
+          { label: "Cognitive Twin — local-first AI", href: "/lab/cognitive-twin", kind: "live" },
+        ],
+      },
+      {
+        name: "Teaching the math, visibly",
+        what: "The real equations behind the work, made interactive — e^{iπ}, Fourier, π, how an LLM works.",
+        proof: [
+          { label: "Mathematics, made visible", href: "/math", kind: "live" },
+          { label: "How a language model works", href: "/llm", kind: "live" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "people",
+    title: "People & quality",
+    line: "The work around the work — alignment, inclusion, research.",
+    skills: [
+      {
+        name: "Stakeholder facilitation",
+        what: "Getting product, engineering and business to one decision inside brutal timelines.",
+        proof: [
+          { label: "Oracle", href: "/works/oracle", kind: "case" },
+          { label: "Deloitte", href: "/works/deloitte", kind: "case" },
+        ],
+      },
+      {
+        name: "Research & usability testing",
+        what: "Running the sessions, then pruning the friction they revealed — completion rate as the scoreboard.",
+        proof: [
+          { label: "Deloitte", href: "/works/deloitte", kind: "case" },
+          { label: "Rage", href: "/works/rage", kind: "case" },
+        ],
+      },
+      {
+        name: "Inclusive design",
+        what: "Accessible structure, contrast and plain language — so the system excludes fewer people by default.",
+        proof: [
+          { label: "Oracle — accessible console", href: "/works/oracle", kind: "case" },
+          { label: "The framework's cognition laws", href: "/framework", kind: "live" },
+        ],
+      },
+    ],
+  },
 ]
 
-const allCategories = Array.from(new Set(skills.map((s) => s.category))) as SkillCategory[]
-const allProjects = Array.from(new Set(skills.flatMap((s) => s.projects))).sort()
+const ALL_SKILLS = DISCIPLINES.flatMap((d) => d.skills)
+const ALL_PROJECTS = Array.from(
+  new Set(ALL_SKILLS.flatMap((s) => s.proof.map((p) => projectName(p.href)))),
+)
+  .filter(Boolean)
+  .sort() as string[]
 
-type ViewMode = "matrix" | "list"
+function projectName(href: string): string {
+  if (href.startsWith("/works/")) {
+    const slug = href.split("/")[2]
+    return slug.charAt(0).toUpperCase() + slug.slice(1)
+  }
+  if (
+    href.startsWith("/lab") ||
+    ["/framework", "/usability", "/library", "/math", "/llm"].some((p) => href.startsWith(p))
+  )
+    return "The Lab"
+  return ""
+}
+
+const EASE = [0.16, 1, 0.3, 1] as const
+
+// The gallery palette — fixed, theme-independent (you step into the room).
+const INK = "#000000"
+const CREAM = "#ffe5d5"
+const ACCENT = "#fb4e2b"
+const MUTE = "#8a7a70"
 
 export function SkillsBreakdown() {
-  const prefersReducedMotion = useReducedMotion()
-  const [view, setView] = useState<ViewMode>("matrix")
-  const [category, setCategory] = useState<SkillCategory | "All">("All")
+  const reduce = useReducedMotion()
+  const [discipline, setDiscipline] = useState<string | "All">("All")
   const [project, setProject] = useState<string>("All")
+  const [open, setOpen] = useState<string | null>(null)
 
-  const filtered = useMemo(() => {
-    return skills.filter((s) => {
-      if (category !== "All" && s.category !== category) return false
-      if (project !== "All" && !s.projects.includes(project)) return false
-      return true
-    })
-  }, [category, project])
+  const shown = useMemo(() => {
+    return DISCIPLINES.map((d) => ({
+      ...d,
+      skills: d.skills.filter((s) => {
+        if (project !== "All" && !s.proof.some((p) => projectName(p.href) === project)) return false
+        return true
+      }),
+    })).filter((d) => (discipline === "All" || d.id === discipline) && d.skills.length > 0)
+  }, [discipline, project])
 
-  // Group filtered skills by category, preserving the canonical category order
-  const grouped = useMemo(() => {
-    const map = new Map<SkillCategory, Skill[]>()
-    for (const cat of allCategories) {
-      const list = filtered.filter((s) => s.category === cat)
-      if (list.length) map.set(cat, list)
-    }
-    return Array.from(map.entries())
-  }, [filtered])
-
-  const totalYears = useMemo(() => {
-    return Math.max(...skills.map((s) => s.years))
-  }, [])
-
-  const resetFilters = () => {
-    setCategory("All")
-    setProject("All")
-  }
-
-  const filtersActive = category !== "All" || project !== "All"
+  const shownCount = shown.reduce((n, d) => n + d.skills.length, 0)
+  const filtersActive = discipline !== "All" || project !== "All"
 
   return (
-    <section className="relative py-24 md:py-32 px-6 md:px-12">
-      <div className="mx-auto w-full max-w-6xl">
-        {/* Header — narrative, not generic */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
+    <section
+      className="relative min-h-screen overflow-hidden"
+      style={{ backgroundColor: INK, color: CREAM }}
+    >
+      {/* Deconstructed-grid motif — faint cream hairlines + a few hot-accent
+          tiles drifting behind the content, echoing Warhol's mosaic reveal. */}
+      <GridMotif reduce={!!reduce} />
+
+      {/* Edge filing notation — the "00_1" gallery chrome. */}
+      <div
+        className="pointer-events-none absolute left-4 top-28 z-10 hidden select-none font-mono text-[10px] tracking-[0.3em] md:block"
+        style={{ color: MUTE, writingMode: "vertical-rl" }}
+      >
+        00_SKILLS · SHOWN NOT SCORED
+      </div>
+      <div
+        className="pointer-events-none absolute right-4 top-28 z-10 hidden select-none font-mono text-[10px] tracking-[0.3em] md:block"
+        style={{ color: MUTE, writingMode: "vertical-rl" }}
+      >
+        AnkurSinha · {new Date().getFullYear()}
+      </div>
+
+      <div className="relative z-10 mx-auto w-full max-w-6xl px-6 py-28 md:px-12 md:py-36">
+        {/* MASSIVE display headline — the gallery nameplate. */}
+        <motion.header
+          initial={reduce ? false : { opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.7 }}
-          className="mb-16 md:mb-20 max-w-4xl"
+          transition={{ duration: 0.8, ease: EASE }}
+          className="mb-16 md:mb-24"
         >
-          <p className="font-mono text-xs tracking-[0.3em] text-muted-foreground mb-4">
-            Skills · Twelve practices · One through-line
+          <p className="mb-6 font-mono text-[11px] tracking-[0.4em]" style={{ color: ACCENT }}>
+            EXHIBIT · THE WORK THAT EARNED IT
           </p>
-          <h1 className="font-display text-4xl md:text-6xl lg:text-7xl font-light tracking-[-0.02em] leading-[1.02]">
-            <span className="italic">What I'm</span> good at —
-            <br />
-            with the work that <span className="italic">earned it</span>.
+          <h1
+            className="font-display font-light leading-[0.86] tracking-[-0.03em]"
+            style={{ fontSize: "clamp(3.2rem, 13vw, 11rem)" }}
+          >
+            SKILLS
           </h1>
-          <p className="mt-8 font-sans text-base md:text-lg text-foreground/80 leading-relaxed max-w-2xl">
-            Not a checklist. Each practice below is tied to the projects, the
-            companies, and the years that produced it. Filter by what you care
-            about — the rest gets out of the way.
+          <p className="mt-8 max-w-2xl font-sans text-lg leading-relaxed md:text-xl" style={{ color: CREAM }}>
+            I won&apos;t <span className="italic" style={{ color: ACCENT }}>rate</span> myself —
+            no stars, no &ldquo;9/10&rdquo;, no bar charts. Every skill here is a
+            wall label pointing at real work you can open: a shipped case study,
+            or a live thing running right now. <span style={{ color: MUTE }}>Tap one to see the proof.</span>
           </p>
+        </motion.header>
+
+        {/* Filter rail — technical chips */}
+        <motion.div
+          initial={reduce ? false : { opacity: 0, y: 12 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, delay: 0.05, ease: EASE }}
+          className="mb-16 flex flex-wrap items-center gap-2.5 border-y py-5"
+          style={{ borderColor: "rgba(255,229,213,0.12)" }}
+        >
+          <GChip active={discipline === "All" && project === "All"} onClick={() => { setDiscipline("All"); setProject("All") }}>
+            ALL
+          </GChip>
+          {DISCIPLINES.map((d, i) => (
+            <GChip key={d.id} active={discipline === d.id} onClick={() => setDiscipline(discipline === d.id ? "All" : d.id)}>
+              {String(i + 1).padStart(2, "0")} · {d.title}
+            </GChip>
+          ))}
+          <span aria-hidden className="mx-1 h-4 w-px" style={{ backgroundColor: "rgba(255,229,213,0.18)" }} />
+          {ALL_PROJECTS.map((p) => (
+            <GChip key={p} active={project === p} onClick={() => setProject(project === p ? "All" : p)} tone="project">
+              {p}
+            </GChip>
+          ))}
+          {filtersActive && (
+            <span className="ml-auto font-mono text-[11px] tracking-wider" style={{ color: MUTE }}>
+              {shownCount} ON VIEW
+            </span>
+          )}
         </motion.div>
 
-        {/* Filters — single row, no slider */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.05 }}
-          className="mb-10 flex flex-wrap items-end gap-4 md:gap-6"
-        >
-          <div className="flex flex-col gap-2 min-w-0 flex-1 md:flex-initial md:min-w-48">
-            <label className="font-mono text-[10px] tracking-[0.25em] uppercase text-muted-foreground">
-              Filter by category
-            </label>
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value as SkillCategory | "All")}
-              className="
-                w-full px-3 py-2 rounded-md
-                border border-border bg-background text-foreground
-                font-mono text-xs tracking-wider
-                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
-                focus-visible:ring-offset-2 focus-visible:ring-offset-background
-                cursor-pointer
-              "
-              aria-label="Filter by category"
-            >
-              <option value="All">All categories</option>
-              {allCategories.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex flex-col gap-2 min-w-0 flex-1 md:flex-initial md:min-w-48">
-            <label className="font-mono text-[10px] tracking-[0.25em] uppercase text-muted-foreground">
-              Filter by project
-            </label>
-            <select
-              value={project}
-              onChange={(e) => setProject(e.target.value)}
-              className="
-                w-full px-3 py-2 rounded-md
-                border border-border bg-background text-foreground
-                font-mono text-xs tracking-wider
-                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
-                focus-visible:ring-offset-2 focus-visible:ring-offset-background
-                cursor-pointer
-              "
-              aria-label="Filter by project"
-            >
-              <option value="All">All projects</option>
-              {allProjects.map((p) => (
-                <option key={p} value={p}>
-                  {p}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {filtersActive && (
-            <button
-              onClick={resetFilters}
-              data-cursor-hover
-              className="
-                self-stretch flex items-center gap-2 px-4
-                border border-border rounded-md
-                font-mono text-[10px] tracking-widest uppercase
-                text-muted-foreground hover:text-foreground hover:border-accent/60
-                transition-colors duration-300
-                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
-                focus-visible:ring-offset-2 focus-visible:ring-offset-background
-              "
-            >
-              Reset
-            </button>
-          )}
-
-          {/* View toggle pushed to the right */}
-          <div
-            role="tablist"
-            aria-label="View mode"
-            className="ml-auto inline-flex border border-border rounded-md overflow-hidden self-end"
+        {/* Exhibits */}
+        {shown.length === 0 ? (
+          <p
+            className="rounded-md border border-dashed py-12 text-center font-mono text-sm"
+            style={{ borderColor: "rgba(255,229,213,0.2)", color: MUTE }}
           >
-            {(["matrix", "list"] as ViewMode[]).map((mode) => (
-              <button
-                key={mode}
-                role="tab"
-                aria-selected={view === mode}
-                onClick={() => setView(mode)}
-                data-cursor-hover
-                className={`
-                  px-4 py-2.5 font-mono text-[10px] tracking-widest uppercase
-                  transition-colors duration-200
-                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
-                  focus-visible:ring-offset-2 focus-visible:ring-offset-background
-                  ${
-                    view === mode
-                      ? "bg-foreground text-background"
-                      : "bg-background text-muted-foreground hover:text-foreground"
-                  }
-                `}
+            Nothing matches that filter.
+          </p>
+        ) : (
+          <div className="space-y-20 md:space-y-28">
+            {shown.map((d, di) => (
+              <motion.section
+                key={d.id}
+                initial={reduce ? false : { opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-60px" }}
+                transition={{ duration: 0.6, delay: reduce ? 0 : di * 0.04, ease: EASE }}
+                aria-labelledby={`disc-${d.id}`}
               >
-                {mode}
-              </button>
+                {/* Exhibit header — big index number + title */}
+                <header className="mb-8 flex items-end gap-5 md:gap-8">
+                  <span
+                    className="font-display font-light leading-none tracking-tight"
+                    style={{ fontSize: "clamp(2.2rem, 7vw, 5rem)", color: ACCENT }}
+                  >
+                    {String(DISCIPLINES.findIndex((x) => x.id === d.id) + 1).padStart(2, "0")}
+                  </span>
+                  <div className="pb-1 md:pb-2">
+                    <h2 id={`disc-${d.id}`} className="font-display text-2xl font-light tracking-tight md:text-4xl">
+                      {d.title}
+                    </h2>
+                    <p className="mt-1 font-sans text-sm md:text-base" style={{ color: MUTE }}>
+                      {d.line}
+                    </p>
+                  </div>
+                </header>
+
+                <div className="grid grid-cols-1 gap-px md:grid-cols-2" style={{ backgroundColor: "rgba(255,229,213,0.1)" }}>
+                  {d.skills.map((s) => (
+                    <GProofCard
+                      key={s.name}
+                      skill={s}
+                      open={open === s.name}
+                      onToggle={() => setOpen(open === s.name ? null : s.name)}
+                      reduce={!!reduce}
+                    />
+                  ))}
+                </div>
+              </motion.section>
             ))}
           </div>
-        </motion.div>
-
-        {/* Active filter chip */}
-        {filtersActive && (
-          <p className="mb-6 font-mono text-xs tracking-wider text-muted-foreground">
-            <span className="text-foreground">{filtered.length}</span>{" "}
-            of {skills.length} skills shown
-            {category !== "All" && (
-              <>
-                {" · category: "}
-                <span className="text-foreground">{category}</span>
-              </>
-            )}
-            {project !== "All" && (
-              <>
-                {" · project: "}
-                <span className="text-foreground">{project}</span>
-              </>
-            )}
-          </p>
         )}
 
-        {filtered.length === 0 ? (
-          <p className="font-mono text-sm text-muted-foreground py-10 text-center border border-dashed border-border rounded-md">
-            No skills match this filter set.
-          </p>
-        ) : view === "matrix" ? (
-          <MatrixView grouped={grouped} totalYears={totalYears} prefersReducedMotion={!!prefersReducedMotion} />
-        ) : (
-          <ListView grouped={grouped} prefersReducedMotion={!!prefersReducedMotion} />
-        )}
-
-        {/* Footer caption */}
-        <p className="mt-16 font-mono text-[11px] tracking-wider text-muted-foreground max-w-2xl">
-          <span className="text-accent">●</span> dots are years of practice;{" "}
-          <span className="text-foreground">filled bar</span> is calibrated
-          proficiency (1–5). No vanity metrics here — anything I haven't actually
-          shipped against didn't make this page.
+        {/* Footer line */}
+        <p className="mt-24 max-w-2xl font-mono text-[11px] leading-relaxed tracking-wider" style={{ color: MUTE }}>
+          IF A SKILL ISN&apos;T ON THIS WALL, IT&apos;S BECAUSE I COULDN&apos;T POINT YOU AT
+          SOMETHING REAL THAT PROVES IT. THAT&apos;S THE ONLY BAR.
         </p>
       </div>
     </section>
   )
 }
 
-/* =========================================================================
-   MATRIX VIEW — the distinctive layout.
-   Each skill is a compact card:
-     • Name + category eyebrow
-     • Five proficiency squares (filled / empty)
-     • Years rendered as small dots along a track
-     • Projects as tags
-     • Evidence one-liner on hover/focus expand
-========================================================================= */
-
-function MatrixView({
-  grouped,
-  totalYears,
-  prefersReducedMotion,
-}: {
-  grouped: [SkillCategory, Skill[]][]
-  totalYears: number
-  prefersReducedMotion: boolean
-}) {
+/* The faint deconstructed grid + a few drifting accent tiles. */
+function GridMotif({ reduce }: { reduce: boolean }) {
+  // Fixed decorative tiles — positions chosen to echo the mosaic reveal.
+  const tiles = [
+    { left: "12%", top: "18%", size: 46, delay: 0 },
+    { left: "78%", top: "30%", size: 64, delay: 0.4 },
+    { left: "60%", top: "62%", size: 38, delay: 0.8 },
+    { left: "22%", top: "72%", size: 54, delay: 1.2 },
+    { left: "88%", top: "80%", size: 30, delay: 0.6 },
+  ]
   return (
-    <div className="space-y-12 md:space-y-16">
-      {grouped.map(([cat, list], gi) => (
-        <motion.section
-          key={cat}
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-40px" }}
-          transition={{ duration: 0.5, delay: prefersReducedMotion ? 0 : gi * 0.05 }}
-          aria-labelledby={`cat-${cat}`}
-        >
-          {/* Category banner row */}
-          <header className="flex items-baseline gap-4 mb-6 border-b border-border pb-3">
-            <span aria-hidden="true" className="w-10 h-px bg-accent" />
-            <h2
-              id={`cat-${cat}`}
-              className="font-sans text-xl md:text-2xl font-light tracking-tight text-foreground"
-            >
-              {cat}
-            </h2>
-            <span className="ml-auto font-mono text-[10px] tracking-widest uppercase text-muted-foreground">
-              {list.length} {list.length === 1 ? "practice" : "practices"}
-            </span>
-          </header>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-border border border-border rounded-md overflow-hidden">
-            {list.map((skill, i) => (
-              <SkillCard
-                key={skill.name}
-                skill={skill}
-                totalYears={totalYears}
-                index={i}
-                prefersReducedMotion={prefersReducedMotion}
-              />
-            ))}
-          </div>
-        </motion.section>
+    <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+      {/* hairline grid */}
+      <div
+        className="absolute inset-0 opacity-[0.05]"
+        style={{
+          backgroundImage:
+            "linear-gradient(to right, #ffe5d5 1px, transparent 1px), linear-gradient(to bottom, #ffe5d5 1px, transparent 1px)",
+          backgroundSize: "clamp(60px, 8vw, 120px) clamp(60px, 8vw, 120px)",
+        }}
+      />
+      {/* drifting accent tiles */}
+      {tiles.map((t, i) => (
+        <motion.span
+          key={i}
+          className="absolute block"
+          style={{ left: t.left, top: t.top, width: t.size, height: t.size, backgroundColor: ACCENT, opacity: 0.12 }}
+          initial={reduce ? false : { opacity: 0, scale: 0.6 }}
+          animate={
+            reduce
+              ? { opacity: 0.12 }
+              : { opacity: [0.06, 0.16, 0.06], y: [0, -12, 0] }
+          }
+          transition={{ duration: 9 + i * 1.5, repeat: Infinity, ease: "easeInOut", delay: t.delay }}
+        />
       ))}
     </div>
   )
 }
 
-function SkillCard({
+function GChip({
+  children,
+  active,
+  onClick,
+  tone = "discipline",
+}: {
+  children: React.ReactNode
+  active: boolean
+  onClick: () => void
+  tone?: "discipline" | "project"
+}) {
+  return (
+    <button
+      onClick={onClick}
+      data-cursor-hover
+      className="rounded-full border px-3.5 py-1.5 font-mono text-[11px] tracking-wider transition-colors duration-200 focus-visible:outline-none"
+      style={{
+        backgroundColor: active ? CREAM : "transparent",
+        color: active ? INK : tone === "project" ? MUTE : CREAM,
+        borderColor: active ? CREAM : "rgba(255,229,213,0.22)",
+      }}
+    >
+      {children}
+    </button>
+  )
+}
+
+function GProofCard({
   skill,
-  totalYears,
-  index,
-  prefersReducedMotion,
+  open,
+  onToggle,
+  reduce,
 }: {
   skill: Skill
-  totalYears: number
-  index: number
-  prefersReducedMotion: boolean
+  open: boolean
+  onToggle: () => void
+  reduce: boolean
 }) {
-  return (
-    <motion.article
-      initial={{ opacity: 0, y: 8 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{
-        duration: 0.4,
-        delay: prefersReducedMotion ? 0 : Math.min(index * 0.04, 0.3),
-      }}
-      className="
-        relative bg-background p-6 md:p-7
-        flex flex-col gap-4
-        hover:bg-secondary/30 transition-colors duration-300
-      "
-    >
-      {/* Top row — name + proficiency squares */}
-      <div className="flex items-start justify-between gap-4">
-        <h3 className="font-sans text-lg md:text-xl text-foreground leading-snug max-w-xs">
-          {skill.name}
-        </h3>
-        <ProficiencySquares value={skill.proficiency} />
-      </div>
-
-      {/* Years dot track */}
-      <div className="flex items-center gap-2">
-        <span className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground shrink-0">
-          {skill.years}y
-        </span>
-        <YearDots years={skill.years} total={totalYears} />
-      </div>
-
-      {/* Evidence one-liner */}
-      <p className="font-sans text-sm text-foreground/75 leading-relaxed">
-        {skill.evidence}
-      </p>
-
-      {/* Projects */}
-      <ul className="flex flex-wrap gap-1.5 mt-auto">
-        {skill.projects.map((p) => (
-          <li
-            key={p}
-            className="font-mono text-[10px] tracking-wider px-2 py-0.5 border border-border rounded-full text-foreground/70"
-          >
-            {p}
-          </li>
-        ))}
-      </ul>
-    </motion.article>
-  )
-}
-
-function ProficiencySquares({ value }: { value: 1 | 2 | 3 | 4 | 5 }) {
   return (
     <div
-      role="meter"
-      aria-valuenow={value}
-      aria-valuemin={1}
-      aria-valuemax={5}
-      aria-label={`Proficiency ${value} of 5`}
-      className="flex gap-1 shrink-0"
+      className="group relative p-6 transition-colors duration-300 md:p-8"
+      style={{ backgroundColor: open ? "rgba(251,78,43,0.06)" : INK }}
     >
-      {[1, 2, 3, 4, 5].map((n) => (
+      <button
+        onClick={onToggle}
+        data-cursor-hover
+        aria-expanded={open}
+        className="flex w-full items-start justify-between gap-4 text-left focus-visible:outline-none"
+      >
+        <div>
+          <h3 className="font-display text-xl font-light leading-snug tracking-tight md:text-2xl">
+            {skill.name}
+          </h3>
+          <p className="mt-2 font-sans text-sm leading-relaxed md:text-[15px]" style={{ color: "rgba(255,229,213,0.62)" }}>
+            {skill.what}
+          </p>
+        </div>
         <span
-          key={n}
-          aria-hidden="true"
-          className={`
-            block w-2.5 h-2.5 rounded-[2px]
-            ${n <= value ? "bg-accent" : "bg-border"}
-          `}
-        />
-      ))}
-    </div>
-  )
-}
-
-function YearDots({ years, total }: { years: number; total: number }) {
-  // Cap visual at total years from the dataset so all skills share a scale
-  const clamped = Math.min(years, total)
-  return (
-    <div className="flex gap-0.75 flex-1" aria-hidden="true">
-      {Array.from({ length: total }).map((_, i) => (
-        <span
-          key={i}
-          className={`
-            block flex-1 max-w-2 h-1 rounded-sm
-            ${i < clamped ? "bg-foreground/60" : "bg-border"}
-          `}
-        />
-      ))}
-    </div>
-  )
-}
-
-/* =========================================================================
-   LIST VIEW — compact alternate, grouped by category.
-   Single line per skill: name · category · proficiency · years · evidence
-========================================================================= */
-
-function ListView({
-  grouped,
-  prefersReducedMotion,
-}: {
-  grouped: [SkillCategory, Skill[]][]
-  prefersReducedMotion: boolean
-}) {
-  return (
-    <div className="space-y-12">
-      {grouped.map(([cat, list], gi) => (
-        <motion.section
-          key={cat}
-          initial={{ opacity: 0, y: 12 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-40px" }}
-          transition={{ duration: 0.45, delay: prefersReducedMotion ? 0 : gi * 0.04 }}
-          aria-labelledby={`list-cat-${cat}`}
+          aria-hidden
+          className="mt-1 shrink-0 font-mono text-sm transition-transform duration-300"
+          style={{
+            color: open ? ACCENT : MUTE,
+            transform: open ? "rotate(90deg)" : "none",
+          }}
         >
-          <header className="flex items-baseline gap-4 mb-3">
-            <span aria-hidden="true" className="w-10 h-px bg-accent" />
-            <h2
-              id={`list-cat-${cat}`}
-              className="font-sans text-lg md:text-xl font-light tracking-tight text-foreground"
-            >
-              {cat}
-            </h2>
-          </header>
+          →
+        </span>
+      </button>
 
-          <ul className="border-t border-b border-border divide-y divide-border">
-            {list.map((s) => (
-              <li
-                key={s.name}
-                className="
-                  grid gap-y-2 gap-x-6 py-5
-                  md:grid-cols-[1fr_auto_auto_auto] md:items-center
-                "
-              >
-                <div className="min-w-0">
-                  <p className="font-sans text-base md:text-lg text-foreground">
-                    {s.name}
-                  </p>
-                  <p className="mt-1 font-sans text-sm text-foreground/70 leading-relaxed max-w-prose">
-                    {s.evidence}
-                  </p>
-                </div>
-                <ProficiencySquares value={s.proficiency} />
-                <span className="font-mono text-[11px] tracking-wider text-foreground/85 whitespace-nowrap">
-                  {s.years} yrs
-                </span>
-                <ul className="flex flex-wrap gap-1.5 md:justify-end md:max-w-60">
-                  {s.projects.map((p) => (
-                    <li
-                      key={p}
-                      className="font-mono text-[10px] tracking-wider px-2 py-0.5 border border-border rounded-full text-foreground/65"
-                    >
-                      {p}
-                    </li>
-                  ))}
-                </ul>
-              </li>
-            ))}
-          </ul>
-        </motion.section>
-      ))}
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            key="proof"
+            initial={reduce ? { opacity: 0 } : { opacity: 0, height: 0 }}
+            animate={reduce ? { opacity: 1 } : { opacity: 1, height: "auto" }}
+            exit={reduce ? { opacity: 0 } : { opacity: 0, height: 0 }}
+            transition={{ duration: 0.3, ease: EASE }}
+            className="overflow-hidden"
+          >
+            <div
+              className="mt-5 flex flex-col gap-2.5 border-t pt-5"
+              style={{ borderColor: "rgba(255,229,213,0.14)" }}
+            >
+              <span className="font-mono text-[10px] uppercase tracking-[0.25em]" style={{ color: ACCENT }}>
+                The proof
+              </span>
+              {skill.proof.map((p) => (
+                <Link
+                  key={p.href + p.label}
+                  href={p.href}
+                  data-cursor-hover
+                  className="group/link flex items-center gap-2.5 font-sans text-sm transition-colors"
+                  style={{ color: "rgba(255,229,213,0.9)" }}
+                >
+                  <span
+                    className="rounded px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-widest"
+                    style={
+                      p.kind === "live"
+                        ? { backgroundColor: "rgba(251,78,43,0.2)", color: ACCENT }
+                        : { backgroundColor: "rgba(255,229,213,0.12)", color: "rgba(255,229,213,0.6)" }
+                    }
+                  >
+                    {p.kind === "live" ? "live" : "case"}
+                  </span>
+                  <span className="underline-offset-4 group-hover/link:underline">{p.label}</span>
+                  <span aria-hidden style={{ color: MUTE }} className="transition-transform duration-200 group-hover/link:translate-x-0.5">
+                    ↗
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

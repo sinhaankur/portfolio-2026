@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   ...canonicalPath("/skills"),
   title: "Skills",
   description:
-    "A UX designer's skill set — tied to real work at Oracle, Deloitte, Snowtint, Rage, plus independent AI experiments. Filter by category or company.",
+    "No self-scored stars — every skill points at real work you can open: shipped case studies at Oracle, Deloitte, Snowtint, Rage, and live things from the Lab. Shown, not scored.",
 }
 
 export default function SkillsPage() {
@@ -18,7 +18,7 @@ export default function SkillsPage() {
     <>
       <CustomCursor />
       <Navbar />
-      <main id="main" className="pt-24">
+      <main id="main">
         <SkillsBreakdown />
         <Footer />
       </main>
