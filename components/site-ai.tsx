@@ -44,7 +44,9 @@ type Msg = {
 
 const GREETING: Msg = {
   role: "vera",
-  text: "Hi — I'm your guide. Ask about anything here (the work, Vera, the galaxy, the moon, the waves, the math), or tell me what to do: “show me the moon”, “fly to Mars”, “take me to the works”, “dark mode”. Tap ♪ and I'll speak.",
+  text: "Hi — I'm Vera. Here I'm your guide to Ankur's work: ask about anything (the work, the galaxy, the moon, the waves, the math), or tell me what to do — “show me the moon”, “fly to Mars”, “take me to the works”, “play music”, “dark mode”. Tap ♪ and I'll speak. Want the full me? Say “meet Vera”.",
+  href: "/lab/cognitive-twin",
+  cta: "Meet the full Vera",
 }
 
 // The tiny model follows EXAMPLES better than rules, so the prompt is few-shot:
@@ -376,7 +378,7 @@ export function SiteAI() {
       <button
         onClick={() => setOpen((v) => !v)}
         data-cursor-hover
-        aria-label={open ? "Close the guide" : "Ask the guide"}
+        aria-label={open ? "Close Vera" : "Ask Vera"}
         className="fixed bottom-5 right-5 z-[60] rounded-full p-0 transition-transform duration-300 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         style={{ width: 46, height: 46 }}
       >
@@ -396,9 +398,9 @@ export function SiteAI() {
             <div className="flex items-center gap-2.5 border-b border-border/60 px-4 py-3">
               <VeraMark size={24} active phase={phase} level={level} />
               <div className="leading-tight flex-1">
-                <div className="text-[13px] font-semibold">Ask the guide</div>
+                <div className="text-[13px] font-semibold">Vera</div>
                 <div className="font-mono text-[9px] tracking-[0.18em] uppercase text-muted-foreground">
-                  about Ankur&rsquo;s work
+                  your guide · on-device
                 </div>
               </div>
               {/* voice toggle — speak answers in Vera's real on-device voice
@@ -517,7 +519,7 @@ export function SiteAI() {
                   if (phase === "idle" || phase === "listening")
                     setPhase(e.target.value ? "listening" : "idle")
                 }}
-                placeholder="Ask about the work…"
+                placeholder="Ask Vera anything…"
                 className="flex-1 rounded-full border border-border bg-background px-3.5 py-2 text-[13px] focus:outline-none focus:border-accent/60"
               />
               <button

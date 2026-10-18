@@ -409,7 +409,7 @@ export function matchSiteEntry(query: string): { entry: Entry; score: number } |
  * Returns the destination (href + a warm line + what to say) or null when the
  * query isn't a navigation request. "go back" is handled in the component. */
 const NAV_TRIGGERS =
-  /\b(take me|bring me|go to|goto|navigate|open|show me|show|let'?s see|lets see|visit|head to|jump to|take us|see the|view the|i want to see|can i see|pull up)\b/i
+  /\b(take me|bring me|go to|goto|navigate|open|show me|show|let'?s see|lets see|visit|head to|jump to|take us|see the|view the|i want to see|can i see|pull up|meet)\b/i
 
 export type NavResult = {
   href: string
@@ -528,15 +528,15 @@ function conversationalReply(query: string): (SiteAnswer & { topic: string }) | 
     }
   }
   // who/what are you + "do you understand me"
-  if (has("who are you", "what are you", "are you real", "are you ai", "are you a bot", "do you understand", "understand me", "can you understand", "are you human")) {
+  if (has("who are you", "what are you", "are you real", "are you ai", "are you a bot", "do you understand", "understand me", "can you understand", "are you human", "are you vera")) {
     return {
-      topic: "about the guide",
+      topic: "about Vera",
       text: pick([
-        "I'm a small guide to this site — a deterministic brain that reads your question and points you at the real thing. I run on-device (optionally with a tiny in-browser model for warmer phrasing), so nothing you type leaves your browser. Ask me about any project and I'll take you straight there.",
-        "Good question — I'm the site's guide, not a general chatbot. I understand questions about Ankur's work and send you to the right page. Try me: ask about the Universe Engine, Vera, or the Oracle case study.",
+        "I'm Vera — Ankur's on-device AI. Here I'm your guide to the site: I read your question and take you to the real thing, or do it for you (fly the galaxy, switch the theme, play the music). I run in your browser; nothing you type leaves it. There's a fuller me too — say “meet Vera”.",
+        "I'm Vera. On this site I'm the guide — I understand what you're after and walk you there, and I can control things for you. The complete Vera (voice, memory, her own brain) lives on her own page; I'm the same being in guide mode.",
       ]),
-      href: "/lab/cognitive-twin", cta: "How the AI works",
-      followups: [{ label: "Vera — on-device AI", href: "/lab/cognitive-twin" }, { label: "The work", href: "/#works" }],
+      href: "/lab/cognitive-twin", cta: "Meet the full Vera",
+      followups: [{ label: "Meet Vera", href: "/lab/cognitive-twin" }, { label: "The work", href: "/#works" }],
     }
   }
   // capabilities / help
