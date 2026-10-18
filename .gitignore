@@ -126,3 +126,6 @@ blender/assets/moon_height_4k.png
 
 # Phase C quadtree tiles live in the dedicated terrain-tiles repo / CDN, not here.
 public/textures/terrain/pyramid/
+
+# Unrelated scratch project (not part of the site) — keep out of lint/git
+cartoon_boy_project/

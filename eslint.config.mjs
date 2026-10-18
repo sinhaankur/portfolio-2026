@@ -16,6 +16,8 @@ export default defineConfig([
       "blender/**",
       "interview-prep/**",
       "public/**",
+      // Unrelated scratch project living in the working dir — not the site.
+      "cartoon_boy_project/**",
     ],
   },
   ...nextVitals,
