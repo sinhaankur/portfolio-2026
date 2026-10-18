@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { ObfuscatedEmail } from "@/components/obfuscated-email"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { canonicalPath } from "@/lib/seo"
@@ -171,12 +172,7 @@ export default function UniverseEnginePost() {
 
         <p className="font-sans text-[15px] md:text-base text-foreground/70 leading-relaxed mt-6">
           Questions about the Universe Engine? Email{" "}
-          <a
-            href="mailto:sinhaankur827@gmail.com?subject=Universe%20Engine"
-            className="text-accent hover:underline"
-          >
-            sinhaankur827@gmail.com
-          </a>
+          <ObfuscatedEmail account="studio" subject="Universe Engine" className="text-accent hover:underline" />
           .
         </p>
       </article>

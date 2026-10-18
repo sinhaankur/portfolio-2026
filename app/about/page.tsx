@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
+import { ObfuscatedEmail } from "@/components/obfuscated-email"
 import { canonicalPath } from "@/lib/seo"
 import { Footer } from "@/components/footer"
 import { LinkedInBadge } from "@/components/linkedin-badge"
@@ -105,9 +106,7 @@ export default function AboutPage() {
 
           <p className="mt-8 pt-6 border-t border-border font-sans text-[14px] text-foreground/65 leading-relaxed">
             Say hello:{" "}
-            <a href="mailto:sinhaankur827@gmail.com?subject=Hello" className="text-accent hover:underline">
-              sinhaankur827@gmail.com
-            </a>.
+            <ObfuscatedEmail account="studio" subject="Hello" className="text-accent hover:underline" />.
           </p>
 
           {/* LinkedIn — an opt-in live profile card (their script loads only on

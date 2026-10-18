@@ -314,7 +314,11 @@
             if (gl) { var dbg = gl.getExtension('WEBGL_debug_renderer_info'); gpu = dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : (gl.getParameter(gl.RENDERER) || 'unknown'); }
           } catch (err) { gpu = 'gpu-read-failed'; }
           var diag = ['Area: Games', 'Page: ' + location.href, 'Viewport: ' + innerWidth + 'x' + innerHeight + ' @ DPR ' + devicePixelRatio, 'GPU: ' + gpu, 'User agent: ' + navigator.userAgent].join('\n');
-          location.href = 'mailto:sinhaankur@ymail.com?subject=' + encodeURIComponent('Bug report — Games') + '&body=' + encodeURIComponent('What went wrong:\n\n\n— — —\nDiagnostics:\n' + diag);
+          // address assembled at runtime from reversed parts so the literal
+          // isn't in the file for scrapers/AI crawlers to harvest.
+          var _rev = function (s) { return s.split('').reverse().join(''); };
+          var _to = _rev('ruknaahnis') + String.fromCharCode(64) + _rev('moc.liamy');
+          location.href = 'mailto:' + _to + '?subject=' + encodeURIComponent('Bug report — Games') + '&body=' + encodeURIComponent('What went wrong:\n\n\n— — —\nDiagnostics:\n' + diag);
         });
       })();
     </script>

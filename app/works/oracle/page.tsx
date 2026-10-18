@@ -174,7 +174,7 @@ export default function OracleCaseStudy() {
             }
             cta={{
               label: "Request a walkthrough",
-              href: "mailto:sinhaankur827@gmail.com?subject=KMS%2FTDE%20encryption%20walkthrough",
+              href: "/#contact?re=KMS%2FTDE%20encryption%20walkthrough",
             }}
           />
           <ProjectStory
@@ -213,7 +213,7 @@ export default function OracleCaseStudy() {
             }
             cta={{
               label: "Request a walkthrough",
-              href: "mailto:sinhaankur827@gmail.com?subject=Cross-Region%20Data%20Guard%20walkthrough",
+              href: "/#contact?re=Cross-Region%20Data%20Guard%20walkthrough",
             }}
           />
           <ProjectStory
@@ -251,7 +251,7 @@ export default function OracleCaseStudy() {
             }
             cta={{
               label: "Request a walkthrough",
-              href: "mailto:sinhaankur827@gmail.com?subject=PDB%20lifecycle%20walkthrough",
+              href: "/#contact?re=PDB%20lifecycle%20walkthrough",
             }}
           />
           <ProjectStory
@@ -287,7 +287,7 @@ export default function OracleCaseStudy() {
             }
             cta={{
               label: "Request a walkthrough",
-              href: "mailto:sinhaankur827@gmail.com?subject=Backup%20%26%20Recovery%20walkthrough",
+              href: "/#contact?re=Backup%20%26%20Recovery%20walkthrough",
             }}
           />
           <ProjectStory
@@ -330,7 +330,7 @@ export default function OracleCaseStudy() {
             }
             cta={{
               label: "Request a walkthrough",
-              href: "mailto:sinhaankur827@gmail.com?subject=Autonomous%20DB%20promotions%20walkthrough",
+              href: "/#contact?re=Autonomous%20DB%20promotions%20walkthrough",
             }}
           />
           <GroupHeading label="Database Tools" blurb="The portfolio people use to build, query, migrate, and operate those databases." />
@@ -500,7 +500,7 @@ export default function OracleCaseStudy() {
             }
             cta={{
               label: "Request a walkthrough",
-              href: "mailto:sinhaankur827@gmail.com?subject=Developer%20experience%20walkthrough",
+              href: "/#contact?re=Developer%20experience%20walkthrough",
             }}
           />
           <ProjectStory
@@ -538,7 +538,7 @@ export default function OracleCaseStudy() {
             }
             cta={{
               label: "Request a walkthrough",
-              href: "mailto:sinhaankur827@gmail.com?subject=DMS%20walkthrough",
+              href: "/#contact?re=DMS%20walkthrough",
             }}
           />
           <GroupHeading label="AI &amp; agentic UX" blurb="The human-in-the-loop layer for AI that acts on production database state." />
@@ -590,7 +590,7 @@ export default function OracleCaseStudy() {
             }
             cta={{
               label: "Request a sanitized walkthrough",
-              href: "mailto:sinhaankur827@gmail.com?subject=AI-assisted%20DB%20ops%20walkthrough",
+              href: "/#contact?re=AI-assisted%20DB%20ops%20walkthrough",
             }}
           />
           <ProjectStory
@@ -638,7 +638,7 @@ export default function OracleCaseStudy() {
             }
             cta={{
               label: "Request a walkthrough",
-              href: "mailto:sinhaankur827@gmail.com?subject=MCP%20Toolsets%20walkthrough",
+              href: "/#contact?re=MCP%20Toolsets%20walkthrough",
             }}
           />
                 </div>

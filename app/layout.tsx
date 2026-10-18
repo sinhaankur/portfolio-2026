@@ -358,7 +358,10 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
                   <a className="underline underline-offset-4" href="/ankur-sinha-resume.pdf">Résumé (PDF)</a>
                 </li>
                 <li>
-                  <a className="underline underline-offset-4" href="mailto:h99311@gmail.com">Contact · h99311@gmail.com</a>
+                  {/* No literal email in the crawler-facing noscript block —
+                      contact routes through the form/LinkedIn to keep the address
+                      out of scrapers. */}
+                  <a className="underline underline-offset-4" href="/#contact">Contact</a>
                 </li>
                 <li>
                   <a className="underline underline-offset-4" href="https://github.com/sinhaankur" rel="noopener">GitHub</a>

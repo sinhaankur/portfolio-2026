@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useCallback } from "react"
+import { email as ankurEmail } from "@/lib/obfuscated-email"
 
 /**
  * Report a bug — a static-site-friendly reporter. No backend: it composes a
@@ -13,7 +14,6 @@ import { useState, useCallback } from "react"
  * small floating pill button (`variant="pill"`, for the engines/games).
  */
 
-const REPORT_EMAIL = "sinhaankur@ymail.com"
 
 /** Best-effort WebGL renderer string (the actual GPU), for engine reports. */
 function readGpu(): string {
@@ -66,7 +66,8 @@ function buildMailto(area: string): string {
     "Diagnostics (auto-collected, please keep):",
     collectContext(area),
   ].join("\n")
-  return `mailto:${REPORT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+  // assemble the address here (runtime) so it's not baked into the static HTML
+  return `mailto:${ankurEmail()}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
 }
 
 export function ReportBug({

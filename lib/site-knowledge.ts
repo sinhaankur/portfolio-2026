@@ -542,7 +542,7 @@ function hrIntent(query: string): (SiteAnswer & { topic: string }) | null {
 
   // hire / availability / connect / reach out
   if (has("hire", "available", "availability", "open to", "looking for work", "connect", "reach out", "get in touch", "work together", "collaborate", "opportunity", "role", "position", "say hi", "message him", "contact"))
-    return { topic: "getting in touch", text: `Ankur is **Principal UX Designer at Oracle** and always happy to connect — about a role, the work, or just to say hi. Email (sinhaankur@ymail.com), LinkedIn, or drop a note in the form below. (He's not freelancing right now.)`, href: "/#contact", cta: "Connect", followups: [{ label: "Email · LinkedIn · Résumé", href: "/#contact" }, { label: "LinkedIn ↗", href: "https://www.linkedin.com/in/sinhaankur27" }] }
+    return { topic: "getting in touch", text: `Ankur is **Principal UX Designer at Oracle** and always happy to connect — about a role, the work, or just to say hi. Easiest ways: LinkedIn, or drop a note right here (just say "I'd like to message Ankur") and I'll turn it into an email for you. (He's not freelancing right now.)`, href: "/#contact", cta: "Connect", followups: [{ label: "Email · LinkedIn · Résumé", href: "/#contact" }, { label: "LinkedIn ↗", href: "https://www.linkedin.com/in/sinhaankur27" }] }
 
   // proof / portfolio / show me what he's done
   if (has("proof he can", "show me proof", "prove", "portfolio", "resume", "cv", "track record", "what has he done", "what did he do"))

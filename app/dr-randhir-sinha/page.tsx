@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { ObfuscatedEmail } from "@/components/obfuscated-email"
 import Image from "next/image"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
@@ -377,9 +378,7 @@ export default function DrRandhirSinhaPage() {
 
         <p className="font-sans text-[15px] md:text-base text-foreground/70 leading-relaxed mt-10 pt-6 border-t border-border">
           To contribute a paper, a correction, or a memory for this archive, email{" "}
-          <a href="mailto:sinhaankur827@gmail.com?subject=Dr.%20Randhir%20Kumar%20Sinha%20archive" className="text-accent hover:underline">
-            sinhaankur827@gmail.com
-          </a>.
+          <ObfuscatedEmail account="studio" subject="Dr. Randhir Kumar Sinha archive" className="text-accent hover:underline" />.
         </p>
       </article>
       </div>

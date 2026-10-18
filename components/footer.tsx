@@ -6,6 +6,7 @@ import Link from "next/link"
 import { Download } from "lucide-react"
 import { LiveStatus } from "./live-status"
 import { ReportBug } from "./report-bug"
+import { mailto, email } from "@/lib/obfuscated-email"
 
 // SignalTuner (the contact widget) pulls in framer-motion — but it only renders
 // in the contact section, which pages can hide (hideContact). Lazy-load it so
@@ -169,7 +170,7 @@ const DISCORD_ICON = (
 const socials: Array<{ label: string; href: string; download?: boolean; icon?: React.ReactNode }> = [
   { label: "About", href: "/about" },
   { label: "Framework", href: "/framework" },
-  { label: "Email", href: "mailto:sinhaankur@ymail.com" },
+  { label: "Email", href: "#email" }, // real mailto assembled at runtime (anti-harvest)
   { label: "LinkedIn", href: "https://www.linkedin.com/in/sinhaankur27", icon: LINKEDIN_ICON },
   { label: "GitHub", href: "https://github.com/sinhaankur" },
   { label: "Discord", href: "https://discord.gg/ptbBeMKj7", icon: DISCORD_ICON },
@@ -183,6 +184,11 @@ const socials: Array<{ label: string; href: string; download?: boolean; icon?: R
 
 export function Footer({ hideContact = false }: { hideContact?: boolean } = {}) {
   const [time, setTime] = useState("")
+  // Email assembled AFTER mount so the statically-exported HTML ships no literal
+  // address for scrapers/AI crawlers to harvest (set in the effect below).
+  const [mailHref, setMailHref] = useState<string | null>(null)
+  const [mailAddr, setMailAddr] = useState<string | null>(null)
+  useEffect(() => { setMailHref(mailto()); setMailAddr(email()) }, [])
 
   useEffect(() => {
     const updateTime = () => {
@@ -292,7 +298,7 @@ export function Footer({ hideContact = false }: { hideContact?: boolean } = {}) 
             </div>
 
             <div className="md:pt-2">
-              <SignalTuner to="sinhaankur@ymail.com" defaultSubject="Transmission" />
+              {mailAddr && <SignalTuner to={mailAddr} defaultSubject="Transmission" />}
             </div>
           </div>
         </div>
@@ -313,7 +319,11 @@ export function Footer({ hideContact = false }: { hideContact?: boolean } = {}) 
             </p>
 
             <ul className="flex flex-wrap gap-x-7 gap-y-3">
-              {socials.map((link) => {
+              {socials.map((rawLink) => {
+                // The email entry gets its real mailto only AFTER mount (mailHref);
+                // before that it's a harmless placeholder, so no literal address
+                // ever ships in the static HTML for harvesters to grab.
+                const link = rawLink.href === "#email" ? { ...rawLink, href: mailHref ?? "#" } : rawLink
                 const isExternal = link.href.startsWith("http")
                 const isDownload = "download" in link && link.download
                 const isMailto = link.href.startsWith("mailto:")

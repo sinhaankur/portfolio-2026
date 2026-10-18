@@ -17,6 +17,19 @@ export default function robots(): MetadataRoute.Robots {
     "Applebot-Extended",                            // Apple Intelligence
     "Amazonbot", "cohere-ai", "YouBot", "Meta-ExternalAgent",
   ]
+  // Known EMAIL-HARVESTERS, scrapers, SEO-spy + aggressive data-mining bots that
+  // add nothing for a human visitor. Polite ones honour this Disallow; it won't
+  // stop the truly malicious (the runtime email obfuscation handles those), but
+  // it keeps the well-behaved harvesters and bandwidth-wasters off the site.
+  const blockedBots = [
+    "EmailCollector", "EmailSiphon", "EmailWolf", "ExtractorPro", "Harvest",
+    "WebEMailExtrac", "EmailMiner", "ChinaClaw", "SiteSnagger", "WebZIP",
+    "WebCopier", "WebStripper", "Teleport", "TeleportPro", "WebReaper",
+    "SemrushBot", "AhrefsBot", "MJ12bot", "DotBot", "DataForSeoBot",
+    "Bytespider", "PetalBot", "SeekportBot", "Scrapy", "python-requests",
+    "magpie-crawler", "serpstatbot", "BLEXBot", "ZoominfoBot", "LinkpadBot",
+  ]
+
   return {
     rules: [
       {
@@ -26,11 +39,17 @@ export default function robots(): MetadataRoute.Robots {
         // see the index page but not chase every individual game asset.
         disallow: ["/games/assets/"],
       },
-      // the same allowance, named explicitly for each AI crawler
+      // the same allowance, named explicitly for each GOOD AI crawler (keeps the
+      // portfolio surfaced in AI answers + search — discoverability we want).
       ...aiBots.map((userAgent) => ({
         userAgent,
         allow: "/",
         disallow: ["/games/assets/"],
+      })),
+      // known harvesters / scrapers / SEO-spy bots → blocked entirely.
+      ...blockedBots.map((userAgent) => ({
+        userAgent,
+        disallow: ["/"],
       })),
     ],
     sitemap: `${SITE_URL}/sitemap.xml`,

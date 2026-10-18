@@ -14,6 +14,7 @@ import Link from "next/link"
 import { StaticStarfield } from "./universe-engine/static-starfield"
 import { UniverseRuntimeFallback } from "./universe-engine/runtime-fallback"
 import { LocaleHtml } from "./locale-html"
+import { ObfuscatedEmail } from "./obfuscated-email"
 import { getDict, type Locale } from "@/lib/i18n"
 
 const UniverseEngine = dynamic(
@@ -135,13 +136,11 @@ export function LocalizedHome({ locale }: { locale: Locale }) {
             {t.footerCTA}
           </h2>
           <div className="flex flex-wrap items-center gap-4">
-            <a
-              href="mailto:sinhaankur@ymail.com"
-              data-cursor-hover
+            <ObfuscatedEmail
               className="inline-flex items-center min-h-11 px-6 py-3 rounded-full border border-foreground/30 bg-background/40 backdrop-blur-sm font-mono text-xs tracking-[0.2em] uppercase hover:bg-foreground hover:text-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             >
               {t.footerEmail}
-            </a>
+            </ObfuscatedEmail>
             <Link
               href="/"
               data-cursor-hover

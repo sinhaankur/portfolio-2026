@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from "framer-motion"
 import { useTheme } from "next-themes"
 import { VeraMark } from "@/components/vera-mark"
 import { useVeraVoice } from "@/components/use-vera-voice"
+import { mailto as buildMailto } from "@/lib/obfuscated-email"
 import { answerFromSite, groundingFor, navIntent, siteCommand, isHrQuestion } from "@/lib/site-knowledge"
 import {
   getWebLLMEngine,
@@ -45,8 +46,8 @@ type Msg = {
   note?: string
 }
 
-// Ankur's inbox — where a visitor's note lands (matches the footer channels).
-const ANKUR_EMAIL = "sinhaankur@ymail.com"
+// Ankur's inbox is assembled at runtime (lib/obfuscated-email) so the address
+// is never a literal in the shipped source for scrapers/AI crawlers to harvest.
 
 /** Does this read like the visitor wants to actually reach Ankur (not ask about
  *  the work)? Triggers the leave-a-note flow. */
@@ -338,9 +339,9 @@ export function SiteAI() {
       setNoteMode(false)
       const subject = "Hello from your site — someone wants to connect"
       const body = `${q}\n\n— sent from the Vera chat on sinhaankur.com`
-      const mailto = `mailto:${ANKUR_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+      const noteLink = buildMailto(subject, body)
       const line = "Got it. Tap below and it'll open your email, ready to send to Ankur — add your name/email so he can reply."
-      setMsgs((m) => [...m, { role: "vera", text: line, note: mailto, cta: "Send this to Ankur ✉" }])
+      setMsgs((m) => [...m, { role: "vera", text: line, note: noteLink, cta: "Send this to Ankur ✉" }])
       speakThenIdle(line)
       return
     }
