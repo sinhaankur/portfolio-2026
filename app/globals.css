@@ -397,15 +397,30 @@
 /* Route transition — a soft per-navigation fade for content pages (app/template.tsx).
    Pure CSS so content is fully visible with no JS / before hydration; the keyframe
    just eases it in when painted. Disabled under reduced motion. */
+/* content eases UP and sharpens into place on each navigation — a soft, premium
+   "settle" rather than a hard cut. GPU-cheap (opacity + transform only), and the
+   house ease [0.16,1,0.3,1] for consistency with the rest of the site. */
 @keyframes route-fade-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 .route-fade {
-  animation: route-fade-in 260ms ease-out both;
+  animation: route-fade-in 440ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: opacity, transform;
 }
 @media (prefers-reduced-motion: reduce) {
   .route-fade { animation: none; }
+}
+
+/* Smooth image fade-in — an <img class="img-fade"> starts faint and eases to
+   full opacity once it has decoded (the `loaded` class is added on the native
+   `load` event, or immediately if it's already complete). Kills the hard pop-in
+   of lazy images. Content is visible even if JS never runs (base opacity .01 is
+   negligible but the image still paints; JS flips it to 1). */
+.img-fade { opacity: 0; transition: opacity 600ms cubic-bezier(0.16, 1, 0.3, 1); }
+.img-fade.loaded { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .img-fade { opacity: 1 !important; transition: none; }
 }
 
 /* "New version available" toast — slides up gently from the bottom. */

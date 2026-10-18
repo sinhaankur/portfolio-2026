@@ -486,8 +486,13 @@ export function CaseMoments({
                   alt={m.alt}
                   loading="lazy"
                   decoding="async"
+                  // Fade in on load; if the image is already cached/complete by
+                  // the time the ref attaches, mark it loaded immediately so it
+                  // never stays stuck transparent.
+                  ref={(el) => { if (el?.complete) el.classList.add("loaded") }}
+                  onLoad={(e) => e.currentTarget.classList.add("loaded")}
                   className="
-                    w-full h-full object-cover
+                    img-fade w-full h-full object-cover
                     transition-transform duration-700 ease-out
                     group-hover:scale-105
                   "
