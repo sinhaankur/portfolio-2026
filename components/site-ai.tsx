@@ -173,17 +173,22 @@ export function SiteAI() {
   const onEngine = pathname === "/" || pathname.startsWith("/lab/celestial")
 
   useEffect(() => {
+    // Only DETECT WebGPU on mount (cheap) — do NOT download the ~5.8 MB on-device
+    // model on page load. That would cost every visitor megabytes they never
+    // asked for and tank page-load perf (it's the biggest JS chunk on the site).
+    // The model warms when the visitor actually OPENS the orb (below), so it's
+    // "smart when used" without the cost on every page view. The grounded brain +
+    // HR answers are already excellent; the model only adds warmer phrasing.
     webgpu.current = isWebGPUAvailable()
-    // SMART BY DEFAULT: if the browser can run the on-device model, warm it
-    // automatically so answers are intelligent out of the box (this is the
-    // "loading LLM" you remember). Falls back to the instant grounded brain
-    // where WebGPU is absent — the guide is never broken, just plainer.
-    if (webgpu.current) enableLLM()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
-    if (open) setTimeout(() => inputRef.current?.focus(), 120)
+    if (open) {
+      setTimeout(() => inputRef.current?.focus(), 120)
+      // Warm the on-device model now that the visitor has engaged with the orb.
+      if (webgpu.current && !llmOn) enableLLM()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
   // While the orb is speaking with sound on, sample the live voice loudness each
