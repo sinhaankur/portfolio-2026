@@ -484,15 +484,14 @@ export function surfaceTextureUrl(planet: {
    *  fallback, so it degrades gracefully if the CDN base is unset/unreachable. */
   superClearTextureUrl?: string
 }): string | undefined {
-  // SUPER CLEAR / 16K — the highest-resolution map. Pulled when EITHER:
-  //   (a) the user opted in via the resolution picker (superClearRef), OR
-  //   (b) the device auto-detected as the top "ultra" tier (a clearly high-end
-  //       GPU — RTX 30/40/50, high Radeon, Apple M-Max/Ultra) so we "use the
-  //       power for a good experience" without making them hunt for a toggle.
-  // Desktop-gated either way (16K on a phone globe is wasted VRAM), and the live
-  // FPS probe can still step ultra back to high if the machine can't hold it.
-  const autoUltra = perfTierRef.current === "ultra" && qualityForTier(perfTierRef.current).allowHiResTextures
-  if ((superClearRef.current || autoUltra) && deviceTierRef.current === "desktop" && planet.superClearTextureUrl) {
+  // SUPER CLEAR / 16K — the highest-resolution map, only when the user EXPLICITLY
+  // picks "Ultra" in the resolution picker (superClearRef). We no longer auto-pull
+  // 16K just because the GPU is strong: a single 16K map is ~17 MB (the Moon's is),
+  // and on the galaxy hero every body is a distant speck — pulling tens of MB of
+  // 16K textures for specks tanked page load for no visible gain. Ultra devices
+  // still get the crisp 8K hi-res tier below automatically; 16K is an opt-in for
+  // when you've actually flown in close and want maximum detail. Desktop-gated.
+  if (superClearRef.current && deviceTierRef.current === "desktop" && planet.superClearTextureUrl) {
     return cdnAsset(planet.superClearTextureUrl, planet.textureUrl)
   }
   // Hi-res (4K/8K) surface when EITHER (a) the user explicitly picked the "High"
