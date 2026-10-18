@@ -536,9 +536,13 @@ function hrIntent(query: string): (SiteAnswer & { topic: string }) | null {
   if (has("accessibility", "accessible", "inclusive", "a11y", "wcag"))
     return { topic: "inclusive design", text: `Yes — accessible structure, contrast and plain language are part of how he works, including the accessible console work at **Oracle**. He also codified cognition/UX laws into a usable framework.`, href: "/framework", cta: "The UX framework", followups: foot }
 
-  // hire / availability / connect / startup
-  if (has("hire", "available", "availability", "open to", "looking for work", "connect", "reach out", "get in touch", "work together", "collaborate", "freelance", "contract", "opportunity", "role", "position"))
-    return { topic: "getting in touch", text: `Ankur is **Principal UX Designer at Oracle** now, and always happy to connect — about a role, a collaboration, or just the work. The fastest way is the contact section.`, href: "/#contact", cta: "Get in touch", followups: [{ label: "Contact", href: "/#contact" }, { label: "Oracle (current)", href: "/works/oracle" }] }
+  // freelance / contract — he's not taking that right now (he's at Oracle).
+  if (has("freelance", "freelancing", "contract work", "contractor", "side project for", "do you freelance", "take on projects", "hire him for"))
+    return { topic: "availability", text: `Ankur isn't freelancing or taking contract work at the moment — he's **Principal UX Designer at Oracle**. He's always glad to connect and talk shop, though: email or LinkedIn are the best ways.`, href: "/#contact", cta: "Say hello", followups: [{ label: "Email · LinkedIn", href: "/#contact" }, { label: "Oracle (current)", href: "/works/oracle" }] }
+
+  // hire / availability / connect / reach out
+  if (has("hire", "available", "availability", "open to", "looking for work", "connect", "reach out", "get in touch", "work together", "collaborate", "opportunity", "role", "position", "say hi", "message him", "contact"))
+    return { topic: "getting in touch", text: `Ankur is **Principal UX Designer at Oracle** and always happy to connect — about a role, the work, or just to say hi. Email (sinhaankur@ymail.com), LinkedIn, or drop a note in the form below. (He's not freelancing right now.)`, href: "/#contact", cta: "Connect", followups: [{ label: "Email · LinkedIn · Résumé", href: "/#contact" }, { label: "LinkedIn ↗", href: "https://www.linkedin.com/in/sinhaankur27" }] }
 
   // proof / portfolio / show me what he's done
   if (has("proof he can", "show me proof", "prove", "portfolio", "resume", "cv", "track record", "what has he done", "what did he do"))

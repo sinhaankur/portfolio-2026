@@ -488,6 +488,7 @@ export function SiteAI() {
                       <a
                         href={m.href}
                         data-cursor-hover
+                        {...(m.href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
                         className="inline-flex items-center gap-1 rounded-full border border-accent/40 bg-accent/10 px-2.5 py-1 text-[11px] font-medium text-foreground hover:border-accent transition-colors"
                       >
                         {m.cta ?? "Open"} →
@@ -502,6 +503,7 @@ export function SiteAI() {
                           key={fi}
                           href={f.href}
                           data-cursor-hover
+                          {...(f.href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
                           className="inline-flex items-center rounded-full border border-border px-2 py-0.5 text-[10px] text-muted-foreground hover:border-accent/50 hover:text-foreground transition-colors"
                         >
                           {f.label}
