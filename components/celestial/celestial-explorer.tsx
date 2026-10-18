@@ -242,6 +242,31 @@ export function CelestialExplorer() {
   useEffect(() => {
     try { if (localStorage.getItem("celestial-hint-seen") !== "1") setFirstHint(true) } catch {}
   }, [])
+
+  // The guide orb can send a visitor here with a "fly to X" intent from any page
+  // (it stashes the target in sessionStorage, then navigates). Honour it once the
+  // engine is READY so the orb actually delivers: wait for universe-ready, then
+  // fly to the requested body and clear the hint.
+  useEffect(() => {
+    let target: string | null = null
+    try { target = sessionStorage.getItem("ue:flyTo") } catch { /* ignore */ }
+    if (!target) return
+    try { sessionStorage.removeItem("ue:flyTo") } catch { /* ignore */ }
+    let fired = false
+    const fly = () => {
+      if (fired) return
+      fired = true
+      // small settle after ready so the intro framing doesn't fight the fly
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent("universe:sky-focus", { detail: { pointId: target } }))
+      }, 900)
+    }
+    // fly when the engine signals ready; a timeout covers the case where ready
+    // already fired before this effect mounted.
+    window.addEventListener("universe-ready", fly, { once: true })
+    const fallback = setTimeout(fly, 6000)
+    return () => { window.removeEventListener("universe-ready", fly); clearTimeout(fallback) }
+  }, [])
   useEffect(() => {
     if (!firstHint) return
     const done = () => dismissFirstHint()

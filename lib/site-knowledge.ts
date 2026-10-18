@@ -323,6 +323,15 @@ const ENTRIES: Entry[] = [
     href: "/writing", cta: "Read the writing",
   },
   {
+    id: "upcoming", group: "writing",
+    topic: "what's next — the roadmap",
+    names: ["upcoming", "roadmap", "what's next", "whats next", "what is next", "his plan", "the plan", "plan next", "next plan", "future", "what's he working on", "whats he working on", "what's coming", "coming soon", "next up", "plans"],
+    topics: ["roadmap", "future", "next", "plans"],
+    text: "What's next lives on the roadmap — the experiments and features Ankur is building or planning across the Lab (deeper engines, new math visualizers, Vera, and more). It's an open, evolving list.",
+    href: "/upcoming", cta: "See the roadmap",
+    followups: [{ label: "The Lab", href: "/lab" }, { label: "The work", href: "/#works" }],
+  },
+  {
     id: "dna", group: "data",
     topic: "the DNA / ancestry tools",
     names: ["dna", "ancestry", "genome", "genetics"],
@@ -439,7 +448,7 @@ export function navIntent(query: string): NavResult | null {
  * SITE.) Returns a structured command the component executes, or null. */
 export type SiteCommand =
   | { kind: "theme"; value: "light" | "dark"; text: string }
-  | { kind: "fly"; pointId: string; body: string; text: string }
+  | { kind: "fly"; pointId: string; body: string; text: string; needsNav?: boolean }
   | { kind: "scroll"; anchor: string; label: string; text: string }
   | { kind: "music"; action: "play" | "off" | "toggle"; text: string }
 
@@ -477,11 +486,16 @@ export function siteCommand(query: string, onEngine: boolean): SiteCommand | nul
     return { kind: "theme", value: "dark", text: "Switching to dark — easier on the eyes." }
   if (/\b(light mode|light theme|turn.*light|go light|lights on|day mode|bright)\b/.test(q))
     return { kind: "theme", value: "light", text: "Switching to light." }
-  // fly to a body — only meaningful while the engine is on screen
-  if (onEngine && /\b(fly|go|take me|show me|zoom|visit|look at|focus)\b/.test(q)) {
+  // fly to a body. If the engine is ON screen we fly immediately; if it ISN'T,
+  // we navigate to the Universe Engine first and fly once it loads (the command
+  // handler passes the target through). Either way the orb actually DELIVERS —
+  // it never says "watch the sky" on a page with no sky.
+  if (/\b(fly|go|take me|show me|zoom|visit|look at|focus)\b/.test(q)) {
     for (const f of FLYABLE) {
       if (f.aliases.some((a) => (a.includes(" ") ? q.includes(a) : new RegExp(`\\b${a}\\b`).test(q)))) {
-        return { kind: "fly", pointId: f.pointId, body: f.body, text: `Flying to ${f.body} — watch the sky.` }
+        return onEngine
+          ? { kind: "fly", pointId: f.pointId, body: f.body, text: `Flying to ${f.body} — watch the sky.` }
+          : { kind: "fly", pointId: f.pointId, body: f.body, needsNav: true, text: `Taking you to the engine and flying to ${f.body} — one moment.` }
       }
     }
   }

@@ -368,7 +368,16 @@ export function SiteAI() {
       speakThenIdle(cmd.text)
       if (cmd.kind === "theme") setTheme(cmd.value)
       else if (cmd.kind === "fly" && typeof window !== "undefined") {
-        window.dispatchEvent(new CustomEvent("universe:sky-focus", { detail: { pointId: cmd.pointId } }))
+        if (cmd.needsNav) {
+          // Not on an engine page — go to the Universe Engine, then fly to the
+          // body once it's loaded (sessionStorage hands the target to the engine
+          // page, which honours it on mount). The orb actually delivers.
+          try { sessionStorage.setItem("ue:flyTo", cmd.pointId) } catch { /* ignore */ }
+          prevPath.current = pathname
+          router.push("/lab/celestial")
+        } else {
+          window.dispatchEvent(new CustomEvent("universe:sky-focus", { detail: { pointId: cmd.pointId } }))
+        }
       } else if (cmd.kind === "music" && typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("universe:music", { detail: { action: cmd.action } }))
       } else if (cmd.kind === "scroll") {
