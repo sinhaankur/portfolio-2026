@@ -34,6 +34,8 @@ export function CustomCursor() {
   const [universeBody, setUniverseBody] = useState<BodyInfo | null>(null)
   const [universeClickable, setUniverseClickable] = useState(false)
   const [themeMounted, setThemeMounted] = useState(false)
+  // Pressed state → a quick reticle "pinch" so a click feels registered.
+  const [isPressed, setIsPressed] = useState(false)
   const { systemCursor, reduceMotion } = useDisplayPrefs()
   const { resolvedTheme } = useTheme()
 
@@ -96,6 +98,11 @@ export function CustomCursor() {
     let lastY = 0
     let hasPos = false
 
+    // Track the current hover target so we only setState when it CHANGES (not on
+    // every move) — React re-renders are the cost here, not the x/y motion-values
+    // (those bypass React). This replaces the document-wide mouseover/mouseout
+    // listeners, which fired on every element-boundary crossing.
+    let hovering = false
     const handleMove = (e: MouseEvent) => {
       lastX = e.clientX
       lastY = e.clientY
@@ -103,7 +110,11 @@ export function CustomCursor() {
       x.set(e.clientX)
       y.set(e.clientY)
       setIsVisible(true)
+      const over = Boolean((e.target as HTMLElement)?.closest?.("a, button, [data-cursor-hover]"))
+      if (over !== hovering) { hovering = over; setIsHoveringLink(over) }
     }
+    const handleDown = () => setIsPressed(true)
+    const handleUp = () => setIsPressed(false)
     // rAF-throttle the scroll work so elementFromPoint runs at most once per
     // frame — never per scroll event (which can fire far more often).
     let scrollRaf = 0
@@ -114,44 +125,33 @@ export function CustomCursor() {
         x.set(lastX)
         y.set(lastY)
         const el = document.elementFromPoint(lastX, lastY) as HTMLElement | null
-        setIsHoveringLink(Boolean(el?.closest?.("a, button, [data-cursor-hover]")))
+        const over = Boolean(el?.closest?.("a, button, [data-cursor-hover]"))
+        if (over !== hovering) { hovering = over; setIsHoveringLink(over) }
       })
     }
     const handleEnter = () => setIsVisible(true)
-    const handleLeave = () => setIsVisible(false)
-    const handleHoverStart = (e: MouseEvent) => {
-      const target = e.target as HTMLElement
-      if (target.closest?.("a, button, [data-cursor-hover]")) {
-        setIsHoveringLink(true)
-      }
-    }
-    const handleHoverEnd = (e: MouseEvent) => {
-      const target = e.target as HTMLElement
-      if (target.closest?.("a, button, [data-cursor-hover]")) {
-        setIsHoveringLink(false)
-      }
-    }
+    const handleLeave = () => { setIsVisible(false); setIsPressed(false) }
     const handleUniverseHover = (e: Event) => {
       const detail = (e as CustomEvent<UniverseHoverDetail>).detail
       setUniverseBody(detail?.body ?? null)
       setUniverseClickable(Boolean(detail?.clickable))
     }
 
-    window.addEventListener("mousemove", handleMove)
+    window.addEventListener("mousemove", handleMove, { passive: true })
     window.addEventListener("scroll", handleScroll, { passive: true })
+    window.addEventListener("mousedown", handleDown, { passive: true })
+    window.addEventListener("mouseup", handleUp, { passive: true })
     document.addEventListener("mouseenter", handleEnter)
     document.addEventListener("mouseleave", handleLeave)
-    document.addEventListener("mouseover", handleHoverStart)
-    document.addEventListener("mouseout", handleHoverEnd)
     window.addEventListener("universe:hover", handleUniverseHover)
 
     return () => {
       window.removeEventListener("mousemove", handleMove)
       window.removeEventListener("scroll", handleScroll)
+      window.removeEventListener("mousedown", handleDown)
+      window.removeEventListener("mouseup", handleUp)
       document.removeEventListener("mouseenter", handleEnter)
       document.removeEventListener("mouseleave", handleLeave)
-      document.removeEventListener("mouseover", handleHoverStart)
-      document.removeEventListener("mouseout", handleHoverEnd)
       window.removeEventListener("universe:hover", handleUniverseHover)
       if (scrollRaf) cancelAnimationFrame(scrollRaf)
     }
@@ -194,8 +194,8 @@ export function CustomCursor() {
         // (the Sun, planet highlights) without going muddy.
         filter: `drop-shadow(0 0 4px ${dropShadowColor})`,
       }}
-      animate={{ opacity: isVisible ? 1 : 0 }}
-      transition={{ opacity: { duration: 0.15 } }}
+      animate={{ opacity: isVisible ? 1 : 0, scale: isPressed ? 0.82 : 1 }}
+      transition={{ opacity: { duration: 0.15 }, scale: { type: "spring", stiffness: 700, damping: 26 } }}
     >
       {/* Outer ring — target sight in body state, filled disc in link state, small reticle ring in idle */}
       <motion.div
