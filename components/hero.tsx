@@ -90,16 +90,28 @@ export function Hero() {
 
   useEffect(() => {
     // Hold the heavy WebGL engine (a ~5.9 MB chunk + real texture megabytes) and
-    // show the light CSS starfield with an opt-in when the connection is metered
-    // OR genuinely slow (2g/3g) — not just when Data Saver is explicitly on. On
-    // a phone over a weak/expensive link, the full universe is the wrong default;
-    // "one tap streams the universe in" is the right one.
+    // show the light CSS starfield with an opt-in when:
+    //   • the connection is metered or genuinely slow (2g/3g/save-data), OR
+    //   • the device is LOW-TIER (few cores / little RAM / weak integrated GPU) —
+    //     a weak phone over any link renders the full universe at a crawl, which
+    //     also tanks the mobile Lighthouse/LCP score Google ranks on. For these,
+    //     "one tap streams the universe in" is the right default: fast first
+    //     paint for them, full galaxy immediately for capable devices.
     const conn = (navigator as {
       connection?: { saveData?: boolean; effectiveType?: string }
     }).connection
     const slow = conn?.saveData === true ||
       (conn?.effectiveType ? /(^|-)(2g|slow-2g|3g)$/.test(conn.effectiveType) : false)
-    if (slow) setDataSaver(true)
+    let lowEnd = false
+    try {
+      const nav = navigator as Navigator & { deviceMemory?: number }
+      const cores = typeof nav.hardwareConcurrency === "number" ? nav.hardwareConcurrency : 8
+      const mem = typeof nav.deviceMemory === "number" ? nav.deviceMemory : 8
+      // Moto-G-class and below: ≤4 cores or ≤4 GB RAM on a touch device.
+      const touch = matchMedia("(pointer: coarse)").matches
+      lowEnd = touch && (cores <= 4 || mem <= 4)
+    } catch { /* capability probe unavailable → treat as capable */ }
+    if (slow || lowEnd) setDataSaver(true)
     else setEngineWanted(true)
   }, [])
 
