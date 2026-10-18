@@ -174,6 +174,25 @@ export function GalaxyMusic() {
     }
   }
 
+  // External control — the site guide orb can play/toggle/stop the music by
+  // dispatching `universe:music`. The command originates from a user gesture
+  // (typing + Enter in the orb), so audio is allowed to start. A live ref to
+  // `advance` lets the listener call the current closure (it reads `mode`).
+  const advanceRef = useRef(advance)
+  advanceRef.current = advance
+  useEffect(() => {
+    const onMusic = (e: Event) => {
+      const action = (e as CustomEvent<{ action?: string }>).detail?.action ?? "toggle"
+      // "play" only starts if currently off; "off"/"stop" steps once (toward
+      // quiet) only if playing; "toggle" always advances. One advance per event.
+      if (action === "play" && modeRef.current !== "off") return
+      if ((action === "off" || action === "stop") && modeRef.current === "off") return
+      advanceRef.current()
+    }
+    window.addEventListener("universe:music", onMusic as EventListener)
+    return () => window.removeEventListener("universe:music", onMusic as EventListener)
+  }, [])
+
   const nextActionText =
     mode === "off"
       ? loadError

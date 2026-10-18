@@ -441,6 +441,7 @@ export type SiteCommand =
   | { kind: "theme"; value: "light" | "dark"; text: string }
   | { kind: "fly"; pointId: string; body: string; text: string }
   | { kind: "scroll"; anchor: string; label: string; text: string }
+  | { kind: "music"; action: "play" | "off" | "toggle"; text: string }
 
 // Bodies you can fly to in the engine, by the names people say → the engine's
 // pointId. Planets use "planet:Name"; the Moon + Sun + Sgr A* are special.
@@ -464,6 +465,13 @@ const SECTIONS: { aliases: string[]; anchor: string; label: string }[] = [
 
 export function siteCommand(query: string, onEngine: boolean): SiteCommand | null {
   const q = query.toLowerCase().trim()
+  // music (only meaningful where the galaxy + its music chip are on screen)
+  if (onEngine) {
+    if (/\b(stop|turn off|mute|silence|pause).{0,12}(music|sound|song|drone|piano)|\b(music|sound|song) off\b/.test(q))
+      return { kind: "music", action: "off", text: "Turning the music off." }
+    if (/\b(play|start|put on|turn on).{0,12}(music|sound|song|drone|piano)|\b(play|start) (some )?(music|a song)\b|\bmusic\b/.test(q))
+      return { kind: "music", action: "play", text: "Playing the music — Einaudi on piano. Say it again for the Deep Field drone." }
+  }
   // theme
   if (/\b(dark mode|dark theme|turn.*dark|go dark|lights off|night mode)\b/.test(q))
     return { kind: "theme", value: "dark", text: "Switching to dark — easier on the eyes." }

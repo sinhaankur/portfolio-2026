@@ -311,6 +311,8 @@ export function SiteAI() {
       if (cmd.kind === "theme") setTheme(cmd.value)
       else if (cmd.kind === "fly" && typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("universe:sky-focus", { detail: { pointId: cmd.pointId } }))
+      } else if (cmd.kind === "music" && typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("universe:music", { detail: { action: cmd.action } }))
       } else if (cmd.kind === "scroll") {
         if (pathname === "/") document.querySelector(cmd.anchor)?.scrollIntoView({ behavior: "smooth" })
         else { prevPath.current = pathname; router.push("/" + cmd.anchor) }
