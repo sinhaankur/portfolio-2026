@@ -12,6 +12,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { TimeOfDayTheme } from "@/components/time-of-day-theme"
 import { DisplayPrefsProvider } from "@/components/display-prefs"
 import { VisitorAnalytics } from "@/components/analytics/visitor-analytics"
+import { ImageFadeInit } from "@/components/image-fade-init"
 import { ConsentBanner } from "@/components/consent-banner"
 import { Preloader } from "@/components/preloader"
 import { UpdateToast } from "@/components/update-toast"
@@ -385,6 +386,9 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
             </a>
             <div className="noise-overlay" aria-hidden="true" />
             {children}
+            {/* Fades in every `img-fade` image on load (incl. ones added later),
+                so content images never pop in. Safe for cached images. */}
+            <ImageFadeInit />
             {/* Site AI — a small, quiet guide orb in the corner that answers about
                 the work and links straight to the tools. */}
             <SiteAI />

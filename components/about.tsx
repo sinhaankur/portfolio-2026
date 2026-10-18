@@ -260,7 +260,7 @@ export function About() {
                     decoding="async"
                     width={1400}
                     height={980}
-                    className="h-full w-full object-cover [filter:saturate(0.92)]"
+                    className="img-fade h-full w-full object-cover [filter:saturate(0.92)]"
                   />
                   <figcaption className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-3 py-2 bg-linear-to-t from-black/70 to-transparent font-mono text-[9px] tracking-[0.18em] uppercase text-white/80">
                     <span>Where it started</span>
