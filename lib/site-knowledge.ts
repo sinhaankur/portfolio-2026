@@ -59,7 +59,7 @@ const ENTRIES: Entry[] = [
     topic: "the Oracle case study",
     names: ["oracle"],
     topics: ["work", "case study", "enterprise", "product design"],
-    text: "At Oracle, Ankur designed enterprise product experiences — turning dense, high-stakes workflows into interfaces people could actually move through. It's a full product-design case study.",
+    text: "Ankur is Principal UX Designer at Oracle (his current role, since Feb 2020) — leading UX across OCI Database-as-a-Service and the Database Tools portfolio, turning dense, high-stakes workflows into interfaces people can actually move through. It's a full product-design case study.",
     href: "/works/oracle", cta: "Oracle case study",
     followups: [{ label: "See all the work", href: "/#works" }, { label: "The craft behind it", href: "/library" }],
   },
@@ -495,6 +495,65 @@ export function siteCommand(query: string, onEngine: boolean): SiteCommand | nul
   return null
 }
 
+/* ── HR / recruiter layer ──────────────────────────────────────────────────
+ * The real audience: recruiters, HR, startups looking to connect. They ask in
+ * paraphrases ("does he have enterprise experience", "how many years", "can he
+ * code", "is he good with accessibility") that keyword-matching missed or sent
+ * to the wrong place ("proof he can ship" → Pythagoras 😬). Answer these
+ * directly, ALWAYS anchored on Oracle (his CURRENT job) as the professional
+ * headline — and frame everything else (the Lab, engines, math, Vera) as how he
+ * EXPLORES and keeps learning, never as client work. Returns null when it's not
+ * an HR-type question, so the normal brain handles the rest. */
+function hrIntent(query: string): (SiteAnswer & { topic: string }) | null {
+  const q = query.toLowerCase().trim().replace(/[!.?]+$/g, "")
+  const has = (...w: string[]) => w.some((x) => q.includes(x))
+  const oracleNow =
+    "Right now Ankur is a **Principal UX Designer at Oracle** (since Feb 2020) — leading UX across OCI Database-as-a-Service and the Database Tools portfolio, high-complexity consoles where a wrong default costs real money."
+  const link = { text: "", href: "/works/oracle", cta: "Oracle case study" }
+  const foot = [{ label: "Oracle (current)", href: "/works/oracle" }, { label: "All the work", href: "/#works" }, { label: "Skills, with proof", href: "/skills" }]
+
+  // enterprise / senior / seniority
+  if (has("enterprise experience", "enterprise exp", "large company", "big company", "senior", "seniority", "principal", "enterprise ux"))
+    return { topic: "enterprise experience", text: `Yes — deeply. ${oracleNow} Before Oracle: Deloitte (enterprise platforms, 2018–2020), and Lead UX at Snowtint and Rage before that. A career in complex, high-stakes product design.`, href: link.href, cta: link.cta, followups: foot }
+
+  // years of experience
+  if (has("how many years", "years of experience", "years experience", "how long has he", "how experienced", "yoe"))
+    return { topic: "experience", text: `Over a decade in product/UX design — about six of them at **Oracle** as Principal UX Designer (since Feb 2020), after Deloitte, Snowtint and Rage. Everything beyond the day job — the Lab, the engines, the math — is how he keeps exploring and learning.`, href: link.href, cta: link.cta, followups: foot }
+
+  // leadership
+  if (has("led teams", "lead teams", "leadership", "manage", "mentor", "lead designer", "team lead"))
+    return { topic: "leadership", text: `Yes — as **Principal UX Designer at Oracle** he leads UX across two product worlds (DBaaS + Database Tools), aligning product, engineering and business under real constraints, and mentors designers. He was Lead UX at Snowtint earlier too.`, href: link.href, cta: link.cta, followups: foot }
+
+  // can he code / designer-who-builds
+  if (has("can he code", "does he code", "can he build", "just design", "only design", "engineer", "developer", "technical"))
+    return { topic: "designer who builds", text: `Both — a designer who ships the real thing. By day, **Principal UX Designer at Oracle**. On his own time he builds production React/WebGL (this whole site, a live galaxy from real NASA data, on-device AI) — that part is exploration and learning, not client work.`, href: { href: "/lab", cta: "See what he's built" }.href, cta: "See what he's built", followups: foot }
+
+  // strongest skill
+  if (has("strongest skill", "best skill", "best at", "core skill", "specialty", "specialises", "specializes", "good at"))
+    return { topic: "strongest skill", text: `Enterprise UX strategy — structuring dense, high-stakes systems so people can actually use them. It's exactly what he does as **Principal UX Designer at Oracle**. The Skills page ties each strength to real, openable proof.`, href: { href: "/skills", cta: "Skills, with proof" }.href, cta: "Skills, with proof", followups: foot }
+
+  // accessibility / inclusive
+  if (has("accessibility", "accessible", "inclusive", "a11y", "wcag"))
+    return { topic: "inclusive design", text: `Yes — accessible structure, contrast and plain language are part of how he works, including the accessible console work at **Oracle**. He also codified cognition/UX laws into a usable framework.`, href: "/framework", cta: "The UX framework", followups: foot }
+
+  // hire / availability / connect / startup
+  if (has("hire", "available", "availability", "open to", "looking for work", "connect", "reach out", "get in touch", "work together", "collaborate", "freelance", "contract", "opportunity", "role", "position"))
+    return { topic: "getting in touch", text: `Ankur is **Principal UX Designer at Oracle** now, and always happy to connect — about a role, a collaboration, or just the work. The fastest way is the contact section.`, href: "/#contact", cta: "Get in touch", followups: [{ label: "Contact", href: "/#contact" }, { label: "Oracle (current)", href: "/works/oracle" }] }
+
+  // proof / portfolio / show me what he's done
+  if (has("proof he can", "show me proof", "prove", "portfolio", "resume", "cv", "track record", "what has he done", "what did he do"))
+    return { topic: "the receipts", text: `Here are the receipts. ${oracleNow} The Works are the professional projects; the Skills page ties each strength to something real you can open; the Lab is how he explores and learns.`, href: "/#works", cta: "See the work", followups: foot }
+
+  return null
+}
+
+/** True when a query is an HR/recruiter-type question. The component uses this
+ *  to (a) skip navigation ("show me proof" must answer, not route) and (b) skip
+ *  the tiny LLM, whose phrasing of these is worse than the curated answer. */
+export function isHrQuestion(query: string): boolean {
+  return hrIntent(query) !== null
+}
+
 /* ── Conversational layer ─────────────────────────────────────────────────
  * Greetings, meta ("who are you", "do you understand me"), small talk and
  * thanks don't name a project, so keyword matching used to dump the same
@@ -563,7 +622,7 @@ function conversationalReply(query: string): (SiteAnswer & { topic: string }) | 
   if (has("who is ankur", "about ankur", "tell me about ankur", "who's ankur", "about him", "about you ankur")) {
     return {
       topic: "about Ankur",
-      text: "Ankur Sinha is a product designer and engineer — he designs enterprise UX (Oracle, Deloitte, Snowtint, Rage) and builds the real thing too: live 3D worlds from real NASA data, on-device AI, and interactive math. A designer who ships what he designs.",
+      text: "Ankur Sinha is a product designer and engineer — Principal UX Designer at Oracle (enterprise UX for database & cloud consoles), after Deloitte, Snowtint and Rage. He also builds the real thing: live 3D worlds from real NASA data, on-device AI, and interactive math. A designer who ships what he designs.",
       href: "/about", cta: "About Ankur",
       followups: [{ label: "The work", href: "/#works" }, { label: "The Lab", href: "/lab" }],
     }
@@ -573,13 +632,20 @@ function conversationalReply(query: string): (SiteAnswer & { topic: string }) | 
 
 /** The grounded answer for a query, or the honest no-match fallback. */
 export function answerFromSite(query: string): SiteAnswer & { topic: string } {
-  // Real project question? Keyword brain wins. Otherwise try the conversational
-  // layer before the generic fallback, so greetings/meta get a real reply.
+  // ORDER MATTERS. HR/recruiter questions ("proof he can ship", "enterprise
+  // experience") come FIRST — before keyword ranking — because they used to get
+  // mis-matched into random entries (proof → Pythagoras). They're answered with
+  // real specifics anchored on Oracle (current job).
+  const hr = hrIntent(query)
+  if (hr) return hr
+
+  // A clearly-named project? The keyword brain wins.
   const best = rankKeyword(query)[0]
   if (best) {
     const { text, href, cta, topic, followups } = best.entry
     return { text, href, cta, topic, followups }
   }
+  // Greetings / meta / small talk.
   const chat = conversationalReply(query)
   if (chat) return chat
   return {

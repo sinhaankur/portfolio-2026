@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from "framer-motion"
 import { useTheme } from "next-themes"
 import { VeraMark } from "@/components/vera-mark"
 import { useVeraVoice } from "@/components/use-vera-voice"
-import { answerFromSite, groundingFor, navIntent, siteCommand } from "@/lib/site-knowledge"
+import { answerFromSite, groundingFor, navIntent, siteCommand, isHrQuestion } from "@/lib/site-knowledge"
 import {
   getWebLLMEngine,
   isWebGPUAvailable,
@@ -40,6 +40,17 @@ type Msg = {
   href?: string
   cta?: string
   followups?: { label: string; href: string }[]
+}
+
+/** Render **bold** markers in Vera's replies (e.g. **Oracle**) as real bold,
+ *  so the emphasis reads instead of showing literal asterisks. */
+function renderBold(text: string): React.ReactNode {
+  if (!text.includes("**")) return text
+  return text.split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
+    part.startsWith("**") && part.endsWith("**")
+      ? <strong key={i} className="font-semibold text-foreground">{part.slice(2, -2)}</strong>
+      : <span key={i}>{part}</span>,
+  )
 }
 
 const GREETING: Msg = {
@@ -285,7 +296,7 @@ export function SiteAI() {
     setPhase("speaking")
     if (speakTimer.current) clearTimeout(speakTimer.current)
     if (sound && text) {
-      voice.speak(text)
+      voice.speak(text.replace(/\*\*/g, "")) // don't read the markdown markers aloud
       // settle a little after she'd finish (~ reading time), min 2.6s
       const dur = Math.max(2600, text.split(/\s+/).length * 360)
       speakTimer.current = setTimeout(() => setPhase("idle"), dur)
@@ -334,7 +345,10 @@ export function SiteAI() {
       setTimeout(() => { prevPath.current = pathname; router.push(dest) }, 650)
       return
     }
-    const nav = navIntent(q)
+    // HR/recruiter questions ("show me proof he can ship", "does he have
+    // enterprise experience") must be ANSWERED, not treated as navigation —
+    // "show me" would otherwise route them somewhere random. So skip nav for them.
+    const nav = isHrQuestion(q) ? null : navIntent(q)
     if (nav && nav.href !== pathname) {
       setMsgs((m) => [...m, { role: "vera", text: nav.text, href: nav.href, cta: `Go to ${nav.topic}` }])
       speakThenIdle(nav.text)
@@ -350,6 +364,18 @@ export function SiteAI() {
 
     setThinking(true)
     setPhase("thinking")
+
+    // HR/recruiter questions get the CURATED answer (Oracle-anchored), skipping
+    // the tiny LLM — its phrasing of "are you hiring" etc. is worse and off-brand.
+    if (isHrQuestion(q)) {
+      setTimeout(() => {
+        setThinking(false)
+        const a = answerFromSite(q)
+        setMsgs((m) => [...m, { role: "vera", text: a.text, href: a.href, cta: a.cta, followups: a.followups }])
+        speakThenIdle(a.text)
+      }, 340)
+      return
+    }
 
     // Try the on-device model first (if opted in); otherwise — or on any
     // failure — answer instantly from the grounded brain. Either way the answer
@@ -455,7 +481,7 @@ export function SiteAI() {
                         : "inline-block rounded-2xl text-[13px] leading-relaxed text-foreground/90"
                     }
                   >
-                    {m.text}
+                    {m.role === "vera" ? renderBold(m.text) : m.text}
                   </span>
                   {m.href && m.text && (
                     <div className="mt-1.5">
