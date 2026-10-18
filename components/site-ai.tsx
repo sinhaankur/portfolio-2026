@@ -40,6 +40,19 @@ type Msg = {
   href?: string
   cta?: string
   followups?: { label: string; href: string }[]
+  /** A ready-to-open mailto to Ankur, pre-filled with the visitor's note — the
+   *  "Send this to Ankur" action. Set only on the confirmation message. */
+  note?: string
+}
+
+// Ankur's inbox — where a visitor's note lands (matches the footer channels).
+const ANKUR_EMAIL = "sinhaankur@ymail.com"
+
+/** Does this read like the visitor wants to actually reach Ankur (not ask about
+ *  the work)? Triggers the leave-a-note flow. */
+function wantsToReachAnkur(q: string): boolean {
+  const s = q.toLowerCase()
+  return /\b(chat with (you|him|ankur)|talk to (you|him|ankur)|message (you|him|ankur)|reach (you|him|ankur)|leave (a|him) (note|message)|send (you|him|ankur) a|get in touch with|i'?d love to chat|can i chat|wanna chat|want to chat|contact (you|him|ankur) directly|dm (you|him)|write to (you|him|ankur))\b/.test(s)
 }
 
 /** Render **bold** markers in Vera's replies (e.g. **Oracle**) as real bold,
@@ -133,6 +146,9 @@ export function SiteAI() {
   // off by default; never talks unasked. One voice path for every orb.
   const [sound, setSound] = useState(false)
   const voice = useVeraVoice(sound)
+  // When true, the NEXT thing the visitor types is captured as a note to Ankur
+  // (opened as a pre-filled email) rather than sent to the Q&A brain.
+  const [noteMode, setNoteMode] = useState(false)
   // live voice loudness (0..1) → feeds the orb's wave so it rides the real audio.
   const [level, setLevel] = useState(0)
   const rafRef = useRef<number | null>(null)
@@ -315,6 +331,29 @@ export function SiteAI() {
     setTyped("")
     setMsgs((m) => [...m, { role: "you", text: q }])
 
+    // LEAVE-A-NOTE — if we're capturing a note, THIS message is it: build a
+    // pre-filled email to Ankur and offer the "Send" button. The visitor's words
+    // never touch a server; the mailto opens in their own mail app.
+    if (noteMode) {
+      setNoteMode(false)
+      const subject = "Hello from your site — someone wants to connect"
+      const body = `${q}\n\n— sent from the Vera chat on sinhaankur.com`
+      const mailto = `mailto:${ANKUR_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+      const line = "Got it. Tap below and it'll open your email, ready to send to Ankur — add your name/email so he can reply."
+      setMsgs((m) => [...m, { role: "vera", text: line, note: mailto, cta: "Send this to Ankur ✉" }])
+      speakThenIdle(line)
+      return
+    }
+
+    // WANTS TO REACH ANKUR — invite the note instead of answering about the work.
+    if (wantsToReachAnkur(q)) {
+      setNoteMode(true)
+      const line = "Of course — I'll pass it straight to Ankur. What would you like to say? (Type your message and I'll turn it into an email to him.)"
+      setMsgs((m) => [...m, { role: "vera", text: line }])
+      speakThenIdle(line)
+      return
+    }
+
     // SITE COMMANDS — the orb DOES things: switch theme, fly to a planet in the
     // engine, scroll to a section. Checked first (most specific).
     const cmd = siteCommand(q, onEngine)
@@ -483,7 +522,20 @@ export function SiteAI() {
                   >
                     {m.role === "vera" ? renderBold(m.text) : m.text}
                   </span>
-                  {m.href && m.text && (
+                  {/* leave-a-note: a solid 'Send this to Ankur ✉' that opens the
+                      visitor's own email, pre-filled. Prominent (accent fill). */}
+                  {m.note && (
+                    <div className="mt-2">
+                      <a
+                        href={m.note}
+                        data-cursor-hover
+                        className="inline-flex items-center gap-1.5 rounded-full bg-accent px-3 py-1.5 text-[12px] font-semibold text-accent-foreground hover:brightness-110 transition"
+                      >
+                        {m.cta ?? "Send this to Ankur ✉"}
+                      </a>
+                    </div>
+                  )}
+                  {m.href && m.text && !m.note && (
                     <div className="mt-1.5">
                       <a
                         href={m.href}
