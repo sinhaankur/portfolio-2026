@@ -522,8 +522,11 @@ function GProofCard({
   const extra = skill.proof.slice(1)
   return (
     <motion.div
-      className="group relative flex flex-col transition-colors duration-300"
-      style={{ backgroundColor: open ? "rgba(251,78,43,0.05)" : INK }}
+      className="group relative flex flex-col transition-all duration-300"
+      style={{
+        backgroundColor: open ? "rgba(251,78,43,0.07)" : INK,
+        boxShadow: open ? "inset 0 0 0 1.5px rgba(251,78,43,0.5)" : "inset 0 0 0 0 transparent",
+      }}
       variants={{
         hidden: reduce ? { opacity: 0 } : { opacity: 0, y: 26 },
         show: reduce
@@ -589,19 +592,25 @@ function GProofCard({
           </span>
         </Link>
 
-        {/* More receipts — collapsed, revealed on toggle. */}
+        {/* More receipts — collapsed, revealed on toggle. The button is a real,
+            obviously-clickable pill (accent on hover) with a rotating chevron, so
+            the interaction reads and the reveal feels intentional. */}
         {extra.length > 0 && (
           <>
             <button
               onClick={onToggle}
               data-cursor-hover
               aria-expanded={open}
-              className="mt-3 flex items-center gap-1.5 self-start font-mono text-[10px] uppercase tracking-[0.2em] transition-colors focus-visible:outline-none"
-              style={{ color: open ? ACCENT : MUTE }}
+              className="mt-4 inline-flex items-center gap-2 self-start rounded-full border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] transition-all duration-200 focus-visible:outline-none"
+              style={{
+                color: open ? "#000" : CREAM,
+                backgroundColor: open ? ACCENT : "transparent",
+                borderColor: open ? ACCENT : "rgba(255,229,213,0.25)",
+              }}
             >
-              {open ? "fewer" : `+${extra.length} more proof`}
+              {open ? "hide proof" : `${extra.length} more proof`}
               <span aria-hidden className="transition-transform duration-300" style={{ transform: open ? "rotate(90deg)" : "none" }}>
-                →
+                ↓
               </span>
             </button>
             <AnimatePresence initial={false}>
@@ -614,7 +623,10 @@ function GProofCard({
                   transition={{ duration: 0.3, ease: EASE }}
                   className="overflow-hidden"
                 >
-                  <div className="mt-3 flex flex-col gap-2.5">
+                  <div className="mt-3 border-t pt-3 flex flex-col gap-2.5" style={{ borderColor: "rgba(255,229,213,0.12)" }}>
+                    <span className="font-mono text-[9px] uppercase tracking-[0.2em]" style={{ color: ACCENT }}>
+                      also proven by
+                    </span>
                     {extra.map((p) => (
                       <Link
                         key={p.href + p.label}
