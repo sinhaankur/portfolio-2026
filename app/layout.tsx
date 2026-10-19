@@ -361,7 +361,9 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
                 <li>
                   {/* No literal email in the crawler-facing noscript block —
                       contact routes through the form/LinkedIn to keep the address
-                      out of scrapers. */}
+                      out of scrapers. Plain <a> is required inside <noscript>
+                      (next/link needs JS). */}
+                  {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
                   <a className="underline underline-offset-4" href="/#contact">Contact</a>
                 </li>
                 <li>

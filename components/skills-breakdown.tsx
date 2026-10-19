@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react"
 import Link from "next/link"
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
+import { SkillParticles } from "@/components/skills-particles"
 
 /* =========================================================================
    SKILLS — a gallery, not a resume.
@@ -547,9 +548,9 @@ function GProofCard({
           on hover, and a hot-accent sweep crosses it on hover — the card reacts
           to you, Webflow-style. */}
       <div className="relative h-36 overflow-hidden border-b md:h-44 transition-[filter] duration-500 group-hover:brightness-125" style={{ borderColor: "rgba(255,229,213,0.1)" }}>
-        <div className={`absolute inset-0 transition-transform duration-700 ease-out group-hover:scale-[1.07] ${reduce ? "" : "sk-motif-breathe"}`}>
-          <SkillMotif motif={skill.motif} reduce={reduce} />
-        </div>
+        {/* PARTICLE BUILD (exploration): each skill's visual as a point-cloud that
+            forms its motif + reacts on hover — the dotted-orb idea per skill. */}
+        <SkillParticles motif={skill.motif} />
         {/* accent sweep on hover */}
         <div
           aria-hidden
