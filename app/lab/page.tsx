@@ -29,6 +29,7 @@ export default function LabPage() {
             on stage at scroll 0 — without it, landing here is a blank viewport. */}
         <ScrollCinema
           startVisible
+          vhPerLine={0.25}
           lines={[
             "How I'm learning AI — by building it.",
             "The design argument, shipped as working software.",

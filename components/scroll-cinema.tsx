@@ -32,6 +32,7 @@ const VH_PER_LINE = 0.85
 export function ScrollCinema({
   lines,
   startVisible = false,
+  vhPerLine = VH_PER_LINE,
 }: {
   lines: string[]
   /**
@@ -42,6 +43,12 @@ export function ScrollCinema({
    * cue that anything exists below.
    */
   startVisible?: boolean
+  /**
+   * Scroll length each line occupies (in viewports). Default 0.85. Lower it when
+   * the overture should read quickly and hand off to real content sooner — e.g.
+   * /lab, where a long pinned scroll over an empty ocean felt hollow.
+   */
+  vhPerLine?: number
 }) {
   const ref = useRef<HTMLElement>(null)
   const prefersReducedMotion = useReducedMotion()
@@ -54,7 +61,7 @@ export function ScrollCinema({
   // pure motion, so reduced-motion visitors simply skip it.
   if (prefersReducedMotion) return null
 
-  const heightVh = Math.round(lines.length * VH_PER_LINE * 100 + 100)
+  const heightVh = Math.round(lines.length * vhPerLine * 100 + 100)
 
   return (
     <section
