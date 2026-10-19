@@ -350,12 +350,20 @@ export function SkillsBreakdown() {
 
         {/* Exhibits */}
         {shown.length === 0 ? (
-          <p
-            className="rounded-md border border-dashed py-12 text-center font-mono text-sm"
-            style={{ borderColor: "rgba(255,229,213,0.2)", color: MUTE }}
+          <div
+            className="rounded-md border border-dashed py-12 text-center"
+            style={{ borderColor: "rgba(255,229,213,0.2)" }}
           >
-            Nothing matches that filter.
-          </p>
+            <p className="font-mono text-sm" style={{ color: MUTE }}>Nothing matches that filter.</p>
+            <button
+              onClick={() => { setDiscipline("All"); setProject("All") }}
+              data-cursor-hover
+              className="mt-3 font-mono text-[11px] uppercase tracking-[0.18em] underline underline-offset-4 transition-colors"
+              style={{ color: ACCENT }}
+            >
+              Clear filters
+            </button>
+          </div>
         ) : (
           <div className="space-y-20 md:space-y-28">
             {shown.map((d, di) => (
