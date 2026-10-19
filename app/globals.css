@@ -292,6 +292,15 @@
     font-weight: 400;
     letter-spacing: -0.012em;
   }
+
+  /* Premium type refinements (progressive — browsers that don't support these
+     simply ignore them):
+       • pretty paragraphs avoid orphans (a lone last word) and ragged breaks
+       • headings balance across lines so multi-line titles sit evenly
+       • kerning + common ligatures on for tighter, more crafted text */
+  p, li, blockquote, figcaption { text-wrap: pretty; }
+  h1, h2, h3 { text-wrap: balance; }
+  body { font-kerning: normal; font-feature-settings: "kern" 1, "liga" 1, "calt" 1; }
 }
 
 /* Noise texture overlay (dark mode only — light mode uses the paper grain above) */
