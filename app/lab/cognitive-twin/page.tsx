@@ -4,6 +4,7 @@ import { canonicalPath } from "@/lib/seo"
 import { ExternalLink, ArrowUpRight } from "lucide-react"
 import { VeraMark } from "@/components/vera-mark"
 import { VeraOrbDemo } from "@/components/vera-orb-demo"
+import { VeraDotsStates } from "@/components/vera-dots/vera-dots-states"
 import { VeraDownload } from "@/components/vera-download"
 import { HowItWorksDiagram } from "@/components/vera-brain/how-it-works-diagram"
 import {
@@ -235,6 +236,15 @@ brew install --cask vera`}</code>
         <div className="mt-6">
           <VeraOrbDemo />
         </div>
+
+        <CaseProse>
+          <p className="mt-10">
+            Vera never shows a generic spinner. Every &ldquo;waiting&rdquo; moment
+            is a <em>state</em> — a point-cloud orb that says what she&rsquo;s
+            actually doing, so you&rsquo;re never left guessing.
+          </p>
+        </CaseProse>
+        <VeraDotsStates />
       </section>
 
       {/* WHAT'S BUILT */}

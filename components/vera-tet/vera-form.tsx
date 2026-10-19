@@ -19,20 +19,24 @@ import { useEffect, useState, useCallback } from "react"
 import { VeraMark } from "@/components/vera-mark"
 import type { TetPhase } from "./tet-mesh"
 
-export type VeraFormKind = "orb" | "tet"
+export type VeraFormKind = "orb" | "tet" | "dots"
 
 export const VERA_FORMS: { id: VeraFormKind; label: string; blurb: string }[] = [
   { id: "orb", label: "Orb", blurb: "Her warm, iridescent sphere — soft, living, present." },
   { id: "tet", label: "Prism", blurb: "A faceted HUD prism — her colour, sharper geometry." },
+  { id: "dots", label: "Field", blurb: "A point-cloud sphere whose dots say what she's doing." },
 ]
 
 const KEY = "vera:form"
 const EVT = "vera:form-change"
 
+// Default form. The iridescent orb for now; the dotted "Field" + prism are
+// opt-in via the switcher (and being previewed at /orblab).
+const DEFAULT_FORM: VeraFormKind = "orb"
 function readForm(): VeraFormKind {
-  if (typeof window === "undefined") return "orb"
+  if (typeof window === "undefined") return DEFAULT_FORM
   const v = window.localStorage.getItem(KEY)
-  return v === "tet" ? "tet" : "orb"
+  return v === "tet" || v === "dots" || v === "orb" ? v : DEFAULT_FORM
 }
 
 export function setVeraForm(kind: VeraFormKind) {
@@ -43,7 +47,7 @@ export function setVeraForm(kind: VeraFormKind) {
 
 /** Subscribe to the current form, reacting to switches anywhere on the page. */
 export function useVeraForm(): VeraFormKind {
-  const [form, setForm] = useState<VeraFormKind>("orb")
+  const [form, setForm] = useState<VeraFormKind>(DEFAULT_FORM)
   useEffect(() => {
     setForm(readForm())
     const onChange = (e: Event) => {
@@ -68,19 +72,29 @@ const VeraTet = dynamic(() => import("./vera-tet").then((m) => ({ default: m.Ver
   ssr: false,
   loading: () => null,
 })
+// the dotted "Field" is a light 2D canvas — lazy anyway so the default path
+// (iridescent orb) never ships it.
+const VeraDots = dynamic(() => import("@/components/vera-dots/vera-dots").then((m) => ({ default: m.VeraDots })), {
+  ssr: false,
+  loading: () => null,
+})
 
 export function VeraForm({
   size = 96,
   className = "",
   phase = "idle",
+  level,
 }: {
   size?: number
   className?: string
   phase?: TetPhase
+  /** 0..1 live voice loudness — forwarded to the forms that react to it. */
+  level?: number
 }) {
   const form = useVeraForm()
   if (form === "tet") return <VeraTet size={size} className={className} phase={phase} />
-  return <VeraMark size={size} className={className} phase={phase} />
+  if (form === "dots") return <VeraDots size={size} className={className} phase={phase} level={level} />
+  return <VeraMark size={size} className={className} phase={phase} level={level} />
 }
 
 /** The user's control to change Vera's form. Small segmented toggle. */
