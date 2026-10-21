@@ -198,20 +198,37 @@ let srcNode: MediaElementAudioSourceNode | null = null
 
 function ensureAnalyser() {
   if (analyser || !audioEl) return
+  // CRITICAL: once createMediaElementSource() is called on the <audio>, its sound
+  // is routed into the Web Audio graph and NO LONGER reaches the speakers on its
+  // own — it MUST be connected through to audioCtx.destination or playback goes
+  // permanently silent (the "audio-reactive orb muted the voice" bug). So we create
+  // the source in its own guarded step and ALWAYS wire it to the speakers first;
+  // the analyser tap is layered on top and is allowed to fail without killing sound.
   try {
     const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
     if (!audioCtx) audioCtx = new Ctx()
-    // createMediaElementSource can only be called once per element — guard it.
-    if (!srcNode) srcNode = audioCtx.createMediaElementSource(audioEl)
+    // createMediaElementSource can only be called once per element — guard it, and
+    // the instant it exists, connect it straight to the speakers so audio is safe.
+    if (!srcNode) {
+      srcNode = audioCtx.createMediaElementSource(audioEl)
+      srcNode.connect(audioCtx.destination)   // guarantee audible, no matter what
+    }
+  } catch {
+    // couldn't tap the element at all — leave the plain <audio> playing normally.
+    srcNode = null
+    analyser = null
+    return
+  }
+  // analyser is a BONUS layer for the orb's level meter — if it fails, we keep the
+  // direct source→destination path intact (audio never dies for a dead meter).
+  try {
     analyser = audioCtx.createAnalyser()
     analyser.fftSize = 256
     analyser.smoothingTimeConstant = 0.75
     levelData = new Uint8Array(new ArrayBuffer(analyser.frequencyBinCount))
-    // keep audible: source → analyser → speakers
-    srcNode.connect(analyser)
-    analyser.connect(audioCtx.destination)
+    srcNode.connect(analyser)   // parallel tap; source still reaches destination above
   } catch {
-    analyser = null // tapping failed (some browsers block it) → level stays 0
+    analyser = null // tapping failed → level stays 0, but voice still plays
   }
 }
 

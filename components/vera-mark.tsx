@@ -116,7 +116,20 @@ export function VeraMark({
           filter: blur(9px); mix-blend-mode:screen; opacity:1;
           top:18%; left:18%;
           transform-origin:center;
+          /* STATIC spread so the orb is vivid even with no animation (reduced-motion
+             or before the swirl kicks in) — otherwise all blobs stack dead-centre and
+             the orb reads as a murky dark disc. Each blob gets a default offset; the
+             orbit animations override this transform when motion is on. */
+          transform: translateX(26%);
         }
+        /* fan the blobs to different resting angles (overridden by orbit anims) */
+        .vs-purple { transform: rotate(72deg)  translateX(26%); }
+        .vs-blue   { transform: rotate(144deg) translateX(26%); }
+        .vs-cyan   { transform: rotate(216deg) translateX(26%); }
+        .vs-orange { transform: rotate(288deg) translateX(26%); }
+        .vs-inner  { transform: translateX(16%); }
+        .vs-magenta{ transform: rotate(40deg)  translateX(16%); }
+        .vs-teal   { transform: rotate(200deg) translateX(16%); }
         /* each blob orbits from a different start angle via its own wrapper spin */
         .vs-pink   { background: radial-gradient(circle, #ff4590 0%, rgba(255,69,144,0) 62%); }
         .vs-purple { background: radial-gradient(circle, #9e4dff 0%, rgba(158,77,255,0) 62%); }
