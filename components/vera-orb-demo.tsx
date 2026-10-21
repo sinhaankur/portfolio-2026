@@ -412,20 +412,15 @@ export function VeraOrbDemo() {
       </div>
 
       <div className="flex flex-col items-center gap-5">
-        {/* the orb — it now LISTENS, THINKS and SPEAKS with its own phase motion
-            (ripples / shimmer / fast glow). It's built to GLOW on dark, so we sit
-            it on a dark circular stage — otherwise it reads as a murky sphere on
-            the section's light background. The stage makes her presence legible. */}
+        {/* the orb — it LISTENS, THINKS and SPEAKS with its own phase motion. It
+            carries its own glow + dark body, so it reads cleanly on the light
+            section (same as the hero orb) — NO dark stage behind it. The old dark
+            circular stage had no overflow clip, so the orb's soft outer glow spilled
+            past it as a square patch on the page. Dropping the stage fixes that and
+            lets the orb's round halo breathe naturally. */}
         <div
-          className="relative grid place-items-center rounded-full"
-          style={{
-            width: 220,
-            height: 220,
-            background:
-              "radial-gradient(circle at 50% 45%, #15131f 0%, #0b0a12 55%, #07060c 100%)",
-            boxShadow:
-              "inset 0 0 40px rgba(0,0,0,.6), 0 10px 40px -12px rgba(80,40,160,.45)",
-          }}
+          className="relative grid place-items-center"
+          style={{ width: 200, height: 200 }}
         >
           <div
             style={{
@@ -438,7 +433,7 @@ export function VeraOrbDemo() {
               transition: "transform 520ms cubic-bezier(.16,1,.3,1)",
             }}
           >
-            <VeraMark size={120} phase={phase} />
+            <VeraMark size={128} phase={phase} />
           </div>
         </div>
         <p
