@@ -11,22 +11,28 @@
  *   - computeBlackHoleProportions  physics → scene-scale radii (Kerr/Schwarzschild)
  *   - BlackHoleJets                bipolar relativistic outflow along the spin axis
  *   - BlackHoleShadowSphere        honest idle stand-in (event-horizon shadow)
- *   - BlackHoleGlbMesh             the Sketchfab GLB, isolated so useGLTF runs lazily
- *   - BlackHoleDetail              the engaged view (shadow + disk + jets + physics HUD)
+ *   - BlackHoleRaymarch            the engaged view: pure-GLSL null-geodesic
+ *                                  lensing (shadow + photon ring + disk arcing
+ *                                  over/under + lensed real Milky Way)
+ *   - BlackHoleDetail              composes the above + jets + physics HUD
  *
  * Consumers (scene.tsx) mount <BlackHoleDetail /> under a black-hole sky-point.
  * Radii come from real mass/spin (schwarzschildRadiusMeters / kerrHorizonRadiusMeters);
- * the 8.4 MB GLB downloads only on first engagement, not at mount.
+ * the engaged lensing is pure GLSL (no download) — it mounts on first engagement.
  */
 
-import { Suspense, useRef, useMemo, useEffect, useState } from "react"
+import { useRef, useMemo, useEffect, useState } from "react"
 import { useFrame } from "@react-three/fiber"
-import { Clone, Html, useGLTF } from "@react-three/drei"
+import { Html } from "@react-three/drei"
 import {
   AdditiveBlending,
   DoubleSide,
   Group,
+  Mesh,
   NormalBlending,
+  ShaderMaterial,
+  Vector3,
+  type Texture,
 } from "three"
 
 import {
@@ -36,9 +42,11 @@ import {
   kerrHorizonRadiusMeters,
   schwarzschildRadiusMeters,
   viewBandRef,
+  SUN_OFFSET_SCENE,
 } from "./astronomy"
 import { bandBrightness } from "@/lib/observe"
 import { getBlackHoleAffordance } from "./celestial-sub-engine"
+import { galacticBasis, loadAllSkyTexture } from "./sky-panorama"
 import type { SkyPoint } from "./types"
 
 /**
@@ -219,25 +227,220 @@ function BlackHoleShadowSphere() {
   )
 }
 
-/** The Sketchfab "Blackhole" by rubykamen (CC-BY-4.0) — isolated so useGLTF
- *  only runs (and downloads) once a BH is actually engaged.
+/* ============================================================
+ * BlackHoleRaymarch — the physics does the drawing (pure GLSL).
  *
- *  The GLB ships WebP textures (EXT_texture_webp) — three's GLTFLoader registers
- *  that extension by default, so no extra loader wiring is needed. If a load ever
- *  fails, the Suspense fallback keeps the honest shadow sphere on screen (the BH
- *  never vanishes), and we surface the error in dev so it's diagnosable rather
- *  than a silent black gap. */
-function BlackHoleGlbMesh() {
-  const gltf = useGLTF("/models/blackhole.glb")
-  // Defensive: if the GLB somehow parsed without a scene, fall back to the
-  // shadow sphere instead of rendering nothing (the "missing black hole").
-  if (!gltf?.scene) {
-    if (process.env.NODE_ENV !== "production") {
-      console.warn("[universe-engine] black-hole GLB loaded but has no scene")
-    }
-    return <BlackHoleShadowSphere />
+ * Per pixel, a photon is traced BACKWARDS through curved spacetime via
+ * null-geodesic integration (kick-drift-kick leapfrog, accel = -1.5 h² pos/r⁵),
+ * so the shadow, the bright photon ring, the accretion disk's far side arcing
+ * OVER and UNDER the hole, and the Einstein-lensed real Milky Way behind it all
+ * EMERGE from the geometry — nothing is painted on a mesh. Scaled by each
+ * object's published mass + spin. This replaces the 13 MB Sketchfab GLB:
+ * BHs rejoin the engine's pure-GLSL field.
+ *
+ * The look is the cinematic Gargantua (Interstellar): warm golden disk with the
+ * Doppler asymmetry dialed down (Nolan's choice), a razor photon ring, and a
+ * subtle IMAX anamorphic flare. Ring-moire is killed by a per-pixel march
+ * dither + transmission compositing (near disk image attenuates the ones behind),
+ * the proven method from real-time geodesic renderers.
+ * ============================================================ */
+const BH_QUAD_RS = 18 // quad half-extent in rs units (disk reaches ~16)
+
+const BH_VERT = /* glsl */ `
+  varying vec3 vWorldPos;
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    vWorldPos = (modelMatrix * vec4(position, 1.0)).xyz;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
   }
-  return <Clone object={gltf.scene} />
+`
+
+const BH_FRAG = /* glsl */ `
+  precision highp float;
+  varying vec3 vWorldPos;
+  varying vec2 vUv;
+  uniform sampler2D uSky;
+  uniform vec3 uGalX; uniform vec3 uGalY; uniform vec3 uGalZ;
+  uniform vec3 uCenter;    // BH centre, world units
+  uniform float uUnit;     // world length of 1 rs (tracks the scale lerp)
+  uniform float uIscoRs;   // ISCO in rs units (6 → 1 with spin)
+  uniform float uDiskOuterRs;
+  uniform float uSpin;
+  uniform float uTime;
+  uniform float uHasSky;
+  uniform float uSkyLevel; // matches SkyPanorama's vantage fade
+
+  const int STEPS = 240;
+  const float ESCAPE_R = 44.0;
+
+  float hash(vec2 p){ p=fract(p*vec2(123.34,345.45)); p+=dot(p,p+34.345); return fract(p.x*p.y); }
+  float vnoise(vec2 p){ vec2 i=floor(p),f=fract(p); f=f*f*(3.0-2.0*f);
+    return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y); }
+  float fbm(vec2 p){ float s=0.0,a=0.5; for(int i=0;i<4;i++){ s+=a*vnoise(p); p*=2.03; a*=0.5; } return s; }
+
+  vec3 skySample(vec3 d){
+    float gx=dot(d,uGalX), gy=dot(d,uGalY), gz=dot(d,uGalZ);
+    float lon=atan(gy,gx), lat=asin(clamp(gz,-1.0,1.0));
+    vec2 uv=vec2(0.5 - lon/6.28318530718, 0.5 + lat/3.14159265359);
+    return texture2D(uSky, uv).rgb;
+  }
+
+  vec3 diskEmission(vec2 xz, out float a){
+    float r=length(xz);
+    float fadeIn=smoothstep(uIscoRs,uIscoRs*1.3,r);
+    float fadeOut=1.0-smoothstep(uDiskOuterRs*0.65,uDiskOuterRs,r);
+    float ang=atan(xz.y,xz.x);
+    float swirl=ang - 4.0/pow(r,1.2) - uTime*0.4;
+    float flow=fbm(vec2(swirl*1.3,r*0.5))*0.6 + 0.4*fbm(vec2(swirl*2.6,r*1.1));
+    float bright=0.8+0.6*flow;
+    float t=clamp(1.0-(r-uIscoRs)/(uDiskOuterRs-uIscoRs),0.0,1.0);
+    // warm GOLD Gargantua tone (hot cream inner → amber-gold outer)
+    vec3 hot=vec3(1.0,0.96,0.86), gold=vec3(1.0,0.78,0.45), amber=vec3(1.0,0.62,0.28);
+    vec3 col = t>0.55 ? mix(gold,hot,(t-0.55)/0.45) : mix(amber,gold,t/0.55);
+    col *= 1.0 + 1.3*smoothstep(uIscoRs*1.7,uIscoRs,r);
+    a=clamp(fadeIn*fadeOut*bright,0.0,1.0);
+    return col*bright;
+  }
+
+  void main(){
+    // Ray in rs units, in the BH's world-aligned rest frame (disk = y plane).
+    vec3 ro=(cameraPosition - uCenter)/uUnit;
+    vec3 rd=normalize(vWorldPos - cameraPosition);
+    float b=dot(ro,rd), c=dot(ro,ro)-ESCAPE_R*ESCAPE_R;
+    if(c>0.0){ float disc=b*b-c; if(disc<0.0) discard; ro+=rd*max(0.0,-b-sqrt(disc)); }
+    // per-pixel dither breaks the discrete-step moire (grey concentric rings)
+    float jit=hash(gl_FragCoord.xy+fract(uTime));
+    ro += rd*(jit-0.5)*clamp(length(ro)*0.14,0.04,2.8);
+
+    vec3 pos=ro, vel=rd; vec3 hv=cross(pos,vel); float h2=dot(hv,hv);
+    vec3 emis=vec3(0.0); float trans=1.0; bool captured=false; float prevY=pos.y; float rMin=1e9;
+    for(int i=0;i<STEPS;i++){
+      float r=length(pos); rMin=min(rMin,r);
+      if(r<1.0){ captured=true; break; }
+      if(r>ESCAPE_R+1.0 && dot(pos,vel)>0.0) break;
+      if(trans<0.02) break;
+      float dt=clamp(r*0.12,0.03,2.5);
+      vec3 a0=-1.5*h2*pos/pow(r,5.0) + uSpin*0.9/max(r*r,1.0)*vec3(-pos.z,0.0,pos.x)/max(length(pos.xz),1e-3);
+      vec3 vh=vel+a0*dt*0.5; vec3 np=pos+vh*dt; float nr=length(np);
+      vec3 a1=-1.5*h2*np/pow(nr,5.0); vec3 nv=vh+a1*dt*0.5;
+      if(np.y*prevY<0.0){
+        float f=prevY/max(1e-6,prevY-np.y);
+        vec3 hit=mix(pos,np,f); float hr=length(hit.xz);
+        if(hr>uIscoRs && hr<uDiskOuterRs){
+          float da; vec3 dc=diskEmission(hit.xz,da);
+          float mid=mix(uIscoRs,uDiskOuterRs,0.5);
+          float rad=0.9*exp(-pow((hr-mid)/(0.42*(uDiskOuterRs-uIscoRs)),2.0));
+          float op=clamp(da*rad,0.0,1.0);
+          emis += dc*op*trans; trans *= (1.0-op);
+        }
+      }
+      pos=np; vel=nv; prevY=np.y;
+    }
+    float dr=clamp(rMin-1.5,-8.0,8.0);
+    float ring=exp(-(dr/0.11)*(dr/0.11)) + 0.5*exp(-(dr/0.4)*(dr/0.4));
+    vec3 ringCol=vec3(1.0,0.96,0.88)*ring*3.2;
+    vec3 bg = captured ? vec3(0.0) : (uHasSky>0.5 ? skySample(normalize(vel))*uSkyLevel : vec3(0.0))*trans;
+    vec3 col = emis + bg + ringCol;
+    // cinematic grade: crush blacks, bloom, warm halo, IMAX anamorphic flare
+    col = max(col-0.035,0.0)/(1.0-0.035);
+    float lum=max(col.r,max(col.g,col.b));
+    col += col*smoothstep(0.55,1.9,lum)*0.95;
+    col += vec3(1.0,0.82,0.55)*smoothstep(1.2,3.0,lum)*0.25;
+    float flareY=exp(-pow((vUv.y-0.5)*14.0,2.0));
+    col += vec3(1.0,0.86,0.62)*flareY*smoothstep(1.0,2.6,lum)*0.5;
+    col = col/(1.0+0.08*lum);
+    col = pow(col,vec3(0.82));
+    // radial rim fade so the quad edge never reads as a square
+    float rim=length(vUv-0.5)*2.0;
+    float alpha=1.0 - smoothstep(0.82,1.0,rim);
+    gl_FragColor=vec4(col,alpha);
+  }
+`
+
+const _bhWorldScale = new Vector3()
+const _bhShellCenter = new Vector3(SUN_OFFSET_SCENE, 0, 0)
+
+function BlackHoleRaymarch({
+  rsScene,
+  iscoFactor,
+  spin,
+}: {
+  /** World-scene length of one Schwarzschild radius at root scale 1. */
+  rsScene: number
+  /** ISCO in rs units (6 for Schwarzschild → ~1 for max prograde Kerr). */
+  iscoFactor: number
+  /** Dimensionless spin 0..1. */
+  spin: number
+}) {
+  const meshRef = useRef<Mesh>(null)
+  const matRef = useRef<ShaderMaterial>(null)
+  const [sky, setSky] = useState<Texture | null>(null)
+
+  useEffect(() => {
+    let alive = true
+    loadAllSkyTexture(true).then((t) => { if (alive) setSky(t) })
+    return () => { alive = false }
+  }, [])
+
+  const uniforms = useMemo(() => {
+    const basis = galacticBasis()
+    return {
+      uSky: { value: null as Texture | null },
+      uGalX: { value: basis.x }, uGalY: { value: basis.y }, uGalZ: { value: basis.z },
+      uCenter: { value: new Vector3() },
+      uUnit: { value: rsScene },
+      uIscoRs: { value: iscoFactor },
+      uDiskOuterRs: { value: 16.0 },
+      uSpin: { value: spin },
+      uTime: { value: 0 },
+      uHasSky: { value: 0 },
+      uSkyLevel: { value: 1 },
+    }
+  }, [rsScene, iscoFactor, spin])
+
+  useEffect(() => {
+    if (sky) { uniforms.uSky.value = sky; uniforms.uHasSky.value = 1 }
+  }, [sky, uniforms])
+
+  useFrame(({ camera, clock }) => {
+    const mesh = meshRef.current
+    if (!mesh) return
+    // Billboard the quad; the geodesic march runs in the WORLD-aligned BH rest
+    // frame (uCenter/uUnit) so the disk plane stays put while the quad tracks
+    // the camera.
+    mesh.quaternion.copy(camera.quaternion)
+    mesh.getWorldPosition(uniforms.uCenter.value)
+    mesh.getWorldScale(_bhWorldScale)
+    uniforms.uUnit.value = rsScene * _bhWorldScale.x
+    uniforms.uTime.value = clock.elapsedTime
+    // Same vantage fade as SkyPanorama (130→300 from the shell centre).
+    const dist = camera.position.distanceTo(_bhShellCenter)
+    uniforms.uSkyLevel.value = 1 - Math.min(1, Math.max(0, (dist - 130) / 170))
+    if (typeof window !== "undefined") {
+      ;(window as unknown as { __ueBH?: object }).__ueBH = {
+        unit: uniforms.uUnit.value, rsScene, worldScale: _bhWorldScale.x,
+        camToCenter: camera.position.distanceTo(uniforms.uCenter.value),
+        skyLevel: uniforms.uSkyLevel.value,
+      }
+    }
+  })
+
+  const half = rsScene * BH_QUAD_RS
+  return (
+    <mesh ref={meshRef} renderOrder={-5} frustumCulled={false}>
+      <planeGeometry args={[half * 2, half * 2]} />
+      <shaderMaterial
+        ref={matRef}
+        vertexShader={BH_VERT}
+        fragmentShader={BH_FRAG}
+        uniforms={uniforms}
+        transparent
+        depthWrite={false}
+        blending={NormalBlending}
+      />
+    </mesh>
+  )
 }
 
 /**
@@ -313,21 +516,20 @@ export function BlackHoleDetail({
   // spin speed below — small systems spin visibly faster.
   const isStellarMass = M < 1000
 
-  // The 8.4 MB GLB loads on first ENGAGEMENT (hover or focus), not at mount:
-  // idle BHs render an honest black shadow sphere + findability halo — which
-  // is what they look like from sky-shell distance anyway. Once any BH is
-  // engaged, a module flag keeps the mesh path on for all instances (drei's
-  // cache already has the bytes, matching the old always-mounted behavior).
+  // The geodesic raymarcher mounts on first ENGAGEMENT (hover or focus), not at
+  // mount: idle BHs render an honest black shadow sphere + findability halo —
+  // which is what they look like from sky-shell distance anyway. Once any BH is
+  // engaged, a module flag keeps the raymarch path on for all instances. (No
+  // download — it's pure GLSL; the only async bit is the shared ESO sky texture,
+  // which is already loaded by the SkyPanorama.)
   const [meshWanted, setMeshWanted] = useState(() => bhMeshRequested)
   useEffect(() => {
     if (hovered && !meshWanted) {
       bhMeshRequested = true
-      useGLTF.preload("/models/blackhole.glb")
       setMeshWanted(true)
     }
   }, [hovered, meshWanted])
-  // The model's natural extent runs roughly ±5 units around origin; this
-  // factor brings it into scene-scale alongside the physics-driven
+  // Brings the raymarch quad into scene-scale alongside the physics-driven
   // detailScale. 0.22 ≈ the visible footprint the old procedural disk had —
   // anything smaller turns into a pinprick at sky-shell distance (150 u).
   const meshScale = props.detailScale * 0.22
@@ -382,12 +584,16 @@ export function BlackHoleDetail({
 
       <group ref={spinRef} scale={meshScale}>
         {meshWanted ? (
-          // While the GLB streams in, the Suspense fallback keeps the same
-          // shadow sphere on screen — engagement upgrades the look in place,
-          // with no flash of nothing.
-          <Suspense fallback={<BlackHoleShadowSphere />}>
-            <BlackHoleGlbMesh />
-          </Suspense>
+          // ENGAGED: the pure-GLSL geodesic raymarcher — real lensing, photon
+          // ring, disk arcing over/under, and the lensed real Milky Way, all
+          // emerging from the physics. rsScene is the LOCAL length of one rs
+          // (horizon in local units, ≈ rs for Schwarzschild); useFrame reads
+          // the live world scale so uUnit tracks the engage/band scale lerp.
+          <BlackHoleRaymarch
+            rsScene={props.horizonR / Math.max(meshScale, 1e-6)}
+            iscoFactor={props.iscoFactor}
+            spin={a}
+          />
         ) : (
           <BlackHoleShadowSphere />
         )}
