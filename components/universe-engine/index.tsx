@@ -437,17 +437,19 @@ export function UniverseEngine({
     return () => io.disconnect()
   }, [mounted])
 
-  // Latch of the body currently under the pointer — used by the long-press
-  // detector on touch so we know WHAT to open when the hold completes.
+  // Latch of the body currently under the pointer — used by the touch tap
+  // detector so we know WHAT to open when a clean tap ends. (On a tap, R3F fires
+  // pointerdown → pointerover [sets this] → pointerup [reads this], so the latch
+  // holds the tapped body by the time the tap handler runs.)
   const hoverLatchRef = useRef<BodyInfo | null>(null)
   const onHover = useCallback<HoverHandler>((info) => {
     setHovered(info)
     hoverLatchRef.current = info
     // Latch the most-recent body so the mobile sheet has something to show
-    // after pointerout fires (touch always pairs over/out per tap). On TOUCH
-    // devices we do NOT auto-open on a plain tap — the long-press handler below
-    // opens the sheet on tap-and-hold, so scrolling/panning doesn't keep
-    // popping the drawer. On mouse (hover), the old behaviour stays.
+    // after pointerout fires (touch always pairs over/out per tap). On TOUCH we
+    // do NOT auto-open here — the tap handler below opens the sheet only for a
+    // clean, stationary tap, so scrolling/panning never pops the drawer. On
+    // mouse (hover), the old behaviour stays.
     const coarse = typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches
     if (info && !coarse) setSelectedBody(info)
     // Broadcast the hover state so the custom cursor can adapt — e.g. switch
@@ -461,48 +463,52 @@ export function UniverseEngine({
       )
     }
   }, [])
-  // Long-press → open the mobile info sheet. On touch, a plain tap must not
-  // pop the drawer (that made scrolling/panning constantly open it); instead the
-  // visitor taps AND HOLDS ~500 ms on a body to open its details. A move beyond
-  // a small slop cancels the press (so it's a hold, not a drag).
+  // Mobile: a CLEAN TAP on a body opens its details sheet — the obvious, expected
+  // gesture (Ankur: "another way to view details … simple and effective; scroll
+  // and look around should be easy"). The trick is distinguishing a tap from a
+  // pan: a tap barely moves and is quick; anything that moves past the slop (or
+  // lingers as a drag) is "look around" and must NOT open the sheet. This is why
+  // the body meshes' own onClick is suppressed on touch (see shouldSuppressBodyClick)
+  // — selection is owned HERE, by this gesture, so panning never pops the drawer.
   useEffect(() => {
     if (typeof window === "undefined") return
     const coarse = window.matchMedia?.("(pointer: coarse)").matches
     if (!coarse) return
-    let timer: ReturnType<typeof setTimeout> | null = null
     let startX = 0
     let startY = 0
-    const HOLD_MS = 500
-    const SLOP = 12
-    const clear = () => { if (timer) { clearTimeout(timer); timer = null } }
+    let startT = 0
+    let moved = false
+    const SLOP = 12          // px of travel that turns a tap into a pan
+    const TAP_MS = 350       // a tap is quick; a long hold is a deliberate drag/zoom
     const onDown = (e: PointerEvent) => {
       if (e.pointerType !== "touch") return
       startX = e.clientX
       startY = e.clientY
-      clear()
-      timer = setTimeout(() => {
-        // Only open if the hold ended on a real body (the hover latch tracks it).
+      startT = performance.now()
+      moved = false
+    }
+    const onMove = (e: PointerEvent) => {
+      if (!moved && (Math.abs(e.clientX - startX) > SLOP || Math.abs(e.clientY - startY) > SLOP)) moved = true
+    }
+    const onUp = (e: PointerEvent) => {
+      if (e.pointerType !== "touch") return
+      const quick = performance.now() - startT <= TAP_MS
+      // a clean, quick, stationary tap that landed on a body → open it
+      if (!moved && quick) {
         const body = hoverLatchRef.current
         if (body) {
           setSelectedBody(body)
-          // subtle haptic confirmation where supported
-          try { navigator.vibrate?.(15) } catch { /* ignore */ }
+          try { navigator.vibrate?.(12) } catch { /* ignore */ }
         }
-      }, HOLD_MS)
-    }
-    const onMove = (e: PointerEvent) => {
-      if (timer && (Math.abs(e.clientX - startX) > SLOP || Math.abs(e.clientY - startY) > SLOP)) clear()
+      }
     }
     window.addEventListener("pointerdown", onDown, { passive: true })
     window.addEventListener("pointermove", onMove, { passive: true })
-    window.addEventListener("pointerup", clear, { passive: true })
-    window.addEventListener("pointercancel", clear, { passive: true })
+    window.addEventListener("pointerup", onUp, { passive: true })
     return () => {
-      clear()
       window.removeEventListener("pointerdown", onDown)
       window.removeEventListener("pointermove", onMove)
-      window.removeEventListener("pointerup", clear)
-      window.removeEventListener("pointercancel", clear)
+      window.removeEventListener("pointerup", onUp)
     }
   }, [])
 
