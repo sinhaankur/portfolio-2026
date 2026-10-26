@@ -15,8 +15,10 @@ import { SkillParticles } from "@/components/skills-particles"
    an "exhibit". Every skill earns its wall space by pointing at REAL work you
    can open. "Don't rate yourself. Show the receipts."
 
-   This page runs its own fixed dark palette regardless of site theme — it's a
-   room you step into, like a gallery.
+   The Warhol gallery LAYOUT stays, but the colours now come from the SITE THEME
+   tokens (background/foreground/accent) so /skills blends with the rest of the
+   site and follows light/dark — instead of forcing its own black+cream room,
+   which clashed and hid the theme-coloured custom cursor on the pure-black bg.
 ========================================================================= */
 
 type Proof = {
@@ -236,11 +238,21 @@ function projectName(href: string): string {
 
 const EASE = [0.16, 1, 0.3, 1] as const
 
-// The gallery palette — fixed, theme-independent (you step into the room).
-const INK = "#000000"
-const CREAM = "#ffe5d5"
-const ACCENT = "#fb4e2b"
-const MUTE = "#8a7a70"
+// Palette mapped to the SITE THEME tokens so /skills blends with the rest of the
+// site (follows light/dark) instead of forcing its own black+cream room — which
+// clashed AND made the theme-coloured custom cursor invisible on the pure-black
+// bg. The Warhol GALLERY LAYOUT stays; only the colours now come from the theme.
+// `foreground` with alpha (via color-mix) stands in for the old cream tints.
+const INK = "var(--background)"
+const CREAM = "var(--foreground)"
+const ACCENT = "var(--accent)"
+const MUTE = "var(--muted-foreground)"
+// a foreground tint at a given alpha — replaces the old rgba(255,229,213,a) cream
+const fg = (a: number) => `color-mix(in oklch, var(--foreground) ${Math.round(a * 100)}%, transparent)`
+// an ink/shadow tint — replaces rgba(0,0,0,a), theme-aware (uses background)
+const shade = (a: number) => `color-mix(in oklch, var(--background) ${Math.round(a * 100)}%, transparent)`
+// an accent tint at a given alpha — replaces rgba(251,78,43,a)
+const acc = (a: number) => `color-mix(in oklch, var(--accent) ${Math.round(a * 100)}%, transparent)`
 
 export function SkillsBreakdown() {
   const reduce = useReducedMotion()
@@ -326,7 +338,7 @@ export function SkillsBreakdown() {
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: 0.05, ease: EASE }}
           className="mb-16 flex flex-wrap items-center gap-2.5 border-y py-5"
-          style={{ borderColor: "rgba(255,229,213,0.12)" }}
+          style={{ borderColor: fg(0.12) }}
         >
           <GChip active={discipline === "All" && project === "All"} onClick={() => { setDiscipline("All"); setProject("All") }}>
             ALL
@@ -336,7 +348,7 @@ export function SkillsBreakdown() {
               {String(i + 1).padStart(2, "0")} · {d.title}
             </GChip>
           ))}
-          <span aria-hidden className="mx-1 h-4 w-px" style={{ backgroundColor: "rgba(255,229,213,0.18)" }} />
+          <span aria-hidden className="mx-1 h-4 w-px" style={{ backgroundColor: fg(0.18) }} />
           {ALL_PROJECTS.map((p) => (
             <GChip key={p} active={project === p} onClick={() => setProject(project === p ? "All" : p)} tone="project">
               {p}
@@ -353,7 +365,7 @@ export function SkillsBreakdown() {
         {shown.length === 0 ? (
           <div
             className="rounded-md border border-dashed py-12 text-center"
-            style={{ borderColor: "rgba(255,229,213,0.2)" }}
+            style={{ borderColor: fg(0.2) }}
           >
             <p className="font-mono text-sm" style={{ color: MUTE }}>Nothing matches that filter.</p>
             <button
@@ -418,7 +430,7 @@ export function SkillsBreakdown() {
                     gallery fills in like a wall being hung. */}
                 <motion.div
                   className="grid grid-cols-1 gap-px md:grid-cols-2"
-                  style={{ backgroundColor: "rgba(255,229,213,0.1)" }}
+                  style={{ backgroundColor: fg(0.1) }}
                   initial="hidden"
                   whileInView="show"
                   viewport={{ once: true, margin: "-40px" }}
@@ -466,7 +478,7 @@ function GridMotif({ reduce }: { reduce: boolean }) {
         className="absolute inset-0 opacity-[0.05]"
         style={{
           backgroundImage:
-            "linear-gradient(to right, #ffe5d5 1px, transparent 1px), linear-gradient(to bottom, #ffe5d5 1px, transparent 1px)",
+            `linear-gradient(to right, ${CREAM} 1px, transparent 1px), linear-gradient(to bottom, ${CREAM} 1px, transparent 1px)`,
           backgroundSize: "clamp(60px, 8vw, 120px) clamp(60px, 8vw, 120px)",
         }}
       />
@@ -508,7 +520,7 @@ function GChip({
       style={{
         backgroundColor: active ? CREAM : "transparent",
         color: active ? INK : tone === "project" ? MUTE : CREAM,
-        borderColor: active ? CREAM : "rgba(255,229,213,0.22)",
+        borderColor: active ? CREAM : fg(0.22),
       }}
     >
       {children}
@@ -533,8 +545,8 @@ function GProofCard({
     <motion.div
       className="group relative flex flex-col transition-all duration-300"
       style={{
-        backgroundColor: open ? "rgba(251,78,43,0.07)" : INK,
-        boxShadow: open ? "inset 0 0 0 1.5px rgba(251,78,43,0.5)" : "inset 0 0 0 0 transparent",
+        backgroundColor: open ? acc(0.07) : INK,
+        boxShadow: open ? `inset 0 0 0 1.5px ${acc(0.5)}` : "inset 0 0 0 0 transparent",
       }}
       variants={{
         hidden: reduce ? { opacity: 0 } : { opacity: 0, y: 26 },
@@ -547,7 +559,7 @@ function GProofCard({
           The motif gently breathes (so every tile has life), scales up a touch
           on hover, and a hot-accent sweep crosses it on hover — the card reacts
           to you, Webflow-style. */}
-      <div className="relative h-36 overflow-hidden border-b md:h-44 transition-[filter] duration-500 group-hover:brightness-125" style={{ borderColor: "rgba(255,229,213,0.1)" }}>
+      <div className="relative h-36 overflow-hidden border-b md:h-44 transition-[filter] duration-500 group-hover:brightness-125" style={{ borderColor: fg(0.1) }}>
         {/* PARTICLE BUILD (exploration): each skill's visual as a point-cloud that
             forms its motif + reacts on hover — the dotted-orb idea per skill. */}
         <SkillParticles motif={skill.motif} />
@@ -555,21 +567,21 @@ function GProofCard({
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 -translate-x-full opacity-0 transition-all duration-700 ease-out group-hover:translate-x-0 group-hover:opacity-100"
-          style={{ background: "linear-gradient(105deg, transparent 40%, rgba(251,78,43,0.12) 50%, transparent 60%)" }}
+          style={{ background: `linear-gradient(105deg, transparent 40%, ${acc(0.12)} 50%, transparent 60%)` }}
         />
         {/* ink vignette so the title below sits on solid ground */}
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0"
-          style={{ background: "linear-gradient(to bottom, transparent 55%, rgba(0,0,0,0.65))" }}
+          style={{ background: `linear-gradient(to bottom, transparent 55%, ${shade(0.65)})` }}
         />
         {/* primary-proof kind tag, top-left on the tile */}
         <span
           className="absolute left-4 top-4 rounded px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-widest"
           style={
             primary.kind === "live"
-              ? { backgroundColor: ACCENT, color: "#000" }
-              : { backgroundColor: "rgba(255,229,213,0.9)", color: "#000" }
+              ? { backgroundColor: ACCENT, color: INK }
+              : { backgroundColor: fg(0.9), color: INK }
           }
         >
           {primary.kind === "live" ? "live" : "case"}
@@ -580,7 +592,7 @@ function GProofCard({
         <h3 className="font-display text-xl font-light leading-snug tracking-tight md:text-2xl">
           {skill.name}
         </h3>
-        <p className="mt-2 font-sans text-sm leading-relaxed md:text-[15px]" style={{ color: "rgba(255,229,213,0.62)" }}>
+        <p className="mt-2 font-sans text-sm leading-relaxed md:text-[15px]" style={{ color: fg(0.62) }}>
           {skill.what}
         </p>
 
@@ -612,9 +624,9 @@ function GProofCard({
               aria-expanded={open}
               className="mt-4 inline-flex items-center gap-2 self-start rounded-full border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] transition-all duration-200 focus-visible:outline-none"
               style={{
-                color: open ? "#000" : CREAM,
+                color: open ? INK : CREAM,
                 backgroundColor: open ? ACCENT : "transparent",
-                borderColor: open ? ACCENT : "rgba(255,229,213,0.25)",
+                borderColor: open ? ACCENT : fg(0.25),
               }}
             >
               {open ? "hide proof" : `${extra.length} more proof`}
@@ -632,7 +644,7 @@ function GProofCard({
                   transition={{ duration: 0.3, ease: EASE }}
                   className="overflow-hidden"
                 >
-                  <div className="mt-3 border-t pt-3 flex flex-col gap-2.5" style={{ borderColor: "rgba(255,229,213,0.12)" }}>
+                  <div className="mt-3 border-t pt-3 flex flex-col gap-2.5" style={{ borderColor: fg(0.12) }}>
                     <span className="font-mono text-[9px] uppercase tracking-[0.2em]" style={{ color: ACCENT }}>
                       also proven by
                     </span>
@@ -642,14 +654,14 @@ function GProofCard({
                         href={p.href}
                         data-cursor-hover
                         className="group/link flex items-center gap-2.5 font-sans text-sm transition-colors"
-                        style={{ color: "rgba(255,229,213,0.88)" }}
+                        style={{ color: fg(0.88) }}
                       >
                         <span
                           className="rounded px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-widest"
                           style={
                             p.kind === "live"
-                              ? { backgroundColor: "rgba(251,78,43,0.2)", color: ACCENT }
-                              : { backgroundColor: "rgba(255,229,213,0.12)", color: "rgba(255,229,213,0.6)" }
+                              ? { backgroundColor: acc(0.2), color: ACCENT }
+                              : { backgroundColor: fg(0.12), color: fg(0.6) }
                           }
                         >
                           {p.kind === "live" ? "live" : "case"}
@@ -680,9 +692,9 @@ function GProofCard({
 
 function SkillMotif({ motif, reduce }: { motif: MotifKey; reduce: boolean }) {
   const A = ACCENT
-  const C = "rgba(255,229,213,0.9)"
-  const Cd = "rgba(255,229,213,0.3)"
-  const Cf = "rgba(255,229,213,0.12)"
+  const C = fg(0.9)
+  const Cd = fg(0.3)
+  const Cf = fg(0.12)
   const base = "absolute inset-0 h-full w-full"
 
   switch (motif) {
@@ -771,7 +783,7 @@ function SkillMotif({ motif, reduce }: { motif: MotifKey; reduce: boolean }) {
           {[28,50,72,94].map((y,i)=>(
             <g key={y}>
               <rect x="30" y={y-7} width="14" height="14" rx="3" fill={i<3?A:"none"} stroke={Cd} strokeWidth="1" />
-              {i<3 && <path d={`M33 ${y} l3 3 l5 -6`} stroke="#000" strokeWidth="1.5" fill="none" />}
+              {i<3 && <path d={`M33 ${y} l3 3 l5 -6`} stroke={INK} strokeWidth="1.5" fill="none" />}
               <line x1="54" y1={y} x2={54+ (i<3?110:70)} y2={y} stroke={Cd} strokeWidth="2" opacity="0.5" />
             </g>
           ))}
@@ -855,7 +867,7 @@ function SkillMotif({ motif, reduce }: { motif: MotifKey; reduce: boolean }) {
         </svg>
       )
     default:
-      return <div className={base} style={{ background: "rgba(255,229,213,0.03)" }} />
+      return <div className={base} style={{ background: fg(0.03) }} />
   }
 }
 
@@ -893,7 +905,7 @@ function GalaxyMotif({ reduce }: { reduce: boolean }) {
       <circle cx="100" cy="60" r="10" fill={ACCENT} opacity="0.5" />
       <circle cx="100" cy="60" r="4" fill="#fff" opacity="0.85" />
       {dots.map((d, i) => (
-        <circle key={i} cx={d.x} cy={d.y} r={d.r} fill={d.hot ? ACCENT : "rgba(255,229,213,0.85)"} />
+        <circle key={i} cx={d.x} cy={d.y} r={d.r} fill={d.hot ? ACCENT : fg(0.85)} />
       ))}
     </motion.svg>
   )
