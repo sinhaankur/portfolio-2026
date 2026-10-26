@@ -138,14 +138,63 @@ export const _tmpAxis = new Vector3()
  * Shared by every clickable body (the Milky Way core, the Sun, …) so the
  * fly-to gesture is defined once.
  */
+/* ------------------------------------------------------------------
+ * Tap-vs-drag + touch guard for body clicks.
+ *
+ * R3F fires a mesh's onClick on ANY pointer-up over it — including the one that
+ * ends a drag/pan. On a phone that meant: swipe to look around the galaxy, your
+ * finger lifts over a star, and the camera flies off / the panel opens. Not the
+ * intent. Selection on touch is owned by the long-press gesture (index.tsx), so
+ * on a coarse pointer the onClick fly-to must NOT fire at all; on a mouse it must
+ * still fire, but never when the click was really the end of a drag.
+ *
+ * One tiny module-level tracker (set up once) watches global pointer events and
+ * answers shouldSuppressBodyClick() for every handler. No per-handler wiring.
+ */
+const DRAG_SLOP = 8 // px of movement that turns a tap into a drag
+let _downX = 0
+let _downY = 0
+let _draggedPastSlop = false
+let _coarsePointer = false
+let _trackerReady = false
+
+function ensureGestureTracker() {
+  if (_trackerReady || typeof window === "undefined") return
+  _trackerReady = true
+  _coarsePointer = window.matchMedia?.("(pointer: coarse)").matches ?? false
+  window.addEventListener("pointerdown", (e) => {
+    _downX = e.clientX
+    _downY = e.clientY
+    _draggedPastSlop = false
+    // keep the coarse read live (a 2-in-1 can switch between touch + trackpad)
+    if (e.pointerType === "touch" || e.pointerType === "pen") _coarsePointer = true
+    else if (e.pointerType === "mouse") _coarsePointer = false
+  }, { passive: true, capture: true })
+  window.addEventListener("pointermove", (e) => {
+    if (Math.abs(e.clientX - _downX) > DRAG_SLOP || Math.abs(e.clientY - _downY) > DRAG_SLOP) {
+      _draggedPastSlop = true
+    }
+  }, { passive: true, capture: true })
+}
+
+/** True when a body's onClick fly-to should be ignored: either this was a touch
+ *  (selection is handled by long-press, not tap) or the click ended a drag. */
+export function shouldSuppressBodyClick(): boolean {
+  ensureGestureTracker()
+  return _coarsePointer || _draggedPastSlop
+}
+
 export function makeFocusHandler(
   interactive: boolean,
   desiredDistance: number,
   label?: string,
 ) {
   if (!interactive) return undefined
+  ensureGestureTracker()
   return (e: { stopPropagation: () => void; object: import("three").Object3D }) => {
     e.stopPropagation()
+    // On touch (long-press owns selection) or at the end of a drag, do nothing.
+    if (shouldSuppressBodyClick()) return
     const world = new Vector3()
     e.object.getWorldPosition(world)
     requestFlyTo({ x: world.x, y: world.y, z: world.z }, desiredDistance, label)

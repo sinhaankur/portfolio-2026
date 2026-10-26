@@ -37,6 +37,7 @@ import {
 // Screen-space click-ownership scratch (see the onClick guard below).
 const _mbClickPos = new THREE.Vector3()
 import { pointSprite } from "./galaxy"
+import { shouldSuppressBodyClick } from "./scene-shared"
 import type { BodyInfo, HoverHandler } from "./types"
 
 type MinorBody = {
@@ -177,7 +178,9 @@ export function MinorBodies({
       frustumCulled={false}
       onClick={interactive ? (e) => {
         // Drag guard — same lesson as the satellite swarm: a camera-orbit
-        // release must never register as a pick.
+        // release must never register as a pick. Plus: on touch, long-press owns
+        // selection, so a tap here is never a pick either.
+        if (shouldSuppressBodyClick()) return
         if ((e as unknown as { delta?: number }).delta && (e as unknown as { delta: number }).delta > 5) return
         const idx = e.index ?? e.intersections?.[0]?.index
         if (idx == null) return

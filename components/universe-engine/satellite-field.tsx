@@ -30,6 +30,7 @@ import { useFrame, useThree } from "@react-three/fiber"
 import { useGLTF, Line, Html } from "@react-three/drei"
 import * as THREE from "three"
 import { simTimeRef, requestFollow, focusDepthRef, daysSinceJ2000, earthRotationAngle, timeScaleRef, REALTIME_TIME_SCALE } from "./astronomy"
+import { shouldSuppressBodyClick } from "./scene-shared"
 import { perfTierRef, swarmCapForDevice } from "@/lib/device-tier"
 import { launchSiteFor } from "@/lib/launch-sites"
 import { SatelliteNearField } from "./satellite-nearfield"
@@ -2224,6 +2225,8 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     nativeEvent?: { clientX: number; clientY: number }
     stopPropagation: () => void
   }) => {
+    // Touch → long-press owns selection, so a tap here is never a pick.
+    if (shouldSuppressBodyClick()) return
     // Drag guard: R3F fires click on pointerup however far the pointer moved,
     // so orbiting the camera and releasing over a dot silently re-selected a
     // DIFFERENT satellite mid-chase. e.delta is the screen-space px travelled

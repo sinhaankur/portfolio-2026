@@ -58,7 +58,7 @@ import { cdnOnlyAsset } from "@/lib/asset-cdn"
 import type { HoverHandler, MoonData } from "./types"
 import { DAY_NIGHT_VERTEX_SHADER, DAY_NIGHT_FRAGMENT_SHADER } from "./shaders"
 import { RoverPin, ImpactMarker, SatelliteShells, HERO_CRAFT } from "./scene-satellites"
-import { _earthWorldPos, _sunWorldPos, _sunDirTmp, loadTextureAsync } from "./scene-shared"
+import { _earthWorldPos, _sunWorldPos, _sunDirTmp, loadTextureAsync, shouldSuppressBodyClick } from "./scene-shared"
 
 export function MoonBody({
   moon,
@@ -453,6 +453,8 @@ export function MoonBody({
           interactive
             ? (e) => {
                 e.stopPropagation()
+                // Touch → long-press owns selection; drag-release isn't a pick.
+                if (shouldSuppressBodyClick()) return
                 const followDistance = Math.max(moon.visualRadius * 3.2, 0.09)
                 const obj = e.object
                 // Let the camera dolly to the moon's surface (same as planets).
@@ -479,6 +481,8 @@ export function MoonBody({
           interactive
             ? (e) => {
                 e.stopPropagation()
+                // Touch → long-press owns selection; drag-release isn't a pick.
+                if (shouldSuppressBodyClick()) return
                 const followDistance = Math.max(moon.visualRadius * 3.2, 0.09)
                 const obj = e.object
                 // Let the camera dolly to the moon's surface (same as planets).

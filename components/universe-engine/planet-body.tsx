@@ -86,7 +86,7 @@ import {
   ATMOS_VERTEX_SHADER,
   ATMOS_FRAGMENT_SHADER,
 } from "./shaders"
-import { _earthWorldPos, _sunWorldPos, _sunDirTmp, loadTextureAsync } from "./scene-shared"
+import { _earthWorldPos, _sunWorldPos, _sunDirTmp, loadTextureAsync, shouldSuppressBodyClick } from "./scene-shared"
 import {
   RoverPin,
   ImpactMarker,
@@ -1280,6 +1280,8 @@ export function PlanetBody({
                 interactive
                   ? (e) => {
                       e.stopPropagation()
+                      // Touch → long-press owns selection; drag-release isn't a pick.
+                      if (shouldSuppressBodyClick()) return
                       setFocused(true)
                       window.dispatchEvent(
                         new CustomEvent("universe:sky-focus", {

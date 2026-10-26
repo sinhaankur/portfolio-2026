@@ -69,6 +69,7 @@ import {
 import { SPACECRAFT_SHAPES } from "./spacecraft-shapes"
 import { getCometAffordance, getCometDynamicProfile } from "./celestial-sub-engine"
 import { pointSprite } from "./galaxy"
+import { shouldSuppressBodyClick } from "./scene-shared"
 
 // Round sprite for the trail dots (shared with the galaxy points) — so comet /
 // asteroid trails render as soft circles, not raw squares, when you zoom in near.
@@ -1470,6 +1471,8 @@ function NamedBodyMesh({
           onClick={
             interactive
               ? (e) => {
+                  // Touch → long-press owns selection; drag-release isn't a pick.
+                  if (shouldSuppressBodyClick()) return
                   if (!clickIsOnBody(e)) return // not visibly under the cursor — yield
                   e.stopPropagation()
                   // The getter captures groupRef.current — read fresh each
@@ -1491,6 +1494,8 @@ function NamedBodyMesh({
           onDoubleClick={
             interactive
               ? (e) => {
+                  // Touch → long-press owns selection; drag-release isn't a pick.
+                  if (shouldSuppressBodyClick()) return
                   if (!clickIsOnBody(e)) return // not visibly under the cursor — yield
                   e.stopPropagation()
                   requestFollow(

@@ -84,7 +84,7 @@ import {
   ZODIACAL_VERTEX_SHADER,
   ZODIACAL_FRAGMENT_SHADER,
 } from "./shaders"
-import { makeFocusHandler, parseDistanceLy, skyDepthRadius, skyCrowdDist, setKtx2Renderer } from "./scene-shared"
+import { makeFocusHandler, parseDistanceLy, skyDepthRadius, skyCrowdDist, setKtx2Renderer, shouldSuppressBodyClick } from "./scene-shared"
 import { ClusterDetail, ClusterStarField, isGlobular } from "./cluster-detail"
 import { SkyPanorama } from "./sky-panorama"
 import { OrbitRing } from "./orbit-ring"
@@ -1642,6 +1642,9 @@ function SkyPointMesh({
           interactive
             ? (e) => {
                 e.stopPropagation()
+                // On touch, long-press owns selection; at the end of a drag a tap
+                // isn't intended — don't fly to / focus the point either way.
+                if (shouldSuppressBodyClick()) return
                 setFocused(true)
                 window.dispatchEvent(
                   new CustomEvent("universe:sky-focus", { detail: { pointId: point.id } }),
