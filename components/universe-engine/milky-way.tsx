@@ -61,7 +61,7 @@ export function MilkyWay({
   const matRef = useRef<ShaderMaterial>(null)
   const dustMatRef = useRef<ShaderMaterial>(null)
   const coreGlowRef = useRef<Group>(null)
-  const { gl } = useThree()
+  const { gl, camera } = useThree()
 
   // Procedural radial-glow texture for the luminous core sprites — generated
   // once on a canvas (no asset, no Blender needed): a soft white→transparent
@@ -135,16 +135,22 @@ export function MilkyWay({
     // device-tier densityScale then lifts (ultra) or trims (low/mid) on top,
     // clamped so a mislabelled "ultra" can't balloon the arm draw unboundedly.
     const ds = Math.max(0.3, Math.min(1.5, densityScale))
-    const armCount    = Math.round((mobile ? 9000  : 30000) * ds)
-    const bulgeCount  = Math.round((mobile ? 2800  : 7000)  * ds)
-    const barCount    = Math.round((mobile ? 900   : 2200)  * ds)
+    // Desktop counts lifted toward the real-render sweet spot (~100–250k points
+    // in detailed Gaia/HYG browser galaxies) so the arms read as a DENSE stellar
+    // field, not a thin sketch ("too empty"). ~75k arm stars + bulge/bar/HII puts
+    // the galaxy near ~95k points on desktop — a big visible jump while the
+    // device-tier densityScale (clamped) + auto-downshift keep lower GPUs safe.
+    // Mobile stays conservative per ENGINE-STANDARDS (≥30fps, reduced counts).
+    const armCount    = Math.round((mobile ? 14000 : 75000) * ds)
+    const bulgeCount  = Math.round((mobile ? 4200  : 14000) * ds)
+    const barCount    = Math.round((mobile ? 1400  : 4200)  * ds)
     // HII regions are distributed across a number of anchor clumps so they
     // read as discrete pink star-forming knots tracing the arms, not a haze.
-    const hiiClumps   = Math.round((mobile ? 16    : 38)    * ds)
-    const hiiPerClump = 22
+    const hiiClumps   = Math.round((mobile ? 24    : 64)    * ds)
+    const hiiPerClump = 26
     const hiiCount    = hiiClumps * hiiPerClump
     // Globular cluster halo — sparse bright dots in a sphere around the disc.
-    const haloCount   = Math.round((mobile ? 50    : 110)   * ds)
+    const haloCount   = Math.round((mobile ? 70    : 170)   * ds)
 
     const total = armCount + bulgeCount + barCount + hiiCount + haloCount
     const positions = new Float32Array(total * 3)
@@ -379,6 +385,23 @@ export function MilkyWay({
     // rad/s — ~75,000× too fast and read as a carousel spin.
     if (pointsRef.current) {
       pointsRef.current.rotation.y += delta * 0.0004 * (1 + timeWarpRef.current * 0.05)
+    }
+    // Core-glow distance attenuation — from afar the bulge is a golden jewel, but
+    // flying CLOSE to the galactic centre, the big additive bloom used to swallow
+    // the frame as a featureless orange blob (the "as bad as it gets" view). Fade
+    // the bloom down as the camera nears the core (origin), so up close the
+    // (denser) spiral stars + the black hole read as structure, not wash. The
+    // per-sprite base opacities are restored by the factor as you pull back.
+    if (coreGlowRef.current && !invert) {
+      const d = camera.position.length()          // distance to the galactic centre
+      // full glow beyond ~55 units; fade toward 18% by the time we're inside ~12.
+      const f = Math.max(0.18, Math.min(1, (d - 12) / (55 - 12)))
+      const sprites = coreGlowRef.current.children as unknown as { material: { opacity: number } }[]
+      const base = mobile ? [0.45, 0.30, 0.15] : [0.60, 0.36, 0.16]
+      for (let i = 0; i < sprites.length && i < base.length; i++) {
+        const m = sprites[i].material
+        if (m) m.opacity += (base[i] * f - m.opacity) * Math.min(1, delta * 4)
+      }
     }
     if (matRef.current) {
       ;(matRef.current.uniforms.uTime as { value: number }).value += delta
