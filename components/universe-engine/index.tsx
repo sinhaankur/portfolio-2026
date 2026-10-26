@@ -195,6 +195,7 @@ export function UniverseEngine({
   // written straight to a DOM node (no React churn).
   const [perfOverlay, setPerfOverlay] = useState(false)
   const perfNodeRef = useRef<HTMLDivElement | null>(null)
+  const perfGpuRef = useRef<HTMLDivElement | null>(null)
   // Adaptive quality: detected device tier (low/mid/high) → per-tier DPR + density.
   const [tier, setTier] = useState<DeviceTier>("mid")
   // Gates the render loop: the hero is h-screen, so once the user scrolls past
@@ -378,14 +379,24 @@ export function UniverseEngine({
           const p95v = s[Math.min(s.length - 1, Math.floor(s.length * 0.95))]
           const max = s[s.length - 1]
           const fps = Math.round(1000 / p50)
-          const stats = { fps, p50, p95: p95v, max, tier: perfTierRef.current, superClear: superClearRef.current, frames: gaps.length }
+          // GPU LOAD estimate: the p50 frame time as a % of the 16.7 ms 60-fps
+          // budget — how hard the GPU is working this frame. >100% means it can't
+          // hit 60 (the frame overran the budget). It's an estimate (we can't read
+          // true GPU occupancy from WebGL), but it tracks the real cost of the
+          // heaviest shaders (the geodesic black hole, the satellite swarm).
+          const gpuLoad = Math.round((p50 / 16.667) * 100)
+          const gpuName = deviceProfileRef.current?.gpu ?? null
+          const stats = { fps, p50, p95: p95v, max, tier: perfTierRef.current, superClear: superClearRef.current, frames: gaps.length, gpuLoad, gpu: gpuName }
           if (perfNodeRef.current) {
             // Include the SGP4 propagation location: "wkr" = off-thread worker
             // (good), "main" = fell back to the main thread (the lag suspect). This
             // is the key diagnostic for the satellite page's smoothness.
             const wk = (window as unknown as { __ueWorker?: string }).__ueWorker
             perfNodeRef.current.textContent =
-              `${fps} fps · p50 ${Math.round(p50)}ms · p95 ${Math.round(p95v)}ms · max ${Math.round(max)}ms · ${perfTierRef.current}${wk ? " · sgp4:" + wk : ""}${superClearRef.current ? " · SUPER" : ""}`
+              `${fps} fps · gpu ${gpuLoad}% · p50 ${Math.round(p50)}ms · p95 ${Math.round(p95v)}ms · ${perfTierRef.current}${wk ? " · sgp4:" + wk : ""}${superClearRef.current ? " · SUPER" : ""}`
+          }
+          if (perfGpuRef.current) {
+            perfGpuRef.current.textContent = gpuName ? gpuName : "GPU: (renderer hidden by browser)"
           }
           if (typeof window !== "undefined") {
             ;(window as unknown as { __uePerf?: typeof stats }).__uePerf = stats
@@ -902,14 +913,24 @@ export function UniverseEngine({
         </div>
       )}
 
-      {/* ?perf overlay — live FPS / frame-time / tier readout for diagnosing
-          real choppiness on-device. Written directly by the adaptive tick. */}
+      {/* ?perf overlay — live FPS / GPU-load / frame-time / tier readout for
+          diagnosing real cost on-device (the geodesic black hole + satellite swarm
+          are the heavy shaders). Written directly by the adaptive tick; the GPU
+          renderer name sits on a quieter second line. */}
       {perfOverlay && (
-        <div
-          ref={perfNodeRef}
-          className="absolute top-2 left-1/2 -translate-x-1/2 z-50 pointer-events-none rounded-full bg-black/70 px-3 py-1 font-mono text-[11px] tracking-tight text-emerald-300 tabular-nums"
-        >
-          measuring…
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-50 pointer-events-none flex flex-col items-center gap-0.5">
+          <div
+            ref={perfNodeRef}
+            className="rounded-full bg-black/70 px-3 py-1 font-mono text-[11px] tracking-tight text-emerald-300 tabular-nums"
+          >
+            measuring…
+          </div>
+          <div
+            ref={perfGpuRef}
+            className="rounded-full bg-black/55 px-2.5 py-0.5 font-mono text-[9px] tracking-tight text-emerald-300/60 max-w-[90vw] truncate"
+          >
+            gpu…
+          </div>
         </div>
       )}
 
