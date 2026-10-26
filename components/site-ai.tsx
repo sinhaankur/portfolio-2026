@@ -164,6 +164,37 @@ export function SiteAI() {
   const inputRef = useRef<HTMLInputElement>(null)
   const abortRef = useRef<AbortController | null>(null)
 
+  // --- INTUITIVE ORB affordances -------------------------------------------
+  // The bare orb read as decoration (Ankur: "if it doesn't have an intuitive
+  // vibe then it's bad"). Show an "Ask Vera" label + a gentle attract pulse so
+  // it clearly invites a tap, until the visitor has engaged once.
+  const [showHint, setShowHint] = useState(false)
+  // Lift the orb above the first-visit consent banner so the two never overlap
+  // in the bottom-right corner (the reported collision).
+  const [consentPending, setConsentPending] = useState(false)
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    // consent not yet chosen → banner is up → lift the orb
+    try { setConsentPending(localStorage.getItem("cookie-consent-v1") == null) } catch { /* ignore */ }
+    const onConsent = () => setConsentPending(false)
+    window.addEventListener("consent:choice", onConsent)
+    // show the "Ask Vera" hint once per visitor, a beat after load, then let it
+    // rest (it reappears on a fresh session). Dismissed the moment they open her.
+    let seen = true
+    try { seen = localStorage.getItem("vera-hint-seen") === "1" } catch { /* ignore */ }
+    const t = seen ? null : setTimeout(() => setShowHint(true), 2200)
+    return () => {
+      window.removeEventListener("consent:choice", onConsent)
+      if (t) clearTimeout(t)
+    }
+  }, [])
+  // once she's opened, retire the hint for this visitor
+  useEffect(() => {
+    if (!open) return
+    setShowHint(false)
+    try { localStorage.setItem("vera-hint-seen", "1") } catch { /* ignore */ }
+  }, [open])
+
   const router = useRouter()
   const { setTheme } = useTheme()
   // Remember where we were, so "go back" / "take me back" works (handheld feel).
@@ -454,16 +485,68 @@ export function SiteAI() {
 
   return (
     <>
-      {/* the quiet orb button */}
-      <button
-        onClick={() => setOpen((v) => !v)}
-        data-cursor-hover
-        aria-label={open ? "Close Vera" : "Ask Vera"}
-        className="fixed bottom-5 right-5 z-[60] rounded-full p-0 transition-transform duration-300 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-        style={{ width: 46, height: 46 }}
+      {/* the orb launcher — now INTUITIVE: a label + a gentle attract pulse so it
+          clearly reads as "tap to ask", not decoration. Lifts above the consent
+          banner while that's up so they never collide in the corner. */}
+      <div
+        className="fixed right-5 z-[80] flex items-center gap-2.5 transition-[bottom] duration-300"
+        style={{ bottom: consentPending && !open ? 92 : 20 }}
       >
-        <VeraMark size={46} active phase={phase} level={level} />
-      </button>
+        {/* "Ask Vera" label — always there on hover/focus via group; auto-shown
+            once on first visit to teach what the orb is. */}
+        <AnimatePresence>
+          {showHint && !open && (
+            <motion.button
+              type="button"
+              onClick={() => setOpen(true)}
+              initial={{ opacity: 0, x: 8, scale: 0.96 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: 8, scale: 0.96 }}
+              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+              data-cursor-hover
+              aria-hidden
+              tabIndex={-1}
+              className="rounded-full border border-border bg-background/90 px-3 py-1.5 text-[13px] font-medium text-foreground shadow-lg backdrop-blur-md"
+            >
+              Ask&nbsp;Vera
+            </motion.button>
+          )}
+        </AnimatePresence>
+
+        <button
+          onClick={() => setOpen((v) => !v)}
+          data-cursor-hover
+          aria-label={open ? "Close Vera" : "Ask Vera — your on-device guide"}
+          className="group relative rounded-full p-0 transition-transform duration-300 hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          style={{ width: 46, height: 46 }}
+        >
+          {/* attract pulse — a soft expanding ring that draws the eye while the
+              orb is resting + unopened. Stops once she's open (she's busy then).
+              Pure CSS, reduced-motion safe (the keyframe is gated below). */}
+          {!open && (
+            <span
+              aria-hidden
+              className="vera-attract pointer-events-none absolute inset-0 rounded-full"
+            />
+          )}
+          <VeraMark size={46} active phase={phase} level={level} />
+        </button>
+
+        <style>{`
+          .vera-attract {
+            box-shadow: 0 0 0 0 color-mix(in oklch, var(--accent) 55%, transparent);
+            animation: vera-attract-pulse 2.8s cubic-bezier(.16,1,.3,1) infinite;
+          }
+          @keyframes vera-attract-pulse {
+            0%   { box-shadow: 0 0 0 0 color-mix(in oklch, var(--accent) 50%, transparent); }
+            70%  { box-shadow: 0 0 0 12px color-mix(in oklch, var(--accent) 0%, transparent); }
+            100% { box-shadow: 0 0 0 0 color-mix(in oklch, var(--accent) 0%, transparent); }
+          }
+          @media (prefers-reduced-motion: reduce) {
+            .vera-attract { animation: none; }
+          }
+        `}</style>
+      </div>
 
       <AnimatePresence>
         {open && (
