@@ -739,21 +739,47 @@ export const ATMOS_FRAGMENT_SHADER = `
   uniform vec3  uColor;
   uniform vec3  uSunDir;
   uniform float uOpacity;
-  uniform float uPower;   // Fresnel sharpness (higher = tighter limb)
+  uniform float uPower;     // Fresnel sharpness (higher = tighter limb)
+  uniform float uRayleigh;  // 1 = physical Rayleigh/Mie (Earth); 0 = tinted rim
   varying vec3 vWorldNormal;
   varying vec3 vViewDir;
   void main() {
     vec3 N = normalize(vWorldNormal);
+    vec3 V = normalize(vViewDir);
+    vec3 L = normalize(uSunDir);
     // Fresnel: glow concentrates where the surface grazes the view (the limb).
-    float fres = pow(1.0 - max(dot(N, normalize(vViewDir)), 0.0), uPower);
-    // Sun term: brighten the day-facing limb, keep a soft floor so the whole
-    // limb still reads as a thin shell.
-    float sun = max(dot(N, normalize(uSunDir)), 0.0);
-    float lit = 0.25 + 0.95 * sun;
-    // Terminator forward-scatter: a subtle lift right at the day/night edge.
-    float terminator = smoothstep(0.0, 0.25, sun) * (1.0 - smoothstep(0.25, 0.6, sun));
-    float intensity = fres * lit + fres * terminator * 0.5;
-    gl_FragColor = vec4(uColor, clamp(intensity, 0.0, 1.0) * uOpacity);
+    float fres = pow(1.0 - max(dot(N, V), 0.0), uPower);
+    float sun = max(dot(N, L), 0.0);
+
+    if (uRayleigh > 0.5) {
+      // --- Physical-ish Rayleigh/Mie scattering (O'Neil style, analytic) -----
+      // Rayleigh ∝ 1/λ⁴ → blue scatters ~5.5× more than red, giving the blue
+      // sky. Where sunlight grazes a long path through the air (the terminator /
+      // limb near the night side) the blue is scattered OUT and the remaining
+      // light reddens — the sunset band. Mie (aerosol) adds a forward-glow halo
+      // around the Sun's direction.
+      float cosVL = dot(V, -L);                       // view vs sun (forward scatter)
+      // Rayleigh wavelength weights (approx 1/λ⁴ for R,G,B, normalised).
+      vec3 rayleighW = vec3(0.26, 0.55, 1.0);
+      // "Air mass": more atmosphere traversed toward the terminator → redder.
+      float airMass = 1.0 - smoothstep(-0.15, 0.55, sun); // 0 day-centre → 1 at night edge
+      vec3 sunset = mix(rayleighW, vec3(1.0, 0.5, 0.22), airMass * 0.85);
+      // Mie forward-scatter: a bright halo when looking toward the Sun through air.
+      float mie = pow(max(cosVL, 0.0), 8.0) * 0.6;
+      // Day-lit limb carries the scattered colour; keep a faint floor so the whole
+      // ring reads, and lift strongly at the sunset band.
+      float lit = 0.15 + 1.0 * sun;
+      float termBoost = airMass * (1.0 - smoothstep(0.55, 0.95, airMass)) * 1.4; // peak at the edge
+      vec3 col = sunset * (lit + termBoost) + vec3(1.0, 0.85, 0.6) * mie;
+      float intensity = fres * (lit + termBoost) + mie * 0.5;
+      gl_FragColor = vec4(col, clamp(intensity, 0.0, 1.0) * uOpacity);
+    } else {
+      // Thin / opaque atmospheres (Mars dust, Venus deck): the simple tinted rim.
+      float lit = 0.25 + 0.95 * sun;
+      float terminator = smoothstep(0.0, 0.25, sun) * (1.0 - smoothstep(0.25, 0.6, sun));
+      float intensity = fres * lit + fres * terminator * 0.5;
+      gl_FragColor = vec4(uColor, clamp(intensity, 0.0, 1.0) * uOpacity);
+    }
   }
 `
 

@@ -756,6 +756,10 @@ export function PlanetBody({
       uSunDir:  { value: new Vector3(1, 0, 0) },
       uOpacity: { value: 0 },
       uPower:   { value: 3.0 },
+      // 1 = physical Rayleigh/Mie scattering (Earth): wavelength-dependent blue
+      // halo + a warm sunset band at the terminator + a Mie forward-glow toward
+      // the Sun. 0 = the plain tinted Fresnel rim (thin-atmo bodies: Mars/Venus).
+      uRayleigh: { value: 0 },
     }),
     [],
   )
@@ -1095,6 +1099,9 @@ export function PlanetBody({
     atmosUniforms.uPower.value =
       planet.raw.name === "Mars" ? 4.0 :
       planet.raw.name === "Venus" ? 2.4 : 3.0
+    // Earth's thick clear air gets the physical Rayleigh/Mie path; Mars's thin
+    // dust + Venus's opaque sulfuric deck keep the simpler tinted rim.
+    atmosUniforms.uRayleigh.value = planet.raw.name === "Earth" ? 1 : 0
   }, [atmosphereColor, planet.raw.name, atmosUniforms])
   const atmosphereScale =
     planet.raw.name === "Venus" ? 1.060 :
