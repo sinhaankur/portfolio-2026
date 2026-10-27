@@ -3,9 +3,11 @@
 /**
  * LabWaveBackground — the Lab breathes over the sea.
  *
- * A fixed, dimmed loop of the real ocean sits behind the whole Lab page (the
- * same footage that became the Waves engine), so "learning AI by building it"
- * plays out over living water. The soundtrack is the sea itself — the real
+ * A fixed, full-richness loop of the real ocean sits behind the whole Lab page
+ * (the same footage that became the Waves engine), graded cinematically so
+ * "learning AI by building it" plays out over living water — the sea reads clear
+ * and alive, with legibility handled by targeted text bands (not a full wash that
+ * erases the ocean). The soundtrack is the sea itself — the real
  * wave-breaking noise, opt-in via a small chip (never autoplays; browsers
  * block it and we respect that, same discipline as the galaxy music chip).
  *
@@ -56,28 +58,41 @@ export function LabWaveBackground() {
 
   return (
     <>
-      {/* Fixed ocean backdrop, behind the content (z-0; content sits at z-10) */}
-      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-[#04121f]" aria-hidden>
+      {/* Fixed ocean backdrop, behind the content (z-0; content sits at z-10).
+          A deep teal base shows through while the video loads, so it reads as the
+          SEA — never the grey void it used to look like. */}
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-[#06202e]" aria-hidden>
         {!lite ? (
           <video
-            className="h-full w-full object-cover opacity-[0.6]"
+            // Full, RICH ocean at full strength (no opacity knockdown). The footage
+            // + poster are now CROPPED to water-only — the dull overcast sky that
+            // used to dominate the frame (and read "grey/sad") is gone, so the
+            // sparkling sea fills the whole backdrop.
+            className="h-full w-full object-cover"
             src="/video/wave.mp4"
             poster="/video/wave-poster.jpg"
             autoPlay
             muted
             loop
             playsInline
-            preload="metadata"
+            preload="auto"
           />
         ) : (
-          // Lite (mobile / reduced-motion / metered): the light poster, no ~15 MB
-          // video download. Same ocean feel, a fraction of the bytes.
+          // Lite (mobile / reduced-motion / metered): the water-only poster at full
+          // richness, no video download. Same living sea, a fraction of the bytes.
           // eslint-disable-next-line @next/next/no-img-element
-          <img src="/video/wave-poster.jpg" alt="" className="h-full w-full object-cover opacity-50" loading="lazy" />
+          <img src="/video/wave-poster.webp" alt="" className="h-full w-full object-cover" loading="lazy" />
         )}
-        {/* Legibility scrim — lighter now so the waves read clearly, but still
-            enough contrast under the text (heavier top+bottom, clear in the middle). */}
-        <div className="absolute inset-0 bg-gradient-to-b from-background/70 via-background/40 to-background/75" />
+        {/* LIGHT, cinematic grade — the sea stays RICH + visible (the old heavy
+            background-wash is what greyed it into "sad"). A gentle teal multiply
+            deepens the water a touch; legibility now comes from the frosted content
+            panels on the page itself, not from drowning the ocean in a scrim. */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[#0a3346]/15 via-transparent to-[#03111c]/25 mix-blend-multiply" />
+        {/* The lightest possible theme tint so the page still feels cohesive with
+            the rest of the site, without erasing the water (was /70 → now /25). */}
+        <div className="absolute inset-0 bg-gradient-to-b from-background/30 via-background/5 to-background/35" />
+        {/* Cinematic edge vignette — draws the eye to the centre, like a film frame. */}
+        <div className="absolute inset-0" style={{ boxShadow: "inset 0 0 200px 50px rgba(2,10,20,0.4)" }} />
       </div>
 
       {/* The sea as soundtrack — opt-in wave noise */}

@@ -114,13 +114,14 @@ export function Lab() {
       className="relative py-24 md:py-32 px-6 md:px-12 border-t border-border"
     >
       <div className="mx-auto w-full max-w-6xl">
-        {/* Section header */}
+        {/* Section header — in a frosted-glass panel so the text reads crisply
+            over the vivid ocean background (the sea stays rich around it). */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.7 }}
-          className="mb-14 md:mb-20 max-w-3xl"
+          className="mb-14 md:mb-20 max-w-3xl rounded-3xl border border-border/40 bg-background/55 backdrop-blur-xl p-7 md:p-10 shadow-xl"
         >
           <p className="font-mono text-xs tracking-[0.3em] text-muted-foreground mb-4">
             THE LAB — EXPLORATION
