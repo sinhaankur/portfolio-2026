@@ -648,6 +648,11 @@ export function PlanetBody({
       uPlanetCenter:        { value: new Vector3() },
       uRingInner:           { value: planet.visualRadius * 1.24 },
       uRingOuter:           { value: planet.visualRadius * 2.34 },
+      // Ocean specular — a real sun glint on water. On for Earth only; the shader
+      // detects water from the day texture (blue-dominant + dark) and adds a
+      // Blinn-Phong highlight. uCamPos gives the view vector for the reflection.
+      uOcean:               { value: planet.raw.name === "Earth" ? 1 : 0 },
+      uCamPos:              { value: new Vector3() },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
@@ -889,6 +894,8 @@ export function PlanetBody({
       _sunWorldPos.set(SUN_OFFSET_SCENE, 0, 0)
       _sunDirTmp.copy(_sunWorldPos).sub(_earthWorldPos).normalize()
       dayNightUniforms.uSunDir.value.copy(_sunDirTmp)
+      // Camera world position → the view vector for Earth's ocean sun-glint.
+      dayNightUniforms.uCamPos.value.copy(state.camera.position)
       // Ring shadow ON the planet (Saturn): feed the shader the planet centre +
       // the ring-plane normal in WORLD space so it can trace each surface point's
       // sun ray against the ring annulus. The ring plane is the planet's

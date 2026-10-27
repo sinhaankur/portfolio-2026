@@ -326,6 +326,8 @@ export const DAY_NIGHT_FRAGMENT_SHADER = `
   uniform vec3  uPlanetCenter;    // planet centre in WORLD space
   uniform float uRingInner;       // inner ring radius (world units)
   uniform float uRingOuter;       // outer ring radius (world units)
+  uniform float uOcean;           // 1 = add an ocean sun-glint (Earth only)
+  uniform vec3  uCamPos;          // camera world position (for the glint view vec)
   varying vec2 vUv;
   varying vec3 vWorldNormal;
   varying vec3 vWorldPos;
@@ -421,6 +423,29 @@ export const DAY_NIGHT_FRAGMENT_SHADER = `
           // ambient so it's a deep dusk band, not pure black).
           color *= mix(1.0, 0.32, shade * dayMix);
         }
+      }
+    }
+
+    // --- Ocean sun-glint (Earth) ------------------------------------------
+    // Real oceans throw a bright specular highlight back at the Sun — a signature
+    // "blue marble from space" cue the engine was missing. Detect water from the
+    // day texture (blue-dominant + not-too-bright, so land/ice/clouds are excluded)
+    // and add a tight Blinn-Phong highlight, gated to the sunlit side + the limb
+    // falloff so it reads as a glint, not a painted-on dot.
+    if (uOcean > 0.5 && dayMix > 0.02) {
+      vec3 d = dayColor;
+      float water = smoothstep(0.02, 0.10, d.b - d.r)     // blue > red
+                  * smoothstep(0.02, 0.08, d.b - d.g)     // blue > green
+                  * (1.0 - smoothstep(0.35, 0.6, max(d.r, d.g))); // not bright (ice/cloud)
+      if (water > 0.001) {
+        vec3 V = normalize(uCamPos - vWorldPos);
+        vec3 L = normalize(uSunDir);
+        vec3 H = normalize(L + V);
+        float spec = pow(max(dot(shadingNormal, H), 0.0), 220.0);
+        // Fresnel: water reflects far more at grazing angles (the glint is
+        // strongest near the limb), and fade with the terminator.
+        float fres = 0.02 + 0.98 * pow(1.0 - max(dot(shadingNormal, V), 0.0), 5.0);
+        color += vec3(1.0, 0.98, 0.92) * spec * water * (0.35 + 0.65 * fres) * dayMix * 1.6;
       }
     }
 
