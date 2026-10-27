@@ -52,17 +52,18 @@ Every change to this engine is held to the five pillars below.
 - **Static-export safe** — the engine is client-only (`ssr: false`); never add
   server-component data fetching that breaks `output: "export"`.
 - **GLSL-first, with curated GLB LODs.** The field — stars, nebulae, galaxies,
-  atmospheres, the spiral arms — is pure GLSL; that's the default and the bulk of
-  the engine. A small, curated set of bodies use a baked GLB mesh where a shader
-  can't carry the detail at close zoom: the black hole (`blackhole.glb`), belt
-  rocks (asteroid/comet nuclei), and the hero satellites. Each GLB is `useGLTF`-
-  loaded lazily and wrapped in `<Suspense>` so a load failure degrades to a
-  fallback, never a crash. **Rule:** reach for GLSL first; add a GLB only when
-  it earns its bytes at deep-zoom, and keep it on the curated list — don't let
-  the point-field/nebula/galaxy layers drift into meshes. Blender bakes both the
+  atmospheres, the spiral arms, **and now the black hole** — is pure GLSL; that's
+  the default and the bulk of the engine. A small, curated set of bodies still use
+  a baked GLB mesh where a shader can't carry the detail at close zoom: belt rocks
+  (asteroid/comet nuclei) and the hero satellites. Each GLB is `useGLTF`-loaded
+  lazily and wrapped in `<Suspense>` so a load failure degrades to a fallback,
+  never a crash. **Rule:** reach for GLSL first; add a GLB only when it earns its
+  bytes at deep-zoom, and keep it on the curated list — don't let the
+  point-field/nebula/galaxy layers drift into meshes. Blender bakes both the
   textures in `/public/textures` and these few meshes in `/public/models`.
-  (A GLSL geodesic-raymarch black hole was trialled 2026-07-17 and reverted on
-  looks — see commit 3c54d13e; the GLB stays until the shader beats it.)
+  (The black hole's `blackhole.glb` was RETIRED 2026-10-26: the geodesic
+  raymarcher that was reverted on 2026-07-17 — commit 3c54d13e — finally beat it
+  once the grey-ring moire was fixed, so BHs rejoined the pure-GLSL field.)
 
 ## 5. Accessibility & polish
 - `prefers-reduced-motion` respected (intro + animations).

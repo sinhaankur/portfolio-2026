@@ -57,15 +57,20 @@ TRUE 3D heliocentric depth), `Constellations` → `ConstellationStarMesh` /
 ## Black-hole engine
 **Data:** black-hole `SkyPoint`s (Cygnus X-1, Sgr A*, M87*, TON 618, Phoenix A…)
 with real `massSolar` + `spin`.
-**Render:** the baked `blackhole.glb` mesh (`useGLTF` + `<Clone>`,
-Suspense-wrapped, loads on first engagement) for the lensed horizon, plus GLSL
-`BlackHoleJets`, sized by `computeBlackHoleProportions` (real
-Schwarzschild/Kerr horizon → log-scaled visual). Arrivals frame from the
-physics (`shadowR × 5`) and approach ≥ ~30° above the disk plane.
-A pure-GLSL null-geodesic raymarcher (real lensing of the photographic sky)
-was trialled and reverted the same day on the owner's call — "the GLB was
-better"; it lives at commit 3c54d13e with its remaining scale bug diagnosed,
-and returns only if/when it beats the GLB on looks.
+**Render:** `BlackHoleRaymarch` — a **pure-GLSL null-geodesic raymarcher** (a
+single camera-facing quad; mounts on first engagement). The shadow, the bright
+photon ring, the disk arcing over/under the hole, and the Einstein-lensed REAL
+Milky Way (sampled from the ESO/Brunier all-sky via `loadAllSkyTexture` +
+`galacticBasis`) all EMERGE from integrating photon paths — nothing painted on a
+mesh. Plus GLSL `BlackHoleJets`. Sized by `computeBlackHoleProportions` (real
+Schwarzschild/Kerr horizon → log-scaled visual); arrivals frame from the physics
+(`shadowR × 5`) and approach ≥ ~30° above the disk plane. The march depth is
+tier-gated via `uMaxSteps` (ultra 240 → low 90). This replaced the 13 MB
+`blackhole.glb` (2026-10-26) — BHs now satisfy the pure-GLSL pillar. The look is
+cinematic Gargantua: warm golden disk, Doppler dialed down, razor photon ring,
+IMAX flare; the grey-ring moire that reverted the 2026-07-17 attempt (commit
+3c54d13e) is fixed via per-pixel dither + transmission compositing + a
+kick-drift-kick integrator.
 
 ## Nebula engine
 **Data:** nebula `SkyPoint`s (M42, M16, Carina, M57, M1, Helix…) at real RA/Dec.

@@ -107,7 +107,15 @@ Sources: [HYG catalog star maps (webstar)](https://github.com/KarlSmith400/webst
 
 ---
 
-## 3. Black-hole engine 🔴 (real physics in the NUMBERS, faked in the PIXELS)
+## 3. Black-hole engine 🟢 (RESOLVED 2026-10-26 — now real geodesic lensing)
+
+> **UPDATE:** this was the audit's biggest 🔴 gap; it is now FIXED. `BlackHoleRaymarch`
+> (`black-hole.tsx`) is a pure-GLSL null-geodesic raymarcher that replaced the GLB.
+> The shadow, photon ring, disk arcing over/under, and the lensed REAL ESO Milky Way
+> all emerge from the physics. The grey-ring moire that reverted the 2026-07-17
+> attempt is fixed (per-pixel dither + transmission compositing + kick-drift-kick
+> integrator). Tier-gated march depth (uMaxSteps 240→90). Look = cinematic Gargantua.
+> The original 🔴 analysis below is kept for the record.
 
 **Real technique (researched):** physically-based browser black holes BACKWARDS
 ray-trace per pixel through curved spacetime — null-geodesic raymarching

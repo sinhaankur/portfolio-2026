@@ -45,6 +45,7 @@ import {
   SUN_OFFSET_SCENE,
 } from "./astronomy"
 import { bandBrightness } from "@/lib/observe"
+import { perfTierRef } from "@/lib/device-tier"
 import { getBlackHoleAffordance } from "./celestial-sub-engine"
 import { galacticBasis, loadAllSkyTexture } from "./sky-panorama"
 import type { SkyPoint } from "./types"
@@ -270,7 +271,11 @@ const BH_FRAG = /* glsl */ `
   uniform float uTime;
   uniform float uHasSky;
   uniform float uSkyLevel; // matches SkyPanorama's vantage fade
+  uniform float uMaxSteps; // perf gate — the loop runs to STEPS but BREAKS here
 
+  // The loop bound must be a compile-time constant in GLSL, so we loop to a high
+  // ceiling but break early at uMaxSteps — the device tier dials it down so a
+  // weak GPU doesn't choke on the full geodesic march (ultra 240 → low ~90).
   const int STEPS = 240;
   const float ESCAPE_R = 44.0;
 
@@ -316,6 +321,7 @@ const BH_FRAG = /* glsl */ `
     vec3 pos=ro, vel=rd; vec3 hv=cross(pos,vel); float h2=dot(hv,hv);
     vec3 emis=vec3(0.0); float trans=1.0; bool captured=false; float prevY=pos.y; float rMin=1e9;
     for(int i=0;i<STEPS;i++){
+      if(float(i)>=uMaxSteps) break;   // perf gate (tier-driven)
       float r=length(pos); rMin=min(rMin,r);
       if(r<1.0){ captured=true; break; }
       if(r>ESCAPE_R+1.0 && dot(pos,vel)>0.0) break;
@@ -396,6 +402,7 @@ function BlackHoleRaymarch({
       uTime: { value: 0 },
       uHasSky: { value: 0 },
       uSkyLevel: { value: 1 },
+      uMaxSteps: { value: 240 },
     }
   }, [rsScene, iscoFactor, spin])
 
@@ -414,6 +421,11 @@ function BlackHoleRaymarch({
     mesh.getWorldScale(_bhWorldScale)
     uniforms.uUnit.value = rsScene * _bhWorldScale.x
     uniforms.uTime.value = clock.elapsedTime
+    // Perf gate: scale the geodesic march depth to the live tier so the heaviest
+    // shader in the engine never chokes a weak GPU. Ultra gets the full march;
+    // low drops to ~90 steps (coarser lensing, still reads correctly).
+    const t = perfTierRef.current
+    uniforms.uMaxSteps.value = t === "ultra" ? 240 : t === "high" ? 190 : t === "mid" ? 140 : 90
     // Same vantage fade as SkyPanorama (130→300 from the shell centre).
     const dist = camera.position.distanceTo(_bhShellCenter)
     uniforms.uSkyLevel.value = 1 - Math.min(1, Math.max(0, (dist - 130) / 170))
