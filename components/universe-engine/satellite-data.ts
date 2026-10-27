@@ -451,16 +451,35 @@ export function predictPasses(
 export type CatalogHeader = { snapshot?: string; source?: string; count?: number; breakdown?: Record<string, number> }
 export const catalogHeaderRef: { current: CatalogHeader | null } = { current: null }
 
+/** Fetch the catalog with a few RETRIES. The file is ~4.8 MB and the live CDN
+ *  (Cloudflare → GitHub Pages) intermittently 503s it when the celestial page
+ *  fires its whole request burst at once — and a single failure used to leave the
+ *  scene permanently empty ("/lab/celestial doesn't open"). A 503 is transient
+ *  (it succeeds on an immediate re-request), so retry with a short backoff; only
+ *  give up — to an empty catalog, degrading gracefully — after several tries. */
+async function fetchCatalogWithRetry(tries = 4): Promise<SatRecord[]> {
+  let lastErr: unknown = null
+  for (let i = 0; i < tries; i++) {
+    try {
+      const r = await fetch("/data/satellites.json", { cache: "reload" })
+      if (!r.ok) throw new Error(`HTTP ${r.status}`)
+      const d = await r.json()
+      catalogHeaderRef.current = { snapshot: d.snapshot, source: d.source, count: d.count, breakdown: d.breakdown }
+      return d.sats as SatRecord[]
+    } catch (e) {
+      lastErr = e
+      // exponential-ish backoff: 400ms, 900ms, 1600ms — plenty for a 503 to clear.
+      if (i < tries - 1) await new Promise((res) => setTimeout(res, 400 + i * 500))
+    }
+  }
+  if (typeof console !== "undefined") console.warn("[universe-engine] satellite catalog failed after retries:", lastErr)
+  return []
+}
+
 let _fullCatalogPromise: Promise<SatRecord[]> | null = null
 export function loadFullCatalog(): Promise<SatRecord[]> {
   if (!_fullCatalogPromise) {
-    _fullCatalogPromise = fetch("/data/satellites.json")
-      .then((r) => r.json())
-      .then((d) => {
-        catalogHeaderRef.current = { snapshot: d.snapshot, source: d.source, count: d.count, breakdown: d.breakdown }
-        return d.sats as SatRecord[]
-      })
-      .catch(() => [])
+    _fullCatalogPromise = fetchCatalogWithRetry()
   }
   return _fullCatalogPromise
 }
