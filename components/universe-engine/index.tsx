@@ -855,6 +855,8 @@ export function UniverseEngine({
             )}
           />
         )}
+        {/* SSAA on the engaged close-up — interactive (celestial) only, ultra GPUs. */}
+        {interactive && !reducedMotion && <EngagedSSAA tier={tier} />}
 
         <OrbitControls
           ref={orbitRef as React.Ref<OrbitControlsImpl>}
@@ -1417,6 +1419,37 @@ function ScrollDprGuard({ baseDpr }: { baseDpr: number }) {
     // Ease so the resolution change is never a visible pop.
     const k = 1 - Math.exp(-(scrolling ? 22 : 9) * delta)
     const next = current.current + (target - current.current) * k
+    if (Math.abs(next - current.current) > 0.01) {
+      current.current = next
+      gl.setPixelRatio(next)
+    }
+  })
+  return null
+}
+
+/**
+ * EngagedSSAA — supersample the close-up view on a strong GPU.
+ *
+ * When you FLY IN and lock onto a body (followRef set) on an ULTRA tier, bump the
+ * canvas pixel ratio ABOVE the display's native DPR (up to ~2.6×) so the zoomed
+ * surface + edges are rendered at more samples than the screen has pixels, then
+ * downsampled — true SSAA, the biggest crispness win up close (the black hole,
+ * planet terminators, ring edges). Eases back to native when you pull out, and
+ * backs OFF immediately if the live perf tier drops below ultra (the adaptive
+ * controller caught a slowdown), so it never fights smoothness. Interactive
+ * (celestial) only; the passive hero keeps ScrollDprGuard.
+ */
+function EngagedSSAA({ tier }: { tier: DeviceTier }) {
+  const { gl } = useThree()
+  const nativeDpr = typeof window !== "undefined" ? Math.min(2, window.devicePixelRatio || 1) : 1
+  const SSAA_DPR = Math.min(2.6, nativeDpr * 1.4) // supersample ceiling
+  const current = useRef(nativeDpr)
+  useDollyFrame((_, delta) => {
+    const live = perfTierRef.current
+    const engaged = followRef.current != null
+    const want = tier === "ultra" && live === "ultra" && engaged ? SSAA_DPR : nativeDpr
+    const k = 1 - Math.exp(-6 * delta) // smooth, no visible pop
+    const next = current.current + (want - current.current) * k
     if (Math.abs(next - current.current) > 0.01) {
       current.current = next
       gl.setPixelRatio(next)
