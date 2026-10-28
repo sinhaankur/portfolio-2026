@@ -6,7 +6,6 @@ import { Lab } from "@/components/lab"
 import { ScrollCinema } from "@/components/scroll-cinema"
 import { CustomCursor } from "@/components/custom-cursor"
 import { UpcomingBadge } from "@/components/upcoming-badge"
-import { LabWaveBackground } from "@/components/lab-wave-background"
 
 export const metadata: Metadata = {
   ...canonicalPath("/lab"),
@@ -19,7 +18,6 @@ export default function LabPage() {
   return (
     <>
       <CustomCursor />
-      <LabWaveBackground />
       <Navbar />
       <main id="main" className="relative z-10 pt-24">
         {/* Cinematic overture — two claims from the Lab's own copy, pinned +
