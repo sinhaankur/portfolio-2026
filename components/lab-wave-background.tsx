@@ -35,6 +35,17 @@ export function LabWaveBackground() {
     setLite(prefersLiteMedia())
   }, [])
 
+  useEffect(() => {
+    // The body carries an OPAQUE `bg-background` sitewide — which paints over the
+    // fixed ocean below the fold, so the wave only showed in the first viewport
+    // and the content scrolled on white ("this kills the view"). Make the body
+    // transparent WHILE on the Lab page so the fixed sea stays behind the whole
+    // scroll (true parallax: wave locked in frame, content glides over it).
+    const prev = document.body.style.backgroundColor
+    document.body.style.backgroundColor = "transparent"
+    return () => { document.body.style.backgroundColor = prev }
+  }, [])
+
   function toggleSound() {
     const a = audioRef.current
     if (!a) return
