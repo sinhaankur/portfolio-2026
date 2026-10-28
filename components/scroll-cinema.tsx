@@ -133,16 +133,7 @@ function CinemaLine({
 
   return (
     <motion.p
-      style={{
-        opacity, scale, y,
-        // A soft readability glow so the big display text stays crisp over ANY
-        // backdrop (the Lab's ocean footage especially) without needing a panel —
-        // a halo in the page's own background colour + a faint dark edge.
-        textShadow:
-          "0 1px 2px color-mix(in oklch, var(--background) 70%, transparent)," +
-          "0 0 28px color-mix(in oklch, var(--background) 55%, transparent)," +
-          "0 2px 20px rgba(0,0,0,0.25)",
-      }}
+      style={{ opacity, scale, y }}
       className="
         absolute px-6 text-center
         font-display font-light italic tracking-[-0.01em] leading-[1.08]
