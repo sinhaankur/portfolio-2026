@@ -395,7 +395,7 @@ export function eccentricToTrue(E: number, e: number): number {
  *  give the whole system 100% more breathing room ("make it 100%") — a uniform
  *  scale, so every relative ratio is untouched (still pure pow(realAU, 0.58));
  *  the belts derive their radii from compressRadius so they move out with it. */
-export const SCENE_SCALE = 6.0
+export const SCENE_SCALE = 7.5
 
 /* Scale mode — "explore" (default, sqrt-compressed so the whole solar system
  * is legible in one frame) vs "true" (linear AU, real ratios — honest about the
@@ -442,10 +442,10 @@ export const AU_IN_LIGHTYEARS = 1.58125e-5
 /** Rough real light-years spanned per scene unit at the CURRENT camera framing.
  *  Uses the local slope of compressRadius so the readout tracks zoom honestly. */
 export function sceneUnitsToLightYears(sceneDist: number): number {
-  // Invert the explore compression r_scene = rAU^0.58 * SCENE_SCALE to recover
-  // the real AU the current distance corresponds to, then → light-years.
+  // Invert the explore compression r_scene = rAU^EXPLORE_EXPONENT * SCENE_SCALE to
+  // recover the real AU the current distance corresponds to, then → light-years.
   const d = Math.max(sceneDist, 0.0001)
-  const rAU = Math.pow(d / SCENE_SCALE, 1 / 0.58)
+  const rAU = Math.pow(d / SCENE_SCALE, 1 / EXPLORE_EXPONENT)
   return rAU * AU_IN_LIGHTYEARS
 }
 
@@ -545,14 +545,17 @@ export const TRUE_SCALE_AU = 3
 /** Compress a real heliocentric radius (AU) into scene units. In explore mode this
  *  uses a gentle power curve; in true-scale mode it's linear AU (real ratios).
  *
- *  SPACING (Ankur "better spacing"): sqrt(r) squeezed the INNER planets together
- *  (Mercury→Mars all bunched 1.9–3.7 units). r^0.58 spreads the inner system more
- *  evenly (bigger Mercury/Venus/Earth/Mars gaps) while keeping the outer planets in
- *  frame — a more legible, breathing layout. Earth still lands ~3 units. */
+ *  SPACING (Ankur "shouldn't look crammed"): the inner planets were bunching up.
+ *  The explore layout is r^EXPONENT · SCENE_SCALE — a LOWER exponent compresses the
+ *  OUTER planets more, which hands the inner system relatively more room; a higher
+ *  SCENE_SCALE then pushes everything apart. 0.58·6 → 0.50·7.5 lifts the tightest
+ *  inner gap (Venus→Earth) ~1.04 → ~1.1 units and keeps Neptune in frame (~37 not
+ *  43). True-scale stays linear AU (real ratios) for the honest-distances toggle. */
+export const EXPLORE_EXPONENT = 0.5
 export function compressRadius(rAU: number): number {
   const r = Math.max(rAU, 0)
   if (scaleModeRef.current === "true") return r * TRUE_SCALE_AU
-  return Math.pow(r, 0.58) * SCENE_SCALE
+  return Math.pow(r, EXPLORE_EXPONENT) * SCENE_SCALE
 }
 
 /** Small-body visual radius (scene units) from a REAL mean diameter (km).
