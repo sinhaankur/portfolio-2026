@@ -166,12 +166,37 @@ export const SUN_SURFACE_FRAGMENT_SHADER = `
   }
   void main() {
     vec3 p = normalize(vPos);
-    // Base: the real Blender-rendered photosphere — fiery, molten, alive.
-    vec3 col = texture2D(uSunTex, vUv).rgb;
-    // Subtle animated shimmer so the surface breathes (very light — the texture
-    // already carries the granulation; this just keeps it from looking frozen).
+    // Base colour from the baked photosphere, but sampled only for its LARGE-scale
+    // warm tone — the baked equirectangular map smears into horizontal stripes at
+    // the poles + carries blotchy low-frequency clumps, so we no longer let it
+    // carry the fine detail. We blur it toward its own average by mixing two
+    // offset taps, killing the venetian-blind banding while keeping the molten hue.
+    vec3 tA = texture2D(uSunTex, vUv).rgb;
+    vec3 tB = texture2D(uSunTex, vUv + vec2(0.013, 0.0)).rgb;
+    vec3 tC = texture2D(uSunTex, vUv + vec2(0.0, 0.009)).rgb;
+    vec3 base = (tA + tB + tC) / 3.0;
+    // ALWAYS-ON fine granulation in the 3D domain (no equirectangular poles → no
+    // stripes). This is the real photosphere texture: a carpet of convection cells
+    // with hot granule centres in cooler intergranular lanes, churning slowly.
+    vec3 gp = p * 26.0;
+    float gdrift = uTime * 0.05;
+    vec3 gq = vec3(
+      gp.x * cos(gdrift) - gp.z * sin(gdrift),
+      gp.y,
+      gp.x * sin(gdrift) + gp.z * cos(gdrift)
+    );
+    float gcells = fbm(gq);                              // fine granule field
+    float glanes = smoothstep(0.30, 0.70, gcells);       // cell centres vs lanes
+    // Tint the granulation with the baked warm tone so colour stays data-honest.
+    vec3 gHot  = base * vec3(1.22, 1.06, 0.86);          // bright granule core
+    vec3 gCool = base * vec3(0.62, 0.42, 0.30);          // cool network lane
+    vec3 col = mix(gCool, gHot, glanes);
+    // Keep a touch of the baked large-scale structure (active regions) so the
+    // disc isn't perfectly uniform — but weighted low so its banding can't show.
+    col = mix(col, base, 0.25);
+    // Subtle animated shimmer so the surface breathes.
     float shimmer = vnoise(p * 9.0 + vec3(0.0, uTime * 0.25, uTime * 0.15));
-    col *= 0.9 + 0.18 * shimmer;
+    col *= 0.92 + 0.14 * shimmer;
 
     // ── Cinematic focus tier ────────────────────────────────────────────────
     // Only runs as you fly in (uFocus 0→1). Adds real solar structure the flat
@@ -203,8 +228,9 @@ export const SUN_SURFACE_FRAGMENT_SHADER = `
       vec3 hot  = vec3(1.15, 0.72, 0.34);                // ~photosphere hot core
       vec3 cool = vec3(0.55, 0.20, 0.08);                // cooler network lane
       vec3 gran = mix(cool, hot, lanes);
-      // Blend the procedural structure over the baked texture as we fly in, so
-      // the far view (uFocus=0) is untouched and the near view is alive.
+      // Layer the richer close-up structure (supergranules + warped flow) over the
+      // always-on base granulation as we fly in — the near view gains depth the far
+      // view doesn't need to pay for.
       col = mix(col, col * (0.7 + 0.9 * lanes) + gran * 0.22, uFocus);
 
       // Sunspots: rare, dark, cooler pooled regions where cells suppress.
