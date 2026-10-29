@@ -13,16 +13,27 @@ import { usePathname } from "next/navigation"
  * If JS never runs, the element is simply opaque. No opacity state, no invisible
  * content. prefers-reduced-motion disables the keyframe in CSS.
  *
- * IMPORTANT: routes with a full-viewport `position: fixed` WebGL backdrop (the
- * home galaxy hero, /sky, /tv) render WITHOUT the wrapper — an animated element
- * establishes a stacking context, and those pages rely on their fixed sky
- * painting at the root behind a transparent body. The fade is for content pages,
- * which is where it actually helps the flow.
+ * IMPORTANT: routes whose whole shell is a full-viewport `position: fixed`
+ * element (the home galaxy hero, /sky, /tv, and the fixed-shell WebGL engine
+ * pages /lab/celestial, /lab/big-bang, /story) render WITHOUT the wrapper. The
+ * wrapper's `transform` (route-fade-in's translateY) turns every descendant
+ * `position: fixed` into `absolute` relative to the (zero-height) wrapper, so a
+ * `fixed inset-0` main collapses: its `h-full` child chain measures 0 and the
+ * R3F <Canvas> falls back to its default 300×150 → the engine renders as a tiny
+ * BLACK box ("/lab/celestial doesn't open / is a black screen"). The fade is for
+ * normal CONTENT pages; these full-screen experiences keep their own backdrop.
+ * (Pages that size themselves with `h-dvh` instead of `fixed` — /waves,
+ * /embed/satellites — are immune and don't need listing here.)
  */
-const NO_WRAP = new Set(["/", "/sky", "/tv"])
+const NO_WRAP = new Set(["/", "/sky", "/tv", "/lab/celestial", "/lab/big-bang", "/story"])
 
 export default function Template({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  if (NO_WRAP.has(pathname)) return <>{children}</>
+  // next.config has trailingSlash:true, so usePathname() returns "/lab/celestial/"
+  // — strip the trailing slash before matching or the exclusion silently misses
+  // (which left the fixed-shell engine pages wrapped → collapsed to a black box).
+  // Root "/" stays "/".
+  const key = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname
+  if (NO_WRAP.has(key)) return <>{children}</>
   return <div className="route-fade">{children}</div>
 }
