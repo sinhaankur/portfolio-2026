@@ -20,6 +20,8 @@ import { Suspense, useRef, useMemo, useEffect, useState } from "react"
 import { useFrame, useThree } from "@react-three/fiber"
 import { Html } from "@react-three/drei"
 import { BrightStarField } from "./bright-star-field"
+import { DeepStarField } from "./deep-star-field"
+import { perfTierRef } from "@/lib/device-tier"
 import { NamedStarHoverLayer } from "./named-star-hover-layer"
 import { BrightStarPicker } from "./bright-star-picker"
 import { NearbyStars3D } from "./nearby-stars-3d"
@@ -1902,6 +1904,18 @@ export function SceneContents({
           builds land on later frames, not the first (kills the mount hitch). */}
       {!solarOnly && stage >= 1 && (
         <BrightStarField invert={invert} mobile={mobile} enableMotion={enableMotion} />
+      )}
+      {/* DEEP real-star field — all ~119,625 HYG stars at their true RA/Dec +
+          blackbody colour, lazy-loaded from the packed binary. This is the "real
+          over invented" upgrade: the resolved stars of the Milky Way band are now
+          actual catalogued stars, not procedural arm dots. Builds the band
+          because real stars crowd the galactic plane. Staged last (stage ≥ 3) so
+          the 1 MB binary streams in after the hero paints; dark theme only. */}
+      {!solarOnly && !invert && stage >= 3 && (
+        <DeepStarField
+          invert={invert}
+          tier={mobile ? "mobile" : ((perfTierRef.current as "ultra" | "high" | "mid" | "low") ?? "high")}
+        />
       )}
       {/* Idle member stars for all ~395 catalog clusters, merged into ONE
           points draw — the fuzzy cluster glows granulate into real star

@@ -10,6 +10,7 @@
     "start": "next start",
     "check:assets": "node scripts/check-asset-budget.mjs",
     "data:stars": "node scripts/fetch-bright-stars.mjs",
+    "data:deepstars": "node scripts/fetch-deep-stars.mjs",
     "data:exoplanets": "node scripts/fetch-exoplanet-hosts.mjs",
     "data:constellations": "node scripts/fetch-constellations.mjs",
     "data:deepsky": "node scripts/fetch-deep-sky.mjs",
