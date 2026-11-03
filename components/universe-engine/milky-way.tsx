@@ -160,10 +160,10 @@ export function MilkyWay({
 
     const radius = 130
     const branches = 4
-    // Tighter winding so the arms actually READ as spiral arms, not a blob. The
-    // old spin (r*0.052 → ~1 turn across the disc) barely curved; ~2.5 turns
-    // (the Milky Way winds ~2–3×) gives clear sweeping arms.
-    const spin = 3.4
+    // Winding: the Milky Way winds ~1.5–2 turns. Too much (the old r*0.136) over-
+    // wound the arms until they overlapped into a uniform CLOUD — the "blob". A
+    // gentler logarithmic sweep keeps the four arms DISTINCT + readable as spirals.
+    const spin = 2.1
 
     // Chart-mode (invert) suppresses per-star colour — every star multiplies
     // through the dark uStarColor uniform, so we want a flat 1,1,1 here.
@@ -182,11 +182,14 @@ export function MilkyWay({
     //    the bulge. This is what gives the spiral structure a real palette
     //    instead of a flat white wash.
     for (let i = 0; i < armCount; i++) {
-      // Spread stars further OUT along the arms (pow 1.6 → 1.15) so they don't
-      // all pile into the centre and drown the arms in core glow.
-      const r = Math.pow(Math.random(), 1.15) * radius
+      // Radial distribution: a real disc is DENSER toward the centre and thins
+      // out. pow 1.5 concentrates stars inward so the galaxy has a bright body +
+      // a core, fading to sparse outer arms — not a uniform ring of scatter.
+      const r = Math.pow(Math.random(), 1.5) * radius
       const branchAngle = ((i % branches) / branches) * Math.PI * 2
-      const spinAngle = r * spin * 0.04
+      // Logarithmic-ish sweep: angle grows with LOG of radius so arms curve
+      // gracefully + stay distinct (a linear r·spin over-winds the outer disc).
+      const spinAngle = Math.log(1.0 + r * 0.14) * spin
       // Arm spurs/feathering — real spiral arms aren't smooth logarithmic
       // curves; they branch into spurs + feathers. A small radius-varying sine
       // perturbation on the angle gives that frayed, structured look instead of
@@ -195,10 +198,10 @@ export function MilkyWay({
         + Math.sin(r * 2.7) * 0.04
       const armAngle = branchAngle + spinAngle + spur
 
-      // Scatter TIGHTENED (0.28 → 0.16) + steeper falloff (pow 2.6 → 3.2) so
-      // stars hug the arm ridge-line instead of smearing across the disc into a
-      // blob. The arms stay frayed (via spur above) but read as distinct arms.
-      const randomness = 0.16
+      // Scatter TIGHTER still (0.16 → 0.11): stars hug the arm ridge-line so the
+      // four arms read as distinct sweeps, not a smear. The spur feathering above
+      // keeps them organic (not clean ribbons) without dissolving into a blob.
+      const randomness = 0.11
       const rx = Math.pow(Math.random(), 3.2) * (Math.random() < 0.5 ? 1 : -1) * randomness * r
       // A real disc FLARES: it's thin in the core and thickens toward the rim.
       // Give the vertical spread a mild radius-dependent flare (0.12 → up to
@@ -216,7 +219,13 @@ export function MilkyWay({
       const sizeRoll = Math.pow(Math.random(), 3.5)
       sizes[i] = 1.0 + sizeRoll * 5
       const normR = r / radius
-      alphas[i] = (0.08 + (1 - normR) * 0.25) * (0.5 + Math.random() * 0.5)
+      // Inner arm stars carry high alpha toward the centre (for the bright body
+      // in dark mode). In light/ink mode that same inner weight piles onto the
+      // bulge blot — so flatten the radial ramp when inverted (even, lighter ink
+      // across the disc) so the centre doesn't darken into a hole.
+      alphas[i] = invert
+        ? (0.07 + (1 - normR) * 0.08) * (0.5 + Math.random() * 0.5)
+        : (0.08 + (1 - normR) * 0.25) * (0.5 + Math.random() * 0.5)
 
       // Color: bias warmer toward the centre, bluer toward the outskirts. A
       // strong warm-core → cool-arm gradient is the single clearest "HD" read —
@@ -252,9 +261,17 @@ export function MilkyWay({
       positions[i3 + 1] = r * Math.sin(phi) * 0.6
       positions[i3 + 2] = r * Math.sin(theta) * Math.cos(phi)
 
+      // Core was a BLOWN-OUT white pile: large high-alpha points stacking under
+      // additive blend into a harsh hot blob. Smaller + much lower alpha so the
+      // bulge reads as a soft, dense warm GLOW (the diffuse dust-haze plane +
+      // coreGlow carry the luminous body), not a clump of hot white dots.
       const sizeRoll = Math.pow(Math.random(), 3)
-      sizes[idx] = 2 + sizeRoll * 8
-      alphas[idx] = 0.3 + Math.random() * 0.2
+      sizes[idx] = 1.4 + sizeRoll * 4
+      // In light/chart mode the bulge stars are DARK ink; stacked densely they
+      // blot the centre into a heavy black smudge. Halve their ink weight when
+      // inverted so the core reads as a soft dense stipple (an engraving's core),
+      // not a solid blot. Dark mode keeps the fuller alpha for its glow.
+      alphas[idx] = invert ? 0.06 + Math.random() * 0.05 : 0.12 + Math.random() * 0.12
 
       // Warm bulge palette — amber-cream with the occasional red giant.
       if (Math.random() < 0.75) {
@@ -290,8 +307,11 @@ export function MilkyWay({
       positions[i3 + 1] = vert
       positions[i3 + 2] = along * barSin + across * barCos
 
-      sizes[idx] = 2 + Math.pow(Math.random(), 2.5) * 6
-      alphas[idx] = 0.32 + Math.random() * 0.22
+      // Bar runs through the core — same restraint as the bulge so it doesn't
+      // re-blow-out the centre under additive blend, and the same lighter ink
+      // weight in invert so it doesn't thicken the central blot.
+      sizes[idx] = 1.4 + Math.pow(Math.random(), 2.5) * 3.5
+      alphas[idx] = invert ? 0.07 + Math.random() * 0.05 : 0.14 + Math.random() * 0.12
 
       // Bar shares the bulge's old-population palette.
       writeColor(idx, 1.0, 0.88 + Math.random() * 0.05, 0.62 + Math.random() * 0.07)
@@ -305,7 +325,10 @@ export function MilkyWay({
       const armR = (0.18 + Math.random() * 0.72) * radius
       const armBranch = Math.floor(Math.random() * branches)
       const branchAngle = (armBranch / branches) * Math.PI * 2
-      const spinAngle = armR * spin * 0.04
+      // Follow the SAME log-spiral sweep the arm stars use (above), so the pink
+      // HII knots sit ON the arms instead of lumping off them in a stale linear
+      // curve. (The old armR*spin*0.04 pre-dated the log sweep and drifted off.)
+      const spinAngle = Math.log(1.0 + armR * 0.14) * spin
       const armX = Math.cos(branchAngle + spinAngle) * armR
       const armZ = Math.sin(branchAngle + spinAngle) * armR
 
@@ -320,14 +343,16 @@ export function MilkyWay({
         positions[i3 + 1] = dy
         positions[i3 + 2] = armZ + dz
 
-        sizes[idx]  = 3 + Math.random() * 4
-        alphas[idx] = 0.35 + Math.random() * 0.35
-        // Pink Hα emission with a touch of magenta variation. Hot blue stars
-        // sometimes peek through as bluer cores — vary slightly per point.
+        // HII regions were loud magenta scatter dots cluttering the disc. Keep
+        // them SMALL + faint so they read as subtle pink knots tracing the arms
+        // (real Hα is a soft tint, not neon confetti) — and pull the hue off pure
+        // magenta toward a dusty rose so it sits in the galaxy, not on top of it.
+        sizes[idx]  = 1.6 + Math.random() * 2.2
+        alphas[idx] = 0.14 + Math.random() * 0.16
         if (Math.random() < 0.18) {
-          writeColor(idx, 0.78, 0.86, 1.0)
+          writeColor(idx, 0.80, 0.87, 1.0)
         } else {
-          writeColor(idx, 1.0, 0.46 + Math.random() * 0.08, 0.70 + Math.random() * 0.10)
+          writeColor(idx, 0.95, 0.58 + Math.random() * 0.08, 0.68 + Math.random() * 0.08)
         }
       }
     }
@@ -346,8 +371,12 @@ export function MilkyWay({
       positions[i3 + 1] = haloR * Math.cos(phi) * 0.85
       positions[i3 + 2] = haloR * Math.sin(phi) * Math.sin(theta)
 
-      sizes[idx] = 4 + Math.random() * 4
-      alphas[idx] = 0.55 + Math.random() * 0.25
+      // Halo clusters were BIG + BRIGHT (size 4–8, alpha 0.55–0.80): by random
+      // chance a handful clumped into a lopsided bright STREAK off one side — the
+      // "tail" that broke the galaxy's symmetry. Shrink + dim them to faint,
+      // even old-cluster specks that whisper the halo without drawing a comet.
+      sizes[idx] = 1.8 + Math.random() * 2.0
+      alphas[idx] = 0.22 + Math.random() * 0.16
       // Warm old-cluster colour.
       writeColor(idx, 1.0, 0.86 + Math.random() * 0.05, 0.62 + Math.random() * 0.08)
     }
@@ -371,7 +400,10 @@ export function MilkyWay({
       // On phones the galaxy fills a narrow frame, so the additive point field
       // stacked into a white wash that drowned the hero copy — dial the gain
       // back on mobile so the band stays luminous but the arms/colour read.
-      uBrightness: { value: invert ? 0.82 : mobile ? 1.75 : 2.3 },
+      // Desktop gain PULLED DOWN 2.3 → 1.6: with the denser 75k arm field the
+      // 2.3× gain blew the core out to a harsh white blob. Lower gain + the
+      // tamer bulge/bar alphas let the spiral read as a galaxy, not an explosion.
+      uBrightness: { value: invert ? 0.82 : mobile ? 1.45 : 1.6 },
     }),
     [gl, invert, mobile],
   )
@@ -490,14 +522,19 @@ export function MilkyWay({
               capped there (was 60 = 46% of radius, ~2× too big — it read as a
               detached glowing blob swallowing the centre, disconnected from the
               arms). Now the bulge sits INSIDE the disc it belongs to. */}
-          <sprite scale={mobile ? [5, 5, 1] : [7, 7, 1]}>
-            <spriteMaterial map={coreTex} color="#ffedcf" transparent opacity={mobile ? 0.45 : 0.60} depthWrite={false} blending={AdditiveBlending} />
+          {/* Hot inner sprite dialled back (0.60 → 0.34): stacked additively over
+              the dense inner arm + bulge + bar stars it bleached the centre to a
+              flat white disc with no detail. Lower centre + a slightly warmer
+              mid/halo let the bulge read as a glowing amber JEWEL with structure,
+              not a blown-out sun — the stars underneath stay visible. */}
+          <sprite scale={mobile ? [4.5, 4.5, 1] : [6, 6, 1]}>
+            <spriteMaterial map={coreTex} color="#ffe8c4" transparent opacity={mobile ? 0.30 : 0.34} depthWrite={false} blending={AdditiveBlending} />
           </sprite>
           <sprite scale={mobile ? [12, 12, 1] : [16, 16, 1]}>
-            <spriteMaterial map={coreTex} color="#ffcf8a" transparent opacity={mobile ? 0.30 : 0.36} depthWrite={false} blending={AdditiveBlending} />
+            <spriteMaterial map={coreTex} color="#ffcc82" transparent opacity={mobile ? 0.24 : 0.28} depthWrite={false} blending={AdditiveBlending} />
           </sprite>
-          <sprite scale={mobile ? [24, 24, 1] : [30, 30, 1]}>
-            <spriteMaterial map={coreTex} color="#e8a860" transparent opacity={mobile ? 0.15 : 0.16} depthWrite={false} blending={AdditiveBlending} />
+          <sprite scale={mobile ? [24, 24, 1] : [32, 32, 1]}>
+            <spriteMaterial map={coreTex} color="#e8a860" transparent opacity={mobile ? 0.13 : 0.15} depthWrite={false} blending={AdditiveBlending} />
           </sprite>
         </group>
       )}

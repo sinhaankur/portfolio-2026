@@ -1250,14 +1250,17 @@ export const DUST_HAZE_INK_FRAGMENT_SHADER = /* glsl */ `
     float lanes = clamp(0.15 + 1.1 * (n1 * 0.62 + n2 * 0.38), 0.0, 1.0);
     lanes = smoothstep(0.08, 0.9, lanes);             // carve hard: true rifts
 
-    // Ink amount: band × arms, modulated by lanes (rifts lift toward paper), with
-    // the bulge laid down nearly solid so the core is the heaviest, defined ink.
+    // Ink amount: band × arms, modulated by lanes (rifts lift toward paper). The
+    // bulge adds a RICH but translucent core — NOT a solid blot. The old
+    // (bulge*1.5, clamp 0.96) drove the centre to near-opaque black that read as
+    // an ink blot / hole; a softer core (bulge*0.7, clamp 0.66) lets the galaxy's
+    // heart read as a luminous dense glow with the stars showing through.
     float bandInk = band * arms * mix(lanes, 1.0, bulge * 0.8);
-    float ink = (bandInk + bulge * 1.5) * uStrength;
+    float ink = (bandInk + bulge * 0.7) * uStrength;
 
     // Fade the quad edge to zero so the boundary is never visible.
     ink *= smoothstep(1.2, 0.5, r);
-    ink = clamp(ink, 0.0, 0.96);
+    ink = clamp(ink, 0.0, 0.66);
 
     // Warm the ink slightly in the bulge so the core isn't a flat grey disc.
     vec3 col = mix(uInkColor, uCoreColor, clamp(bulge * 1.15, 0.0, 1.0));
