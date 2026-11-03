@@ -484,14 +484,29 @@ export function surfaceTextureUrl(planet: {
    *  fallback, so it degrades gracefully if the CDN base is unset/unreachable. */
   superClearTextureUrl?: string
 }): string | undefined {
-  // SUPER CLEAR / 16K — the highest-resolution map, only when the user EXPLICITLY
-  // picks "Ultra" in the resolution picker (superClearRef). We no longer auto-pull
-  // 16K just because the GPU is strong: a single 16K map is ~17 MB (the Moon's is),
-  // and on the galaxy hero every body is a distant speck — pulling tens of MB of
-  // 16K textures for specks tanked page load for no visible gain. Ultra devices
-  // still get the crisp 8K hi-res tier below automatically; 16K is an opt-in for
-  // when you've actually flown in close and want maximum detail. Desktop-gated.
-  if (superClearRef.current && deviceTierRef.current === "desktop" && planet.superClearTextureUrl) {
+  // SUPER CLEAR / 16K — the highest-resolution map. Loaded when EITHER:
+  //   (a) the user EXPLICITLY picked "Ultra" in the resolution picker
+  //       (superClearRef), OR
+  //   (b) the device auto-detected as the top "ultra" tier AND the body is being
+  //       viewed UP CLOSE (hiResTexturesRef — the deep-zoom explorer flew in).
+  // The (b) path restores the auto-HD an ultra machine (M-Max/M-Ultra, RTX 30+)
+  // used to get, WITHOUT the regression that removed it: the earlier version
+  // eagerly pulled 16K for every distant SPECK on the galaxy hero (~35 MB for no
+  // visible gain), so we now gate (b) behind hiResTexturesRef — i.e. only when
+  // you've actually engaged a body and want to pixel-peep. The hero stays light;
+  // the moment you fly in on an ultra rig, you get the 16K map automatically,
+  // the way it was when "it looked beautiful". Desktop-gated either way (16K on a
+  // phone globe is wasted VRAM); the live FPS probe can still step ultra back to
+  // high if the machine can't actually hold it.
+  const autoUltra16K =
+    perfTierRef.current === "ultra" &&
+    hiResTexturesRef.current &&
+    qualityForTier(perfTierRef.current).allowHiResTextures
+  if (
+    (superClearRef.current || autoUltra16K) &&
+    deviceTierRef.current === "desktop" &&
+    planet.superClearTextureUrl
+  ) {
     return cdnAsset(planet.superClearTextureUrl, planet.textureUrl)
   }
   // Hi-res (4K/8K) surface when EITHER (a) the user explicitly picked the "High"

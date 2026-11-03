@@ -155,10 +155,15 @@ export function detectDeviceProfile(): DeviceProfile {
   }
 
   let tier: DeviceTier
-  // ULTRA requires a clear top-end GPU AND corroborating cores/RAM — never on the
-  // GPU string alone, so a mislabelled renderer can't over-promise. The live FPS
-  // probe still steps it down if the machine can't actually hold the frames.
-  if (score >= 4 && gpuHint === "ultra") tier = "ultra"
+  // ULTRA on a clearly top-end GPU. A renderer string that NAMES a top chip
+  // (Apple M-Max/M-Ultra, RTX 30/40/50, high Radeon) can't over-promise upward —
+  // a masked/unknown GPU returns null and never reaches here — so the GPU alone
+  // is enough. We only ALSO require corroborating cores/RAM (score ≥ 4) when the
+  // machine is otherwise borderline. This fixes capable Macs (e.g. an M1 Max, 10
+  // cores, 32 GB) getting stuck at "high" — and thus losing the auto-HD look —
+  // because deviceMemory is unreported in Safari so the score fell one short of 4.
+  // The live FPS probe still steps ultra back down if it can't hold the frames.
+  if (gpuHint === "ultra" && score >= 3) tier = "ultra"
   else if (score >= 2) tier = "high"
   else if (score <= -1) tier = "low"
   else tier = "mid"
