@@ -21,6 +21,7 @@ import { StaticStarfield } from "@/components/universe-engine/static-starfield"
 import { TimelineControl } from "@/components/universe-engine/hud"
 import { BODIES } from "@/lib/celestial-data"
 import { SatelliteSearch } from "./satellite-search"
+import { AnimatedNumber } from "@/components/animated-number"
 import { ZoomLadder } from "./zoom-ladder"
 import { SkyDome } from "./sky-dome"
 import { useIsMobile, MobileBar, BodiesSheet, Sheet } from "./mobile-controls"
@@ -748,7 +749,7 @@ export function CelestialExplorer() {
             always-visible (Back to Lab + the AI copilot, the signature feature);
             the secondary controls (theme, guided tour, cache reset) collapse into
             a "⋯" overflow so the row isn't an icon-soup, especially on phones. */}
-        <div className="absolute top-4 left-4 md:top-6 md:left-6 z-30 flex items-center gap-2">
+        <div className="absolute top-4 left-4 md:top-8 md:left-8 z-30 flex items-center gap-2">
           <Link
             href="/lab"
             data-cursor-hover
@@ -841,7 +842,7 @@ export function CelestialExplorer() {
             could ride up into it. 80px gives a clean, collision-proof gutter
             below the cluster on every state (Ankur: overlapping is always a
             problem). Desktop keeps the top-right slot. */}
-        <div className="absolute top-20 left-4 right-4 md:top-6 md:left-auto md:right-6 z-40">
+        <div className="absolute top-20 left-4 right-4 md:top-8 md:left-auto md:right-8 z-40">
           <SatelliteSearch />
         </div>
 
@@ -849,7 +850,7 @@ export function CelestialExplorer() {
             System → Earth → Shell → Surface in one tap. Right edge, vertically
             centered, desktop only (mobile leads scene-first + has the Time/Tools
             bar). Free 360° orbit + scroll-zoom still work; this adds named depth. */}
-        <div className="hidden md:flex absolute right-6 top-1/2 -translate-y-1/2 z-30 pointer-events-none">
+        <div className="hidden md:flex absolute right-8 top-1/2 -translate-y-1/2 z-30 pointer-events-none">
           <ZoomLadder />
         </div>
 
@@ -947,7 +948,7 @@ export function CelestialExplorer() {
               </>
             ) : (
               <>
-                <span className="text-accent">{(swarmCount?.total ?? 18744).toLocaleString()}</span> tracked objects on real orbits — computed live.
+                <AnimatedNumber value={swarmCount?.total ?? 18744} className="text-accent tabular-nums" /> tracked objects on real orbits — computed live.
               </>
             )}
           </p>
@@ -964,10 +965,15 @@ export function CelestialExplorer() {
               animate={mobile ? { opacity: 1, y: 0 } : { opacity: 1, x: 0 }}
               exit={mobile ? { opacity: 0, y: 60 } : { opacity: 0, x: 40 }}
               transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-              style={mobile ? { paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" } : undefined}
+              style={mobile ? { paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" } : { top: "14rem" }}
+              /* desktop: the detail panel now starts well BELOW the search
+                 cluster (top: 14rem, was md:top-6 — they share the top-right
+                 corner and were OVERLAPPING), off the right edge (right-8), with
+                 a capped height so it never runs into the timeline. This is the
+                 panel that was crowding the scene. */
               className="absolute z-40 overflow-y-auto border border-border bg-background/95 md:bg-background/90 backdrop-blur-md shadow-[0_24px_80px_-24px_rgba(0,0,0,0.7)]
                 left-0 right-0 bottom-0 max-h-[70vh] rounded-t-2xl border-b-0
-                md:left-auto md:top-6 md:right-6 md:bottom-32 md:w-[26rem] md:max-h-none md:rounded-xl md:border-b"
+                md:left-auto md:right-8 md:bottom-32 md:w-[24rem] md:max-h-[calc(100vh-18rem)] md:rounded-xl md:border-b"
             >
               <div className="sticky top-0 flex items-center justify-between gap-3 px-5 py-3 border-b border-border bg-background/80 backdrop-blur">
                 <p className="font-mono text-[10px] tracking-[0.25em] uppercase text-accent">{open.tagline}</p>
@@ -1017,7 +1023,7 @@ export function CelestialExplorer() {
             from the bottom bar), so this desktop chip is hidden there. Each tool
             is a deliberate click (Earth tiles stay key-gated + cost-protected). */}
         {!earthView && !marsView && (
-          <div className="hidden md:flex absolute bottom-6 left-4 md:left-6 z-30 flex-col items-start gap-2">
+          <div className="hidden md:flex absolute bottom-6 left-4 md:left-8 z-30 flex-col items-start gap-2">
             <AnimatePresence>
               {menuOpen && (
                 <motion.div
@@ -1281,7 +1287,12 @@ export function CelestialExplorer() {
           on-device model; asks fly the real camera via the sky-focus tools. A
           right-side panel so it doesn't cover the scene. */}
       {assistantOpen && (
-        <div className="fixed inset-y-0 right-0 z-50 w-full sm:w-[26rem] max-w-full border-l border-border bg-background/95 backdrop-blur-md shadow-[0_0_80px_-20px_rgba(0,0,0,0.8)] flex flex-col">
+        /* The copilot panel was a heavy, nearly-opaque slab (bg/95) covering the
+           right third of the scene — when sparse it read as empty darkness. Now
+           it floats as an inset card with a margin from the edges, a translucent
+           blur so the scene shows THROUGH it, and a softer width — so it feels
+           like a panel over the universe, not a wall blocking it. */
+        <div className="fixed inset-y-3 right-3 z-50 w-[calc(100%-1.5rem)] sm:w-[24rem] max-w-full rounded-2xl border border-border/60 bg-background/70 backdrop-blur-xl shadow-[0_24px_80px_-20px_rgba(0,0,0,0.7)] flex flex-col overflow-hidden">
           <AssistantPanel onClose={() => setAssistantOpen(false)} />
         </div>
       )}
