@@ -72,6 +72,16 @@ a phone screen and pushed a sideways scroll. (Pre-existing — from the original
 its golden size on wide screens and scales down to fit the narrowest phone.
 Re-audited: no horizontal overflow on any page, desktop or phone.
 
+### 9. More hero declutter: dropped the idle "Hover any body for data" hint
+**What:** On the passive landing hero, a small prompt read "Hover any body for
+data" — but on the landing you *scroll or click to enter* explore mode, you
+don't hover. So the hint was misleading noise on the clean first view (and it
+carried a redundant "© Ankur Sinha" credit the hero already shows). Now it only
+appears once you're actually exploring; real hover data still shows then.
+**Verified:** headless check confirms the hint is gone on the passive hero and
+present in explore mode; your name still reads on the hero. Full-route smoke
+clean.
+
 ### Hygiene
 lint 0 errors, build verified (full static export), full-route smoke test clean,
 headless overflow audit clean (desktop + mobile).
