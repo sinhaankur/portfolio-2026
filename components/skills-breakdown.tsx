@@ -296,7 +296,7 @@ export function SkillsBreakdown() {
         className="pointer-events-none absolute left-4 top-28 z-10 hidden select-none font-mono text-[10px] tracking-[0.3em] md:block"
         style={{ color: MUTE, writingMode: "vertical-rl" }}
       >
-        00_SKILLS · SHOWN NOT SCORED
+        shown, not scored
       </div>
       <div
         className="pointer-events-none absolute right-4 top-28 z-10 hidden select-none font-mono text-[10px] tracking-[0.3em] md:block"
@@ -315,19 +315,20 @@ export function SkillsBreakdown() {
           className="mb-16 md:mb-24"
         >
           <p className="mb-6 font-mono text-[11px] tracking-[0.4em]" style={{ color: ACCENT }}>
-            EXHIBIT · THE WORK THAT EARNED IT
+            what I can actually do
           </p>
           <h1
             className="font-display font-light leading-[0.86] tracking-[-0.03em]"
             style={{ fontSize: "clamp(3.2rem, 13vw, 11rem)" }}
           >
-            SKILLS
+            Skills
           </h1>
           <p className="mt-8 max-w-2xl font-sans text-lg leading-relaxed md:text-xl" style={{ color: CREAM }}>
-            I won&apos;t <span className="italic" style={{ color: ACCENT }}>rate</span> myself —
-            no stars, no &ldquo;9/10&rdquo;, no bar charts. Every skill here is a
-            wall label pointing at real work you can open: a shipped case study,
-            or a live thing running right now. <span style={{ color: MUTE }}>Tap one to see the proof.</span>
+            I&apos;m not going to <span className="italic" style={{ color: ACCENT }}>rate</span> myself
+            — a &ldquo;9/10&rdquo; next to a skill means nothing, and you can feel
+            when someone&apos;s inflating. So instead, every one of these points at
+            something real you can open and poke at: a case study I shipped, or a
+            thing running right now. <span style={{ color: MUTE }}>Tap one — the proof&apos;s right there.</span>
           </p>
         </motion.header>
 
