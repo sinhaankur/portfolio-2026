@@ -82,6 +82,17 @@ appears once you're actually exploring; real hover data still shows then.
 present in explore mode; your name still reads on the hero. Full-route smoke
 clean.
 
+### 10. /rag now matches /llm (the two explainers are companions)
+**What:** The "What is a RAG system?" page still used the old flat styling while
+its sibling /llm page had already been given the Claude-style editorial look.
+Brought /rag up to match exactly — airier header, confident serif headline, a
+readable lede, softly-reacting cards, roomier rhythm, links that underline on
+hover with a focus ring — and added the reciprocal "companion to how a language
+model works" link so the two pages point at each other.
+**Verified:** /rag and /llm now render identical chrome (headline 68px desktop /
+44px phone, card radius 16px), no overflow at either width, full-route smoke
+clean.
+
 ### Hygiene
 lint 0 errors, build verified (full static export), full-route smoke test clean,
 headless overflow audit clean (desktop + mobile).
