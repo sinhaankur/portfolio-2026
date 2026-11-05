@@ -105,11 +105,30 @@ constant speed, so this is simply telling the truth, not reinterpreting it.
 about Voyager 1 and it now tells the one-light-day story (true right now).
 **See it:** fly to the probes in the engine, or ask the ✦ copilot about Voyager.
 
+### 12. The spacecraft catalog now scrolls into an in-depth ISS teardown
+**What:** `/reference/spacecraft` used to be a locked full-screen slider. Now it
+SCROLLS: the gallery stays the first screen, then it opens into a deep teardown
+of the International Space Station — the largest thing humanity has built in
+space, taken apart into its 27 real elements. Hover the exploded figure to lift
+every piece clear of the station (the 11 truss segments P6→S6, the 8 solar
+wings, the radiators, the module stack, the docking ports, Canadarm2); tap any
+part to name it. Below it: the six real subsystems, the real numbers (mass
+~450 t, 109 m long, 1,005 m³, ~400 km up, 7.66 km/s, a lap every 92.9 min, crew
+of 7 — all sourced from NASA/Wikipedia), and the ecosystem (Crew Dragon, Soyuz,
+Cygnus, HTV-X, the commercial successors).
+**How it's built:** the figure is a crafted isometric exploded drawing (the
+anatomy/teardown kit), self-contained and offline-safe, embedded as a section —
+NO new page, it lives inside the catalog you already had. The labels were a
+collided pile at first; fixed them to a clean two-column layout with no overlap
+and no edge-clipping before shipping.
+**See it:** open /reference/spacecraft and scroll down.
+
 ### Hygiene
 lint 0 errors, build verified (full static export), full-route smoke test clean,
 headless overflow audit clean (desktop + mobile).
 Parked (by choice, not committed): the φ overlay icon component (needs a real-φ
-page to mount on), an ISS teardown experiment, a black-hole prototype.
+page to mount on), a black-hole prototype. (The ISS teardown is now SHIPPED, not
+parked.)
 
 ---
 
