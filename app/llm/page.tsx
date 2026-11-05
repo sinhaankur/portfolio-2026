@@ -168,15 +168,18 @@ export default function LlmPage() {
     <>
       <CustomCursor />
       <Navbar />
-      <main id="main" className="relative min-h-screen bg-background text-foreground pt-24 md:pt-28">
+      <main id="main" className="relative min-h-screen bg-background text-foreground pt-28 md:pt-36">
+        {/* Claude-style header: a confident serif headline, a lede set at a
+            readable measure (~62ch), and links that underline with an offset on
+            hover + a visible focus ring. Airier top padding for the editorial feel. */}
         <header className="mx-auto w-full max-w-6xl px-6 md:px-10">
-          <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-muted-foreground mb-4">
+          <p className="font-mono text-[11px] tracking-[0.3em] uppercase text-muted-foreground mb-5">
             Language Models · Explained
           </p>
-          <h1 className="font-serif text-4xl md:text-5xl leading-tight italic mb-5">
+          <h1 className="font-serif text-[2.75rem] md:text-6xl leading-[1.05] tracking-[-0.02em] italic mb-6">
             How a language model works.
           </h1>
-          <p className="max-w-2xl text-foreground/75 leading-relaxed">
+          <p className="max-w-[62ch] text-lg md:text-xl text-foreground/80 leading-[1.7]">
             An LLM does one thing, in a loop: <span className="italic">predict the
             next token</span>. Below is the whole machinery behind that — text →
             tokens → embeddings → attention → layers → next-token — each step shown
@@ -184,37 +187,42 @@ export default function LlmPage() {
             You can&apos;t open Claude or GPT (their weights are hidden), but a small
             model uses the <span className="italic">exact same</span> parts, so this
             is a true explanation, not a metaphor. Companion to{" "}
-            <a href="/rag" data-cursor-hover className="text-accent hover:underline">what is RAG</a>{" "}
+            <a href="/rag" data-cursor-hover className="text-accent underline decoration-accent/30 underline-offset-[3px] hover:decoration-accent transition-colors rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background">what is RAG</a>{" "}
             and{" "}
-            <a href="/universe-engine/math" data-cursor-hover className="text-accent hover:underline">the engine math</a>.
+            <a href="/universe-engine/math" data-cursor-hover className="text-accent underline decoration-accent/30 underline-offset-[3px] hover:decoration-accent transition-colors rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background">the engine math</a>.
           </p>
         </header>
 
-        <div className="mx-auto w-full max-w-6xl px-6 md:px-10 mt-14 md:mt-20 space-y-16 md:space-y-24 pb-24">
+        {/* More generous vertical rhythm (Claude pages breathe). */}
+        <div className="mx-auto w-full max-w-6xl px-6 md:px-10 mt-16 md:mt-24 space-y-20 md:space-y-32 pb-28">
           {SECTIONS.map((section) => (
-            <section key={section.heading} className="grid gap-6 md:grid-cols-[14rem_minmax(0,1fr)] md:gap-10">
-              <div className="min-w-0 md:sticky md:top-28 md:self-start">
-                <h2 className="font-serif text-2xl text-foreground mb-2">{section.heading}</h2>
-                <p className="text-sm text-foreground/60 leading-relaxed">{section.blurb}</p>
+            <section key={section.heading} className="grid gap-6 md:grid-cols-[15rem_minmax(0,1fr)] md:gap-12">
+              <div className="min-w-0 md:sticky md:top-32 md:self-start">
+                <h2 className="font-serif text-[1.65rem] tracking-[-0.01em] text-foreground mb-2.5">{section.heading}</h2>
+                <p className="text-[15px] text-foreground/60 leading-[1.6]">{section.blurb}</p>
               </div>
 
-              <div className="min-w-0 space-y-8">
+              <div className="min-w-0 space-y-6">
                 {section.steps.map((step) => (
                   <article
                     key={step.id}
-                    className="rounded-xl border border-border bg-white/[0.02] p-5 md:p-6"
+                    /* card STATES: a hairline that warms on hover, a gentle lift,
+                       and a focus ring if it's ever focused. Claude's cards react
+                       softly, never jump. */
+                    tabIndex={-1}
+                    className="group rounded-2xl border border-border bg-card/40 p-6 md:p-7 transition-[border-color,box-shadow,transform] duration-300 hover:border-accent/40 hover:shadow-[0_8px_30px_-12px_rgba(0,0,0,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
                   >
-                    <h3 className="font-medium text-foreground mb-3">{step.title}</h3>
+                    <h3 className="font-serif text-lg text-foreground mb-3.5">{step.title}</h3>
 
-                    <div className="overflow-x-auto rounded-lg border border-border/60 bg-background/60 px-4 py-3 mb-4">
+                    <div className="overflow-x-auto rounded-xl border border-border/60 bg-background/70 px-4 py-3.5 mb-4">
                       <p className="font-serif text-base md:text-lg italic text-accent whitespace-pre-line">
                         {step.formula}
                       </p>
                     </div>
 
-                    <p className="text-sm text-foreground/70 leading-relaxed mb-4">{step.what}</p>
+                    <p className="text-[15px] text-foreground/75 leading-[1.7] mb-5">{step.what}</p>
 
-                    <pre className="overflow-x-auto rounded-lg border border-border/60 bg-black/40 p-4 text-[12px] leading-relaxed">
+                    <pre className="overflow-x-auto rounded-xl border border-border/60 bg-[#14141a] p-4 md:p-5 text-[12.5px] leading-[1.7]">
                       <code className="font-mono text-foreground/85">{step.code}</code>
                     </pre>
                   </article>
