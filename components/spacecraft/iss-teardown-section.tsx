@@ -93,7 +93,7 @@ export function IssTeardownSection() {
           transition={{ duration: 0.6, ease: EASE }}
         >
           <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-white/45">
-            In depth · 01
+            In depth
           </div>
           <h2 className="mt-3 max-w-3xl font-display text-3xl font-light leading-[1.05] tracking-[-0.02em] md:text-5xl">
             The International Space Station, taken apart.
@@ -119,17 +119,21 @@ export function IssTeardownSection() {
           <TeardownFrame />
         </motion.div>
 
-        {/* Six subsystems */}
+        {/* Six subsystems — flows straight out of the figure (the figure IS these
+            systems coming apart), so no numbered "tab", just a quiet lead line. */}
         <motion.div
-          className="mt-16 md:mt-24"
+          className="mt-12 md:mt-16"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-80px" }}
           transition={{ duration: 0.6, ease: EASE }}
         >
-          <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-white/45">
-            In depth · 02 — six systems, one station
-          </div>
+          <p className="max-w-2xl font-sans text-sm leading-relaxed text-white/55 md:text-[15px]">
+            Everything in that figure belongs to one of six systems — the backbone
+            it&apos;s built on, the power and cooling that keep it alive, the
+            modules where people live and work, and the ports and arm that let it
+            grow.
+          </p>
           <div className="mt-6 grid gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/5 md:grid-cols-2">
             {SUBSYSTEMS.map((s) => (
               <div key={s.name} className="bg-[#0a0a0c] p-5 md:p-6">
@@ -140,7 +144,8 @@ export function IssTeardownSection() {
           </div>
         </motion.div>
 
-        {/* Real specs */}
+        {/* The facts — real numbers AND the ecosystem, merged under one heading
+            (they're both "the station, measured + connected", not two tabs). */}
         <motion.div
           className="mt-16 md:mt-24"
           initial={{ opacity: 0, y: 20 }}
@@ -148,10 +153,10 @@ export function IssTeardownSection() {
           viewport={{ once: true, margin: "-80px" }}
           transition={{ duration: 0.6, ease: EASE }}
         >
-          <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-white/45">
-            In depth · 03 — the real numbers
-          </div>
-          <dl className="mt-6 grid grid-cols-2 gap-x-8 gap-y-6 md:grid-cols-5">
+          <h3 className="max-w-2xl font-display text-2xl font-light leading-tight tracking-[-0.01em] text-white md:text-3xl">
+            The real numbers — and what it works with.
+          </h3>
+          <dl className="mt-8 grid grid-cols-2 gap-x-8 gap-y-6 md:grid-cols-5">
             {SPECS.map((s) => (
               <div key={s.label}>
                 <dt className="font-mono text-[9px] uppercase tracking-[0.2em] text-white/40">{s.label}</dt>
@@ -160,27 +165,14 @@ export function IssTeardownSection() {
               </div>
             ))}
           </dl>
-          <p className="mt-6 font-mono text-[10px] text-white/30">
-            Figures: NASA · Wikipedia (International Space Station). The structure
-            in the figure follows the real assembly sequence, segment by segment.
-          </p>
-        </motion.div>
 
-        {/* Ecosystem — what visits it */}
-        <motion.div
-          className="mt-16 md:mt-24"
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.6, ease: EASE }}
-        >
-          <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-white/45">
-            In depth · 04 — what it works with
-          </div>
-          <h3 className="mt-4 max-w-2xl font-display text-2xl font-light leading-tight tracking-[-0.01em] md:text-3xl">
-            A port, not an island.
-          </h3>
-          <div className="mt-6 grid gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/5 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Ecosystem — a port, not an island — continues the same block. */}
+          <p className="mt-12 max-w-2xl font-sans text-sm leading-relaxed text-white/55 md:text-[15px]">
+            It&apos;s a port, not an island — a steady stream of crew and cargo
+            ships dock, and a line of commercial stations is being built to take
+            over.
+          </p>
+          <div className="mt-5 grid gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/5 sm:grid-cols-2 lg:grid-cols-4">
             {ECOSYSTEM.map((e) => (
               <div key={e.kind} className="bg-[#0a0a0c] p-5">
                 <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-white/40">{e.kind}</div>
@@ -188,6 +180,11 @@ export function IssTeardownSection() {
               </div>
             ))}
           </div>
+
+          <p className="mt-8 font-mono text-[10px] text-white/30">
+            Figures: NASA · Wikipedia (International Space Station). The structure
+            in the figure follows the real assembly sequence, segment by segment.
+          </p>
         </motion.div>
       </div>
     </section>
