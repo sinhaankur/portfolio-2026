@@ -946,7 +946,13 @@ export function UniverseEngine({
             // overlapping panels were the recurring complaint. It scrolls inside
             // its own bounds instead of bleeding over neighbours.
             <div className="absolute bottom-32 left-4 md:bottom-32 md:left-6 z-20 pointer-events-none max-w-70 max-h-[min(46vh,22rem)] overflow-y-auto overscroll-contain">
-              <InfoPanel info={hovered} hideIdle={solarMode} />
+              {/* Idle prompt "Hover any body for data" is hidden on the passive
+                  landing hero: there you scroll/click to ENTER explore mode, you
+                  don't hover — so the hint is misleading clutter on the clean
+                  first view (clean-designer goal). It appears once you're
+                  actually exploring (interactive) or on the solar explorer. Real
+                  hover data still shows the moment you do interact. */}
+              <InfoPanel info={hovered} hideIdle={solarMode || !interactive} />
             </div>
           )}
 
