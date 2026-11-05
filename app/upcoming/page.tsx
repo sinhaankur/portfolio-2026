@@ -34,11 +34,11 @@ export default function UpcomingPage() {
           </div>
 
           <div className="max-w-4xl">
-            <p className="font-mono text-xs tracking-[0.3em] text-muted-foreground mb-6">
-              UPCOMING
+            <p className="font-mono text-xs lowercase tracking-[0.2em] text-muted-foreground mb-6">
+              what I&apos;m getting to
             </p>
             <h1 className="font-display text-5xl md:text-7xl lg:text-8xl font-light tracking-[-0.02em] leading-[1.02] text-balance">
-              What's <span className="italic">next</span>.
+              What&apos;s <span className="italic">next</span>.
             </h1>
             <p className="mt-8 md:mt-12 max-w-2xl font-sans text-lg md:text-xl text-foreground/85 leading-relaxed">
               Most portfolios are graveyards of finished work. This page isn't.

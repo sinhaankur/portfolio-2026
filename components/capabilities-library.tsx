@@ -129,16 +129,21 @@ export function CapabilitiesLibrary() {
   const reduce = useReducedMotion()
   return (
     <section className="mx-auto max-w-6xl px-6 py-20 md:px-12 md:py-28">
-      <p className="font-mono text-[11px] uppercase tracking-[0.3em] text-muted-foreground">
-        The Library · craft
+      <p className="font-mono text-[11px] lowercase tracking-[0.2em] text-muted-foreground">
+        the tools I reach for
       </p>
-      <h1 className="mt-3 max-w-3xl font-display text-4xl font-light leading-[1.05] tracking-[-0.02em] md:text-5xl">
-        A library of what I build with.
+      <h1 className="mt-4 max-w-3xl font-display text-4xl font-light leading-[1.08] tracking-[-0.02em] md:text-5xl">
+        The stuff I actually build with.
       </h1>
-      <p className="mt-5 max-w-2xl font-sans text-base leading-relaxed text-foreground/75 md:text-lg">
-        Nine disciplines, one instinct: understand the thing well enough to build
-        it yourself. Every card links to real work on this site — not a résumé,
-        a shelf you can open and watch run.
+      <p className="mt-6 max-w-xl font-sans text-base leading-relaxed text-foreground/70 md:text-lg">
+        Nine ways of making things — design, code, maths, 3D, video — that all come
+        from the same itch: understand it well enough to build it myself. None of
+        this is a résumé line. Open any card and you&apos;ll land on the real thing
+        it made, running on this site.
+      </p>
+      {/* a human aside, in my own hand */}
+      <p className="mt-5 font-serif italic text-foreground/45 text-[15px]">
+        — I&apos;d rather show you one working thing than list ten I&apos;ve &ldquo;used&rdquo;.
       </p>
 
       <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
