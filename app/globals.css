@@ -204,6 +204,39 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
+  /* ── φ AS THE BASE TYPE SCALE (whole-site) ────────────────────────────────
+     Re-point Tailwind's default text-* ramp onto the golden ladder, so EVERY
+     `text-sm … text-7xl` in the build inherits φ proportion without touching a
+     single component. The steps are chosen so the body region (xs→xl) stays
+     close to today's sizes (no reflow surprises in dense chrome) while the
+     HEADINGS (2xl and up) snap onto true φ powers — that's where the ratio
+     reads. Line-heights tighten as size climbs (display wants less leading).
+     Reversible: delete this block to fall back to Tailwind's defaults. */
+  --text-xs: var(--text-phi--2);        /* 0.618rem  fine print / 1-mono */
+  --text-xs--line-height: 1.5;
+  --text-sm: var(--text-phi--1);        /* 0.786rem  labels / captions */
+  --text-sm--line-height: 1.5;
+  --text-base: var(--text-phi-0);       /* 1rem      body */
+  --text-base--line-height: 1.618;      /* φ leading on body copy */
+  --text-lg: var(--text-phi-1);         /* 1.272rem  lead / large body */
+  --text-lg--line-height: 1.5;
+  --text-xl: var(--text-phi-2);         /* 1.618rem  h4 / eyebrow-lg */
+  --text-xl--line-height: 1.3;
+  --text-2xl: var(--text-phi-3);        /* 2.058rem  h3 */
+  --text-2xl--line-height: 1.22;
+  --text-3xl: var(--text-phi-4);        /* 2.618rem  h2  (φ²) */
+  --text-3xl--line-height: 1.15;
+  --text-4xl: var(--text-phi-4);        /* 2.618rem  h2-large */
+  --text-4xl--line-height: 1.12;
+  --text-5xl: var(--text-phi-5);        /* 4.236rem  h1 / display (φ³) */
+  --text-5xl--line-height: 1.05;
+  --text-6xl: var(--text-phi-5);        /* 4.236rem  display */
+  --text-6xl--line-height: 1.03;
+  --text-7xl: var(--text-phi-6);        /* 6.854rem  hero display (φ⁴) */
+  --text-7xl--line-height: 1.0;
+  --text-8xl: var(--text-phi-6);
+  --text-8xl--line-height: 1.0;
+
   /* φ modular scale exposed as utilities:
        text-phi-4  → font-size: var(--text-phi-4)
        p-phi-5 / px-phi-4 / py-phi-3 / gap-phi-3 / mt-phi-4 → φ spacing
@@ -236,6 +269,22 @@
 @media (min-width: 768px) {
   .golden-split { grid-template-columns: 1.618fr 1fr; }
   .golden-split-reverse { grid-template-columns: 1fr 1.618fr; }
+}
+
+/* Golden-ratio overlay — the φ grid fades in, the spiral draws itself along its
+   own length (stroke-dashoffset), so clicking the φ icon animates the ratio on. */
+.gr-overlay-draw { animation: gr-fade-in 0.4s ease both; }
+.gr-spiral {
+  /* path uses pathLength=1, so 1 unit = the whole spiral length */
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: gr-draw 1.3s cubic-bezier(0.16, 1, 0.3, 1) 0.1s forwards;
+}
+@keyframes gr-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes gr-draw { to { stroke-dashoffset: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .gr-overlay-draw { animation: none; }
+  .gr-spiral { animation: none; stroke-dashoffset: 0; }
 }
 
 @layer base {
