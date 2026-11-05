@@ -29,6 +29,36 @@ export const WEBLLM_MODEL_LABELS: Record<string, string> = {
   "Qwen2.5-1.5B-Instruct-q4f16_1-MLC": "Qwen2.5 1.5B · ~1.1 GB · best (needs a strong GPU)",
 }
 
+/** The best "needs a strong GPU" model — the one that actually follows
+ *  instructions + holds context (0.5B is too small: it "doesn't understand"). */
+export const BEST_WEBLLM_MODEL = "Qwen2.5-1.5B-Instruct-q4f16_1-MLC"
+
+/**
+ * Pick the best model the DEVICE can realistically run — instead of forcing the
+ * tiny 0.5B on everyone. A 0.5B model barely follows instructions ("it doesn't
+ * understand me"); a capable machine (lots of RAM, many cores, real GPU) should
+ * get the 1.5B "best" model, which is a different league of answer quality.
+ * Conservative: an unknown/weak device still gets the small fast model.
+ *
+ *   strong  (≥16 GB RAM, ≥8 cores, WebGPU)  → 1.5B best
+ *   decent  (≥8 GB RAM, WebGPU)             → 1B better
+ *   else                                    → 0.5B fast
+ */
+export function recommendedWebLLMModel(): string {
+  if (typeof navigator === "undefined" || !isWebGPUAvailable()) {
+    return DEFAULT_WEBLLM_MODEL
+  }
+  // navigator.deviceMemory caps at 8 and is undefined in Safari — treat
+  // undefined as "unknown, be cautious" but let cores lift a strong machine.
+  const mem = (navigator as unknown as { deviceMemory?: number }).deviceMemory ?? 0
+  const cores = navigator.hardwareConcurrency ?? 0
+  // A high-end laptop (M-series, 10+ cores) reports deviceMemory 8 (the cap) and
+  // many cores — enough signal to give it the best model.
+  if (cores >= 8 && (mem >= 8 || mem === 0)) return BEST_WEBLLM_MODEL
+  if (mem >= 8 || cores >= 6) return QUALITY_WEBLLM_MODEL
+  return DEFAULT_WEBLLM_MODEL
+}
+
 /** Feature-detect WebGPU without importing the heavy library. */
 export function isWebGPUAvailable(): boolean {
   return typeof navigator !== "undefined" && "gpu" in navigator

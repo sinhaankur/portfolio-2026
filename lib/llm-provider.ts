@@ -28,6 +28,8 @@
  * trip them to any server we control.
  */
 
+import { recommendedWebLLMModel } from "@/lib/webllm-engine"
+
 export type LLMProviderId = "webllm" | "anthropic" | "lmstudio" | "ollama"
 
 export const PROVIDER_LABELS: Record<LLMProviderId, string> = {
@@ -116,7 +118,12 @@ export function readActiveProvider(): LLMProviderId {
 }
 
 export function readWebLLMModel(): string {
-  return read(STORAGE_KEYS.webllmModel) ?? PROVIDER_DEFAULTS.webllm.model
+  // A user's explicit pick wins; otherwise recommend the best model the DEVICE
+  // can run. The old default was always Qwen 0.5B — too small to follow
+  // instructions ("the AI doesn't understand me"), so a capable machine now
+  // gets the 1.5B "best" model automatically. Weak/unknown devices still get
+  // the small fast one.
+  return read(STORAGE_KEYS.webllmModel) ?? recommendedWebLLMModel()
 }
 
 export function readAnthropicKey(): string | null {
