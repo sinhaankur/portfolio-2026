@@ -5,10 +5,12 @@ import { SkyTonight } from "@/components/sky-tonight"
 
 export const metadata: Metadata = {
   ...canonicalPath("/lab/celestial"),
-  title: "Satellite tracker — 18,500+ satellites orbiting Earth, live orbital paths",
+  title: "The Satellite Engine — 18,500+ satellites orbiting Earth, live orbital paths",
   description:
-    "See every satellite orbiting Earth — 18,500+ tracked objects on real SGP4 orbits, each with its live orbital path, altitude and distance from you. Watch the ISS pass over your location, scrub the timeline back to 1957 to replay the space age, screen close-approach conjunctions, and view Earth-to-Mars transfer windows. Real data from NASA, NORAD & NOAA.",
+    "The Satellite Engine: see every satellite orbiting Earth — 18,500+ tracked objects on real SGP4 orbits, each with its live orbital path, altitude and distance from you. Watch the ISS pass over your location, scrub the timeline back to 1957 to replay the space age, screen close-approach conjunctions, and view Earth-to-Mars transfer windows. Real data from NASA, NORAD & NOAA.",
   keywords: [
+    "Satellite Engine",
+    "sinhaankur Satellite Engine",
     "how many satellites are orbiting Earth",
     "number of satellites",
     "satellites orbiting Earth",
@@ -34,9 +36,9 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     ...canonicalPath("/lab/celestial").openGraph,
-    title: "Satellite tracker — 18,500+ satellites orbiting Earth, live orbital paths",
+    title: "The Satellite Engine — 18,500+ satellites orbiting Earth, live orbital paths",
     description:
-      "See every satellite orbiting Earth on its real orbital path — 18,500+ tracked objects, ISS passes over you, distance from your location, conjunction screening, and Earth-to-Mars transfers. Real NASA / NORAD / NOAA data.",
+      "The Satellite Engine — see every satellite orbiting Earth on its real orbital path. 18,500+ tracked objects, ISS passes over you, distance from your location, conjunction screening, and Earth-to-Mars transfers. Real NASA / NORAD / NOAA data.",
     type: "website",
   },
 }
@@ -51,7 +53,8 @@ const structuredData = {
     {
       "@type": "WebApplication",
       "@id": canonicalUrl("/lab/celestial") + "#app",
-      name: "Celestial — Satellite Tracker",
+      name: "The Satellite Engine",
+      alternateName: "Celestial — Satellite Tracker",
       url: canonicalUrl("/lab/celestial"),
       applicationCategory: "Educational",
       operatingSystem: "Web browser",

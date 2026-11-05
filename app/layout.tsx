@@ -109,6 +109,8 @@ export const metadata: Metadata = {
     "Human–AI Interaction",
     "Agentic AI",
     "AI prototyping",
+    "Universe Engine",
+    "Satellite Engine",
     "Portfolio",
     "Ankur Sinha",
   ],
