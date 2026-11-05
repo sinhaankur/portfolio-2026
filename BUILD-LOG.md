@@ -63,8 +63,18 @@ Fully reversible (delete one CSS block).
 Added the "living point-cloud portrait, from one photo" idea to `/upcoming`
 (on-device depth → a breathing particle field).
 
+### 8. Follow-up: fixed a phone overflow on /math
+**What:** After the φ type work I ran a headless overflow audit (every text-heavy
+page, desktop + phone widths). It caught one real bug: the `/math` hero heading
+"Mathematics, made visible." at the big golden display size was ~12px wider than
+a phone screen and pushed a sideways scroll. (Pre-existing — from the original
+φ /math layout, not the new ramp.) Fixed with a `clamp()` so the heading keeps
+its golden size on wide screens and scales down to fit the narrowest phone.
+Re-audited: no horizontal overflow on any page, desktop or phone.
+
 ### Hygiene
-lint 0 errors, build verified (full static export), full-route smoke test clean.
+lint 0 errors, build verified (full static export), full-route smoke test clean,
+headless overflow audit clean (desktop + mobile).
 Parked (by choice, not committed): the φ overlay icon component (needs a real-φ
 page to mount on), an ISS teardown experiment, a black-hole prototype.
 
