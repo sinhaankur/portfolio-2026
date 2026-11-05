@@ -76,7 +76,13 @@ export function NebulaClouds({ mobile = false, densityScale = 1 }: { mobile?: bo
     const radius = GALAXY_RADIUS_SCENE
     const branches = 4
     const spin = 7
-    const count = Math.round((mobile ? 22 : 44) * ds)
+    // DETAIL PASS 2026-11-05 ("the cloud needs to be detailed"): the gas field
+    // was only ~44 big faint blobs — a sparse haze with no structure. Tripled
+    // the count and made ~⅔ of them SMALLER, brighter "detail" clouds that trace
+    // finer filaments + star-forming knots ALONG the arm ridge-line, layered
+    // under the few big diffuse ones. The result reads as a textured nebula
+    // field (filaments, knots, lanes), not a handful of soft spots.
+    const count = Math.round((mobile ? 64 : 150) * ds)
     const positions = new Float32Array(count * 3)
     const sizes = new Float32Array(count)
     const alphas = new Float32Array(count)
@@ -87,28 +93,36 @@ export function NebulaClouds({ mobile = false, densityScale = 1 }: { mobile?: bo
 
     for (let i = 0; i < count; i++) {
       const i3 = i * 3
+      // ~⅓ big diffuse clouds, ~⅔ smaller detail clouds hugging the arm ridge.
+      const detail = i % 3 !== 0
       // Anchor each cloud on a spiral-arm position (same math as the stars).
       const r = (0.16 + Math.random() * 0.78) * radius
       const branch = Math.floor(Math.random() * branches)
       const branchAngle = (branch / branches) * Math.PI * 2
       const spinAngle = r * spin * 0.04
-      positions[i3]     = Math.cos(branchAngle + spinAngle) * r + gauss() * 3.0
-      positions[i3 + 1] = gauss() * 1.2
-      positions[i3 + 2] = Math.sin(branchAngle + spinAngle) * r + gauss() * 3.0
+      // Detail clouds hug the arm ridge TIGHTLY (small scatter) so they read as
+      // structure along the arms; big diffuse clouds spread wider for soft fill.
+      const scatter = detail ? 1.4 : 3.4
+      positions[i3]     = Math.cos(branchAngle + spinAngle) * r + gauss() * scatter
+      positions[i3 + 1] = gauss() * (detail ? 0.7 : 1.3)
+      positions[i3 + 2] = Math.sin(branchAngle + spinAngle) * r + gauss() * scatter
 
       const normR = r / radius
-      sizes[i]  = 26 + Math.random() * 46
-      alphas[i] = 0.05 + Math.random() * 0.07 // deliberately faint — it's haze
+      // Detail clouds are smaller + a touch brighter (star-forming knots);
+      // the few big ones stay large + faint (diffuse dusty fill).
+      sizes[i]  = detail ? 10 + Math.random() * 20 : 34 + Math.random() * 52
+      alphas[i] = detail ? 0.07 + Math.random() * 0.08 : 0.045 + Math.random() * 0.06
 
       // Palette: Hα-pink/magenta in star-forming mid-arms, dusty blue in the
-      // outskirts, warm amber dust nearer the core.
+      // outskirts, warm amber dust nearer the core. Detail knots lean pink
+      // (active star formation glows Hα) for visible structure in the arms.
       const roll = Math.random()
       if (normR < 0.4 && roll < 0.7) {
         // Warm amber dust near the core
         colors[i3] = 0.95; colors[i3 + 1] = 0.62; colors[i3 + 2] = 0.34
-      } else if (roll < 0.55) {
+      } else if (roll < (detail ? 0.68 : 0.55)) {
         // Hα pink/magenta star-forming clouds
-        colors[i3] = 0.95; colors[i3 + 1] = 0.36; colors[i3 + 2] = 0.62
+        colors[i3] = 0.96; colors[i3 + 1] = 0.36; colors[i3 + 2] = 0.60
       } else {
         // Cool dusty blue
         colors[i3] = 0.40; colors[i3 + 1] = 0.55; colors[i3 + 2] = 0.95
