@@ -15,8 +15,9 @@ import { useState, useCallback, useEffect, useRef } from "react"
 import dynamic from "next/dynamic"
 import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
-import { ArrowLeft, ArrowRight, ChevronLeft } from "lucide-react"
+import { ArrowLeft, ArrowRight, ChevronLeft, ChevronDown } from "lucide-react"
 import { SPACECRAFT } from "@/lib/spacecraft-catalog"
+import { IssTeardownSection } from "./iss-teardown-section"
 
 const CraftViewer = dynamic(
   () => import("./craft-viewer").then((m) => m.CraftViewer),
@@ -61,8 +62,12 @@ export function SpacecraftGallery() {
   }
 
   return (
-    <div
-      className="relative h-[100dvh] w-full overflow-hidden bg-[#0a0a0c] text-white"
+    <div className="relative w-full bg-[#0a0a0c] text-white">
+    {/* The gallery is the first full screen; the page then SCROLLS down into an
+        in-depth ISS teardown section — "mix it into the same page so people can
+        scroll and see". The slider stays self-contained up top. */}
+    <section
+      className="relative h-[100dvh] w-full overflow-hidden"
       onPointerDown={onPointerDown}
       onPointerUp={onPointerUp}
     >
@@ -185,6 +190,20 @@ export function SpacecraftGallery() {
           />
         ))}
       </div>
+
+      {/* Scroll cue — invites the visitor down into the teardown. */}
+      <a
+        href="#iss-teardown"
+        className="group pointer-events-auto absolute bottom-20 left-1/2 z-20 hidden -translate-x-1/2 flex-col items-center gap-1 text-white/45 transition-colors hover:text-white/80 md:flex"
+        aria-label="Scroll down to the ISS teardown"
+      >
+        <span className="font-mono text-[9px] uppercase tracking-[0.25em]">Take the ISS apart</span>
+        <ChevronDown size={16} className="animate-bounce" />
+      </a>
+    </section>
+
+    {/* In-depth ISS teardown — the scrollable second act. */}
+    <IssTeardownSection />
     </div>
   )
 }
