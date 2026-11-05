@@ -199,8 +199,15 @@ export function MilkyWay({
       // curves; they branch into spurs + feathers. A small radius-varying sine
       // perturbation on the angle gives that frayed, structured look instead of
       // four clean ribbons.
+      // Multi-octave spur feathering 2026-11-05 (detail pass): real spiral arms
+      // branch into spurs + feathers at several scales. Layering a few sine
+      // octaves (low → high frequency) gives the arms visible SUB-STRUCTURE —
+      // branching feathers and gaps — instead of four smooth ribbons, which is a
+      // big part of what reads as a detailed, real galaxy.
       const spur = Math.sin(r * 0.9 + branchAngle * 3.0) * 0.10
-        + Math.sin(r * 2.7) * 0.04
+        + Math.sin(r * 2.7) * 0.045
+        + Math.sin(r * 6.3 + branchAngle * 5.0) * 0.022   // finer feathers
+        + Math.sin(r * 13.0) * 0.011                       // fine fray
       const armAngle = branchAngle + spinAngle + spur
 
       // Scatter TIGHTER still (0.16 → 0.11): stars hug the arm ridge-line so the
