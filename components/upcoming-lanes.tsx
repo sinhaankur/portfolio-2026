@@ -86,6 +86,15 @@ const lanes: Lane[] = [
         updated: "Sketching since 2026-05-10",
         signal: "draft",
       },
+      {
+        title: "A living point-cloud portrait, from one photo",
+        plain:
+          "Turn a single photo into a breathing cloud of points — on your own machine — so a face feels present and alive rather than a flat picture.",
+        blurb:
+          "One photo → an on-device depth estimate (Depth-Anything V2, nothing leaves the machine) → a particle field whose depth and drift come from the real image, gently breathing. The depth half already runs in Vera's portrait pipeline; this adds the real-time point-cloud render. Two homes: a quiet, present portrait for Vera (her, alive on screen beside her voice), and the same engine on this site's skills as reactive depth-fields. Technique borrowed from gather.be-of-dao.com — on-device depth as living art.",
+        updated: "Sketching since 2026-10-29",
+        signal: "draft",
+      },
     ],
   },
   {
