@@ -93,6 +93,18 @@ model works" link so the two pages point at each other.
 44px phone, card radius 16px), no overflow at either width, full-route smoke
 clean.
 
+### 11. Engine fidelity — the interstellar probes, true as of today
+**What:** The Universe / Satellite Engine places Voyager 1 & 2, New Horizons and
+the rest from real orbital data. The deep-space probes' distances had gone stale
+(frozen at early-2025), so I refreshed them to **November 2026** from NASA/JPL:
+Voyager 1 is now at ~173 AU (25.9 billion km — it just crossed a full **light-day**
+out, so its radio signal takes a whole day to reach us), Voyager 2 at ~145 AU,
+New Horizons at ~66 AU. Their position is a pure function of time at a known
+constant speed, so this is simply telling the truth, not reinterpreting it.
+**Also:** updated the AI copilot's knowledge so it agrees with the scene — ask it
+about Voyager 1 and it now tells the one-light-day story (true right now).
+**See it:** fly to the probes in the engine, or ask the ✦ copilot about Voyager.
+
 ### Hygiene
 lint 0 errors, build verified (full static export), full-route smoke test clean,
 headless overflow audit clean (desktop + mobile).
