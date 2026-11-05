@@ -99,7 +99,7 @@ export function TechMarquee() {
           className="mb-14 md:mb-20 max-w-3xl"
         >
           <p className="font-mono text-xs tracking-[0.3em] text-muted-foreground mb-4">
-            07 — STACK
+            07 — what I build with
           </p>
           <h2
             id="stack-heading"

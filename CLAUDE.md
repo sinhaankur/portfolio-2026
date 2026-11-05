@@ -175,12 +175,14 @@ App-router routes under [`app/`](./app):
 
 ## Component conventions
 
-- Section eyebrow numbering on home: `02 — DOMAIN`, `03 — PHILOSOPHY`,
-  `04 — EXPERIENCE`, `06 — USABILITY`, `07 — STACK`, `08 — CONTACT`.
+- Section eyebrow numbering on home keeps the NUMBERS but the labels were
+  humanized 2026-11-05 (the ALL-CAPS jargon words read as AI-template slop):
+  `02 — what I work on`, `03 — A BIT ABOUT ME`, `04 — where I've worked`,
+  `06 — USABILITY`, `07 — what I build with`, `08 — CONTACT`.
   (`01 — DISCIPLINE` was retired when the hero's top-left became the name
   block, and `05 — THE LAB` now lives on the standalone `/lab` page, so the
-  home sequence starts at 02 and skips 05.) Keep them in order if you add a
-  new section.
+  home sequence starts at 02 and skips 05.) Keep the NUMBERS in order if you
+  add a new section; write the label in a human voice, not a jargon word.
 - All sections wrap content in `max-w-6xl px-6 md:px-12` (or the `Container`
   primitive) so nothing stretches edge-to-edge on wide displays.
 - Type ramp: `Inter` (sans), `Fraunces` (display + italic moments, with `opsz`/`SOFT`/`WONK`

@@ -710,7 +710,7 @@ export function Hero() {
           className="self-end text-right max-w-[20rem] md:max-w-[24rem]"
         >
           <p className="font-mono text-xs tracking-[0.3em] text-muted-foreground mb-2">
-            02 — DOMAIN
+            02 — what I work on
           </p>
           <p
             aria-hidden="true"

@@ -118,7 +118,7 @@ export function Works() {
           className="mb-14 md:mb-20 max-w-3xl"
         >
           <p className="font-mono text-xs tracking-[0.3em] text-muted-foreground mb-4">
-            04 — EXPERIENCE
+            04 — where I&apos;ve worked
           </p>
           <h2
             id="works-heading"
