@@ -28,7 +28,11 @@ export default function MathHubPage() {
             <p className="font-mono uppercase text-muted-foreground" style={{ fontSize: "var(--text-phi--1)", letterSpacing: "0.3em", marginBottom: "var(--space-phi-3)" }}>
               Equations, visible
             </p>
-            <h1 className="font-serif leading-[1.05] italic" style={{ fontSize: "var(--text-phi-5)", marginBottom: "var(--space-phi-3)" }}>
+            {/* φ-5 (4.236rem/~68px) is the target size, but "Mathematics." alone
+                is wider than a 390px phone's content box — it overflowed by 12px.
+                clamp() keeps the golden size on wide screens and scales it down to
+                fit the narrowest phone, floored at a still-confident 2.4rem. */}
+            <h1 className="font-serif leading-[1.05] italic" style={{ fontSize: "clamp(2.4rem, 11vw, var(--text-phi-5))", marginBottom: "var(--space-phi-3)" }}>
               Mathematics, made visible.
             </h1>
             <p className="text-foreground/75 leading-relaxed" style={{ fontSize: "var(--text-phi-1)" }}>
