@@ -953,8 +953,11 @@ export function UniverseEngine({
           {/* Meteor-shower observing guide — appears only when Earth is really
               crossing a debris stream (by sim-date). Teaches how to actually
               SEE it (naked-eye first) + practical camera tips. Top-right so it
-              never collides with the bottom-left InfoPanel / legend. */}
-          {activeShower && !mobile && (
+              never collides with the bottom-left InfoPanel / legend.
+              INTERACTIVE ONLY: a dense "how to spot / cameras" paragraph is
+              clutter on the passive landing hero (clean-designer goal) — it
+              belongs in the explorer, once you're actually looking around. */}
+          {activeShower && !mobile && interactive && (
             <motion.div
               key={activeShower.id}
               initial={{ opacity: 0, y: -8 }}

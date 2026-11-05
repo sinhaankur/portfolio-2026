@@ -13,35 +13,31 @@ const HERO_INTRO: Record<
   "deep" | "plain" | "simple",
   { lead: string; rest: React.ReactNode }
 > = {
+  // Clean designer style (laxspace/igloo): ONE confident line, not a paragraph.
+  // The soul stays — a real galaxy you can touch — but it breathes. The product
+  // IS the proof, so the copy gets out of its way.
   deep: {
-    lead: "This is a real galaxy —",
+    lead: "A real galaxy —",
     rest: (
       <>
-        {" "}live, from NASA data, running in your browser. Reach in and move it.
-        It's one of a few dozen worlds I've built to be explored: a brain you can
-        watch think, an ocean driven by the real moon, the whole cosmic timeline.
-        I'm <em>Ankur</em> — a designer and engineer at Oracle who builds the real
-        thing, not the picture of it. Have a look around.
+        {" "}live NASA data, in your browser. Reach in. I&apos;m <em>Ankur</em>,
+        a designer &amp; engineer who builds the real thing.
       </>
     ),
   },
   plain: {
-    lead: "This is a real galaxy you can touch —",
+    lead: "A real galaxy you can touch —",
     rest: (
       <>
-        {" "}live, from NASA data, in your browser. It's one of a few dozen worlds
-        I've built to be explored. I'm <em>Ankur</em>, a designer and engineer at
-        Oracle; I build the real thing, not just a picture of it. Have a look around.
+        {" "}live, from NASA data. I&apos;m <em>Ankur</em> — I design + build.
       </>
     ),
   },
   simple: {
-    lead: "This is a real galaxy — touch it.",
+    lead: "A real galaxy. Touch it.",
     rest: (
       <>
-        {" "}It's live, from real NASA data. I build worlds like this you can
-        actually open and explore. I'm <em>Ankur</em> — I design things and build
-        them for real. Come in.
+        {" "}I&apos;m <em>Ankur</em> — I design and build real things.
       </>
     ),
   },
