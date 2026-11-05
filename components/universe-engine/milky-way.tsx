@@ -94,7 +94,7 @@ export function MilkyWay({
   const dustUniforms = useMemo(
     () => ({
       uTime: { value: 0 },
-      uBrightness: { value: 0.72 }, // richer dust glow for a clearer band
+      uBrightness: { value: 0.95 }, // brighter dust glow so the luminous BAND reads (was 0.72 — too faint, galaxy looked like scattered dots)
       uCoreColor: { value: new Color("#ffc089") }, // warm amber bulge
       uArmColor: { value: new Color("#5a6b9c") },  // cool dusty blue arms
     }),
@@ -110,8 +110,13 @@ export function MilkyWay({
     () => ({
       uTime: { value: 0 },
       uStrength: { value: 0.0 }, // eased in after mount (set in useFrame)
-      uInkColor: { value: new Color("#232838") }, // deep cool ink for the band
-      uCoreColor: { value: new Color("#3a3226") }, // warm-tinted ink for the bulge
+      // Lightened 2026-11-05 ("Milky Way sucks" in light mode = a muddy black
+      // smudge). The band ink is now a softer blue-grey and the CORE a warm
+      // mid-grey rather than near-black — so the bulge reads as a luminous
+      // centre of an ink DRAWING, not a dirty blob. The dense dark bulge stars
+      // still add their own weight on top; the haze shouldn't pile on more black.
+      uInkColor: { value: new Color("#3a4152") }, // softer cool-grey band ink
+      uCoreColor: { value: new Color("#6b5a48") }, // warm mid-grey bulge glow (was near-black #3a3226)
     }),
     [],
   )
@@ -429,7 +434,12 @@ export function MilkyWay({
       // full glow beyond ~55 units; fade toward 18% by the time we're inside ~12.
       const f = Math.max(0.18, Math.min(1, (d - 12) / (55 - 12)))
       const sprites = coreGlowRef.current.children as unknown as { material: { opacity: number } }[]
-      const base = mobile ? [0.45, 0.30, 0.15] : [0.60, 0.36, 0.16]
+      // NOTE: this is the REAL per-sprite opacity (it overrides the JSX values
+      // every frame as the camera distance fades the bloom). Four layers now —
+      // bright hot pinpoint → bright warm mid → amber glow → soft outer halo —
+      // pushed up 2026-11-05 so the bulge GLOWS like a galaxy photo instead of
+      // reading as faint scattered dots. Keep in sync with the 4 <sprite>s below.
+      const base = mobile ? [0.42, 0.40, 0.24, 0.12] : [0.52, 0.48, 0.30, 0.16]
       for (let i = 0; i < sprites.length && i < base.length; i++) {
         const m = sprites[i].material
         if (m) m.opacity += (base[i] * f - m.opacity) * Math.min(1, delta * 4)
@@ -445,7 +455,9 @@ export function MilkyWay({
       const u = inkMatRef.current.uniforms
       ;(u.uTime as { value: number }).value += delta
       // ease the ink in so the galaxy fades up on paper rather than popping.
-      const target = mobile ? 0.82 : 0.95
+      // Eased DOWN (0.95→0.78) so the ink reads as a light, elegant drawing, not
+      // a heavy smudge — the dark bulge stars already carry the centre's weight.
+      const target = mobile ? 0.68 : 0.78
       const s = u.uStrength as { value: number }
       s.value += (target - s.value) * Math.min(1, delta * 1.5)
     }
@@ -527,14 +539,24 @@ export function MilkyWay({
               flat white disc with no detail. Lower centre + a slightly warmer
               mid/halo let the bulge read as a glowing amber JEWEL with structure,
               not a blown-out sun — the stars underneath stay visible. */}
-          <sprite scale={mobile ? [4.5, 4.5, 1] : [6, 6, 1]}>
-            <spriteMaterial map={coreTex} color="#ffe8c4" transparent opacity={mobile ? 0.30 : 0.34} depthWrite={false} blending={AdditiveBlending} />
+          {/* Rebalanced 2026-11-05 ("Milky Way sucks" — the core read as weak
+              scattered dots, not a glowing bulge). The earlier dial-back left the
+              centre too faint relative to the 130-unit disc. Fix = keep the hot
+              inner pinpoint CONTROLLED (so the hero copy survives) but push the
+              WARM MID + HALO much brighter and LARGER so the bulge genuinely
+              glows like a real galaxy photo — a luminous amber body the arms
+              sweep out of, not a smudge. Four layers now for a smoother falloff. */}
+          <sprite scale={mobile ? [5, 5, 1] : [7, 7, 1]}>
+            <spriteMaterial map={coreTex} color="#fff2d8" transparent opacity={mobile ? 0.34 : 0.40} depthWrite={false} blending={AdditiveBlending} />
           </sprite>
-          <sprite scale={mobile ? [12, 12, 1] : [16, 16, 1]}>
-            <spriteMaterial map={coreTex} color="#ffcc82" transparent opacity={mobile ? 0.24 : 0.28} depthWrite={false} blending={AdditiveBlending} />
+          <sprite scale={mobile ? [14, 14, 1] : [20, 20, 1]}>
+            <spriteMaterial map={coreTex} color="#ffd79a" transparent opacity={mobile ? 0.34 : 0.42} depthWrite={false} blending={AdditiveBlending} />
           </sprite>
-          <sprite scale={mobile ? [24, 24, 1] : [32, 32, 1]}>
-            <spriteMaterial map={coreTex} color="#e8a860" transparent opacity={mobile ? 0.13 : 0.15} depthWrite={false} blending={AdditiveBlending} />
+          <sprite scale={mobile ? [28, 28, 1] : [40, 40, 1]}>
+            <spriteMaterial map={coreTex} color="#f3b878" transparent opacity={mobile ? 0.22 : 0.28} depthWrite={false} blending={AdditiveBlending} />
+          </sprite>
+          <sprite scale={mobile ? [46, 46, 1] : [66, 66, 1]}>
+            <spriteMaterial map={coreTex} color="#e09a5a" transparent opacity={mobile ? 0.10 : 0.14} depthWrite={false} blending={AdditiveBlending} />
           </sprite>
         </group>
       )}
