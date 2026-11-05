@@ -114,31 +114,39 @@ export function Lab() {
       className="relative py-24 md:py-32 px-6 md:px-12 border-t border-border"
     >
       <div className="mx-auto w-full max-w-6xl">
-        {/* Section header */}
+        {/* Section header — written in a real voice, by hand. The old version
+            ("THE LAB — EXPLORATION" / "Self-directed, open-source experiments")
+            read like a generated template; this reads like a person talking.
+            Lowercase label, a spoken headline, an aside in my own words. */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.7 }}
-          className="mb-14 md:mb-20 max-w-3xl"
+          className="mb-16 md:mb-24 max-w-3xl"
         >
-          <p className="font-mono text-xs tracking-[0.3em] text-muted-foreground mb-4">
-            THE LAB — EXPLORATION
+          <p className="font-mono text-[11px] tracking-[0.2em] text-muted-foreground mb-5 lowercase">
+            the lab · where I think out loud
           </p>
           {/* h1: this component only renders on the standalone /lab page (moved
               off the home scroll 2026-06-17), where it is the page's title —
               the ScrollCinema overture above is aria-hidden decoration. */}
           <h1
             id="lab-heading"
-            className="font-display text-3xl md:text-5xl lg:text-6xl font-light italic tracking-[-0.01em] leading-[1.05]"
+            className="font-display text-3xl md:text-5xl lg:text-6xl font-light tracking-[-0.015em] leading-[1.08]"
           >
-            How I'm learning AI — by building it.
+            I don&apos;t really <span className="italic">read</span> about AI.
+            <br className="hidden sm:block" />{" "}
+            I build the thing until I <span className="italic">get</span> it.
           </h1>
-          <p className="mt-6 font-sans text-base md:text-lg text-foreground/75 max-w-2xl leading-relaxed">
-            Self-directed, <span className="text-foreground">open-source</span>{" "}
-            experiments — not client or employer work. Each is a way to learn the
-            human–AI seam hands-on: the design argument shipped as working
-            software, in evenings and weekends.
+          <p className="mt-7 font-sans text-base md:text-lg text-foreground/70 max-w-xl leading-relaxed">
+            So this is the pile of things I&apos;ve built to understand it —
+            evenings, weekends, nobody asking me to. Some are finished. Some I&apos;m
+            still inside. All of them are real, and open, and mine.
+          </p>
+          {/* a human aside — a signed line, the kind a person leaves, not a CTA */}
+          <p className="mt-6 font-serif italic text-foreground/45 text-[15px]">
+            — start wherever you like; the one I can&apos;t put down is first.
           </p>
         </motion.div>
 
@@ -206,15 +214,17 @@ export function Lab() {
             (both still reachable, in the sitemap, and linked from the framework
             page) — this just pulls it off the Lab as a headline feature. */}
 
-        {/* Live experiments — the working demos at GRID weight, so the flagship
-            case study above keeps the lead. One deliberate rhythm break instead
-            of identical full-width slabs in a row. */}
-        <div className="flex items-baseline justify-between gap-4 mb-6">
-          <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-muted-foreground">
-            Live experiments
+        {/* Live experiments — introduced in a human voice, not a bare label.
+            A spoken lead-in sits above the grid so it reads as "here's what I'm
+            inside right now", not a category header. */}
+        <div className="mb-7 max-w-xl">
+          <p className="font-serif text-xl md:text-2xl text-foreground/80 leading-snug">
+            The ones I&apos;m still inside —
           </p>
-          <span aria-hidden="true" className="flex-1 h-px bg-border" />
-          <p className="font-mono text-[10px] tracking-widest text-muted-foreground/70">6</p>
+          <p className="mt-2 font-sans text-sm text-foreground/55 leading-relaxed">
+            rough in places, alive, honest about what works yet. This is where most
+            of the thinking happens.
+          </p>
         </div>
         <div className="grid gap-4 md:gap-5 md:grid-cols-2 mb-14 md:mb-16">
 
@@ -777,17 +787,17 @@ export function Lab() {
         </motion.div>
         )}
 
-        {/* From the GitHub — Ankur's hand-picked repo shelf (see the comment
-            on `products` above: curated, never auto-synced). Sits last on the
-            page by design: flagships → experiments → the code itself. */}
-        <div className="flex items-baseline justify-between gap-4 mb-6">
-          <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-muted-foreground inline-flex items-center gap-2">
-            <Github className="w-3 h-3" aria-hidden="true" />
-            From the GitHub · hand-picked
+        {/* The shipped shelf — introduced in voice. Hand-picked repos (see the
+            comment on `products`: curated, never auto-synced). Sits last by
+            design: the one I can't put down → what I'm inside → what found its
+            shape. */}
+        <div className="mt-20 md:mt-28 mb-7 max-w-xl">
+          <p className="font-serif text-xl md:text-2xl text-foreground/80 leading-snug">
+            And the ones that found their shape —
           </p>
-          <span aria-hidden="true" className="flex-1 h-px bg-border" />
-          <p className="font-mono text-[10px] tracking-widest text-muted-foreground/70">
-            {products.length}
+          <p className="mt-2 font-sans text-sm text-foreground/55 leading-relaxed inline-flex items-center gap-1.5">
+            <Github className="w-3.5 h-3.5" aria-hidden="true" />
+            small tools I finished and left open on GitHub, for anyone.
           </p>
         </div>
 
