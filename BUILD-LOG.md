@@ -123,12 +123,22 @@ collided pile at first; fixed them to a clean two-column layout with no overlap
 and no edge-clipping before shipping.
 **See it:** open /reference/spacecraft and scroll down.
 
+### 13. /math: you can now SEE the golden grid the page sits on
+**What:** The /math hub has always claimed "this page is proportioned by φ."
+Now there's a small φ glyph (bottom-right) you can click to prove it — it draws
+the real golden grid, the golden spiral, and the 62/38 division line straight
+onto the edges the layout actually sits on. The split line lands at exactly
+viewport ÷ φ (measured: x=890 on a 1440px screen). It's honest by design: the
+overlay only goes where the layout is genuinely φ-governed, so the lines fall on
+real edges, not invented ones.
+**Also:** removed a stray black-hole dev prototype that was sitting in the public
+folder (superseded by the engine's real black hole).
+
 ### Hygiene
 lint 0 errors, build verified (full static export), full-route smoke test clean,
 headless overflow audit clean (desktop + mobile).
-Parked (by choice, not committed): the φ overlay icon component (needs a real-φ
-page to mount on), a black-hole prototype. (The ISS teardown is now SHIPPED, not
-parked.)
+Parked (by choice, not committed): nothing of consequence — the φ overlay is now
+SHIPPED (on /math), the ISS teardown is SHIPPED, the bh-prototype is removed.
 
 ---
 
