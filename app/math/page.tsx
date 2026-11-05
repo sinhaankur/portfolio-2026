@@ -4,6 +4,7 @@ import { canonicalPath } from "@/lib/seo"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { CustomCursor } from "@/components/custom-cursor"
+import { GoldenRatioOverlay } from "@/components/golden-ratio-overlay"
 import { MATH_SERIES as PIECES } from "@/lib/math-series"
 
 export const metadata: Metadata = {
@@ -81,6 +82,12 @@ export default function MathHubPage() {
           </p>
         </div>
       </main>
+      {/* The φ overlay is HONEST here: this hub is genuinely laid out on the
+          golden ratio (golden-split 62/38 header, --text-phi-* type, --space-phi-*
+          rhythm), so clicking the φ glyph draws the real grid + spiral + 62/38
+          line ONTO edges the layout actually sits on — proof you can see, not a
+          claim. (Only mount it where the layout is truly φ-governed.) */}
+      <GoldenRatioOverlay />
       <Footer />
     </>
   )
