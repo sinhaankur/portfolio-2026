@@ -1956,41 +1956,42 @@ export const namedBodies: NamedBody[] = [
     name: "Voyager 1",
     designation: "Voyager 1 · NASA · 1977",
     kind: "spacecraft",
-    aAU: 161,              // ~24 billion km / 1 AU ≈ 160 AU as of mid-2025
+    aAU: 173,              // 25.9 billion km ≈ 173 AU (NASA, Nov 2026 — one light-day)
     eccentricity: 1.00001,  // escape trajectory
     inclDeg: 35.7,
     longNodeDeg: 178.9,    // post-Saturn-flyby ascending node
     argPeriDeg: 338.2,     // perihelion direction inside the orbital plane
-    elementsEpoch: "2025-01",
+    elementsEpoch: "2026-11",
     periodYears: Infinity,
     startPhase: 0.0,
-    fact: "Furthest human-made object — over 24 billion km (~161 AU) from Earth, beyond the heliopause since August 2012. Travelling at ~17 km/s (38,000 mph / 61,000 km/h) through the interstellar medium. Still transmitting on a 22.6-watt signal that takes 22+ hours to reach us. Carrying the Golden Record toward Gliese 445 (encounter in ~40,000 years). Escape direction roughly RA 17h Dec +12° (Ophiuchus / Hercules border).",
+    fact: "Furthest human-made object — about 25.9 billion km (~173 AU) from Earth, beyond the heliopause since August 2012. In November 2026 it crossed one full LIGHT-DAY out: its radio signal now takes a whole day each way. Travelling at ~17 km/s (38,000 mph / 61,000 km/h) through the interstellar medium, still transmitting on a 22.6-watt signal. Carrying the Golden Record toward Gliese 445 (encounter in ~40,000 years). Escape direction roughly RA 17h Dec +12° (Ophiuchus / Hercules border).",
     visualRadius: 0.05,
   },
   {
     name: "Voyager 2",
     designation: "Voyager 2 · NASA · 1977",
     kind: "spacecraft",
-    aAU: 143,              // 21+ billion km / 1 AU ≈ 143 AU as of mid-2025
+    aAU: 145,              // 21.6 billion km ≈ 145 AU (NASA/JPL live, Nov 2026)
     eccentricity: 1.00001,
     inclDeg: 78.8,         // post-Neptune flyby — dove south steeply
     longNodeDeg: 101.7,
     argPeriDeg: 130.0,
-    elementsEpoch: "2025-01",
+    elementsEpoch: "2026-11",
     periodYears: Infinity,
     startPhase: 0.3,
-    fact: "Only spacecraft to have flown by all four giant planets — Jupiter, Saturn, Uranus, Neptune. Crossed the heliopause November 5, 2018, six years after Voyager 1, on the opposite side of the Sun. Now over 21 billion km (143+ AU) from Earth, travelling at 15.3 km/s into the interstellar medium. Escape direction roughly RA 20h Dec -57° (Telescopium / Pavo).",
+    fact: "Only spacecraft to have flown by all four giant planets — Jupiter, Saturn, Uranus, Neptune. Crossed the heliopause November 5, 2018, six years after Voyager 1, on the opposite side of the Sun. Now about 21.6 billion km (~145 AU) from Earth, travelling at 15.3 km/s into the interstellar medium. Escape direction roughly RA 20h Dec -57° (Telescopium / Pavo).",
     visualRadius: 0.05,
   },
   {
     name: "New Horizons",
     designation: "New Horizons · NASA · 2006",
     kind: "spacecraft",
-    aAU: 62,
+    aAU: 66,               // ~9.9 billion km ≈ 66 AU from the Sun (NASA, 2026)
     eccentricity: 1.00001,
     inclDeg: 2.3,
     longNodeDeg: 224.9,
     argPeriDeg: 104.0,
+    elementsEpoch: "2026-06",
     periodYears: Infinity,
     startPhase: 0.55,
     fact: "Flew past Pluto in July 2015 — first close-up images of the dwarf planet ever taken. In 2019 it flew past Arrokoth, the most distant object ever visited (44 AU). Now drifting outward at 14 km/s toward the heliopause, heading roughly toward Sagittarius (RA 19h Dec -23°).",

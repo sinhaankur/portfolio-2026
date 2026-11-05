@@ -183,7 +183,7 @@ const DWARF_SURFACES: Record<string, DwarfSurfaceProfile> = {
  * Scene-scale compression curve.
  *
  * The solar system spans five orders of magnitude (Mercury 0.39 AU →
- * Voyager 1 ~160 AU). Linear scaling would either make the inner
+ * Voyager 1 ~173 AU). Linear scaling would either make the inner
  * planets invisibly small or push the outer ones off-screen, so we
  * compress radii with sqrt() — the same trick stellar charts use.
  *

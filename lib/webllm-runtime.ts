@@ -142,7 +142,7 @@ function stripPerihelion(target: string): string {
  * Real history; keyed by the exact namedBody name so it composes with a fly-to.
  */
 const CRAFT_JOURNEY: Record<string, string> = {
-  "Voyager 1": "Launched September 5, 1977 from Cape Canaveral on a Titan IIIE-Centaur. It flew past Jupiter (1979) and Saturn (1980), stealing orbital energy from each in a gravity assist that flung it up and out of the planetary plane — now the most distant human-made object, over 24 billion km out, coasting into interstellar space.",
+  "Voyager 1": "Launched September 5, 1977 from Cape Canaveral on a Titan IIIE-Centaur. It flew past Jupiter (1979) and Saturn (1980), stealing orbital energy from each in a gravity assist that flung it up and out of the planetary plane — now the most distant human-made object, about 25.9 billion km out (a full light-day as of November 2026), coasting into interstellar space.",
   "Voyager 2": "Launched August 20, 1977 from Cape Canaveral — two weeks BEFORE Voyager 1. On the slower 'Grand Tour' path, it used gravity assists at Jupiter, Saturn, Uranus and Neptune (the only craft to visit all four), each flyby bending and speeding it toward its eventual escape to the south.",
   "Pioneer 10": "Launched March 2, 1972 — the first craft to cross the asteroid belt and fly by Jupiter (1973), whose gravity threw it onto solar-escape velocity. Now silent, drifting toward Aldebaran.",
   "Pioneer 11": "Launched April 5, 1973. A Jupiter flyby (1974) slingshot it across the solar system to become the first craft to visit Saturn (1979), then out toward the constellation Aquila.",
@@ -171,9 +171,9 @@ User: what is mars
 Answer: Mars is a terrestrial planet — a cold, rusty desert world. We see it by reflected sunlight, and infrared reveals its thin atmosphere and surface heat.
 
 Context:
-- Voyager 1 (spacecraft): Voyager 1 · NASA · 1977 [observed in radio: Deep-space probes are found only by their faint radio signal — Voyager 1's 22-watt carrier takes 22+ hours to reach us.]
+- Voyager 1 (spacecraft): Voyager 1 · NASA · 1977 [observed in radio: Deep-space probes are found only by their faint radio signal — Voyager 1's 22-watt carrier now takes a full light-day (about 24 hours) to reach us.]
 User: tell me about voyager 1
-Answer: Voyager 1 is the most distant human-made object, launched in 1977. We don't see it — we listen: its faint 22-watt radio signal now takes over 22 hours to reach Earth.
+Answer: Voyager 1 is the most distant human-made object, launched in 1977. We don't see it — we listen: its faint 22-watt radio signal now takes a full day to reach Earth, a whole light-day out.
 
 Context:
 (no direct catalog match)
