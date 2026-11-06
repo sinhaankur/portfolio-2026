@@ -27,51 +27,51 @@ const REPO = "https://github.com/sinhaankur/cognitive-twin-agent"
 const built: { title: string; body: string }[] = [
   {
     title: "Its own brain engine — not just an LLM",
-    body: "Vera's feeling, stance, memory and judgment are computed by her own on-device logic, modelled on real neuroanatomy: nine region-engines wired in anatomical order (parietal → limbic → hippocampus → frontal → cortex → temporal → cerebellum). The language model is one organ (the cortex — words), never the source of her mind — so she has a point of view, reads a heavy moment vs a bright one, and paces herself, rather than echoing a prompt. Pull the model out and she still feels, decides, and speaks.",
+    body: "Nine region-engines, wired in anatomical order, compute her feeling, memory and judgment on-device. The language model is just one organ (words). Pull it out and she still feels, decides, and speaks.",
   },
   {
     title: "A real neural network reads the feeling",
-    body: "The limbic read isn't a keyword lookup — it's a genuine neural net (a small MLP: 43 affective cues → 8 hidden ReLU neurons → valence + arousal), trained with backprop on labelled moments. It runs in pure numpy, with a hand-written pure-Python forward pass as a fallback so it never even depends on numpy — the brain feels with or without it. Its hidden neurons are exposed so you can watch the amygdala fire for a phrase. Same weights run live in your browser on the 'brain, made visible' page.",
+    body: "A genuine MLP (43 cues → 8 hidden neurons → valence + arousal), backprop-trained, runs in pure numpy with a pure-Python fallback. The same weights fire live in your browser on the brain page.",
   },
   {
     title: "Grounded in her own convictions (RAG)",
-    body: "Before the model writes a word, a retrieval step (RAG) pulls the most relevant pieces of what she knows — your notes, documents, and her own sealed memories — and that becomes the context the model writes within. Chunk → embed → retrieve → generate, all on-device (a local embedding model), so her words stay grounded in real recalled material instead of inventing. A learned reranker can sharpen which memories surface.",
+    body: "Before she writes a word, on-device retrieval pulls the most relevant of what she knows — your notes, her sealed memories — so she speaks from real recall, not invention.",
   },
   {
     title: "A warm, human neural voice",
-    body: "She speaks with an expressive on-device neural voice (Kokoro) that sounds like a person, not a readout — warm, present, a little unhurried. It's bundled, so there's no system voice to download; the brain synthesizes, the app plays, nothing leaves the machine.",
+    body: "An expressive on-device voice (Kokoro) — warm, present, unhurried. Bundled, so nothing downloads and nothing leaves the machine.",
   },
   {
     title: "Runs as a resilient local service",
-    body: "The brain runs as a background service the OS keeps alive — it restarts on crash, starts at login, and is always reachable. The app just connects. No fragile spawning, no 'brain not reachable'.",
+    body: "The brain is a background service the OS keeps alive — restarts on crash, starts at login, always reachable. The app just connects.",
   },
   {
-    title: "The same Vera across your devices — through your own iCloud",
-    body: "Mac and iPhone stay one companion by passing a sealed bundle of her memory through your private iCloud Drive — no server of mine, nothing public. It's encrypted before it ever touches iCloud, so Apple only holds ciphertext; the trust is your own Apple ID, inherited not invented; each device keeps its own key (keys never move); and syncing is a merge, never an overwrite — both devices' edits survive. No iCloud, no problem — she just stays local.",
+    title: "The same Vera across your devices",
+    body: "Mac and iPhone stay one companion through your own iCloud — encrypted before it touches it, so Apple holds only ciphertext. Keys never move; sync merges, never overwrites. No iCloud? She stays local.",
   },
   {
     title: "Remembers the conversation",
-    body: "She carries the thread of what you just said, so short follow-ups ('now try', 'and the travel?') make sense — a conversation, not isolated one-shots.",
+    body: "She holds the thread, so short follow-ups (“now try”, “and the travel?”) land — a conversation, not one-shots.",
   },
   {
-    title: "Talks like a person — interrupt her, ramble, pause",
-    body: "Real turn-taking: your words appear as you speak; a snappy pause ends the turn, but a long continuous thought is let to finish instead of being chopped mid-sentence. Speak over her and she stops mid-word and listens — a fast, self-calibrating barge-in (RMS-only, no cloud, crash-safe) that learns the room + her own voice bleed so it yields to you without cutting herself off on noise. If she doesn't catch something she says so, rather than going silent.",
+    title: "Talks like a person",
+    body: "Real turn-taking: speak over her and she stops mid-word and listens — a fast, self-calibrating barge-in that learns the room, no cloud. If she misses something she says so.",
   },
   {
     title: "Persona creation",
-    body: "An editable character — warm companion by default, precise and technical only when you ask for code. Who she is is a file you own and can change; she reasons as that specific someone, never a generic assistant.",
+    body: "An editable character — warm by default, technical on request. Who she is is a file you own and can change.",
   },
   {
     title: "Senses, all opt-in",
-    body: "Photos (metadata + places you've been), your active app, music, the camera (face cues only), the room (sound types only) — each is a switch that's OFF until you turn it on. She learns how you work and where you've been, locally.",
+    body: "Photos, active app, music, camera (face cues), room (sound types) — each a switch that's OFF until you turn it on. She learns locally.",
   },
   {
     title: "Private by construction",
-    body: "Everything personal is sealed at rest (ChaCha20-Poly1305, a device-bound Keychain key). One fenced network door with an allow-list, a global kill switch, no telemetry. A one-command 'security doctor' proves the posture green.",
+    body: "Sealed at rest (ChaCha20-Poly1305, device-bound key). One fenced network door, a kill switch, no telemetry. A one-command doctor proves it green.",
   },
   {
     title: "Light on the machine",
-    body: "One right-sized local model chosen for your RAM (not a heavyweight by default), idle models evicted — so she's a catalyst, not a tax. Freed ~15 GB and most of the machine's memory in the last pass.",
+    body: "One right-sized model picked for your RAM, idle ones evicted — a catalyst, not a tax. Freed ~15 GB last pass.",
   },
   {
     title: "Text-first chat, your call on voice",
