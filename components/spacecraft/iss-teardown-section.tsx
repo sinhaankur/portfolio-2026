@@ -463,3 +463,93 @@ export function TiangongTeardownSection() {
     </section>
   )
 }
+
+// Real Cassini specs — Wikipedia Cassini–Huygens (verified 2026-11-06).
+const CASSINI_SPECS: { label: string; value: string; note?: string }[] = [
+  { label: "Height", value: "6.8 m", note: "4 m wide" },
+  { label: "Mass", value: "5,712 kg", note: "at launch, fuelled" },
+  { label: "Power", value: "~885 W", note: "3 plutonium RTGs" },
+  { label: "Antenna", value: "4 m", note: "high-gain dish" },
+  { label: "Main engine", value: "490 N", note: "R-4D, +1 backup" },
+  { label: "Launched", value: "1997", note: "Titan IV-B" },
+  { label: "Arrived", value: "2004", note: "Saturn orbit" },
+  { label: "Huygens", value: "2005", note: "landed on Titan" },
+]
+
+export function CassiniTeardownSection() {
+  return (
+    <section
+      id="cassini-teardown"
+      className="relative w-full scroll-mt-0 border-t border-white/10 bg-[#0a0a0c] px-5 pb-28 pt-16 text-white md:px-10 md:pt-24"
+    >
+      <div className="mx-auto max-w-6xl">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.6, ease: EASE }}
+        >
+          <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-white/45">
+            In depth
+          </div>
+          <h2 className="mt-3 max-w-3xl font-display text-3xl font-light leading-[1.05] tracking-[-0.02em] md:text-5xl">
+            Cassini was a nuclear bus, stacked tall.
+          </h2>
+          <p className="mt-5 max-w-2xl font-sans text-sm leading-relaxed text-white/70 md:text-[15px]">
+            Out at Saturn there&apos;s almost no sunlight, so Cassini ran on three
+            plutonium generators instead of solar panels. The 4-metre antenna on
+            top doubled as a sunshade; below it stacked the brain, the adapter, and
+            the propulsion module; an 11-metre boom held the magnetometer clear;
+            and ESA&apos;s Huygens probe rode on the side until it parachuted onto
+            Titan. Hover the figure to lift every real part clear; tap one to read
+            what it is.
+          </p>
+        </motion.div>
+
+        <motion.div
+          className="mt-10 md:mt-14"
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.7, ease: EASE }}
+        >
+          <TeardownFrame
+            src="/reference/spacecraft/cassini-teardown/index.html"
+            title="Cassini orbiter — exploded teardown of its 10 real elements"
+          />
+        </motion.div>
+
+        <motion.div
+          className="mt-16 md:mt-24"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.6, ease: EASE }}
+        >
+          <h3 className="max-w-2xl font-display text-2xl font-light leading-tight tracking-[-0.01em] text-white md:text-3xl">
+            The real numbers.
+          </h3>
+          <dl className="mt-8 grid grid-cols-2 gap-x-8 gap-y-6 md:grid-cols-4">
+            {CASSINI_SPECS.map((s) => (
+              <div key={s.label}>
+                <dt className="font-mono text-[9px] uppercase tracking-[0.2em] text-white/40">{s.label}</dt>
+                <dd className="mt-1 font-display text-xl font-light tabular-nums text-white md:text-2xl">{s.value}</dd>
+                {s.note && <dd className="mt-0.5 font-mono text-[10px] leading-snug text-white/35">{s.note}</dd>}
+              </div>
+            ))}
+          </dl>
+          <p className="mt-8 max-w-2xl font-sans text-sm leading-relaxed text-white/55">
+            After 13 years at Saturn — discovering oceans under Enceladus and
+            methane seas on Titan — Cassini was deliberately flown into Saturn in
+            2017 to burn up, so it could never contaminate a potentially habitable
+            moon. It sent data the whole way down.
+          </p>
+          <p className="mt-6 font-mono text-[10px] text-white/30">
+            Figures: Wikipedia (Cassini–Huygens), verified. The stacked layout +
+            side-mounted Huygens in the figure is the real configuration.
+          </p>
+        </motion.div>
+      </div>
+    </section>
+  )
+}

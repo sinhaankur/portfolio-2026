@@ -761,6 +761,8 @@ export function SatelliteSearch() {
                         jwst: { href: "/reference/spacecraft#jwst-teardown", blurb: "all 10 real parts, exploded" },
                         station: { href: "/reference/spacecraft#tiangong-teardown", blurb: "all 10 real parts, exploded" },
                         tiangong: { href: "/reference/spacecraft#tiangong-teardown", blurb: "all 10 real parts, exploded" },
+                        cassini: { href: "/reference/spacecraft#cassini-teardown", blurb: "all 10 real parts, exploded" },
+                        flyby: { href: "/reference/spacecraft#cassini-teardown", blurb: "all 10 real parts, exploded" },
                       }
                       const td = anatomyId ? TEARDOWNS[anatomyId] : undefined
                       if (!td) return null
