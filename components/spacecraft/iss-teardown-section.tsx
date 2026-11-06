@@ -380,3 +380,86 @@ export function JwstTeardownSection() {
     </section>
   )
 }
+
+// Real Tiangong specs — Wikipedia / CMSA (verified 2026-11-05).
+const TIANGONG_SPECS: { label: string; value: string; note?: string }[] = [
+  { label: "Mass", value: "~100 t", note: "three modules" },
+  { label: "Length", value: "~55.6 m", note: "the T" },
+  { label: "Volume", value: "340 m³", note: "pressurised" },
+  { label: "Altitude", value: "~390 km", note: "low Earth orbit" },
+  { label: "Inclination", value: "41.5°", note: "from Jiuquan" },
+  { label: "Crew", value: "3", note: "6 at handover" },
+  { label: "Core launched", value: "2021", note: "Tianhe" },
+  { label: "Operator", value: "CMSA", note: "China" },
+]
+
+export function TiangongTeardownSection() {
+  return (
+    <section
+      id="tiangong-teardown"
+      className="relative w-full scroll-mt-0 border-t border-white/10 bg-[#0a0a0c] px-5 pb-28 pt-16 text-white md:px-10 md:pt-24"
+    >
+      <div className="mx-auto max-w-6xl">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.6, ease: EASE }}
+        >
+          <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-white/45">
+            In depth
+          </div>
+          <h2 className="mt-3 max-w-3xl font-display text-3xl font-light leading-[1.05] tracking-[-0.02em] md:text-5xl">
+            Tiangong is a T in orbit.
+          </h2>
+          <p className="mt-5 max-w-2xl font-sans text-sm leading-relaxed text-white/70 md:text-[15px]">
+            China&apos;s station is three modules in the shape of a T: the Tianhe
+            core runs fore-and-aft with the crew quarters and a three-port docking
+            node, and two science labs — Wentian and Mengtian — hang off its sides
+            to make the crossbar. Built independently after China was left out of
+            the ISS. Hover the figure to lift every real part clear; tap one to
+            read what it is.
+          </p>
+        </motion.div>
+
+        <motion.div
+          className="mt-10 md:mt-14"
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.7, ease: EASE }}
+        >
+          <TeardownFrame
+            src="/reference/spacecraft/tiangong-teardown/index.html"
+            title="Tiangong Space Station — exploded teardown of its 10 real elements"
+          />
+        </motion.div>
+
+        <motion.div
+          className="mt-16 md:mt-24"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.6, ease: EASE }}
+        >
+          <h3 className="max-w-2xl font-display text-2xl font-light leading-tight tracking-[-0.01em] text-white md:text-3xl">
+            The real numbers.
+          </h3>
+          <dl className="mt-8 grid grid-cols-2 gap-x-8 gap-y-6 md:grid-cols-4">
+            {TIANGONG_SPECS.map((s) => (
+              <div key={s.label}>
+                <dt className="font-mono text-[9px] uppercase tracking-[0.2em] text-white/40">{s.label}</dt>
+                <dd className="mt-1 font-display text-xl font-light tabular-nums text-white md:text-2xl">{s.value}</dd>
+                {s.note && <dd className="mt-0.5 font-mono text-[10px] leading-snug text-white/35">{s.note}</dd>}
+              </div>
+            ))}
+          </dl>
+          <p className="mt-8 font-mono text-[10px] text-white/30">
+            Figures: Wikipedia / China Manned Space Agency (verified). The T layout
+            + module order in the figure is the real assembled configuration.
+          </p>
+        </motion.div>
+      </div>
+    </section>
+  )
+}

@@ -759,6 +759,8 @@ export function SatelliteSearch() {
                         hubble: { href: "/reference/spacecraft#hubble-teardown", blurb: "all 10 real parts, exploded" },
                         telescope: { href: "/reference/spacecraft#jwst-teardown", blurb: "all 10 real parts, exploded" },
                         jwst: { href: "/reference/spacecraft#jwst-teardown", blurb: "all 10 real parts, exploded" },
+                        station: { href: "/reference/spacecraft#tiangong-teardown", blurb: "all 10 real parts, exploded" },
+                        tiangong: { href: "/reference/spacecraft#tiangong-teardown", blurb: "all 10 real parts, exploded" },
                       }
                       const td = anatomyId ? TEARDOWNS[anatomyId] : undefined
                       if (!td) return null
