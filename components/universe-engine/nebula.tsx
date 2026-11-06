@@ -110,22 +110,31 @@ export function NebulaClouds({ mobile = false, densityScale = 1 }: { mobile?: bo
       const normR = r / radius
       // Detail clouds are smaller + a touch brighter (star-forming knots);
       // the few big ones stay large + faint (diffuse dusty fill).
-      sizes[i]  = detail ? 10 + Math.random() * 20 : 34 + Math.random() * 52
-      alphas[i] = detail ? 0.07 + Math.random() * 0.08 : 0.045 + Math.random() * 0.06
+      // BRIGHTENED 2026-11-06 ("how the universe is so colourful"): the gas was
+      // near-invisible haze (α 0.045–0.15), so none of the real emission colour
+      // read. Roughly doubled so the clouds actually GLOW with their colour —
+      // a colourful, gas-rich galaxy, not a grey wash.
+      sizes[i]  = detail ? 10 + Math.random() * 22 : 36 + Math.random() * 56
+      alphas[i] = detail ? 0.14 + Math.random() * 0.14 : 0.09 + Math.random() * 0.10
 
-      // Palette: Hα-pink/magenta in star-forming mid-arms, dusty blue in the
-      // outskirts, warm amber dust nearer the core. Detail knots lean pink
-      // (active star formation glows Hα) for visible structure in the arms.
+      // Palette: REAL nebula emission colours, now with more variety —
+      //   Hα pink/red (hydrogen, star formation) · O III teal/green (ionised
+      //   oxygen, planetary + H II) · reflection blue (dust scattering starlight)
+      //   · warm amber dust near the core. This is the colour of real deep-sky
+      //   photos — the universe genuinely IS these hues.
       const roll = Math.random()
-      if (normR < 0.4 && roll < 0.7) {
+      if (normR < 0.4 && roll < 0.6) {
         // Warm amber dust near the core
-        colors[i3] = 0.95; colors[i3 + 1] = 0.62; colors[i3 + 2] = 0.34
-      } else if (roll < (detail ? 0.68 : 0.55)) {
-        // Hα pink/magenta star-forming clouds
-        colors[i3] = 0.96; colors[i3 + 1] = 0.36; colors[i3 + 2] = 0.60
+        colors[i3] = 0.98; colors[i3 + 1] = 0.64; colors[i3 + 2] = 0.34
+      } else if (roll < (detail ? 0.56 : 0.44)) {
+        // Hα pink/magenta star-forming clouds (the signature nebula colour)
+        colors[i3] = 1.0; colors[i3 + 1] = 0.34; colors[i3 + 2] = 0.58
+      } else if (roll < (detail ? 0.74 : 0.64)) {
+        // O III teal/green — the other great emission line, for real colour variety
+        colors[i3] = 0.30; colors[i3 + 1] = 0.86; colors[i3 + 2] = 0.78
       } else {
-        // Cool dusty blue
-        colors[i3] = 0.40; colors[i3 + 1] = 0.55; colors[i3 + 2] = 0.95
+        // Cool reflection blue (dust scattering nearby starlight)
+        colors[i3] = 0.42; colors[i3 + 1] = 0.58; colors[i3 + 2] = 1.0
       }
     }
 
