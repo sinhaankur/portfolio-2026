@@ -763,6 +763,8 @@ export function SatelliteSearch() {
                         tiangong: { href: "/reference/spacecraft#tiangong-teardown", blurb: "all 10 real parts, exploded" },
                         cassini: { href: "/reference/spacecraft#cassini-teardown", blurb: "all 10 real parts, exploded" },
                         flyby: { href: "/reference/spacecraft#cassini-teardown", blurb: "all 10 real parts, exploded" },
+                        voyager: { href: "/reference/spacecraft#voyager-teardown", blurb: "all 6 real parts, exploded" },
+                        probe: { href: "/reference/spacecraft#voyager-teardown", blurb: "all 6 real parts, exploded" },
                       }
                       const td = anatomyId ? TEARDOWNS[anatomyId] : undefined
                       if (!td) return null

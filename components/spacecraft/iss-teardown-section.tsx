@@ -553,3 +553,93 @@ export function CassiniTeardownSection() {
     </section>
   )
 }
+
+// Real Voyager specs — Wikipedia Voyager program (verified 2026-11-06).
+const VOYAGER_SPECS: { label: string; value: string; note?: string }[] = [
+  { label: "Antenna", value: "3.7 m", note: "always points home" },
+  { label: "Mass", value: "815 kg", note: "at launch" },
+  { label: "Power", value: "~470 W", note: "3 plutonium RTGs" },
+  { label: "Mag boom", value: "13 m", note: "holds the magnetometer out" },
+  { label: "Launched", value: "1977", note: "both twins" },
+  { label: "V1 distance", value: "~173 AU", note: "a full light-day" },
+  { label: "Still talking", value: "Yes", note: "22-watt signal" },
+  { label: "Carries", value: "The Golden Record" },
+]
+
+export function VoyagerTeardownSection() {
+  return (
+    <section
+      id="voyager-teardown"
+      className="relative w-full scroll-mt-0 border-t border-white/10 bg-[#0a0a0c] px-5 pb-28 pt-16 text-white md:px-10 md:pt-24"
+    >
+      <div className="mx-auto max-w-6xl">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.6, ease: EASE }}
+        >
+          <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-white/45">
+            In depth
+          </div>
+          <h2 className="mt-3 max-w-3xl font-display text-3xl font-light leading-[1.05] tracking-[-0.02em] md:text-5xl">
+            Voyager is a dish that never stops pointing home.
+          </h2>
+          <p className="mt-5 max-w-2xl font-sans text-sm leading-relaxed text-white/70 md:text-[15px]">
+            The two Voyagers are identical, and the most distant things we&apos;ve
+            ever made. A 3.7-metre dish on top stays locked on Earth; three
+            plutonium generators ride one boom, a 13-metre magnetometer boom
+            reaches out the other, and the cameras that gave us the outer planets
+            sit on a steerable platform. Bolted to the side: a gold record of what
+            Earth sounds like. Hover the figure to lift every real part clear.
+          </p>
+        </motion.div>
+
+        <motion.div
+          className="mt-10 md:mt-14"
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.7, ease: EASE }}
+        >
+          <TeardownFrame
+            src="/reference/spacecraft/voyager-teardown/index.html"
+            title="Voyager spacecraft — exploded teardown of its 6 real elements"
+          />
+        </motion.div>
+
+        <motion.div
+          className="mt-16 md:mt-24"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.6, ease: EASE }}
+        >
+          <h3 className="max-w-2xl font-display text-2xl font-light leading-tight tracking-[-0.01em] text-white md:text-3xl">
+            The real numbers.
+          </h3>
+          <dl className="mt-8 grid grid-cols-2 gap-x-8 gap-y-6 md:grid-cols-4">
+            {VOYAGER_SPECS.map((s) => (
+              <div key={s.label}>
+                <dt className="font-mono text-[9px] uppercase tracking-[0.2em] text-white/40">{s.label}</dt>
+                <dd className="mt-1 font-display text-xl font-light tabular-nums text-white md:text-2xl">{s.value}</dd>
+                {s.note && <dd className="mt-0.5 font-mono text-[10px] leading-snug text-white/35">{s.note}</dd>}
+              </div>
+            ))}
+          </dl>
+          <p className="mt-8 max-w-2xl font-sans text-sm leading-relaxed text-white/55">
+            Launched in 1977, both are now in interstellar space — Voyager 1 a full
+            light-day from Earth. Their plutonium is slowly fading, so one by one
+            the instruments are switched off to save power; sometime in the 2030s
+            the last of them will go quiet, and they&apos;ll drift on, silent, for
+            millions of years.
+          </p>
+          <p className="mt-6 font-mono text-[10px] text-white/30">
+            Figures: NASA / Wikipedia (Voyager program), verified. The dish + two
+            splayed booms in the figure are the real configuration.
+          </p>
+        </motion.div>
+      </div>
+    </section>
+  )
+}

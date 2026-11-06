@@ -17,7 +17,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
 import { ArrowLeft, ArrowRight, ChevronLeft, ChevronDown } from "lucide-react"
 import { SPACECRAFT } from "@/lib/spacecraft-catalog"
-import { IssTeardownSection, HubbleTeardownSection, JwstTeardownSection, TiangongTeardownSection, CassiniTeardownSection } from "./iss-teardown-section"
+import { IssTeardownSection, HubbleTeardownSection, JwstTeardownSection, TiangongTeardownSection, CassiniTeardownSection, VoyagerTeardownSection } from "./iss-teardown-section"
 
 const CraftViewer = dynamic(
   () => import("./craft-viewer").then((m) => m.CraftViewer),
@@ -208,6 +208,7 @@ export function SpacecraftGallery() {
     <JwstTeardownSection />
     <TiangongTeardownSection />
     <CassiniTeardownSection />
+    <VoyagerTeardownSection />
     </div>
   )
 }
