@@ -12,6 +12,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from "react"
+import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
 import { Search, X, Crosshair, Locate, Download } from "lucide-react"
 import { loadSatelliteCatalog, selectedArchetypeRef, selectedArchetypeIdRef, selectedOrbitRef, observerRef, findNearestOverhead, launchMatesFor, satTypeFilterRef, satCountryFilterRef, type SatMeta, type SatOrbit, type NearestSat, type LaunchMate } from "@/components/universe-engine/satellite-data"
@@ -115,13 +116,20 @@ export function SatelliteSearch() {
   // antennas, instruments + builder/mass/power/purpose). Read once per selection.
   const [anatomy, setAnatomy] = useState(anatomyFor(null))
   const [anatomyOpen, setAnatomyOpen] = useState(false)
+  // The archetype id behind the current anatomy — lets us deep-link the craft
+  // that has a full visual teardown (the ISS) straight to it.
+  const [anatomyId, setAnatomyId] = useState<string | null>(null)
   useEffect(() => {
-    if (selected?.id == null) { setLaunchMates([]); setAnatomy(null); setAnatomyOpen(false); return }
+    if (selected?.id == null) { setLaunchMates([]); setAnatomy(null); setAnatomyOpen(false); setAnatomyId(null); return }
     setLaunchMates(launchMatesFor(selected.id))
     // the id ref is set synchronously by the field the moment a craft is picked;
     // a short delay lets that land, then read the anatomy for it.
     setAnatomyOpen(false)
-    const t = setTimeout(() => setAnatomy(anatomyFor(selectedArchetypeIdRef.current)), 250)
+    const t = setTimeout(() => {
+      const id = selectedArchetypeIdRef.current
+      setAnatomy(anatomyFor(id))
+      setAnatomyId(id)
+    }, 250)
     return () => clearTimeout(t)
   }, [selected?.id])
   // Observer location for the "distance from you" slant range. "idle" until the
@@ -741,6 +749,24 @@ export function SatelliteSearch() {
                         </li>
                       ))}
                     </ul>
+                    {/* SEE IT TAKEN APART — the link from the engine into the
+                        crafted visual teardown (anatomy/teardown skill). The ISS
+                        has a full exploded figure built; link straight to it.
+                        More craft get their own teardown over time; until then
+                        the text parts list above is the read. */}
+                    {anatomyId === "iss" && (
+                      <Link
+                        href="/reference/spacecraft#iss-teardown"
+                        data-cursor-hover
+                        className="mt-3 group flex items-center justify-between gap-2 rounded-lg border border-accent/40 bg-accent/[0.06] px-3 py-2.5 transition-colors hover:border-accent hover:bg-accent/[0.1]"
+                      >
+                        <span className="font-sans text-[11px] text-foreground/85">
+                          See it <span className="text-accent font-medium">taken apart</span> — all 27 real elements, exploded
+                        </span>
+                        <span aria-hidden className="font-mono text-[12px] text-accent transition-transform group-hover:translate-x-0.5">→</span>
+                      </Link>
+                    )}
+
                     {/* how it was built — the memorable fact */}
                     <p className="mt-3 rounded-lg border border-accent/20 bg-accent/[0.05] px-3 py-2 font-sans text-[11px] text-foreground/75 leading-relaxed">
                       {anatomy.built}
