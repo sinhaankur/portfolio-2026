@@ -643,3 +643,92 @@ export function VoyagerTeardownSection() {
     </section>
   )
 }
+
+// Real Juno specs — Wikipedia Juno (verified 2026-11-06).
+const JUNO_SPECS: { label: string; value: string; note?: string }[] = [
+  { label: "Width", value: "~20 m", note: "widest planetary craft" },
+  { label: "Wings", value: "3 × 2.7×8.9 m", note: "50 m² of cells" },
+  { label: "Power", value: "~435 W", note: "at Jupiter" },
+  { label: "Mass", value: "3,625 kg", note: "at launch" },
+  { label: "Vault", value: "1 cm titanium", note: "cuts radiation ~800×" },
+  { label: "Engine", value: "645 N", note: "LEROS-1b" },
+  { label: "Launched", value: "2011", note: "Atlas V" },
+  { label: "At Jupiter", value: "2016", note: "orbit insertion" },
+]
+
+export function JunoTeardownSection() {
+  return (
+    <section
+      id="juno-teardown"
+      className="relative w-full scroll-mt-0 border-t border-white/10 bg-[#0a0a0c] px-5 pb-28 pt-16 text-white md:px-10 md:pt-24"
+    >
+      <div className="mx-auto max-w-6xl">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.6, ease: EASE }}
+        >
+          <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-white/45">
+            In depth
+          </div>
+          <h2 className="mt-3 max-w-3xl font-display text-3xl font-light leading-[1.05] tracking-[-0.02em] md:text-5xl">
+            Juno is mostly wings.
+          </h2>
+          <p className="mt-5 max-w-2xl font-sans text-sm leading-relaxed text-white/70 md:text-[15px]">
+            At Jupiter the Sun is 25× fainter than at Earth, so running on sunlight
+            out there takes enormous panels — Juno spread three of them, each nearly
+            9 metres long, off a small hexagonal bus, about 20 metres across. It&apos;s
+            the only solar-powered spacecraft ever flown that far out. A titanium
+            vault shields its electronics from Jupiter&apos;s brutal radiation. Hover
+            the figure to lift every real part clear; tap one to read what it is.
+          </p>
+        </motion.div>
+
+        <motion.div
+          className="mt-10 md:mt-14"
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.7, ease: EASE }}
+        >
+          <TeardownFrame
+            src="/reference/spacecraft/juno-teardown/index.html"
+            title="Juno spacecraft — exploded teardown of its 8 real elements"
+          />
+        </motion.div>
+
+        <motion.div
+          className="mt-16 md:mt-24"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.6, ease: EASE }}
+        >
+          <h3 className="max-w-2xl font-display text-2xl font-light leading-tight tracking-[-0.01em] text-white md:text-3xl">
+            The real numbers.
+          </h3>
+          <dl className="mt-8 grid grid-cols-2 gap-x-8 gap-y-6 md:grid-cols-4">
+            {JUNO_SPECS.map((s) => (
+              <div key={s.label}>
+                <dt className="font-mono text-[9px] uppercase tracking-[0.2em] text-white/40">{s.label}</dt>
+                <dd className="mt-1 font-display text-xl font-light tabular-nums text-white md:text-2xl">{s.value}</dd>
+                {s.note && <dd className="mt-0.5 font-mono text-[10px] leading-snug text-white/35">{s.note}</dd>}
+              </div>
+            ))}
+          </dl>
+          <p className="mt-8 max-w-2xl font-sans text-sm leading-relaxed text-white/55">
+            Juno flies a looping, egg-shaped orbit that dives close over Jupiter&apos;s
+            cloud tops every few weeks, then swings far out — spending as little time
+            as possible inside the worst of the radiation. It gave us the first clear
+            look straight down at Jupiter&apos;s poles and their vast cyclone clusters.
+          </p>
+          <p className="mt-6 font-mono text-[10px] text-white/30">
+            Figures: Wikipedia (Juno), verified. The three-wing layout + hexagonal
+            bus in the figure is the real configuration.
+          </p>
+        </motion.div>
+      </div>
+    </section>
+  )
+}

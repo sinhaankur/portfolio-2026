@@ -765,6 +765,8 @@ export function SatelliteSearch() {
                         flyby: { href: "/reference/spacecraft#cassini-teardown", blurb: "all 10 real parts, exploded" },
                         voyager: { href: "/reference/spacecraft#voyager-teardown", blurb: "all 6 real parts, exploded" },
                         probe: { href: "/reference/spacecraft#voyager-teardown", blurb: "all 6 real parts, exploded" },
+                        juno: { href: "/reference/spacecraft#juno-teardown", blurb: "all 8 real parts, exploded" },
+                        orbiter: { href: "/reference/spacecraft#juno-teardown", blurb: "all 8 real parts, exploded" },
                       }
                       const td = anatomyId ? TEARDOWNS[anatomyId] : undefined
                       if (!td) return null
