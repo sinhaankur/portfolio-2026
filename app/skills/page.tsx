@@ -2,15 +2,15 @@ import type { Metadata } from "next"
 import { canonicalPath } from "@/lib/seo"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
-import { SkillsBreakdown } from "@/components/skills-breakdown"
+import { SkillsLayers } from "@/components/skills-layers"
 import { CustomCursor } from "@/components/custom-cursor"
 import { UpcomingBadge } from "@/components/upcoming-badge"
 
 export const metadata: Metadata = {
   ...canonicalPath("/skills"),
-  title: "Skills",
+  title: "How I think — the method behind the work",
   description:
-    "No self-scored stars — every skill points at real work you can open: shipped case studies at Oracle, Deloitte, Snowtint, Rage, and live things from the Lab. Shown, not scored.",
+    "Not a list of skills — the way I actually solve problems, in order: information architecture first, then UX, affordance, and building the real thing. Every step links the real work it produced. Shown, not scored.",
 }
 
 export default function SkillsPage() {
@@ -19,7 +19,7 @@ export default function SkillsPage() {
       <CustomCursor />
       <Navbar />
       <main id="main">
-        <SkillsBreakdown />
+        <SkillsLayers />
         <Footer />
       </main>
       <UpcomingBadge href="/upcoming" label="Upcoming" />
