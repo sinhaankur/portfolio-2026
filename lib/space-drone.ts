@@ -64,7 +64,23 @@ export class SpaceDrone {
     if (!Ctor) return
     const ctx = new Ctor()
     this.ctx = ctx
-    void ctx.resume()
+    // RESUME RELIABLY — the fix for "nothing plays at all". A fresh AudioContext
+    // often starts "suspended" (Chrome/Safari autoplay policy); the old
+    // `void ctx.resume()` was fire-and-forget, so if the promise deferred or
+    // rejected the context stayed suspended, its currentTime never advanced, and
+    // the chord scheduler (which compares against currentTime) queued nothing —
+    // silent forever. We're already inside the user's click here, so resume IS
+    // allowed; drive it to running and re-kick the scheduler once it resolves.
+    // Belt-and-braces: also retry on the first few state changes.
+    const kick = () => {
+      if (this.ctx === ctx && ctx.state === "running") this.tick()
+    }
+    ctx.addEventListener("statechange", kick)
+    void ctx.resume().then(kick).catch(() => {
+      // Still suspended (resume raced the gesture window): one more try on the
+      // next event loop turn, still within the activation grace period.
+      setTimeout(() => { void ctx.resume().then(kick).catch(() => undefined) }, 0)
+    })
 
     const now = ctx.currentTime
 
@@ -142,16 +158,23 @@ export class SpaceDrone {
     // Chord scheduler: keep ~one chord queued ahead of the clock.
     this.chordIndex = 0
     this.nextChordAt = now + 0.1
-    const tick = () => {
-      if (!this.ctx) return
-      while (this.nextChordAt < this.ctx.currentTime + SCHEDULE_AHEAD_SECONDS) {
-        this.scheduleChord(this.chordIndex % CHORDS.length, this.nextChordAt)
-        this.chordIndex++
-        this.nextChordAt += CHORD_SECONDS
-      }
+    this.tick()
+    this.timer = window.setInterval(() => this.tick(), 1000)
+  }
+
+  /** Queue any chords due within the look-ahead window. Idempotent + safe to call
+   *  from the interval, from resume()'s completion, or from a statechange event —
+   *  it only ever schedules chords whose start time hasn't passed. Guarded on a
+   *  RUNNING context so a suspended ctx (currentTime frozen at 0) never spams the
+   *  queue; the resume handler re-invokes it the moment the context starts. */
+  private tick(): void {
+    const ctx = this.ctx
+    if (!ctx || ctx.state !== "running") return
+    while (this.nextChordAt < ctx.currentTime + SCHEDULE_AHEAD_SECONDS) {
+      this.scheduleChord(this.chordIndex % CHORDS.length, this.nextChordAt)
+      this.chordIndex++
+      this.nextChordAt += CHORD_SECONDS
     }
-    tick()
-    this.timer = window.setInterval(tick, 1000)
   }
 
   stop(): void {

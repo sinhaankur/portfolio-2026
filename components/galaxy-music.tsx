@@ -19,6 +19,14 @@ type SCAPI = {
   }
 }
 
+// How long we wait for SoundCloud to ACTUALLY start playing (a PLAY event) after
+// the user picks piano. If it never fires — the widget stalled, or the browser
+// silently blocked the cross-origin autoplay (common in Safari/ITP and with
+// privacy blockers) — we quietly fall back to the Deep Field drone so the click
+// always produces sound. This is the fix for "nothing plays at all": the drone is
+// pure on-device Web Audio and can't be autoplay-blocked once started from a click.
+const PIANO_PLAY_TIMEOUT_MS = 3500
+
 declare global {
   interface Window {
     SC?: SCAPI
@@ -77,6 +85,10 @@ export function GalaxyMusic() {
   const modeRef = useRef<MusicMode>("off")
   const [mode, setMode] = useState<MusicMode>("off")
   const [loadError, setLoadError] = useState(false)
+  // Watchdog: set when we ask SoundCloud to play; cleared when a real PLAY event
+  // arrives. If it fires, the piano never actually started → fall back to drone.
+  const pianoConfirmedRef = useRef(false)
+  const pianoWatchdogRef = useRef<number | null>(null)
   // PERF: the SoundCloud iframe + Widget API (~120 KB, 10 cross-origin requests,
   // third-party cookies) used to load on mount on every page that shows the music
   // chip — before the user ever opts in. We now defer ALL of it until the first
@@ -122,6 +134,17 @@ export function GalaxyMusic() {
         else if (queuedActionRef.current === "pause") widget.pause()
         queuedActionRef.current = null
       })
+      // A real PLAY confirms the piano actually started — cancel the watchdog so
+      // we DON'T fall back to the drone. If PLAY never fires (stall / silent
+      // autoplay block), the watchdog fires instead and swaps to the drone.
+      widget.bind(SC.Widget.Events.PLAY, () => {
+        if (cancelled) return
+        pianoConfirmedRef.current = true
+        if (pianoWatchdogRef.current !== null) {
+          window.clearTimeout(pianoWatchdogRef.current)
+          pianoWatchdogRef.current = null
+        }
+      })
       // No PAUSE bind on purpose: PAUSE only ever fires from our own
       // piano→drone handoff or from a silently-failed play() (some TVs). If it
       // regressed the mode to "off", a TV with a broken SoundCloud embed would
@@ -142,8 +165,32 @@ export function GalaxyMusic() {
     }
   }, [activated])
 
-  // Stop the drone if the page unmounts under us.
-  useEffect(() => () => droneRef.current?.stop(), [])
+  // Stop the drone + clear the piano watchdog if the page unmounts under us.
+  useEffect(() => () => {
+    droneRef.current?.stop()
+    if (pianoWatchdogRef.current !== null) window.clearTimeout(pianoWatchdogRef.current)
+  }, [])
+
+  // If SoundCloud doesn't actually start within the grace window, swap to the
+  // drone so the user's click always yields sound. Called from the watchdog timer.
+  const fallbackToDrone = () => {
+    if (pianoConfirmedRef.current || modeRef.current !== "piano") return
+    const drone = (droneRef.current ??= new SpaceDrone())
+    try { widgetRef.current?.pause() } catch { /* not ready */ }
+    queuedActionRef.current = null
+    drone.start()
+    applyMode("drone")
+  }
+
+  // Arm (or re-arm) the "did piano actually play?" watchdog.
+  const armPianoWatchdog = () => {
+    pianoConfirmedRef.current = false
+    if (pianoWatchdogRef.current !== null) window.clearTimeout(pianoWatchdogRef.current)
+    pianoWatchdogRef.current = window.setTimeout(() => {
+      pianoWatchdogRef.current = null
+      fallbackToDrone()
+    }, PIANO_PLAY_TIMEOUT_MS)
+  }
 
   const advance = () => {
     const drone = (droneRef.current ??= new SpaceDrone())
@@ -155,15 +202,23 @@ export function GalaxyMusic() {
         return
       }
       // First click: mount the iframe + load the API, and queue play. The bind
-      // effect picks up `activated` and starts playback once READY fires.
+      // effect picks up `activated` and starts playback once READY fires. The
+      // watchdog guarantees sound even if SoundCloud never starts (autoplay block).
       queuedActionRef.current = "play"
       applyMode("piano") // optimistic — PAUSE/FINISH binds correct it
+      armPianoWatchdog()
       if (!activated) setActivated(true)
       else if (widgetReadyRef.current) {
         queuedActionRef.current = null
         widgetRef.current?.play()
       }
     } else if (mode === "piano") {
+      // User advanced off piano themselves — cancel the watchdog so it can't
+      // double-fire a drone swap.
+      if (pianoWatchdogRef.current !== null) {
+        window.clearTimeout(pianoWatchdogRef.current)
+        pianoWatchdogRef.current = null
+      }
       if (widgetReadyRef.current) widgetRef.current?.pause()
       else queuedActionRef.current = "pause"
       drone.start()
