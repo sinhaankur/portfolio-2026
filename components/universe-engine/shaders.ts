@@ -186,14 +186,19 @@ export const SUN_SURFACE_FRAGMENT_SHADER = `
       gp.x * sin(gdrift) + gp.z * cos(gdrift)
     );
     float gcells = fbm(gq);                              // fine granule field
-    float glanes = smoothstep(0.30, 0.70, gcells);       // cell centres vs lanes
+    // SOFTENED 2026-11-05 ("Sun lost its beauty" — it read as harsh light/dark
+    // blotches, not smooth plasma). Widen the smoothstep so cell→lane is a GENTLE
+    // gradient, not a hard split, and pull the hot/cool tones much closer together
+    // so the granulation is a subtle luminous shimmer over the warm disc rather
+    // than a patchy map. The Sun should glow evenly and churn softly.
+    float glanes = smoothstep(0.20, 0.80, gcells);       // cell centres vs lanes (gentler)
     // Tint the granulation with the baked warm tone so colour stays data-honest.
-    vec3 gHot  = base * vec3(1.22, 1.06, 0.86);          // bright granule core
-    vec3 gCool = base * vec3(0.62, 0.42, 0.30);          // cool network lane
+    vec3 gHot  = base * vec3(1.10, 1.02, 0.94);          // bright granule core (subtle)
+    vec3 gCool = base * vec3(0.82, 0.70, 0.60);          // cool network lane (lifted — no dark patches)
     vec3 col = mix(gCool, gHot, glanes);
-    // Keep a touch of the baked large-scale structure (active regions) so the
-    // disc isn't perfectly uniform — but weighted low so its banding can't show.
-    col = mix(col, base, 0.25);
+    // Keep MORE of the baked large-scale tone so the disc reads as one luminous
+    // body, with granulation as texture ON it — not a two-tone patchwork.
+    col = mix(col, base, 0.45);
     // Subtle animated shimmer so the surface breathes.
     float shimmer = vnoise(p * 9.0 + vec3(0.0, uTime * 0.25, uTime * 0.15));
     col *= 0.92 + 0.14 * shimmer;
@@ -224,9 +229,9 @@ export const SUN_SURFACE_FRAGMENT_SHADER = `
 
       // Hot cores / cool network lanes: sharpen the field into bright cell
       // centres separated by darker intergranular lanes (a real Sun's texture).
-      float lanes = smoothstep(0.35, 0.62, cells);
-      vec3 hot  = vec3(1.15, 0.72, 0.34);                // ~photosphere hot core
-      vec3 cool = vec3(0.55, 0.20, 0.08);                // cooler network lane
+      float lanes = smoothstep(0.28, 0.70, cells);       // gentler cell→lane
+      vec3 hot  = vec3(1.15, 0.80, 0.46);                // ~photosphere hot core
+      vec3 cool = vec3(0.78, 0.42, 0.20);                // cooler lane (lifted — no black gaps)
       vec3 gran = mix(cool, hot, lanes);
       // Layer the richer close-up structure (supergranules + warped flow) over the
       // always-on base granulation as we fly in — the near view gains depth the far
