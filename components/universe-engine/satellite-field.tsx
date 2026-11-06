@@ -35,12 +35,14 @@ import { perfTierRef, swarmCapForDevice } from "@/lib/device-tier"
 import { launchSiteFor } from "@/lib/launch-sites"
 import { SatelliteNearField } from "./satellite-nearfield"
 
-// PERF ISOLATION SWITCH — the near-field 3D layer (dots→lit slabs up close) was
-// added this session and built without a live GPU test. It runs a per-frame
-// instanced-matrix pass, so it's the prime suspect for the "super laggy on all
-// browsers" report. Disabled while we confirm whether it's the cause; flip back
-// to true once perf is verified. (The dots + everything else are unaffected.)
-const ENABLE_NEARFIELD = false
+// NEAR-FIELD 3D layer (dots→lit slabs up close). It was parked while we chased a
+// "super laggy on all browsers" report, but its cost is bounded: it does NOTHING
+// at overview zoom (early-returns with count=0), its expensive 18k scan is
+// throttled to ~10 Hz, and its per-frame cost when active is only ≤CAP (260)
+// instanced-matrix writes with zero allocation. It now also skips entirely on
+// `low`-tier devices (the ones the lag report came from — see the guard in
+// satellite-nearfield.tsx), so it's safe to ship on mid/high/ultra.
+const ENABLE_NEARFIELD = true
 
 // OFF-THREAD SGP4 WORKER switch. The worker was added this session and, combined
 // with a "skip settled LERP" guard, caused the swarm dots to vanish (buffers

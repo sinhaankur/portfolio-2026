@@ -44,6 +44,7 @@ import { useMemo, useRef } from "react"
 import { useFrame, useThree } from "@react-three/fiber"
 import * as THREE from "three"
 import type { SatType } from "./satellite-data"
+import { perfTierRef } from "@/lib/device-tier"
 
 /** Max objects promoted to solid bodies at once. A few hundred is plenty to fill
  *  the near field; more just costs matrix writes for objects off-screen anyway. */
@@ -136,6 +137,12 @@ export function SatelliteNearField({
   useFrame(() => {
     const mesh = meshRef.current
     if (!mesh || !geometry || !types) return
+    // LOW-TIER SKIP: the near-field layer is pure garnish. On the weakest devices
+    // (where the original "super laggy" report came from) the 10 Hz 18k-object scan
+    // isn't worth its cost, so the layer stays dark and the cheap dots carry the
+    // scene. Everything else (mid/high/ultra) runs it — the per-frame cost when
+    // active is only ≤CAP matrix writes, and it's fully skipped at overview zoom.
+    if (perfTierRef.current === "low") { mesh.count = 0; return }
     const posAttr = geometry.getAttribute("position") as THREE.BufferAttribute | undefined
     if (!posAttr) { mesh.count = 0; return }
     const arr = posAttr.array as Float32Array
