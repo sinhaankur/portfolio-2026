@@ -441,27 +441,30 @@ function occludedByEarth(dot: THREE.Vector3, cam: THREE.Vector3, centre: THREE.V
 // thousand km (where the crowd is) gets the most spread, so LEO reads as a
 // deep, layered, legible shell instead of a packed ball. Honest + reversible:
 // the surface stays true; only the gap to orbit is stretched, non-uniformly.
-// STRENGTHENED 2026-11-06 ("they are too close"): at 6.5× the LEO band still sat
-// at only ~1.5–2.2× Earth radius — a thin crammed shell hugging the globe. A
-// FIXED LIFT now pushes every object a clear distance off the surface first, then
-// the curve spreads the band on top. ISS (400 km) now lands ~2.3× Earth radius —
-// a full radius of black space between the surface and the shell — so LEO reads as
-// a distinct, layered ring you can see into, not a crust. GEO still sits far out.
-const SHELL_EXPAND = 7.0           // base per-km multiplier
-const LEO_BOOST = 6.5              // strong front-loaded stretch for the low band
+// REWORKED 2026-11-06 ("spacing please … we can zoom in and out"): the escalating
+// exaggeration (4× → 6.5× → +5200 km fixed lift) never fixed the real problem — it
+// just inflated the SAME ~16k-object LEO crowd onto a BIGGER sphere, so at overview
+// zoom the min-pixel dots still overlapped into a fuzzy green CRUST around Earth (a
+// bigger blob, not a layered shell). Density can't be solved by pushing altitude out.
+//
+// The honest fix is Ankur's: go to NEAR-TRUE spacing and let ZOOM do the work. At a
+// gentle 2× the shell sits tight and believable against Earth (LEO ≈ 1.06–1.3× R, the
+// real proportion), reading as a thin luminous skin — not an inflated ball. The
+// "spacing" you asked for comes from flying IN: the overview LOD thins the crowd to a
+// calm haze, and as you zoom the dots separate and the near-field layer resolves them
+// into individual lit bodies. True-to-life at rest; explorable up close.
+const SHELL_EXPAND = 2.0           // gentle per-km multiplier → thin, honest shell
+const LEO_BOOST = 1.4              // slight front-load so the packed low band still reads
 const LEO_BAND_KM = 2500           // the LEO crowd lives below ~2000 km
-const BASE_LIFT_KM = 5200          // a fixed lift so even the lowest orbit clears the surface
 function expandR(rKm: number): number {
   const alt = Math.max(0, rKm - EARTH_RADIUS_KM)
   if (alt <= 0) return EARTH_RADIUS_KM
   const base = alt * SHELL_EXPAND
-  // FRONT-LOADED spread for the packed LEO band (strongest near the surface).
+  // A light front-loaded stretch for the packed LEO band — just enough to keep the
+  // low shell from fusing at overview, not enough to balloon it off the globe.
   const t = Math.min(1, alt / LEO_BAND_KM)
   const leoExtra = alt * LEO_BOOST * (1 - t) * (1 - t)
-  // a fixed lift that also fades with altitude, so GEO isn't flung further but
-  // LEO clears the globe with real breathing space beneath it.
-  const lift = BASE_LIFT_KM * (1 - t)
-  return EARTH_RADIUS_KM + base + leoExtra + lift
+  return EARTH_RADIUS_KM + base + leoExtra
 }
 // finitePos (the NaN/Inf gate for far-past scrubs) moved to ./satellite-data.
 
@@ -743,11 +746,14 @@ const VERT = /* glsl */ `
     // Any explicit filter or isolate means the user asked for a specific
     // subset — show it in full.
     float lodEff = (uGroupSel >= 0.0 || uRegimeSel >= 0.0 || uFamilySel >= 0.0 || uTypeSel >= 0.0 || uCountrySel >= 0.0 || uIsolate > 0.5) ? 0.0 : uLod;
-    // At overview, THIN the LEO band so dots stay SEPARATE (crisp LeoLabs read)
-    // instead of overlapping into a blob — earlier tuning cranked this to 0.85
-    // which merged the shell into a grey haze. Fewer dots far out, resolving to
-    // the full swarm as you zoom in (lodEff → 0).
-    float keep = max(mix(1.0, 0.6, lodEff) * uKeepScale, uKeepFloor);
+    // At overview, THIN the LEO band HARD so dots stay SEPARATE (crisp LeoLabs
+    // read) instead of fusing into a green crust. ~16k objects live in the thin
+    // LEO band; even on the now-tighter true-ish shell, keeping 60% of them left a
+    // solid blob. Dropping to ~30% at full overview lets the shell read as
+    // individual points, then resolves to the FULL swarm as you zoom in (lodEff →
+    // 0). The uKeepFloor / MIN_VISIBLE_DOTS guard still prevents over-thinning a
+    // sparse-era or small filtered set.
+    float keep = max(mix(1.0, 0.3, lodEff) * uKeepScale, uKeepFloor);
     // Soft cull edge: each dot fades over a small aRand band around the moving
     // threshold instead of popping, so zooming reads as the haze *resolving*
     // into satellites, not dots switching on.
