@@ -66,7 +66,7 @@ import { SceneContents } from "./scene"
 import {
   initDeviceTier, qualityForTier, perfTierRef, setPerfTier, superClearRef, setResolution, deviceProfileRef, adaptTier, dprForCanvas, type DeviceTier, type ResolutionLevel,
 } from "@/lib/device-tier"
-import { DestinationsMenu, InfoPanel, LayersMenu, ResetViewButton, ScaleLegend, WavelengthView, TimelineControl } from "./hud"
+import { InfoPanel, LayersMenu, ResetViewButton, ScaleLegend, WavelengthView, TimelineControl } from "./hud"
 import { TonightSky } from "./tonight-sky"
 import { LearnTicker } from "./learn-ticker"
 import { selectedSatRef } from "./satellite-field"
@@ -1147,17 +1147,9 @@ export function UniverseEngine({
                 />
               </div>
             )}
-            {/* Jump-to destinations — wayfinding, not a power-user toggle, so it
-                shows even with minimalControls (the home hero). Without it the
-                black holes were unreachable: idle they render as a dark dot
-                with no halo (honestly — nothing escapes), so a browsable list
-                is the only real affordance to FIND one. Desktop chip; the
-                mobile sheet is the touch path (jump list there is a follow-up). */}
-            {interactive && (
-              <div className="hidden md:block">
-                <DestinationsMenu />
-              </div>
-            )}
+            {/* Jump-to destinations menu removed 2026-11-06 (Ankur) — it cluttered
+                the view. Bodies are reached by clicking them / search / the
+                assistant fly-to; the engine no longer surfaces a warp dropdown. */}
             {showMusic && <GalaxyMusic />}
           </div>
 
