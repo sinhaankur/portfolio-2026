@@ -401,12 +401,19 @@ export function SkillsLayers() {
             <LayerSection key={layer.id} layer={layer} reduce={reduce} />
           ))}
 
-          {/* close */}
+          {/* close — the honest caveat: the process is real, but judgment is
+              knowing when reality won't let you run it in order. */}
           <div className="mt-20 border-t border-border/60 pt-10">
             <p className="max-w-xl font-sans text-sm leading-relaxed text-foreground/55">
               That&apos;s the whole method — structure, problem, usability, build —
               and every link above opens the real work it produced. No scores, no
               stars. Just the thinking, and the receipts.
+            </p>
+            <p className="mt-5 max-w-xl font-serif text-[15px] italic leading-relaxed text-foreground/45">
+              — and the honest part: there is a process, but you can&apos;t always
+              apply it. A prebuilt system, a hard deadline, a decision already made —
+              real work bends the order. Knowing <span className="not-italic text-foreground/60">when</span> to
+              bend it, and when not to, is the actual job.
             </p>
           </div>
         </div>
