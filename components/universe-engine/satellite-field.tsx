@@ -439,19 +439,27 @@ function occludedByEarth(dot: THREE.Vector3, cam: THREE.Vector3, centre: THREE.V
 // thousand km (where the crowd is) gets the most spread, so LEO reads as a
 // deep, layered, legible shell instead of a packed ball. Honest + reversible:
 // the surface stays true; only the gap to orbit is stretched, non-uniformly.
-const SHELL_EXPAND = 6.5           // base multiplier, up from 4×
-const LEO_BOOST = 3.2              // extra stretch applied to the low band
-const LEO_BAND_KM = 2200           // the LEO crowd lives below ~2000 km
+// STRENGTHENED 2026-11-06 ("they are too close"): at 6.5× the LEO band still sat
+// at only ~1.5–2.2× Earth radius — a thin crammed shell hugging the globe. A
+// FIXED LIFT now pushes every object a clear distance off the surface first, then
+// the curve spreads the band on top. ISS (400 km) now lands ~2.3× Earth radius —
+// a full radius of black space between the surface and the shell — so LEO reads as
+// a distinct, layered ring you can see into, not a crust. GEO still sits far out.
+const SHELL_EXPAND = 7.0           // base per-km multiplier
+const LEO_BOOST = 6.5              // strong front-loaded stretch for the low band
+const LEO_BAND_KM = 2500           // the LEO crowd lives below ~2000 km
+const BASE_LIFT_KM = 5200          // a fixed lift so even the lowest orbit clears the surface
 function expandR(rKm: number): number {
   const alt = Math.max(0, rKm - EARTH_RADIUS_KM)
-  // base linear expansion for the whole shell
+  if (alt <= 0) return EARTH_RADIUS_KM
   const base = alt * SHELL_EXPAND
-  // extra, FRONT-LOADED spread for the LEO band: a smooth bump that is strongest
-  // just above the surface and fades out by LEO_BAND_KM, so GEO isn't pushed even
-  // further but the packed LEO crowd gets real vertical room between orbits.
+  // FRONT-LOADED spread for the packed LEO band (strongest near the surface).
   const t = Math.min(1, alt / LEO_BAND_KM)
-  const leoExtra = alt * LEO_BOOST * (1 - t) * (1 - t)   // quadratic falloff
-  return EARTH_RADIUS_KM + base + leoExtra
+  const leoExtra = alt * LEO_BOOST * (1 - t) * (1 - t)
+  // a fixed lift that also fades with altitude, so GEO isn't flung further but
+  // LEO clears the globe with real breathing space beneath it.
+  const lift = BASE_LIFT_KM * (1 - t)
+  return EARTH_RADIUS_KM + base + leoExtra + lift
 }
 // finitePos (the NaN/Inf gate for far-past scrubs) moved to ./satellite-data.
 
