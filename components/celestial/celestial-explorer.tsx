@@ -12,7 +12,7 @@ import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import dynamic from "next/dynamic"
 import { motion, AnimatePresence } from "framer-motion"
-import { ArrowLeft, X, Rotate3d, Globe, Satellite, Sparkles, Rocket, Route, Orbit, Layers, Radio, Crosshair, Flame, Trash2, HelpCircle, MoreHorizontal, Radar, ArrowLeftRight, Image as ImageIcon, Share2, Check, Mountain, Gauge, Compass, Sun } from "lucide-react"
+import { ArrowLeft, X, Rotate3d, Globe, Satellite, Sparkles, Rocket, Route, Orbit, Layers, Radio, Crosshair, Flame, Trash2, HelpCircle, MoreHorizontal, Radar, ArrowLeftRight, Image as ImageIcon, Share2, Check, Mountain, Gauge, Compass, Sun, List } from "lucide-react"
 import { CustomCursor } from "@/components/custom-cursor"
 import { ReportBug } from "@/components/report-bug"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -172,6 +172,12 @@ const NeoPanel = dynamic(
 // Orbital-population census (real LEO/MEO/GEO/HEO inventory).
 const InventoryPanel = dynamic(
   () => import("./inventory-panel").then((m) => m.InventoryPanel),
+  { ssr: false },
+)
+
+// Every tracked object — the full browsable, virtualized catalogue list.
+const AllObjectsPanel = dynamic(
+  () => import("./all-objects-panel").then((m) => m.AllObjectsPanel),
   { ssr: false },
 )
 
@@ -422,6 +428,7 @@ export function CelestialExplorer() {
   const [neoOpen, setNeoOpen] = useState(false)
   // Orbital-population census.
   const [inventoryOpen, setInventoryOpen] = useState(false)
+  const [allObjectsOpen, setAllObjectsOpen] = useState(false)
   // System metrics — transparency on data quantity/freshness/limits.
   const [metricsOpen, setMetricsOpen] = useState(false)
   // On-demand screening — paste any TLE, screen it vs the catalogue live.
@@ -438,7 +445,7 @@ export function CelestialExplorer() {
   const [bodiesSheet, setBodiesSheet] = useState(false)
   const [toolsSheet, setToolsSheet] = useState(false)
   const [timeSheet, setTimeSheet] = useState(false)
-  const closePanels = () => { setPassesOpen(false); setWeatherOpen(false); setLaunchesOpen(false); setImageryOpen(false); setDiscoveriesOpen(false); setExoplanetsOpen(false); setSunHistoryOpen(false); setTransferOpen(false); setStationOpen(false); setIssLiveOpen(false); setWatchLiveOpen(false); setEarthWeatherOpen(false); setPorkchopOpen(false); setNeoOpen(false); setInventoryOpen(false); setMetricsOpen(false); setConjOpen(false); setReentryOpen(false); setDebrisOpen(false); setScreeningOpen(false); setProximityOpen(false) }
+  const closePanels = () => { setPassesOpen(false); setWeatherOpen(false); setLaunchesOpen(false); setImageryOpen(false); setDiscoveriesOpen(false); setExoplanetsOpen(false); setSunHistoryOpen(false); setTransferOpen(false); setStationOpen(false); setIssLiveOpen(false); setWatchLiveOpen(false); setEarthWeatherOpen(false); setPorkchopOpen(false); setNeoOpen(false); setInventoryOpen(false); setAllObjectsOpen(false); setMetricsOpen(false); setConjOpen(false); setReentryOpen(false); setDebrisOpen(false); setScreeningOpen(false); setProximityOpen(false) }
   // `?earth=1` auto-opens the photoreal view — for capture/testing + deep-links.
   useEffect(() => {
     try {
@@ -479,6 +486,7 @@ export function CelestialExplorer() {
       }
       if (q.has("mars")) setMarsView(true)
       if (q.has("inv")) setInventoryOpen(true) // testing: open the census panel
+      if (q.has("objects")) setAllObjectsOpen(true) // open the full browse-all list
       if (q.has("metrics")) setMetricsOpen(true) // testing: open system metrics
       const ss = q.get("selectsat") // testing: select a satellite by NORAD id
       if (ss) setTimeout(() => { selectedSatRef.current = parseInt(ss, 10) }, 1600)
@@ -641,6 +649,8 @@ export function CelestialExplorer() {
           label="Ground-station tracker" onClick={go(() => setStationOpen(true))} />
         <MenuItem icon={<Layers className="h-3.5 w-3.5" />}
           label="Orbital census" onClick={go(() => setInventoryOpen(true))} />
+        <MenuItem icon={<List className="h-3.5 w-3.5" />}
+          label="Every object — browse all" onClick={go(() => setAllObjectsOpen(true))} />
         <MenuItem icon={<Gauge className="h-3.5 w-3.5" />}
           label="System metrics" onClick={go(() => setMetricsOpen(true))} />
         <MenuItem icon={<Crosshair className="h-3.5 w-3.5" />}
@@ -1127,6 +1137,11 @@ export function CelestialExplorer() {
           {inventoryOpen && (
             <div className="absolute bottom-24 left-4 md:left-6 z-40">
               <InventoryPanel onClose={() => setInventoryOpen(false)} />
+            </div>
+          )}
+          {allObjectsOpen && (
+            <div className="absolute bottom-24 left-4 md:left-6 z-40">
+              <AllObjectsPanel onClose={() => setAllObjectsOpen(false)} />
             </div>
           )}
           {metricsOpen && (
