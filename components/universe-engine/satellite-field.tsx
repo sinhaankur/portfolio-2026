@@ -838,9 +838,17 @@ const FRAG = /* glsl */ `
     // the dot reads clearly against Earth. Type colour survives as a faint undertone
     // — UNLESS a type filter is engaged, when the real type colour takes over
     // (and the white-hot core softens so the colour actually reads).
+    // COLOUR 2026-11-06 ("shouldn't look like a blob"): the default was 84%
+    // cool-white + only 16% of the dot's altitude-band colour, so the whole
+    // swarm read as one uniform white-blue blob — the LEO/MEO/GEO/debris colours
+    // were suppressed until a filter was engaged. Now the band colour shows
+    // STRONGLY by default (0.70 floor), so you see the structure — a blue LEO
+    // shell, an amber MEO ring, an orange GEO belt, red debris — not a blob.
     vec3 CALM = vec3(0.86, 0.93, 1.0);
-    float typeMix = mix(0.16, 0.85, vTypeEmph);
-    vec3 col = mix(mix(CALM, vColor, typeMix), vec3(1.0), coreDot * mix(0.4, 0.15, vTypeEmph));
+    float typeMix = mix(0.70, 0.92, vTypeEmph);
+    // keep a small hot-white core for sparkle, but far less wash than before so
+    // the colour survives all the way to the centre of each dot.
+    vec3 col = mix(mix(CALM, vColor, typeMix), vec3(1.0), coreDot * mix(0.22, 0.12, vTypeEmph));
     a *= vDebris > 0.5 ? 0.85 : 1.0;                // clearly visible now
     a *= vFade;   // overview LOD: LEO softens into haze when Earth is small
     // Gentle life: a very subtle per-dot twinkle (each phased by its stable random)
