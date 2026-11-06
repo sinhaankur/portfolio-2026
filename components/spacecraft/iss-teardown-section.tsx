@@ -732,3 +732,76 @@ export function JunoTeardownSection() {
     </section>
   )
 }
+
+// Real MRO specs — Wikipedia Mars Reconnaissance Orbiter (verified 2026-11-06).
+const MRO_SPECS: { label: string; value: string; note?: string }[] = [
+  { label: "Antenna", value: "3 m", note: "high-gain dish" },
+  { label: "HiRISE", value: "0.5 m", note: "reflecting telescope" },
+  { label: "Resolution", value: "~30 cm", note: "from 300 km up" },
+  { label: "Mass", value: "2,180 kg", note: "at launch" },
+  { label: "Power", value: "600–2000 W", note: "two solar wings" },
+  { label: "Launched", value: "2005", note: "Atlas V" },
+  { label: "At Mars", value: "2006", note: "then aerobraked" },
+  { label: "Also", value: "The relay", note: "for Mars rovers" },
+]
+
+export function MroTeardownSection() {
+  return (
+    <section
+      id="mro-teardown"
+      className="relative w-full scroll-mt-0 border-t border-white/10 bg-[#0a0a0c] px-5 pb-28 pt-16 text-white md:px-10 md:pt-24"
+    >
+      <div className="mx-auto max-w-6xl">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.6, ease: EASE }}
+        >
+          <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-white/45">In depth</div>
+          <h2 className="mt-3 max-w-3xl font-display text-3xl font-light leading-[1.05] tracking-[-0.02em] md:text-5xl">
+            MRO is a telescope and a radio tower, at Mars.
+          </h2>
+          <p className="mt-5 max-w-2xl font-sans text-sm leading-relaxed text-white/70 md:text-[15px]">
+            The Mars Reconnaissance Orbiter does two jobs at once: it carries the
+            sharpest camera ever sent to Mars — HiRISE, a real half-metre telescope
+            that resolves things 30 cm across from orbit — and it&apos;s the main
+            radio relay that most Mars rovers and landers send their data home
+            through, via that big 3-metre dish. Hover the figure to lift every real
+            part clear; tap one to read what it is.
+          </p>
+        </motion.div>
+        <motion.div className="mt-10 md:mt-14"
+          initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-60px" }} transition={{ duration: 0.7, ease: EASE }}>
+          <TeardownFrame src="/reference/spacecraft/mro-teardown/index.html"
+            title="Mars Reconnaissance Orbiter — exploded teardown of its 8 real elements" />
+        </motion.div>
+        <motion.div className="mt-16 md:mt-24"
+          initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }} transition={{ duration: 0.6, ease: EASE }}>
+          <h3 className="max-w-2xl font-display text-2xl font-light leading-tight tracking-[-0.01em] text-white md:text-3xl">
+            The real numbers.
+          </h3>
+          <dl className="mt-8 grid grid-cols-2 gap-x-8 gap-y-6 md:grid-cols-4">
+            {MRO_SPECS.map((s) => (
+              <div key={s.label}>
+                <dt className="font-mono text-[9px] uppercase tracking-[0.2em] text-white/40">{s.label}</dt>
+                <dd className="mt-1 font-display text-xl font-light tabular-nums text-white md:text-2xl">{s.value}</dd>
+                {s.note && <dd className="mt-0.5 font-mono text-[10px] leading-snug text-white/35">{s.note}</dd>}
+              </div>
+            ))}
+          </dl>
+          <p className="mt-8 max-w-2xl font-sans text-sm leading-relaxed text-white/55">
+            Since 2006, HiRISE has mapped the dunes, gullies and recurring dark
+            streaks of Mars in colour, spotted every rover from orbit, and scouted
+            the landing sites for the ones that came after. It&apos;s still working.
+          </p>
+          <p className="mt-6 font-mono text-[10px] text-white/30">
+            Figures: Wikipedia (Mars Reconnaissance Orbiter), verified.
+          </p>
+        </motion.div>
+      </div>
+    </section>
+  )
+}
