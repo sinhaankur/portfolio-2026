@@ -757,6 +757,8 @@ export function SatelliteSearch() {
                       const TEARDOWNS: Record<string, { href: string; blurb: string }> = {
                         iss: { href: "/reference/spacecraft#iss-teardown", blurb: "all 27 real elements, exploded" },
                         hubble: { href: "/reference/spacecraft#hubble-teardown", blurb: "all 10 real parts, exploded" },
+                        telescope: { href: "/reference/spacecraft#jwst-teardown", blurb: "all 10 real parts, exploded" },
+                        jwst: { href: "/reference/spacecraft#jwst-teardown", blurb: "all 10 real parts, exploded" },
                       }
                       const td = anatomyId ? TEARDOWNS[anatomyId] : undefined
                       if (!td) return null

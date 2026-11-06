@@ -296,6 +296,14 @@ const card = k.plateHtml({
 const stageHtml = `<div id="hbfig" class="hb-figroot">${card}</div>`;
 
 const EXTRA_CSS = `
+
+/* BLEND IN: strip the plate card chrome so the figure floats on the host page. */
+html, body { background: transparent !important; }
+.iso-page { margin: 0 auto !important; width: 100% !important; }
+.iso-figure { margin: 0 !important; }
+.iso-plate { background: transparent !important; box-shadow: none !important; padding: 20px 8px !important; --anatomy-paper: transparent !important; }
+.iso-plate-corner[data-corner="fig"], .iso-plate-corner[data-corner="title"], .iso-plate-corner[data-corner="hint"] { display: none; }
+.iso-legend { display: none; }
 .hb-figroot{position:relative}
 .iso-stage{position:relative}
 .hb-labels{position:absolute;inset:0;pointer-events:none}

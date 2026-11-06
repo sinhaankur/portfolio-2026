@@ -63,15 +63,17 @@ function TeardownFrame({ src, title }: { src?: string; title?: string }) {
   const frameSrc = src ?? "/reference/spacecraft/iss-teardown/index.html"
 
   return (
-    // A subtly LIFTED backdrop (not pure black) + a soft radial glow so the
-    // dark-grey wireframe figure actually READS — on bg-black/20 it was a ghost,
-    // nearly invisible (Ankur: "doesn't match"). The anatomy dark palette shows
-    // by edges, so the figure needs a hair of contrast behind it.
+    // NO CARD CHROME — the figure must BLEND into the page, not sit in a boxed
+    // widget (Ankur: "nothing should be separate, all of this should blend in").
+    // So: no border, no rounded frame, no plate — just a soft radial glow BEHIND
+    // the figure so the grey wireframe still reads on the dark section, and the
+    // iframe floats directly on it. (The bundle's own plate chrome is stripped in
+    // build.mjs → the figure is the whole canvas.)
     <div
-      className="relative w-full overflow-hidden rounded-2xl border border-white/15"
+      className="relative w-full"
       style={{
         background:
-          "radial-gradient(ellipse at 50% 42%, rgba(120,130,150,0.10) 0%, rgba(20,22,30,0.6) 45%, rgba(10,11,16,0.9) 100%)",
+          "radial-gradient(ellipse at 50% 45%, rgba(120,130,150,0.08) 0%, transparent 60%)",
       }}
     >
       {/* The figure reserves its own headroom for the explode; the iframe gives
@@ -82,7 +84,7 @@ function TeardownFrame({ src, title }: { src?: string; title?: string }) {
         title={title ?? "International Space Station — exploded teardown of its 27 real elements"}
         loading="lazy"
         className="block h-[clamp(360px,62vw,640px)] w-full"
-        style={{ border: 0, colorScheme: "normal" }}
+        style={{ border: 0, colorScheme: "normal", background: "transparent" }}
       />
     </div>
   )
@@ -283,6 +285,95 @@ export function HubbleTeardownSection() {
           <p className="mt-6 font-mono text-[10px] text-white/30">
             Figures: NASA Hubble fact sheet. The optical path in the figure is the
             real light path — aperture → primary → secondary → instruments.
+          </p>
+        </motion.div>
+      </div>
+    </section>
+  )
+}
+
+// Real JWST specs — NASA JWST fact sheet + Wikipedia (verified 2026-11-05).
+const JWST_SPECS: { label: string; value: string; note?: string }[] = [
+  { label: "Mirror", value: "6.5 m", note: "18 gold hex segments" },
+  { label: "Mass", value: "6,200 kg" },
+  { label: "Sunshield", value: "21 × 14 m", note: "5 layers, tennis-court" },
+  { label: "Cold side", value: "< 50 K", note: "−223 °C" },
+  { label: "Orbit", value: "Sun–Earth L2", note: "~1.5M km" },
+  { label: "Sees in", value: "Infrared", note: "the first galaxies" },
+  { label: "Launched", value: "2021", note: "Ariane 5" },
+  { label: "Builders", value: "NASA · ESA · CSA" },
+]
+
+export function JwstTeardownSection() {
+  return (
+    <section
+      id="jwst-teardown"
+      className="relative w-full scroll-mt-0 border-t border-white/10 bg-[#0a0a0c] px-5 pb-28 pt-16 text-white md:px-10 md:pt-24"
+    >
+      <div className="mx-auto max-w-6xl">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.6, ease: EASE }}
+        >
+          <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-white/45">
+            In depth
+          </div>
+          <h2 className="mt-3 max-w-3xl font-display text-3xl font-light leading-[1.05] tracking-[-0.02em] md:text-5xl">
+            Webb is a cold telescope on a hot kite.
+          </h2>
+          <p className="mt-5 max-w-2xl font-sans text-sm leading-relaxed text-white/70 md:text-[15px]">
+            To see the first galaxies in infrared, Webb has to be colder than its
+            own glow. So everything splits in two: above a five-layer, tennis-court-
+            sized sunshield, the 18 hexagonal gold mirror segments and the
+            instruments sit near 40 below zero; below it, in the Sun, the warm bus
+            keeps house. Hover the figure to lift every real part clear; tap one to
+            read what it is.
+          </p>
+        </motion.div>
+
+        <motion.div
+          className="mt-10 md:mt-14"
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.7, ease: EASE }}
+        >
+          <TeardownFrame
+            src="/reference/spacecraft/jwst-teardown/index.html"
+            title="James Webb Space Telescope — exploded teardown of its 10 real elements"
+          />
+        </motion.div>
+
+        <motion.div
+          className="mt-16 md:mt-24"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.6, ease: EASE }}
+        >
+          <h3 className="max-w-2xl font-display text-2xl font-light leading-tight tracking-[-0.01em] text-white md:text-3xl">
+            The real numbers.
+          </h3>
+          <dl className="mt-8 grid grid-cols-2 gap-x-8 gap-y-6 md:grid-cols-4">
+            {JWST_SPECS.map((s) => (
+              <div key={s.label}>
+                <dt className="font-mono text-[9px] uppercase tracking-[0.2em] text-white/40">{s.label}</dt>
+                <dd className="mt-1 font-display text-xl font-light tabular-nums text-white md:text-2xl">{s.value}</dd>
+                {s.note && <dd className="mt-0.5 font-mono text-[10px] leading-snug text-white/35">{s.note}</dd>}
+              </div>
+            ))}
+          </dl>
+          <p className="mt-8 max-w-2xl font-sans text-sm leading-relaxed text-white/55">
+            The mirror is gold for a reason — a 100-nanometre coating reflects
+            infrared better than silver or aluminium. It launched folded like
+            origami inside the rocket and unfolded over two weeks in space, a
+            sequence with 344 single points of failure, every one of which held.
+          </p>
+          <p className="mt-6 font-mono text-[10px] text-white/30">
+            Figures: NASA JWST fact sheet (verified). The two-zone split in the
+            figure is the real thermal design — cold optics, warm bus.
           </p>
         </motion.div>
       </div>
