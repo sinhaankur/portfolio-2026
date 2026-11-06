@@ -2211,10 +2211,17 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     // (lod→0) dots are real targets — keep the forgiving 26px. As Earth shrinks
     // (lod→1) the reach eases to ZERO: the picker stands down and body clicks
     // pass through untouched. Same smoothstep family as the shader's LOD cull.
+    // FIX 2026-11-06 ("all the satellites are not clickable, following isn't
+    // possible"): the reach eased to ZERO too early, so on the DEFAULT landing
+    // view (an overview of Earth + its shell) you could not click a single
+    // satellite — the picker had already stood down. Pushed the stand-down band
+    // much later (0.72→0.92) and kept a FLOOR reach of 10px until almost fully
+    // zoomed out, so satellites stay grabbable from the view you actually land on,
+    // while a true far-overview still lets body clicks through.
     const lod = lodRef.current
-    const tt = Math.min(1, Math.max(0, (lod - 0.15) / (0.55 - 0.15)))
-    const openR = 26 * (1 - tt * tt * (3 - 2 * tt))
-    if (openR < 1) return null // overview: clicks belong to the bodies
+    const tt = Math.min(1, Math.max(0, (lod - 0.72) / (0.92 - 0.72)))
+    const openR = 26 - (26 - 10) * (tt * tt * (3 - 2 * tt))  // 26px → 10px floor
+    if (lod > 0.95) return null // only a true far-overview hands clicks to the bodies
     let best = -1
     let bestD2 = (clickOnDisc ? Math.min(8, openR) : openR) ** 2 // squared px grab radius
     for (let i = 0; i < sats.length; i++) {
