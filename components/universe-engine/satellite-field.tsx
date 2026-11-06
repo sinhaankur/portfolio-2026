@@ -431,10 +431,27 @@ function occludedByEarth(dot: THREE.Vector3, cam: THREE.Vector3, centre: THREE.V
 // the surface stays true, only the empty gap to orbit is stretched (a MODE, like the
 // engine's compressRadius for the solar system). scaledR maps a geocentric radius
 // (km) → an expanded geocentric radius (km) still anchored at the surface.
-const SHELL_EXPAND = 4.0
+// A flat multiply (old 4×) spread the shell but LEFT LEO CRAMMED: ~85% of the
+// 18k objects live in the 400–2000 km band, which even at 4× stays a thin,
+// dense crust hugging Earth while GEO flew off to the edges. LeoLabs shows real
+// altitude DEPTH; to beat it we stretch the LOW band HARDER than the high band —
+// a curve, not a line. Every object's altitude is expanded, but the first few
+// thousand km (where the crowd is) gets the most spread, so LEO reads as a
+// deep, layered, legible shell instead of a packed ball. Honest + reversible:
+// the surface stays true; only the gap to orbit is stretched, non-uniformly.
+const SHELL_EXPAND = 6.5           // base multiplier, up from 4×
+const LEO_BOOST = 3.2              // extra stretch applied to the low band
+const LEO_BAND_KM = 2200           // the LEO crowd lives below ~2000 km
 function expandR(rKm: number): number {
-  const alt = rKm - EARTH_RADIUS_KM
-  return EARTH_RADIUS_KM + Math.max(0, alt) * SHELL_EXPAND
+  const alt = Math.max(0, rKm - EARTH_RADIUS_KM)
+  // base linear expansion for the whole shell
+  const base = alt * SHELL_EXPAND
+  // extra, FRONT-LOADED spread for the LEO band: a smooth bump that is strongest
+  // just above the surface and fades out by LEO_BAND_KM, so GEO isn't pushed even
+  // further but the packed LEO crowd gets real vertical room between orbits.
+  const t = Math.min(1, alt / LEO_BAND_KM)
+  const leoExtra = alt * LEO_BOOST * (1 - t) * (1 - t)   // quadratic falloff
+  return EARTH_RADIUS_KM + base + leoExtra
 }
 // finitePos (the NaN/Inf gate for far-past scrubs) moved to ./satellite-data.
 
