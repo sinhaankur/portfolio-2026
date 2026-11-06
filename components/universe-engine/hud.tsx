@@ -1563,6 +1563,26 @@ export function LayersMenu({
               <div className="mt-1.5 mb-1 border-t border-foreground/10" />
             </>
           )}
+          {/* SCALE — its own group, up top, because it's the single most-asked
+              question ("is this to scale?"). The default view COMPRESSES real
+              distances (√AU) so the planets stay framed; this flips to the EXACT
+              real ratios (Neptune really is 30× Earth's distance) — honest, but
+              mostly-empty space, which is the whole point. A one-line helper so
+              nobody has to wonder what the toggle does. */}
+          <div className="px-3 pt-1.5 pb-1 font-mono text-[8px] tracking-[0.24em] uppercase text-foreground/40">
+            Scale
+          </div>
+          <LayerToggleRow
+            label={trueScale ? "True Scale · real distances" : "True Scale · see real distances"}
+            active={trueScale}
+            onToggle={onToggleScale}
+          />
+          <div className="px-3 pb-1.5 pt-0.5 font-mono text-[9px] leading-snug text-foreground/35">
+            {trueScale
+              ? "Exact AU ratios — real, and mostly empty, like space actually is."
+              : "Off: distances are compressed to stay in frame. On: the real ratios."}
+          </div>
+
           <div className="px-3 pt-1.5 pb-1 font-mono text-[8px] tracking-[0.24em] uppercase text-foreground/40">
             Overlays
           </div>
@@ -1575,7 +1595,6 @@ export function LayersMenu({
               <SatelliteGroupChips />
             </div>
           )}
-          <LayerToggleRow label="True Scale" active={trueScale} onToggle={onToggleScale} />
           <LayerToggleRow label="Gravity" active={showGravity} onToggle={onToggleGravity} />
           <LayerToggleRow label="Deep Dive" active={showDeepDive} onToggle={onToggleDeepDive} />
 
