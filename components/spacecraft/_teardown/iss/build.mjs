@@ -150,24 +150,25 @@ const PARTS = [
   { id: "canadarm", name: "Canadarm2 (SSRMS)", role: "17 m robotic arm on the Mobile Base System", grp: "robotics", vec: [-14, -8, 6], num: 27, anchor: [-6, 2, 3], draw: () => canadarm() },
 ];
 
-// radiator: a set of fanned flat panels extending in -y from a truss seg
+// radiator: three flat ammonia panels hanging DOWN (-y) from the truss segment.
+// FIXED 2026-11-06 ("panels that aren't connected"): the panels used to fan out
+// at z = -3, 0, +3 — but the truss is only 2.2 units deep (z = ±1.1), so the
+// outer two floated off the ends, detached. Now all three sit WITHIN the truss
+// depth (z in [-1, +1]) and start flush at the truss's lower face (y = -TRUSS_H/2),
+// so they read as really bolted onto the segment, not hovering near it.
 function radiator(cx, dir) {
-  const out = [], w = 4, len = 7, y0 = dir > 0 ? 1.2 : -1.2;
-  for (let p = 0; p < 3; p++) {
-    const zc = -3 + p * 3;
-    const yB = y0 + dir * len;
-    const corners = [
-      at([cx - w / 2, 0, zc - 0.8]), at([cx + w / 2, 0, zc - 0.8]),
-      at([cx + w / 2, 0, zc - 0.8 + 0]), at([cx - w / 2, 0, zc - 0.8]),
-    ];
-    // a flat panel in the x-y plane going out in y
+  const out = [], w = 5.5, len = 7;
+  const yTop = -TRUSS_H / 2;          // flush with the truss underside
+  const yB = yTop + dir * len;         // hang downward
+  const zs = [-0.9, 0, 0.9];           // three panels, all inside the truss depth
+  for (const zc of zs) {
     const c2 = [
-      at([cx - w / 2, y0, zc]), at([cx + w / 2, y0, zc]),
+      at([cx - w / 2, yTop, zc]), at([cx + w / 2, yTop, zc]),
       at([cx + w / 2, yB, zc]), at([cx - w / 2, yB, zc]),
     ];
     out.push(`<path class="iso-fill" d="${k.pathOf(c2, true)}" style="fill:var(--anatomy-shade-0)"/>`);
     out.push(L(k.pathOf(c2, true), { tone: "lo" }));
-    for (let i = 1; i < 4; i++) { const t = i / 4, yy = y0 + (yB - y0) * t; out.push(L(k.pathOf([at([cx - w / 2, yy, zc]), at([cx + w / 2, yy, zc])]), { tone: "faint" })); }
+    for (let i = 1; i < 5; i++) { const t = i / 5, yy = yTop + (yB - yTop) * t; out.push(L(k.pathOf([at([cx - w / 2, yy, zc]), at([cx + w / 2, yy, zc])]), { tone: "faint" })); }
   }
   return out.join("");
 }
