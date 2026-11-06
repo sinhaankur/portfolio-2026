@@ -53,14 +53,14 @@ const ECOSYSTEM: { kind: string; craft: string }[] = [
   { kind: "Succeeds it", craft: "commercial stations: Axiom, Orbital Reef, Starlab (~2030)" },
 ]
 
-function TeardownFrame() {
+function TeardownFrame({ src, title }: { src?: string; title?: string }) {
   const ref = useRef<HTMLIFrameElement>(null)
 
   // This whole gallery section is ALWAYS dark (bg-[#0a0a0c] text-white),
   // regardless of the site's light/dark theme — so the embedded figure always
   // uses the DARK bundle to sit flush with its surroundings. (The light bundle
   // exists for a future light-surfaced home.)
-  const src = "/reference/spacecraft/iss-teardown/index.html"
+  const frameSrc = src ?? "/reference/spacecraft/iss-teardown/index.html"
 
   return (
     <div className="relative w-full overflow-hidden rounded-2xl border border-white/10 bg-black/20">
@@ -68,8 +68,8 @@ function TeardownFrame() {
           it a fixed aspect so it never collapses to 0 height. */}
       <iframe
         ref={ref}
-        src={src}
-        title="International Space Station — exploded teardown of its 27 real elements"
+        src={frameSrc}
+        title={title ?? "International Space Station — exploded teardown of its 27 real elements"}
         loading="lazy"
         className="block h-[clamp(360px,62vw,640px)] w-full"
         style={{ border: 0, colorScheme: "normal" }}
@@ -184,6 +184,95 @@ export function IssTeardownSection() {
           <p className="mt-8 font-mono text-[10px] text-white/30">
             Figures: NASA · Wikipedia (International Space Station). The structure
             in the figure follows the real assembly sequence, segment by segment.
+          </p>
+        </motion.div>
+      </div>
+    </section>
+  )
+}
+
+// Real Hubble specs — NASA Hubble fact sheet + lib/craft-anatomy.ts.
+const HUBBLE_SPECS: { label: string; value: string; note?: string }[] = [
+  { label: "Mirror", value: "2.4 m", note: "the primary" },
+  { label: "Length", value: "13.2 m", note: "a school bus" },
+  { label: "Mass", value: "~11,100 kg" },
+  { label: "Power", value: "~2.8 kW", note: "two solar wings" },
+  { label: "Altitude", value: "~540 km", note: "low Earth orbit" },
+  { label: "Pointing", value: "7 milliarcsec", note: "a coin, 320 km away" },
+  { label: "Launched", value: "1990", note: "STS-31" },
+  { label: "Servicings", value: "5", note: "by Shuttle crews" },
+]
+
+export function HubbleTeardownSection() {
+  return (
+    <section
+      id="hubble-teardown"
+      className="relative w-full scroll-mt-0 border-t border-white/10 bg-[#0a0a0c] px-5 pb-28 pt-16 text-white md:px-10 md:pt-24"
+    >
+      <div className="mx-auto max-w-6xl">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.6, ease: EASE }}
+        >
+          <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-white/45">
+            In depth
+          </div>
+          <h2 className="mt-3 max-w-3xl font-display text-3xl font-light leading-[1.05] tracking-[-0.02em] md:text-5xl">
+            Hubble is really one long tube.
+          </h2>
+          <p className="mt-5 max-w-2xl font-sans text-sm leading-relaxed text-white/70 md:text-[15px]">
+            Strip away the gold foil and Hubble is an optical telescope the length
+            of a school bus. Starlight enters the aperture door, runs down the
+            baffled tube to the 2.4 m primary mirror at the back, folds off the
+            little secondary near the front, and lands on the instruments at the
+            focal plane. Hover the figure to lift every real part clear; tap one to
+            read what it is.
+          </p>
+        </motion.div>
+
+        <motion.div
+          className="mt-10 md:mt-14"
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.7, ease: EASE }}
+        >
+          <TeardownFrame
+            src="/reference/spacecraft/hubble-teardown/index.html"
+            title="Hubble Space Telescope — exploded teardown of its 10 real elements"
+          />
+        </motion.div>
+
+        <motion.div
+          className="mt-16 md:mt-24"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.6, ease: EASE }}
+        >
+          <h3 className="max-w-2xl font-display text-2xl font-light leading-tight tracking-[-0.01em] text-white md:text-3xl">
+            The real numbers.
+          </h3>
+          <dl className="mt-8 grid grid-cols-2 gap-x-8 gap-y-6 md:grid-cols-4">
+            {HUBBLE_SPECS.map((s) => (
+              <div key={s.label}>
+                <dt className="font-mono text-[9px] uppercase tracking-[0.2em] text-white/40">{s.label}</dt>
+                <dd className="mt-1 font-display text-xl font-light tabular-nums text-white md:text-2xl">{s.value}</dd>
+                {s.note && <dd className="mt-0.5 font-mono text-[10px] leading-snug text-white/35">{s.note}</dd>}
+              </div>
+            ))}
+          </dl>
+          <p className="mt-8 max-w-2xl font-sans text-sm leading-relaxed text-white/55">
+            The famous part: the 2.4 m primary was ground slightly too flat in 1990
+            — a flaw the width of 1/50th of a human hair — and blurred every early
+            image. Astronauts fitted corrective optics in 1993, the first of five
+            servicing missions. It&apos;s been imaging the deep universe ever since.
+          </p>
+          <p className="mt-6 font-mono text-[10px] text-white/30">
+            Figures: NASA Hubble fact sheet. The optical path in the figure is the
+            real light path — aperture → primary → secondary → instruments.
           </p>
         </motion.div>
       </div>

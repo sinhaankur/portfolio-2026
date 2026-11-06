@@ -750,22 +750,29 @@ export function SatelliteSearch() {
                       ))}
                     </ul>
                     {/* SEE IT TAKEN APART — the link from the engine into the
-                        crafted visual teardown (anatomy/teardown skill). The ISS
-                        has a full exploded figure built; link straight to it.
-                        More craft get their own teardown over time; until then
-                        the text parts list above is the read. */}
-                    {anatomyId === "iss" && (
-                      <Link
-                        href="/reference/spacecraft#iss-teardown"
-                        data-cursor-hover
-                        className="mt-3 group flex items-center justify-between gap-2 rounded-lg border border-accent/40 bg-accent/[0.06] px-3 py-2.5 transition-colors hover:border-accent hover:bg-accent/[0.1]"
-                      >
-                        <span className="font-sans text-[11px] text-foreground/85">
-                          See it <span className="text-accent font-medium">taken apart</span> — all 27 real elements, exploded
-                        </span>
-                        <span aria-hidden className="font-mono text-[12px] text-accent transition-transform group-hover:translate-x-0.5">→</span>
-                      </Link>
-                    )}
+                        crafted visual teardown (anatomy/teardown skill). Each
+                        craft with a built exploded figure deep-links to it; the
+                        rest show the text parts list above. */}
+                    {(() => {
+                      const TEARDOWNS: Record<string, { href: string; blurb: string }> = {
+                        iss: { href: "/reference/spacecraft#iss-teardown", blurb: "all 27 real elements, exploded" },
+                        hubble: { href: "/reference/spacecraft#hubble-teardown", blurb: "all 10 real parts, exploded" },
+                      }
+                      const td = anatomyId ? TEARDOWNS[anatomyId] : undefined
+                      if (!td) return null
+                      return (
+                        <Link
+                          href={td.href}
+                          data-cursor-hover
+                          className="mt-3 group flex items-center justify-between gap-2 rounded-lg border border-accent/40 bg-accent/[0.06] px-3 py-2.5 transition-colors hover:border-accent hover:bg-accent/[0.1]"
+                        >
+                          <span className="font-sans text-[11px] text-foreground/85">
+                            See it <span className="text-accent font-medium">taken apart</span> — {td.blurb}
+                          </span>
+                          <span aria-hidden className="font-mono text-[12px] text-accent transition-transform group-hover:translate-x-0.5">→</span>
+                        </Link>
+                      )
+                    })()}
 
                     {/* how it was built — the memorable fact */}
                     <p className="mt-3 rounded-lg border border-accent/20 bg-accent/[0.05] px-3 py-2 font-sans text-[11px] text-foreground/75 leading-relaxed">
