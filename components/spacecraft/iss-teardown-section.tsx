@@ -63,7 +63,17 @@ function TeardownFrame({ src, title }: { src?: string; title?: string }) {
   const frameSrc = src ?? "/reference/spacecraft/iss-teardown/index.html"
 
   return (
-    <div className="relative w-full overflow-hidden rounded-2xl border border-white/10 bg-black/20">
+    // A subtly LIFTED backdrop (not pure black) + a soft radial glow so the
+    // dark-grey wireframe figure actually READS — on bg-black/20 it was a ghost,
+    // nearly invisible (Ankur: "doesn't match"). The anatomy dark palette shows
+    // by edges, so the figure needs a hair of contrast behind it.
+    <div
+      className="relative w-full overflow-hidden rounded-2xl border border-white/15"
+      style={{
+        background:
+          "radial-gradient(ellipse at 50% 42%, rgba(120,130,150,0.10) 0%, rgba(20,22,30,0.6) 45%, rgba(10,11,16,0.9) 100%)",
+      }}
+    >
       {/* The figure reserves its own headroom for the explode; the iframe gives
           it a fixed aspect so it never collapses to 0 height. */}
       <iframe

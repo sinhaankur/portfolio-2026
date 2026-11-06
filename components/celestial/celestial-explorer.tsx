@@ -742,7 +742,7 @@ export function CelestialExplorer() {
             if (pick && pick(e.clientX, e.clientY)) e.stopPropagation()
           }}
         >
-          <UniverseEngine interactive showHud showMusic={false} defaultTrueScale solarOnly quietMobileChrome />
+          <UniverseEngine interactive showHud showMusic defaultTrueScale solarOnly quietMobileChrome />
         </div>
 
         {/* Top-left cluster — decluttered: only the two PRIMARY actions stay
