@@ -374,7 +374,7 @@ export function PlanetBody({
         return
       }
       // "earth-moon" framing pulls the camera back far enough to hold BOTH Earth
-      // (with its satellite shell) AND the Moon's orbit (0.42 units out) in one
+      // (with its satellite shell) AND the Moon's orbit (0.95 units out) in one
       // view — the "Earth, its satellites, and Luna" preset.
       const earthMoonView = detail?.framing === "earth-moon" && planet.raw.name === "Earth"
       // Zoom-ladder framings (progressive drill-down): "surface" dollies right
@@ -399,8 +399,9 @@ export function PlanetBody({
         // back enough to see it wrap the whole globe. (3.5× = only a slice; 9× =
         // Earth too small, shell too thin to see.)
         const followDistance = earthMoonView
-          // Frame Earth + the Moon's whole orbit (Moon at 0.42) with headroom.
-          ? 1.05
+          // Frame Earth + the Moon's whole orbit (Moon now at 0.95 — pushed out
+          // 2026-11-05 so the Moon isn't crammed against Earth) with headroom.
+          ? 2.1
           : surfaceView
             // Close approach — skim just above the surface (dramatic "you are here").
             ? Math.max(planet.visualRadius * 1.6, 0.14)
