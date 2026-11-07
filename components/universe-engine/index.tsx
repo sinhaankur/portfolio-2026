@@ -160,7 +160,14 @@ export function UniverseEngine({
   showHud = true,
   showMusic = true,
   invert: invertProp,
-  defaultTrueScale = false,
+  // ACTUAL SCALE EVERYWHERE 2026-11-06 (Ankur: "make everything actual scale … to
+  // be honest … it won't look crammed up"): true scale is now the DEFAULT on every
+  // surface (home hero included), not just /lab/celestial. The engine's true north
+  // is real-over-invented, and at real distances nothing crams — the inner planets
+  // get genuine void between them and you navigate the big system by zoom (endless
+  // zoom + distance-adaptive speed). The compressed "see it all at once" layout is
+  // still available via the scale toggle; it's just no longer the default.
+  defaultTrueScale = true,
   solarOnly = false,
   minimalControls = false,
   quietMobileChrome = false,
