@@ -140,11 +140,30 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      # Fall back to the retry step's URL if the first attempt failed over to it.
+      url: ${{ steps.deployment.outputs.page_url || steps.deployment_retry.outputs.page_url }}
     steps:
+      # Deploy to Pages. GitHub Pages' file-sync step is occasionally slow on
+      # THEIR side (seen 2026-11-07: repeated "syncing_files" → "Timeout reached,
+      # aborting!" on the DEFAULT 10-min timeout / 10-error budget, while the build
+      # was fine and other repos' Pages deploys failed identically). So:
+      #  (a) give a slow-but-working sync far more room (30-min timeout, 30 errors),
+      #  (b) continue-on-error on the first try + auto-retry ONCE, so a transient
+      #      platform blip self-heals instead of needing a manual re-run.
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
+        continue-on-error: true
+        with:
+          timeout: 1800000   # 30 min (default 10) — don't abort a slow sync
+          error_count: 30    # tolerate more transient status-report errors
+      - name: Deploy (retry once if the first attempt failed)
+        id: deployment_retry
+        if: steps.deployment.outcome == 'failure'
+        uses: actions/deploy-pages@v4
+        with:
+          timeout: 1800000
+          error_count: 30
 
       # Purge Cloudflare's edge cache after a successful deploy so the new build
       # goes live instantly instead of waiting for cached assets to expire. Uses
