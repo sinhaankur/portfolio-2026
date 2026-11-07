@@ -45,7 +45,7 @@ import {
   SUN_OFFSET_SCENE,
 } from "./astronomy"
 import { bandBrightness } from "@/lib/observe"
-import { perfTierRef } from "@/lib/device-tier"
+import { perfTierRef, superClearRef } from "@/lib/device-tier"
 import { getBlackHoleAffordance } from "./celestial-sub-engine"
 import { galacticBasis, loadAllSkyTexture } from "./sky-panorama"
 import type { SkyPoint } from "./types"
@@ -245,7 +245,13 @@ function BlackHoleShadowSphere() {
  * dither + transmission compositing (near disk image attenuates the ones behind),
  * the proven method from real-time geodesic renderers.
  * ============================================================ */
-const BH_QUAD_RS = 18 // quad half-extent in rs units (disk reaches ~16)
+// Quad half-extent in rs units. The disk reaches ~16 rs, but the billboard is
+// camera-facing — at grazing/oblique orbit angles the disk projects WIDER than its
+// own radius, so an 18-rs quad clipped it (the "flat / cut-off" look from some
+// angles). 30 gives comfortable margin so the full lensed disk + its over/under
+// halo stay on the quad from EVERY angle. (Pixels outside the shadow+disk escape
+// the march cheaply, so the extra margin costs almost nothing.)
+const BH_QUAD_RS = 30
 
 const BH_VERT = /* glsl */ `
   varying vec3 vWorldPos;
@@ -348,18 +354,27 @@ const BH_FRAG = /* glsl */ `
     vec3 ringCol=vec3(1.0,0.96,0.88)*ring*3.2;
     vec3 bg = captured ? vec3(0.0) : (uHasSky>0.5 ? skySample(normalize(vel))*uSkyLevel : vec3(0.0))*trans;
     vec3 col = emis + bg + ringCol;
-    // cinematic grade: crush blacks, bloom, warm halo, IMAX anamorphic flare
+    // cinematic grade: crush blacks, bloom, warm halo.
     col = max(col-0.035,0.0)/(1.0-0.035);
     float lum=max(col.r,max(col.g,col.b));
     col += col*smoothstep(0.55,1.9,lum)*0.95;
     col += vec3(1.0,0.82,0.55)*smoothstep(1.2,3.0,lum)*0.25;
-    float flareY=exp(-pow((vUv.y-0.5)*14.0,2.0));
-    col += vec3(1.0,0.86,0.62)*flareY*smoothstep(1.0,2.6,lum)*0.5;
+    // IMAX anamorphic flare — SEAM FIX 2026-11-07: the old flare was pinned to the
+    // billboard's vUv.y centre (a fixed screen-space band), which read as a hard
+    // horizontal SEAM slicing the hole in half, and it swung around wrongly as the
+    // camera orbited. Anchor the flare to the DISK PLANE instead (vel.y ≈ height
+    // above the disk in the BH rest frame), so the glint sits along the real disk,
+    // not across the screen — and it stays correct from every angle. Softened + narrower.
+    float diskGlint = exp(-pow(vel.y*2.2, 2.0));
+    col += vec3(1.0,0.86,0.62)*diskGlint*smoothstep(1.1,2.8,lum)*0.28;
     col = col/(1.0+0.08*lum);
     col = pow(col,vec3(0.82));
-    // radial rim fade so the quad edge never reads as a square
+    // ALL-ANGLES FIX: fade only the EXTREME quad corners (no hard circular crop,
+    // which cropped the disk flat at oblique views). The disk/shadow already fade
+    // by physics; this just hides the literal quad edge very gently so it never
+    // reads as a square — without clipping the lensed disk that extends past centre.
     float rim=length(vUv-0.5)*2.0;
-    float alpha=1.0 - smoothstep(0.82,1.0,rim);
+    float alpha=1.0 - smoothstep(0.94,1.0,rim);
     gl_FragColor=vec4(col,alpha);
   }
 `
@@ -423,9 +438,12 @@ function BlackHoleRaymarch({
     uniforms.uTime.value = clock.elapsedTime
     // Perf gate: scale the geodesic march depth to the live tier so the heaviest
     // shader in the engine never chokes a weak GPU. Ultra gets the full march;
-    // low drops to ~90 steps (coarser lensing, still reads correctly).
+    // low drops to ~90 steps (coarser lensing, still reads correctly). SUPER CLEAR
+    // (16K / max-detail mode) pins the full 240-step march on any tier — the user
+    // asked for maximum crispness, so the photon ring + disk resolve razor-sharp.
     const t = perfTierRef.current
-    uniforms.uMaxSteps.value = t === "ultra" ? 240 : t === "high" ? 190 : t === "mid" ? 140 : 90
+    uniforms.uMaxSteps.value = superClearRef.current ? 240
+      : t === "ultra" ? 240 : t === "high" ? 190 : t === "mid" ? 140 : 90
     // Same vantage fade as SkyPanorama (130→300 from the shell centre).
     const dist = camera.position.distanceTo(_bhShellCenter)
     uniforms.uSkyLevel.value = 1 - Math.min(1, Math.max(0, (dist - 130) / 170))
