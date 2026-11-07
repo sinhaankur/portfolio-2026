@@ -129,3 +129,11 @@ public/textures/terrain/pyramid/
 
 # Unrelated scratch project (not part of the site) — keep out of lint/git
 cartoon_boy_project/
+
+# Local build-artifact scratch (before/after CHANGES.html + screenshots used to
+# SHOW changes during a session) — a working convenience, never part of the repo.
+.build-artifacts/
+
+# Local dev-only diagnostics (headless-Chrome screenshot probes for the engine).
+# Kept on disk as a debugging convenience; not maintained site code.
+scripts/diag-*.mjs
