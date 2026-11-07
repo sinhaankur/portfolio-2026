@@ -22,7 +22,6 @@ import { TimelineControl } from "@/components/universe-engine/hud"
 import { BODIES } from "@/lib/celestial-data"
 import { SatelliteSearch } from "./satellite-search"
 import { AnimatedNumber } from "@/components/animated-number"
-import { ZoomLadder } from "./zoom-ladder"
 import { SkyDome } from "./sky-dome"
 import { useIsMobile, MobileBar, BodiesSheet, Sheet } from "./mobile-controls"
 import { selectedSatRef, satGroupFilterRef, showAllSatsRef, satPickAtScreenRef } from "@/components/universe-engine/satellite-refs"
@@ -856,13 +855,9 @@ export function CelestialExplorer() {
           <SatelliteSearch />
         </div>
 
-        {/* Progressive zoom ladder — the LeoLabs/CelesTrak drill-down pattern:
-            System → Earth → Shell → Surface in one tap. Right edge, vertically
-            centered, desktop only (mobile leads scene-first + has the Time/Tools
-            bar). Free 360° orbit + scroll-zoom still work; this adds named depth. */}
-        <div className="hidden md:flex absolute right-8 top-1/2 -translate-y-1/2 z-30 pointer-events-none">
-          <ZoomLadder />
-        </div>
+        {/* Zoom ladder (System → Earth → Shell → Surface) removed 2026-11-07
+            (Ankur: "this is not required") — it crowded the right edge and
+            duplicated what free scroll-zoom already does. Navigate by zooming. */}
 
         {/* Swarm-point inspector — a followed dot in the shell has no catalogue
             identity (no NORAD id / operator / launch date), so we show ONLY the

@@ -728,6 +728,7 @@ const VERT = /* glsl */ `
   varying float vFade;     // LOD alpha multiplier (LEO haze at overview zoom)
   varying float vRand;     // stable per-dot random → gentle twinkle phase in frag
   varying float vTypeEmph; // 1 = a type filter is engaged → let type colour SPEAK
+  varying float vMatch;    // 1 = highlight match (or none engaged) → pop; 0 = dimmed
   void main() {
     vColor = aColor;
     vDebris = aDebris;
@@ -746,14 +747,13 @@ const VERT = /* glsl */ `
     // Any explicit filter or isolate means the user asked for a specific
     // subset — show it in full.
     float lodEff = (uGroupSel >= 0.0 || uRegimeSel >= 0.0 || uFamilySel >= 0.0 || uTypeSel >= 0.0 || uCountrySel >= 0.0 || uIsolate > 0.5) ? 0.0 : uLod;
-    // At overview, THIN the LEO band HARD so dots stay SEPARATE (crisp LeoLabs
-    // read) instead of fusing into a green crust. ~16k objects live in the thin
-    // LEO band; even on the now-tighter true-ish shell, keeping 60% of them left a
-    // solid blob. Dropping to ~30% at full overview lets the shell read as
-    // individual points, then resolves to the FULL swarm as you zoom in (lodEff →
-    // 0). The uKeepFloor / MIN_VISIBLE_DOTS guard still prevents over-thinning a
-    // sparse-era or small filtered set.
-    float keep = max(mix(1.0, 0.3, lodEff) * uKeepScale, uKeepFloor);
+    // Overview thinning, SOFTENED 2026-11-07 (Ankur: "make the satellites always
+    // visible"). We still thin the packed LEO band a little at overview so it reads
+    // as separated points rather than one fused crust, but only down to ~70% (was
+    // 30%, which emptied the shell too much) — so the satellites stay present at
+    // every zoom and just get CRISPER as you fly in. The uKeepFloor / MIN_VISIBLE_DOTS
+    // guard still protects sparse eras + filtered sets.
+    float keep = max(mix(1.0, 0.7, lodEff) * uKeepScale, uKeepFloor);
     // Soft cull edge: each dot fades over a small aRand band around the moving
     // threshold instead of popping, so zooming reads as the haze *resolving*
     // into satellites, not dots switching on.
@@ -772,11 +772,23 @@ const VERT = /* glsl */ `
     float typeHide = (uTypeSel < -0.5) ? 0.0
                    : (uTypeSel < 0.5) ? aDebris          // active-only: hide debris
                    : (1.0 - aDebris);                    // debris-only: hide active
+    // HIGHLIGHT, not hide (Ankur: "when I click India it doesn't highlight"). The
+    // country + group filters are a "who owns space / which constellation" READ —
+    // hiding 18k dots to leave ~72 faint specks looked empty + broken. Instead keep
+    // the whole swarm visible but DIM the non-matches and make the matches POP
+    // (brighter + bigger, handled below via vMatch). Regime/family/type stay true
+    // HIDES (they're genuine subset selections). A satellite "matches" when it
+    // passes every ENGAGED highlight filter.
+    float wantHighlight = (uCountrySel >= 0.0 || uGroupSel >= 0.0) ? 1.0 : 0.0;
+    float matches = 1.0;
+    if (uCountrySel >= 0.0 && abs(aCountry - uCountrySel) > 0.5) matches = 0.0;
+    if (uGroupSel   >= 0.0 && abs(aGroup   - uGroupSel)   > 0.5) matches = 0.0;
+    // vMatch: 1 = this dot is a highlight match (or no highlight engaged) → full
+    // brightness + size boost; 0 = dimmed context. Read in the fragment + size below.
+    vMatch = (wantHighlight < 0.5) ? 1.0 : matches;
     vHidden = (aLaunchDay > uTimeDay || decayed > 0.5 || cullFade < 0.01 ||
                typeHide > 0.5 ||
-               (uGroupSel >= 0.0 && abs(aGroup - uGroupSel) > 0.5) ||
                (uRegimeSel >= 0.0 && abs(aRegime - uRegimeSel) > 0.5) ||
-               (uCountrySel >= 0.0 && abs(aCountry - uCountrySel) > 0.5) ||
                (uFamilySel >= 0.0 && abs(aFamily - uFamilySel) > 0.5)) ? 1.0 : 0.0;
     // Surviving LEO dots dim a little at overview so the thinned band reads as
     // separated points, not one luminous wash — resolving to full brightness as
@@ -789,12 +801,17 @@ const VERT = /* glsl */ `
     // LeoLabs read is thousands of CRISP dots, not a faint scatter. Debris slightly
     // smaller so active payloads stand out.
     float sizeMul = aDebris > 0.5 ? 0.7 : 1.0;
+    // Highlight match → grow the dot so the selected country/group POPS out of the
+    // dimmed field; dimmed context shrinks slightly so the matches read first.
+    sizeMul *= (vMatch > 0.5) ? 1.0 : 0.72;
     float persp = uSize * sizeMul * uPixelRatio * (1.0 / -mv.z);
     // Floor keeps every satellite legible without blooming. Smaller floor at
     // overview (1.15 → 0.85) so far-out dots stay PINPOINT and separated rather
     // than fattening into a merged haze; they grow naturally by perspective as
-    // you approach.
+    // you approach. Matches hold a higher floor so they never disappear into the
+    // dimmed field even at overview.
     float minPx = mix(1.15, 0.85, lodEff) * uPixelRatio * sizeMul;
+    if (vMatch > 0.5) minPx = max(minPx, 1.6 * uPixelRatio);
     float s = vHidden > 0.5 ? 0.0 : clamp(persp, minPx, uMaxPx * uPixelRatio);
     gl_PointSize = s;
   }
@@ -811,6 +828,7 @@ const FRAG = /* glsl */ `
   varying float vFade;
   varying float vRand;
   varying float vTypeEmph;
+  varying float vMatch;   // 1 = highlight match (or none engaged); 0 = dimmed context
   void main() {
     if (vHidden > 0.5) discard;
     // Crisp catalogued dot: a bright tight core + a small soft rim. Denser than
@@ -865,6 +883,11 @@ const FRAG = /* glsl */ `
     a *= tw;
     // Selection dims the rest to quiet context so the pick stands out.
     a *= mix(1.0, 0.5, uIsolate);
+    // Highlight filter: dim the non-matches to quiet context (0.22) so the matched
+    // country/group reads instantly as the bright subset — a real "highlight", not
+    // an empty scene. Matches keep full alpha + a touch of extra pop in the core.
+    a *= (vMatch > 0.5) ? 1.0 : 0.22;
+    if (vMatch > 0.5) col += col * 0.25;  // matched dots glow a little brighter
     gl_FragColor = vec4(col, a);
   }
 `
@@ -2156,23 +2179,25 @@ export function SatelliteField({ earthVisualRadius }: { earthVisualRadius: numbe
     if (deb && timeDay > att("aDecayDay").getX(idx)) return false // burned up
     const typeSel = satTypeFilterRef.current
     if (typeSel >= 0 && (typeSel < 0.5 ? deb : !deb)) return false
-    const groupSel = satGroupFilterRef.current
-    if (groupSel >= 0 && Math.abs(att("aGroup").getX(idx) - groupSel) > 0.5) return false
     const regimeSel = satRegimeFilterRef.current
     if (regimeSel >= 0 && Math.abs(att("aRegime").getX(idx) - regimeSel) > 0.5) return false
-    const countrySel = satCountryFilterRef.current
-    if (countrySel >= 0 && Math.abs(att("aCountry").getX(idx) - countrySel) > 0.5) return false
+    // Country + group are now HIGHLIGHT filters (dim non-matches, don't hide them),
+    // so non-matching dots are still on screen and must stay CLICKABLE — do NOT
+    // reject them here (matches VERT, which no longer sets vHidden for these).
     const familySel = debrisFamilyFilterRef.current
     if (familySel >= 0 && Math.abs(att("aFamily").getX(idx) - familySel) > 0.5) return false
     // Overview LOD cull applies to LEO only (MEO/GEO/HEO never thin).
     if (att("aRegime").getX(idx) >= 0.5) return true
+    // Any ENGAGED filter/highlight means the user asked for a subset → show it in
+    // full (no LEO cull), matching VERT's lodEff gate. Country + group are reads
+    // only here (they highlight, not hide — see above).
     const filtered =
-      groupSel >= 0 || regimeSel >= 0 || familySel >= 0 || typeSel >= 0 ||
-      countrySel >= 0 || selectedSatRef.current != null
-    // Mirror the SHADER's keep formula (mix(1.0, 0.6, lodEff) = 1 - 0.4*lod) so a
+      satGroupFilterRef.current >= 0 || regimeSel >= 0 || familySel >= 0 || typeSel >= 0 ||
+      satCountryFilterRef.current >= 0 || selectedSatRef.current != null
+    // Mirror the SHADER's keep formula (mix(1.0, 0.7, lodEff) = 1 - 0.3*lod) so a
     // dot that's visibly on screen is also click-pickable (mismatch → you click a
     // dot you can see and nothing happens).
-    const keep = Math.max((filtered ? 1 : 1 - 0.4 * lodRef.current) * areaScale, keepFloorRef.current)
+    const keep = Math.max((filtered ? 1 : 1 - 0.3 * lodRef.current) * areaScale, keepFloorRef.current)
     return att("aRand").getX(idx) <= keep - 0.04
   }
 

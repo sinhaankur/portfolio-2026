@@ -909,8 +909,11 @@ export function ResetViewButton({ onClick }: { onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
+      // Moved to the LEFT edge, mid-height 2026-11-07: at top-right it collided
+      // with the satellite search + its (now collapsible) filter chips — the
+      // "RESET VIEW over the UK chip" overlap. The left edge is clear chrome.
       className="
-        absolute top-20 right-6 md:top-40 md:right-12 z-30
+        absolute top-24 left-4 md:top-1/2 md:left-8 md:-translate-y-1/2 z-30
         inline-flex items-center gap-2 px-3.5 py-2
         border border-foreground/25 rounded-full
         bg-background/50 backdrop-blur-sm

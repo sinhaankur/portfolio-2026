@@ -14,7 +14,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
-import { Search, X, Crosshair, Locate, Download } from "lucide-react"
+import { Search, X, Crosshair, Locate, Download, SlidersHorizontal } from "lucide-react"
 import { loadSatelliteCatalog, selectedArchetypeRef, selectedArchetypeIdRef, selectedOrbitRef, observerRef, findNearestOverhead, launchMatesFor, satTypeFilterRef, satCountryFilterRef, type SatMeta, type SatOrbit, type NearestSat, type LaunchMate } from "@/components/universe-engine/satellite-data"
 import { selectedSatRef, showJourneyRef } from "@/components/universe-engine/satellite-refs"
 import { SAT_COUNTRIES, classifyCountry } from "@/components/universe-engine/satellite-field"
@@ -383,13 +383,30 @@ export function SatelliteSearch() {
           onFocus={() => setExpanded(true)}
           placeholder={catalog ? "Search satellites…" : "Loading catalogue…"}
           aria-label="Search satellites by name"
-          className="w-full rounded-full border border-border bg-background/80 backdrop-blur-md pl-9 pr-4 py-2.5 font-mono text-xs tracking-wider text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          className="w-full rounded-full border border-border bg-background/80 backdrop-blur-md pl-9 pr-10 py-2.5 font-mono text-xs tracking-wider text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         />
+        {/* Filters toggle — CLEAN DEFAULT: the chips (type/country/overhead) stay
+            tucked away until asked for, on every breakpoint. The default view is
+            just this search pill, so the scene breathes. Tap to reveal/hide. */}
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          data-cursor-hover
+          aria-label={expanded ? "Hide filters" : "Show filters"}
+          aria-expanded={expanded}
+          title={expanded ? "Hide filters" : "Filters"}
+          className={`absolute right-2 top-1/2 -translate-y-1/2 grid h-7 w-7 place-items-center rounded-full border transition-colors ${
+            expanded ? "border-accent/60 bg-accent/15 text-accent" : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden />
+        </button>
       </div>
 
       {/* Active / debris filter — isolate the real junk cloud (LeoLabs-style).
-          Scene-first: hidden on mobile until the search is engaged; always on ≥md. */}
-      <div className={`mt-2 ${expanded ? "flex" : "hidden"} md:flex flex-wrap gap-1.5`}>
+          CLEAN DEFAULT: revealed only when the user opens filters (all breakpoints),
+          so the resting view is scene + search, never a wall of chips. */}
+      <div className={`mt-2 ${expanded ? "flex" : "hidden"} flex-wrap gap-1.5`}>
         {([
           { k: "all", label: "All" },
           { k: "active", label: `Active · ${counts.active.toLocaleString()}` },
@@ -416,7 +433,7 @@ export function SatelliteSearch() {
       {/* Owner-country filter — "who owns space". Tap a nation to isolate its
           objects in the swarm + list (tap again = all). Real CelesTrak owner
           data. Scene-first: hidden on mobile until the search is engaged. */}
-      <div className={`mt-2 ${expanded ? "flex" : "hidden"} md:flex flex-wrap gap-1.5`}>
+      <div className={`mt-2 ${expanded ? "flex" : "hidden"} flex-wrap gap-1.5`}>
         {SAT_COUNTRIES.filter((c) => c.id !== 7).map((c) => (
           <button
             key={c.id}
@@ -437,7 +454,7 @@ export function SatelliteSearch() {
 
       {/* What's overhead right now — nearest object to the user's own location.
           Scene-first: revealed on mobile once the search is engaged; always ≥md. */}
-      <div className={`mt-2 ${expanded ? "block" : "hidden"} md:block`}>
+      <div className={`mt-2 ${expanded ? "block" : "hidden"}`}>
         <button
           type="button"
           onClick={scanNearest}
