@@ -680,18 +680,30 @@ const VOLNEB_FRAG = `
     return mix(mix(mix(n000,n100,f.x),mix(n010,n110,f.x),f.y),
                mix(mix(n001,n101,f.x),mix(n011,n111,f.x),f.y), f.z);
   }
-  float fbm(vec3 p){ float v=0.0,a=0.5; for(int i=0;i<6;i++){ v+=a*vnoise(p); p=p*2.03+vec3(1.7); a*=0.5; } return v; }
+  float fbm(vec3 p){ float v=0.0,a=0.5; for(int i=0;i<7;i++){ v+=a*vnoise(p); p=p*2.03+vec3(1.7); a*=0.5; } return v; }
+  // Ridged noise — abs-folded FBM. Real nebulae are defined by sharp bright
+  // FILAMENTS + dark dust lanes (Eagle's pillars, Orion's fingers), which smooth
+  // FBM alone can't make. Ridges give those crisp luminous threads + voids.
+  float ridged(vec3 p){ float v=0.0,a=0.5; for(int i=0;i<5;i++){ v+=a*(1.0-abs(2.0*vnoise(p)-1.0)); p=p*2.17+vec3(3.1); a*=0.5; } return v; }
 
-  // density at a point in local space (~[-1,1]). Richer than a plain blob: a
-  // base radial falloff carved by multi-octave FBM, with a brighter dense core;
-  // ring mode hollows the centre into a shell (planetary nebulae like M57).
+  // density at a point in local space (~[-1,1]). Real nebula structure: a radial
+  // falloff carved by domain-warped FBM, THREADED with ridged filaments and bitten
+  // by dark dust lanes, plus a brighter dense core. Ring mode hollows the centre
+  // into a shell (planetary nebulae like M57).
   float density(vec3 p){
     float r = length(p);
     // domain-warp the sample point with a low-freq noise → billowy, not uniform
     vec3 warp = vec3(fbm(p*0.9 + uTime*0.015), fbm(p*0.9 + 3.1), fbm(p*0.9 - 2.2)) - 0.5;
     vec3 q = p + warp * 0.6;
     float n = fbm(q * 2.0);
-    n = smoothstep(0.42, 0.95, n);
+    n = smoothstep(0.40, 0.95, n);
+    // Bright filaments threading the gas (the luminous "fingers") + dark dust lanes
+    // carving voids — the two features that make real nebulae read as structure,
+    // not a soft blob.
+    float fil = ridged(q * 3.2 + 5.0);
+    n = n * (0.65 + 0.9 * fil * fil);                 // filaments brighten the gas
+    float dust = smoothstep(0.55, 0.78, fbm(q * 1.6 + 11.0));
+    n *= (1.0 - 0.7 * dust);                           // dark lanes bite into it
     float fall;
     if (uMode > 0.5) {
       // ring/shell: peak at a mid radius, hollow centre + faded edge
@@ -700,23 +712,35 @@ const VOLNEB_FRAG = `
       fall = smoothstep(1.0, 0.12, r);
     }
     float core = (uMode > 0.5) ? 0.0 : pow(smoothstep(0.35, 0.0, r), 2.0) * 0.5; // bright nucleus
-    return (n * fall + core) * uDensity;
+    return max(n, 0.0) * fall * uDensity + core * uDensity;
   }
 
   void main(){
     vec3 rd = normalize(vLocalPos - vCamLocal);
-    const int STEPS = 56;
+    const int STEPS = 72;
     float stepLen = 2.7 / float(STEPS);
     vec3 p = vLocalPos;            // start at the entry face, march toward camera
     vec3 dir = -rd * stepLen;
     vec3 acc = vec3(0.0);
     float trans = 1.0;
+    // Light direction for the cheap self-shadow (gives the gas real DEPTH instead
+    // of a flat uniform glow): denser gas between a sample and the "light" dims it.
+    vec3 ldir = normalize(vec3(0.5, 0.7, 0.4));
     for(int i=0;i<STEPS;i++){
       float d = density(p);
       if(d > 0.001){
-        // colour: faint rim → bright core hue as density rises
-        vec3 col = mix(uRim, uGlow, smoothstep(0.0, 0.55, d));
-        float a = d * 0.12;
+        // Hα / O-III stratification (real nebula spectroscopy): the thin IONISED
+        // EDGES glow teal-green (O III), the DENSE cores glow the warm Hα hue. Map
+        // local density through rim(low) → glow(high) with a touch of extra teal in
+        // the mid band so the ionisation front reads.
+        float t = smoothstep(0.0, 0.6, d);
+        vec3 col = mix(uRim, uGlow, t);
+        col += vec3(-0.05, 0.10, 0.06) * (1.0 - abs(t - 0.4) * 2.5); // OIII mid-band lift
+        // Cheap self-shadow: sample density one short step toward the light; if gas
+        // sits in front, darken — carves visible 3D form into the cloud.
+        float sh = density(p + ldir * 0.14);
+        col *= (1.0 - 0.45 * smoothstep(0.1, 0.6, sh));
+        float a = d * 0.13;
         acc += trans * a * col;
         trans *= (1.0 - a);
         if(trans < 0.02) break;
