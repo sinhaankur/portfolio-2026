@@ -282,7 +282,7 @@ const BH_FRAG = /* glsl */ `
   // The loop bound must be a compile-time constant in GLSL, so we loop to a high
   // ceiling but break early at uMaxSteps — the device tier dials it down so a
   // weak GPU doesn't choke on the full geodesic march (ultra 240 → low ~90).
-  const int STEPS = 240;
+  const int STEPS = 320;
   const float ESCAPE_R = 44.0;
 
   float hash(vec2 p){ p=fract(p*vec2(123.34,345.45)); p+=dot(p,p+34.345); return fract(p.x*p.y); }
@@ -332,7 +332,11 @@ const BH_FRAG = /* glsl */ `
       if(r<1.0){ captured=true; break; }
       if(r>ESCAPE_R+1.0 && dot(pos,vel)>0.0) break;
       if(trans<0.02) break;
-      float dt=clamp(r*0.12,0.03,2.5);
+      // FINER near the hole + per-STEP jitter — the grey concentric-ring moiré came
+      // from a coarse step quantising each ray's closest approach (rMin) into shells.
+      // A tighter floor (0.03→0.012) resolves the photon ring smoothly, and jittering
+      // the step length itself (not just the ray origin) dissolves any residual banding.
+      float dt=clamp(r*0.09,0.012,2.5) * (0.85 + 0.3*hash(gl_FragCoord.xy + float(i) + fract(uTime)));
       vec3 a0=-1.5*h2*pos/pow(r,5.0) + uSpin*0.9/max(r*r,1.0)*vec3(-pos.z,0.0,pos.x)/max(length(pos.xz),1e-3);
       vec3 vh=vel+a0*dt*0.5; vec3 np=pos+vh*dt; float nr=length(np);
       vec3 a1=-1.5*h2*np/pow(nr,5.0); vec3 nv=vh+a1*dt*0.5;
@@ -349,24 +353,29 @@ const BH_FRAG = /* glsl */ `
       }
       pos=np; vel=nv; prevY=np.y;
     }
+    // Photon ring — a thin bright Einstein ring at the photon sphere (rMin≈1.5 rs).
+    // Softened the core width (0.11→0.18) so any residual march banding can't read as
+    // hard concentric rings, and kept the broad warm halo. Only the TIGHT ring near
+    // the sphere glows — far-out rMin values (the old grey bullseye) contribute ~0.
     float dr=clamp(rMin-1.5,-8.0,8.0);
-    float ring=exp(-(dr/0.11)*(dr/0.11)) + 0.5*exp(-(dr/0.4)*(dr/0.4));
-    vec3 ringCol=vec3(1.0,0.96,0.88)*ring*3.2;
+    float ring=exp(-(dr/0.18)*(dr/0.18)) + 0.35*exp(-(dr/0.5)*(dr/0.5));
+    // TRUE-BLACK SHADOW: a captured ray fell past the horizon — nothing escapes, so
+    // it must be pure black. The broad ring halo was leaking ~0.13 grey INTO the
+    // shadow (rMin<1.5 → the wide gaussian still had value), which is why the hole
+    // read grey, not black. Kill the ring (and any emission) for captured rays.
+    vec3 ringCol = captured ? vec3(0.0) : vec3(1.0,0.96,0.88)*ring*3.0;
     vec3 bg = captured ? vec3(0.0) : (uHasSky>0.5 ? skySample(normalize(vel))*uSkyLevel : vec3(0.0))*trans;
-    vec3 col = emis + bg + ringCol;
+    vec3 col = captured ? vec3(0.0) : (emis + bg + ringCol);
     // cinematic grade: crush blacks, bloom, warm halo.
     col = max(col-0.035,0.0)/(1.0-0.035);
     float lum=max(col.r,max(col.g,col.b));
     col += col*smoothstep(0.55,1.9,lum)*0.95;
     col += vec3(1.0,0.82,0.55)*smoothstep(1.2,3.0,lum)*0.25;
-    // IMAX anamorphic flare — SEAM FIX 2026-11-07: the old flare was pinned to the
-    // billboard's vUv.y centre (a fixed screen-space band), which read as a hard
-    // horizontal SEAM slicing the hole in half, and it swung around wrongly as the
-    // camera orbited. Anchor the flare to the DISK PLANE instead (vel.y ≈ height
-    // above the disk in the BH rest frame), so the glint sits along the real disk,
-    // not across the screen — and it stays correct from every angle. Softened + narrower.
-    float diskGlint = exp(-pow(vel.y*2.2, 2.0));
-    col += vec3(1.0,0.86,0.62)*diskGlint*smoothstep(1.1,2.8,lum)*0.28;
+    // SEAM REMOVED 2026-11-07: the "disk glint" (exp(-(vel.y)²)) lit up the whole
+    // plane of rays that ended parallel to the disk — which projected as a bright
+    // VERTICAL LINE straight through the shadow (the seam). It added nothing the
+    // bloom + photon ring don't already give, so it's gone. No fixed screen-space
+    // band = no seam, from any angle.
     col = col/(1.0+0.08*lum);
     col = pow(col,vec3(0.82));
     // ALL-ANGLES FIX: fade only the EXTREME quad corners (no hard circular crop,
@@ -438,12 +447,12 @@ function BlackHoleRaymarch({
     uniforms.uTime.value = clock.elapsedTime
     // Perf gate: scale the geodesic march depth to the live tier so the heaviest
     // shader in the engine never chokes a weak GPU. Ultra gets the full march;
-    // low drops to ~90 steps (coarser lensing, still reads correctly). SUPER CLEAR
-    // (16K / max-detail mode) pins the full 240-step march on any tier — the user
-    // asked for maximum crispness, so the photon ring + disk resolve razor-sharp.
+    // low drops to coarser lensing (still reads correctly). SUPER CLEAR (16K /
+    // max-detail) pins the full march. Ceilings raised with the finer near-hole
+    // step (dt floor 0.03→0.012) so rays still reach the hole without starving.
     const t = perfTierRef.current
-    uniforms.uMaxSteps.value = superClearRef.current ? 240
-      : t === "ultra" ? 240 : t === "high" ? 190 : t === "mid" ? 140 : 90
+    uniforms.uMaxSteps.value = superClearRef.current ? 320
+      : t === "ultra" ? 320 : t === "high" ? 240 : t === "mid" ? 170 : 110
     // Same vantage fade as SkyPanorama (130→300 from the shell centre).
     const dist = camera.position.distanceTo(_bhShellCenter)
     uniforms.uSkyLevel.value = 1 - Math.min(1, Math.max(0, (dist - 130) / 170))
