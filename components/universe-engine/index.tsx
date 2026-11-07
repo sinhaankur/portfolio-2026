@@ -160,14 +160,13 @@ export function UniverseEngine({
   showHud = true,
   showMusic = true,
   invert: invertProp,
-  // ACTUAL SCALE EVERYWHERE 2026-11-06 (Ankur: "make everything actual scale … to
-  // be honest … it won't look crammed up"): true scale is now the DEFAULT on every
-  // surface (home hero included), not just /lab/celestial. The engine's true north
-  // is real-over-invented, and at real distances nothing crams — the inner planets
-  // get genuine void between them and you navigate the big system by zoom (endless
-  // zoom + distance-adaptive speed). The compressed "see it all at once" layout is
-  // still available via the scale toggle; it's just no longer the default.
-  defaultTrueScale = true,
+  // SPACING 2026-11-06 (Ankur: "spacing must be equal for all … it won't look
+  // crammed up"): the DEFAULT layout is now equal-spacing (rank-based even orbits —
+  // see compressRadius / equalSpaceRadius in astronomy.ts), applied on every surface.
+  // We briefly defaulted to literal true scale, but real linear distance crams the
+  // inner planets and tangles the asteroid belt into them; equal spacing reads clean
+  // and consistent. The honest linear-AU view is still one toggle away (true scale).
+  defaultTrueScale = false,
   solarOnly = false,
   minimalControls = false,
   quietMobileChrome = false,

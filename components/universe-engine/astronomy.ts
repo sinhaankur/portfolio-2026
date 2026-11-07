@@ -442,11 +442,25 @@ export const AU_IN_LIGHTYEARS = 1.58125e-5
 /** Rough real light-years spanned per scene unit at the CURRENT camera framing.
  *  Uses the local slope of compressRadius so the readout tracks zoom honestly. */
 export function sceneUnitsToLightYears(sceneDist: number): number {
-  // Invert the explore compression r_scene = rAU^EXPLORE_EXPONENT * SCENE_SCALE to
-  // recover the real AU the current distance corresponds to, then → light-years.
+  // Recover the real AU a given scene distance maps to, honouring the active layout
+  // (equal-spacing by default, linear in true mode), then → light-years.
   const d = Math.max(sceneDist, 0.0001)
-  const rAU = Math.pow(d / SCENE_SCALE, 1 / EXPLORE_EXPONENT)
+  const rAU = scaleModeRef.current === "true" ? d / TRUE_SCALE_AU : equalSpaceToAU(d)
   return rAU * AU_IN_LIGHTYEARS
+}
+
+/** Inverse of equalSpaceRadius: scene units → real AU (for honest readouts). */
+function equalSpaceToAU(d: number): number {
+  const a = EQUAL_ANCHORS_AU
+  if (d <= EQUAL_BASE) return (d / EQUAL_BASE) * a[0]
+  const slot = (d - EQUAL_BASE) / EQUAL_STEP // which planet gap we're in (float)
+  const i = Math.min(a.length - 1, Math.floor(slot) + 1)
+  if (i >= a.length) {
+    const lastGap = a[a.length - 1] - a[a.length - 2]
+    return a[a.length - 1] + (slot - (a.length - 1)) * lastGap
+  }
+  const f = slot - (i - 1)
+  return a[i - 1] + f * (a[i] - a[i - 1])
 }
 
 /* Device tier — set once at engine boot (index.tsx, from the same 768px media
@@ -564,20 +578,46 @@ export const focusDepthRef: {
  *  distance-adaptive zoomSpeed keeps navigation manageable across it. */
 export const TRUE_SCALE_AU = 12
 
-/** Compress a real heliocentric radius (AU) into scene units. In explore mode this
- *  uses a gentle power curve; in true-scale mode it's linear AU (real ratios).
- *
- *  SPACING: the explore curve (r^EXPONENT · SCENE_SCALE) stays as-is — it's the
- *  home-hero galaxy layout, tuned for an all-in-one-frame glance. The crammed-
- *  inner-planets problem on /lab/celestial is fixed in TRUE-scale instead (that
- *  view mounts defaultTrueScale): Ankur's steer was "make it large … we have
- *  endless zoom", so TRUE_SCALE_AU was raised to give real void between worlds and
- *  you navigate by zooming. See TRUE_SCALE_AU below. */
 export const EXPLORE_EXPONENT = 0.5
+
+/** EQUAL-SPACING layout (Ankur: "spacing must be equal for all"). Real linear
+ *  distance (true scale) crams the inner planets and flings the outer ones far
+ *  apart — honest but visually uneven, and the asteroid belt tangled into the inner
+ *  system. A power curve can't flatten it to equal either. So the default layout is
+ *  now RANK-based: each planet sits in an evenly-spaced slot (STEP units apart), and
+ *  any body BETWEEN two planets (asteroids, comets, the belts) interpolates linearly
+ *  in AU within that slot — so the asteroid belt lands cleanly in its own ring
+ *  between the Mars and Jupiter slots instead of overlapping Earth's satellites.
+ *
+ *  Monotonic in AU (never folds), so orbits never cross. Real proportions are traded
+ *  for even readability on purpose; the honest linear-AU view is still one toggle
+ *  away (scale mode "true"). */
+const EQUAL_STEP = 3.0  // scene units between adjacent planet slots
+const EQUAL_BASE = 4.5  // radius of the innermost slot (Mercury)
+// Planet semi-major axes (AU), ascending — the equal-spacing anchors. Pluto included
+// so trans-Neptunian bodies still land somewhere sane.
+const EQUAL_ANCHORS_AU = [0.387, 0.723, 1.0, 1.524, 5.203, 9.537, 19.19, 30.07, 39.48]
+function equalSpaceRadius(rAU: number): number {
+  const r = Math.max(rAU, 0)
+  const a = EQUAL_ANCHORS_AU
+  if (r <= a[0]) return EQUAL_BASE * (r / a[0]) // inside Mercury → scale toward the Sun
+  for (let i = 1; i < a.length; i++) {
+    if (r <= a[i]) {
+      const f = (r - a[i - 1]) / (a[i] - a[i - 1]) // 0..1 within this slot
+      return EQUAL_BASE + (i - 1 + f) * EQUAL_STEP
+    }
+  }
+  // Beyond Pluto: keep extending by one slot per "last real gap" in AU.
+  const lastGap = a[a.length - 1] - a[a.length - 2]
+  return EQUAL_BASE + (a.length - 1) * EQUAL_STEP + ((r - a[a.length - 1]) / lastGap) * EQUAL_STEP
+}
+
+/** Map a real heliocentric radius (AU) to scene units for the active scale mode.
+ *  Default = equal-spacing (rank-based, even orbits). "true" = linear real AU. */
 export function compressRadius(rAU: number): number {
   const r = Math.max(rAU, 0)
   if (scaleModeRef.current === "true") return r * TRUE_SCALE_AU
-  return Math.pow(r, EXPLORE_EXPONENT) * SCENE_SCALE
+  return equalSpaceRadius(r)
 }
 
 /** Small-body visual radius (scene units) from a REAL mean diameter (km).
