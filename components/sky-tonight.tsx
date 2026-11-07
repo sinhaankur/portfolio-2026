@@ -75,13 +75,20 @@ export function SkyTonight() {
 
   const headline = events.active[0] ?? events.upcoming[0]
 
+  // Two guards against eating clicks from the engine's bottom-right controls (the
+  // music chip + time-warp cluster live at bottom-6 right-56 on /lab/celestial, and
+  // bottom-20 right-6 on mobile):
+  //  1. pointer-events-none on the wrapper so its empty area never intercepts;
+  //     only the chip / panel re-enable events.
+  //  2. LIFTED above the control row (md:bottom-20, mobile bottom-36) so the chip
+  //     itself doesn't physically sit on top of the music button.
   return (
-    <div className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-[9998] max-w-[calc(100vw-2rem)] w-80">
+    <div className="pointer-events-none fixed bottom-36 md:bottom-20 right-4 md:right-6 z-[9998] max-w-[calc(100vw-2rem)] w-80">
       {/* Collapsed chip — one glance tells you something's up. */}
       {!open ? (
         <button
           onClick={() => setOpen(true)}
-          className="flex w-full items-center gap-2.5 rounded-full border border-border bg-background/95 px-4 py-2.5 text-left shadow-[0_12px_40px_-12px_rgba(0,0,0,0.5)] backdrop-blur-md transition hover:border-foreground/30"
+          className="pointer-events-auto flex w-full items-center gap-2.5 rounded-full border border-border bg-background/95 px-4 py-2.5 text-left shadow-[0_12px_40px_-12px_rgba(0,0,0,0.5)] backdrop-blur-md transition hover:border-foreground/30"
         >
           <Sparkles className="h-4 w-4 shrink-0 text-amber-400" />
           <span className="flex-1 truncate text-sm">
@@ -90,7 +97,7 @@ export function SkyTonight() {
           </span>
         </button>
       ) : (
-        <div className="rounded-2xl border border-border bg-background/95 p-4 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.5)] backdrop-blur-md">
+        <div className="pointer-events-auto rounded-2xl border border-border bg-background/95 p-4 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.5)] backdrop-blur-md">
           <div className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-amber-400" />

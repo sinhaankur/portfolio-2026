@@ -551,21 +551,28 @@ export const focusDepthRef: {
   current: { near: number; minDistance: number; far?: number } | null
 } = { current: null }
 
-/** Scene units per AU in true-scale mode. Earth (1 AU) lands at the same ~3
- *  units as explore mode so the inner system stays framed; the outer planets
- *  then spread to their real linear ratios (Neptune 30 AU → 90 units), which
- *  is the whole point — true spacing, mostly void between bodies. */
-export const TRUE_SCALE_AU = 3
+/** Scene units per AU in true-scale mode (linear — real ratios preserved).
+ *
+ *  MADE LARGE 2026-11-06 (Ankur "no point shrinking, make it large … we have
+ *  endless zoom in and out … but we need space"): at 3 u/AU the inner planets were
+ *  still crammed — Venus sat 0.83 units from Earth, ~4× a planet's radius, so
+ *  framing Earth put a looming Venus in the shot. The honest fix is a BIG solar
+ *  system with real void between worlds, navigated by zoom (not by faking the
+ *  distances smaller). At 12 u/AU: Venus→Earth ≈ 3.3 units (~17× radius) — genuine
+ *  space — while the real linear ratios hold (Neptune 30 AU → 360 units). The
+ *  camera far plane (3000) + raised maxDistance carry the larger extent, and the
+ *  distance-adaptive zoomSpeed keeps navigation manageable across it. */
+export const TRUE_SCALE_AU = 12
 
 /** Compress a real heliocentric radius (AU) into scene units. In explore mode this
  *  uses a gentle power curve; in true-scale mode it's linear AU (real ratios).
  *
- *  SPACING (Ankur "shouldn't look crammed"): the inner planets were bunching up.
- *  The explore layout is r^EXPONENT · SCENE_SCALE — a LOWER exponent compresses the
- *  OUTER planets more, which hands the inner system relatively more room; a higher
- *  SCENE_SCALE then pushes everything apart. 0.58·6 → 0.50·7.5 lifts the tightest
- *  inner gap (Venus→Earth) ~1.04 → ~1.1 units and keeps Neptune in frame (~37 not
- *  43). True-scale stays linear AU (real ratios) for the honest-distances toggle. */
+ *  SPACING: the explore curve (r^EXPONENT · SCENE_SCALE) stays as-is — it's the
+ *  home-hero galaxy layout, tuned for an all-in-one-frame glance. The crammed-
+ *  inner-planets problem on /lab/celestial is fixed in TRUE-scale instead (that
+ *  view mounts defaultTrueScale): Ankur's steer was "make it large … we have
+ *  endless zoom", so TRUE_SCALE_AU was raised to give real void between worlds and
+ *  you navigate by zooming. See TRUE_SCALE_AU below. */
 export const EXPLORE_EXPONENT = 0.5
 export function compressRadius(rAU: number): number {
   const r = Math.max(rAU, 0)

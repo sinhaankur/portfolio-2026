@@ -881,7 +881,12 @@ export function UniverseEngine({
           // clipping. "Zoom till possible." far stays 1000 so the depth-buffer
           // ratio is still safe enough to avoid z-fighting on distant bodies.
           minDistance={0.006}
-          maxDistance={600}
+          // maxDistance raised 600 → 1800 for the LARGE true-scale solar system
+          // (Ankur "make it large … we have endless zoom"): true spacing puts
+          // Neptune at ~360 units, so you need to pull back far past 600 to take in
+          // the whole system. 1800 stays well under the 3000 far plane so the
+          // depth buffer is safe. Zoom-in floor stays tiny (right down to a surface).
+          maxDistance={1800}
           // Pause autoRotate while in follow mode — otherwise the
           // contemplative spin fights the user's drag and the camera
           // feels "stuck." Resumes the moment follow is cleared (via
@@ -1385,9 +1390,14 @@ function NavFeel({
     // free, fluid feel of LeoLabs' orbital viewer.
     const rot = Math.min(1.5, Math.max(0.55, 0.55 + dist * 0.03))
     c.rotateSpeed = rot
-    // Zoom likewise: fast and free (was capped ~0.9). Still eases a touch when
-    // very close so you don't punch straight through a body.
-    c.zoomSpeed = Math.min(1.8, Math.max(0.9, 0.9 + dist * 0.02))
+    // Zoom likewise: fast and free. For the LARGE true-scale solar system (Neptune
+    // ~360 units, zoom-out to ~1800) the old 1.8 ceiling made crossing the big void
+    // a slog, while staying gentle up close keeps you from punching through a body.
+    // Scale the ceiling with distance so far-out traversal is quick and close-in
+    // control stays precise ("we can manage the zoom speed"): 0.9 near → up to ~3.2
+    // when far out. OrbitControls dolly is multiplicative, so this stays smooth and
+    // endless at every scale.
+    c.zoomSpeed = Math.min(3.2, Math.max(0.9, 0.9 + dist * 0.01))
     // Idle-only autorotate: resume only after 2.5s of no interaction.
     const idle = performance.now() - lastInteractRef.current > 2500
     c.autoRotate = autoRotateWanted && idle
