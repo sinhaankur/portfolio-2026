@@ -109,16 +109,37 @@ const BAND_LABEL: Record<ObserveBand | "off", string> = {
 }
 export function WavelengthView({ invert = false }: { invert?: boolean }) {
   const [band, setBand] = useState<ObserveBand | "off">("off")
+  // CLEAN DEFAULT 2026-11-07 (Ankur: wavelength panel was a permanent 7-chip block
+  // cluttering the top-left). Collapsed behind a toggle like the satellite filters:
+  // the resting view shows just a compact chip (with the active band, if any), and
+  // the full band row opens on click.
+  const [open, setOpen] = useState(false)
   const pick = (b: ObserveBand | "off") => {
     setBand(b)
     viewBandRef.current = b === "off" ? null : b
   }
   const fg = invert ? "text-black" : "text-white"
   const dim = invert ? "text-black/45" : "text-white/45"
+  const activeTint = band !== "off" ? BAND_TINT[band] : undefined
   return (
     <div className="pointer-events-auto select-none">
-      <div className={`mb-1 font-mono text-[9px] tracking-[0.16em] uppercase ${dim}`}>Wavelength</div>
-      <div className="flex flex-wrap gap-1 max-w-[13rem]">
+      {/* Toggle — shows the current band so the state reads even when collapsed. */}
+      <button
+        onClick={() => setOpen((v) => !v)}
+        data-cursor-hover
+        aria-expanded={open}
+        title="View the scene through one wavelength band"
+        className={`inline-flex items-center gap-1.5 font-mono text-[9px] tracking-[0.16em] uppercase rounded-sm border px-2 py-1 transition-colors ${
+          invert ? "border-black/20" : "border-white/20"
+        } ${fg} ${open ? (invert ? "bg-black/10" : "bg-white/10") : "bg-transparent hover:bg-white/10"}`}
+      >
+        {band !== "off" && (
+          <span aria-hidden className="h-2 w-2 rounded-full" style={{ background: activeTint }} />
+        )}
+        Wavelength{band !== "off" ? ` · ${BAND_LABEL[band]}` : ""}
+      </button>
+      {open && (
+      <div className="mt-1.5 flex flex-wrap gap-1 max-w-[13rem]">
         {WAVE_BANDS.map((b) => {
           const active = band === b
           const tint = b !== "off" ? BAND_TINT[b] : undefined
@@ -140,7 +161,8 @@ export function WavelengthView({ invert = false }: { invert?: boolean }) {
           )
         })}
       </div>
-      {band !== "off" && (
+      )}
+      {open && band !== "off" && (
         <div className={`mt-1 font-mono text-[9px] ${dim}`}>{BAND_WAVELENGTH[band]} · dimmed to real emission</div>
       )}
     </div>

@@ -920,9 +920,13 @@ export function UniverseEngine({
       {interactive && !(quietMobileChrome && mobile) && (
         <div className="absolute top-16 left-4 md:top-20 md:left-6 z-20 flex flex-col gap-3">
           <ScaleLegend invert={invert} />
-          {/* Multi-wavelength view — a power feature for the full explorer, kept
-              off the calm home hero (minimalControls) so the landing stays clean. */}
-          {!minimalControls && <WavelengthView invert={invert} />}
+          {/* Multi-wavelength view — a power feature for the full UNIVERSE explorer.
+              Kept off the calm home hero (minimalControls) AND off the solar /
+              satellite view (solarMode): there the screen is Earth + the satellite
+              swarm, which don't emit light, so the band toggle changed almost nothing
+              and read as broken (Ankur 2026-11-07). It belongs where planets, stars,
+              galaxies + black holes fill the frame and actually re-brighten per band. */}
+          {!minimalControls && !solarMode && <WavelengthView invert={invert} />}
         </div>
       )}
 

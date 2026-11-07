@@ -297,8 +297,13 @@ export function getCometAffordance({
     visualRadius * (isCometFamily ? 3.6 : 3.0) * hitMul,
   )
   const labelOffset = Math.max(visualRadius * (isCometFamily ? 4.2 : 3.5) * labelMul, 0.35)
-  const trailIdleBase = isLoop ? (invert ? 0.18 : 0.10) : (invert ? 0.14 : 0.08)
-  const trailHoverBase = isLoop ? (invert ? 0.65 : 0.50) : (invert ? 0.55 : 0.42)
+  // SHOW THE PATH 2026-11-07 (Ankur: "does Halley's Comet have a path? then we
+  // should show that"). The orbit ellipse was already drawn but faint (idle ~0.10),
+  // so on a busy scene it read as "no path". Lift the IDLE opacity for looping comets
+  // so the real elliptical orbit is clearly visible at rest, not only on hover —
+  // Halley's long 76-year ellipse is one of the most recognisable paths in the sky.
+  const trailIdleBase = isLoop ? (invert ? 0.30 : 0.24) : (invert ? 0.14 : 0.08)
+  const trailHoverBase = isLoop ? (invert ? 0.70 : 0.58) : (invert ? 0.55 : 0.42)
   const trailIdle = clamp01(trailIdleBase * idleMul)
   const trailHover = clamp01(trailHoverBase * hoverMul)
 
