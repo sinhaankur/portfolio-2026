@@ -37,14 +37,21 @@ export default function robots(): MetadataRoute.Robots {
         allow: "/",
         // The retro games index is a self-contained sub-site — let crawlers
         // see the index page but not chase every individual game asset.
-        disallow: ["/games/assets/"],
+        // The spacecraft teardowns under /reference/spacecraft/*-teardown/ are
+        // bare interactive iframe-SOURCE bundles (title + SVG widget, no prose /
+        // canonical) that are already presented on the indexed /reference/spacecraft
+        // page. Crawled standalone they're thin/duplicate — which is what landed
+        // them in "crawled – currently not indexed". Disallow the fragments so
+        // Google indexes the host page, not the embeds. (robots.txt gates CRAWLERS
+        // only — the iframes still load normally for real visitors.)
+        disallow: ["/games/assets/", "/reference/spacecraft/*-teardown/"],
       },
       // the same allowance, named explicitly for each GOOD AI crawler (keeps the
       // portfolio surfaced in AI answers + search — discoverability we want).
       ...aiBots.map((userAgent) => ({
         userAgent,
         allow: "/",
-        disallow: ["/games/assets/"],
+        disallow: ["/games/assets/", "/reference/spacecraft/*-teardown/"],
       })),
       // known harvesters / scrapers / SEO-spy bots → blocked entirely.
       ...blockedBots.map((userAgent) => ({
