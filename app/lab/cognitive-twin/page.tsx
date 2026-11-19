@@ -70,6 +70,14 @@ const built: { title: string; body: string }[] = [
     body: "Sealed at rest (ChaCha20-Poly1305, device-bound key). One fenced network door, a kill switch, no telemetry. A one-command doctor proves it green.",
   },
   {
+    title: "One switch, like Tailscale — you're in control",
+    body: "A single control surface: Private (this Mac only) or My devices (reachable over your Tailscale, gated by a pairing token — your devices, not anyone on the port). Safe Mode is on by default: she reads and chats freely but asks before any action that sends, writes, or controls. Plus the kill switch. Every state is shown in plain words; nothing widens itself.",
+  },
+  {
+    title: "Your AI when the cloud is gone",
+    body: "Cloud subscriptions lapse and APIs go down. Vera runs entirely on your machine — no account, no key, no network needed to think. When the cloud AI you rely on disappears, the local one is still right there.",
+  },
+  {
     title: "Light on the machine",
     body: "One right-sized model picked for your RAM, idle ones evicted — a catalyst, not a tax. Freed ~15 GB last pass.",
   },
@@ -333,6 +341,68 @@ brew install --cask vera`}</code>
         <CasePullQuote>
           A companion is only personal when the work — and the trust boundary —
           stays on a machine you own.
+        </CasePullQuote>
+      </section>
+
+      {/* YOU'RE IN CONTROL — the Tailscale-style control surface */}
+      <section>
+        <CaseSectionHeading>You&rsquo;re in control — for sure</CaseSectionHeading>
+        <CaseProse>
+          <p>
+            Vera lives on your devices, so reaching her should feel like a switch
+            you flip — the way Tailscale does it — not a setting you hope is right.
+            One control surface says, in plain words, exactly who can reach her and
+            whether she can act. Nothing widens on its own; every change is yours.
+          </p>
+        </CaseProse>
+
+        {/* The four understood states, in Vera's own palette (green = brand,
+            red = danger only). Each says what it MEANS, not jargon. */}
+        <div className="mt-8 grid gap-3 sm:grid-cols-2">
+          <article className="rounded-md border border-border bg-secondary/20 px-5 py-4">
+            <h3 className="text-sm md:text-base font-semibold text-foreground">
+              🔒 Private <span className="text-muted-foreground font-normal">— the default</span>
+            </h3>
+            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+              Only this Mac can reach her. No other device, no one on your network.
+              You have to opt out of this — it&rsquo;s where she starts.
+            </p>
+          </article>
+          <article className="rounded-md border border-accent/30 bg-accent/5 px-5 py-4">
+            <h3 className="text-sm md:text-base font-semibold text-foreground">
+              📱 My devices <span className="text-accent font-normal">— token-gated</span>
+            </h3>
+            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+              Your phone and other Macs reach her over your Tailscale — but only
+              with a pairing token she mints. Your devices, never &ldquo;anyone who
+              can reach the port.&rdquo;
+            </p>
+          </article>
+          <article className="rounded-md border border-accent/30 bg-accent/5 px-5 py-4">
+            <h3 className="text-sm md:text-base font-semibold text-foreground">
+              ◉ Safe Mode <span className="text-accent font-normal">— on by default</span>
+            </h3>
+            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+              She thinks, chats, and reads your code and memory freely — but asks
+              before anything that sends, writes, or controls. Authorize a task and
+              it&rsquo;s allowed once, then re-locks.
+            </p>
+          </article>
+          <article className="rounded-md border border-[#c0484a]/40 bg-[#c0484a]/5 px-5 py-4">
+            <h3 className="text-sm md:text-base font-semibold text-foreground">
+              🚫 Kill Switch <span className="text-[#c0484a] font-normal">— halts everything</span>
+            </h3>
+            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+              One flag and she goes dormant: she can still think on-device, but
+              cannot reach out, act, or send until you release it. Fail-safe — any
+              unknown state is treated as locked.
+            </p>
+          </article>
+        </div>
+
+        <CasePullQuote>
+          Widening reach should never widen trust — only the devices you pair get
+          in, and only the actions you allow get done.
         </CasePullQuote>
       </section>
 
