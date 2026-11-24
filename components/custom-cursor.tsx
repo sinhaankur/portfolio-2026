@@ -76,14 +76,23 @@ export function CustomCursor() {
   // without this they double-up and the system cursor competes for attention
   // (especially noticeable over the Sun, where mix-blend-difference muddied
   // the old white dot).
+  //
+  // CRITICAL: only hide it while the reticle is actually VISIBLE. The reticle
+  // starts (and returns to) opacity 0 until the first mousemove, and hides on
+  // mouseleave / tab blur. If we hid the native cursor on `enabled` alone, there
+  // was a window — on first load, on returning to the tab, after the pointer
+  // left and re-entered without moving — where the native cursor was hidden but
+  // the reticle wasn't shown yet: the mouse simply went missing. Gating on
+  // `isVisible` means the native cursor stays until the reticle takes over, and
+  // comes back the instant the reticle hides. No gap, ever.
   useEffect(() => {
-    if (!enabled) return
+    if (!enabled || !isVisible) return
     const prev = document.documentElement.style.cursor
     document.documentElement.style.cursor = "none"
     return () => {
       document.documentElement.style.cursor = prev
     }
-  }, [enabled])
+  }, [enabled, isVisible])
 
   useEffect(() => {
     if (!enabled) return
