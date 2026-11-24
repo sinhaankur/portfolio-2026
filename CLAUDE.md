@@ -96,6 +96,12 @@ App-router routes under [`app/`](./app):
   redirect → `/games/ritam-3d`. (`/games/star-cleaver` is a static redirect stub
   in `public/` → `/lab/helion-drift`.) The old R3F engine under
   `games/dave-3d/engine/` is now orphaned (nothing imports it).
+- `/bharat/temples-3d.html` — **"Temple forms in 3D"**, a self-contained static
+  bundle (one inline script, no CDN) from the **Bharat** project (the sourced
+  India atlas, live at `sinhaankur.github.io/bharat`). Served from
+  `public/bharat/`; surfaced on `/lab` via a Bharat card that carries Bharat's
+  own seal mark (`public/img/bharat-seal.svg` — gold seal-ring + भ glyph) and
+  links to both the live atlas and this page. Not an app route.
 - `/about` — the About page (journey imagery; links the family pages below).
 - More Lab entries: `/lab/terrain` (real 3D planetary surfaces via 3D-tiles),
   `/lab/cognitive-twin` (local-first personal AI runtime; sub-page

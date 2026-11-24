@@ -787,6 +787,89 @@ export function Lab() {
         </motion.div>
         )}
 
+        {/* Bharat — the India atlas. External live project, folded onto the Lab
+            shelf with its own seal mark (the gold seal-ring + भ glyph, matching
+            Bharat's own identity). Primary link → the live atlas; a secondary
+            link opens the self-contained "Temple forms in 3D" page served from
+            /bharat/temples-3d.html. */}
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.12 }}
+          className="mb-14 md:mb-16"
+        >
+          <div
+            className="
+              group relative block overflow-hidden
+              border border-border rounded-2xl
+              bg-card transition-colors duration-300
+              p-7 md:p-10 lg:p-12
+            "
+          >
+            {/* a soft stone/gold wash in the corner — the Bharat palette */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute -right-20 -top-20 w-72 h-72 rounded-full opacity-40 md:opacity-60 transition-transform duration-700 group-hover:scale-105"
+              style={{ background: "radial-gradient(circle, rgba(204,137,0,0.40), rgba(204,137,0,0.12) 45%, transparent 70%)" }}
+            />
+            <div className="relative">
+              <div className="flex items-center gap-4 mb-6">
+                {/* the small Bharat logo — its own seal mark */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/img/bharat-seal.svg"
+                  alt="Bharat — the seal mark"
+                  width={56}
+                  height={56}
+                  className="h-12 w-12 md:h-14 md:w-14 shrink-0 rounded-xl shadow-sm"
+                />
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-mono text-[10px] tracking-[0.25em] uppercase px-2.5 py-1 border border-border text-foreground/85 rounded-full">
+                    Atlas · India
+                  </span>
+                  <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 border border-border text-foreground/75 rounded-full">
+                    Sourced, or a gap
+                  </span>
+                </div>
+              </div>
+
+              <h3 className="font-display text-3xl md:text-4xl lg:text-5xl font-light tracking-[-0.02em] leading-[1.05] text-foreground">
+                Bharat — <span className="italic">a sourced atlas of India.</span>
+              </h3>
+
+              <p className="mt-5 max-w-2xl font-sans text-base md:text-lg text-foreground/80 leading-relaxed">
+                An open, per-district atlas — public money and power, land and
+                rivers, history, scripts and design — paired with an original
+                family of Indic design systems. Every figure links to a source
+                with a confidence tier; numbers are never invented, a gap is
+                shown as a gap.
+              </p>
+
+              <div className="mt-7 flex flex-wrap items-center gap-x-7 gap-y-3">
+                <a
+                  href="https://sinhaankur.github.io/bharat/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-cursor-hover
+                  className="inline-flex items-center gap-2 font-mono text-[10px] tracking-[0.25em] uppercase text-foreground/85 hover:text-accent transition-colors"
+                >
+                  Open the atlas
+                  <ArrowUpRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                </a>
+                <a
+                  href="/bharat/temples-3d.html"
+                  data-cursor-hover
+                  className="inline-flex items-center gap-2 font-mono text-[10px] tracking-[0.25em] uppercase text-foreground/60 hover:text-accent transition-colors"
+                >
+                  Temple forms in 3D
+                  <ArrowUpRight className="w-3.5 h-3.5" />
+                </a>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
         {/* The shipped shelf — introduced in voice. Hand-picked repos (see the
             comment on `products`: curated, never auto-synced). Sits last by
             design: the one I can't put down → what I'm inside → what found its

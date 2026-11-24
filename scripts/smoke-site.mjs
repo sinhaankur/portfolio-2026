@@ -52,6 +52,7 @@ const ROUTES = [
   ["/academic/rubik-cube-graph/", 3000],
   ["/games/ritam-3d/", 5000],
   ["/games/Gamelist.html", 3000],
+  ["/bharat/temples-3d.html", 4000],
   ["/writing/", 2500],
   ["/writing/universe-engine/", 2500],
   ["/writing/how-its-built/", 2500],
