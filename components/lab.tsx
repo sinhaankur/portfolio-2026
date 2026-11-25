@@ -174,26 +174,27 @@ export function Lab() {
             "
           >
             <div className="flex flex-wrap items-center gap-2 mb-6">
-              <span className="font-mono text-[10px] tracking-[0.25em] uppercase px-2.5 py-1 border border-accent text-accent rounded-full">
-                Flagship · Currently building
+              <span className="font-mono text-[10px] tracking-[0.25em] uppercase px-2.5 py-1 border border-border text-foreground/55 rounded-full">
+                Past project · Parked
               </span>
               <span className="font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 border border-border text-foreground/75 rounded-full">
                 Apache 2.0
               </span>
             </div>
 
-            <h3 className="font-display text-3xl md:text-4xl lg:text-5xl font-light tracking-[-0.02em] leading-[1.05] text-foreground">
+            <h3 className="font-display text-3xl md:text-4xl lg:text-5xl font-light tracking-[-0.02em] leading-[1.05] text-foreground/90">
               Unhosted — <span className="italic">AI that lives where you do.</span>
             </h3>
 
-            <p className="mt-5 max-w-2xl font-sans text-base md:text-lg text-foreground/80 leading-relaxed">
-              Frontier-class AI inference on hardware you own. Pool your
-              machines — and optionally your friends', and optionally a public
-              swarm of strangers' GPUs — into one inference cluster. Three
-              trust modes; the radius is the product.
+            <p className="mt-5 max-w-2xl font-sans text-base md:text-lg text-foreground/70 leading-relaxed">
+              An experiment in frontier-class AI inference on hardware you own —
+              pooling your machines, your friends', or a public swarm into one
+              cluster, with three trust modes. I built it to a working state, but
+              it never found a real use case as an app, so it's parked. The
+              engineering and the writeup stay open as a reference.
             </p>
 
-            <div className="mt-7 inline-flex items-center gap-2 font-mono text-[10px] tracking-[0.25em] uppercase text-foreground/85 group-hover:text-accent transition-colors">
+            <div className="mt-7 inline-flex items-center gap-2 font-mono text-[10px] tracking-[0.25em] uppercase text-foreground/70 group-hover:text-accent transition-colors">
               Read the case study
               <motion.span
                 aria-hidden="true"

@@ -146,15 +146,21 @@ const repos: Repo[] = [
 export default function UnhostedCaseStudy() {
   return (
     <CaseStudyLayout
-      eyebrow="Currently building · Open source"
+      eyebrow="Past project · Parked · Open source"
       title="Unhosted — AI that lives where you do."
       subtitle="Frontier-class inference on hardware you own. Three trust modes — local, trusted, public — pooled into one inference cluster."
-      period="2024 – Present · pre-alpha"
+      period="2024 – 2026 · parked"
       role="Founder · Lead designer · Engineer"
       tags={["Open source", "Distributed systems", "Local AI", "Apache 2.0"]}
       backTo={{ label: "Back to The Lab", href: "/lab" }}
       intro={
         <>
+          <p className="text-foreground/60 italic">
+            Parked. I built Unhosted to a working state, but it never found a
+            real use case as an app — so I&apos;ve set it down. The engineering,
+            the trust-mode design and this writeup stay open as a reference and a
+            parts bin. Here&apos;s what it was.
+          </p>
           <p>
             Unhosted is the open-source project I started to answer one question:{" "}
             <strong>
