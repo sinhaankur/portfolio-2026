@@ -66,8 +66,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/de",                priority: 0.6, changeFrequency: "monthly" },
     { path: "/hi",                priority: 0.6, changeFrequency: "monthly" },
     { path: "/games/ritam-3d",    priority: 0.5, changeFrequency: "monthly" },
-    // Bharat "Temple forms in 3D" is intentionally NOT in the sitemap — it is
-    // reachable ONLY via the Lab card (noindex on the page itself). Keep it out.
+    // Bharat "Forty-two sacred places, in 3D" — indexable + full SEO (OG/Twitter
+    // + JSON-LD on the page itself). Surfaced via the /lab card AND discoverable.
+    { path: "/bharat/temples-3d.html", priority: 0.6, changeFrequency: "monthly" },
     { path: "/universe-engine/math", priority: 0.6, changeFrequency: "monthly" },
     { path: "/academic/p2p-streaming", priority: 0.4, changeFrequency: "monthly" },
     { path: "/academic/rubik-cube", priority: 0.4, changeFrequency: "monthly" },

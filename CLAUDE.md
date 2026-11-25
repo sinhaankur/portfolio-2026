@@ -96,14 +96,19 @@ App-router routes under [`app/`](./app):
   redirect → `/games/ritam-3d`. (`/games/star-cleaver` is a static redirect stub
   in `public/` → `/lab/helion-drift`.) The old R3F engine under
   `games/dave-3d/engine/` is now orphaned (nothing imports it).
-- `/bharat/temples-3d.html` — **"Temple forms in 3D"**, a self-contained static
-  bundle (one inline script, no CDN) from the **Bharat** project (the sourced
-  India atlas, live at `sinhaankur.github.io/bharat`). Served from
-  `public/bharat/`; **reachable ONLY via the Lab card** (it's `noindex` + kept
-  OUT of `app/sitemap.ts` on purpose — "visible in lab only"; canonical → `/lab`).
-  The `/lab` Bharat card carries Bharat's own seal mark
-  (`public/img/bharat-seal.svg` — gold seal-ring + भ glyph) and links to both the
-  live atlas and this page. Not an app route. Still in the smoke ROUTES.
+- `/bharat/temples-3d.html` — **"Forty-two sacred places, in 3D"**, a
+  self-contained static bundle (one inline script; only Google Fonts + source
+  citations external) from the **Bharat** project (the sourced India atlas, live
+  at `sinhaankur.github.io/bharat`). 42 temples/stepwells/stupas across the
+  subcontinent, grouped, with a drum selector, per-site sky, raga music, and
+  client-side .obj/facts download (geometry is generated in-browser — the 344 MB
+  model export is NOT shipped). Carries the **Bharat masthead** (seal mark +
+  "Bharat / Indic designs" wordmark + atlas link; accent = seal-gold `#cc8900`).
+  **Fully SEO'd + indexable** (title/description/keywords + Open Graph + Twitter
+  card using `public/img/bharat-temples-og.png` + JSON-LD CreativeWork; canonical
+  → its own URL; in `app/sitemap.ts`). Surfaced via the `/lab` Bharat card too.
+  Not an app route. In the smoke ROUTES. (Was briefly noindex/lab-only — reversed
+  2026-11-25.)
 - `/about` — the About page (journey imagery; links the family pages below).
 - More Lab entries: `/lab/terrain` (real 3D planetary surfaces via 3D-tiles),
   `/lab/cognitive-twin` (local-first personal AI runtime; sub-page
