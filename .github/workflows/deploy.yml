@@ -15,7 +15,12 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: read
+  # contents: write so the daily refresh can COMMIT the fresh orbital/flight data
+  # back to main — otherwise the repo's committed snapshot froze (the live site
+  # got fresh data each deploy, but the git fallback stayed weeks stale, so a day
+  # CelesTrak was down fell back to a VERY old catalog). Now the fallback is
+  # yesterday's, not months-old.
+  contents: write
   pages: write
   id-token: write
 
@@ -90,6 +95,40 @@ jobs:
         # flights.json (the script self-exits 0), never breaking the deploy.
         run: |
           node scripts/bake-flights.mjs || echo "::warning::flight snapshot refresh failed — deploying with committed snapshot"
+
+      - name: Commit refreshed data back to main
+        # Keeps the git-committed fallback CURRENT. The steps above refresh the
+        # static data for THIS deploy's bundle, but without this the committed
+        # files froze — so a day the fetch failed fell back to a months-old
+        # catalog. Here we commit only the data files that actually changed, with
+        # [skip ci] so this push doesn't retrigger the deploy (no loop). Best-
+        # effort: never fails the deploy (|| true). flights.json is intentionally
+        # NOT committed — it's a volatile per-minute snapshot that would create
+        # noisy commits; only the slow-moving catalogs are persisted.
+        run: |
+          git config user.name  "sinhaankur-bot"
+          git config user.email "sinhaankur@ymail.com"
+          # Only the catalogs worth persisting (not the per-minute flight snapshot).
+          git add public/data/satellites.json public/data/conjunctions.json 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "No catalog changes to commit."
+          else
+            git commit -m "data: refresh orbital catalog (automated) [skip ci]" || true
+            for attempt in 1 2 3; do
+              git pull --rebase --autostash origin main || true
+              if git push origin HEAD:main; then echo "Pushed refreshed data."; break; fi
+              echo "::warning::push attempt $attempt failed — retrying"; sleep 5
+            done
+          fi
+        continue-on-error: true
+
+      - name: Data freshness self-check
+        # Autonomy needs a tripwire: if a data feed silently goes stale (fetch
+        # has been quietly failing), surface it as a workflow WARNING instead of
+        # letting the simulation drift unnoticed. Never fails the deploy — it's a
+        # health signal, not a gate.
+        run: node scripts/check-data-freshness.mjs || echo "::warning::data freshness check reported stale feeds"
+        continue-on-error: true
 
       - name: Check asset budget
         # Guard the free-tier ceiling (Git LFS ~1 GB): fails the build with a
