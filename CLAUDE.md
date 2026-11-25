@@ -99,9 +99,11 @@ App-router routes under [`app/`](./app):
 - `/bharat/temples-3d.html` — **"Temple forms in 3D"**, a self-contained static
   bundle (one inline script, no CDN) from the **Bharat** project (the sourced
   India atlas, live at `sinhaankur.github.io/bharat`). Served from
-  `public/bharat/`; surfaced on `/lab` via a Bharat card that carries Bharat's
-  own seal mark (`public/img/bharat-seal.svg` — gold seal-ring + भ glyph) and
-  links to both the live atlas and this page. Not an app route.
+  `public/bharat/`; **reachable ONLY via the Lab card** (it's `noindex` + kept
+  OUT of `app/sitemap.ts` on purpose — "visible in lab only"; canonical → `/lab`).
+  The `/lab` Bharat card carries Bharat's own seal mark
+  (`public/img/bharat-seal.svg` — gold seal-ring + भ glyph) and links to both the
+  live atlas and this page. Not an app route. Still in the smoke ROUTES.
 - `/about` — the About page (journey imagery; links the family pages below).
 - More Lab entries: `/lab/terrain` (real 3D planetary surfaces via 3D-tiles),
   `/lab/cognitive-twin` (local-first personal AI runtime; sub-page
