@@ -30,6 +30,8 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { useFrame } from "@react-three/fiber"
 import {
   BackSide,
+  LinearMipmapLinearFilter,
+  LinearFilter,
   NormalBlending,
   RepeatWrapping,
   ShaderMaterial,
@@ -81,6 +83,17 @@ export function loadAllSkyTexture(mobile: boolean): Promise<Texture> {
         (t) => {
           t.colorSpace = SRGBColorSpace
           t.wrapS = RepeatWrapping // no seam at the l = ±180° join
+          // Detail pass: the sky shell was the one surface left on DEFAULT
+          // filtering while planets/moon/labels already run anisotropy 8 — so
+          // the Milky Way's dust lanes and star clouds read soft and aliased at
+          // grazing angles. Trilinear mipmaps + max anisotropy (16, hardware-
+          // capped) sharpen the real photograph everywhere without touching a
+          // pixel of the data. No extra download — same texture, better sampling.
+          t.anisotropy = 16
+          t.generateMipmaps = true
+          t.minFilter = LinearMipmapLinearFilter
+          t.magFilter = LinearFilter
+          t.needsUpdate = true
           resolve(t)
         },
         undefined,
@@ -122,9 +135,34 @@ const PANO_FRAG = /* glsl */ `
     float u = 0.5 - lon / 6.28318530718;
     float v = 0.5 + lat / 3.14159265359;
     vec3 col = texture2D(uMap, vec2(u, v)).rgb;
-    // Gentle tone-down + true-black floor so the photograph sits UNDER the
-    // point stars instead of washing them out.
-    col = max(col * uTone - 0.012, 0.0);
+
+    // ── Depth grade — enhance the REAL photograph, invent nothing ───────────
+    // The flat linear dim (col*tone - floor) made the dust and the core read
+    // thin. This grade adds dimensionality while keeping every value sourced:
+    //   luma → a gentle S-curve so the bright star-clouds separate from the
+    //   mid dust and the Great Rift goes genuinely deep; then a mild saturation
+    //   lift so the warm Sagittarius core and the blue O/B clouds hold their
+    //   true colour instead of greying out.
+    col *= uTone;
+    float luma = dot(col, vec3(0.2126, 0.7152, 0.0722));
+    // gentle S-curve contrast around the mid — pushes the dark dust down,
+    // lifts the star-cloud glow, so the Great Rift reads with real depth.
+    float contrast = (luma - 0.5) * 1.18 + 0.5;          // 1.18 = gentle S
+    contrast = clamp(contrast, 0.0, 2.0);
+    col *= (luma > 0.0004) ? (contrast / max(luma, 0.0004)) : 1.0;
+    // saturation lift (around the graded luma) — keep the core warm, rift blue.
+    float l2 = dot(col, vec3(0.2126, 0.7152, 0.0722));
+    col = mix(vec3(l2), col, 1.14);
+
+    // Core glow — the galactic centre (l≈0, b≈0) is the brightest real region;
+    // give it a faint extra lift so the Sagittarius bulge GLOWS with depth.
+    // Based purely on the true galactic direction we already computed.
+    float toCore = length(vec2(lon, lat * 1.6));   // 0 at galactic centre
+    float coreGlow = exp(-toCore * toCore * 3.2) * 0.14;
+    col += col * coreGlow;
+
+    // true-black floor so the photograph still sits UNDER the point stars.
+    col = max(col - 0.012, 0.0);
     gl_FragColor = vec4(col, uOpacity);
   }
 `
