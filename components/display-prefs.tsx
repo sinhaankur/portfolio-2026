@@ -39,12 +39,20 @@ export type DisplayPrefs = {
 const DEFAULT_PREFS: DisplayPrefs = {
   reduceMotion: false,
   largeText: false,
-  systemCursor: false,
+  // Native system cursor is the DEFAULT (2026-11-24): the custom spring-reticle
+  // trailed the real pointer (felt laggy) and could leave a gap where the native
+  // cursor was hidden but the reticle wasn't drawn yet (pointer "went missing").
+  // The native pointer is instant, 1:1, never missing, and costs the main thread
+  // nothing — which matters on the WebGL-heavy pages. The reticle is still here
+  // as an OPT-IN via the display menu for anyone who wants it.
+  systemCursor: true,
   readingMode: false,
   fastMode: false,
 }
 
-const STORAGE_KEY = "display-prefs-v1"
+// Bumped v1 → v2 (2026-11-24) so the new native-cursor default reaches everyone,
+// including returning visitors who had the old custom-cursor default persisted.
+const STORAGE_KEY = "display-prefs-v2"
 
 type ContextValue = DisplayPrefs & {
   setPref: <K extends keyof DisplayPrefs>(key: K, value: DisplayPrefs[K]) => void
