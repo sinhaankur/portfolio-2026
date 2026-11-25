@@ -461,7 +461,14 @@ async function fetchCatalogWithRetry(tries = 4): Promise<SatRecord[]> {
   let lastErr: unknown = null
   for (let i = 0; i < tries; i++) {
     try {
-      const r = await fetch("/data/satellites.json", { cache: "reload" })
+      // cache: "default" (was "reload") — the catalog is a build-time snapshot
+      // that only changes on deploy, so forcing a fresh ~1.2 MB download on
+      // EVERY visit was wasted bandwidth and the slowest thing on the page. The
+      // browser's HTTP cache + validators (ETag/Last-Modified from Pages) serve
+      // it instantly on repeat visits and on navigate-away-and-back, and a new
+      // deploy still revalidates to the new file. The retry loop below (not
+      // "reload") is what guards the transient CDN 503s.
+      const r = await fetch("/data/satellites.json", { cache: "default" })
       if (!r.ok) throw new Error(`HTTP ${r.status}`)
       const d = await r.json()
       catalogHeaderRef.current = { snapshot: d.snapshot, source: d.source, count: d.count, breakdown: d.breakdown }
