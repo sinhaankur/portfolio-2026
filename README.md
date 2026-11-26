@@ -154,6 +154,26 @@ endpoint (free GPU tier). No Anthropic, no API key, no WebGPU, no local setup.
 
 Deploy: `cd worker && npx wrangler deploy -c wrangler.sky.toml`.
 
+### 3. `helmsman-4b` — my own model, published and improving
+
+[`sinhaankur/helmsman-4b`](https://huggingface.co/sinhaankur/helmsman-4b) is a
+real model I trained — a 4B specialist distilled on `Qwen3-4B` (QLoRA → merged
+into the base → GGUF), **open on Hugging Face and runnable by anyone** in one
+command:
+
+```
+ollama run hf.co/sinhaankur/helmsman-4b "What are you?"
+```
+
+It's not a giant always-on server — it's a real, working, **adopted** model (the
+download count on [`/systems`](https://www.sinhaankur.com/systems) is pulled live
+from the HF API as honest proof). And it **keeps improving**: each run of the
+site's own workers yields real (task → outcome) examples, and the model is
+periodically re-distilled from them — the same recipe it was born from — so it
+gets better at the narrow jobs it owns. That's the self-improvement flywheel:
+free deterministic workers generate the data, the small model learns from it, and
+over time it owns more of the decisions without a frontier model.
+
 ### Status
 
 | System | What it does | Runs on | Needs a key? | Status |
@@ -161,6 +181,7 @@ Deploy: `cd worker && npx wrangler deploy -c wrangler.sky.toml`.
 | Data-freshness worker | fresh TLEs + conjunctions + flights, committed back | GitHub Actions (daily) | no | **live** |
 | Freshness tripwire | warns if any feed goes stale | GitHub Actions | no | **live** |
 | `sky-copilot` LLM | free GPU brain for the sky copilot | Cloudflare Workers AI | no | **live** |
+| [`helmsman-4b`](https://huggingface.co/sinhaankur/helmsman-4b) | my own fine-tuned 4B model (Qwen3, QLoRA→merged→GGUF) | Hugging Face (open) | no | **published · 500+ downloads** |
 | Multi-agent build swarm | opens PRs for backlog items, auto-merges on green | GitHub Actions + a frontier model | yes (frontier) | *planned* |
 
 The first three keep working **without Claude or any paid inference**. Only

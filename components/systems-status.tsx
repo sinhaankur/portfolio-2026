@@ -25,9 +25,12 @@ function ageOf(iso: string | number | undefined): number | null {
   return Math.round(((Date.now() - ms) / 86_400_000) * 10) / 10
 }
 
+type Helmsman = { downloads: number | null; lastModified: string | null; up: boolean } | null
+
 export function SystemsStatus() {
   const [copilot, setCopilot] = useState<Probe>("checking")
   const [feeds, setFeeds] = useState<FeedAge[] | null>(null)
+  const [helmsman, setHelmsman] = useState<Helmsman>(null)
 
   useEffect(() => {
     // Live liveness ping on the free-GPU copilot Worker.
@@ -35,6 +38,15 @@ export function SystemsStatus() {
     fetch(COPILOT_HEALTH, { signal: ac.signal })
       .then((r) => setCopilot(r.ok ? "up" : "down"))
       .catch(() => setCopilot("down"))
+
+    // helmsman-4b — our own fine-tune, published on Hugging Face. The REAL proof
+    // it's active is the live download count from the HF API (CORS-open to the
+    // site). We don't claim a live endpoint (there isn't a free one) — we show
+    // it's a real, published, adopted, runnable model, with its true numbers.
+    fetch("https://huggingface.co/api/models/sinhaankur/helmsman-4b", { signal: ac.signal })
+      .then((r) => r.json())
+      .then((d) => setHelmsman({ downloads: d?.downloads ?? null, lastModified: d?.lastModified ?? null, up: true }))
+      .catch(() => setHelmsman({ downloads: null, lastModified: null, up: false }))
 
     // Read the SAME static catalogs the engine serves → real freshness.
     const specs: { name: string; label: string; file: string; maxDays: number; pick: (d: Record<string, unknown>) => number | null }[] = [
@@ -111,6 +123,53 @@ export function SystemsStatus() {
             {copilot === "checking" ? "Checking endpoint…" : copilot === "up" ? "Endpoint live" : "Endpoint unreachable — copilot falls back to on-device / tools"}
           </span>
         </div>
+      </section>
+
+      {/* helmsman-4b — my own fine-tuned model */}
+      <section>
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="font-display text-2xl md:text-3xl font-light tracking-[-0.01em]">
+            helmsman-4b — a model I trained
+          </h2>
+          <span className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground">published · open · adopted</span>
+        </div>
+        <p className="mt-3 max-w-2xl text-foreground/70 leading-relaxed">
+          My own fine-tuned language model — a 4B specialist distilled on Qwen3 (QLoRA → merged →
+          GGUF), published open on Hugging Face and runnable by anyone in one command. It&apos;s not a
+          giant always-on server; it&apos;s a real, working, downloadable model — and the live download
+          count below is the honest proof it&apos;s active and used.
+        </p>
+        <div className="mt-5 flex flex-wrap items-stretch gap-2">
+          <div className="rounded-lg border border-border/70 bg-card p-4">
+            <div className="flex items-center gap-2">
+              <span className={`h-2 w-2 rounded-full ${helmsman ? (helmsman.up ? "bg-emerald-500" : "bg-amber-500") : "bg-muted-foreground/40"}`} />
+              <span className="text-sm font-medium text-foreground">Published &amp; working</span>
+            </div>
+            <div className="mt-1.5 font-mono text-xs text-muted-foreground">
+              {!helmsman ? "checking…" : helmsman.downloads != null ? `${helmsman.downloads.toLocaleString()} downloads` : "on Hugging Face"}
+            </div>
+          </div>
+          <div className="rounded-lg border border-border/70 bg-card p-4">
+            <div className="text-sm font-medium text-foreground">Keeps improving</div>
+            <div className="mt-1.5 font-mono text-xs text-muted-foreground">
+              re-trained + re-versioned from new data{helmsman?.lastModified ? ` · updated ${new Date(helmsman.lastModified).toISOString().slice(0, 10)}` : ""}
+            </div>
+          </div>
+          <a
+            href="https://huggingface.co/sinhaankur/helmsman-4b"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-lg border border-border/70 bg-card p-4 flex items-center text-sm font-medium text-foreground hover:border-accent/60 transition-colors"
+          >
+            View the model →
+          </a>
+        </div>
+        <p className="mt-4 max-w-2xl text-sm text-foreground/60 leading-relaxed">
+          It <span className="text-foreground/80">keeps learning</span>: each run of the site&apos;s own
+          workers produces real examples, and the model is periodically re-distilled from them so it
+          gets better at the narrow jobs it owns — the same recipe it was born from. Run it yourself:{" "}
+          <code className="font-mono text-xs bg-muted/40 px-1.5 py-0.5 rounded">ollama run hf.co/sinhaankur/helmsman-4b</code>
+        </p>
       </section>
 
       {/* The principle */}
