@@ -25,7 +25,7 @@ import { usePathname } from "next/navigation"
  * (Pages that size themselves with `h-dvh` instead of `fixed` — /waves,
  * /embed/satellites — are immune and don't need listing here.)
  */
-const NO_WRAP = new Set(["/", "/sky", "/tv", "/lab/celestial", "/lab/big-bang", "/story"])
+const NO_WRAP = new Set(["/", "/sky", "/tv", "/lab/celestial", "/lab/big-bang", "/lab/helion-drift", "/story"])
 
 export default function Template({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()

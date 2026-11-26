@@ -13,3 +13,14 @@ ship is the **Kestrel** hull. No third-party or branded ship designs are used.
 
 _(A previously-trialled third-party player mesh has been removed from the game;
 `public/models/xwing.glb` is no longer referenced by any code.)_
+
+### 2026-11 rebuild (`games/star-cleaver/drift/`)
+
+- **Shrike** (player ship) — original design, built procedurally in
+  `drift/ship-model.ts` with canvas-generated livery in `drift/textures.ts`. No
+  model file. Deliberately *not* based on any franchise ship (an uploaded X-wing
+  mesh was reviewed and not used — it's Lucasfilm's design).
+- Hostile bases, turrets and asteroids are procedural (`drift/scene.tsx`).
+- Reused from this repo: `station.glb`, `enemy-fighter/sniper/swarm.glb` (Ankur's
+  own), planet textures + `allsky-brunier-*.webp` + `data/deep-stars.bin`
+  (already credited on /references).

@@ -12,6 +12,20 @@ can drift.
 
 ---
 
+## 2026-11 — Open-system rebuild (`drift/`)
+
+The `/lab/helion-drift` route now mounts `games/star-cleaver/drift/game.tsx`, a
+clean rebuild of the core loop: open flight across the real Solar System, fuel,
+stations, surveys, asteroid fields and five hostile bases. The old R3F canvas in
+`engine/` is kept but no longer mounted. Next up:
+
+- [ ] 🎮 Play-test pass: flight feel, mouse sensitivity, cruise pacing, base difficulty.
+- [ ] 🗣 Narrative layer on top (Cole Vance / 2184 briefings per base) — propose copy first.
+- [ ] Gamepad rumble + remappable keys (Steam Input friendly).
+- [ ] Desktop wrapper for Steam (Tauri or Electron) + Steamworks achievements/cloud saves.
+- [ ] Moons of Uranus/Pluto + Kuiper objects as survey targets.
+- [ ] Un-hide: sitemap entry, Gamelist + /lab card, remove noindex.
+
 ## Phase 1 — Make combat a real fight (the loop has no teeth yet)
 
 > Current state: the player shoots enemies, but **enemies don't shoot back** and

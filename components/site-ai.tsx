@@ -101,6 +101,7 @@ const ROUTES_WITHOUT_GUIDE = [
   "/waves",
   "/tv",
   "/embed",           // embeddable widgets
+  "/lab/helion-drift", // full-screen game: its HUD owns every corner
 ]
 
 // Is a model reply actually grounded (usable), or did the tiny model drift into

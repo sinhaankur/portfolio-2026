@@ -67,8 +67,14 @@ App-router routes under [`app/`](./app):
   (that route now redirects here). The copilot is **keyless + on-device by default**
   (in-browser tiny LLM via `@mlc-ai/web-llm`; see `lib/webllm-*`), falling back to
   deterministic search/fly-to tools where WebGPU is absent.
-- `/lab/helion-drift` — the **canonical game URL** (Helion Drift / Star Cleaver).
-  `/lab/star-cleaver` is a legacy redirect → here; don't re-add it as a real page.
+- `/lab/helion-drift` — **Helion Drift**, rebuilt 2026-11 as an open Solar-System
+  flight game: every planet where it really is today (Universe Engine orbital
+  elements), fuel + stations (refuel/repair/rearm/sell ore/upgrades), surveys of
+  real bodies, asteroid fields, five hostile bases. Code: `games/star-cleaver/drift/`
+  (see its README). Player ship = the **Shrike**, an original hull built in code.
+  Still **unlisted** (noindex, not in the sitemap or Gamelist) while it's play-tested.
+  It's a fixed full-screen shell, so it's in `app/template.tsx` NO_WRAP.
+  `/lab/star-cleaver` is a legacy redirect (→ /lab while unlisted).
 - `/lab/big-bang` — real-time cosmic timeline (Planck → today → Earth forms →
   oceans → life → us); every element Blender-baked (`blender/big-bang/bake_elements.py`).
 - `/lab/usability-engine` — Usability Engine case study (design rationale +
