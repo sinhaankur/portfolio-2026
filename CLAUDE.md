@@ -109,11 +109,18 @@ App-router routes under [`app/`](./app):
   → its own URL; in `app/sitemap.ts`). Surfaced via the `/lab` Bharat card too.
   Not an app route. In the smoke ROUTES. (Was briefly noindex/lab-only — reversed
   2026-11-25.)
-- `/mars` — **"Mars, from orbit to the ground"**: a self-contained static bundle
-  (`public/mars/index.html`, real MOLA elevation DEM, zoom orbit→surface; source
-  citations are external but rendering is self-contained). Offered as a
-  **zoom-in option on `/lab/celestial`** (the "Mars · orbit to the ground" menu
-  item). Not an app route; canonical → `/lab/celestial`.
+- `/solar` — **"The solar system, from orbit to the ground"**: a self-contained
+  static bundle (`public/solar/index.html`, ~6.8 MB) — every world Mercury→Pluto
+  at its true size/colour/axial-tilt from real data (JPL ephemeris, USGS rotation,
+  MOLA/ETOPO elevation), a time scrubber, and a "stand here and walk" surface mode
+  that imagines what it'd be like from the ground (sky, gravity readout). Honest:
+  rendering is self-contained; only source citations are external. Deep-links via
+  hash: `#w=mars` (a world), `#t=` (time), `#ll=lat,lon`. Offered on `/lab/celestial`
+  as "Mars · orbit to the ground" (→ `/solar/#w=mars`) and "Every world · orbit to
+  the ground" (→ `/solar/`). Canonical → `/solar/`. NOT the live engine — that's
+  the richer interactive `/lab/celestial`; this is the shareable offline artifact.
+- `/mars` — a **redirect stub** (`public/mars/index.html`, noindex) → `/solar/#w=mars`;
+  the Mars viewer was folded into the fuller `/solar` page. Keeps old links alive.
 - `/systems` — **"How the site keeps itself working"**: the autonomous systems
   with LIVE status (`components/systems-status.tsx` pings the sky-copilot Worker's
   `/health` + reads `/data/*.json` freshness client-side). Documents the daily

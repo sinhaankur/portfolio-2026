@@ -54,7 +54,7 @@ const ROUTES = [
   ["/games/Gamelist.html", 3000],
   ["/bharat/temples-3d.html", 4000],
   ["/systems/", 3000],
-  ["/mars/", 4000],
+  ["/solar/", 4500],
   ["/writing/", 2500],
   ["/writing/universe-engine/", 2500],
   ["/writing/how-its-built/", 2500],

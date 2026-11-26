@@ -698,12 +698,16 @@ export function CelestialExplorer() {
         )}
         <MenuItem icon={<Globe className="h-3.5 w-3.5" />}
           label="Mars · what we've seen" onClick={go(() => setMarsView(true))} />
-        {/* Mars zoom — orbit to the ground, real MOLA elevation. A richer
-            "zoom into Mars" surface experience (self-contained bundle in
-            public/mars). Opens when the user wants to get down to the ground. */}
+        {/* Orbit-to-the-ground — the self-contained "stand on any world" view
+            (public/solar): every world at its true size/colour/tilt from real
+            data, zoom from orbit to the surface. Mars deep-links straight to the
+            red planet (#w=mars); the full set opens the whole system. */}
         <MenuItem icon={<Mountain className="h-3.5 w-3.5" />}
           label="Mars · orbit to the ground"
-          onClick={() => { if (typeof window !== "undefined") window.location.href = "/mars/" }} />
+          onClick={() => { if (typeof window !== "undefined") window.location.href = "/solar/#w=mars" }} />
+        <MenuItem icon={<Mountain className="h-3.5 w-3.5" />}
+          label="Every world · orbit to the ground"
+          onClick={() => { if (typeof window !== "undefined") window.location.href = "/solar/" }} />
         {/* Bridge to the Terrain Engine — the same worlds, walkable at real
             elevation. "Whatever is related should be related." */}
         <MenuItem icon={<Mountain className="h-3.5 w-3.5" />}
