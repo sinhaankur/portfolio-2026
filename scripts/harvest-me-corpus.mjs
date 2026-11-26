@@ -115,6 +115,46 @@ async function harvestMarkdown(files) {
   }
 }
 
+/* ── 4. Absolute-path markdown (skills, global house standards — outside repo) ─ */
+async function harvestAbsMarkdown(entries) {
+  for (const { file, title, prefix } of entries) {
+    const src = await readSafe(file)
+    if (!src) continue
+    // Keep code FENCES here (lightly) — for skills/standards the code idiom IS
+    // the pattern worth learning. But strip the triple-backticks so the teacher
+    // reads it as content, and cap very long fences.
+    const text = deJsx(src.replace(/```(\w+)?\n/g, "\n").replace(/```/g, "\n"))
+    if (text.length > 200) docs.push({ name: `${prefix}-${slug(path.basename(path.dirname(file)) + "-" + path.basename(file, ".md"))}`, title, text })
+  }
+}
+
+/* ── 5. Coding patterns — real code + its comments (HOW I build) ─────────────
+   The comments in my code explain the WHY behind a pattern; pairing a comment
+   with its code teaches the model my idioms (graceful degradation, device tiers,
+   "never fail open", provider cascades, etc.). We pull files rich in explanatory
+   comments and keep the comment-to-code pairing intact. */
+async function harvestCodePatterns(files) {
+  for (const rel of files) {
+    const src = await readSafe(path.join(ROOT, rel))
+    if (!src) continue
+    // Keep the whole file but trim: it's short enough and the comment+code
+    // pairing is the lesson. Strip only noise (imports, pure-type lines).
+    const kept = src
+      .split("\n")
+      .filter((l) => !/^\s*import\s/.test(l) && !/^\s*export\s+type\s/.test(l))
+      .join("\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim()
+    if (kept.length > 300) {
+      docs.push({
+        name: `pattern-${slug(path.basename(rel).replace(/\.(ts|tsx|mjs|js)$/, ""))}`,
+        title: `How I build: ${path.basename(rel)} — a real coding pattern`,
+        text: `This is one of my real source files. The comments explain WHY each decision was made — that reasoning is the pattern.\n\n${kept.slice(0, 8000)}`,
+      })
+    }
+  }
+}
+
 async function main() {
   await harvestShortPosts()
   await harvestTsxProse(path.join(ROOT, "app/works"), "case-study")
@@ -127,8 +167,47 @@ async function main() {
     "docs/webgl-craft-notes.md",
     "docs/pixel-perfect-astronomy-roadmap.md",
     "docs/star-cleaver-aaa-standards.md",
+    "docs/star-cleaver-3d-pipeline.md",
     "components/universe-engine/ENGINE-STANDARDS.md",
     "components/universe-engine/ENGINE-ARCHITECTURE.md",
+  ])
+
+  // DESIGN · CODING PATTERNS · CREATIVE + SKILLS — the "how I think and build"
+  // half. My skills library + house standards are distilled patterns of how I
+  // work; the global CLAUDE.md is my design language (motion tokens, voice,
+  // "no AI slop"). This is what makes the model a subset of HOW I build, not
+  // just WHAT I built.
+  const HOME = path.resolve(ROOT, "..")
+  const skillEntries = []
+  for (const base of [path.join(HOME, "skills-md/skills"), path.join(ROOT, ".claude/skills")]) {
+    try {
+      const walk = async (dir) => {
+        for (const e of await fs.readdir(dir, { withFileTypes: true })) {
+          const p = path.join(dir, e.name)
+          if (e.isDirectory()) await walk(p)
+          else if (e.name === "SKILL.md") skillEntries.push({ file: p, title: `My skill: ${path.basename(path.dirname(p))}`, prefix: "skill" })
+        }
+      }
+      await walk(base)
+    } catch { /* dir may not exist */ }
+  }
+  await harvestAbsMarkdown(skillEntries)
+  await harvestAbsMarkdown([
+    { file: path.join(HOME, ".claude/CLAUDE.md"), title: "My house standards — how I work, design language, stacks, voice", prefix: "standards" },
+  ])
+
+  // Real coding patterns — files whose COMMENTS teach my idioms (graceful
+  // degradation, device tiers, provider cascades, "never fail open", honest
+  // fallbacks, the room engine). The reasoning in the comments is the lesson.
+  await harvestCodePatterns([
+    "lib/llm-provider.ts",
+    "lib/llm-runner.ts",
+    "components/custom-cursor.tsx",
+    "components/universe-engine/sky-panorama.tsx",
+    "worker/sky-copilot.js",
+    "scripts/check-data-freshness.mjs",
+    "lib/device-tier.ts",
+    "components/systems-status.tsx",
   ])
 
   await fs.rm(OUT, { recursive: true, force: true })
