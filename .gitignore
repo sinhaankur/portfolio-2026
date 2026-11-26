@@ -137,3 +137,6 @@ cartoon_boy_project/
 # Local dev-only diagnostics (headless-Chrome screenshot probes for the engine).
 # Kept on disk as a debugging convenience; not maintained site code.
 scripts/diag-*.mjs
+
+# 'subset of me' training corpus — regenerable from the site content
+.me-corpus/
