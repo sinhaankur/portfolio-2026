@@ -108,6 +108,67 @@ fallback only; the live site no longer routes through Netlify.
 
 ---
 
+## Autonomous systems — how the site keeps itself working
+
+Parts of this site run **on their own**, with no person in the loop. The design
+rule is the same as the engines': *degrade, never break* — if a feed or a model
+is unavailable, the feature gets simpler, it doesn't die.
+
+### 1. Data-freshness worker — keeps the simulation *real* (no AI, free, forever)
+
+The `/lab/celestial` Satellite Engine is only honest if its data is current —
+real satellite orbits (TLEs) drift within weeks. A scheduled job keeps them
+fresh with **zero LLM and zero cost**:
+
+- **Daily at 06:00 UTC** ([`deploy.yml`](./.github/workflows/deploy.yml), `schedule`),
+  the deploy re-fetches the live catalog + screens the next 24 h of close
+  approaches: [`fetch-satellites.mjs`](./scripts/fetch-satellites.mjs) (CelesTrak,
+  keyless) + [`bake-conjunctions.ts`](./scripts/bake-conjunctions.ts), plus a
+  real [`bake-flights.mjs`](./scripts/bake-flights.mjs) ADS-B snapshot.
+- The refreshed catalogs are **committed back to `main`** (`[skip ci]`), so the
+  git fallback is always ~yesterday — never months stale.
+- A **freshness tripwire** ([`check-data-freshness.mjs`](./scripts/check-data-freshness.mjs))
+  flags any feed past its age limit (TLEs 14 d · conjunctions 3 d · flights 30 d)
+  as a non-blocking workflow warning, so silent staleness surfaces instead of
+  drifting. It's pure, no-network, no-dep code — it runs anywhere, free.
+
+If a third-party source is down, the deploy proceeds on the committed snapshot —
+a data outage never breaks the site.
+
+### 2. `sky-copilot` — our own LLM brain, on free GPU compute
+
+The `/lab/celestial` copilot (the ✦ button) can run against
+[`worker/sky-copilot.js`](./worker/sky-copilot.js) — a Cloudflare **Workers AI**
+endpoint (free GPU tier). No Anthropic, no API key, no WebGPU, no local setup.
+
+- **OpenAI-compatible** (`/v1/chat/completions` + `/v1/models`), so it slots into
+  the site's existing provider layer ([`lib/llm-provider.ts`](./lib/llm-provider.ts))
+  as the `cfai` provider — *"Cloud (free · our GPU)"*.
+- **Adaptive by quota + quality:** the client picks a tier — `fast` · `balanced` ·
+  `best` — and the Worker cascades down its model list on a quota/model error,
+  returning `{ fallback: true }` only when everything's exhausted, so the browser
+  falls back to its deterministic search/fly-to tools. The feature never
+  dead-ends; it gets simpler when the free compute is tight.
+- Qwen stays prominent in the cascade — the same family as our own fine-tune,
+  [`sinhaankur/helmsman-4b`](https://huggingface.co/sinhaankur/helmsman-4b).
+
+Deploy: `cd worker && npx wrangler deploy -c wrangler.sky.toml`.
+
+### Status
+
+| System | What it does | Runs on | Needs a key? | Status |
+|---|---|---|---|---|
+| Data-freshness worker | fresh TLEs + conjunctions + flights, committed back | GitHub Actions (daily) | no | **live** |
+| Freshness tripwire | warns if any feed goes stale | GitHub Actions | no | **live** |
+| `sky-copilot` LLM | free GPU brain for the sky copilot | Cloudflare Workers AI | no | **live** |
+| Multi-agent build swarm | opens PRs for backlog items, auto-merges on green | GitHub Actions + a frontier model | yes (frontier) | *planned* |
+
+The first three keep working **without Claude or any paid inference**. Only
+autonomous *feature-building* (writing new code) needs a frontier model — that's
+the one part that isn't free.
+
+---
+
 ## Visitor analytics
 
 Visitor tracking is enabled through Google Tag Manager in

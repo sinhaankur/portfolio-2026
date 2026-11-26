@@ -109,6 +109,14 @@ App-router routes under [`app/`](./app):
   → its own URL; in `app/sitemap.ts`). Surfaced via the `/lab` Bharat card too.
   Not an app route. In the smoke ROUTES. (Was briefly noindex/lab-only — reversed
   2026-11-25.)
+- `/systems` — **"How the site keeps itself working"**: the autonomous systems
+  with LIVE status (`components/systems-status.tsx` pings the sky-copilot Worker's
+  `/health` + reads `/data/*.json` freshness client-side). Documents the daily
+  data-freshness worker (deploy.yml cron → fetch TLEs/conjunctions/flights →
+  commit back → `scripts/check-data-freshness.mjs` tripwire) and `sky-copilot`
+  (`worker/sky-copilot.js` on Cloudflare Workers AI — free GPU, OpenAI-compatible,
+  the `cfai` provider in `lib/llm-provider.ts`, quota-adaptive tier cascade). The
+  README's "Autonomous systems" section mirrors this. Rule: degrade, never break.
 - `/about` — the About page (journey imagery; links the family pages below).
 - More Lab entries: `/lab/terrain` (real 3D planetary surfaces via 3D-tiles),
   `/lab/cognitive-twin` (local-first personal AI runtime; sub-page

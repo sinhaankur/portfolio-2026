@@ -45,13 +45,17 @@ const TIERS = {
 }
 const DEFAULT_TIER = "balanced"
 
-// Only the site may call this — tight allow-list (CORS). Add preview hosts here.
+// The INFERENCE endpoint is origin-locked to the site (don't let anyone burn the
+// free GPU quota). Local dev + the smoke server (:8899) are allowed too.
 const ALLOWED = new Set([
   "https://www.sinhaankur.com",
   "https://sinhaankur.com",
   "http://localhost:3000",
+  "http://localhost:8899",
+  "http://127.0.0.1:8899",
 ])
 
+// Inference CORS — locked to the allow-list.
 function cors(origin) {
   const allow = ALLOWED.has(origin) ? origin : "https://www.sinhaankur.com"
   return {
@@ -60,6 +64,16 @@ function cors(origin) {
     "Access-Control-Allow-Headers": "content-type, authorization",
     "Access-Control-Max-Age": "86400",
   }
+}
+
+// Health/liveness CORS — OPEN. /health and /v1/models expose nothing sensitive
+// (just {ok,tiers}), and the public /systems status page must be able to read
+// them from anywhere without a console CORS error. No quota is spent here.
+const corsOpen = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, OPTIONS",
+  "Access-Control-Allow-Headers": "content-type",
+  "Access-Control-Max-Age": "86400",
 }
 
 const json = (obj, status, origin) =>
@@ -74,22 +88,28 @@ export default {
     const url = new URL(request.url)
 
     if (request.method === "OPTIONS") {
-      return new Response(null, { status: 204, headers: cors(origin) })
+      // Open preflight for the public GET probes; locked for inference POST.
+      const open = url.pathname === "/health" || url.pathname === "/v1/models"
+      return new Response(null, { status: 204, headers: open ? corsOpen : cors(origin) })
     }
 
     // GET /v1/models — advertise the tiers as "models" so the provider UI can
     // list them. (The site picks a tier; the Worker picks the actual model.)
+    // Open CORS — just a list of tier names, nothing sensitive.
     if (request.method === "GET" && url.pathname === "/v1/models") {
-      return json(
-        { object: "list", data: Object.keys(TIERS).map((id) => ({ id, object: "model", owned_by: "cloudflare-workers-ai" })) },
-        200,
-        origin,
+      return new Response(
+        JSON.stringify({ object: "list", data: Object.keys(TIERS).map((id) => ({ id, object: "model", owned_by: "cloudflare-workers-ai" })) }),
+        { status: 200, headers: { ...corsOpen, "content-type": "application/json" } },
       )
     }
 
-    // GET /health — a tiny liveness probe (used by the freshness/watchdog world).
+    // GET /health — a tiny liveness probe for the public /systems status page.
+    // Open CORS so it can be read from anywhere without a console error.
     if (request.method === "GET" && url.pathname === "/health") {
-      return json({ ok: true, tiers: Object.keys(TIERS) }, 200, origin)
+      return new Response(
+        JSON.stringify({ ok: true, tiers: Object.keys(TIERS) }),
+        { status: 200, headers: { ...corsOpen, "content-type": "application/json" } },
+      )
     }
 
     if (request.method !== "POST" || url.pathname !== "/v1/chat/completions") {
