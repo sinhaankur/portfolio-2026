@@ -30,18 +30,28 @@
 
 import { recommendedWebLLMModel } from "@/lib/webllm-engine"
 
-export type LLMProviderId = "webllm" | "anthropic" | "lmstudio" | "ollama"
+export type LLMProviderId = "webllm" | "cfai" | "anthropic" | "lmstudio" | "ollama"
 
 export const PROVIDER_LABELS: Record<LLMProviderId, string> = {
   webllm: "On-device (in-browser)",
+  // Our own free GPU endpoint (Cloudflare Workers AI) — no key, no WebGPU, no
+  // local setup. A capable brain for everyone, running on free compute.
+  cfai: "Cloud (free · our GPU)",
   anthropic: "Anthropic (cloud)",
   lmstudio: "LM Studio (local)",
   ollama: "Ollama (local)",
 }
 
+// The hosted sky-copilot Worker (Cloudflare Workers AI). OpenAI-compatible, so it
+// reuses the exact same request path as lmstudio/ollama. The "model" is a QUALITY
+// TIER (best | balanced | fast); the Worker maps it to real models and cascades
+// down on quota so the free tier never dead-ends.
+export const CFAI_BASE_URL = "https://sky-copilot.sinhaankur827-f9c.workers.dev/v1"
+
 export const PROVIDER_DEFAULTS: Record<LLMProviderId, { baseUrl: string; model: string }> = {
   // In-browser tiny model — no server, so baseUrl is unused; model is an MLC id.
   webllm: { baseUrl: "", model: "Qwen2.5-0.5B-Instruct-q4f16_1-MLC" },
+  cfai: { baseUrl: CFAI_BASE_URL, model: "balanced" },
   anthropic: { baseUrl: "https://api.anthropic.com", model: "claude-sonnet-4-6" },
   lmstudio: { baseUrl: "http://localhost:1234/v1", model: "" },
   ollama: { baseUrl: "http://localhost:11434/v1", model: "" },
@@ -63,7 +73,8 @@ export type ProviderConfig =
       model: "claude-sonnet-4-6" | "claude-haiku-4-5" | "claude-opus-4-7"
     }
   | {
-      provider: "lmstudio" | "ollama"
+      // cfai is OpenAI-compatible like the local ones, but hosted + keyless.
+      provider: "cfai" | "lmstudio" | "ollama"
       baseUrl: string
       model: string
       apiKey?: string
@@ -78,6 +89,7 @@ export type ProviderConfig =
 const STORAGE_KEYS = {
   provider: "assistant.provider",
   webllmModel: "assistant.webllm-model",
+  cfaiModel: "assistant.cfai-tier",
   anthropicKey: "assistant.anthropic-key",
   anthropicModel: "assistant.model",
   lmstudioBaseUrl: "assistant.lmstudio-base-url",
@@ -111,7 +123,7 @@ function write(key: string, value: string | null): void {
 
 export function readActiveProvider(): LLMProviderId {
   const v = read(STORAGE_KEYS.provider)
-  if (v === "webllm" || v === "anthropic" || v === "lmstudio" || v === "ollama") return v
+  if (v === "webllm" || v === "cfai" || v === "anthropic" || v === "lmstudio" || v === "ollama") return v
   // Default to the on-device model so the assistant works for everyone with no
   // key + no setup. (Falls back to deterministic tools if WebGPU is absent.)
   return "webllm"
@@ -172,6 +184,12 @@ export function readActiveConfig(): ProviderConfig | null {
     // checked at call time (the runtime falls back to deterministic tools).
     return { provider, model: readWebLLMModel() }
   }
+  if (provider === "cfai") {
+    // No setup: hosted + keyless. The user may override the tier (model), else
+    // the balanced default. Always ready — the Worker handles quota/fallback.
+    const model = read(STORAGE_KEYS.cfaiModel) || PROVIDER_DEFAULTS.cfai.model
+    return { provider, baseUrl: CFAI_BASE_URL, model }
+  }
   if (provider === "anthropic") {
     const apiKey = readAnthropicKey()
     if (!apiKey) return null
@@ -192,6 +210,14 @@ export function writeActiveProvider(p: LLMProviderId): void {
 
 export function writeWebLLMModel(model: string): void {
   write(STORAGE_KEYS.webllmModel, model)
+}
+
+export function writeCfaiTier(tier: string): void {
+  write(STORAGE_KEYS.cfaiModel, tier)
+}
+
+export function readCfaiTier(): string {
+  return read(STORAGE_KEYS.cfaiModel) || PROVIDER_DEFAULTS.cfai.model
 }
 
 export function writeAnthropicKey(key: string | null): void {

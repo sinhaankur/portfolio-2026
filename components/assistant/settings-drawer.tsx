@@ -30,6 +30,8 @@ import {
   readLmStudioConfig,
   readOllamaConfig,
   readWebLLMModel,
+  readCfaiTier,
+  writeCfaiTier,
   validateProviderConfig,
   writeActiveProvider,
   writeAnthropicKey,
@@ -105,6 +107,7 @@ export function SettingsDrawer({
   const [ollamaBase, setOllamaBase] = useState(PROVIDER_DEFAULTS.ollama.baseUrl)
   const [ollamaModel, setOllamaModel] = useState("")
   const [webllmModel, setWebllmModel] = useState(PROVIDER_DEFAULTS.webllm.model)
+  const [cfaiTier, setCfaiTier] = useState(PROVIDER_DEFAULTS.cfai.model)
   const [webllmProgress, setWebllmProgress] = useState<{ progress: number; text: string } | null>(null)
   const [webgpuOk, setWebgpuOk] = useState<boolean | null>(null)
   const [showKey, setShowKey] = useState(false)
@@ -161,6 +164,7 @@ export function SettingsDrawer({
     setOllamaBase(ol.baseUrl)
     setOllamaModel(ol.model)
     setWebllmModel(readWebLLMModel())
+    setCfaiTier(readCfaiTier())
     setWebgpuOk(isWebGPUAvailable())
     setStatus("idle")
     setErrorMsg(null)
@@ -178,6 +182,17 @@ export function SettingsDrawer({
   // On-device model — save the choice, and (if WebGPU is present) pre-download
   // the model now so the first question isn't a cold ~380 MB wait. Progress
   // streams into webllmProgress; failure degrades to the deterministic path.
+  // Our free GPU endpoint — zero setup: just save the tier + activate. The
+  // Worker handles quota/fallback, so there's nothing to validate client-side
+  // beyond a quick health ping (optional — kept simple: it's always "ready").
+  const handleSaveCfai = () => {
+    writeCfaiTier(cfaiTier)
+    writeActiveProvider("cfai")
+    onConfigChange()
+    setStatus("saved")
+    setErrorMsg(null)
+  }
+
   const handleSaveWebLLM = async () => {
     writeWebLLMModel(webllmModel)
     writeActiveProvider("webllm")
@@ -327,7 +342,7 @@ export function SettingsDrawer({
                   requires the model server running on this machine.
                 </p>
                 <div className="space-y-2">
-                  {(["webllm", "anthropic", "lmstudio", "ollama"] as LLMProviderId[]).map((p) => (
+                  {(["webllm", "cfai", "anthropic", "lmstudio", "ollama"] as LLMProviderId[]).map((p) => (
                     <label
                       key={p}
                       className={`
@@ -348,11 +363,13 @@ export function SettingsDrawer({
                           <div className="text-xs text-muted-foreground mt-0.5">
                             {p === "webllm"
                               ? "Runs in your browser — no key, no server, nothing leaves your device. One-time model download."
-                              : p === "anthropic"
-                                ? "Most capable. BYO Claude API key."
-                                : p === "lmstudio"
-                                  ? "OpenAI-compatible endpoint on localhost:1234."
-                                  : "OpenAI-compatible endpoint on localhost:11434. Needs OLLAMA_ORIGINS=*."}
+                              : p === "cfai"
+                                ? "Free & capable — runs on our GPU (Cloudflare Workers AI). No key, no WebGPU, no setup. Picks a quality tier and falls back if the free quota is tight."
+                                : p === "anthropic"
+                                  ? "Most capable. BYO Claude API key."
+                                  : p === "lmstudio"
+                                    ? "OpenAI-compatible endpoint on localhost:1234."
+                                    : "OpenAI-compatible endpoint on localhost:11434. Needs OLLAMA_ORIGINS=*."}
                           </div>
                         </div>
                       </div>
@@ -443,6 +460,42 @@ export function SettingsDrawer({
                   progress={webllmProgress}
                   webgpuOk={webgpuOk}
                 />
+              )}
+              {provider === "cfai" && (
+                <div className="space-y-3">
+                  <div>
+                    <div className="text-sm font-medium text-foreground mb-1.5">Quality</div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {([
+                        ["fast", "Fast", "lightest · least quota"],
+                        ["balanced", "Balanced", "good default"],
+                        ["best", "Best", "biggest model"],
+                      ] as const).map(([id, label, hint]) => (
+                        <button
+                          key={id}
+                          type="button"
+                          onClick={() => setCfaiTier(id)}
+                          className={`rounded-md border p-2 text-left transition-colors ${cfaiTier === id ? "border-accent bg-accent/5" : "border-border/70 hover:border-border"}`}
+                        >
+                          <div className="text-sm font-medium text-foreground">{label}</div>
+                          <div className="text-[11px] text-muted-foreground mt-0.5 leading-tight">{hint}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Runs on our GPU via Cloudflare Workers AI — free, no key, no WebGPU. If the free
+                    quota runs low, it automatically steps down to a lighter model, and if everything&apos;s
+                    busy it falls back to the catalog tools. It never dead-ends.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleSaveCfai}
+                    className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:opacity-90 transition-opacity"
+                  >
+                    {status === "saved" ? "Saved ✓" : "Use this"}
+                  </button>
+                </div>
               )}
               {provider === "anthropic" && (
                 <AnthropicConfig

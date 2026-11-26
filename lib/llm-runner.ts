@@ -80,7 +80,7 @@ async function runViaAnthropic(
  * ------------------------------------------------------------------ */
 
 async function runViaOpenAICompat(
-  cfg: Extract<ProviderConfig, { provider: "lmstudio" | "ollama" }>,
+  cfg: Extract<ProviderConfig, { provider: "cfai" | "lmstudio" | "ollama" }>,
   opts: RunTextOptions,
 ): Promise<RunTextResult> {
   try {

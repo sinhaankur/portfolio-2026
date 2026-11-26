@@ -1,0 +1,14 @@
+# sky-copilot — free GPU LLM endpoint for sinhaankur.com (Cloudflare Workers AI).
+# Deploy:  cd worker && npx wrangler deploy -c wrangler.sky.toml
+name = "sky-copilot"
+main = "sky-copilot.js"
+compatibility_date = "2026-06-08"
+workers_dev = true
+
+# Same Cloudflare account as the site + property-vault.
+account_id = "3f9c8ee4978248332bdbffa957684533"
+
+# Workers AI — the free GPU inference binding (env.AI.run(...)). Same binding the
+# property-vault worker already uses for OCR, proven on this account.
+[ai]
+binding = "AI"
