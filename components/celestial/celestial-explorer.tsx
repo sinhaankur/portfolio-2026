@@ -698,6 +698,12 @@ export function CelestialExplorer() {
         )}
         <MenuItem icon={<Globe className="h-3.5 w-3.5" />}
           label="Mars · what we've seen" onClick={go(() => setMarsView(true))} />
+        {/* Mars zoom — orbit to the ground, real MOLA elevation. A richer
+            "zoom into Mars" surface experience (self-contained bundle in
+            public/mars). Opens when the user wants to get down to the ground. */}
+        <MenuItem icon={<Mountain className="h-3.5 w-3.5" />}
+          label="Mars · orbit to the ground"
+          onClick={() => { if (typeof window !== "undefined") window.location.href = "/mars/" }} />
         {/* Bridge to the Terrain Engine — the same worlds, walkable at real
             elevation. "Whatever is related should be related." */}
         <MenuItem icon={<Mountain className="h-3.5 w-3.5" />}

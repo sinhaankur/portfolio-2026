@@ -109,6 +109,11 @@ App-router routes under [`app/`](./app):
   → its own URL; in `app/sitemap.ts`). Surfaced via the `/lab` Bharat card too.
   Not an app route. In the smoke ROUTES. (Was briefly noindex/lab-only — reversed
   2026-11-25.)
+- `/mars` — **"Mars, from orbit to the ground"**: a self-contained static bundle
+  (`public/mars/index.html`, real MOLA elevation DEM, zoom orbit→surface; source
+  citations are external but rendering is self-contained). Offered as a
+  **zoom-in option on `/lab/celestial`** (the "Mars · orbit to the ground" menu
+  item). Not an app route; canonical → `/lab/celestial`.
 - `/systems` — **"How the site keeps itself working"**: the autonomous systems
   with LIVE status (`components/systems-status.tsx` pings the sky-copilot Worker's
   `/health` + reads `/data/*.json` freshness client-side). Documents the daily

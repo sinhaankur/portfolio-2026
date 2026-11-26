@@ -70,6 +70,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // + JSON-LD on the page itself). Surfaced via the /lab card AND discoverable.
     { path: "/bharat/temples-3d.html", priority: 0.6, changeFrequency: "monthly" },
     { path: "/systems", priority: 0.4, changeFrequency: "monthly" },
+    { path: "/mars/", priority: 0.5, changeFrequency: "monthly" },
     { path: "/universe-engine/math", priority: 0.6, changeFrequency: "monthly" },
     { path: "/academic/p2p-streaming", priority: 0.4, changeFrequency: "monthly" },
     { path: "/academic/rubik-cube", priority: 0.4, changeFrequency: "monthly" },
