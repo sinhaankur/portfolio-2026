@@ -188,6 +188,7 @@ const socials: Array<{ label: string; href: string; download?: boolean; icon?: R
   { label: "Writing", href: "/writing" },
   { label: "Photos", href: "/photos" },
   { label: "The Math", href: "/universe-engine/math" },
+  { label: "Systems", href: "/systems" },
   { label: "Read your DNA", href: "/dna" },
   { label: "Academic", href: "/academic/p2p-streaming" },
   { label: "Resume", href: "/ankur-sinha-resume.pdf", download: true },

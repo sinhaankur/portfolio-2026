@@ -129,15 +129,16 @@ export function SystemsStatus() {
       <section>
         <div className="flex items-baseline justify-between gap-3">
           <h2 className="font-display text-2xl md:text-3xl font-light tracking-[-0.01em]">
-            helmsman-4b — a model I trained
+            helmsman-4b — my own model, a subset of me
           </h2>
-          <span className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground">published · open · adopted</span>
+          <span className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground">mine · open · improving</span>
         </div>
         <p className="mt-3 max-w-2xl text-foreground/70 leading-relaxed">
-          My own fine-tuned language model — a 4B specialist distilled on Qwen3 (QLoRA → merged →
-          GGUF), published open on Hugging Face and runnable by anyone in one command. It&apos;s not a
-          giant always-on server; it&apos;s a real, working, downloadable model — and the live download
-          count below is the honest proof it&apos;s active and used.
+          A small language model I train on my own work — a 4B distilled on Qwen3 (QLoRA → merged →
+          GGUF) that knows my world: the sky/engine I built, my writing, my craft, in my voice. A
+          subset of me that I reuse across my projects and keep improving. Open on Hugging Face and
+          runnable by anyone in one command — the live download count below is honest proof it&apos;s
+          active and used.
         </p>
         <div className="mt-5 flex flex-wrap items-stretch gap-2">
           <div className="rounded-lg border border-border/70 bg-card p-4">
