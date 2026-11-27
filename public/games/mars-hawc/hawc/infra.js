@@ -1,7 +1,7 @@
 // Colony infrastructure, laid out the way a methalox economy on Mars works:
 // a fission reactor and solar blankets feed a propellant plant (CO2 + ice -> CH4 + O2),
 // which fills cryo tanks, a Starship-class tanker, and the fuel cells every HAWC and rover runs on.
-import { THREE } from './lib.js?v=18';
+import { THREE } from './lib.js?v=19';
 
 const S = (o) => new THREE.MeshStandardMaterial(o);
 let M = null;

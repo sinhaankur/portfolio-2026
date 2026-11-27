@@ -1,11 +1,12 @@
-import { THREE } from './lib.js?v=18';
-import { makePost } from './post.js?v=18';
-import { onProgress, resetProgress } from './assets.js?v=18';
-import { Sfx } from './audio.js?v=18';
-import { GlobeView } from './globe.js?v=18';
-import { HangarView } from './hangar.js?v=18';
-import { Mission } from './mission.js?v=18';
-import { MISSIONS } from './levels.js?v=18';
+import { THREE } from './lib.js?v=19';
+import { makePost } from './post.js?v=19';
+import { onProgress, resetProgress } from './assets.js?v=19';
+import { Sfx } from './audio.js?v=19';
+import { GlobeView } from './globe.js?v=19';
+import { HangarView } from './hangar.js?v=19';
+import { Mission } from './mission.js?v=19';
+import { MISSIONS } from './levels.js?v=19';
+import { loadVera, unlockVera, speakVera, stopVera, veraReady } from './vera-voice.js?v=19';
 
 export async function createEngine({ canvas, dom, emit }) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance', preserveDrawingBuffer: true });
@@ -14,8 +15,11 @@ export async function createEngine({ canvas, dom, emit }) {
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   let voices = []; const pickVoices = () => { try { voices = speechSynthesis.getVoices().filter((v) => /^en/i.test(v.lang)); } catch (e) {} };
   try { pickVoices(); speechSynthesis.onvoiceschanged = pickVoices; } catch (e) {}
-  const say = (text, { who = 'command', interrupt = false } = {}) => {
-    if (!E.voiceOn || E.sfx.muted || typeof speechSynthesis === 'undefined') return;
+
+  // The instant, offline fallback — the browser's own speech, used until Vera's
+  // neural voice has loaded and whenever it's unavailable (no WebGPU, offline).
+  const sayBrowser = (text, { who = 'command', interrupt = false } = {}) => {
+    if (typeof speechSynthesis === 'undefined') return;
     try {
       if (interrupt) speechSynthesis.cancel(); else if (speechSynthesis.pending) return;
       const u = new SpeechSynthesisUtterance(text.replace(/\[(\w)\]/g, '$1').replace(/·/g, ','));
@@ -25,6 +29,44 @@ export async function createEngine({ canvas, dom, emit }) {
       speechSynthesis.speak(u);
     } catch (e) {}
   };
+
+  // Mars HAWC now speaks in VERA'S voice — the warm neural Kokoro af_heart voice
+  // from the site, one voice for every speaker. It loads on-device in the
+  // background; until it's ready (and if it can't load at all) lines fall back to
+  // the instant browser voice, so gameplay is never blocked waiting on her.
+  // A tiny per-speaker speed keeps a touch of pacing: narration slower, chatter
+  // a hair quicker.
+  const veraSpeed = (who) => (who === 'narrator' ? 0.9 : who === 'pilot' || who === 'founder' ? 0.97 : 0.95);
+  const say = (text, { who = 'command', interrupt = false } = {}) => {
+    if (!E.voiceOn || E.sfx.muted) return;
+    if (veraReady()) {
+      // Vera is loaded — speak the line in her voice; if that particular line
+      // fails for any reason, catch to the browser voice so nothing goes silent.
+      speakVera(text, { speed: veraSpeed(who), interrupt }).then((spoke) => {
+        if (!spoke) sayBrowser(text, { who, interrupt });
+      }).catch(() => sayBrowser(text, { who, interrupt }));
+    } else {
+      // Not ready yet (still loading, or unavailable) — instant browser voice.
+      sayBrowser(text, { who, interrupt });
+    }
+  };
+
+  // Begin loading Vera's voice on the player's FIRST gesture (click/key) — not on
+  // construction. That first gesture is real intent to play, it's the moment we
+  // can unlock audio output (required so the async neural audio is allowed to
+  // play later), and it keeps the heavy model off the critical path for anyone
+  // who only glances at the menu. By the time the first mission line speaks she's
+  // usually ready; until then lines use the instant browser voice.
+  try {
+    const startVera = () => {
+      try { unlockVera(); } catch (e) {}
+      try { loadVera(); } catch (e) {}
+      window.removeEventListener('pointerdown', startVera);
+      window.removeEventListener('keydown', startVera);
+    };
+    window.addEventListener('pointerdown', startVera);
+    window.addEventListener('keydown', startVera);
+  } catch (e) {}
   const E = {
     voiceOn: true, say,
     renderer, dom, emit, size: { w: 1, h: 1 }, quality: 1, sfx: new Sfx(),
@@ -124,7 +166,7 @@ export async function createEngine({ canvas, dom, emit }) {
       clearMission(); globe.hideMarkers(); resetProgress();
       const L = typeof id === 'object' ? id : MISSIONS.find((m) => m.id === id);
       emit('progress', { p: 0, label: 'Building ' + L.site });
-      const m = L.type === 'flight' ? new (await import('./flight.js?v=18')).FlightMission(E, L, opts) : new Mission(E, L, opts); mission = m;
+      const m = L.type === 'flight' ? new (await import('./flight.js?v=19')).FlightMission(E, L, opts) : new Mission(E, L, opts); mission = m;
       await m.load();
       if (mission !== m) return;
       E.paused = false; setActive(m, m.world.exposure); m.resize(E.size.w, E.size.h);
@@ -141,8 +183,8 @@ export async function createEngine({ canvas, dom, emit }) {
     setMuted(m) { E.sfx.setMuted(m); },
     setCompleted(ids) { globe.setCompleted(ids); },
     async setSites(list) { await globe.load(); globe.setSites(list); },
-    setVoice(v) { E.voiceOn = v; if (!v) try { speechSynthesis.cancel(); } catch (e) {} },
-    say(t, o) { E.say(t, o); }, hush() { try { speechSynthesis.cancel(); } catch (e) {} },
+    setVoice(v) { E.voiceOn = v; if (!v) { try { speechSynthesis.cancel(); } catch (e) {} try { stopVera(); } catch (e) {} } },
+    say(t, o) { E.say(t, o); }, hush() { try { speechSynthesis.cancel(); } catch (e) {} try { stopVera(); } catch (e) {} },
     setOptions(o) { if (mission) Object.assign(mission.opts, o); },
     setQuality(q) { E.quality = q; },
     uiSound(k) { try { E.sfx.init(); E.sfx[k]?.(); } catch (er) {} },

@@ -1,10 +1,10 @@
-import { THREE, clamp, lerp, sstep, fbm, rng, sunVector } from './lib.js?v=18';
-import { placeHeritage } from './probes.js?v=18';
-import { buildHorizon } from './horizon.js?v=18';
-import { loadTex, loadHeight, loadGLTF, getTemplate, instantiate } from './assets.js?v=18';
-import { buildAtmos, softDot } from './atmos.js?v=18';
-import { buildBase, flags, animateFlags, mats, colonyPads } from './base.js?v=18';
-export { buildRelay, buildMeson } from './base.js?v=18';
+import { THREE, clamp, lerp, sstep, fbm, rng, sunVector } from './lib.js?v=19';
+import { placeHeritage } from './probes.js?v=19';
+import { buildHorizon } from './horizon.js?v=19';
+import { loadTex, loadHeight, loadGLTF, getTemplate, instantiate } from './assets.js?v=19';
+import { buildAtmos, softDot } from './atmos.js?v=19';
+import { buildBase, flags, animateFlags, mats, colonyPads } from './base.js?v=19';
+export { buildRelay, buildMeson } from './base.js?v=19';
 
 export const SKIES = {
   day: { horizon: '#d8a67c', zenith: '#9a6f56', glow: '#ffe3bd', fog: '#c89a74', sun: '#fff0dc', sunI: 2.7, hemiSky: '#ecc6a0', hemiGround: '#6e4c38', hemiI: 0.85, exposure: 0.95 },

@@ -1,6 +1,6 @@
 // Reference-led asset set, original designs at real scale (metres, feet at y = 0, facing +Z):
 // Starship-class lander, pad launch tower, base control tower, and NASA's Perseverance rover (real, public hardware).
-import { THREE } from './lib.js?v=18';
+import { THREE } from './lib.js?v=19';
 
 const S = (o) => new THREE.MeshStandardMaterial(o);
 let K = null;

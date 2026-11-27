@@ -1,5 +1,5 @@
 // The real hardware that put each agency's flag on the ground, rebuilt at its landing site at true scale.
-import { THREE } from './lib.js?v=18';
+import { THREE } from './lib.js?v=19';
 
 const S = (o) => new THREE.MeshStandardMaterial(o);
 let M = null;

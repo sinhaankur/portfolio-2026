@@ -1,9 +1,9 @@
-import { THREE, clamp, damp } from './lib.js?v=18';
-import { instantiate } from './assets.js?v=18';
-import { unitTemplate, loadPilot, makePilot } from './units.js?v=18';
-import { UNITS } from './levels.js?v=18';
-import { sectionEdges, ghostMaterial, attachClaw, SEC_COLOR } from './rig.js?v=18';
-import { ANATOMY, kit } from './anatomy.js?v=18';
+import { THREE, clamp, damp } from './lib.js?v=19';
+import { instantiate } from './assets.js?v=19';
+import { unitTemplate, loadPilot, makePilot } from './units.js?v=19';
+import { UNITS } from './levels.js?v=19';
+import { sectionEdges, ghostMaterial, attachClaw, SEC_COLOR } from './rig.js?v=19';
+import { ANATOMY, kit } from './anatomy.js?v=19';
 
 function gridTex() {
   const c = document.createElement('canvas'); c.width = c.height = 512; const g = c.getContext('2d');

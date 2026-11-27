@@ -1,7 +1,7 @@
 // Structures: Union relay tower and outpost, Darken Meson tower.
-import { THREE } from './lib.js?v=18';
-import { AGENCIES } from './levels.js?v=18';
-import { reactor, solarField, propPlant, chargeDock, tankerShip, iceMine, animateInfra, resetInfra } from './infra.js?v=18';
+import { THREE } from './lib.js?v=19';
+import { AGENCIES } from './levels.js?v=19';
+import { reactor, solarField, propPlant, chargeDock, tankerShip, iceMine, animateInfra, resetInfra } from './infra.js?v=19';
 
 const M = {};
 export function mats() {

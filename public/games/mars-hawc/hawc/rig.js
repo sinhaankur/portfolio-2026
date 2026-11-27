@@ -1,5 +1,5 @@
 // Rig helpers for the Striker: bake the current skinned pose, per-bone boxes, section edge lines, and the manipulator claw.
-import { THREE } from './lib.js?v=18';
+import { THREE } from './lib.js?v=19';
 
 export const SEC_COLOR = { cockpit: 0x9a463c, torso: 0x3d5f82, arms: 0x2c6e68, legs: 0x8a6526 };
 const secOf = (n) => (/Arm|Shoulder/.test(n) ? 'arms' : /Leg|Foot|Toe/.test(n) ? 'legs' : 'torso');

@@ -1,7 +1,7 @@
 // Union Halberd: methalox gunship, original design after the user's spearhead-hull reference sheet.
 // Long wedge prow, stepped dorsal spine, two shoulder engines, swept wings with leading-edge nacelles, two spiked main engines, tail boom.
 // Faces +Z, 45 m long, 31 m span, keel at y=0.
-import { THREE } from './lib.js?v=18';
+import { THREE } from './lib.js?v=19';
 
 let C = null;
 function mats() {

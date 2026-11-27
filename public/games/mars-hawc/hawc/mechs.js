@@ -1,6 +1,6 @@
 // Procedural HAWC family (original designs): articulated rig (hips > thigh > knee > ankle, waist > torso > shoulders),
 // plated hull, framed cockpit glass, stencilled unit numbers, procedural walk. Metres, feet at y = 0, facing +Z.
-import { THREE } from './lib.js?v=18';
+import { THREE } from './lib.js?v=19';
 
 const GC = new Map();
 // Chamfered hard-surface block: every edge cut at 45°, so plates catch a highlight like machined armour.

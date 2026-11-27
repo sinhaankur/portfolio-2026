@@ -1,7 +1,7 @@
-import { THREE, clamp } from './lib.js?v=18';
-import { getTemplate, instantiate } from './assets.js?v=18';
-import { buildRifle } from './kit2.js?v=18';
-import { UNITS } from './levels.js?v=18';
+import { THREE, clamp } from './lib.js?v=19';
+import { getTemplate, instantiate } from './assets.js?v=19';
+import { buildRifle } from './kit2.js?v=19';
+import { UNITS } from './levels.js?v=19';
 
 export function unitTemplate(type) {
   const d = UNITS[type];
@@ -70,8 +70,8 @@ export class Actor {
 }
 
 // Pilot: rigged Mixamo soldier (three.js example asset) in a pressure helmet and life-support pack.
-import { loadGLTF } from './assets.js?v=18';
-import { cloneSkinned } from './lib.js?v=18';
+import { loadGLTF } from './assets.js?v=19';
+import { cloneSkinned } from './lib.js?v=19';
 let pilotTpl = null;
 export async function loadPilot() {
   if (pilotTpl) return pilotTpl;

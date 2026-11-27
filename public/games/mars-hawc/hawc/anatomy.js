@@ -1,14 +1,14 @@
 // Anatomy specs for every inspectable asset: how to build it, which meshes stay solid in x-ray, internal systems for imported hulls, and numbered callouts.
 // Coordinates: `L(x,y,z)` is the asset's own build space; `f(fx,fy,fz)` is a fraction of its bounding box. Both resolve to hangar-holder space.
-import { THREE } from './lib.js?v=18';
-import { mats, buildRelay, buildMeson, habDome, hab, mineRig, tanks, solarRow, pad, rover } from './base.js?v=18';
-import { loadPilot, makePilot } from './units.js?v=18';
-import { lander, launchTower, controlTower, percy } from './kit2.js?v=18';
-import { kestrel, raptor, courier } from './flight.js?v=18';
-import { buildMech } from './mechs.js?v=18';
-import { halberd } from './ships2.js?v=18';
-import { buildWalker } from './mechs2.js?v=18';
-import { buildRifle } from './kit2.js?v=18';
+import { THREE } from './lib.js?v=19';
+import { mats, buildRelay, buildMeson, habDome, hab, mineRig, tanks, solarRow, pad, rover } from './base.js?v=19';
+import { loadPilot, makePilot } from './units.js?v=19';
+import { lander, launchTower, controlTower, percy } from './kit2.js?v=19';
+import { kestrel, raptor, courier } from './flight.js?v=19';
+import { buildMech } from './mechs.js?v=19';
+import { halberd } from './ships2.js?v=19';
+import { buildWalker } from './mechs2.js?v=19';
+import { buildRifle } from './kit2.js?v=19';
 
 const Y = new THREE.Vector3(0, 1, 0);
 export function kit(g) {
