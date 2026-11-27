@@ -75,6 +75,22 @@ App-router routes under [`app/`](./app):
   Still **unlisted** (noindex, not in the sitemap or Gamelist) while it's play-tested.
   It's a fixed full-screen shell, so it's in `app/template.tsx` NO_WRAP.
   `/lab/star-cleaver` is a legacy redirect (→ /lab while unlisted).
+- `/lab/mars-hawc` — **Mars HAWC**, a third-person mech game on the real Martian
+  surface (a tribute to G-NOME, 7th Level 1997; browser edition of the Godot repo
+  `sinhaankur/gnome-hd-mars`). Core fantasy = the hijack loop: eject, HAWK an
+  enemy HAWC, steal the intact hull. Ships as a **self-contained static bundle**
+  at `public/games/mars-hawc/index.html` (a Claude-Docs `.dc.html` export + its
+  three.js 0.160 engine in `hawc/*.js`, same `support.js` dc-runtime as
+  `/games/ritam-3d`). Made offline-safe for the site: React/ReactDOM/Babel
+  vendored to `public/vendor/` via `window.__resources`, and the engine's
+  jsdelivr three.js imports remapped to local vendored modules
+  (`public/vendor/three-0.160.0.module.js` + `public/games/mars-hawc/vendor/jsm/*`)
+  through an **import map** in the bundle's `index.html` — only fonts are external.
+  The route `app/lab/mars-hawc` hosts it full-screen in an iframe and is in
+  `app/template.tsx` NO_WRAP. Listed: in the sitemap, the smoke ROUTES and the
+  `/lab` index. Not an app route for the bundle itself — the game is served from
+  `public/`. (The `uploads/` dev scratch + `.dc.html` design docs from the source
+  zip are intentionally NOT shipped.)
 - `/lab/big-bang` — real-time cosmic timeline (Planck → today → Earth forms →
   oceans → life → us); every element Blender-baked (`blender/big-bang/bake_elements.py`).
 - `/lab/usability-engine` — Usability Engine case study (design rationale +

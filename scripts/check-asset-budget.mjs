@@ -26,8 +26,12 @@ const MB = 1024 * 1024
 
 // ── Budgets (generous headroom over current real totals) ─────────────────────
 const BUDGETS = {
-  // All *.glb models (LFS). Today ~24 MB after webp-texture compression.
-  glbTotalMB: 40,
+  // All *.glb models (LFS). Was ~24 MB after webp compression; raised to 70 MB
+  // when Mars HAWC's authored game models landed under public/games/mars-hawc/
+  // (~38 MB: hero_striker, three enemies, pilot, crate, rocks, dropship). These
+  // are a self-contained game bundle, deliberately shipped un-recompressed; the
+  // single-file cap already exempts /games/. Bump again only with intent.
+  glbTotalMB: 70,
   // public/textures/*. Raised to 36 MB when the terrain engine's 16-bit DEM
   // height maps landed at their TRUE size (~3 MB each once read correctly via
   // tifffile — the earlier tiny files were clipped-garbage artifacts). These are

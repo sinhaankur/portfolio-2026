@@ -46,6 +46,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/lab/bell-curve",    priority: 0.7, changeFrequency: "monthly" },
     { path: "/lab/logarithms",    priority: 0.7, changeFrequency: "monthly" },
     { path: "/lab/wave",          priority: 0.6, changeFrequency: "monthly" },
+    { path: "/lab/mars-hawc",     priority: 0.7, changeFrequency: "monthly" },
     // /lab/helion-drift route removed 2026-10-12 (hidden while its rendering is improved).
     { path: "/lab/firmament",     priority: 0.6, changeFrequency: "monthly" },
     { path: "/framework",         priority: 0.8, changeFrequency: "monthly" },

@@ -29,6 +29,7 @@ const ROUTES = [
   ["/lab/cognitive-twin/brain/", 2500],  // "Vera's brain, made visible" — interactive net + RAG
   ["/lab/firmament/", 3000],
   ["/lab/helion-drift/", 6000],      // the game (unlisted while play-tested; title screen over a live scene)
+  ["/lab/mars-hawc/", 8000],         // Mars HAWC — self-contained static game bundle in an iframe (three.js + dc-runtime, all vendored)
   ["/lab/optical-flow/", 4000],
   ["/lab/math/", 3000],
   ["/lab/pi/", 4000],

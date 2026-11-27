@@ -1,0 +1,110 @@
+// Mission data — shared by the UI and the engine. Coordinates are planetocentric, east-positive.
+export const MISSIONS = [
+  {
+    id: 'l1', n: '01', title: 'Take the Mine', site: 'Coprates Chasma', region: 'Valles Marineris', lat: -13.4, lon: -61.4,
+    terrain: 'canyon', relief: 110, rough: 7, craters: 8, seed: 53,
+    type: 'assault', goal: 'assault', typeLabel: 'Assault', time: 'Early morning', sunElev: 14, sunAz: 95, hour: 7.6, ls: 40, sky: 'day', haze: 0.0018,
+    brief: 'Darken took the Coprates ice mine last sol and put a shield dome over it. Break their picket and take the base back. Union needs that mine running, so leave the plant and the drill rig standing.',
+    intel: 'Talon ×3 · Vulture ×3 · Boulder ×2 · Shield emitter',
+    layout: { relay: [0, 0], dropship: [-40, -20], start: [20, 440], spawnArc: [150, 210], flag: 'darken', shield: [0, -50, 110], mesons: [[-50, -60]],
+      guards: [['talon', 'anchor', [-70, 210]], ['talon', 'anchor', [85, 230]], ['vulture', 'patrol', [0, 280]], ['boulder', 'anchor', [40, -20]], ['boulder', 'anchor', [-25, -95]]] },
+    preload: ['talon', 'vulture', 'boulder'], tips: true,
+  },
+  {
+    id: 'f1', n: 'F1', title: 'Ares Ring Intercept', site: 'Ares Ring', region: 'Low Mars orbit, 400 km', lat: 0, lon: -40,
+    terrain: 'orbit', type: 'flight', typeLabel: 'Flight', time: 'Orbit, day side', sunElev: 25,
+    brief: 'A Darken flight is coming round from the night side to cover a cargo tug. Launch from the Ring, break the flight, then kill the courier’s engines and take it intact.',
+    intel: 'Raptor ×5 · Courier ×1', craft: 'Kestrel interceptor',
+  },
+  {
+    id: 'm1', n: '02', title: 'Hold the Relay', site: 'Candor Chasma', region: 'Valles Marineris', lat: -6.5, lon: -70.8,
+    terrain: 'canyon', relief: 120, rough: 7, craters: 10, seed: 11,
+    type: 'defend', typeLabel: 'Defend', time: 'Morning', sunElev: 24, sunAz: 110, hour: 8.4, ls: 60, sky: 'day', haze: 0.0016,
+    brief: 'A Darken patrol is walking down the canyon floor toward the Union relay. Hold the tower through three waves.',
+    intel: 'Talon ×5 · Vulture ×1 · Boulder ×1',
+    layout: { relay: [0, 0], dropship: [-40, -20], start: [8, 46], spawnArc: [150, 230] },
+    waves: [[['talon', 'rush', 2]], [['talon', 'flank', 2], ['vulture', 'rush', 1]], [['talon', 'rush', 1], ['boulder', 'snipe', 1]]],
+    tips: true,
+  },
+  {
+    id: 'm2', n: '03', title: 'Borrowed Iron', site: 'Gale Crater', region: 'Aeolis Palus', lat: -4.6, lon: 137.4,
+    terrain: 'craters', relief: 60, rough: 5, craters: 26, seed: 23,
+    type: 'hijack', typeLabel: 'Hijack', time: 'Midday', sunElev: 58, sunAz: 160, hour: 12.4, ls: 120, clouds: 0.22, sky: 'day', haze: 0.0013,
+    brief: 'Two Meson towers sit inside an IFF shield that stops Union fire. Leave your Striker, eject the Talon on sentry with GASHR, take its seat and bring both towers down from inside.',
+    intel: 'Talon ×1 · Boulder ×2 · Meson tower ×2, shielded',
+    layout: { dropship: [-34, 16], start: [0, 0], mesons: [[215, -265], [295, -190]], shield: [255, -228, 78],
+      guards: [['talon', 'sentry', [150, -130]], ['boulder', 'anchor', [330, -280]], ['boulder', 'anchor', [190, -320]]] },
+  },
+  {
+    id: 'm3', n: '04', title: 'Dust Line', site: 'Jezero Crater', region: 'Isidis rim', lat: 18.4, lon: 77.5,
+    terrain: 'plains', relief: 35, rough: 4, craters: 14, seed: 37,
+    type: 'destroy', typeLabel: 'Destroy', time: 'Afternoon, dust storm', sunElev: 30, sunAz: 240, hour: 15.2, ls: 225, sky: 'dust', haze: 0.0032,
+    brief: 'A regional dust storm is rolling over the delta. Use it to close on three Meson towers and destroy them before the Darken garrison regroups.',
+    intel: 'Talon ×4 · Vulture ×3 · Boulder ×2 · Meson tower ×3',
+    layout: { dropship: [-34, 16], start: [0, 0], mesons: [[-250, -310], [40, -410], [310, -250]],
+      guards: [['vulture', 'patrol', [-200, -250]], ['vulture', 'patrol', [60, -330]], ['vulture', 'patrol', [270, -190]],
+        ['talon', 'anchor', [-230, -280]], ['talon', 'anchor', [290, -220]], ['boulder', 'snipe', [40, -450]], ['boulder', 'snipe', [-290, -370]]] },
+    reinforce: { every: 80, group: [['talon', 'rush', 2]], max: 2 },
+  },
+  {
+    id: 'm4', n: '05', title: 'Blue Hour', site: 'Noctis Labyrinthus', region: 'Tharsis', lat: -7.0, lon: -101.0,
+    terrain: 'rugged', relief: 100, rough: 8, craters: 6, seed: 41,
+    type: 'defend', typeLabel: 'Defend, boss', time: 'Sunset', sunElev: 4, sunAz: 275, hour: 17.35, ls: 100, clouds: 0.42, sky: 'sunset', haze: 0.002,
+    brief: 'At dusk the sky turns blue around the sun. A Stalker-class HAWC leads the last push on the relay. Hold for four waves.',
+    intel: 'Talon ×6 · Vulture ×2 · Boulder ×2 · Stalker ×1',
+    layout: { relay: [0, 0], dropship: [36, -28], start: [-46, 8], spawnArc: [240, 320] },
+    waves: [[['talon', 'rush', 2]], [['vulture', 'rush', 2], ['talon', 'flank', 1]], [['boulder', 'snipe', 2], ['talon', 'rush', 2]], [['stalker', 'rush', 1], ['talon', 'flank', 1]]],
+  },
+];
+
+export const AGENCIES = {
+  nasa: { name: 'NASA', full: 'United States', color: '#3d6fb4', flag: ['#1f3f73', '#e9e4da', '#b8312f'] },
+  isro: { name: 'ISRO', full: 'India', color: '#e58a2c', flag: ['#e58a2c', '#f2efe8', '#2a7a3b'] },
+  cnsa: { name: 'CNSA', full: 'China', color: '#c8332b', flag: ['#b8261f', '#f0c419', '#b8261f'] },
+  esa: { name: 'ESA', full: 'Europe', color: '#2b5aa8', flag: ['#1d3f8f', '#f0c419', '#1d3f8f'] },
+  ros: { name: 'Roscosmos', full: 'Russia', color: '#7d92b0', flag: ['#f2efe8', '#2a54a3', '#c6302b'] },
+  jaxa: { name: 'JAXA', full: 'Japan', color: '#c8102e', flag: ['#f2efe8', '#c8102e', '#f2efe8'] },
+  uae: { name: 'MBRSC', full: 'United Arab Emirates', color: '#00843d', flag: ['#00843d', '#f2efe8', '#111111'] },
+  starfall: { name: 'Starfall', full: 'Starfall Industries', color: '#d8d8d4', flag: ['#18191b', '#d8d8d4', '#18191b'] },
+  darken: { name: 'Darken', full: 'Darken Syndicate', color: '#9b2c5a', flag: ['#5e1712', '#141111', '#d8541f'] },
+};
+
+export const UNITS = {
+  striker: { name: 'Striker', cls: 'Union sentry HAWC', model: 'hero_striker', rig: true, height: 7.0, hp: 1600, radius: 2.6, speed: 6.5, boardable: true,
+    spec: [['Height', '7.0 m'], ['Mass', '19 t'], ['Armor', '1,600'], ['Walk / run', '23 / 43 km/h'], ['Jump jets', '9.5 m/s² thrust'], ['Arms', 'P2MEC autocannon ×2'], ['Shoulders', 'TCROCK missile pods ×2']],
+    credit: '“Medium Mech Striker” by MSGDI, CC-BY 4.0' },
+  talon: { name: 'Talon', cls: 'Darken sentry HAWC', model: 'hero_striker', rig: true, livery: 'darken', height: 6.7, hp: 850, radius: 2.5, speed: 6, weapon: 'burst', range: 200, boardable: true,
+    spec: [['Height', '6.7 m'], ['Armor', '850'], ['Weapon', 'Burst cannon, 3 rounds'], ['Range', '200 m'], ['Behaviour', 'Rush or flank']],
+    credit: '“Medium Mech Striker” by MSGDI, CC-BY 4.0, Darken livery' },
+  stalker: { name: 'Stalker', cls: 'Darken tactical HAWC', model: 'enemy_tactical', height: 9.2, hp: 2600, radius: 3.8, speed: 3.4, weapon: 'heavy', range: 240, gait: true,
+    spec: [['Height', '9.2 m'], ['Armor', '2,600'], ['Weapon', 'Twin cannon + missile rack'], ['Range', '240 m'], ['Behaviour', 'Slow, relentless']],
+    credit: '“Magnetar / Assault Combat Mech” by Treva, CC-BY 4.0' },
+  vulture: { name: 'Vulture', cls: 'Darken hovercraft', model: 'enemy_hover', yaw: Math.PI / 2, length: 8.5, hp: 480, radius: 3.8, speed: 15, weapon: 'bolt', range: 170, hover: 1.6,
+    spec: [['Length', '8.5 m'], ['Armor', '480'], ['Weapon', 'Pulse bolts'], ['Range', '170 m'], ['Behaviour', 'Fast, circles']],
+    credit: '“Stormbringer-H4 / Armored Hover Tank” by Treva, CC-BY 4.0' },
+  boulder: { name: 'Boulder', cls: 'Darken support tank', model: 'enemy_support', length: 9.6, hp: 1100, radius: 3.9, speed: 4.5, weapon: 'shell', range: 320, tank: true,
+    spec: [['Length', '9.6 m'], ['Armor', '1,100'], ['Weapon', 'Heavy shell, splash 9 m'], ['Range', '320 m'], ['Behaviour', 'Holds back, shells']],
+    credit: '“MBT-70” by _Muzaev, CC-BY 4.0' },
+};
+
+export const WEAPONS = {
+  burst: { dmg: 15, speed: 150, n: 3, gap: 0.14, cd: 2.4, spread: 0.014, color: 0xff7a3a, w: 0.35, len: 5 },
+  bolt: { dmg: 8, speed: 170, n: 2, gap: 0.12, cd: 1.1, spread: 0.02, color: 0xff5a2a, w: 0.3, len: 4 },
+  shell: { dmg: 55, speed: 95, n: 1, cd: 5.2, spread: 0.006, splash: 9, color: 0xffc070, w: 0.7, len: 3 },
+  heavy: { dmg: 26, speed: 160, n: 2, gap: 0.22, cd: 1.9, spread: 0.01, color: 0xff6a30, w: 0.5, len: 6, missiles: { n: 4, cd: 9, dmg: 30 } },
+};
+
+export const CREDITS = [
+  ['Striker HAWC, Talon livery', '“Medium Mech Striker” by MSGDI, CC-BY 4.0 (Sketchfab)'],
+  ['Stalker', '“Magnetar / Assault Combat Mech” by Treva, CC-BY 4.0 (Sketchfab)'],
+  ['Vulture', '“Stormbringer-H4 / Armored Hover Tank” by Treva, CC-BY 4.0 (Sketchfab)'],
+  ['Boulder', '“MBT-70” by _Muzaev, CC-BY 4.0 (Sketchfab)'],
+  ['Boulders', '“Free Pack - Rocks Stylized” by PolyOne Studio, CC-BY 4.0'],
+  ['Supply crates', '“High-Poly Tactical Supply Box” by TahmidTauz, CC-BY 4.0'],
+  ['Terrain', 'HiRISE DTM regions, NASA/JPL/University of Arizona; MOLA, NASA/GSFC'],
+  ['Mars globe', 'Solar System Scope, from NASA Viking imagery, CC-BY 4.0; relief from MOLA'],
+  ['Pilot', 'Soldier model from the three.js examples (Mixamo rig)'],
+  ['Voice', 'Your browser speech voices'],
+  ['Game', 'Mars HAWC © 2026 sinhaankur. All rights reserved. Successor to G-NOME (7th Level, 1997)'],
+  ['Sky', 'NASA/Goddard SVS Deep Star Maps 2020 (Gaia DR2: ESA/Gaia/DPAC); Yale Bright Star Catalogue 5th ed.; planet positions from JPL Keplerian elements (Standish)'],
+];

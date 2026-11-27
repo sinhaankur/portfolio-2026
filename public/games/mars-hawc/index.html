@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>window.__resources=Object.assign({},window.__resources,{"https://unpkg.com/react@18.3.1/umd/react.production.min.js":"/vendor/react-18.3.1.production.min.js","https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js":"/vendor/react-dom-18.3.1.production.min.js","https://unpkg.com/@babel/standalone@7.29.0/babel.min.js":"/vendor/babel-standalone-7.29.0.min.js"});</script>
+<!-- Self-contained three.js: remap the game's jsdelivr CDN imports to locally vendored three 0.160.0 (core is site-wide; jsm addons live beside the game). Keeps the bundle offline-safe, only fonts external. -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "/vendor/three-0.160.0.module.js",
+    "https://cdn.jsdelivr.net/npm/three@0.160.0/+esm": "/vendor/three-0.160.0.module.js",
+    "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js/+esm": "/games/mars-hawc/vendor/jsm/loaders/GLTFLoader.js",
+    "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/utils/SkeletonUtils.js/+esm": "/games/mars-hawc/vendor/jsm/utils/SkeletonUtils.js",
+    "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/environments/RoomEnvironment.js/+esm": "/games/mars-hawc/vendor/jsm/environments/RoomEnvironment.js",
+    "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/postprocessing/EffectComposer.js/+esm": "/games/mars-hawc/vendor/jsm/postprocessing/EffectComposer.js",
+    "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/postprocessing/RenderPass.js/+esm": "/games/mars-hawc/vendor/jsm/postprocessing/RenderPass.js",
+    "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/postprocessing/UnrealBloomPass.js/+esm": "/games/mars-hawc/vendor/jsm/postprocessing/UnrealBloomPass.js",
+    "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/postprocessing/ShaderPass.js/+esm": "/games/mars-hawc/vendor/jsm/postprocessing/ShaderPass.js",
+    "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/postprocessing/OutputPass.js/+esm": "/games/mars-hawc/vendor/jsm/postprocessing/OutputPass.js"
+  }
+}
+</script>
+<title>Mars HAWC — pilot a combat mech on the real Martian surface</title>
+<meta name="description" content="Mars HAWC: a third-person mech game on the real Martian surface. Eject, hijack an enemy HAWC, steal the hull. Grounded hard sci-fi, runs entirely in the browser.">
+<link rel="canonical" href="https://www.sinhaankur.com/lab/mars-hawc">
+<link rel="icon" href="/icon.svg">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#030405">
+<meta property="og:title" content="Mars HAWC — pilot a combat mech on the real Martian surface">
+<meta property="og:description" content="A third-person mech game on the real Martian surface. Eject, hijack an enemy HAWC, steal the hull.">
+<meta property="og:type" content="website">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Michroma&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Brahmi&display=swap">
+  <link rel="stylesheet" href="_ds/industry-87c1ed11-9d46-4681-9046-85ce674606c0/styles.css">
+  <script src="_ds/industry-87c1ed11-9d46-4681-9046-85ce674606c0/_ds_bundle.js"></script>
+  <style>
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #030405; }
+    a { color: var(--color-accent-400); } a:hover { color: var(--color-accent-300); }
+    @keyframes hawcPop { 0% { opacity: 0; transform: translateY(10px) scale(.9); } 10% { opacity: 1; transform: translateY(0) scale(1.08); } 20% { transform: scale(1); } 78% { opacity: 1; } 100% { opacity: 0; transform: translateY(-28px); } }
+    @keyframes hawcBump { 0% { transform: scale(1.4); filter: brightness(1.6); } 100% { transform: scale(1); filter: none; } }
+    @keyframes hawcFlash { 0% { opacity: 1; } 100% { opacity: 0; } }
+  </style>
+</helmet>
+<div style="position:fixed;inset:0;overflow:hidden;background:#030405;color:var(--color-bg);font-family:var(--font-body);user-select:none;-webkit-user-select:none">
+  <canvas ref="{{ canvasRef }}" tabindex="0" style="position:absolute;inset:0;width:100%;height:100%;display:block;outline:none;cursor:grab"></canvas>
+  <div ref="{{ layerRef }}" style="position:absolute;inset:0;pointer-events:none;overflow:hidden"></div>
+
+  <sc-if value="{{ isBoot }}" hint-placeholder-val="{{ true }}">
+    <div style="position:absolute;inset:0;display:grid;place-items:center;background:#030405">
+      <div style="width:min(440px,80vw);display:flex;flex-direction:column;gap:14px">
+        <div style="font-family:var(--font-heading);font-weight:600;letter-spacing:.14em;text-transform:uppercase;font-size:12px;color:var(--color-accent-300)">Mars · 2061</div>
+        <div style="display:flex;align-items:center;gap:18px"><svg width="54" height="54" viewBox="0 0 26 26" fill="none" stroke="currentColor" style="flex:none"><circle cx="13" cy="13" r="7.5" style="stroke-width:1.6"></circle><path d="M1.5 16 L24.5 9.6" style="stroke-width:1.6;stroke-linecap:round"></path></svg><span style="font-family:'Noto Sans Brahmi','Michroma',var(--font-heading);font-size:58px;letter-spacing:.04em;line-height:1" title="HAWC" aria-label="HAWC">𑀳𑀸𑀓</span></div>
+        <div style="height:2px;background:color-mix(in srgb, var(--color-bg) 14%, transparent)"><div style="height:100%;width:{{ progW }};background:var(--color-accent-400)"></div></div>
+        <div style="font-size:13px;color:color-mix(in srgb, var(--color-bg) 76%, transparent)">{{ progLabel }}</div>
+        <sc-if value="{{ error }}"><div style="font-size:13px;color:var(--color-accent-200)">{{ error }}</div></sc-if>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isMenu }}">
+    <div style="position:absolute;inset:0;pointer-events:none;display:flex;flex-direction:column;justify-content:space-between;padding:30px 56px 28px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:16px">
+        <span style="display:flex;align-items:center;gap:10px;color:var(--color-bg)"><svg width="22" height="22" viewBox="0 0 26 26" fill="none" stroke="currentColor" style="flex:none"><circle cx="13" cy="13" r="7.5" style="stroke-width:1.6"></circle><path d="M1.5 16 L24.5 9.6" style="stroke-width:1.6;stroke-linecap:round"></path></svg><span style="font-family:'Noto Sans Brahmi','Michroma',var(--font-heading);font-size:14px;letter-spacing:.04em;padding-left:.1em" title="HAWC" aria-label="HAWC">𑀳𑀸𑀓</span></span>
+        <span style="font-family:var(--font-heading);font-weight:600;letter-spacing:.14em;text-transform:uppercase;font-size:12.5px;color:color-mix(in srgb, var(--color-bg) 76%, transparent)">A tribute to G-Nome · 7th Level, 1997</span>
+      </div>
+      <div data-enter="1" style="max-width:600px;display:flex;flex-direction:column;gap:clamp(16px,3.4vh,30px);pointer-events:auto;padding:12px 0">
+        <div style="font-family:var(--font-heading);font-weight:600;letter-spacing:.14em;text-transform:uppercase;font-size:13px;color:var(--color-accent-300)">Mars · 2061 · The claims war</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-family:'Michroma',var(--font-heading);font-size:clamp(14px,1.6vw,20px);letter-spacing:.9em;padding-left:.2em;color:color-mix(in srgb, var(--color-bg) 76%, transparent)">MARS</span>
+          <span style="font-family:'Noto Sans Brahmi','Michroma',var(--font-heading);font-size:clamp(68px,min(11vw,17vh),164px);letter-spacing:.04em;line-height:.9" title="HAWC" aria-label="HAWC">𑀳𑀸𑀓</span>
+        </div>
+        <p style="margin:0;font-size:17px;line-height:1.55;max-width:46ch;color:color-mix(in srgb, var(--color-bg) 80%, transparent);text-wrap:pretty">Every agency that landed on Mars kept the ground its probes reached. Pick a flag, hold your colony, and take back the ore fields in a four-storey HAWC, or on foot with a GASHR launcher.</p>
+        <div style="display:flex;flex-direction:column;gap:10px;max-width:420px">
+          <button class="btn btn-primary" onClick="{{ primaryCta }}" style="display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:18px;padding:16px 18px 16px 20px;white-space:nowrap;border:none;color:#eef6ff;background-color:rgba(29,45,61,.62);background-image:linear-gradient(#b5d9fd,#b5d9fd),linear-gradient(#b5d9fd,#b5d9fd),linear-gradient(#b5d9fd,#b5d9fd),linear-gradient(#b5d9fd,#b5d9fd),linear-gradient(#b5d9fd,#b5d9fd),linear-gradient(#b5d9fd,#b5d9fd),linear-gradient(#b5d9fd,#b5d9fd),linear-gradient(#b5d9fd,#b5d9fd);background-repeat:no-repeat;background-position:0 0,0 0,100% 0,100% 0,0 100%,0 100%,100% 100%,100% 100%;background-size:14px 2px,2px 14px,14px 2px,2px 14px,14px 2px,2px 14px,14px 2px,2px 14px;backdrop-filter:blur(6px);font-family:var(--font-heading);font-weight:600;text-transform:uppercase;letter-spacing:.09em;transition:background-size .18s,background-color .15s" style-hover="background-size:26px 2px,2px 22px,26px 2px,2px 22px,26px 2px,2px 22px,26px 2px,2px 22px;background-color:rgba(44,69,93,.82)" style-active="background-color:rgba(65,97,128,.88);transform:translateY(1px)">
+            <span style="display:flex;flex-direction:column;align-items:flex-start;gap:2px"><span>{{ ctaLabel }}</span><sc-if value="{{ ctaSub }}"><span style="font-size:13px;font-family:var(--font-body);font-weight:500;text-transform:none;letter-spacing:0;opacity:.75">{{ ctaSub }}</span></sc-if></span>
+            <span style="font-family:var(--font-heading);font-weight:600;font-size:12px;letter-spacing:.1em;padding:3px 7px;border:1px solid rgba(181,217,253,.55);color:#b5d9fd;flex:none">Enter</span>
+          </button>
+          <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px">
+            <sc-for list="{{ menuLinks }}" as="l" hint-placeholder-count="3">
+              <button class="btn btn-secondary" onClick="{{ l.onClick }}" style="justify-content:center;font-size:15px;padding:12px 10px;white-space:nowrap;border:none;color:var(--color-bg);background-color:rgba(3,4,5,.55);background-image:linear-gradient(#98989b,#98989b),linear-gradient(#98989b,#98989b),linear-gradient(#98989b,#98989b),linear-gradient(#98989b,#98989b),linear-gradient(#98989b,#98989b),linear-gradient(#98989b,#98989b),linear-gradient(#98989b,#98989b),linear-gradient(#98989b,#98989b);background-repeat:no-repeat;background-position:0 0,0 0,100% 0,100% 0,0 100%,0 100%,100% 100%,100% 100%;background-size:8px 1px,1px 8px,8px 1px,1px 8px,8px 1px,1px 8px,8px 1px,1px 8px;backdrop-filter:blur(6px);font-family:var(--font-heading);font-weight:600;text-transform:uppercase;letter-spacing:.09em;transition:background-size .18s,background-color .15s,color .15s" style-hover="background-size:16px 1px,1px 14px,16px 1px,1px 14px,16px 1px,1px 14px,16px 1px,1px 14px;background-color:rgba(29,45,61,.82);color:var(--color-accent-100)" style-active="background-color:var(--color-accent-800);transform:translateY(1px)">{{ l.label }}</button>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;font-size:12px;color:color-mix(in srgb, var(--color-bg) 76%, transparent);pointer-events:auto">
+        <span>Terrain from NASA HiRISE and MOLA. Moons from Viking imagery. Models CC-BY 4.0.</span>
+        <div style="display:flex;gap:6px">
+          <button onClick="{{ openControls }}" class="btn btn-ghost" style="color:var(--color-accent-300);font-size:13px;white-space:nowrap;color:color-mix(in srgb, var(--color-bg) 78%, transparent);font-size:12.5px;letter-spacing:.14em;font-family:var(--font-heading);font-weight:600;text-transform:uppercase;transition:background .15s,border-color .15s,color .15s,box-shadow .15s" style-hover="color:var(--color-bg);background:color-mix(in srgb, var(--color-bg) 8%, transparent)" style-active="background:color-mix(in srgb, var(--color-bg) 14%, transparent);transform:translateY(1px)">Settings</button>
+          <button onClick="{{ openCredits }}" class="btn btn-ghost" style="color:var(--color-accent-300);font-size:13px;white-space:nowrap;color:color-mix(in srgb, var(--color-bg) 78%, transparent);font-size:12.5px;letter-spacing:.14em;font-family:var(--font-heading);font-weight:600;text-transform:uppercase;transition:background .15s,border-color .15s,color .15s,box-shadow .15s" style-hover="color:var(--color-bg);background:color-mix(in srgb, var(--color-bg) 8%, transparent)" style-active="background:color-mix(in srgb, var(--color-bg) 14%, transparent);transform:translateY(1px)">Credits</button>
+          <button onClick="{{ swVoice.toggle }}" role="switch" aria-checked="{{ swVoice.aria }}" style="display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:36px;padding:0 6px;background:none;border:0;color:var(--color-bg);cursor:pointer;font-family:var(--font-heading);font-weight:600;font-size:13px;letter-spacing:.12em;text-transform:uppercase;white-space:nowrap;flex:none" style-hover="background:color-mix(in srgb, var(--color-bg) 7%, transparent)"><span>Voice</span><span style="position:relative;flex:none;width:36px;height:20px;border:1px solid {{ swVoice.trackBorder }};background:{{ swVoice.trackBg }};transition:background .16s,border-color .16s"><span style="position:absolute;top:3px;left:{{ swVoice.knobX }};width:12px;height:12px;background:{{ swVoice.knobBg }};transition:left .18s cubic-bezier(.2,.8,.2,1),background .16s"></span></span></button>
+          <button onClick="{{ swSound.toggle }}" role="switch" aria-checked="{{ swSound.aria }}" style="display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:36px;padding:0 6px;background:none;border:0;color:var(--color-bg);cursor:pointer;font-family:var(--font-heading);font-weight:600;font-size:13px;letter-spacing:.12em;text-transform:uppercase;white-space:nowrap;flex:none" style-hover="background:color-mix(in srgb, var(--color-bg) 7%, transparent)"><span>Sound</span><span style="position:relative;flex:none;width:36px;height:20px;border:1px solid {{ swSound.trackBorder }};background:{{ swSound.trackBg }};transition:background .16s,border-color .16s"><span style="position:absolute;top:3px;left:{{ swSound.knobX }};width:12px;height:12px;background:{{ swSound.knobBg }};transition:left .18s cubic-bezier(.2,.8,.2,1),background .16s"></span></span></button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isAgency }}">
+    <div style="position:absolute;inset:0;pointer-events:none;background:rgba(3,4,5,.55)">
+      <div style="position:absolute;left:0;right:0;top:0;display:flex;align-items:center;gap:30px;padding:16px 28px 26px;pointer-events:auto;background:linear-gradient(rgba(3,4,5,.88),rgba(3,4,5,0))">
+        <button onClick="{{ goMenu }}" style="background:none;border:0;padding:0;cursor:pointer"><span style="display:flex;align-items:center;gap:10px;color:var(--color-bg)"><svg width="22" height="22" viewBox="0 0 26 26" fill="none" stroke="currentColor" style="flex:none"><circle cx="13" cy="13" r="7.5" style="stroke-width:1.6"></circle><path d="M1.5 16 L24.5 9.6" style="stroke-width:1.6;stroke-linecap:round"></path></svg><span style="font-family:'Noto Sans Brahmi','Michroma',var(--font-heading);font-size:14px;letter-spacing:.04em;padding-left:.1em" title="HAWC" aria-label="HAWC">𑀳𑀸𑀓</span></span></button>
+        <div style="display:flex;gap:24px">
+          <sc-for list="{{ nav }}" as="n" hint-placeholder-count="3">
+            <button onClick="{{ n.onClick }}" style="background:none;border:0;border-bottom:1.5px solid {{ n.line }};padding:6px 0;cursor:pointer;font-family:var(--font-heading);font-weight:600;letter-spacing:.14em;text-transform:uppercase;font-size:12.5px;color:{{ n.color }};white-space:nowrap">{{ n.label }}</button>
+          </sc-for>
+        </div>
+        <span style="flex:1"></span>
+        <button onClick="{{ openControls }}" class="btn btn-ghost" style="color:var(--color-accent-300);font-size:13px;white-space:nowrap;color:color-mix(in srgb, var(--color-bg) 78%, transparent);font-size:12.5px;letter-spacing:.14em;font-family:var(--font-heading);font-weight:600;text-transform:uppercase;transition:background .15s,border-color .15s,color .15s,box-shadow .15s" style-hover="color:var(--color-bg);background:color-mix(in srgb, var(--color-bg) 8%, transparent)" style-active="background:color-mix(in srgb, var(--color-bg) 14%, transparent);transform:translateY(1px)">Settings</button>
+        <button onClick="{{ swSound.toggle }}" role="switch" aria-checked="{{ swSound.aria }}" style="display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:36px;padding:0 6px;background:none;border:0;color:var(--color-bg);cursor:pointer;font-family:var(--font-heading);font-weight:600;font-size:13px;letter-spacing:.12em;text-transform:uppercase;white-space:nowrap;flex:none" style-hover="background:color-mix(in srgb, var(--color-bg) 7%, transparent)"><span>Sound</span><span style="position:relative;flex:none;width:36px;height:20px;border:1px solid {{ swSound.trackBorder }};background:{{ swSound.trackBg }};transition:background .16s,border-color .16s"><span style="position:absolute;top:3px;left:{{ swSound.knobX }};width:12px;height:12px;background:{{ swSound.knobBg }};transition:left .18s cubic-bezier(.2,.8,.2,1),background .16s"></span></span></button>
+      </div>
+      <div style="position:absolute;inset:84px 28px 24px;display:flex;flex-direction:column;gap:18px;overflow:auto;pointer-events:auto;padding:4px">
+        <div style="display:flex;flex-direction:column;gap:6px;max-width:720px">
+          <span style="font-family:var(--font-heading);font-weight:600;letter-spacing:.14em;text-transform:uppercase;font-size:12px;color:var(--color-accent-300)">New campaign</span>
+          <span style="font-family:var(--font-heading);font-weight:600;font-size:44px;line-height:1">Who do you fly for?</span>
+          <span style="font-size:14.5px;line-height:1.5;color:color-mix(in srgb, var(--color-bg) 76%, transparent)">Each agency holds the sites its probes reached. More ground means more ore and more to defend.</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px">
+          <sc-for list="{{ agencyCards }}" as="a" hint-placeholder-count="7">
+            <button data-enter="1" onClick="{{ a.onClick }}" style="display:flex;flex-direction:column;gap:12px;text-align:left;padding:16px;cursor:pointer;color:var(--color-bg);font:inherit;border:1px solid color-mix(in srgb, var(--color-bg) 18%, transparent);background:color-mix(in srgb, #030405 66%, transparent);backdrop-filter:blur(10px)" style-hover="border-color:var(--color-accent-400);background:color-mix(in srgb, var(--color-accent-900) 60%, transparent)">
+              <span style="display:flex;height:6px"><span style="flex:1;background:{{ a.f0 }}"></span><span style="flex:1;background:{{ a.f1 }}"></span><span style="flex:1;background:{{ a.f2 }}"></span></span>
+              <span style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><span style="font-family:var(--font-heading);font-weight:600;font-size:30px;line-height:1">{{ a.name }}</span><span style="white-space:nowrap;font-family:var(--font-heading);font-weight:600;letter-spacing:.14em;text-transform:uppercase;font-size:12px;color:color-mix(in srgb, var(--color-bg) 76%, transparent)">{{ a.full }}</span></span>
+              <span style="display:flex;flex-direction:column;gap:4px">
+                <sc-for list="{{ a.sites }}" as="x" hint-placeholder-count="2"><span style="display:flex;justify-content:space-between;gap:8px;font-size:12.5px"><span>{{ x.site }}</span><span style="color:color-mix(in srgb, var(--color-bg) 76%, transparent);text-align:right">{{ x.probe }}</span></span></sc-for>
+              </span>
+              <span style="display:flex;justify-content:space-between;font-family:var(--font-heading);font-weight:600;letter-spacing:.14em;text-transform:uppercase;font-size:12px;color:var(--color-accent-300);border-top:1px solid color-mix(in srgb, var(--color-bg) 14%, transparent);padding-top:10px;white-space:nowrap"><span>{{ a.count }}</span><span>{{ a.ore }}</span></span>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isIntro }}">
+    <div onClick="{{ nextIntro }}" style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;background:radial-gradient(ellipse at 50% 60%, rgba(3,4,5,.25), rgba(3,4,5,.8))">
+      <div style="height:9vh;background:#000"></div>
+      <div style="align-self:center;width:min(880px,86vw);display:flex;flex-direction:column;gap:22px;text-align:center;align-items:center">
+        <span style="font-family:var(--font-heading);font-weight:600;letter-spacing:.14em;text-transform:uppercase;font-size:12px;color:var(--color-accent-300)">{{ introKicker }}</span>
+        <span style="font-family:var(--font-heading);font-weight:600;font-size:clamp(26px,3.2vw,42px);line-height:1.22;text-wrap:balance">{{ introLine }}</span>
+        <span style="display:flex;gap:8px"><sc-for list="{{ introDots }}" as="d" hint-placeholder-count="6"><span style="width:22px;height:2px;background:{{ d.bg }}"></span></sc-for></span>
+      </div>
+      <div style="height:9vh;background:#000;display:flex;justify-content:flex-end;align-items:center;padding:0 28px;gap:12px">
+        <span style="font-size:12.5px;color:color-mix(in srgb, var(--color-bg) 76%, transparent)">Click to continue</span>
+        <button class="btn btn-secondary" onClick="{{ skipIntro }}" style="font-size:13px;padding:8px 14px;color:var(--color-bg);border-color:color-mix(in srgb, var(--color-bg) 30%, transparent);background:rgba(3,4,5,.55);border-color:color-mix(in srgb, var(--color-bg) 30%, transparent);color:var(--color-bg);backdrop-filter:blur(6px);font-family:var(--font-heading);font-weight:600;text-transform:uppercase;letter-spacing:.09em;transition:background .15s,border-color .15s,color .15s,box-shadow .15s" style-hover="background:color-mix(in srgb, var(--color-accent-900) 80%, transparent);border-color:var(--color-accent-300);color:var(--color-accent-100)" style-active="background:var(--color-accent-800);border-color:var(--color-accent-200);transform:translateY(1px)">Skip</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isWar }}">
+    <div style="position:absolute;inset:0;pointer-events:none">
+      <div style="position:absolute;left:0;right:0;top:0;display:flex;align-items:center;gap:30px;padding:16px 28px 26px;pointer-events:auto;background:linear-gradient(rgba(3,4,5,.88),rgba(3,4,5,0))">
+        <button onClick="{{ goMenu }}" style="background:none;border:0;padding:0;cursor:pointer"><span style="display:flex;align-items:center;gap:10px;color:var(--color-bg)"><svg width="22" height="22" viewBox="0 0 26 26" fill="none" stroke="currentColor" style="flex:none"><circle cx="13" cy="13" r="7.5" style="stroke-width:1.6"></circle><path d="M1.5 16 L24.5 9.6" style="stroke-width:1.6;stroke-linecap:round"></path></svg><span style="font-family:'Noto Sans Brahmi','Michroma',var(--font-heading);font-size:14px;letter-spacing:.04em;padding-left:.1em" title="HAWC" aria-label="HAWC">𑀳𑀸𑀓</span></span></button>
+        <div style="display:flex;gap:24px">
+          <sc-for list="{{ nav }}" as="n" hint-placeholder-count="3">
+            <button onClick="{{ n.onClick }}" style="background:none;border:0;border-bottom:1.5px solid {{ n.line }};padding:6px 0;cursor:pointer;font-family:var(--font-heading);font-weight:600;letter-spacing:.14em;text-transform:uppercase;font-size:12.5px;color:{{ n.color }};white-space:nowrap">{{ n.label }}</button>
+          </sc-for>
+        </div>
+        <span style="flex:1"></span>
+        <button onClick="{{ openControls }}" class="btn btn-ghost" style="color:var(--color-accent-300);font-size:13px;white-space:nowrap;color:color-mix(in srgb, var(--color-bg) 78%, transparent);font-size:12.5px;letter-spacing:.14em;font-family:var(--font-heading);font-weight:600;text-transform:uppercase;transition:background .15s,border-color .15s,color .15s,box-shadow .15s" style-hover="color:var(--color-bg);background:color-mix(in srgb, var(--color-bg) 8%, transparent)" style-active="background:color-mix(in srgb, var(--color-bg) 14%, transparent);transform:translateY(1px)">Settings</button>
+        <button onClick="{{ swSound.toggle }}" role="switch" aria-checked="{{ swSound.aria }}" style="display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:36px;padding:0 6px;background:none;border:0;color:var(--color-bg);cursor:pointer;font-family:var(--font-heading);font-weight:600;font-size:13px;letter-spacing:.12em;text-transform:uppercase;white-space:nowrap;flex:none" style-hover="background:color-mix(in srgb, var(--color-bg) 7%, transparent)"><span>Sound</span><span style="position:relative;flex:none;width:36px;height:20px;border:1px solid {{ swSound.trackBorder }};background:{{ swSound.trackBg }};transition:background .16s,border-color .16s"><span style="position:absolute;top:3px;left:{{ swSound.knobX }};width:12px;height:12px;background:{{ swSound.knobBg }};transition:left .18s cubic-bezier(.2,.8,.2,1),background .16s"></span></span></button>
+      </div>
+      <div data-enter="1" style="position:absolute;left:28px;top:70px;display:flex;align-items:center;gap:18px;pointer-events:auto;flex-wrap:wrap">
+        <span style="display:flex;align-items:center;gap:10px;padding:7px 12px;border:1px solid color-mix(in srgb, var(--color-bg) 18%, transparent);background:color-mix(in srgb, #030405 66%, transparent);backdrop-filter:blur(10px)"><span style="display:flex;width:18px;height:12px"><span style="flex:1;background:{{ war.f0 }}"></span><span style="flex:1;background:{{ war.f1 }}"></span><span style="flex:1;background:{{ war.f2 }}"></span></span><span style="font-family:var(--font-heading);font-weight:600;font-size:16px">{{ war.agency }}</span></span>
+        <sc-for list="{{ war.stats }}" as="t" hint-placeholder-count="4">
+          <span style="display:flex;flex-direction:column;gap:1px"><span style="font-family:var(--font-heading);font-weight:600;font-size:20px;font-variant-numeric:tabular-nums;line-height:1">{{ t.v }}</span><span style="font-family:var(--font-heading);font-weight:600;letter-spacing:.14em;text-transform:uppercase;font-size:10px;color:color-mix(in srgb, var(--color-bg) 76%, transparent)">{{ t.k }}</span></span>
+        </sc-for>
+      </div>
+      <div style="position:absolute;left:28px;top:128px;bottom:28px;width:min(330px,34vw);display:flex;flex-direction:column;gap:10px;pointer-events:auto;overflow:auto;padding:2px">
+        <div data-enter="1" style="display:flex;flex-direction:column;gap:4px;padding:10px 12px 11px;border:1px solid color-mix(in srgb, var(--color-accent-300) 30%, transparent);background:color-mix(in srgb, var(--color-accent-900) 70%, transparent)">
+          <span style="font-family:var(--font-heading);font-weight:600;letter-spacing:.14em;text-transform:uppercase;font-size:12.5px;color:var(--color-accent-300)">{{ war.act }}</span>
+          <span style="font-size:13px;line-height:1.4;color:color-mix(in srgb, var(--color-bg) 82%, transparent);text-wrap:pretty">{{ war.actLine }}</span>
+        </div>
+        <span style="font-family:var(--font-heading);font-weight:600;letter-spacing:.14em;text-transform:uppercase;font-size:12.5px;color:color-mix(in srgb, var(--color-bg) 76%, transparent)">Operations · Sol {{ war.sol }}</span>
+        <sc-for list="{{ war.ops }}" as="o" hint-placeholder-count="5">
+          <button data-enter="1" onClick="{{ o.onClick }}" style="display:flex;flex-direction:column;gap:5px;text-align:left;padding:12px 14px;cursor:pointer;color:var(--color-bg);font:inherit;border:1px solid {{ o.border }};background:{{ o.bg }};backdrop-filter:blur(10px)" style-hover="border-color:var(--color-accent-400)">
+            <span style="display:flex;justify-content:space-between;gap:8px;font-family:var(--font-heading);font-weight:600;letter-spacing:.14em;text-transform:uppercase;font-size:12px"><span style="color:{{ o.kickColor }}">{{ o.kicker }}</span><span style="color:color-mix(in srgb, var(--color-bg) 76%, transparent)">Threat {{ o.threat }}</span></span>
+            <span style="font-family:var(--font-heading);font-weight:600;font-size:19px;line-height:1.1">{{ o.title }}</span>
+            <span style="display:flex;align-items:center;gap:7px;font-size:12.5px;color:color-mix(in srgb, var(--color-bg) 81%, transparent)"><span style="width:8px;height:8px;background:{{ o.color }};flex:none"></span>{{ o.sub }}</span>
+          </button>
+        </sc-for>
+      </div>
+      <div data-enter="1" style="position:absolute;right:28px;top:70px;bottom:28px;width:min(390px,38vw);display:flex;flex-direction:column;pointer-events:auto;border:1px solid color-mix(in srgb, var(--color-bg) 18%, transparent);background:color-mix(in srgb, #030405 66%, transparent);backdrop-filter:blur(10px)">
+        <div style="display:flex;border-bottom:1px solid color-mix(in srgb, var(--color-bg) 14%, transparent)">
+          <sc-for list="{{ war.tabs }}" as="t" hint-placeholder-count="3">
+            <button onClick="{{ t.onClick }}" style="flex:1;background:none;border:0;border-bottom:1.5px solid {{ t.line }};padding:13px 6px;cursor:pointer;font-family:var(--font-heading);font-weight:600;letter-spacing:.14em;text-transform:uppercase;font-size:12px;color:{{ t.color }}">{{ t.label }}</button>
+          </sc-for>
+        </div>
+        <div style="flex:1;overflow:auto;padding:18px;display:flex;flex-direction:column;gap:14px">
+          <sc-if value="{{ war.isBrief }}">
+            <span style="font-family:var(--font-heading);font-weight:600;letter-spacing:.14em;text-transform:uppercase;font-size:12.5px;color:var(--color-accent-300)">{{ war.b.kicker }}</span>
+            <span style="font-family:var(--font-heading);font-weight:600;font-size:32px;line-height:1">{{ war.b.title }}</span>
+            <span style="display:flex;justify-content:space-between;gap:10px;font-size:12.5px;color:color-mix(in srgb, var(--color-bg) 76%, transparent)"><span>{{ war.b.probe }}</span><span style="font-variant-numeric:tabular-nums;white-space:nowrap">{{ war.b.coords }}</span></span>
+            <p style="margin:0;font-size:14px;line-height:1.55;color:color-mix(in srgb, var(--color-bg) 86%, transparent);text-wrap:pretty">{{ war.b.text }}</p>
+            <div style="display:grid;grid-template-columns:auto minmax(0,1fr);border-top:1px solid color-mix(in srgb, var(--color-bg) 14%, transparent)">
+              <sc-for list="{{ war.b.rows }}" as="r" hint-placeholder-count="5">
+                <span style="padding:7px 14px 7px 0;white-space:nowrap;border-bottom:1px solid color-mix(in srgb, var(--color-bg) 9%, transparent);font-family:var(--font-heading);font-weight:600;letter-spacing:.14em;text-transform:uppercase;font-size:12px;color:color-mix(in srgb, var(--color-bg) 76%, transparent)">{{ r.k }}</span>
+                <span style="padding:7px 0;border-bottom:1px solid color-mix(in srgb, var(--color-bg) 9%, transparent);font-size:13px">{{ r.v }}</span>
+              </sc-for>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:auto">
+              <button class="btn btn-primary" onClick="{{ deployOp }}" style="flex:1;display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:17px;padding:13px 14px 13px 16px;white-space:nowrap;border:none;color:#eef6ff;background-color:rgba(29,45,61,.62);background-image:linear-gradient(#b5d9fd,#b5d9fd),linear-gradient(#b5d9fd,#b5d9fd),linear-gradient(#b5d9fd,#b5d9fd),linear-gradient(#b5d9fd,#b5d9fd),linear-gradient(#b5d9fd,#b5d9fd),linear-gradient(#b5d9fd,#b5d9fd),linear-gradient(#b5d9fd,#b5d9fd),linear-gradient(#b5d9fd,#b5d9fd);background-repeat:no-repeat;background-position:0 0,0 0,100% 0,100% 0,0 100%,0 100%,100% 100%,100% 100%;background-size:14px 2px,2px 14px,14px 2px,2px 14px,14px 2px,2px 14px,14px 2px,2px 14px;backdrop-filter:blur(6px);font-family:var(--font-heading);font-weight:600;text-transform:uppercase;letter-spacing:.09em;transition:background-size .18s,background-color .15s" style-hover="background-size:26px 2px,2px 22px,26px 2px,2px 22px,26px 2px,2px 22px,26px 2px,2px 22px;background-color:rgba(44,69,93,.82)" style-active="background-color:rgba(65,97,128,.88);transform:translateY(1px)"><span>Deploy</span><span style="font-family:var(--font-heading);font-weight:600;font-size:12px;letter-spacing:.1em;padding:3px 7px;border:1px solid rgba(181,217,253,.55);color:#b5d9fd;flex:none">Enter</span></button>
+              <button class="btn btn-secondary" onClick="{{ openHangarWar }}" style="font-size:14px;padding:13px 14px;white-space:nowrap;border:none;color:var(--color-bg);background-color:rgba(3,4,5,.55);background-image:linear-gradient(#98989b,#98989b),linear-gradient(#98989b,#98989b),linear-gradient(#98989b,#98989b),linear-gradient(#98989b,#98989b),linear-gradient(#98989b,#98989b),linear-gradient(#98989b,#98989b),linear-gradient(#98989b,#98989b),linear-gradient(#98989b,#98989b);background-repeat:no-repeat;background-position:0 0,0 0,100% 0,100% 0,0 100%,0 100%,100% 100%,100% 100%;background-size:8px 1px,1px 8px,8px 1px,1px 8px,8px 1px,1px 8px,8px 1px,1px 8px;backdrop-filter:blur(6px);font-family:var(--font-heading);font-weight:600;text-transform:uppercase;letter-spacing:.09em;transition:background-size .18s,background-color .15s,color .15s" style-hover="background-size:16px 1px,1px 14px,16px 1px,1px 14px,16px 1px,1px 14px,16px 1px,1px 14px;background-color:rgba(29,45,61,.82);color:var(--color-accent-100)" style-active="background-color:var(--color-accent-800);transform:translateY(1px)">Hangar</button>
+            </div>
+          </sc-if>
+          <sc-if value="{{ war.isArmory }}">
+            <span style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:var(--font-heading);font-weight:600;font-size:26px">Armory</span><span style="white-space:nowrap;font-family:var(--font-heading);font-weight:600;letter-spacing:.14em;text-transform:uppercase;font-size:12px;color:var(--color-accent-300)">{{ war.ore }} t ore</span></span>
+            <sc-for list="{{ war.armory }}" as="a" hint-placeholder-count="5">
+              <div style="display:flex;flex-direction:column;gap:6px;padding-bottom:12px;border-bottom:1px solid color-mix(in srgb, var(--color-bg) 10%, transparent)">
+                <span style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="font-family:var(--font-heading);font-weight:600;font-size:17px;white-space:nowrap">{{ a.name }}</span><span style="display:flex;gap:3px"><sc-for list="{{ a.pips }}" as="p" hint-placeholder-count="3"><span style="width:16px;height:5px;border:1px solid var(--color-accent-300);background:{{ p.bg }}"></span></sc-for></span></span>
+                <span style="font-size:12.5px;color:color-mix(in srgb, var(--color-bg) 76%, transparent)">{{ a.desc }}</span>
+                <button class="btn btn-secondary" disabled="{{ a.disabled }}" onClick="{{ a.onClick }}" style="align-self:flex-start;white-space:nowrap;font-size:13px;padding:7px 12px;color:var(--color-bg);border-color:color-mix(in srgb, var(--color-bg) 30%, transparent);opacity:{{ a.op }};background:rgba(3,4,5,.55);border-color:color-mix(in srgb, var(--color-bg) 30%, transparent);color:var(--color-bg);backdrop-filter:blur(6px);font-family:var(--font-heading);font-weight:600;text-transform:uppercase;letter-spacing:.09em;transition:background .15s,border-color .15s,color .15s,box-shadow .15s" style-hover="background:color-mix(in srgb, var(--color-accent-900) 80%, transparent);border-color:var(--color-accent-300);color:var(--color-accent-100)" style-active="background:var(--color-accent-800);border-color:var(--color-accent-200);transform:translateY(1px)">{{ a.btn }}</button>
+              </div>
+            </sc-for>
+          </sc-if>
+          <sc-if value="{{ war.isFeed }}">
+            <span style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:var(--font-heading);font-weight:600;font-size:26px">Red Feed</span><span style="white-space:nowrap;font-family:var(--font-heading);font-weight:600;letter-spacing:.14em;text-transform:uppercase;font-size:12px;color:color-mix(in srgb, var(--color-bg) 76%, transparent)">Mars public net</span></span>
+            <sc-for list="{{ war.feed }}" as="f" hint-placeholder-count="5">
+              <div style="display:grid;grid-template-columns:34px minmax(0,1fr);gap:10px;padding-bottom:12px;border-bottom:1px solid color-mix(in srgb, var(--color-bg) 10%, transparent)">
+                <span style="width:34px;height:34px;display:grid;place-items:center;background:{{ f.color }};font-family:var(--font-heading);font-weight:600;letter-spacing:.14em;text-transform:uppercase;font-size:12px;color:#f2f2f3">{{ f.ini }}</span>
+                <span style="display:flex;flex-direction:column;gap:3px"><span style="font-size:12.5px"><b style="font-weight:600">{{ f.who }}</b> <span style="color:color-mix(in srgb, var(--color-bg) 76%, transparent)">{{ f.handle }}</span></span><span style="font-size:13.5px;line-height:1.45;text-wrap:pretty">{{ f.text }}</span></span>
+              </div>
+            </sc-for>
+          </sc-if>
+        </div>
+      </div>
+      <div style="position:absolute;left:50%;bottom:20px;transform:translateX(-50%);font-size:12.5px;color:color-mix(in srgb, var(--color-bg) 76%, transparent);white-space:nowrap">Drag to turn Mars. Filled sites are yours.</div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isSelect }}">
+    <div style="position:absolute;inset:0;pointer-events:none">
+      <div style="position:absolute;left:0;right:0;top:0;display:flex;align-items:center;gap:30px;padding:16px 28px 26px;pointer-events:auto;background:linear-gradient(rgba(3,4,5,.88),rgba(3,4,5,0))">
+        <button onClick="{{ goMenu }}" style="background:none;border:0;padding:0;cursor:pointer"><span style="display:flex;align-items:center;gap:10px;color:var(--color-bg)"><svg width="22" height="22" viewBox="0 0 26 26" fill="none" stroke="currentColor" style="flex:none"><circle cx="13" cy="13" r="7.5" style="stroke-width:1.6"></circle><path d="M1.5 16 L24.5 9.6" style="stroke-width:1.6;stroke-linecap:round"></path></svg><span style="font-family:'Noto Sans Brahmi','Michroma',var(--font-heading);font-size:14px;letter-spacing:.04em;padding-left:.1em" title="HAWC" aria-label="HAWC">𑀳𑀸𑀓</span></span></button>
+        <div style="display:flex;gap:24px">
+          <sc-for list="{{ nav }}" as="n" hint-placeholder-count="3">
+            <button onClick="{{ n.onClick }}" style="background:none;border:0;border-bottom:1.5px solid {{ n.line }};padding:6px 0;cursor:pointer;font-family:var(--font-heading);font-weight:600;letter-spacing:.14em;text-transform:uppercase;font-size:12.5px;color:{{ n.color }};white-space:nowrap">{{ n.label }}</button>
+          </sc-for>
+        </div>
+        <span style="flex:1"></span>
+        <button onClick="{{ openControls }}" class="btn btn-ghost" style="color:var(--color-accent-300);font-size:13px;white-space:nowrap;color:color-mix(in srgb, var(--color-bg) 78%, transparent);font-size:12.5px;letter-spacing:.14em;font-family:var(--font-heading);font-weight:600;text-transform:uppercase;transition:background .15s,border-color .15s,color .15s,box-shadow .15s" style-hover="color:var(--color-bg);background:color-mix(in srgb, var(--color-bg) 8%, transparent)" style-active="background:color-mix(in srgb, var(--color-bg) 14%, transparent);transform:translateY(1px)">Settings</button>
+        <button onClick="{{ swSound.toggle }}" role="switch" aria-checked="{{ swSound.aria }}" style="display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:36px;padding:0 6px;background:none;border:0;color:var(--color-bg);cursor:pointer;font-family:var(--font-heading);font-weight:600;font-size:13px;letter-spacing:.12em;text-transform:uppercase;white-space:nowrap;flex:none" style-hover="background:color-mix(in srgb, var(--color-bg) 7%, transparent)"><span>Sound</span><span style="position:relative;flex:none;width:36px;height:20px;border:1px solid {{ swSound.trackBorder }};background:{{ swSound.trackBg }};transition:background .16s,border-color .16s"><span style="position:absolute;top:3px;left:{{ swSound.knobX }};width:12px;height:12px;background:{{ swSound.knobBg }};transition:left .18s cubic-bezier(.2,.8,.2,1),background .16s"></span></span></button>
+      </div>
+      <div style="position:absolute;left:32px;top:84px;bottom:32px;width:min(330px,40vw);display:flex;flex-direction:column;gap:12px;pointer-events:auto;overflow:auto;padding:6px">
+        <div style="font-family:var(--font-heading);font-weight:600;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:color-mix(in srgb, var(--color-bg) 75%, transparent)">Training missions</div>
+        <sc-for list="{{ missionCards }}" as="m" hint-placeholder-count="4">
+          <button data-enter="1" class="blueprint" onClick="{{ m.onClick }}" style="display:grid;grid-template-columns:52px minmax(0,1fr);gap:4px 12px;text-align:left;padding:14px 14px 12px;cursor:pointer;color:var(--color-bg);background:{{ m.bg }};border-color:{{ m.border }};font:inherit" style-hover="background:color-mix(in srgb, var(--color-accent-900) 70%, transparent)">
+            
+            <span style="grid-row:span 2;font-family:var(--font-heading);font-weight:600;font-size:40px;line-height:.9;color:var(--color-accent-300)">{{ m.n }}</span>
+            <span style="font-family:var(--font-heading);font-weight:600;font-size:21px;line-height:1.1">{{ m.title }}</span>
+            <span style="display:flex;gap:8px;align-items:center;font-size:12.5px;color:color-mix(in srgb, var(--color-bg) 79%, transparent)">{{ m.site }} · {{ m.typeLabel }}<span style="margin-left:auto;font-family:var(--font-heading);font-weight:600;letter-spacing:.1em;text-transform:uppercase;font-size:12px;color:var(--color-accent-300)">{{ m.status }}</span></span>
+          </button>
+        </sc-for>
+      </div>
+      <div data-enter="1" class="blueprint" style="position:absolute;right:32px;top:84px;width:min(380px,44vw);max-height:calc(100% - 120px);overflow:auto;display:flex;flex-direction:column;gap:12px;padding:20px 20px 18px;pointer-events:auto;border-color:color-mix(in srgb, var(--color-bg) 22%, transparent);background:color-mix(in srgb, #030405 55%, transparent);backdrop-filter:blur(8px)">
+        
+        <div style="font-family:var(--font-heading);font-weight:600;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--color-accent-300)">Mission {{ sel.n }} · {{ sel.typeLabel }}</div>
+        <div style="font-family:var(--font-heading);font-weight:600;font-size:36px;line-height:.95">{{ sel.title }}</div>
+        <div style="display:flex;justify-content:space-between;gap:12px;font-size:13px;color:color-mix(in srgb, var(--color-bg) 81%, transparent)"><span>{{ sel.site }}, {{ sel.region }}</span><span style="font-variant-numeric:tabular-nums">{{ sel.coords }}</span></div>
+        <p style="margin:0;font-size:14.5px;line-height:1.55;color:color-mix(in srgb, var(--color-bg) 86%, transparent);text-wrap:pretty">{{ sel.brief }}</p>
+        <div style="display:grid;grid-template-columns:auto minmax(0,1fr);border-top:1px solid color-mix(in srgb, var(--color-bg) 16%, transparent)">
+          <sc-for list="{{ sel.rows }}" as="r" hint-placeholder-count="4">
+            <span style="padding:7px 14px 7px 0;white-space:nowrap;border-bottom:1px solid color-mix(in srgb, var(--color-bg) 10%, transparent);font-family:var(--font-heading);font-weight:600;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:color-mix(in srgb, var(--color-bg) 74%, transparent)">{{ r.k }}</span>
+            <span style="padding:7px 0;border-bottom:1px solid color-mix(in srgb, var(--color-bg) 10%, transparent);font-size:13px">{{ r.v }}</span>
+          </sc-for>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:4px">
+          <button class="btn btn-primary blueprint" onClick="{{ deploySel }}" style="flex:1;display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:17px;padding:13px 14px 13px 16px;white-space:nowrap;border:none;color:#eef6ff;background-color:rgba(29,45,61,.62);background-image:linear-gradient(#b5d9fd,#b5d9fd),linear-gradient(#b5d9fd,#b5d9fd),linear-gradient(#b5d9fd,#b5d9fd),linear-gradient(#b5d9fd,#b5d9fd),linear-gradient(#b5d9fd,#b5d9fd),linear-gradient(#b5d9fd,#b5d9fd),linear-gradient(#b5d9fd,#b5d9fd),linear-gradient(#b5d9fd,#b5d9fd);background-repeat:no-repeat;background-position:0 0,0 0,100% 0,100% 0,0 100%,0 100%,100% 100%,100% 100%;background-size:14px 2px,2px 14px,14px 2px,2px 14px,14px 2px,2px 14px,14px 2px,2px 14px;backdrop-filter:blur(6px);font-family:var(--font-heading);font-weight:600;text-transform:uppercase;letter-spacing:.09em;transition:background-size .18s,background-color .15s" style-hover="background-size:26px 2px,2px 22px,26px 2px,2px 22px,26px 2px,2px 22px,26px 2px,2px 22px;background-color:rgba(44,69,93,.82)" style-active="background-color:rgba(65,97,128,.88);transform:translateY(1px)">
+            
+            <span>Deploy</span>
+            <span style="font-family:var(--font-heading);font-weight:600;font-size:12px;letter-spacing:.1em;padding:3px 7px;border:1px solid rgba(181,217,253,.55);color:#b5d9fd;flex:none">Enter</span>
+          </button>
+          <button class="btn btn-secondary" onClick="{{ openHangarSelect }}" style="font-size:15px;padding:13px 14px;white-space:nowrap;color:var(--color-bg);border-color:color-mix(in srgb, var(--color-bg) 28%, transparent);background:rgba(3,4,5,.55);border-color:color-mix(in srgb, var(--color-bg) 30%, transparent);color:var(--color-bg);backdrop-filter:blur(6px);font-family:var(--font-heading);font-weight:600;text-transform:uppercase;letter-spacing:.09em;transition:background .15s,border-color .15s,color .15s,box-shadow .15s" style-hover="background:color-mix(in srgb, var(--color-accent-900) 80%, transparent);border-color:var(--color-accent-300);color:var(--color-accent-100)" style-active="background:var(--color-accent-800);border-color:var(--color-accent-200);transform:translateY(1px)">Change HAWC</button>
+        </div>
+      </div>
+      <div style="position:absolute;left:50%;bottom:22px;transform:translateX(-50%);font-size:12.5px;color:color-mix(in srgb, var(--color-bg) 72%, transparent);white-space:nowrap">Drag to turn Mars. Click a site to read its briefing.</div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isHangar }}">
+    <div style="position:absolute;inset:0;pointer-events:none;color:var(--color-text)">
+      <div style="position:absolute;left:0;right:0;top:0;display:flex;align-items:center;gap:30px;padding:16px 28px 26px;pointer-events:auto;background:linear-gradient(rgba(3,4,5,.88),rgba(3,4,5,0))">
+        <button onClick="{{ goMenu }}" style="background:none;border:0;padding:0;cursor:pointer"><span style="display:flex;align-items:center;gap:10px;color:var(--color-bg)"><svg width="22" height="22" viewBox="0 0 26 26" fill="none" stroke="currentColor" style="flex:none"><circle cx="13" cy="13" r="7.5" style="stroke-width:1.6"></circle><path d="M1.5 16 L24.5 9.6" style="stroke-width:1.6;stroke-linecap:round"></path></svg><span style="font-family:'Noto Sans Brahmi','Michroma',var(--font-heading);font-size:14px;letter-spacing:.04em;padding-left:.1em" title="HAWC" aria-label="HAWC">𑀳𑀸𑀓</span></span></button>
+        <div style="display:flex;gap:24px">
+          <sc-for list="{{ nav }}" as="n" hint-placeholder-count="3">
+            <button onClick="{{ n.onClick }}" style="background:none;border:0;border-bottom:1.5px solid {{ n.line }};padding:6px 0;cursor:pointer;font-family:var(--font-heading);font-weight:600;letter-spacing:.14em;text-transform:uppercase;font-size:12.5px;color:{{ n.color }};white-space:nowrap">{{ n.label }}</button>
+          </sc-for>
+        </div>
+        <span style="flex:1"></span>
+        <button onClick="{{ hangarBack }}" class="btn btn-ghost" style="color:var(--color-accent-300);font-size:13px;white-space:nowrap;color:color-mix(in srgb, var(--color-bg) 78%, transparent);font-size:12.5px;letter-spacing:.14em;font-family:var(--font-heading);font-weight:600;text-transform:uppercase;transition:background .15s,border-color .15s,color .15s,box-shadow .15s" style-hover="color:var(--color-bg);background:color-mix(in srgb, var(--color-bg) 8%, transparent)" style-active="background:color-mix(in srgb, var(--color-bg) 14%, transparent);transform:translateY(1px)">Back</button>
+        <sc-if value="{{ canDeployFromHangar }}">
+          <button class="btn btn-primary blueprint" onClick="{{ deploySel }}" style="font-size:13px;padding:8px 14px;white-space:nowrap;flex:none;background:var(--color-accent-300);border-color:var(--color-accent-300);color:#030405;font-family:var(--font-heading);font-weight:600;text-transform:uppercase;letter-spacing:.09em;transition:background .15s,border-color .15s,color .15s,box-shadow .15s" style-hover="background:var(--color-accent-200);border-color:var(--color-accent-100);box-shadow:0 0 0 1px var(--color-accent-200), 0 0 28px color-mix(in srgb, var(--color-accent-400) 45%, transparent)" style-active="background:var(--color-accent-400);border-color:var(--color-accent-400);box-shadow:none;transform:translateY(1px)">Deploy to {{ sel.site }}</button>
+        </sc-if>
+      </div>
+      <div data-enter="1" class="card blueprint" style="position:absolute;left:32px;top:84px;width:min(360px,42vw);max-height:calc(100% - 116px);overflow:auto;gap:12px;padding:18px 20px;pointer-events:auto;background:color-mix(in srgb, var(--color-bg) 80%, transparent)">
+        <div class="seg" style="flex:none">
+          <sc-for list="{{ hangarTabs }}" as="t" hint-placeholder-count="2">
+            <label class="seg-opt" style="white-space:nowrap"><input type="radio" name="htab" checked="{{ t.checked }}" onChange="{{ t.onClick }}">{{ t.label }}</label>
+          </sc-for>
+        </div>
+        
+        <div class="card-kicker" style="flex:none">{{ hu.cls }}</div>
+        <div style="flex:none;font-family:var(--font-heading);font-weight:600;font-size:46px;line-height:.9">{{ hu.name }}</div>
+        <table class="table" style="flex:none;font-size:13.5px">
+          <tbody>
+            <sc-for list="{{ hu.rows }}" as="r" hint-placeholder-count="6">
+              <tr><td style="padding:5px 6px 5px 0;color:color-mix(in srgb, var(--color-text) 75%, transparent);width:36%">{{ r.k }}</td><td style="padding:5px 0;font-variant-numeric:tabular-nums">{{ r.v }}</td></tr>
+            </sc-for>
+          </tbody>
+        </table>
+        <button onClick="{{ swTear.toggle }}" role="switch" aria-checked="{{ swTear.aria }}" style="display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:40px;padding:0 12px;background:none;border:1px solid color-mix(in srgb, var(--color-text) 24%, transparent);color:var(--color-text);cursor:pointer;font-family:var(--font-heading);font-weight:600;font-size:13px;letter-spacing:.12em;text-transform:uppercase;white-space:nowrap;flex:none" style-hover="background:color-mix(in srgb, var(--color-text) 7%, transparent)"><span>Anatomy view</span><span style="position:relative;flex:none;width:36px;height:20px;border:1px solid {{ swTear.trackBorder }};background:{{ swTear.trackBg }};transition:background .16s,border-color .16s"><span style="position:absolute;top:3px;left:{{ swTear.knobX }};width:12px;height:12px;background:{{ swTear.knobBg }};transition:left .18s cubic-bezier(.2,.8,.2,1),background .16s"></span></span></button>
+        <sc-if value="{{ isHawcTab }}">
+          <div class="field" style="flex:none">
+            <label>Livery</label>
+            <div class="seg">
+              <sc-for list="{{ liveries }}" as="l" hint-placeholder-count="3">
+                <label class="seg-opt" style="white-space:nowrap"><input type="radio" name="liv" checked="{{ l.checked }}" onChange="{{ l.onClick }}">{{ l.label }}</label>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ isIntelTab }}">
+          <div style="flex:none;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">
+            <sc-for list="{{ intel }}" as="u" hint-placeholder-count="4">
+              <button class="btn btn-secondary" onClick="{{ u.onClick }}" style="justify-content:flex-start;;background:{{ u.bg }};color:{{ u.color }};border-color:color-mix(in srgb, var(--color-text) 24%, transparent);font-family:var(--font-heading);font-weight:600;text-transform:uppercase;letter-spacing:.09em;transition:background .15s,border-color .15s,color .15s,box-shadow .15s" style-hover="border-color:var(--color-text)" style-active="background:color-mix(in srgb, var(--color-text) 14%, transparent);transform:translateY(1px)">{{ u.name }}</button>
+            </sc-for>
+          </div>
+        </sc-if>
+        <sc-if value="{{ isAssetTab }}">
+          <div style="flex:none;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">
+            <sc-for list="{{ assetList }}" as="u" hint-placeholder-count="6">
+              <button class="btn btn-secondary" onClick="{{ u.onClick }}" style="justify-content:flex-start;background:{{ u.bg }};color:{{ u.color }};border-color:color-mix(in srgb, var(--color-text) 24%, transparent);font-family:var(--font-heading);font-weight:600;text-transform:uppercase;letter-spacing:.09em;font-size:13px;white-space:nowrap;transition:background .15s,border-color .15s,color .15s" style-hover="border-color:var(--color-text)" style-active="background:color-mix(in srgb, var(--color-text) 14%, transparent);transform:translateY(1px)">{{ u.name }}</button>
+            </sc-for>
+          </div>
+        </sc-if>
+        <div class="card-meta" style="flex:none">{{ hu.credit }}</div>
+      </div>
+      <div style="position:absolute;left:calc(min(360px,42vw) + 56px);right:32px;bottom:24px;display:flex;flex-direction:column;align-items:flex-end;gap:10px">
+        <sc-if value="{{ hasClips }}">
+          <div style="display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;pointer-events:auto">
+            <sc-for list="{{ anims }}" as="a" hint-placeholder-count="9">
+              <button class="btn btn-secondary" onClick="{{ a.onClick }}" style="font-size:13px;white-space:nowrap;;background:{{ a.bg }};color:{{ a.color }};border-color:color-mix(in srgb, var(--color-text) 24%, transparent);font-family:var(--font-heading);font-weight:600;text-transform:uppercase;letter-spacing:.09em;transition:background .15s,border-color .15s,color .15s,box-shadow .15s" style-hover="border-color:var(--color-text)" style-active="background:color-mix(in srgb, var(--color-text) 14%, transparent);transform:translateY(1px)">{{ a.label }}</button>
+            </sc-for>
+          </div>
+        </sc-if>
+        <sc-if value="{{ showRigHint }}"><div style="font-size:12px;color:color-mix(in srgb, var(--color-text) 72%, transparent)">Drag to turn. Animations are the model's own rig.</div></sc-if>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isLoading }}">
+    <div style="position:absolute;inset:0;display:grid;place-items:center;background:#030405">
+      <div style="width:min(520px,84vw);display:flex;flex-direction:column;gap:14px">
+        <div style="font-family:var(--font-heading);font-weight:600;font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--color-accent-300)">Mission {{ sel.n }} · {{ sel.site }}</div>
+        <div style="font-family:var(--font-heading);font-weight:600;font-size:56px;line-height:.92">{{ sel.title }}</div>
+        <p style="margin:0;font-size:15px;line-height:1.55;color:color-mix(in srgb, var(--color-bg) 78%, transparent);text-wrap:pretty">{{ sel.brief }}</p>
+        <div style="height:2px;background:color-mix(in srgb, var(--color-bg) 14%, transparent);margin-top:8px"><div style="height:100%;width:{{ progW }};background:var(--color-accent-400)"></div></div>
+        <div style="font-size:13px;color:color-mix(in srgb, var(--color-bg) 75%, transparent)">{{ progLabel }}</div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isMission }}">
+    <div style="position:absolute;inset:0;pointer-events:none;font-family:var(--font-body)">
+      <sc-if value="{{ isGroundHud }}">
+      <div ref="{{ vigRef }}" style="position:absolute;inset:0;opacity:0;box-shadow:inset 0 0 180px 40px rgba(24,10,6,.85)"></div>
+      <sc-if value="{{ hud.nv }}">
+        <div style="position:absolute;inset:0;background:radial-gradient(ellipse 78% 72% at 50% 50%, transparent 58%, rgba(2,14,6,.85) 100%), repeating-linear-gradient(0deg, rgba(0,0,0,.16) 0 1px, transparent 1px 3px)"></div>
+      </sc-if>
+      {{ pickFlash }}
+      {{ ptsFeed }}
+      <sc-if value="{{ hud.fp }}">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%">
+          <polygon points="0,0 100,0 100,3.2 0,3.2" style="fill:var(--color-accent-900);fill-opacity:.92"></polygon>
+          <polygon points="0,3.2 13,3.2 2.6,62 0,66" style="fill:var(--color-accent-900);fill-opacity:.9"></polygon>
+          <polygon points="100,3.2 87,3.2 97.4,62 100,66" style="fill:var(--color-accent-900);fill-opacity:.9"></polygon>
+          <polygon points="0,100 0,84 20,79.5 80,79.5 100,84 100,100" style="fill:var(--color-accent-900);fill-opacity:.88"></polygon>
+          <polyline points="13,3.2 2.6,62" style="fill:none;stroke:var(--color-accent-400);stroke-opacity:.5;stroke-width:1;vector-effect:non-scaling-stroke"></polyline>
+          <polyline points="87,3.2 97.4,62" style="fill:none;stroke:var(--color-accent-400);stroke-opacity:.5;stroke-width:1;vector-effect:non-scaling-stroke"></polyline>
+          <polyline points="0,84 20,79.5 80,79.5 100,84" style="fill:none;stroke:var(--color-accent-400);stroke-opacity:.5;stroke-width:1;vector-effect:non-scaling-stroke"></polyline>
+        </svg>
+      </sc-if>
+
+      <div data-enter="1" style="position:absolute;left:24px;top:24px;width:min(300px,34vw);display:flex;flex-direction:column;gap:12px">
+      <div class="blueprint" style="padding:12px 14px;display:flex;flex-direction:column;gap:7px;background:color-mix(in srgb, var(--color-accent-900) 64%, transparent);border-color:color-mix(in srgb, var(--color-accent-300) 28%, transparent);backdrop-filter:blur(8px)">
+        
+        <div style="display:flex;justify-content:space-between;gap:8px;font-family:var(--font-heading);font-weight:600;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent-300);white-space:nowrap"><span>Mission {{ sel.n }} · {{ sel.typeLabel }}</span><span style="display:flex;gap:10px;font-variant-numeric:tabular-nums;color:var(--color-bg)">{{ scoreEl }}<span>{{ hud.time }}</span></span></div>
+        <div style="font-family:var(--font-heading);font-weight:600;font-size:22px;line-height:1.05">{{ hud.objective.title }}</div>
+        <div style="font-size:12.5px;color:color-mix(in srgb, var(--color-bg) 75%, transparent)">{{ hud.objective.line }}</div>
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <sc-for list="{{ hud.steps }}" as="s" hint-placeholder-count="3">
+            <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;opacity:{{ s.opacity }}">
+              <span style="width:9px;height:9px;flex:none;border:1.5px solid var(--color-accent-300);background:{{ s.box }}"></span>{{ s.text }}
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      </div>
+
+      <div style="position:absolute;left:50%;top:20px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:4px">
+        <canvas ref="{{ compassRef }}" style="width:min(380px,40vw);height:26px;display:block"></canvas>
+        <div style="font-family:var(--font-heading);font-weight:600;font-size:15px;letter-spacing:.08em;font-variant-numeric:tabular-nums;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,.5)">{{ hud.heading }}° <span style="opacity:.75;font-size:12px;letter-spacing:.1em">· {{ hud.clock }} LMST</span></div>
+        <sc-if value="{{ hud.hasNvLabel }}">
+          <div style="display:flex;align-items:center;gap:7px;padding:3px 9px 3px 4px;font-family:var(--font-heading);font-weight:600;font-size:12px;letter-spacing:.14em;text-transform:uppercase;white-space:nowrap;background:{{ hud.nvBg }};color:{{ hud.nvColor }};transition:background .2s,color .2s"><span style="display:inline-grid;place-items:center;width:16px;height:16px;border:1px solid currentColor">N</span>{{ hud.nvLabel }}</div>
+        </sc-if>
+        <sc-if value="{{ hud.hasRelay }}">
+          <div style="width:min(260px,30vw);display:flex;flex-direction:column;gap:4px;margin-top:4px">
+            <div style="display:flex;justify-content:space-between;font-family:var(--font-heading);font-weight:600;font-size:12px;letter-spacing:.12em;text-transform:uppercase;white-space:nowrap;gap:8px;text-shadow:0 1px 2px rgba(0,0,0,.6)"><span>{{ hud.barLabel }}</span><span style="font-variant-numeric:tabular-nums">{{ hud.relayPct }}%</span></div>
+            <div style="height:5px;background:color-mix(in srgb, var(--color-accent-900) 60%, transparent)"><div style="height:100%;width:{{ hud.relayW }};background:var(--color-accent-300);transition:width .15s linear"></div></div>
+          </div>
+        </sc-if>
+      </div>
+
+      <div data-enter="1" class="blueprint" style="position:absolute;right:24px;top:24px;padding:8px;display:flex;flex-direction:column;gap:6px;background:color-mix(in srgb, var(--color-accent-900) 64%, transparent);border-color:color-mix(in srgb, var(--color-accent-300) 28%, transparent);backdrop-filter:blur(8px)">
+        
+        <canvas ref="{{ radarRef }}" style="width:168px;height:168px;display:block"></canvas>
+        <div style="display:flex;justify-content:space-between;font-family:var(--font-heading);font-weight:600;font-size:12px;letter-spacing:.12em;text-transform:uppercase;white-space:nowrap;gap:8px;color:color-mix(in srgb, var(--color-bg) 81%, transparent)"><span>Radar</span><span>260 m</span></div>
+      </div>
+
+      <div style="position:absolute;left:50%;top:50%;width:0;height:0">
+        <svg width="56" height="56" viewBox="0 0 56 56" style="position:absolute;left:-28px;top:-28px;overflow:visible;filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.6))">
+          <path d="M28 8v10M28 38v10M8 28h10M38 28h10" fill="none" stroke="#f2f2f3" style="stroke-width:1.5"></path>
+          <circle cx="28" cy="28" r="1.6" fill="#f2f2f3"></circle>
+        </svg>
+        <svg ref="{{ hitRef }}" width="40" height="40" viewBox="0 0 40 40" style="position:absolute;left:-20px;top:-20px;opacity:0;overflow:visible">
+          <path d="M8 8l7 7M32 8l-7 7M8 32l7-7M32 32l-7-7" fill="none" stroke="#f2f2f3" style="stroke-width:2;stroke-linecap:square"></path>
+        </svg>
+        <sc-if value="{{ hud.hasLock }}">
+          <div style="position:absolute;left:0;top:38px;transform:translateX(-50%);white-space:nowrap;font-family:var(--font-heading);font-weight:600;font-size:12px;letter-spacing:.12em;text-transform:uppercase;padding:2px 7px;background:{{ hud.lockBg }};color:var(--color-bg)">{{ hud.lock }} · {{ hud.lockName }}</div>
+        </sc-if>
+        <div style="position:absolute;left:40px;top:-8px;font-family:var(--font-heading);font-weight:600;font-size:12px;letter-spacing:.06em;font-variant-numeric:tabular-nums;opacity:.8;text-shadow:0 1px 2px rgba(0,0,0,.6);white-space:nowrap">{{ hud.aimTxt }}</div>
+      </div>
+
+      <div data-enter="1" class="blueprint" style="position:absolute;left:24px;bottom:24px;width:min(330px,36vw);min-width:270px;padding:14px 16px 14px;display:flex;flex-direction:column;gap:11px;background:color-mix(in srgb, var(--color-accent-900) 82%, transparent);border-color:color-mix(in srgb, var(--color-accent-300) 28%, transparent);backdrop-filter:blur(8px)">
+        
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+          <div style="display:flex;flex-direction:column">
+            <span style="font-family:var(--font-heading);font-weight:600;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-accent-300);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px">{{ hud.unitCls }}</span>
+            <span style="font-family:var(--font-heading);font-weight:600;font-size:24px;line-height:1.05">{{ hud.unit }}</span>
+          </div>
+          <span style="font-family:var(--font-heading);font-weight:600;font-size:40px;line-height:.9;font-variant-numeric:tabular-nums">{{ hud.armorPct }}<span style="font-size:18px">%</span></span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div style="display:flex;justify-content:space-between;font-family:var(--font-heading);font-weight:600;font-size:12px;letter-spacing:.12em;text-transform:uppercase;white-space:nowrap;gap:8px;color:color-mix(in srgb, var(--color-bg) 81%, transparent)"><span>{{ hud.armorLabel }}</span><span style="font-variant-numeric:tabular-nums">{{ hud.armorTxt }}</span></div>
+          <div style="position:relative;height:10px;background:color-mix(in srgb, var(--color-bg) 14%, transparent)"><div style="height:100%;width:{{ hud.armorW }};background:{{ hud.armorFill }};transition:width .15s linear"></div><span style="position:absolute;inset:0;background:repeating-linear-gradient(90deg, transparent 0 calc(10% - 2px), #14181d calc(10% - 2px) 10%)"></span></div>
+        </div>
+        <sc-if value="{{ hud.hasShield }}">
+          <div style="display:grid;grid-template-columns:64px minmax(0,1fr);gap:14px;align-items:center;padding:10px 0;border-top:1px solid color-mix(in srgb, var(--color-bg) 14%, transparent);border-bottom:1px solid color-mix(in srgb, var(--color-bg) 14%, transparent)">
+            <div style="position:relative;width:64px;height:78px" aria-label="Damage by part">
+              <sc-for list="{{ hud.diag }}" as="p" hint-placeholder-count="6"><span style="position:absolute;left:{{ p.x }};top:{{ p.y }};width:{{ p.w }};height:{{ p.h }};background:{{ p.bg }};clip-path:{{ p.clip }};transition:background .25s"></span></sc-for>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px;min-width:0">
+              <div style="display:flex;justify-content:space-between;font-family:var(--font-heading);font-weight:600;font-size:12px;letter-spacing:.12em;text-transform:uppercase;white-space:nowrap;gap:8px;color:color-mix(in srgb, var(--color-bg) 78%, transparent)"><span style="display:flex;align-items:center;gap:7px">Shield<span style="display:inline-grid;place-items:center;min-width:16px;height:16px;padding:0 3px;border:1px solid color-mix(in srgb, var(--color-bg) 45%, transparent);font-size:11px;letter-spacing:0;line-height:1">F</span></span><span style="font-variant-numeric:tabular-nums;color:{{ hud.shieldTxtColor }}">{{ hud.shieldTxt }}</span></div>
+              <div style="height:8px;background:color-mix(in srgb, var(--color-bg) 14%, transparent)"><div style="height:100%;width:{{ hud.shieldW }};background:{{ hud.shieldFill }};transition:width .15s linear"></div></div>
+              <span style="display:flex;align-items:center;gap:7px;margin-top:3px;font-size:13px;line-height:1.35;color:color-mix(in srgb, var(--color-bg) 86%, transparent)"><span style="flex:none;width:7px;height:7px;background:{{ hud.partDot }}"></span>{{ hud.partNote }}</span>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ hud.inHawc }}">
+          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <div style="display:flex;justify-content:space-between;font-family:var(--font-heading);font-weight:600;font-size:12px;letter-spacing:.12em;text-transform:uppercase;white-space:nowrap;gap:8px;color:color-mix(in srgb, var(--color-bg) 81%, transparent)"><span>{{ hud.heatLabel }}</span><span style="font-variant-numeric:tabular-nums">{{ hud.heatPct }}</span></div>
+              <div style="height:6px;background:color-mix(in srgb, var(--color-bg) 14%, transparent)"><div style="height:100%;width:{{ hud.heatW }};background:{{ hud.heatFill }};transition:width .15s linear"></div></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <div style="display:flex;justify-content:space-between;font-family:var(--font-heading);font-weight:600;font-size:12px;letter-spacing:.12em;text-transform:uppercase;white-space:nowrap;gap:8px;color:color-mix(in srgb, var(--color-bg) 81%, transparent)"><span>Jump jets</span><span style="font-variant-numeric:tabular-nums">{{ hud.fuelPct }}</span></div>
+              <div style="height:6px;background:color-mix(in srgb, var(--color-bg) 14%, transparent)"><div style="height:100%;width:{{ hud.fuelW }};background:var(--color-accent-300);transition:width .15s linear"></div></div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <div style="display:flex;justify-content:space-between;font-family:var(--font-heading);font-weight:600;font-size:12px;letter-spacing:.12em;text-transform:uppercase;white-space:nowrap;gap:8px;color:color-mix(in srgb, var(--color-bg) 81%, transparent)"><span>Power</span><span style="font-variant-numeric:tabular-nums;color:{{ hud.powerColor }}">{{ hud.powerTxt }}</span></div>
+            <div style="display:flex;gap:6px;align-items:center">
+              <div style="flex:1;height:6px;background:color-mix(in srgb, var(--color-bg) 14%, transparent)"><div style="height:100%;width:{{ hud.cellW }};background:{{ hud.cellFill }};transition:width .15s linear"></div></div>
+              <div style="display:flex;gap:3px">
+                <sc-for list="{{ hud.cellPips }}" as="p" hint-placeholder-count="3">
+                  <span style="width:5px;height:12px;background:#8fe3a8"></span>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ hud.onFoot }}">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+            <span style="font-family:var(--font-heading);font-weight:600;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:color-mix(in srgb, var(--color-bg) 81%, transparent)">GASHR canisters</span>
+            <div style="display:flex;gap:4px">
+              <sc-for list="{{ hud.gashrBoxes }}" as="b" hint-placeholder-count="5">
+                <span style="width:12px;height:12px;border:1.5px solid var(--color-accent-300);background:{{ b.bg }}"></span>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-family:var(--font-heading);font-weight:600;font-size:12px;letter-spacing:.12em;text-transform:uppercase;white-space:nowrap;gap:8px;color:color-mix(in srgb, var(--color-bg) 81%, transparent)"><span>Spare power cells</span><span style="color:#8fe3a8;font-variant-numeric:tabular-nums">{{ hud.cells }}</span></div>
+        </sc-if>
+        <div style="display:flex;justify-content:space-between;font-family:var(--font-heading);font-weight:600;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:color-mix(in srgb, var(--color-bg) 81%, transparent);font-variant-numeric:tabular-nums"><span style="white-space:nowrap">{{ hud.speed }} km/h</span><span style="white-space:nowrap">{{ hud.viewLabel }} · V</span></div>
+      </div>
+
+      <div style="position:absolute;left:50%;bottom:24px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:10px;width:min(420px,calc(100vw - 640px));min-width:240px">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;width:100%">
+          <sc-for list="{{ hud.msgList }}" as="g" hint-placeholder-count="0">
+            <div style="font-size:13px;line-height:1.35;padding:4px 10px;text-align:center;background:color-mix(in srgb, var(--color-accent-900) 58%, transparent);text-wrap:balance">{{ g.text }}</div>
+          </sc-for>
+        </div>
+        <sc-if value="{{ hud.hasPrompt }}">
+          <div style="display:flex;align-items:center;gap:10px;padding:7px 12px 7px 8px;background:color-mix(in srgb, var(--color-accent-900) 70%, transparent);backdrop-filter:blur(8px)">
+            <span style="display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 6px;border:1.5px solid var(--color-bg);font-family:var(--font-heading);font-weight:600;font-size:13px">{{ hud.promptKey }}</span>
+            <span style="font-size:14px;white-space:nowrap">{{ hud.promptText }}</span>
+          </div>
+        </sc-if>
+      </div>
+
+      <div data-enter="1" class="blueprint" style="position:absolute;right:24px;bottom:24px;width:min(280px,30vw);min-width:220px;padding:12px 14px;display:flex;flex-direction:column;gap:10px;background:color-mix(in srgb, var(--color-accent-900) 64%, transparent);border-color:color-mix(in srgb, var(--color-accent-300) 28%, transparent);backdrop-filter:blur(8px)">
+        
+        <sc-for list="{{ hud.weapons }}" as="w" hint-placeholder-count="2">
+          <div style="display:grid;grid-template-columns:38px minmax(0,1fr) auto;gap:4px 10px;align-items:center">
+            <span style="grid-row:span 2;display:grid;place-items:center;height:28px;border:1px solid color-mix(in srgb, var(--color-bg) 40%, transparent);font-family:var(--font-heading);font-weight:600;font-size:12px;letter-spacing:.06em">{{ w.key }}</span>
+            <span style="font-family:var(--font-heading);font-weight:600;font-size:15px;line-height:1.1">{{ w.name }}</span>
+            <span style="font-family:var(--font-heading);font-weight:600;font-size:15px;font-variant-numeric:tabular-nums">{{ w.count }}</span>
+            <div style="grid-column:2 / span 2;height:3px;background:color-mix(in srgb, var(--color-bg) 14%, transparent)"><div style="height:100%;width:{{ w.ready }};background:var(--color-accent-300);transition:width .15s linear"></div></div>
+          </div>
+        </sc-for>
+      </div>
+
+      </sc-if>
+      <div ref="{{ fadeRef }}" style="position:absolute;inset:0;background:#030405;opacity:1"></div>
+
+      <sc-if value="{{ showClickOverlay }}">
+        <div style="position:absolute;inset:0;display:grid;place-items:center">
+          <div class="blueprint" style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:20px 26px;background:color-mix(in srgb, var(--color-accent-900) 78%, transparent);border-color:color-mix(in srgb, var(--color-accent-300) 35%, transparent);backdrop-filter:blur(8px)">
+            
+            <div style="font-family:var(--font-heading);font-weight:600;font-size:26px">Click to take the controls</div>
+            <div style="font-size:13px;color:color-mix(in srgb, var(--color-bg) 75%, transparent)">{{ clickHint }}</div>
+          </div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ lockFailNote }}">
+        <div style="position:absolute;left:50%;top:76px;transform:translateX(-50%);font-size:12.5px;padding:5px 10px;background:color-mix(in srgb, var(--color-accent-900) 70%, transparent)">Mouse capture is blocked in this frame. Move the mouse over the view to aim, or open the file in its own tab.</div>
+      </sc-if>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ showPause }}">
+    <div style="position:absolute;inset:0;display:grid;place-items:center;background:rgba(3,4,5,.55);backdrop-filter:blur(6px)">
+      <div data-enter="1" class="blueprint" style="width:min(420px,90vw);display:flex;flex-direction:column;gap:16px;padding:24px;border-color:color-mix(in srgb, var(--color-bg) 25%, transparent);background:color-mix(in srgb, var(--color-accent-900) 70%, transparent)">
+        
+        <div style="font-family:var(--font-heading);font-weight:600;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--color-accent-300)">Mission {{ sel.n }} · {{ sel.site }}</div>
+        <div style="font-family:var(--font-heading);font-weight:600;font-size:44px;line-height:.9">Paused</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button class="btn btn-primary blueprint" onClick="{{ resume }}" style="justify-content:space-between;font-size:16px;padding:12px 16px;background:var(--color-accent-300);border-color:var(--color-accent-300);color:#030405;font-family:var(--font-heading);font-weight:600;text-transform:uppercase;letter-spacing:.09em;transition:background .15s,border-color .15s,color .15s,box-shadow .15s" style-hover="background:var(--color-accent-200);border-color:var(--color-accent-100);box-shadow:0 0 0 1px var(--color-accent-200), 0 0 28px color-mix(in srgb, var(--color-accent-400) 45%, transparent)" style-active="background:var(--color-accent-400);border-color:var(--color-accent-400);box-shadow:none;transform:translateY(1px)">
+            
+            <span>Resume</span><span style="font-size:12px;opacity:.8">Esc</span>
+          </button>
+          <button class="btn btn-secondary" onClick="{{ restart }}" style="justify-content:flex-start;font-size:15px;padding:11px 16px;color:var(--color-bg);border-color:color-mix(in srgb, var(--color-bg) 28%, transparent);background:rgba(3,4,5,.55);border-color:color-mix(in srgb, var(--color-bg) 30%, transparent);color:var(--color-bg);backdrop-filter:blur(6px);font-family:var(--font-heading);font-weight:600;text-transform:uppercase;letter-spacing:.09em;transition:background .15s,border-color .15s,color .15s,box-shadow .15s" style-hover="background:color-mix(in srgb, var(--color-accent-900) 80%, transparent);border-color:var(--color-accent-300);color:var(--color-accent-100)" style-active="background:var(--color-accent-800);border-color:var(--color-accent-200);transform:translateY(1px)">Restart mission</button>
+          <button class="btn btn-secondary" onClick="{{ openControls }}" style="justify-content:flex-start;font-size:15px;padding:11px 16px;color:var(--color-bg);border-color:color-mix(in srgb, var(--color-bg) 28%, transparent);background:rgba(3,4,5,.55);border-color:color-mix(in srgb, var(--color-bg) 30%, transparent);color:var(--color-bg);backdrop-filter:blur(6px);font-family:var(--font-heading);font-weight:600;text-transform:uppercase;letter-spacing:.09em;transition:background .15s,border-color .15s,color .15s,box-shadow .15s" style-hover="background:color-mix(in srgb, var(--color-accent-900) 80%, transparent);border-color:var(--color-accent-300);color:var(--color-accent-100)" style-active="background:var(--color-accent-800);border-color:var(--color-accent-200);transform:translateY(1px)">Settings</button>
+          <button class="btn btn-secondary" onClick="{{ quit }}" style="justify-content:flex-start;font-size:15px;padding:11px 16px;color:var(--color-bg);border-color:color-mix(in srgb, var(--color-bg) 28%, transparent);background:rgba(3,4,5,.55);border-color:color-mix(in srgb, var(--color-bg) 30%, transparent);color:var(--color-bg);backdrop-filter:blur(6px);font-family:var(--font-heading);font-weight:600;text-transform:uppercase;letter-spacing:.09em;transition:background .15s,border-color .15s,color .15s,box-shadow .15s" style-hover="background:color-mix(in srgb, var(--color-accent-900) 80%, transparent);border-color:var(--color-accent-300);color:var(--color-accent-100)" style-active="background:var(--color-accent-800);border-color:var(--color-accent-200);transform:translateY(1px)">{{ quitLabel }}</button>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost" onClick="{{ toggleView }}" style="color:var(--color-accent-300);font-size:13px;white-space:nowrap;color:color-mix(in srgb, var(--color-bg) 78%, transparent);font-size:12.5px;letter-spacing:.14em;font-family:var(--font-heading);font-weight:600;text-transform:uppercase;transition:background .15s,border-color .15s,color .15s,box-shadow .15s" style-hover="color:var(--color-bg);background:color-mix(in srgb, var(--color-bg) 8%, transparent)" style-active="background:color-mix(in srgb, var(--color-bg) 14%, transparent);transform:translateY(1px)">View: {{ viewName }}</button>
+          <button onClick="{{ swSound.toggle }}" role="switch" aria-checked="{{ swSound.aria }}" style="display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:36px;padding:0 6px;background:none;border:0;color:var(--color-bg);cursor:pointer;font-family:var(--font-heading);font-weight:600;font-size:13px;letter-spacing:.12em;text-transform:uppercase;white-space:nowrap;flex:none" style-hover="background:color-mix(in srgb, var(--color-bg) 7%, transparent)"><span>Sound</span><span style="position:relative;flex:none;width:36px;height:20px;border:1px solid {{ swSound.trackBorder }};background:{{ swSound.trackBg }};transition:background .16s,border-color .16s"><span style="position:absolute;top:3px;left:{{ swSound.knobX }};width:12px;height:12px;background:{{ swSound.knobBg }};transition:left .18s cubic-bezier(.2,.8,.2,1),background .16s"></span></span></button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ hasResult }}">
+    <div style="position:absolute;inset:0;display:grid;place-items:center;background:rgba(3,4,5,.5);backdrop-filter:blur(4px)">
+      <div data-enter="1" class="blueprint" style="width:min(520px,92vw);display:flex;flex-direction:column;gap:16px;padding:26px;border-color:color-mix(in srgb, var(--color-bg) 25%, transparent);background:color-mix(in srgb, var(--color-accent-900) 74%, transparent)">
+        
+        <div style="font-family:var(--font-heading);font-weight:600;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--color-accent-300)">{{ res.kicker }}</div>
+        <div style="font-family:var(--font-heading);font-weight:600;font-size:52px;line-height:.9">{{ res.title }}</div>
+        <div style="font-size:14.5px;color:color-mix(in srgb, var(--color-bg) 80%, transparent)">{{ res.reason }}</div>
+        <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border-top:1px solid color-mix(in srgb, var(--color-bg) 18%, transparent);border-bottom:1px solid color-mix(in srgb, var(--color-bg) 18%, transparent)">
+          <sc-for list="{{ res.cells }}" as="c" hint-placeholder-count="4">
+            <div style="display:flex;flex-direction:column;gap:2px;padding:12px 0">
+              <span style="font-family:var(--font-heading);font-weight:600;font-size:30px;font-variant-numeric:tabular-nums">{{ c.v }}</span>
+              <span style="font-family:var(--font-heading);font-weight:600;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:color-mix(in srgb, var(--color-bg) 75%, transparent)">{{ c.k }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <sc-if value="{{ res.hasNews }}">
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <sc-for list="{{ res.news }}" as="n" hint-placeholder-count="3"><span style="font-size:13.5px;line-height:1.45;padding-left:10px;border-left:2px solid var(--color-accent-400)">{{ n.text }}</span></sc-for>
+          </div>
+        </sc-if>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <sc-if value="{{ res.hasPrimary }}">
+            <button class="btn btn-primary" onClick="{{ res.onPrimary }}" style="font-size:16px;padding:12px 16px;gap:10px;white-space:nowrap;background:var(--color-accent-300);border-color:var(--color-accent-300);color:#030405;font-family:var(--font-heading);font-weight:600;text-transform:uppercase;letter-spacing:.09em;transition:background .15s,border-color .15s,color .15s,box-shadow .15s" style-hover="background:var(--color-accent-200);border-color:var(--color-accent-100);box-shadow:0 0 0 1px var(--color-accent-200), 0 0 28px color-mix(in srgb, var(--color-accent-400) 45%, transparent)" style-active="background:var(--color-accent-400);border-color:var(--color-accent-400);box-shadow:none;transform:translateY(1px)">{{ res.primaryLabel }}<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></button>
+          </sc-if>
+          <sc-if value="{{ res.hasRetry }}"><button class="btn btn-secondary" onClick="{{ res.onRetry }}" style="font-size:15px;padding:12px 16px;white-space:nowrap;color:var(--color-bg);border-color:color-mix(in srgb, var(--color-bg) 28%, transparent);background:rgba(3,4,5,.55);border-color:color-mix(in srgb, var(--color-bg) 30%, transparent);color:var(--color-bg);backdrop-filter:blur(6px);font-family:var(--font-heading);font-weight:600;text-transform:uppercase;letter-spacing:.09em;transition:background .15s,border-color .15s,color .15s,box-shadow .15s" style-hover="background:color-mix(in srgb, var(--color-accent-900) 80%, transparent);border-color:var(--color-accent-300);color:var(--color-accent-100)" style-active="background:var(--color-accent-800);border-color:var(--color-accent-200);transform:translateY(1px)">{{ res.retryLabel }}</button></sc-if>
+          <button class="btn btn-secondary" onClick="{{ res.onBack }}" style="font-size:15px;padding:12px 16px;white-space:nowrap;color:var(--color-bg);border-color:color-mix(in srgb, var(--color-bg) 28%, transparent);background:rgba(3,4,5,.55);border-color:color-mix(in srgb, var(--color-bg) 30%, transparent);color:var(--color-bg);backdrop-filter:blur(6px);font-family:var(--font-heading);font-weight:600;text-transform:uppercase;letter-spacing:.09em;transition:background .15s,border-color .15s,color .15s,box-shadow .15s" style-hover="background:color-mix(in srgb, var(--color-accent-900) 80%, transparent);border-color:var(--color-accent-300);color:var(--color-accent-100)" style-active="background:var(--color-accent-800);border-color:var(--color-accent-200);transform:translateY(1px)">{{ res.backLabel }}</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ showArm }}">
+    <div style="position:absolute;inset:0;display:grid;place-items:center;background:rgba(3,4,5,.62);backdrop-filter:blur(6px)">
+      <div data-enter="1" class="blueprint" style="width:min(600px,92vw);max-height:calc(100vh - 32px);overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;gap:2px;padding:clamp(16px,3vh,26px) 24px clamp(14px,2.6vh,22px);border-color:color-mix(in srgb, var(--color-bg) 25%, transparent);background:color-mix(in srgb, var(--color-accent-900) 80%, transparent)">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding-bottom:10px">
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <span style="font-family:var(--font-heading);font-weight:600;font-size:12px;letter-spacing:.14em;text-transform:uppercase;white-space:nowrap;line-height:1.3;color:var(--color-accent-300)">Fuel and arm · {{ arm.site }}</span>
+            <span style="font-family:var(--font-heading);font-weight:600;font-size:clamp(28px,5vh,40px);line-height:.95">Load the Striker</span>
+          </div>
+          <button class="btn btn-ghost" onClick="{{ closeArm }}" style="font-size:12.5px;letter-spacing:.14em;color:color-mix(in srgb, var(--color-bg) 78%, transparent);font-family:var(--font-heading);font-weight:600;text-transform:uppercase;transition:background .15s,color .15s" style-hover="color:var(--color-bg);background:color-mix(in srgb, var(--color-bg) 8%, transparent)" style-active="transform:translateY(1px)">Cancel</button>
+        </div>
+        <sc-for list="{{ arm.rows }}" as="r" hint-placeholder-count="3">
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:clamp(5px,1.2vh,10px) 18px;align-items:center;padding:clamp(8px,1.8vh,14px) 0 clamp(7px,1.5vh,12px);border-top:1px solid color-mix(in srgb, var(--color-bg) 14%, transparent)">
+            <div style="display:flex;flex-direction:column;gap:3px;min-width:0">
+              <span style="font-family:var(--font-heading);font-weight:600;font-size:21px;line-height:1.1">{{ r.label }}</span>
+              <span style="font-size:13px;line-height:1.35;color:color-mix(in srgb, var(--color-bg) 72%, transparent);text-wrap:pretty">{{ r.note }} <span style="font-family:var(--font-heading);font-weight:600;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent-300);white-space:nowrap">{{ r.cost }}</span></span>
+            </div>
+            <div style="display:flex;align-items:center">
+              <button class="btn btn-secondary" onClick="{{ r.dec }}" disabled="{{ r.atMin }}" style="width:40px;height:40px;padding:0;font-size:22px;line-height:1;background:rgba(3,4,5,.55);border-color:color-mix(in srgb, var(--color-bg) 30%, transparent);color:var(--color-bg);transition:background .15s,border-color .15s" style-hover="background:color-mix(in srgb, var(--color-accent-900) 80%, transparent);border-color:var(--color-accent-300)" style-active="transform:translateY(1px)">−</button>
+              <span style="min-width:84px;text-align:center;font-family:var(--font-heading);font-weight:600;font-size:28px;font-variant-numeric:tabular-nums">{{ r.value }}</span>
+              <button class="btn btn-secondary" onClick="{{ r.inc }}" disabled="{{ r.atMax }}" style="width:40px;height:40px;padding:0;font-size:22px;line-height:1;background:rgba(3,4,5,.55);border-color:color-mix(in srgb, var(--color-bg) 30%, transparent);color:var(--color-bg);transition:background .15s,border-color .15s" style-hover="background:color-mix(in srgb, var(--color-accent-900) 80%, transparent);border-color:var(--color-accent-300)" style-active="transform:translateY(1px)">+</button>
+            </div>
+            <div style="grid-column:1 / -1;display:flex;gap:3px">
+              <sc-for list="{{ r.pips }}" as="p" hint-placeholder-count="8">
+                <span style="flex:1;height:6px;background:{{ p.bg }};transition:background .2s"></span>
+              </sc-for>
+            </div>
+          </div>
+        </sc-for>
+        <div style="position:sticky;bottom:calc(-1 * clamp(14px,2.6vh,22px));display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:clamp(10px,2vh,16px) 0 clamp(4px,1vh,8px);border-top:1px solid color-mix(in srgb, var(--color-bg) 14%, transparent);background:color-mix(in srgb, var(--color-accent-900) 96%, #000)">
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <span style="font-family:var(--font-heading);font-weight:600;font-size:12px;letter-spacing:.12em;text-transform:uppercase;white-space:nowrap;line-height:1.3;color:color-mix(in srgb, var(--color-bg) 76%, transparent)">Loadout cost</span>
+            <span style="font-family:var(--font-heading);font-weight:600;font-size:28px;font-variant-numeric:tabular-nums;line-height:1.05;color:{{ arm.costColor }}">{{ arm.costTxt }}</span>
+            <span style="font-size:12.5px;color:color-mix(in srgb, var(--color-bg) 78%, transparent)">{{ arm.oreTxt }}</span>
+          </div>
+          <button class="btn btn-primary" onClick="{{ arm.launch }}" disabled="{{ arm.cantLaunch }}" style="display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:17px;padding:14px 16px 14px 18px;white-space:nowrap;border:none;color:#eef6ff;background-color:rgba(29,45,61,.62);background-image:linear-gradient(#b5d9fd,#b5d9fd),linear-gradient(#b5d9fd,#b5d9fd),linear-gradient(#b5d9fd,#b5d9fd),linear-gradient(#b5d9fd,#b5d9fd),linear-gradient(#b5d9fd,#b5d9fd),linear-gradient(#b5d9fd,#b5d9fd),linear-gradient(#b5d9fd,#b5d9fd),linear-gradient(#b5d9fd,#b5d9fd);background-repeat:no-repeat;background-position:0 0,0 0,100% 0,100% 0,0 100%,0 100%,100% 100%,100% 100%;background-size:14px 2px,2px 14px,14px 2px,2px 14px,14px 2px,2px 14px,14px 2px,2px 14px;backdrop-filter:blur(6px);font-family:var(--font-heading);font-weight:600;text-transform:uppercase;letter-spacing:.09em;transition:background-size .18s,background-color .15s" style-hover="background-size:26px 2px,2px 22px,26px 2px,2px 22px,26px 2px,2px 22px,26px 2px,2px 22px;background-color:rgba(44,69,93,.82)" style-active="background-color:rgba(65,97,128,.88);transform:translateY(1px)">{{ arm.launchLabel }}<span style="font-family:var(--font-heading);font-weight:600;font-size:12px;letter-spacing:.1em;padding:3px 7px;border:1px solid rgba(181,217,253,.55);color:#b5d9fd;flex:none">Enter</span></button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ showControls }}">
+    <div onClick="{{ closeOverlay }}" style="position:absolute;inset:0;display:grid;place-items:center;background:rgba(3,4,5,.6);backdrop-filter:blur(6px)">
+      <div data-enter="1" class="blueprint" onClick="{{ stop }}" style="width:min(560px,92vw);max-height:86vh;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;gap:14px;padding:24px;border-color:color-mix(in srgb, var(--color-bg) 25%, transparent);background:color-mix(in srgb, var(--color-accent-900) 80%, transparent)">
+        
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><div style="font-family:var(--font-heading);font-weight:600;font-size:36px">Settings</div><button aria-label="Close" onClick="{{ closeOverlay }}" style="display:grid;place-items:center;width:44px;height:44px;flex:none;padding:0;background:transparent;border:1px solid color-mix(in srgb, var(--color-bg) 24%, transparent);color:var(--color-bg);cursor:pointer;transition:background .12s,border-color .12s" style-hover="background:color-mix(in srgb, var(--color-bg) 8%, transparent);border-color:var(--color-accent-400)" style-active="background:color-mix(in srgb, var(--color-bg) 14%, transparent)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:1.5;stroke-linecap:square"><path d="M6 6 18 18M18 6 6 18"></path></svg></button></div>
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <sc-for list="{{ setRows }}" as="r" hint-placeholder-count="5">
+            <div style="display:grid;grid-template-columns:minmax(120px,160px) minmax(0,1fr);align-items:center;gap:14px;padding:9px 0;border-bottom:1px solid color-mix(in srgb, var(--color-bg) 12%, transparent)">
+              <div style="display:flex;flex-direction:column;gap:2px">
+                <span style="font-family:var(--font-heading);font-weight:600;font-size:12px;letter-spacing:.14em;text-transform:uppercase">{{ r.label }}</span>
+                <span style="font-size:12.5px;color:color-mix(in srgb, var(--color-bg) 74%, transparent)">{{ r.note }}</span>
+              </div>
+              <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px">
+                <sc-if value="{{ r.isRange }}">
+                  <input type="range" min="{{ r.min }}" max="{{ r.max }}" step="{{ r.step }}" value="{{ r.value }}" onChange="{{ r.onRange }}" style="flex:1;min-width:120px;accent-color:var(--color-accent-400);cursor:pointer"></input>
+                  <span style="font-family:var(--font-heading);font-weight:600;font-size:14px;min-width:34px;text-align:right">{{ r.valueTxt }}</span>
+                </sc-if>
+                <sc-if value="{{ r.isSwitch }}"><button onClick="{{ r.sw.toggle }}" role="switch" aria-checked="{{ r.sw.aria }}" style="display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:36px;padding:0 6px;background:none;border:0;color:var(--color-bg);cursor:pointer;font-family:var(--font-heading);font-weight:600;font-size:13px;letter-spacing:.12em;text-transform:uppercase;white-space:nowrap;flex:none" style-hover="background:color-mix(in srgb, var(--color-bg) 7%, transparent)"><span>{{ r.swLabel }}</span><span style="position:relative;flex:none;width:36px;height:20px;border:1px solid {{ r.sw.trackBorder }};background:{{ r.sw.trackBg }};transition:background .16s,border-color .16s"><span style="position:absolute;top:3px;left:{{ r.sw.knobX }};width:12px;height:12px;background:{{ r.sw.knobBg }};transition:left .18s cubic-bezier(.2,.8,.2,1),background .16s"></span></span></button></sc-if>
+                <sc-for list="{{ r.opts }}" as="o" hint-placeholder-count="3">
+                  <button onClick="{{ o.onClick }}" style="padding:7px 12px;white-space:nowrap;border:1px solid {{ o.border }};background:{{ o.bg }};color:{{ o.color }};font-family:var(--font-heading);font-weight:600;font-size:12px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:background .15s,border-color .15s,color .15s">{{ o.label }}</button>
+                </sc-for>
+              </div>
+            </div>
+          </sc-for>
+          <span style="font-size:12.5px;padding-top:6px;color:color-mix(in srgb, var(--color-bg) 74%, transparent)">{{ setNote }}</span>
+        </div>
+        <div style="font-family:var(--font-heading);font-weight:600;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:color-mix(in srgb, var(--color-bg) 75%, transparent);padding-top:6px">Controls</div>
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 28px">
+          <sc-for list="{{ controls }}" as="c" hint-placeholder-count="12">
+            <div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid color-mix(in srgb, var(--color-bg) 12%, transparent);font-size:13.5px">
+              <span style="color:color-mix(in srgb, var(--color-bg) 80%, transparent)">{{ c.a }}</span>
+              <span style="font-family:var(--font-heading);font-weight:600;letter-spacing:.06em;white-space:nowrap">{{ c.k }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <p style="margin:0;font-size:13px;line-height:1.55;color:color-mix(in srgb, var(--color-bg) 72%, transparent);text-wrap:pretty">The loop from G-Nome: leave your HAWC, run up to an enemy one, fire GASHR to force its pilot out, then climb in. Fragile on foot, dangerous in a fresh machine. Mars gravity is 0.38 g, so jumps and jets hang in the air.</p>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ showCredits }}">
+    <div onClick="{{ closeOverlay }}" style="position:absolute;inset:0;display:grid;place-items:center;background:rgba(3,4,5,.6);backdrop-filter:blur(6px)">
+      <div data-enter="1" class="blueprint" onClick="{{ stop }}" style="width:min(620px,92vw);max-height:86vh;overflow:auto;display:flex;flex-direction:column;gap:12px;padding:24px;border-color:color-mix(in srgb, var(--color-bg) 25%, transparent);background:color-mix(in srgb, var(--color-accent-900) 80%, transparent)">
+        
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><div style="font-family:var(--font-heading);font-weight:600;font-size:36px">Credits</div><button aria-label="Close" onClick="{{ closeOverlay }}" style="display:grid;place-items:center;width:44px;height:44px;flex:none;padding:0;background:transparent;border:1px solid color-mix(in srgb, var(--color-bg) 24%, transparent);color:var(--color-bg);cursor:pointer;transition:background .12s,border-color .12s" style-hover="background:color-mix(in srgb, var(--color-bg) 8%, transparent);border-color:var(--color-accent-400)" style-active="background:color-mix(in srgb, var(--color-bg) 14%, transparent)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:1.5;stroke-linecap:square"><path d="M6 6 18 18M18 6 6 18"></path></svg></button></div>
+        <sc-for list="{{ creditRows }}" as="c" hint-placeholder-count="8">
+          <div style="display:grid;grid-template-columns:150px minmax(0,1fr);gap:12px;padding:7px 0;border-bottom:1px solid color-mix(in srgb, var(--color-bg) 12%, transparent);font-size:13px">
+            <span style="font-family:var(--font-heading);font-weight:600;letter-spacing:.06em;text-transform:uppercase;font-size:12.5px;color:var(--color-accent-300)">{{ c.k }}</span>
+            <span style="color:color-mix(in srgb, var(--color-bg) 85%, transparent)">{{ c.v }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;difficulty&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Recruit&quot;,&quot;Veteran&quot;,&quot;Ace&quot;],&quot;default&quot;:&quot;Veteran&quot;,&quot;tsType&quot;:&quot;'Recruit' | 'Veteran' | 'Ace'&quot;,&quot;section&quot;:&quot;Gameplay&quot;},&quot;mouseSensitivity&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:0.4,&quot;max&quot;:2.5,&quot;step&quot;:0.1,&quot;default&quot;:1,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Gameplay&quot;},&quot;invertY&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Gameplay&quot;},&quot;graphics&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;High&quot;,&quot;Fast&quot;],&quot;default&quot;:&quot;High&quot;,&quot;tsType&quot;:&quot;'High' | 'Fast'&quot;,&quot;section&quot;:&quot;Gameplay&quot;},&quot;dayLength&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;18 min&quot;,&quot;36 min&quot;,&quot;72 min&quot;,&quot;Frozen&quot;],&quot;default&quot;:&quot;36 min&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;World&quot;}}">
+const LIVERIES = [['factory', 'Factory blue'], ['union', 'Union tan'], ['ash', 'Ash']];
+const ANIMS = [['Idle', 'a4IdlePose'], ['Walk', 'a5WalkCycle'], ['Run', 'a7RunCycle'], ['Jump jets', 'a8JumpJetFlying'], ['Overheat', 'a2ShutdownOverheat'], ['Start-up', 'a3StartupSequence'], ['Kick', 'c1KickRight'], ['Stomp', 'c1StompVehicle'], ['Destroyed', 'b2DeathFallDown1']];
+const TERRAIN = { orbit: 'Low Mars orbit, 400 km up', canyon: 'HiRISE DTM, canyon floor', craters: 'HiRISE DTM, cratered plain', plains: 'HiRISE DTM, delta plain', rugged: 'HiRISE DTM, broken highland' };
+const CONTROLS = [['Night vision', 'N'], ['Walk / strafe', 'W A S D'], ['Run', 'Shift'], ['Jump jets (HAWC) / jetpack (hold, on foot)', 'Space'], ['Aim / turn', 'Mouse'], ['Autocannon / rifle', 'Left mouse'], ['Missiles (lock first)', 'Right mouse'], ['Orbital strike on aim point', '1'], ['Supply drop', '2'], ['Leave or board a HAWC', 'E'], ['GASHR, eject a pilot', 'Q'], ['Chase / cockpit / cinematic', 'V'], ['Turn without mouse', '← →'], ['Pause', 'Esc'], ['Sound', 'M']];
+const pct = (x) => Math.round(Math.max(0, Math.min(1, x || 0)) * 100) + '%';
+const fmtLat = (v) => `${Math.abs(v).toFixed(1)}° ${v < 0 ? 'S' : 'N'}`;
+const fmtLon = (v) => `${Math.abs(v).toFixed(1)}° ${v < 0 ? 'W' : 'E'}`;
+const HATCH = 'repeating-linear-gradient(135deg, var(--color-bg) 0 3px, transparent 3px 6px)';
+const POWER = '#8fe3a8', GOLD = '#ffd58a', CELL_S = 140, MSL_AMMO = [24, 30, 40], MSL_SALVO = [4, 6, 8], DEF_LO = { cells: 4, rounds: 800, missiles: null };
+const BLANK_HUD = { mode: 'hawc', view: 'tp', unit: 'Striker', unitCls: 'Union sentry HAWC', armor: 1, armorTxt: '', heat: 0, fuel: 1, speed: 0, heading: '000', ammo: 24, mslReady: 1, lock: '', lockName: '', gashr: 5, prompt: null, objective: { title: '', line: '', steps: [] }, relay: null, msgs: [], time: '0:00', aimDist: 0, shut: false };
+const AG_ORDER = ['nasa', 'cnsa', 'ros', 'esa', 'isro', 'jaxa', 'uae'];
+const MKN = (n) => 'Mk ' + ['I', 'II', 'III'][(n || 1) - 1];
+const FOUNDER = ['Docking fee at the Ares Ring goes up 4% this sol. Orbit is not free.', 'Seven flags on one planet is six too many. Starfall will buy ore from whoever is left.', 'Ares Ring uptime 99.2%. Your landers are the other 0.8%.', 'If you lost a station today, you were not holding it hard enough.', 'Darken says the HAWCs belong to them. Spare parts ship from my factory.', 'Founder City has potatoes, oxygen and a launch tower. Everyone else has opinions.', 'Reminder: the Phobos Accord was a suggestion.'];
+const DARKEN = ['Every landing site was a contract we fulfilled. We are collecting.', 'Union pilots who leave their HAWC will be treated as salvage.', 'The Meson shields are not negotiable.'];
+const VIEWS = { tp: 'Chase', fp: 'Cockpit', cine: 'Cinematic' };
+
+class Component extends DCLogic {
+  state = { arming: null, loadout: { ...DEF_LO }, pickN: 0, pickKind: '', screen: 'boot', prog: 0, progLabel: 'Starting', missions: [], units: null, credits: [], selected: 'l1', completed: [], hangarTab: 'hawc', hangarUnit: 'striker', livery: 'factory', anim: 'a4IdlePose', hangarFrom: 'menu', hasClips: true, hud: null, paused: false, result: null, locked: false, lockFail: false, muted: false, overlay: null, view: 'tp', error: null, campV: 0, warTab: 'brief', selOp: null, introI: 0, news: null, mode: 'training', voice: true };
+  canvasRef = React.createRef(); layerRef = React.createRef(); radarRef = React.createRef(); compassRef = React.createRef(); hitRef = React.createRef(); vigRef = React.createRef(); fadeRef = React.createRef();
+
+  async componentDidMount() {
+    this.installHover();
+    this.onEnter = (e) => { if (e.key !== 'Enter' || e.repeat || /INPUT|TEXTAREA|SELECT/.test(e.target?.tagName || '')) return; const s = this.state; if (s.overlay) return;
+      if (s.arming) { if (!this.armVals?.().cantLaunch) this.launch(); } else if (s.screen === 'menu') this.goCampaign(); else if (s.screen === 'select') this.arm(s.selected); else if (s.screen === 'war' && s.selOp) this.deployOp(); else return; e.preventDefault(); };
+    window.addEventListener('keydown', this.onEnter);
+    try {
+      let saved = {};
+      try { saved = JSON.parse(localStorage.getItem('marsHawc.v1') || '{}'); } catch (e) {}
+      const lv = await import('./hawc/levels.js?v=18');
+      this.C = await import('./hawc/campaign.js?v=18'); this.AG = lv.AGENCIES;
+      this.camp = this.C.loadCampaign(); if (this.camp && this.camp.cells == null) this.camp.cells = 10;
+      this.setState({ catalog: (await import('./hawc/catalog.js?v=18')).CATALOG, missions: lv.MISSIONS, units: lv.UNITS, credits: lv.CREDITS, settings: saved.settings || {}, completed: saved.completed || [], livery: saved.livery || 'factory', loadout: { ...DEF_LO, ...(saved.loadout || {}) }, view: saved.view === 'fp' ? 'fp' : 'tp', voice: saved.voice !== false, selOp: this.camp?.ops?.[0]?.id || null });
+      const { createEngine } = await import('./hawc/engine.js?v=18');
+      const self = this, dom = {};
+      for (const [k, r] of [['layer', 'layerRef'], ['radar', 'radarRef'], ['compass', 'compassRef'], ['hit', 'hitRef'], ['vignette', 'vigRef'], ['fade', 'fadeRef']]) Object.defineProperty(dom, k, { get: () => self[r].current });
+      this.engine = await createEngine({ canvas: this.canvasRef.current, dom, emit: (t, d) => this.onEngine(t, d) });
+      this.engine.setVoice(saved.voice !== false);
+      this.engine.setCompleted(saved.completed || []);
+      if (this.camp) await this.engine.setSites(this.sitesFor());
+      await this.engine.showMenu();
+      this.setState({ screen: 'menu' });
+    } catch (e) { console.error(e); this.setState({ error: 'Could not start: ' + (e.message || e) }); }
+  }
+  componentWillUnmount() { window.removeEventListener('keydown', this.onEnter); clearTimeout(this.introTimer); this.engine?.dispose(); this.offHover?.(); }
+  // Target-lock hover on every button: corner brackets snap in, a scan line sweeps, the face lifts; press compresses and flashes
+  installHover() {
+    if (this.offHover) return;
+    const ACC = 'var(--color-accent-400)', on = new WeakMap(), reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const fx = (b) => {
+      let f = on.get(b); if (f) return f;
+      if (getComputedStyle(b).position === 'static') b.style.position = 'relative';
+      const box = document.createElement('span'); box.setAttribute('aria-hidden', 'true');
+      box.style.cssText = 'position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:inherit;z-index:2';
+      const sweep = document.createElement('span'); sweep.style.cssText = 'position:absolute;top:0;bottom:0;left:0;width:38%;opacity:0;background:linear-gradient(90deg,transparent,color-mix(in srgb, var(--color-accent-300) 28%, transparent),transparent);mix-blend-mode:screen';
+      box.appendChild(sweep);
+      const corners = [[0, 0], [1, 0], [0, 1], [1, 1]].map(([x, y]) => { const c = document.createElement('span'); c.style.cssText = `position:absolute;width:9px;height:9px;opacity:0;transform:translate(${x ? 7 : -7}px,${y ? 7 : -7}px);transition:opacity .16s ease-out, transform .2s cubic-bezier(.2,.9,.3,1.25);${x ? 'right' : 'left'}:-1px;${y ? 'bottom' : 'top'}:-1px;border-${x ? 'right' : 'left'}:2px solid ${ACC};border-${y ? 'bottom' : 'top'}:2px solid ${ACC}`; box.appendChild(c); return [c, x ? 1 : -1, y ? 1 : -1]; });
+      b.appendChild(box); f = { box, sweep, corners }; on.set(b, f); b.style.transition = [b.style.transition, 'transform .16s ease-out, filter .16s ease-out'].filter(Boolean).join(', '); return f;
+    };
+    const btn = (t) => { const b = t?.closest?.('button'); return b && !b.disabled && !b.closest('[data-nohover]') ? b : null; };
+    const enter = (ev) => {
+      const b = btn(ev.target); if (!b || b.contains(ev.relatedTarget)) return; const f = fx(b);
+      this.engine?.uiSound('hover');
+      if (reduce) { for (const [c] of f.corners) c.style.opacity = '1'; return; }
+      for (const [c] of f.corners) { c.style.opacity = '1'; c.style.transform = 'translate(0,0)'; }
+      f.sweep.animate([{ opacity: 0, transform: 'translateX(-110%)' }, { opacity: 1, offset: 0.2 }, { opacity: 0, transform: 'translateX(290%)' }], { duration: 520, easing: 'cubic-bezier(.3,.7,.2,1)' });
+      b.style.transform = 'translateY(-2px)'; b.style.filter = 'brightness(1.12)';
+    };
+    const leave = (ev) => {
+      const b = btn(ev.target); if (!b || b.contains(ev.relatedTarget)) return; const f = on.get(b); if (!f) return;
+      for (const [c, sx, sy] of f.corners) { c.style.opacity = '0'; c.style.transform = `translate(${sx * 5}px,${sy * 5}px)`; }
+      b.style.transform = ''; b.style.filter = '';
+    };
+    const down = (ev) => {
+      const b = btn(ev.target); if (!b) return; const f = fx(b); this.engine?.uiSound('press'); if (reduce) return;
+      b.animate([{ transform: 'translateY(1px) scale(.97)' }, { transform: 'translateY(-2px) scale(1)' }], { duration: 220, easing: 'cubic-bezier(.2,.9,.3,1.3)' });
+      const r = b.getBoundingClientRect(), fl = document.createElement('span');
+      fl.style.cssText = `position:absolute;left:${ev.clientX - r.left}px;top:${ev.clientY - r.top}px;width:8px;height:8px;margin:-4px 0 0 -4px;border:1px solid ${ACC};pointer-events:none`;
+      f.box.appendChild(fl);
+      fl.animate([{ opacity: 0.9, transform: 'scale(1) rotate(45deg)' }, { opacity: 0, transform: `scale(${Math.max(r.width, r.height) / 5}) rotate(45deg)` }], { duration: 420, easing: 'cubic-bezier(.2,.7,.2,1)' }).onfinish = () => fl.remove();
+    };
+    document.addEventListener('pointerover', enter); document.addEventListener('pointerout', leave); document.addEventListener('pointerdown', down);
+    this.offHover = () => { document.removeEventListener('pointerover', enter); document.removeEventListener('pointerout', leave); document.removeEventListener('pointerdown', down); };
+  }
+  save(patch) {
+    const cur = { settings: this.state.settings, completed: this.state.completed, livery: this.state.livery, view: this.state.view, voice: this.state.voice, loadout: this.state.loadout, ...patch };
+    try { localStorage.setItem('marsHawc.v1', JSON.stringify(cur)); } catch (e) {}
+  }
+  bump() { if (this.camp) this.C.saveCampaign(this.camp); this.setState((s) => ({ campV: s.campV + 1 })); }
+  sitesFor() {
+    const c = this.camp, by = {}; for (const o of c.ops) by[o.station] = o;
+    return this.C.STATIONS.map((st) => ({ id: st.id, lat: st.lat, lon: st.lon, label: st.city || st.site, color: this.AG[c.owners[st.id]]?.color || '#888888', mine: c.owners[st.id] === c.side, op: !!by[st.id], urgent: !!by[st.id]?.urgent }));
+  }
+  onEngine(t, d) {
+    const s = this.state;
+    if (t === 'progress') { if (s.screen === 'boot' || s.screen === 'loading') this.setState({ prog: d.p, progLabel: d.label }); }
+    else if (t === 'hud') this.setState({ hud: d });
+    else if (t === 'pickup' || t === 'cellswap') this.setState((st) => ({ pickN: st.pickN + 1, pickKind: t === 'cellswap' ? 'cell' : d }));
+    else if (t === 'site') {
+      if (s.screen === 'war' || (s.screen === 'menu' && this.camp)) { if (s.screen !== 'war') this.goWar(); this.pickStation(d); }
+      else if (s.screen === 'menu') this.goSelect(d);
+      else if (s.screen === 'select') this.select(d);
+    }
+    else if (t === 'pause') this.setState({ paused: d });
+    else if (t === 'lock') this.setState({ locked: d });
+    else if (t === 'lockfail') this.setState({ lockFail: true });
+    else if (t === 'view') { this.setState({ view: d }); this.save({ view: d }); }
+    else if (t === 'muted') this.setState({ muted: d });
+    else if (t === 'started') this.setState({ screen: 'mission', flight: !!d?.flight });
+    else if (t === 'hangar') this.setState({ hasClips: d.clips });
+    else if (t === 'result') {
+      if (document.pointerLockElement) document.exitPointerLock();
+      if (s.mode === 'campaign' && this.curOp) {
+        if (d.won) { const news = this.C.resolve(this.camp, this.curOp, true, d.stats); this.curOp = null; this.bump(); this.setState({ result: d, news }); this.engine?.say(d.title + '. ' + (news[1] || ''), { who: 'command', interrupt: true }); }
+        else { this.setState({ result: d, news: null }); this.engine?.say(d.title, { who: 'command', interrupt: true }); }
+        return;
+      }
+      let completed = s.completed;
+      if (d.won && !completed.includes(d.id)) { completed = [...completed, d.id]; this.engine.setCompleted(completed); this.save({ completed }); }
+      this.setState({ result: d, completed, news: null });
+    }
+  }
+  select(id) { this.setState({ selected: id }); this.engine?.focusSite(id); }
+  pickStation(id) { const op = this.camp?.ops.find((o) => o.station === id); if (op) this.setState({ selOp: op.id, warTab: 'brief' }); this.engine?.focusSite(id); }
+  nextOpen() { const m = this.state.missions.find((x) => !this.state.completed.includes(x.id)); return (m || this.state.missions[0])?.id || 'm1'; }
+  async goMenu() { this.setState({ screen: 'menu', overlay: null }); if (this.engine) { await this.engine.setSites(this.camp ? this.sitesFor() : null); this.engine.showMenu(); } }
+  async goSelect(id) { const s = id || this.state.selected; this.setState({ screen: 'select', selected: s, overlay: null, mode: 'training' }); if (this.engine) { await this.engine.setSites(null); this.engine.showSelect(s); } }
+  goCampaign() { this.camp ? this.goWar() : this.goAgency(); }
+  goAgency() { this.setState({ screen: 'agency', overlay: null }); this.engine?.showMenu(); }
+  async goWar(tab) {
+    if (!this.camp) return this.goAgency();
+    const op = this.camp.ops.find((o) => o.id === this.state.selOp) || this.camp.ops[0];
+    this.setState({ screen: 'war', overlay: null, mode: 'campaign', selOp: op?.id || null, warTab: tab || this.state.warTab });
+    if (this.engine) { await this.engine.setSites(this.sitesFor()); this.engine.showSelect(op?.station); }
+  }
+  chooseAgency(id) {
+    this.camp = this.C.newCampaign(id); this.bump();
+    this.setState({ screen: 'intro', introI: 0, selOp: this.camp.ops[0]?.id, warTab: 'brief' });
+    Promise.resolve(this.engine?.setSites(this.sitesFor())).then(() => this.engine?.hideSites());
+    this.introLines = this.C.STORY.intro(this.AG[id], id);
+    this.playIntro(0);
+  }
+  playIntro(i) {
+    clearTimeout(this.introTimer);
+    if (i >= this.introLines.length) { this.engine?.hush(); return this.goWar('brief'); }
+    this.setState({ introI: i });
+    this.engine?.say(this.introLines[i], { who: 'narrator', interrupt: true });
+    this.introTimer = setTimeout(() => this.playIntro(i + 1), Math.max(5200, this.introLines[i].length * 62));
+  }
+  openHangar(from) { this.setState({ screen: 'hangar', hangarFrom: from, hangarTab: 'hawc', hangarUnit: 'striker', anim: 'a4IdlePose' }); this.engine?.showHangar('striker', this.state.livery); }
+  showAsset(id) { this.setState({ hangarUnit: id, anim: 'a4IdlePose', tear: false }); this.engine?.showAsset(id); }
+  showUnit(type) { this.setState({ hangarUnit: type, anim: 'a4IdlePose', tear: false }); this.engine?.showHangar(type, this.state.livery); }
+  setting(k) { const p = this.props, s = this.state.settings || {}, D = { difficulty: 'Veteran', mouseSensitivity: 1, invertY: false, graphics: 'High', dayLength: '36 min' }; return s[k] ?? p[k] ?? D[k]; }
+  setSetting(k, v) { const settings = { ...(this.state.settings || {}), [k]: v }; this.setState({ settings }); this.save({ settings }); if (k === 'mouseSensitivity') this.engine?.setOptions({ sens: v }); if (k === 'invertY') this.engine?.setOptions({ invertY: v }); }
+  opts() {
+    const p = { difficulty: this.setting('difficulty'), mouseSensitivity: this.setting('mouseSensitivity'), invertY: this.setting('invertY'), dayLength: this.setting('dayLength') };
+    return { loadout: this.pendingLoadout || { ...DEF_LO, missiles: 24 }, livery: this.state.livery, difficulty: p.difficulty ?? 'Veteran', sens: p.mouseSensitivity ?? 1, invertY: !!p.invertY, view: this.state.view, dayLen: ({ '18 min': 18, '36 min': 36, '72 min': 72, Frozen: 0 })[p.dayLength ?? '36 min'] ?? 36 };
+  }
+  deploy(target) {
+    if (!this.engine) return;
+    const isL = typeof target === 'object';
+    this.setState({ screen: 'loading', ...(isL ? {} : { selected: target, mode: 'training' }), prog: 0, progLabel: 'Building terrain', result: null, news: null, paused: false, hud: null, overlay: null, locked: false });
+    this.engine.setQuality(this.setting('graphics') === 'Fast' ? 0.5 : 1);
+    this.engine.startMission(target, this.opts()).catch((e) => { console.error(e); this.setState({ screen: isL ? 'war' : 'select', error: String(e.message || e) }); });
+  }
+  deployOp() {
+    const op = this.camp?.ops.find((o) => o.id === this.state.selOp); if (!op) return;
+    this.curOp = op; this.curL = this.C.missionFor(this.camp, op);
+    this.setState({ mode: 'campaign' }); this.arm(this.curL);
+  }
+  arm(target) {
+    const Lm = typeof target === 'object' ? target : this.state.missions.find((m) => m.id === target); if (Lm?.type === 'flight') { this.setState({ selected: target }); return this.deploy(target); } if (typeof target !== 'object') this.setState({ selected: target }); this.setState({ arming: { target } }); }
+  armInfo() {
+    const s = this.state, t = s.arming?.target, camp = typeof t === 'object' && !!this.camp, mk = camp ? this.camp.mk.msl || 1 : 1;
+    const salvo = MSL_SALVO[mk - 1], mmax = MSL_AMMO[mk - 1], lo = s.loadout;
+    const v = { cells: lo.cells, rounds: lo.rounds, missiles: Math.min(mmax, Math.max(salvo, Math.round((lo.missiles ?? mmax) / salvo) * salvo)) };
+    const stock = camp ? (this.camp.cells ?? 0) : 8; if (camp) v.cells = Math.max(1, Math.min(v.cells, stock || 1));
+    const cost = camp ? Math.max(0, (v.rounds - 400) / 200) * 15 + Math.max(0, (v.missiles - 2 * salvo) / salvo) * 20 : 0;
+    return { t, camp, mk, salvo, mmax, v, cost, stock, site: typeof t === 'object' ? (t?.city || t?.site) : (s.missions.find((x) => x.id === t)?.site || '') };
+  }
+  // Never block a launch: extras the ore can't pay for are trimmed back to the standard (free) load.
+  fitLoad(A) {
+    const v = { ...A.v }; if (!A.camp) return { v, cost: 0, trimmed: false };
+    const c = (x) => Math.max(0, (x.rounds - 400) / 200) * 15 + Math.max(0, (x.missiles - 2 * A.salvo) / A.salvo) * 20, ore = this.camp.ore; let trimmed = false;
+    while (c(v) > ore && v.rounds > 400) { v.rounds -= 200; trimmed = true; }
+    while (c(v) > ore && v.missiles > 2 * A.salvo) { v.missiles -= A.salvo; trimmed = true; }
+    return { v, cost: c(v), trimmed };
+  }
+  launch() {
+    const A = this.armInfo(); if (!A.t) return; const F = this.fitLoad(A);
+    if (A.camp) { this.camp.ore = Math.max(0, this.camp.ore - F.cost); this.camp.cells = Math.max(0, (this.camp.cells ?? 0) - F.v.cells); this.bump(); }
+    this.pendingLoadout = { ...F.v }; this.save({ loadout: this.state.loadout }); this.setState({ arming: null }); this.deploy(A.t);
+  }
+  armVals() {
+    if (!this.state.arming) return { rows: [], site: '', costTxt: '', oreTxt: '', launchLabel: '', cantLaunch: true, launch: () => {}, costColor: '' };
+    const A = this.armInfo(), v = A.v, set = (k, x) => this.setState((st) => ({ loadout: { ...st.loadout, [k]: x } }));
+    const row = (k, label, note, val, min, max, step, cost, col) => ({ label, note, value: String(val), atMin: val <= min, atMax: val >= max, cost,
+      dec: () => set(k, Math.max(min, val - step)), inc: () => set(k, Math.min(max, val + step)),
+      pips: Array.from({ length: Math.round(max / step) }, (_, i) => ({ bg: i < Math.round(val / step) ? col : 'color-mix(in srgb, var(--color-bg) 14%, transparent)' })) });
+    const rows = [
+      row('cells', 'Power cells', `About ${Math.round(v.cells * CELL_S / 60)} min on the move. Running and jump jets burn faster. Wrecked HAWCs drop more.`, v.cells, 1, A.camp ? Math.max(1, Math.min(8, A.stock)) : 8, 1, A.camp ? `${A.stock} in store from your plants` : 'Free in training', POWER),
+      row('rounds', 'Autocannon rounds', `About ${Math.round(v.rounds / 9)} s of sustained fire. Ammo crates add 300.`, v.rounds, 200, 1600, 200, A.camp ? '400 standard, then 15 t per 200' : 'Free in training', 'var(--color-accent-300)'),
+      row('missiles', 'Missiles', `${v.missiles / A.salvo} salvos of ${A.salvo}. Pod capacity ${A.mmax} at ${MKN(A.mk)}.`, v.missiles, A.salvo, A.mmax, A.salvo, A.camp ? `${2 * A.salvo} standard, then 20 t a salvo` : 'Free in training', 'var(--color-accent-300)'),
+    ];
+    const short = A.camp && this.camp.ore < A.cost, F = this.fitLoad(A);
+    return { rows, site: A.site, costTxt: A.camp ? `${A.cost} t` : 'Free', costColor: short ? '#ffb38a' : 'var(--color-bg)', oreTxt: A.camp ? (short ? `${this.camp.ore} t in store. Launch trims to ${F.v.rounds} rounds and ${F.v.missiles} missiles (${F.cost} t).` : `${this.camp.ore} t of ore in store`) : 'Training range',
+      launchLabel: `Launch to ${A.site}`, cantLaunch: false, launch: () => this.launch() };
+  }
+  componentDidUpdate() {
+    const s = this.state, ps = this._ps || {}; if (ps.screen === 'hangar' && s.screen !== 'hangar' && s.tear) { this.setState({ tear: false }); this.engine?.hangarTeardown(false); } this._ps = { screen: s.screen, arming: s.arming, result: s.result, paused: s.paused, overlay: s.overlay, warTab: s.warTab, selOp: s.selOp };
+    if (ps.screen !== s.screen || (!ps.arming && s.arming) || (!ps.result && s.result) || ps.paused !== s.paused || ps.overlay !== s.overlay || ps.warTab !== s.warTab || ps.selOp !== s.selOp) this.enterAnim();
+  }
+  enterAnim() {
+    requestAnimationFrame(() => { let i = 0; for (const el of document.querySelectorAll('[data-enter]')) { if (el.__in) continue; el.__in = true; if (!el.animate) continue; el.animate([{ opacity: 0, transform: 'translateY(14px)' }, { opacity: 1, transform: 'none' }], { duration: 420, delay: Math.min(i++, 8) * 45, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'backwards' }); } });
+  }
+  leaveMission(dest) {
+    this.setState({ result: null, paused: false, hud: null, news: null });
+    const p = this.engine?.quitMission(); Promise.resolve(p).then(() => (dest === 'war' ? this.goWar('feed') : dest === 'menu' ? this.goMenu() : this.goSelect()));
+  }
+  acceptLoss() { if (this.curOp) { const news = this.C.resolve(this.camp, this.curOp, false); this.curOp = null; this.bump(); } this.leaveMission('war'); }
+  warVals() {
+    const c = this.camp, C = this.C, AG = this.AG, s = this.state;
+    if (!c) return { ops: [], tabs: [], stats: [], b: { rows: [] }, armory: [], feed: [], act: '', actLine: '' };
+    const side = AG[c.side], enemyOf = (op) => (op.kind === 'defend' ? op.attacker : op.owner === c.side ? 'darken' : op.owner);
+    const ops = c.ops.map((op) => { const st = C.station(op.station), en = AG[enemyOf(op)] || AG.darken, on = op.id === s.selOp;
+      return { kicker: op.urgent ? 'Under attack' : C.OPS[op.kind].label, title: C.OPS[op.kind].title(st), sub: `${st.site} · ${en.name}`, threat: 'I'.repeat(op.threat), color: en.color, kickColor: op.urgent ? '#ffb38a' : 'var(--color-accent-300)',
+        bg: on ? 'color-mix(in srgb, var(--color-accent-900) 78%, transparent)' : 'color-mix(in srgb, #030405 62%, transparent)', border: on ? 'var(--color-accent-400)' : op.urgent ? '#ffb38a' : 'color-mix(in srgb, var(--color-bg) 18%, transparent)',
+        onClick: () => { this.setState({ selOp: op.id, warTab: 'brief' }); this.engine?.focusSite(op.station); } }; });
+    const op = c.ops.find((o) => o.id === s.selOp) || c.ops[0];
+    let b = { kicker: '', title: 'No operations', probe: '', coords: '', text: '', rows: [] };
+    if (op) {
+      const st = C.station(op.station), L = C.missionFor(c, op), own = AG[c.owners[st.id]];
+      const reward = { capture: `Station, +${st.yield} t a sol`, destroy: `Station, +${st.yield} t a sol`, hijack: `Station, +${st.yield} t a sol`, raid: `${Math.round(st.yield * 2.5)} t, their output halved`, intercept: '520 t of ore', escort: '480 t of ore', lander: '650 t of ore', defend: 'Keep the station' }[op.kind];
+      b = { kicker: `${C.OPS[op.kind].label} · Threat ${'I'.repeat(op.threat)}`, title: L.title, probe: `${st.site} · ${st.probe}`, coords: `${fmtLat(st.lat)} ${fmtLon(st.lon)}`, text: L.brief,
+        rows: [{ k: 'Held by', v: own?.full || own?.name || '' }, { k: 'Enemy', v: (AG[enemyOf(op)] || AG.darken).full }, { k: 'Mine output', v: `${st.yield} t a sol` }, { k: 'Ice', v: `${C.ICE_LABEL[C.iceOf(st)]}, ${C.iceOf(st)} cell${C.iceOf(st) > 1 ? 's' : ''} a sol` }, { k: 'Conditions', v: L.intel }, { k: 'Reward', v: reward }] };
+    }
+    const armory = [...C.ARMORY.map((a) => { const lv = c.mk[a.id] || 1, cost = a.cost[lv], can = lv < 3 && c.ore >= cost;
+      return { name: `${a.name} ${MKN(lv)}`, desc: lv < 3 ? `${a.desc[lv - 1]}. Next: ${a.desc[lv]}.` : a.desc[lv - 1] + '.', pips: [1, 2, 3].map((i) => ({ bg: i <= lv ? 'var(--color-accent-300)' : 'transparent' })), btn: lv < 3 ? `Upgrade to ${MKN(lv + 1)} · ${cost} t` : 'Fully upgraded', disabled: !can, op: can ? '1' : '0.45', onClick: () => { if (C.buy(c, 'mk', a.id)) this.bump(); } }; }),
+      ...C.SUPPORT.map((x) => { const can = c.ore >= x.cost; return { name: `${x.name} [${x.key}]`, desc: `${x.desc} You have ${c.support[x.id] || 0}.`, pips: [], btn: `Buy one · ${x.cost} t`, disabled: !can, op: can ? '1' : '0.45', onClick: () => { if (C.buy(c, 'support', x.id)) this.bump(); } }; })];
+    const ini = (n) => n.replace(/[^A-Z]/g, '').slice(0, 2) || n.slice(0, 2).toUpperCase();
+    const feed = [...(c.log || []).map((t) => ({ who: `${side.name} Command`, handle: `@${c.side}_ops`, ini: ini(side.name), color: side.color, text: t })),
+      { who: 'The Founder', handle: '@founder · Starfall', ini: 'SF', color: '#3a3b3e', text: FOUNDER[c.turn % FOUNDER.length] },
+      { who: 'Darken Syndicate', handle: '@darken', ini: 'DS', color: AG.darken.color, text: DARKEN[c.turn % DARKEN.length] },
+      { who: 'The Founder', handle: '@founder · Starfall', ini: 'SF', color: '#3a3b3e', text: FOUNDER[(c.turn + 3) % FOUNDER.length] }];
+    const tab = s.warTab;
+    return {
+      act: C.actOf(c).title, actLine: C.actOf(c).line, agency: side.name, f0: side.flag[0], f1: side.flag[1], f2: side.flag[2], sol: c.turn, ore: c.ore,
+      stats: [{ k: 'Sol', v: String(c.turn) }, { k: 'Ore', v: `${c.ore} t` }, { k: 'Fuel cells', v: `${c.cells ?? 0} +${C.cellIncome(c)}` }, { k: 'Points', v: (c.score || 0).toLocaleString('en-US') }, { k: 'Income a sol', v: `+${C.income(c)} t` }, { k: 'Stations', v: `${C.held(c).length} / ${C.STATIONS.length}` }],
+      ops, b, armory, feed, isBrief: tab === 'brief', isArmory: tab === 'armory', isFeed: tab === 'feed',
+      tabs: [['brief', 'Briefing'], ['armory', 'Armory'], ['feed', 'Red Feed']].map(([id, label]) => ({ label, line: tab === id ? 'var(--color-accent-400)' : 'transparent', color: tab === id ? 'var(--color-bg)' : 'color-mix(in srgb, var(--color-bg) 60%, transparent)', onClick: () => this.setState({ warTab: id }) })),
+    };
+  }
+  // The HUD updates 12 times a second. When nothing but the HUD changed, reuse the rest of the last render.
+  renderVals() {
+    const s = this.state, p = this._rvS, c = this.camp, key = c ? `${c.turn}|${c.ore}|${c.cells}|${c.score}` : '', L = this.curL;
+    if (this._rv && p && key === this._rvK && L === this._rvL) { let same = true; for (const k in s) if (k !== 'hud' && s[k] !== p[k]) { same = false; break; } if (same) for (const k in p) if (!(k in s)) { same = false; break; } if (same) { this._rvS = s; return { ...this._rv, ...this.hudVals() }; } }
+    const out = this.fullVals(); this._rv = out; this._rvS = s; this._rvK = key; this._rvL = L; return out;
+  }
+  hudVals() {
+    const s = this.state;
+    const h = s.hud || BLANK_HUD, inHawc = h.mode === 'hawc', mk = h.mk || {}, sup = h.support || {};
+    const steps = (h.objective.steps || []).map((x) => ({ text: x.text, box: x.state === 'done' ? 'var(--color-accent-300)' : 'transparent', opacity: x.state === 'todo' ? '0.5' : '1' }));
+    const hud = {
+      ...h, fp: inHawc && h.view === 'fp', inHawc, onFoot: !inHawc, steps,
+      msgList: (h.msgs || []).slice(-3).map((t) => ({ text: t })), aimTxt: h.aimDist && h.aimDist < 650 ? h.aimDist + ' m' : '',
+      armorPct: Math.round(h.armor * 100), armorW: pct(h.armor), armorFill: h.armor < 0.3 ? HATCH : 'var(--color-accent-300)', armorLabel: inHawc ? 'Armor' : 'Suit integrity',
+      heatW: pct(h.heat), heatPct: h.noPower ? 'No power' : h.shut ? 'Shut down' : pct(h.heat), heatLabel: 'Heat', heatFill: h.heat > 0.8 ? HATCH : 'var(--color-bg)',
+      fuelW: pct(h.fuel), fuelPct: pct(h.fuel),
+      cellW: pct(h.cell ?? 1), cellFill: (h.cell ?? 1) < 0.2 ? 'repeating-linear-gradient(135deg, #8fe3a8 0 3px, transparent 3px 6px)' : POWER, powerTxt: h.noPower ? 'No power' : `${pct(h.cell ?? 1)} · ${h.cells ?? 0} spare`, powerColor: h.noPower || ((h.cell ?? 1) < 0.2 && !h.cells) ? '#ffb38a' : 'var(--color-bg)', cellPips: Array.from({ length: Math.min(8, h.cells || 0) }, (_, i) => ({ i })), cells: h.cells ?? 0,
+      hasNvLabel: !!h.nv || (h.night || 0) > 0.45, nvLabel: h.nv ? 'Night vision on' : 'Night vision', nvBg: h.nv ? '#8fe3a8' : 'color-mix(in srgb, var(--color-accent-900) 70%, transparent)', nvColor: h.nv ? '#030405' : 'var(--color-bg)',
+      hasRelay: h.relay != null, relayPct: Math.round((h.relay || 0) * 100), relayW: pct(h.relay), barLabel: h.barLabel || 'Relay integrity',
+      hasPrompt: !!h.prompt, promptKey: h.prompt?.key || '', promptText: h.prompt?.text || '',
+      hasLock: !!h.lock && inHawc, lockBg: h.lock === 'Locked' ? 'var(--color-accent)' : 'color-mix(in srgb, var(--color-accent-900) 75%, transparent)',
+      gashrBoxes: [0, 1, 2, 3, 4].map((i) => ({ bg: i < h.gashr ? 'var(--color-accent-300)' : 'transparent' })),
+      viewLabel: VIEWS[h.view] || 'Chase',
+      weapons: inHawc
+        ? [{ key: 'LMB', name: `Autocannon ${MKN(mk.ac)}`, count: h.noPower ? 'No power' : h.shut ? 'Offline' : String(h.rounds ?? 0), ready: pct(1 - h.heat) }, { key: 'RMB', name: `Missiles ×${h.salvo || 4} ${MKN(mk.msl)}`, count: String(h.ammo), ready: pct(h.mslReady) }, { key: '1', name: 'Orbital strike', count: String(sup.strike ?? 0), ready: sup.strike ? '100%' : '0%' }, { key: '2', name: 'Supply drop', count: String(sup.drop ?? 0), ready: sup.drop ? '100%' : '0%' }]
+        : [{ key: 'LMB', name: `PRIF44 rifle ${MKN(mk.rifle)}`, count: '∞', ready: '100%' }, { key: 'Q', name: 'GASHR launcher', count: String(h.gashr), ready: pct(h.gashr / 5) }, { key: 'SPC', name: `Jetpack ${MKN(mk.jet)}`, count: pct(h.jp ?? 1), ready: pct(h.jp ?? 1) }, { key: '1', name: 'Orbital strike', count: String(sup.strike ?? 0), ready: sup.strike ? '100%' : '0%' }],
+    };
+    const ARM = 'polygon(0 0,100% 0,100% 40%,80% 48%,80% 100%,20% 100%,20% 48%,0 40%)', LEG = 'polygon(12% 0,88% 0,88% 76%,100% 86%,100% 100%,0 100%,0 86%,12% 76%)';
+    const PB = [['cockpit', 24, 0, 16, 10, 'polygon(22% 0,78% 0,100% 100%,0 100%)'], ['torso', 17, 12, 30, 26, 'polygon(0 0,100% 0,100% 68%,78% 100%,22% 100%,0 68%)'], ['lArm', 2, 13, 13, 28, ARM], ['rArm', 49, 13, 13, 28, ARM], ['lLeg', 18, 40, 13, 38, LEG], ['rLeg', 33, 40, 13, 38, LEG]], pp = h.parts || {};
+    const PN = { cockpit: 'Cockpit', torso: 'Torso', lArm: 'Left arm', rArm: 'Right arm', lLeg: 'Left leg', rLeg: 'Right leg' };
+    hud.hasShield = inHawc && !!h.hasSh;
+    hud.shieldW = pct(h.shield || 0); hud.shieldTxt = !h.shieldOn ? 'Off' : (h.shield || 0) <= 0 ? 'Down' : pct(h.shield || 0); hud.shieldTxtColor = !h.shieldOn || (h.shield || 0) <= 0 ? '#ffb38a' : 'var(--color-bg)';
+    hud.shieldFill = (h.shield || 0) <= 0 ? HATCH : '#9fd0ff';
+    hud.diag = PB.map(([id, x, y, w, ht, clip]) => { const k = pp[id] ?? 1, hit = h.partHit === id; return { x: x + 'px', y: y + 'px', w: w + 'px', h: ht + 'px', clip, bg: hit ? '#f2f2f3' : k <= 0 ? 'repeating-linear-gradient(135deg, #ffb38a 0 2px, transparent 2px 5px)' : k < 0.3 ? '#ffb38a' : k < 0.6 ? '#e0b53a' : 'color-mix(in srgb, var(--color-accent-300) 70%, transparent)', bd: k <= 0 ? '#ffb38a' : 'transparent' }; });
+    const worst = Object.entries(pp).sort((a, b) => a[1] - b[1])[0];
+    hud.partDot = !worst || worst[1] >= 0.6 ? '#8fe3a8' : worst[1] < 0.3 ? '#ffb38a' : '#e0b53a';
+    hud.partNote = worst && worst[1] < 0.6 ? `${PN[worst[0]]} at ${Math.round(worst[1] * 100)}%${(worst[0] === 'lLeg' || worst[0] === 'rLeg') && worst[1] < 0.3 ? ', speed down' : ''}` : 'All parts holding';
+    return {
+      hud,
+      ptsFeed: React.createElement('div', { style: { position: 'absolute', left: 'calc(50% + 54px)', top: 'calc(50% - 74px)', display: 'flex', flexDirection: 'column', gap: 2, pointerEvents: 'none' } }, (h.pts || []).map((p) => React.createElement('div', { key: p.k, style: { display: 'flex', alignItems: 'baseline', gap: 8, whiteSpace: 'nowrap', animation: 'hawcPop 2.6s cubic-bezier(.2,.8,.2,1) forwards', textShadow: '0 1px 3px rgba(0,0,0,.7)' } }, React.createElement('span', { style: { fontFamily: 'var(--font-heading)', fontWeight: 600, fontSize: 22, color: GOLD, fontVariantNumeric: 'tabular-nums' } }, '+' + p.n), React.createElement('span', { style: { fontFamily: 'var(--font-heading)', fontWeight: 600, fontSize: 11, letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--color-bg)' } }, p.why)))),
+      scoreEl: React.createElement('span', { key: 's' + (h.score || 0), style: { display: 'inline-block', color: GOLD, animation: h.score ? 'hawcBump .45s ease-out' : 'none' } }, `${(h.score || 0).toLocaleString('en-US')} pts`),
+    };
+  }
+  sw(on, toggle, light) { return { toggle, aria: on ? 'true' : 'false', trackBg: on ? (light ? 'var(--color-text)' : 'var(--color-accent-400)') : 'transparent', trackBorder: on ? (light ? 'var(--color-text)' : 'var(--color-accent-400)') : `color-mix(in srgb, ${light ? 'var(--color-text)' : 'var(--color-bg)'} 45%, transparent)`, knobX: on ? '19px' : '3px', knobBg: on ? (light ? '#f2f2f3' : 'var(--color-accent-900)') : (light ? 'var(--color-text)' : 'var(--color-bg)') }; }
+  fullVals() {
+    const s = this.state, P = this.props, c = this.camp, camp = s.mode === 'campaign';
+    const ms = s.missions;
+    const selM = ms.find((m) => m.id === s.selected) || ms[0] || { n: '01', title: '', site: '', region: '', brief: '', typeLabel: '', lat: 0, lon: 0, time: '', sunElev: 0, intel: '', terrain: 'canyon' };
+    const livLabel = (LIVERIES.find((l) => l[0] === s.livery) || LIVERIES[0])[1];
+    const sel = { ...selM, coords: `${fmtLat(selM.lat)}  ${fmtLon(selM.lon)}`, rows: [{ k: 'Terrain', v: TERRAIN[selM.terrain] }, selM.type === 'flight' ? { k: 'Local time', v: selM.time } : { k: 'Local time', v: `${selM.time}, sun ${selM.sunElev}° up` }, { k: 'Hostiles', v: selM.intel }, selM.type === 'flight' ? { k: 'Your craft', v: selM.craft } : { k: 'Your HAWC', v: `Striker, ${livLabel}` }] };
+    if (camp && this.curL) Object.assign(sel, { n: this.curL.n, site: this.curL.site, typeLabel: this.curL.typeLabel, title: this.curL.title });
+    const missionCards = ms.map((m) => {
+      const on = m.id === s.selected, done = s.completed.includes(m.id);
+      return { ...m, status: done ? 'Held' : 'Contested', bg: on ? 'color-mix(in srgb, var(--color-accent-900) 80%, transparent)' : 'color-mix(in srgb, #030405 45%, transparent)', border: on ? 'var(--color-accent-400)' : 'color-mix(in srgb, var(--color-bg) 20%, transparent)', onClick: () => this.select(m.id) };
+    });
+    const U = s.units || {};
+    const ud = U[s.hangarUnit] || (s.catalog || []).find((c) => c.id === s.hangarUnit) || { name: '', cls: '', spec: [], credit: '' };
+    const hu = { name: ud.name, cls: ud.cls, rows: (ud.spec || []).map(([k, v]) => ({ k, v })), credit: ud.credit };
+    const isRig = s.hangarUnit === 'striker' || s.hangarUnit === 'talon';
+    const r = s.result || { won: false, title: '', reason: '', stats: {} };
+    const idx = ms.findIndex((m) => m.id === s.selected), next = ms[idx + 1];
+    const cells = [{ k: 'Points', v: (r.stats?.points ?? 0).toLocaleString('en-US') }, { k: 'Time', v: r.stats?.time ?? '—' }, { k: 'Kills', v: String(r.stats?.kills ?? 0) }, { k: 'Accuracy', v: r.stats?.accuracy ?? '—' }, { k: 'HAWCs taken', v: String(r.stats?.stolen ?? 0) }];
+    const res = camp
+      ? { ...r, cells, kicker: `Sol ${c?.turn ?? ''} · ${r.won ? 'Operation complete' : 'Operation failed'}`, hasNews: !!(s.news && s.news.length), news: (s.news || []).map((t) => ({ text: t })),
+          hasPrimary: true, primaryLabel: r.won ? 'Back to the war room' : 'Retry', onPrimary: () => (r.won ? this.leaveMission('war') : this.arm(this.curL)), hasRetry: false, retryLabel: '', onRetry: () => {}, backLabel: r.won ? 'Main menu' : 'Withdraw', onBack: () => (r.won ? this.leaveMission('menu') : this.acceptLoss()) }
+      : { ...r, cells, kicker: `Mission ${selM.n} · ${r.won ? 'Complete' : 'Failed'}`, hasNews: false, news: [], hasPrimary: r.won && !!next, primaryLabel: `Next: ${next?.title || ''}`, onPrimary: () => next && this.arm(next.id), hasRetry: true, retryLabel: r.won ? 'Play again' : 'Retry', onRetry: () => this.arm(s.selected), backLabel: 'Training', onBack: () => this.leaveMission('select') };
+    const scr = s.screen;
+    const navTab = (id, label, on, fn) => ({ label, line: on ? 'var(--color-accent-400)' : 'transparent', color: on ? 'var(--color-bg)' : 'color-mix(in srgb, var(--color-bg) 62%, transparent)', onClick: fn });
+    const nav = [navTab('c', 'Campaign', scr === 'war' || scr === 'agency', () => this.goCampaign()), navTab('t', 'Training', scr === 'select', () => this.goSelect()), navTab('h', 'Hangar', scr === 'hangar', () => this.openHangar(scr === 'war' ? 'war' : scr === 'select' ? 'select' : 'menu'))];
+    const agencyCards = c && scr !== 'agency' ? [] : AG_ORDER.map((id) => { const A = this.AG?.[id] || { name: id, full: '', flag: ['#444', '#666', '#444'] }, st = (this.C?.STATIONS || []).filter((x) => x.owner === id), ore = st.reduce((t, x) => t + x.yield, 0);
+      return { name: A.name, full: A.full, f0: A.flag[0], f1: A.flag[1], f2: A.flag[2], sites: st.map((x) => ({ site: x.city || x.site, probe: x.probe })), count: `${st.length} station${st.length === 1 ? '' : 's'}`, ore: `${ore} t a sol`, onClick: () => this.chooseAgency(id) }; });
+    const lines = this.introLines || [];
+    return {
+      canvasRef: this.canvasRef, layerRef: this.layerRef, radarRef: this.radarRef, compassRef: this.compassRef, hitRef: this.hitRef, vigRef: this.vigRef, fadeRef: this.fadeRef,
+      isGroundHud: !s.flight, clickHint: s.flight ? 'Mouse steers · W/S throttle · A/D roll · Esc pauses' : 'Mouse aims · WASD walks · Esc pauses', isBoot: scr === 'boot', isMenu: scr === 'menu' && !s.overlay, isSelect: scr === 'select', isHangar: scr === 'hangar', isLoading: scr === 'loading', isMission: scr === 'mission',
+      isAgency: scr === 'agency', isIntro: scr === 'intro', isWar: scr === 'war',
+      error: s.error, progW: pct(s.prog), progLabel: s.progLabel,
+      ctaLabel: c ? 'Continue campaign' : 'New campaign', ctaSub: c ? `${this.AG?.[c.side]?.name} · Sol ${c.turn} · ${this.C.held(c).length} stations` : '',
+      primaryCta: () => this.goCampaign(),
+      menuLinks: [...(c ? [{ label: 'New campaign', onClick: () => this.goAgency() }] : []), { label: 'Training', onClick: () => this.goSelect() }, { label: 'Hangar', onClick: () => this.openHangar('menu') }, ...(c ? [] : [{ label: 'Controls', onClick: () => this.setState({ overlay: 'controls' }) }])],
+      soundLabel: s.muted ? 'Sound off' : 'Sound on', voiceLabel: s.voice ? 'Voice on' : 'Voice off',
+      toggleVoice: () => { const v = !s.voice; this.engine?.setVoice(v); this.setState({ voice: v }); this.save({ voice: v }); },
+      nav, agencyCards, war: this.warVals(), deployOp: () => this.deployOp(), openHangarWar: () => this.openHangar('war'),
+      introLine: lines[s.introI] || '', introKicker: `Mars · 2061 · ${s.introI + 1} / ${lines.length}`, introDots: lines.map((_, i) => ({ bg: i <= s.introI ? 'var(--color-accent-300)' : 'color-mix(in srgb, var(--color-bg) 25%, transparent)' })),
+      nextIntro: () => this.playIntro(s.introI + 1), skipIntro: (e) => { e.stopPropagation(); this.playIntro(1e9); },
+      openSelect: () => this.goSelect(), goMenu: () => this.goMenu(),
+      openHangarMenu: () => this.openHangar('menu'), openHangarSelect: () => this.openHangar('select'),
+      openControls: () => this.setState({ overlay: 'controls' }), openCredits: () => this.setState({ overlay: 'credits' }), closeOverlay: () => this.setState({ overlay: null }), stop: (e) => e.stopPropagation(),
+      toggleMute: () => { const m = !s.muted; this.engine?.setMuted(m); this.setState({ muted: m }); },
+      missionCards, sel, deploySel: () => this.arm(s.selected),
+      hangarTabs: [['hawc', 'HAWC', () => this.showUnit('striker')], ['intel', 'Enemy', () => this.showUnit('talon')], ['base', 'Base', () => this.showAsset('relay')], ['craft', 'Craft', () => this.showAsset('lander')], ['crew', 'Crew', () => this.showAsset('pilot')]].map(([id, label, go]) => ({ label, checked: s.hangarTab === id, onClick: () => { this.setState({ hangarTab: id }); go(); } })),
+      isAssetTab: (s.catalog || []).some((c) => c.cat === s.hangarTab), assetList: [...(s.hangarTab === 'hawc' ? [{ id: 'striker', name: 'Striker', unit: true }] : []), ...(s.catalog || []).filter((c) => c.cat === s.hangarTab)].map((c) => ({ name: c.name, bg: s.hangarUnit === c.id ? 'var(--color-text)' : 'transparent', color: s.hangarUnit === c.id ? 'var(--color-bg)' : 'var(--color-text)', onClick: () => (c.unit ? this.showUnit(c.id) : this.showAsset(c.id)) })),
+      isHawcTab: s.hangarTab === 'hawc' && s.hangarUnit === 'striker', tearBg: s.tear ? 'var(--color-text)' : 'transparent', tearColor: s.tear ? 'var(--color-bg)' : 'var(--color-text)', tearState: s.tear ? 'On' : 'Off', toggleTear: () => { const t = !s.tear; this.setState({ tear: t }); this.engine?.hangarTeardown(t); }, isIntelTab: s.hangarTab === 'intel', canDeployFromHangar: s.hangarFrom === 'select',
+      hangarBack: () => (s.hangarFrom === 'select' ? this.goSelect() : s.hangarFrom === 'war' ? this.goWar() : this.goMenu()),
+      swSound: this.sw(!s.muted, () => { const m = !s.muted; this.engine?.setMuted(m); this.setState({ muted: m }); }), swVoice: this.sw(!!s.voice, () => { const v = !s.voice; this.engine?.setVoice(v); this.setState({ voice: v }); this.save({ voice: v }); }),
+      swTear: this.sw(!!s.tear, () => { const t = !s.tear; this.setState({ tear: t }); this.engine?.hangarTeardown(t); }, true),
+      hu, hasClips: isRig && !s.tear, showRigHint: isRig && !s.tear,
+      liveries: LIVERIES.map(([id, label]) => ({ label, checked: s.livery === id, onClick: () => { this.setState({ livery: id }); this.save({ livery: id }); this.engine?.showHangar('striker', id); } })),
+      intel: ['talon', 'stalker', 'vulture', 'boulder'].map((t) => ({ name: U[t]?.name || t, bg: s.hangarUnit === t ? 'var(--color-text)' : 'transparent', color: s.hangarUnit === t ? 'var(--color-bg)' : 'var(--color-text)', onClick: () => this.showUnit(t) })),
+      anims: ANIMS.map(([label, name]) => ({ label, bg: s.anim === name ? 'var(--color-text)' : 'color-mix(in srgb, var(--color-bg) 70%, transparent)', color: s.anim === name ? 'var(--color-bg)' : 'var(--color-text)', onClick: () => { this.setState({ anim: name }); this.engine?.hangarPlay(name); } })),
+      ...this.hudVals(),
+      showClickOverlay: scr === 'mission' && !s.locked && !s.paused && !s.result && !s.lockFail,
+      lockFailNote: scr === 'mission' && s.lockFail && !s.paused && !s.result,
+      showPause: scr === 'mission' && s.paused && !s.result && !s.overlay && !s.arming,
+      resume: () => this.engine?.resume(), restart: () => this.arm(camp ? this.curL : s.selected),
+      quit: () => this.leaveMission(camp ? 'war' : 'select'), quitLabel: camp ? 'Quit to war room' : 'Quit to training',
+      nextMission: () => next && this.arm(next.id),
+      toggleView: () => { const v = s.view === 'tp' ? 'fp' : 'tp'; this.engine?.setView(v); this.setState({ view: v }); this.save({ view: v }); },
+      viewName: VIEWS[s.view === 'cine' ? 'tp' : s.view] || 'Chase',
+      hasResult: scr === 'mission' && !!s.result && !s.arming, res, showArm: !!s.arming, arm: this.armVals(), closeArm: () => this.setState({ arming: null }),
+      pickFlash: s.pickN && scr === 'mission' ? React.createElement('div', { key: 'f' + s.pickN, style: { position: 'absolute', inset: 0, pointerEvents: 'none', boxShadow: `inset 0 0 140px 24px ${s.pickKind === 'cell' ? 'rgba(143,227,168,.55)' : s.pickKind === 'supply' ? 'rgba(148,188,227,.5)' : 'rgba(255,213,138,.5)'}`, animation: 'hawcFlash .8s ease-out forwards' } }) : null,
+      showControls: s.overlay === 'controls', showCredits: s.overlay === 'credits',
+      setRows: (() => { const seg = (k, list) => list.map((o) => { const on = this.setting(k) === o[0]; return { label: o[1], onClick: () => this.setSetting(k, o[0]), bg: on ? 'var(--color-accent-400)' : 'transparent', color: on ? 'var(--color-accent-900)' : 'var(--color-bg)', border: on ? 'var(--color-accent-400)' : 'color-mix(in srgb, var(--color-bg) 28%, transparent)' }; });
+        const sens = this.setting('mouseSensitivity'), none = { isRange: false, min: 0, max: 1, step: 1, value: 0, valueTxt: '', onRange: null, isSwitch: false, swLabel: '', sw: this.sw(false, () => {}) };
+        const gfx = this.setting('graphics') !== 'Fast', inv = this.setting('invertY') === true;
+        return [
+          { ...none, label: 'Difficulty', note: 'How hard Darken hits you', opts: seg('difficulty', [['Recruit', 'Recruit'], ['Veteran', 'Veteran'], ['Ace', 'Ace']]) },
+          { ...none, isRange: true, label: 'Mouse', note: 'Aim sensitivity', min: 0.4, max: 2.5, step: 0.1, value: sens, valueTxt: Number(sens).toFixed(1), onRange: (e) => this.setSetting('mouseSensitivity', parseFloat(e.target.value)), opts: [] },
+          { ...none, label: 'Invert Y', note: 'Flight-stick pitch', isSwitch: true, swLabel: inv ? 'On' : 'Off', sw: this.sw(inv, () => this.setSetting('invertY', !inv)), opts: [] },
+          { ...none, label: 'Film look', note: 'Off runs faster: no bloom or grain, lower resolution', isSwitch: true, swLabel: gfx ? 'On' : 'Off', sw: this.sw(gfx, () => this.setSetting('graphics', gfx ? 'Fast' : 'High')), opts: [] },
+          { ...none, label: 'Day length', note: 'One Mars sol of play', opts: seg('dayLength', [['18 min', '18 min'], ['36 min', '36 min'], ['72 min', '72 min'], ['Frozen', 'Frozen']]) },
+        ]; })(),
+      setNote: s.screen === 'mission' ? 'Mouse and Invert Y apply now. Difficulty, graphics and day length apply from your next launch.' : 'Saved on this device.',
+      controls: CONTROLS.map(([a, k]) => ({ a, k })),
+      creditRows: (s.credits || []).map(([k, v]) => ({ k, v })),
+    };
+  }
+}
+</script>
+</body>
+</html>
