@@ -1,7 +1,7 @@
 // Mission goals beyond defend/destroy/hijack, plus support call-ins, pickups, jetpack, views and HAWC death sequences.
-import { THREE, clamp, damp } from './lib.js?v=19';
-import { rover } from './base.js?v=19';
-import { AGENCIES } from './levels.js?v=19';
+import { THREE, clamp, damp } from './lib.js?v=22';
+import { rover } from './base.js?v=22';
+import { AGENCIES } from './levels.js?v=22';
 
 const V = () => new THREE.Vector3(), _a = V(), _b = V(), _c = V();
 const MK = { acCd: [0.11, 0.095, 0.08], acDmg: [14, 18, 25], salvo: [4, 6, 8], ammo: [24, 30, 40], mslDmg: [45, 50, 62], lock: [0.7, 0.5, 0.4], rifle: [3, 5, 9], rifleCd: [0.12, 0.1, 0.15], jet: [60, 100, 170], armor: [1, 1.25, 1.5] };

@@ -1,5 +1,5 @@
 // Film look for missions: soft bloom on hot things, a warm grade, vignette, light grain. Falls back to a plain render if anything fails to load.
-import { THREE } from './lib.js?v=19';
+import { THREE } from './lib.js?v=22';
 
 const BASE = 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/postprocessing/';
 const GRADE = {

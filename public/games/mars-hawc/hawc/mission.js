@@ -1,12 +1,12 @@
-import { THREE, clamp, lerp, damp, wrapAngle, rng, D2R } from './lib.js?v=19';
-import { SKIES, buildWorld, buildRelay, buildMeson, buildShield, buildDropship, buildCrates, WORLD } from './world.js?v=19';
-import { Actor, unitTemplate, makePilot, loadPilot } from './units.js?v=19';
-import { installGoals, MK } from './goals.js?v=19';
-import { installArmor } from './armor.js?v=19';
-import { AGENCIES } from './levels.js?v=19';
-import { UNITS, WEAPONS } from './levels.js?v=19';
-import { FX } from './fx.js?v=19';
-import { darkenWreck } from './assets.js?v=19';
+import { THREE, clamp, lerp, damp, wrapAngle, rng, D2R } from './lib.js?v=22';
+import { SKIES, buildWorld, buildRelay, buildMeson, buildShield, buildDropship, buildCrates, WORLD } from './world.js?v=22';
+import { Actor, unitTemplate, makePilot, loadPilot } from './units.js?v=22';
+import { installGoals, MK } from './goals.js?v=22';
+import { installArmor } from './armor.js?v=22';
+import { AGENCIES } from './levels.js?v=22';
+import { UNITS, WEAPONS } from './levels.js?v=22';
+import { FX } from './fx.js?v=22';
+import { darkenWreck } from './assets.js?v=22';
 
 const V = () => new THREE.Vector3();
 const _a = V(), _b = V(), _c = V(), _d = V(), _e = V(), _f = V(), _g = V(), _p = V();

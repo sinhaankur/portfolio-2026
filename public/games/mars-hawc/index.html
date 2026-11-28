@@ -718,11 +718,11 @@ class Component extends DCLogic {
     try {
       let saved = {};
       try { saved = JSON.parse(localStorage.getItem('marsHawc.v1') || '{}'); } catch (e) {}
-      const lv = await import('./hawc/levels.js?v=19');
-      this.C = await import('./hawc/campaign.js?v=19'); this.AG = lv.AGENCIES;
+      const lv = await import('./hawc/levels.js?v=22');
+      this.C = await import('./hawc/campaign.js?v=22'); this.AG = lv.AGENCIES;
       this.camp = this.C.loadCampaign(); if (this.camp && this.camp.cells == null) this.camp.cells = 10;
-      this.setState({ catalog: (await import('./hawc/catalog.js?v=19')).CATALOG, missions: lv.MISSIONS, units: lv.UNITS, credits: lv.CREDITS, settings: saved.settings || {}, completed: saved.completed || [], livery: saved.livery || 'factory', loadout: { ...DEF_LO, ...(saved.loadout || {}) }, view: saved.view === 'fp' ? 'fp' : 'tp', voice: saved.voice !== false, selOp: this.camp?.ops?.[0]?.id || null });
-      const { createEngine } = await import('./hawc/engine.js?v=19');
+      this.setState({ catalog: (await import('./hawc/catalog.js?v=22')).CATALOG, missions: lv.MISSIONS, units: lv.UNITS, credits: lv.CREDITS, settings: saved.settings || {}, completed: saved.completed || [], livery: saved.livery || 'factory', loadout: { ...DEF_LO, ...(saved.loadout || {}) }, view: saved.view === 'fp' ? 'fp' : 'tp', voice: saved.voice !== false, selOp: this.camp?.ops?.[0]?.id || null });
+      const { createEngine } = await import('./hawc/engine.js?v=22');
       const self = this, dom = {};
       for (const [k, r] of [['layer', 'layerRef'], ['radar', 'radarRef'], ['compass', 'compassRef'], ['hit', 'hitRef'], ['vignette', 'vigRef'], ['fade', 'fadeRef']]) Object.defineProperty(dom, k, { get: () => self[r].current });
       this.engine = await createEngine({ canvas: this.canvasRef.current, dom, emit: (t, d) => this.onEngine(t, d) });

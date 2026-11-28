@@ -2,7 +2,7 @@
 // The shield is a magnetic deflector fed by the fuel cell. It is invisible until a round lands, flares at the impact point,
 // soaks 90% of each hit until it collapses, and recharges once the machine has been out of contact for 3 s, drawing cell power.
 // Hits are resolved to a body part (cockpit, torso, arms, legs); damaged parts spark and smoke, and failing legs slow the walk.
-import { THREE } from './lib.js?v=19';
+import { THREE } from './lib.js?v=22';
 
 export const PARTS = ['cockpit', 'torso', 'lArm', 'rArm', 'lLeg', 'rLeg'];
 const WEIGHT = { cockpit: 0.1, torso: 0.34, lArm: 0.14, rArm: 0.14, lLeg: 0.16, rLeg: 0.16 };

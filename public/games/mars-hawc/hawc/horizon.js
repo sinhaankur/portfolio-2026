@@ -1,6 +1,6 @@
 // Real horizon: MOLA heights (NASA Goddard, 4 px/degree) around the actual landing site, out to 160 km,
 // dropped for the planet's curvature and folded into a shell just inside the sky so angles stay true.
-import { THREE, fbm } from './lib.js?v=19';
+import { THREE, fbm } from './lib.js?v=22';
 
 let molaP = null;
 const loadMola = () => molaP || (molaP = fetch(new URL('./mola.json', import.meta.url)).then((r) => r.json()).catch(() => ({})));

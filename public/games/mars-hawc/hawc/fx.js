@@ -1,4 +1,4 @@
-import { THREE } from './lib.js?v=19';
+import { THREE } from './lib.js?v=22';
 
 function softTex() {
   const c = document.createElement('canvas'); c.width = c.height = 64;

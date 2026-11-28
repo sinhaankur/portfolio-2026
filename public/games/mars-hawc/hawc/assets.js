@@ -1,4 +1,4 @@
-import { THREE, GLTFLoader, cloneSkinned, ASSET } from './lib.js?v=19';
+import { THREE, GLTFLoader, cloneSkinned, ASSET } from './lib.js?v=22';
 
 const gltfLoader = new GLTFLoader();
 const texLoader = new THREE.TextureLoader();

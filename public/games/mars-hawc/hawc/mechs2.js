@@ -1,7 +1,7 @@
 // Gun-walker HAWC family (original designs, layout taken from the user's reference turntable): reverse-knee legs with drum joints and three-toed feet,
 // boxy armoured cab with a raked windscreen, weapon arms on shoulder pylons, roof kit. Metres, feet at y = 0, facing +Z.
-import { THREE } from './lib.js?v=19';
-import { cbox, decal, chev } from './mechs.js?v=19';
+import { THREE } from './lib.js?v=22';
+import { cbox, decal, chev } from './mechs.js?v=22';
 
 const UNION = { paint: 0xb2afa6, trim: 0x2a2c2f, accent: 0xd8742a };
 export const WALKERS = {

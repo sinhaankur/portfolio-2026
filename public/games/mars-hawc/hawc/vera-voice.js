@@ -14,7 +14,12 @@
 // Vera's canonical voice — matches the native app + site default (af_heart:
 // "warm, natural, clear — the best for her presence"). Keep in lock-step.
 const VERA_VOICE = 'af_heart';
-const KOKORO_URL = 'https://esm.sh/kokoro-js@1.2.1';
+// Load kokoro-js from jsdelivr's /+esm build (same CDN the game already uses for
+// three.js). IMPORTANT: use this build, NOT plain esm.sh/kokoro-js — that one's
+// unenv fs polyfill throws "fs.readFile is not implemented" inside phonemizer, so
+// generate() always fails and she never speaks. The /+esm build inlines deps
+// correctly and generates audio in-browser. (Verified head-to-head.)
+const KOKORO_URL = 'https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/+esm';
 const MODEL_ID = 'onnx-community/Kokoro-82M-v1.0-ONNX';
 
 let ttsPromise = null;      // Promise<KokoroTTS|null>, created once
@@ -22,6 +27,26 @@ let audioEl = null;         // reusable <audio> for robust playback/resume
 let audioCtx = null;        // the real "audio allowed" gate
 let unlocked = false;
 let loadFailed = false;     // once true, stop trying — go straight to fallback
+let ready = false;          // true once the model is loaded and can speak with no delay
+
+// onnxruntime (the model's WASM backend) logs two INFORMATIONAL "[W:onnxruntime
+// ... VerifyEachNodeIsAssignedToAnEp]" notices through console.error when the
+// model loads. They aren't errors — just EP-assignment chatter — but at error
+// level they'd trip the site's smoke test (which fails on any console error) and
+// clutter a player's console. Filter out ONLY those exact onnxruntime lines once;
+// everything else passes through untouched.
+(function silenceOnnxEpNotice() {
+  try {
+    if (typeof console === 'undefined' || console.__hawcOnnxFiltered) return;
+    const orig = console.error.bind(console);
+    console.error = (...args) => {
+      const first = args && args[0];
+      if (typeof first === 'string' && first.indexOf('onnxruntime') !== -1 && first.indexOf('VerifyEachNodeIsAssignedToAnEp') !== -1) return;
+      orig(...args);
+    };
+    console.__hawcOnnxFiltered = true;
+  } catch (e) { /* leave console as-is */ }
+})();
 
 // Call SYNCHRONOUSLY inside a user gesture (click/keydown) BEFORE any await, so
 // the browser lets us play audio later even though generation is async. Mirrors
@@ -74,6 +99,10 @@ export function loadVera(onProgress) {
         device,
         progress_callback: (p) => { try { onProgress && onProgress((p && p.progress) || 0); } catch (e) {} },
       });
+      // The model is loaded — from here on Vera can speak any line with no load
+      // delay, so mark her ready. (This is what lets say() choose her voice; it
+      // must NOT wait for a first speakVera call, or she'd never be picked.)
+      ready = true;
       return tts;
     } catch (e) {
       loadFailed = true;
@@ -83,10 +112,14 @@ export function loadVera(onProgress) {
   return ttsPromise;
 }
 
-// True once Kokoro has actually finished loading and is ready to speak THIS turn
-// with no load delay — engine.js uses this to decide Vera-now vs instant-fallback.
-let ready = false;
+// `ready` (declared with the module state above) — true once the Kokoro model has
+// finished loading and can speak with no delay; engine.js uses it to decide
+// Vera-now vs instant-fallback.
 export function veraReady() { return ready; }
+// `veraLoading` — true while the model is on its way (load started, not failed,
+// not yet ready). Lets the intro narration wait briefly for her instead of
+// firing the fallback.
+export function veraLoading() { return !!ttsPromise && !ready && !loadFailed; }
 
 // Speak `text` in Vera's voice. Returns true if she spoke, false if she couldn't
 // (caller then uses the browser voice). `speed` ~0.92 matches the site. Plays via

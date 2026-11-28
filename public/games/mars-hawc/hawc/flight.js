@@ -1,8 +1,8 @@
 // Orbital flight: Ares Ring, 400 km over Mars. Newtonian flight with an assist toggle, ENG/WPN/SHD power split,
 // cannon + missiles, and the core loop in space: knock a ship's engines out, match speed, EVA across and take it.
-import { THREE, clamp, damp } from './lib.js?v=19';
-import { loadTex } from './assets.js?v=19';
-import { loadPilot, makePilot } from './units.js?v=19';
+import { THREE, clamp, damp } from './lib.js?v=22';
+import { loadTex } from './assets.js?v=22';
+import { loadPilot, makePilot } from './units.js?v=22';
 
 const V3 = THREE.Vector3, FWD = new V3(0, 0, 1), UPV = new V3(0, 1, 0);
 const _a = new V3(), _b = new V3(), _c = new V3(), _q = new THREE.Quaternion(), _q2 = new THREE.Quaternion();

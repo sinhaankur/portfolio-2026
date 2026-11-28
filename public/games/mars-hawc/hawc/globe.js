@@ -1,7 +1,7 @@
-import { THREE, clamp, damp, D2R, wrapAngle } from './lib.js?v=19';
-import { loadTex } from './assets.js?v=19';
-import { MISSIONS } from './levels.js?v=19';
-import { buildCosmos } from './cosmos.js?v=19';
+import { THREE, clamp, damp, D2R, wrapAngle } from './lib.js?v=22';
+import { loadTex } from './assets.js?v=22';
+import { MISSIONS } from './levels.js?v=22';
+import { buildCosmos } from './cosmos.js?v=22';
 
 export const latLon = (lat, lon, r = 1, out = new THREE.Vector3()) => {
   const phi = (lon + 180) / 360 * Math.PI * 2, la = lat * D2R;

@@ -1,8 +1,8 @@
 // The real sky around Mars, for right now: NASA SVS Deep Star Maps 2020 Milky Way (Gaia/Hipparcos/Tycho), 9,096 Yale Bright Star Catalogue stars,
 // the Sun at its true size from Mars, and the planets placed with JPL Keplerian elements (Standish, 1800–2050). Everything sits in the J2000
 // equatorial frame, rotated onto the globe with the IAU Mars pole and prime meridian, so the terminator on the globe is today's.
-import { THREE } from './lib.js?v=19';
-import { loadTex } from './assets.js?v=19';
+import { THREE } from './lib.js?v=22';
+import { loadTex } from './assets.js?v=22';
 
 const D = Math.PI / 180, EPS = 23.43928 * D, AU_KM = 149597870.7;
 const EL = { // a, e, I, L, varpi, Omega  +  rates per Julian century

@@ -1,6 +1,6 @@
 // Sky, sun and moons over a sol, clouds, wind, dust devils.
-import { THREE, clamp, lerp, sstep } from './lib.js?v=19';
-import { loadTex } from './assets.js?v=19';
+import { THREE, clamp, lerp, sstep } from './lib.js?v=22';
+import { loadTex } from './assets.js?v=22';
 
 const D2R = Math.PI / 180;
 let dotTex;

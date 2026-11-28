@@ -1,12 +1,12 @@
-import { THREE } from './lib.js?v=19';
-import { makePost } from './post.js?v=19';
-import { onProgress, resetProgress } from './assets.js?v=19';
-import { Sfx } from './audio.js?v=19';
-import { GlobeView } from './globe.js?v=19';
-import { HangarView } from './hangar.js?v=19';
-import { Mission } from './mission.js?v=19';
-import { MISSIONS } from './levels.js?v=19';
-import { loadVera, unlockVera, speakVera, stopVera, veraReady } from './vera-voice.js?v=19';
+import { THREE } from './lib.js?v=22';
+import { makePost } from './post.js?v=22';
+import { onProgress, resetProgress } from './assets.js?v=22';
+import { Sfx } from './audio.js?v=22';
+import { GlobeView } from './globe.js?v=22';
+import { HangarView } from './hangar.js?v=22';
+import { Mission } from './mission.js?v=22';
+import { MISSIONS } from './levels.js?v=22';
+import { loadVera, unlockVera, speakVera, stopVera, veraReady, veraLoading } from './vera-voice.js?v=22';
 
 export async function createEngine({ canvas, dom, emit }) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance', preserveDrawingBuffer: true });
@@ -16,56 +16,74 @@ export async function createEngine({ canvas, dom, emit }) {
   let voices = []; const pickVoices = () => { try { voices = speechSynthesis.getVoices().filter((v) => /^en/i.test(v.lang)); } catch (e) {} };
   try { pickVoices(); speechSynthesis.onvoiceschanged = pickVoices; } catch (e) {}
 
-  // The instant, offline fallback — the browser's own speech, used until Vera's
-  // neural voice has loaded and whenever it's unavailable (no WebGPU, offline).
+  // The instant, offline fallback — the browser's own speech. Used only until
+  // Vera's neural voice has loaded, and whenever it's unavailable (no WebGPU,
+  // offline). Since the whole point is Vera, the fallback prefers a FEMALE voice
+  // for every speaker so the pre-load moment already sounds like her, not a man.
   const sayBrowser = (text, { who = 'command', interrupt = false } = {}) => {
     if (typeof speechSynthesis === 'undefined') return;
     try {
       if (interrupt) speechSynthesis.cancel(); else if (speechSynthesis.pending) return;
       const u = new SpeechSynthesisUtterance(text.replace(/\[(\w)\]/g, '$1').replace(/·/g, ','));
-      const pref = { command: /Daniel|Google UK English Male|Arthur|Alex|Male/i, pilot: /Samantha|Google US English|Karen|Female/i, narrator: /Daniel|Arthur|Google UK English Male|Fred/i, founder: /Fred|Alex|Aaron/i }[who];
-      u.voice = voices.find((v) => pref && pref.test(v.name)) || voices[0] || null;
-      u.rate = who === 'narrator' ? 0.92 : 1.04; u.pitch = who === 'narrator' ? 0.8 : who === 'founder' ? 1.15 : 0.92; u.volume = 0.9;
+      // Prefer a warm female voice (Vera-like) across the board; fall back through
+      // other female voices, then anything.
+      const female = /Samantha|Google US English|Karen|Victoria|Tessa|Moira|Fiona|Serena|Female/i;
+      u.voice = voices.find((v) => female.test(v.name)) || voices[0] || null;
+      u.rate = who === 'narrator' ? 0.94 : 1.0; u.pitch = 1.0; u.volume = 0.9;
       speechSynthesis.speak(u);
     } catch (e) {}
   };
 
-  // Mars HAWC now speaks in VERA'S voice — the warm neural Kokoro af_heart voice
-  // from the site, one voice for every speaker. It loads on-device in the
-  // background; until it's ready (and if it can't load at all) lines fall back to
-  // the instant browser voice, so gameplay is never blocked waiting on her.
-  // A tiny per-speaker speed keeps a touch of pacing: narration slower, chatter
-  // a hair quicker.
+  // Mars HAWC speaks in VERA'S voice — the warm neural Kokoro af_heart voice from
+  // the site, one voice for every speaker. She loads on-device; the instant the
+  // model is ready every line is hers. Until then (and if she can't load at all)
+  // lines use the female browser fallback, so gameplay never waits on her.
+  // A tiny per-speaker speed keeps a touch of pacing.
   const veraSpeed = (who) => (who === 'narrator' ? 0.9 : who === 'pilot' || who === 'founder' ? 0.97 : 0.95);
   const say = (text, { who = 'command', interrupt = false } = {}) => {
     if (!E.voiceOn || E.sfx.muted) return;
     if (veraReady()) {
-      // Vera is loaded — speak the line in her voice; if that particular line
-      // fails for any reason, catch to the browser voice so nothing goes silent.
+      // Vera is loaded — speak the line in her voice; if that line fails for any
+      // reason, catch to the browser voice so nothing goes silent.
       speakVera(text, { speed: veraSpeed(who), interrupt }).then((spoke) => {
         if (!spoke) sayBrowser(text, { who, interrupt });
       }).catch(() => sayBrowser(text, { who, interrupt }));
+    } else if (who === 'narrator' && veraLoading()) {
+      // Narration isn't fast combat chatter — it's the cinematic intro/briefing,
+      // the most important lines to hear in HER voice. If Vera is still loading,
+      // hold this line up to ~3.5s for her rather than firing the male... the
+      // female fallback. If she's ready in time she speaks it; otherwise fall back.
+      let spoken = false;
+      const t0 = Date.now();
+      const tryVera = () => {
+        if (spoken) return;
+        if (veraReady()) { spoken = true; speakVera(text, { speed: veraSpeed(who), interrupt: true }).then((ok) => { if (!ok) sayBrowser(text, { who, interrupt }); }); return; }
+        if (Date.now() - t0 > 3500) { spoken = true; sayBrowser(text, { who, interrupt }); return; }
+        setTimeout(tryVera, 250);
+      };
+      tryVera();
     } else {
       // Not ready yet (still loading, or unavailable) — instant browser voice.
       sayBrowser(text, { who, interrupt });
     }
   };
 
-  // Begin loading Vera's voice on the player's FIRST gesture (click/key) — not on
-  // construction. That first gesture is real intent to play, it's the moment we
-  // can unlock audio output (required so the async neural audio is allowed to
-  // play later), and it keeps the heavy model off the critical path for anyone
-  // who only glances at the menu. By the time the first mission line speaks she's
-  // usually ready; until then lines use the instant browser voice.
+  // Start loading Vera's voice as EARLY as possible so she's ready before the
+  // first lines play — she takes several seconds, and the opening narration is
+  // exactly what should be in her voice. We kick the model load immediately
+  // (unless a headless smoke run opts out via window.__hawcNoVera), and ALSO
+  // unlock audio output on the player's first gesture (required so her async
+  // neural audio is allowed to play later, outside a fresh gesture).
+  try { if (!window.__hawcNoVera) loadVera(); } catch (e) {}
   try {
-    const startVera = () => {
+    const unlockOnce = () => {
       try { unlockVera(); } catch (e) {}
-      try { loadVera(); } catch (e) {}
-      window.removeEventListener('pointerdown', startVera);
-      window.removeEventListener('keydown', startVera);
+      try { if (!window.__hawcNoVera) loadVera(); } catch (e) {}
+      window.removeEventListener('pointerdown', unlockOnce);
+      window.removeEventListener('keydown', unlockOnce);
     };
-    window.addEventListener('pointerdown', startVera);
-    window.addEventListener('keydown', startVera);
+    window.addEventListener('pointerdown', unlockOnce);
+    window.addEventListener('keydown', unlockOnce);
   } catch (e) {}
   const E = {
     voiceOn: true, say,
@@ -166,7 +184,7 @@ export async function createEngine({ canvas, dom, emit }) {
       clearMission(); globe.hideMarkers(); resetProgress();
       const L = typeof id === 'object' ? id : MISSIONS.find((m) => m.id === id);
       emit('progress', { p: 0, label: 'Building ' + L.site });
-      const m = L.type === 'flight' ? new (await import('./flight.js?v=19')).FlightMission(E, L, opts) : new Mission(E, L, opts); mission = m;
+      const m = L.type === 'flight' ? new (await import('./flight.js?v=22')).FlightMission(E, L, opts) : new Mission(E, L, opts); mission = m;
       await m.load();
       if (mission !== m) return;
       E.paused = false; setActive(m, m.world.exposure); m.resize(E.size.w, E.size.h);
